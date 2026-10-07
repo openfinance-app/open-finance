@@ -159,6 +159,30 @@ public record FinancialQuestion(
                 && !text.matches("(and|et|what|about|how|in|for|en|pour|qu|est|il|\\s)+");
     }
 
+    /**
+     * Conservatively reject an unresolved subject instead of silently using all
+     * accounts/categories.
+     */
+    public boolean hasUnresolvedSubject() {
+        String remainder = text;
+        for (Month month : Month.values()) {
+            for (Locale locale : List.of(Locale.ENGLISH, Locale.FRENCH)) {
+                remainder =
+                        remainder.replaceAll(
+                                "\\b"
+                                        + normalize(month.getDisplayName(TextStyle.FULL, locale))
+                                        + "\\b",
+                                " ");
+            }
+        }
+        remainder = remainder.replaceAll("\\b\\d+(?:-\\d+)*\\b", " ");
+        remainder =
+                remainder.replaceAll(
+                        "\\b(what|how|much|did|do|does|i|we|my|our|me|is|are|was|were|have|has|had|the|a|an|of|on|in|for|to|from|and|with|at|by|all|total|overall|across|please|show|tell|current|currently|now|this|last|previous|month|year|week|today|yesterday|balance|balances|account|accounts|bank|checking|savings|spend|spent|spending|expenses|expense|income|earn|earned|earnings|cash|flow|money|combien|ai|je|nous|mon|mes|ma|notre|nos|moi|est|sont|etait|etaient|le|la|les|un|une|de|du|des|en|pour|sur|au|aux|et|avec|tout|tous|toutes|ensemble|actuel|actuelle|actuels|actuelles|maintenant|ce|cet|cette|mois|annee|semaine|dernier|derniere|precedent|precedente|aujourd|hui|hier|solde|soldes|compte|comptes|bancaire|bancaires|courant|courants|epargne|depense|depenses|depensees|revenu|revenus|gagne|gagnes|argent|quel|quels|quelle|quelles|s|il|vous|plait)\\b",
+                        " ");
+        return !remainder.isBlank();
+    }
+
     public boolean mentions(String expression) {
         return Pattern.compile(expression).matcher(text).find();
     }

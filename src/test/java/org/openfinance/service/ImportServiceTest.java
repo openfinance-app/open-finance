@@ -227,6 +227,7 @@ class ImportServiceTest {
                         defaultCurrencyProvider,
                         importProperties,
                         accountCurrencyService,
+                        new CurrencyTypeResolver(currencyRepository),
                         importConfirmationExecutor,
                         userSettingsRepository,
                         operationHistoryService);

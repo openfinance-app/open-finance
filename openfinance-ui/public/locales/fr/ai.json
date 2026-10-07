@@ -71,6 +71,8 @@
     "delete": "Supprimer la conversation",
     "error": "Impossible de charger ou modifier l’historique. Veuillez réessayer.",
     "offline": "L’IA est indisponible. Vos conversations enregistrées restent accessibles.",
-    "loading": "Chargement de la conversation…"
-  }
+    "loading": "Chargement de la conversation…",
+    "hiddenTitle": "Conversation {{id}}"
+  },
+  "contentHidden": "Le contenu du chat est masqué lorsque les montants sont masqués."
 }

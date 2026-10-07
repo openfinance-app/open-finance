@@ -117,6 +117,11 @@ public class AIService {
                                 .map(AIDto.Message::getContent)
                                 .toList());
 
+        String clarification =
+                context.startsWith("[CLARIFICATION] ")
+                        ? context.substring("[CLARIFICATION] ".length())
+                        : null;
+
         // 2a. Add language instruction for non-English locales
         String languageInstruction = buildLanguageInstruction(locale);
         String fullContext =
@@ -136,7 +141,10 @@ public class AIService {
         // WebClient's Netty event-loop threads — pass the needed value in explicitly instead.
         String aiResponse;
         try {
-            aiResponse = verifiedAnswer(request.getQuestion(), fullContext, locale, deadline);
+            aiResponse =
+                    clarification != null
+                            ? clarification
+                            : verifiedAnswer(request.getQuestion(), fullContext, locale, deadline);
         } catch (RuntimeException ex) {
             throw ex instanceof org.openfinance.service.ai.AIProviderException providerError
                     ? providerError

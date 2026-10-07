@@ -711,7 +711,9 @@
     "sources": "Official tax rules",
     "invalid": "Enter non-negative annual amounts and an income year of 2025 or 2026.",
     "assumptions": "The comparison uses the entered annual household receipts for micro thresholds. It does not apply transitional eligibility, special property schemes, deficit carryforwards or personal tax allowances. Depreciation remains a simplified estimate. Mortgage interest deductions and land exclusion from depreciation are not modeled. The household minimum micro-BIC allowance is allocated in proportion to rental receipts.",
-    "rates": "Income year {{year}}: long-term micro-BIC ceiling €{{threshold}}; furnished social levies 18.6%, unfurnished 17.2%."
+    "rates": "Income year {{year}}: long-term micro-BIC ceiling €{{threshold}}; furnished social levies 18.6%, unfurnished 17.2%.",
+    "requiresUnfurnished": "Requires an unfurnished rental.",
+    "requiresFurnished": "Requires a furnished rental."
   },
   "validation": {
     "propertyPrice": "Enter a valid positive property price.",

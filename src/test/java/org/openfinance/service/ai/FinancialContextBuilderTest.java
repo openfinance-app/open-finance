@@ -63,6 +63,108 @@ class FinancialContextBuilderTest {
         return source;
     }
 
+    @Test
+    void doesNotSubstituteCurrentOrAggregateFactsForUnresolvedScopes() throws Exception {
+        String context =
+                "[FACT] "
+                        + objectMapper.writeValueAsString(
+                                new FinancialFact(
+                                        "net_worth",
+                                        "Net worth",
+                                        "6660",
+                                        "EUR",
+                                        LocalDate.now().toString(),
+                                        ""))
+                        + "\n"
+                        + "[FACT] "
+                        + objectMapper.writeValueAsString(
+                                new FinancialFact(
+                                        "account.1",
+                                        "Balance",
+                                        "6160",
+                                        "EUR",
+                                        LocalDate.now().toString(),
+                                        "Household checking"));
+        String historical =
+                builder.forQuestion(
+                        1L, Locale.ENGLISH, "What was my net worth on 2026-08-01?", context);
+        assertThat(historical)
+                .startsWith("[CLARIFICATION]")
+                .contains("historical")
+                .doesNotContain("[FACT]");
+        String unknown =
+                builder.forQuestion(
+                        1L,
+                        Locale.ENGLISH,
+                        "What is the balance of my Lunar savings account?",
+                        context);
+        assertThat(unknown)
+                .startsWith("[CLARIFICATION]")
+                .contains("exact name")
+                .doesNotContain("[FACT]");
+    }
+
+    @Test
+    void frenchGroceryAliasKeepsCategoryScope() {
+        org.openfinance.entity.Category groceries =
+                org.openfinance.entity.Category.builder()
+                        .id(41L)
+                        .name("Groceries")
+                        .nameKey("category.groceries")
+                        .type(org.openfinance.entity.CategoryType.EXPENSE)
+                        .build();
+        when(categoryRepository.findByUserId(1L)).thenReturn(List.of(groceries));
+        Transaction purchase = tx("200", "EUR", TransactionType.EXPENSE);
+        purchase.setCategoryId(41L);
+        Transaction other = tx("120", "EUR", TransactionType.EXPENSE);
+        other.setCategoryId(42L);
+        when(transactionRepository.findByUserIdAndDateBetween(
+                        1L, LocalDate.of(2026, 9, 1), LocalDate.of(2026, 9, 30)))
+                .thenReturn(List.of(purchase, other));
+        String context =
+                builder.forQuestion(
+                        1L,
+                        Locale.FRENCH,
+                        "Combien ai-je dépensé en courses en septembre 2026 ?",
+                        "");
+        assertThat(facts(context)).containsOnlyKeys("requested.category.41");
+        assertThat(facts(context).get("requested.category.41").amount()).isEqualTo("200.00");
+    }
+
+    @Test
+    void exactCustomCategoryNameWinsOverAGroceryAlias() {
+        org.openfinance.entity.Category groceries =
+                org.openfinance.entity.Category.builder()
+                        .id(41L)
+                        .name("Groceries")
+                        .nameKey("category.groceries")
+                        .type(org.openfinance.entity.CategoryType.EXPENSE)
+                        .build();
+        org.openfinance.entity.Category courses =
+                org.openfinance.entity.Category.builder()
+                        .id(42L)
+                        .name("Courses")
+                        .type(org.openfinance.entity.CategoryType.EXPENSE)
+                        .build();
+        when(categoryRepository.findByUserId(1L)).thenReturn(List.of(groceries, courses));
+        Transaction grocery = tx("200", "EUR", TransactionType.EXPENSE);
+        grocery.setCategoryId(41L);
+        Transaction course = tx("35", "EUR", TransactionType.EXPENSE);
+        course.setCategoryId(42L);
+        when(transactionRepository.findByUserIdAndDateBetween(
+                        1L, LocalDate.of(2026, 9, 1), LocalDate.of(2026, 9, 30)))
+                .thenReturn(List.of(grocery, course));
+        Map<String, FinancialFact> selected =
+                facts(
+                        builder.forQuestion(
+                                1L,
+                                Locale.FRENCH,
+                                "Combien ai-je dépensé en courses en septembre 2026 ?",
+                                ""));
+        assertThat(selected).containsOnlyKeys("requested.category.42");
+        assertThat(selected.get("requested.category.42").amount()).isEqualTo("35.00");
+    }
+
     @BeforeEach
     void setup() {
         lenient().when(defaultCurrencyProvider.resolveForUser(1L)).thenReturn("EUR");

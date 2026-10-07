@@ -62,6 +62,8 @@ public class BudgetResponse {
      * <p>The total amount allocated for this category during the period. Requirement REQ-2.9.1.1:
      * Display budget amount
      */
+    @com.fasterxml.jackson.databind.annotation.JsonSerialize(
+            using = com.fasterxml.jackson.databind.ser.std.ToStringSerializer.class)
     private BigDecimal amount;
 
     /**

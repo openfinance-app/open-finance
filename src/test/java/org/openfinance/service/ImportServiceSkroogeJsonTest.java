@@ -161,6 +161,7 @@ class ImportServiceSkroogeJsonTest {
                         defaultCurrencyProvider,
                         importProperties,
                         accountCurrencyService,
+                        new CurrencyTypeResolver(currencyRepository),
                         importConfirmationExecutor,
                         userSettingsRepository,
                         operationHistoryService);
@@ -323,15 +324,6 @@ class ImportServiceSkroogeJsonTest {
                             storedCategories.add(category);
                             return category;
                         });
-        when(categoryRepository.findByIdAndUserId(anyLong(), eq(USER_ID)))
-                .thenAnswer(
-                        inv ->
-                                storedCategories.stream()
-                                        .filter(
-                                                category ->
-                                                        category.getId().equals(inv.getArgument(0)))
-                                        .filter(category -> category.getUserId().equals(USER_ID))
-                                        .findFirst());
         when(transactionRepository.save(any(Transaction.class)))
                 .thenAnswer(
                         invocation -> {

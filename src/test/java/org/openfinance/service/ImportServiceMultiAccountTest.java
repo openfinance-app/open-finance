@@ -150,6 +150,7 @@ class ImportServiceMultiAccountTest {
                         defaultCurrencyProvider,
                         importProperties,
                         accountCurrencyService,
+                        new CurrencyTypeResolver(currencyRepository),
                         importConfirmationExecutor,
                         userSettingsRepository,
                         operationHistoryService);
@@ -917,6 +918,173 @@ class ImportServiceMultiAccountTest {
                                                 && "BCH".equals(request.getCurrency())));
         assertThat(result.getImportedCount()).isEqualTo(1);
         assertThat(result.getSkippedCount()).isZero();
+    }
+
+    @Test
+    void rejectsNamedClosedAccountsBeforeAnyPosting() throws Exception {
+        Account closed =
+                Account.builder()
+                        .id(71L)
+                        .userId(USER_ID)
+                        .name("Closed savings")
+                        .currency("EUR")
+                        .isActive(false)
+                        .build();
+        ImportedTransaction row =
+                ImportedTransaction.builder()
+                        .transactionDate(LocalDate.of(2026, 9, 15))
+                        .accountName("Closed savings")
+                        .currency("EUR")
+                        .amount(new BigDecimal("-5.67"))
+                        .build();
+        ImportSession session = buildSession(71L, "CSV", List.of(row));
+        when(importSessionRepository.findById(71L)).thenReturn(Optional.of(session));
+        when(accountRepository.findByUserId(USER_ID)).thenReturn(List.of(closed));
+        org.assertj.core.api.Assertions.assertThatThrownBy(
+                        () -> importService.confirmImport(71L, USER_ID, null, Map.of(), true))
+                .hasMessageContaining("inactive account");
+        verify(transactionRepository, org.mockito.Mockito.never()).save(any(Transaction.class));
+        verify(accountService, org.mockito.Mockito.never())
+                .recalculateBalance(anyLong(), anyLong());
+    }
+
+    @Test
+    void overlappingStatementKeepsOpeningBoundaryBeforeSkippedDuplicates() throws Exception {
+        Account account =
+                Account.builder()
+                        .id(72L)
+                        .userId(USER_ID)
+                        .name("Statement account")
+                        .currency("EUR")
+                        .isActive(true)
+                        .balance(new BigDecimal("580.05"))
+                        .openingBalance(new BigDecimal("500.00"))
+                        .build();
+        List<ImportedTransaction> rows =
+                List.of(
+                        ImportedTransaction.builder()
+                                .transactionDate(LocalDate.of(2026, 9, 15))
+                                .accountName("Statement account")
+                                .currency("EUR")
+                                .amount(new BigDecimal("100.10"))
+                                .validationErrors(new ArrayList<>(List.of("DUPLICATE: existing")))
+                                .build(),
+                        ImportedTransaction.builder()
+                                .transactionDate(LocalDate.of(2026, 9, 16))
+                                .accountName("Statement account")
+                                .currency("EUR")
+                                .amount(new BigDecimal("-20.05"))
+                                .validationErrors(new ArrayList<>(List.of("DUPLICATE: existing")))
+                                .build(),
+                        ImportedTransaction.builder()
+                                .transactionDate(LocalDate.of(2026, 9, 19))
+                                .accountName("Statement account")
+                                .currency("EUR")
+                                .amount(new BigDecimal("-10"))
+                                .build());
+        ImportSession session = buildSession(72L, "OFX", rows);
+        Map<String, Object> metadata =
+                objectMapper.readValue(
+                        session.getMetadata(),
+                        new com.fasterxml.jackson.core.type.TypeReference<
+                                Map<String, Object>>() {});
+        metadata.put("ledgerBalances", Map.of("Statement account", new BigDecimal("570.05")));
+        metadata.put(
+                "statementNetAmounts", Map.of("name:statementaccount", new BigDecimal("70.05")));
+        session.setMetadata(objectMapper.writeValueAsString(metadata));
+        when(accountRepository.findByUserId(USER_ID)).thenReturn(List.of(account));
+        when(accountRepository.findById(72L)).thenReturn(Optional.of(account));
+        when(transactionRepository.findByUserIdAndAccountId(USER_ID, 72L))
+                .thenReturn(
+                        List.of(
+                                Transaction.builder()
+                                        .date(LocalDate.of(2026, 9, 15))
+                                        .amount(new BigDecimal("100.10"))
+                                        .type(org.openfinance.entity.TransactionType.INCOME)
+                                        .build(),
+                                Transaction.builder()
+                                        .date(LocalDate.of(2026, 9, 16))
+                                        .amount(new BigDecimal("20.05"))
+                                        .type(org.openfinance.entity.TransactionType.EXPENSE)
+                                        .build()));
+        when(transactionRepository.save(any(Transaction.class)))
+                .thenAnswer(
+                        i -> {
+                            Transaction t = i.getArgument(0);
+                            t.setId(73L);
+                            return t;
+                        });
+        ImportSession result =
+                org.springframework.test.util.ReflectionTestUtils.invokeMethod(
+                        importService,
+                        "confirmImportedAccountImport",
+                        session,
+                        USER_ID,
+                        null,
+                        Map.of(),
+                        true,
+                        rows);
+        assertThat(result.getImportedCount()).isEqualTo(1);
+        verify(transactionRepository)
+                .save(argThat(t -> t.getAmount().compareTo(new BigDecimal("10")) == 0));
+    }
+
+    @Test
+    void convertedSplitsBookOneCurrencyAndRetainOriginalAmount() {
+        Account account =
+                Account.builder().id(74L).userId(USER_ID).currency("EUR").isActive(true).build();
+        when(accountRepository.findById(74L)).thenReturn(Optional.of(account));
+        when(exchangeRateService.convert(
+                        new BigDecimal("100"), "USD", "EUR", LocalDate.of(2026, 9, 15)))
+                .thenReturn(new BigDecimal("87.91400100"));
+        TransactionSplitService realSplits =
+                new TransactionSplitService(
+                        org.mockito.Mockito.mock(
+                                org.openfinance.repository.TransactionSplitRepository.class),
+                        categoryRepository,
+                        org.mockito.Mockito.mock(org.openfinance.security.EncryptionService.class),
+                        new CurrencyTypeResolver(currencyRepository));
+        org.springframework.test.util.ReflectionTestUtils.setField(
+                importService, "transactionSplitService", realSplits);
+        ImportedTransaction row =
+                ImportedTransaction.builder()
+                        .transactionDate(LocalDate.of(2026, 9, 15))
+                        .currency("USD")
+                        .amount(new BigDecimal("-100"))
+                        .splits(
+                                List.of(
+                                        ImportedTransaction.SplitEntry.builder()
+                                                .amount(new BigDecimal("60"))
+                                                .build(),
+                                        ImportedTransaction.SplitEntry.builder()
+                                                .amount(new BigDecimal("40"))
+                                                .build()))
+                        .build();
+        Transaction transaction =
+                org.springframework.test.util.ReflectionTestUtils.invokeMethod(
+                        importService,
+                        "convertToTransaction",
+                        row,
+                        74L,
+                        USER_ID,
+                        Map.of(),
+                        Map.of(),
+                        false);
+        List<org.openfinance.dto.TransactionSplitRequest> splits =
+                org.springframework.test.util.ReflectionTestUtils.invokeMethod(
+                        importService,
+                        "prepareImportedSplits",
+                        transaction,
+                        row,
+                        USER_ID,
+                        Map.of(),
+                        Map.of());
+        assertThat(transaction.getAmount()).isEqualByComparingTo("87.91");
+        assertThat(transaction.getOriginalAmount()).isEqualByComparingTo("100");
+        assertThat(splits)
+                .extracting(org.openfinance.dto.TransactionSplitRequest::getAmount)
+                .containsExactly(new BigDecimal("52.75"), new BigDecimal("35.16"));
+        assertThat(row.getSplits().get(0).getAmount()).isEqualByComparingTo("60");
     }
 
     private ImportSession buildSession(

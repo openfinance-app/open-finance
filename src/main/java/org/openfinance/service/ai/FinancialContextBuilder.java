@@ -89,20 +89,38 @@ public class FinancialContextBuilder {
             List<String> previousUserQuestions) {
         FinancialQuestion query =
                 FinancialQuestion.resolve(question, LocalDate.now(), previousUserQuestions);
+        boolean snapshot =
+                query.mentions(
+                        "net worth|patrimoine|valeur nette|assets?|actifs?|liabilities|debts?|passifs?|dettes?|balance|solde|checking|compte|budget");
+        LocalDate today = LocalDate.now();
+        if (snapshot
+                && (!query.periodResolved()
+                        || !today.equals(query.end())
+                        || (!today.equals(query.start())
+                                && !today.withDayOfMonth(1).equals(query.start())))) {
+            return clarification(locale, "ai.scope.currentOnly");
+        }
         Set<String> selected = new HashSet<>();
         if (query.mentions("\\bbudget")) selected.addAll(selectBudgetFacts(context, query));
         if (query.mentions("net worth|patrimoine|valeur nette")) selected.add("net_worth");
         if (query.mentions("\\b(assets?|actifs?)\\b")) selected.add("assets.total");
         if (query.mentions("\\b(liabilities|debts?|passifs?|dettes?)\\b"))
             selected.add("liabilities.total");
-        if (query.mentions("balance|solde|checking|compte"))
-            selected.addAll(selectAccountFacts(context, query));
+        if (query.mentions("balance|solde|checking|compte")) {
+            Set<String> accounts = selectAccountFacts(context, query);
+            if (accounts.isEmpty()) return clarification(locale, "ai.scope.accountUnknown");
+            selected.addAll(accounts);
+        }
         String scoped = selectFacts(context, selected);
         if (query.mentions("spen[dt]|expenses?|income|earn|cash ?flow|depens|revenu|gagne|cout")) {
             return spendingContext(userId, locale, query, scoped);
         }
         // General advice and unrelated questions need no numeric account facts.
         return scoped;
+    }
+
+    private String clarification(Locale locale, String key) {
+        return "[CLARIFICATION] " + messageSource.getMessage(key, null, locale);
     }
 
     private Set<String> selectAccountFacts(String context, FinancialQuestion query) {
@@ -114,7 +132,7 @@ public class FinancialContextBuilder {
                     && query.text().contains(FinancialQuestion.normalize(fact.entity())))
                 selected.add(fact.id());
         }
-        if (selected.isEmpty())
+        if (selected.isEmpty() && !query.hasUnresolvedSubject())
             selected.add(accounts.size() == 1 ? accounts.get(0).id() : "accounts.total");
         return selected;
     }
@@ -190,6 +208,16 @@ public class FinancialContextBuilder {
         List<Category> categories = categoryRepository.findByUserId(userId);
         List<Category> matching =
                 categories.stream().filter(c -> categoryMentioned(c, query)).toList();
+        // Exact user/category labels take precedence over aliases. An alias must identify
+        // exactly one category; otherwise ask the user instead of combining possible matches.
+        if (matching.isEmpty()) {
+            List<Category> aliases =
+                    categories.stream().filter(c -> categoryAlias(c, query)).toList();
+            if (aliases.size() == 1) matching = aliases;
+        }
+        if (matching.isEmpty() && query.hasUnresolvedSubject()) {
+            return clarification(locale, "ai.scope.categoryUnknown");
+        }
         List<Transaction> transactions =
                 transactionRepository.findByUserIdAndDateBetween(
                         userId, query.start(), query.end());
@@ -314,6 +342,12 @@ public class FinancialContextBuilder {
             }
         }
         return amount;
+    }
+
+    private boolean categoryAlias(Category category, FinancialQuestion query) {
+        return ("category.groceries".equals(category.getNameKey())
+                        || "groceries".equalsIgnoreCase(category.getName()))
+                && query.mentions("\\b(grocery|groceries|courses|epicerie|alimentation)\\b");
     }
 
     private boolean categoryMentioned(Category category, FinancialQuestion query) {

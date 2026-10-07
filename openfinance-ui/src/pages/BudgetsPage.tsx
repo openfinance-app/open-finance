@@ -1,3 +1,4 @@
+import { isAxiosError } from 'axios';
 import { formatDecimal } from '@/utils/format';
 /**
  * BudgetsPage Component
@@ -62,6 +63,7 @@ export default function BudgetsPage() {
   const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
+  const [formFieldErrors, setFormFieldErrors] = useState<Record<string, string>>({});
   const [editingBudgetId, setEditingBudgetId] = useState<number | null>(null);
   const [deletingBudgetId, setDeletingBudgetId] = useState<number | null>(null);
   const [detailBudgetId, setDetailBudgetId] = useState<number | null>(null);
@@ -163,12 +165,14 @@ export default function BudgetsPage() {
   const handleCreate = () => {
     setEditingBudgetId(null);
     setFormError(null);
+    setFormFieldErrors({});
     setIsFormOpen(true);
   };
 
   const handleEdit = (budgetId: number) => {
     setEditingBudgetId(budgetId);
     setFormError(null);
+    setFormFieldErrors({});
     setIsFormOpen(true);
   };
 
@@ -183,6 +187,7 @@ export default function BudgetsPage() {
   const handleFormSubmit = async (data: BudgetRequest) => {
     try {
       setFormError(null);
+      setFormFieldErrors({});
       if (editingBudgetId) {
         await updateBudget.mutateAsync({ id: editingBudgetId, data });
       } else {
@@ -190,9 +195,19 @@ export default function BudgetsPage() {
       }
       setIsFormOpen(false);
       setEditingBudgetId(null);
-    } catch (err: any) {
-      console.error('Failed to save budget:', err);
-      setFormError(err.response?.data?.message || err.message || t('saveError'));
+    } catch (err: unknown) {
+      const response = isAxiosError<{
+        message?: string;
+        validationErrors?: Record<string, string>;
+      }>(err)
+        ? err.response?.data
+        : undefined;
+      setFormFieldErrors(response?.validationErrors ?? {});
+      setFormError(
+        response?.validationErrors
+          ? null
+          : response?.message || (err instanceof Error ? err.message : t('saveError'))
+      );
     }
   };
 
@@ -210,6 +225,7 @@ export default function BudgetsPage() {
     setIsFormOpen(false);
     setEditingBudgetId(null);
     setFormError(null);
+    setFormFieldErrors({});
   };
 
   const handleDismissAlert = (budgetId: number) => {
@@ -323,7 +339,11 @@ export default function BudgetsPage() {
                   <p className="text-sm text-text-secondary">
                     {t(`form.periods.${budget.period}`)} · {budget.startDate} – {budget.endDate}
                   </p>
-                  <ConvertedAmount amount={budget.amount} currency={budget.currency} inline />
+                  <ConvertedAmount
+                    amount={Number(budget.amount)}
+                    currency={budget.currency}
+                    inline
+                  />
                   <div className="flex gap-2">
                     <Button variant="outline" onClick={() => handleEdit(budget.id)}>
                       {tc('aria.editBudget')}
@@ -437,6 +457,7 @@ export default function BudgetsPage() {
               onCancel={handleFormCancel}
               isLoading={createBudget.isPending || updateBudget.isPending}
               serverError={formError}
+              serverFieldErrors={formFieldErrors}
             />
           )}
         </DialogContent>

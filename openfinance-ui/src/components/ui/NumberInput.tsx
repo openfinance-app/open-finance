@@ -74,7 +74,7 @@ function parseDisplayToCanonical(input: string, fmt: NumberFormat): string | nul
   // Normalize narrow NBSPs to regular space for French format handling
   const normalized = s.replace(/\u202F/g, ' ').replace(/\u00A0/g, ' ');
   // If already canonical (dot decimal, no thousands except optional minus), accept directly
-  if (/^-?\d+(\.\d+)?$/.test(normalized)) {
+  if (fmt !== '1.234,56' && /^-?\d+(\.\d+)?$/.test(normalized)) {
     return normalized;
   }
   const { thousands, decimal } = getSeparators(fmt);

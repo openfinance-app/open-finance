@@ -759,7 +759,10 @@ describe('BudgetsPage', () => {
     });
 
     it('handles create error', async () => {
-      mockCreateFn.mockRejectedValue({ response: { data: { message: 'Duplicate budget' } } });
+      mockCreateFn.mockRejectedValue({
+        isAxiosError: true,
+        response: { data: { message: 'Duplicate budget' } },
+      });
       renderWithProviders(<BudgetsPage />, { queryClient });
       fireEvent.click(screen.getByRole('button', { name: 'Add Budget' }));
       fireEvent.click(screen.getByTestId('form-submit'));

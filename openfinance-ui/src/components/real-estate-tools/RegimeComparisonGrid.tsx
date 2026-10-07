@@ -128,29 +128,34 @@ export const RegimeComparisonGrid: React.FC<RegimeComparisonGridProps> = ({
             <div>
               <p className="text-sm text-muted-foreground">{t('regimeGrid.bestCashFlow')}</p>
               <p className="text-2xl font-bold text-green-600">
-                <ConvertedAmount
-                  amount={Math.max(
-                    ...regimes
-                      .filter(isRegimeEligible)
-                      .map(r => getRegimeResult(r)?.performance.monthlyCashFlow ?? -Infinity)
-                  )}
-                  currency={baseCurrency}
-                  inline
-                />
+                {eligibleRegimes.length ? (
+                  <ConvertedAmount
+                    amount={Math.max(
+                      ...regimes
+                        .filter(isRegimeEligible)
+                        .map(r => getRegimeResult(r)?.performance.monthlyCashFlow ?? -Infinity)
+                    )}
+                    currency={baseCurrency}
+                    inline
+                  />
+                ) : (
+                  '-'
+                )}
               </p>
             </div>
             <div>
               <p className="text-sm text-muted-foreground">{t('regimeGrid.bestNetYield')}</p>
               <p className="text-2xl font-bold text-primary">
-                {formatDecimal(
-                  Math.max(
-                    ...regimes
-                      .filter(isRegimeEligible)
-                      .map(r => getRegimeResult(r)?.performance.netYield ?? -Infinity)
-                  ),
-                  2
-                )}
-                %
+                {eligibleRegimes.length
+                  ? `${formatDecimal(
+                      Math.max(
+                        ...regimes
+                          .filter(isRegimeEligible)
+                          .map(r => getRegimeResult(r)?.performance.netYield ?? -Infinity)
+                      ),
+                      2
+                    )}%`
+                  : '-'}
               </p>
             </div>
             <div>

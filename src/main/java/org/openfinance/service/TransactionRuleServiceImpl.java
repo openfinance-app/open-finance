@@ -460,6 +460,7 @@ public class TransactionRuleServiceImpl implements TransactionRuleService {
             case SET_CATEGORY -> {
                 if (action.getActionValue() != null) {
                     tx.setCategory(action.getActionValue());
+                    tx.setSourceCategoryId(null);
                     log.debug("SET_CATEGORY → '{}'", action.getActionValue());
                 }
             }
@@ -474,12 +475,13 @@ public class TransactionRuleServiceImpl implements TransactionRuleService {
                     if (tx.getTags() == null) {
                         tx.setTags(new ArrayList<>());
                     }
-                    String tagValue = action.getActionValue().trim();
-                    boolean alreadyTagged =
-                            tx.getTags().stream().anyMatch(t -> t.equalsIgnoreCase(tagValue));
-                    if (!alreadyTagged) {
-                        tx.getTags().add(tagValue);
-                        log.debug("ADD_TAG → '{}'", tagValue);
+                    for (String value : action.getActionValue().split(",")) {
+                        String tagValue = value.trim();
+                        if (!tagValue.isEmpty()
+                                && tx.getTags().stream()
+                                        .noneMatch(t -> t.trim().equalsIgnoreCase(tagValue))) {
+                            tx.getTags().add(tagValue);
+                        }
                     }
                 }
             }

@@ -141,7 +141,8 @@
     "currencyRequired": "Sélectionnez une devise",
     "startDateRequired": "La date de début est obligatoire",
     "endDateRequired": "La date de fin est obligatoire",
-    "notesTooLong": "Les notes sont trop longues"
+    "notesTooLong": "Les notes sont trop longues",
+    "amountMinimum": "Le montant du budget doit être au moins de 0,01"
   },
   "wizard": {
     "title": "Créer automatiquement",

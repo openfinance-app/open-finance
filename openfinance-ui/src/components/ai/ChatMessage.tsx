@@ -11,6 +11,8 @@
  * @since Sprint 11 - AI Assistant Integration
  */
 import React from 'react';
+import { useVisibility } from '@/context/VisibilityContext';
+import { useTranslation } from 'react-i18next';
 import { COPY_FEEDBACK_RESET_MS } from '@/constants/timing';
 import ReactMarkdown from 'react-markdown';
 import { Bot, User, Copy, Check } from 'lucide-react';
@@ -27,8 +29,11 @@ interface ChatMessageProps {
 export const ChatMessage: React.FC<ChatMessageProps> = ({ message, isStreaming = false }) => {
   const [copied, setCopied] = React.useState(false);
   const isUser = message.role === 'user';
+  const { isAmountsVisible } = useVisibility();
+  const { t } = useTranslation('ai');
 
   const handleCopy = async () => {
+    if (!isAmountsVisible) return;
     await navigator.clipboard.writeText(message.content);
     setCopied(true);
     setTimeout(() => setCopied(false), COPY_FEEDBACK_RESET_MS);
@@ -58,7 +63,9 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({ message, isStreaming =
           }`}
         >
           {/* Message text */}
-          {isUser ? (
+          {!isAmountsVisible ? (
+            <p>{t('contentHidden')}</p>
+          ) : isUser ? (
             <p className="whitespace-pre-wrap break-words">{message.content}</p>
           ) : (
             <div className="prose prose-sm dark:prose-invert max-w-none">
@@ -151,7 +158,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({ message, isStreaming =
           >
             <span>{formattedTime}</span>
 
-            {!isUser && !isStreaming && (
+            {isAmountsVisible && !isUser && !isStreaming && (
               <>
                 <span className="text-text-muted">•</span>
                 <button

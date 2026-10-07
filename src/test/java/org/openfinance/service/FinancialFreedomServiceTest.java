@@ -49,6 +49,25 @@ class FinancialFreedomServiceTest {
         service = new FinancialFreedomService(businessRules);
     }
 
+    @Test
+    void inflationBaselineAndExactHorizonMatchHeadline() {
+        FreedomCalculatorResponse response =
+                service.calculateTimeToFreedom(
+                        FreedomCalculatorRequest.builder()
+                                .currentSavings(BigDecimal.ZERO)
+                                .monthlyExpenses(new BigDecimal("2000"))
+                                .monthlyContribution(new BigDecimal("1000"))
+                                .withdrawalRate(new BigDecimal("4"))
+                                .expectedAnnualReturn(new BigDecimal("10"))
+                                .inflationRate(new BigDecimal("10"))
+                                .adjustForInflation(true)
+                                .build());
+        assertEquals(50, response.getYearsToFreedom());
+        assertTrue(response.isAchievable());
+        assertEquals(50, response.getSensitivityScenarios().get(0).getYearsToFreedom());
+        assertEquals(0, response.getSensitivityScenarios().get(0).getReturnRate().signum());
+    }
+
     @Nested
     @DisplayName("calculateTimeToFreedom tests")
     class CalculateTimeToFreedomTests {

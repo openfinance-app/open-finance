@@ -102,6 +102,7 @@ describe('independent audit counterexamples', () => {
 
   it('distinguishes the 2025 and 2026 long-term micro-BIC thresholds', () => {
     const inputs = rental();
+    inputs.property.furnishingType = 'basic';
     inputs.revenue = {
       monthlyRent: 6500,
       recoverableCharges: 0,

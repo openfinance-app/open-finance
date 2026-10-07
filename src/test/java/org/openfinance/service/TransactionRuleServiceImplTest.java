@@ -727,6 +727,30 @@ class TransactionRuleServiceImplTest {
         }
 
         @Test
+        void multipleTagActionDeduplicatesSourceTagsCaseInsensitively() {
+            TransactionRule r =
+                    rule(
+                            "Tags",
+                            0,
+                            List.of(
+                                    condition(
+                                            RuleConditionField.DESCRIPTION,
+                                            RuleConditionOperator.CONTAINS,
+                                            "total station")),
+                            List.of(
+                                    action(
+                                            RuleActionType.ADD_TAG,
+                                            " household , essential, HOUSEHOLD ")));
+            when(transactionRuleRepository
+                            .findByUserIdAndIsEnabledTrueOrderByPriorityAscCreatedAtAsc(USER_ID))
+                    .thenReturn(List.of(r));
+            List<ImportedTransaction> txs = richDataset();
+            txs.get(9).setTags(new java.util.ArrayList<>(List.of("household")));
+            service.applyRules(txs, USER_ID);
+            assertThat(txs.get(9).getTags()).containsExactly("household", "essential");
+        }
+
+        @Test
         @DisplayName("ADD_TAG — multiple rules adding tags accumulate them")
         void addTag_multiple() {
             TransactionRule r1 =

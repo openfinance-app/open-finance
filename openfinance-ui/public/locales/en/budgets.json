@@ -107,7 +107,8 @@
     "currencyRequired": "Select a currency",
     "startDateRequired": "Start date is required",
     "endDateRequired": "End date is required",
-    "notesTooLong": "Notes are too long"
+    "notesTooLong": "Notes are too long",
+    "amountMinimum": "Budget amount must be at least 0.01"
   },
   "wizard": {
     "title": "Auto-Create Budgets",

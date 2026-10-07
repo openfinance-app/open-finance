@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { screen, fireEvent, waitFor } from '@testing-library/react';
+import { renderWithProviders as render, mockAuthentication } from '@/test/test-utils';
 import { ChatMessage } from './ChatMessage';
 import type { Message } from '@/types/ai';
 
@@ -17,6 +18,8 @@ describe('ChatMessage', () => {
   };
 
   beforeEach(() => {
+    mockAuthentication();
+    localStorage.removeItem('open_finance_amounts_visible');
     vi.clearAllMocks();
     Object.assign(navigator, {
       clipboard: { writeText: vi.fn().mockResolvedValue(undefined) },
@@ -165,4 +168,16 @@ describe('ChatMessage', () => {
     const dots = document.querySelectorAll('.animate-pulse .rounded-full');
     expect(dots.length).toBe(3);
   });
+  it.each(['user', 'assistant'] as const)(
+    'hides %s content and clipboard access in privacy mode',
+    role => {
+      localStorage.setItem('open_finance_amounts_visible', 'false');
+      render(
+        <ChatMessage message={{ ...assistantMessage, role, content: 'Balance: 6660.00 EUR' }} />
+      );
+      expect(screen.queryByText(/6660/)).not.toBeInTheDocument();
+      expect(screen.queryByTitle('Copy to clipboard')).not.toBeInTheDocument();
+      localStorage.removeItem('open_finance_amounts_visible');
+    }
+  );
 });

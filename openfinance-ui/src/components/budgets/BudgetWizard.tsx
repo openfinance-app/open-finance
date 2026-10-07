@@ -489,7 +489,7 @@ export function BudgetWizard({ open, onClose }: BudgetWizardProps) {
                   >
                     <span className="text-text-primary">{b.categoryName}</span>
                     <span className="text-text-secondary">
-                      <ConvertedAmount amount={b.amount} currency={b.currency} inline /> /{' '}
+                      <ConvertedAmount amount={Number(b.amount)} currency={b.currency} inline /> /{' '}
                       {b.period.toLowerCase()}
                     </span>
                   </div>

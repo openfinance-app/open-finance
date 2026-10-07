@@ -65,6 +65,7 @@ function furnishedStatus(inputs: InvestmentInputs): RentalCalculationStatus {
 export function calculateMicroFoncier(inputs: InvestmentInputs): RegimeCalculationResult {
   const grossRevenue = calculateRentExcludingCharges(inputs.revenue);
   const eligible =
+    inputs.property.furnishingType === 'unfurnished' &&
     add(grossRevenue, inputs.tax?.otherUnfurnishedRent ?? 0) <= REGIME_LIMITS.MICRO_FONCIER;
 
   const abattement = multiply(grossRevenue, REGIME_RATES.MICRO_FONCIER_ABATEMENT);
@@ -73,7 +74,7 @@ export function calculateMicroFoncier(inputs: InvestmentInputs): RegimeCalculati
   const socialContributions = multiply(taxableIncome, REGIME_RATES.SOCIAL_CONTRIBUTIONS_STANDARD);
 
   const warnings: string[] = [];
-  if (!eligible) {
+  if (add(grossRevenue, inputs.tax?.otherUnfurnishedRent ?? 0) > REGIME_LIMITS.MICRO_FONCIER) {
     warnings.push(i18n.t('taxContext.microFoncierLimit', { ns: 'realEstate' }));
   }
 
@@ -111,7 +112,7 @@ export function calculateReelFoncier(inputs: InvestmentInputs): RegimeCalculatio
 
   return buildRegimeResult(
     'reel_foncier',
-    true,
+    inputs.property.furnishingType === 'unfurnished',
     inputs,
     grossRevenue,
     deductibleExpenses,
@@ -141,7 +142,10 @@ export function calculateMicroBIC(inputs: InvestmentInputs): RegimeCalculationRe
   const threshold = REGIME_LIMITS.MICRO_BIC[tax.incomeYear];
   const status = furnishedStatus(inputs);
   const householdReceipts = add(grossRevenue, tax.otherFurnishedReceipts);
-  const eligible = householdReceipts <= threshold && status === 'complete';
+  const eligible =
+    inputs.property.furnishingType !== 'unfurnished' &&
+    householdReceipts <= threshold &&
+    status === 'complete';
 
   const householdAbatement = Math.min(
     householdReceipts,
@@ -216,7 +220,7 @@ export function calculateLMNPReel(inputs: InvestmentInputs): RegimeCalculationRe
 
   const result = buildRegimeResult(
     'lmnp_reel',
-    status === 'complete',
+    inputs.property.furnishingType !== 'unfurnished' && status === 'complete',
     inputs,
     grossRevenue,
     totalDeductions,
@@ -301,6 +305,15 @@ function buildRegimeResult(
         )
       : 0;
 
+  const requiresUnfurnished = regime === 'micro_foncier' || regime === 'reel_foncier';
+  if (requiresUnfurnished !== (inputs.property.furnishingType === 'unfurnished')) {
+    warnings.push(
+      i18n.t(
+        requiresUnfurnished ? 'taxContext.requiresUnfurnished' : 'taxContext.requiresFurnished',
+        { ns: 'realEstate' }
+      )
+    );
+  }
   return {
     regime,
     eligible,
@@ -448,10 +461,10 @@ export function getRecommendedRegime(results: {
   reelFoncier: RegimeCalculationResult;
   lmnpReel: RegimeCalculationResult;
   microBic: RegimeCalculationResult;
-}): TaxRegime {
+}): TaxRegime | null {
   const regimes: TaxRegime[] = ['micro_foncier', 'reel_foncier', 'lmnp_reel', 'micro_bic'];
 
-  let bestRegime: TaxRegime = 'reel_foncier';
+  let bestRegime: TaxRegime | null = null;
   let bestYield = -Infinity;
 
   for (const regime of regimes) {

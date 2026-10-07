@@ -1,17 +1,20 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { renderWithProviders as render, mockAuthentication } from '@/test/test-utils';
 import { NumberInput } from './NumberInput';
 
 const { useNumberFormatMock } = vi.hoisted(() => ({
   useNumberFormatMock: vi.fn(),
 }));
 
-vi.mock('@/context/NumberFormatContext', () => ({
+vi.mock('@/context/NumberFormatContext', async importOriginal => ({
+  ...(await importOriginal<typeof import('@/context/NumberFormatContext')>()),
   useNumberFormat: useNumberFormatMock,
 }));
 
 describe('NumberInput', () => {
   beforeEach(() => {
+    mockAuthentication();
     useNumberFormatMock.mockReturnValue({
       numberFormat: '1.234,56',
       isLoading: false,
@@ -45,5 +48,18 @@ describe('NumberInput', () => {
     });
 
     expect(onChange).toHaveBeenCalledWith('');
+  });
+  it.each([
+    ['1.200', '1200'],
+    ['1.200,00', '1200.00'],
+    ['1,2', '1.2'],
+    ['1.200.000', '1200000'],
+  ])('parses European display %s as %s', (display, canonical) => {
+    const onChange = vi.fn();
+    render(<NumberInput value="0" onChange={onChange} aria-label="Amount" />);
+    fireEvent.change(screen.getByRole('textbox', { name: 'Amount' }), {
+      target: { value: display },
+    });
+    expect(onChange).toHaveBeenLastCalledWith(canonical);
   });
 });

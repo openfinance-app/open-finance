@@ -136,6 +136,7 @@ public class ImportService {
     private final DefaultCurrencyProvider defaultCurrencyProvider;
     private final ImportProperties importProperties;
     private final AccountCurrencyService accountCurrencyService;
+    private final CurrencyTypeResolver currencyTypeResolver;
 
     /**
      * Lazily-resolved executor used to run import confirmation on a background thread. Injected as
@@ -418,7 +419,9 @@ public class ImportService {
                                         "ledgerBalances",
                                         ledgerBalances == null ? Map.of() : ledgerBalances,
                                         "statementNetAmounts",
-                                        statementNetAmounts(transactions))));
+                                        ImportStatementPositions.netAmounts(transactions),
+                                        "statementOpeningDates",
+                                        ImportStatementPositions.openingDates(transactions))));
             }
 
             importSessionRepository.save(session);
@@ -504,7 +507,7 @@ public class ImportService {
             String currency = transaction.getCurrency();
             if (currency == null || currency.isBlank()) {
                 String key =
-                        buildImportedAccountKey(
+                        ImportStatementPositions.accountKey(
                                 transaction.getAccountName(), transaction.getAccountNumber());
                 Long accountId = key == null ? session.getAccountId() : scopes.get(key);
                 currency = currencies.getOrDefault(accountId, fileCurrency);
@@ -1226,7 +1229,7 @@ public class ImportService {
                             .collect(Collectors.toList()));
             if (tx.getTransactionDate() == null || tx.getAmount() == null) continue;
             String importedKey =
-                    buildImportedAccountKey(tx.getAccountName(), tx.getAccountNumber());
+                    ImportStatementPositions.accountKey(tx.getAccountName(), tx.getAccountNumber());
             Long targetId = importedKey == null ? accountId : importedAccounts.get(importedKey);
             String scope = targetId == null ? "import:" + importedKey : "account:" + targetId;
             String reference = tx.getReferenceNumber();
@@ -1878,6 +1881,8 @@ public class ImportService {
                                                                 + initialFallbackAccountId))
                         : null;
 
+        if (fallbackAccount != null) requireActiveImportAccount(fallbackAccount);
+
         // Collect account descriptors from both regular and opening-balance
         // transactions so
         // that opening_balance and institution metadata are captured for account
@@ -2250,6 +2255,8 @@ public class ImportService {
                                                 new ResourceNotFoundException(
                                                         "Account not found: " + created.getId()));
                 existingAccounts.add(matchingAccount);
+            } else {
+                requireActiveImportAccount(matchingAccount);
             }
             applyImportedAccountActiveState(matchingAccount, account);
             accountIdsBySource.put(account.getSourceId(), matchingAccount.getId());
@@ -2294,6 +2301,8 @@ public class ImportService {
                             .readTree(metadata);
             com.fasterxml.jackson.databind.JsonNode balances = root.path("ledgerBalances");
             com.fasterxml.jackson.databind.JsonNode originalNets = root.path("statementNetAmounts");
+            com.fasterxml.jackson.databind.JsonNode originalDates =
+                    root.path("statementOpeningDates");
             for (Map.Entry<String, ImportedAccountDescriptor> entry : descriptors.entrySet()) {
                 ImportedAccountDescriptor descriptor = entry.getValue();
                 String statementId =
@@ -2308,7 +2317,7 @@ public class ImportService {
                                         tx ->
                                                 entry.getKey()
                                                         .equals(
-                                                                buildImportedAccountKey(
+                                                                ImportStatementPositions.accountKey(
                                                                         tx.getAccountName(),
                                                                         tx.getAccountNumber())))
                                 .map(ImportedTransaction::getAmount)
@@ -2324,7 +2333,12 @@ public class ImportService {
                                 descriptor.name(),
                                 descriptor.accountNumber(),
                                 descriptor.currency(),
-                                descriptor.openingDate(),
+                                originalDates.hasNonNull(entry.getKey())
+                                        ? LocalDate.parse(
+                                                originalDates.get(entry.getKey()).asText())
+                                        : ImportStatementPositions.openingDates(transactions)
+                                                .getOrDefault(
+                                                        entry.getKey(), descriptor.openingDate()),
                                 descriptor.qifAccountType(),
                                 descriptor.institutionName(),
                                 closing.subtract(net)));
@@ -2334,22 +2348,12 @@ public class ImportService {
         }
     }
 
-    /** Preserve statement arithmetic before rules or review edits remove/change movements. */
-    private Map<String, BigDecimal> statementNetAmounts(List<ImportedTransaction> transactions) {
-        Map<String, BigDecimal> amounts = new HashMap<>();
-        for (ImportedTransaction tx : transactions) {
-            String key =
-                    Objects.toString(
-                            buildImportedAccountKey(tx.getAccountName(), tx.getAccountNumber()),
-                            "");
-            if (tx.getAmount() == null) {
-                amounts.put(
-                        key, null); // An incomplete statement cannot establish an opening balance.
-            } else if (!amounts.containsKey(key) || amounts.get(key) != null) {
-                amounts.merge(key, tx.getAmount(), BigDecimal::add);
-            }
+    /** Reject closed accounts before import routing changes their balances or active state. */
+    private void requireActiveImportAccount(Account account) {
+        if (!Boolean.TRUE.equals(account.getIsActive())) {
+            throw new org.openfinance.exception.InvalidTransactionException(
+                    "Cannot import to inactive account: " + account.getId());
         }
-        return amounts;
     }
 
     private boolean shouldUseImportedAccountRouting(List<ImportedTransaction> transactions) {
@@ -2402,7 +2406,7 @@ public class ImportService {
             String qifAccountType,
             String institutionName,
             BigDecimal openingBalance) {
-        String descriptorKey = buildImportedAccountKey(accountName, accountNumber);
+        String descriptorKey = ImportStatementPositions.accountKey(accountName, accountNumber);
         if (descriptorKey == null) {
             return;
         }
@@ -2508,6 +2512,7 @@ public class ImportService {
                                                         "Account not found: " + created.getId()));
                 existingAccounts.add(matchingAccount);
             } else {
+                requireActiveImportAccount(matchingAccount);
                 openingBalanceService.reconcile(
                         matchingAccount,
                         descriptor.openingBalance(),
@@ -2547,22 +2552,13 @@ public class ImportService {
         return sameName || sameNumber;
     }
 
-    private String buildImportedAccountKey(String accountName, String accountNumber) {
-        if (accountNumber != null && !accountNumber.isBlank()) {
-            return "number:" + accountNumber.trim().replaceAll("[^a-zA-Z0-9]", "").toLowerCase();
-        }
-        if (accountName != null && !accountName.isBlank()) {
-            return "name:" + accountName.trim().replaceAll("[^a-zA-Z0-9]", "").toLowerCase();
-        }
-        return null;
-    }
-
     private Long resolveImportedAccountId(
             ImportedTransaction importedTx,
             Map<String, Long> accountIdsByKey,
             Long fallbackAccountId) {
         String descriptorKey =
-                buildImportedAccountKey(importedTx.getAccountName(), importedTx.getAccountNumber());
+                ImportStatementPositions.accountKey(
+                        importedTx.getAccountName(), importedTx.getAccountNumber());
         if (descriptorKey != null && accountIdsByKey.containsKey(descriptorKey)) {
             return accountIdsByKey.get(descriptorKey);
         }
@@ -2573,7 +2569,8 @@ public class ImportService {
             ImportedTransaction importedTx,
             Map<String, Long> accountIdsByKey,
             Long fallbackAccountId) {
-        String descriptorKey = buildImportedAccountKey(importedTx.getToAccountName(), null);
+        String descriptorKey =
+                ImportStatementPositions.accountKey(importedTx.getToAccountName(), null);
         if (descriptorKey != null && accountIdsByKey.containsKey(descriptorKey)) {
             return accountIdsByKey.get(descriptorKey);
         }
@@ -2684,11 +2681,15 @@ public class ImportService {
         for (ImportedTransaction tx : transactions) {
             tx.getValidationErrors().removeIf(error -> error.startsWith("SPLIT_INVALID:"));
             if (!tx.isSplitTransaction() || tx.hasErrors() || tx.getAmount() == null) continue;
-            String accountKey = buildImportedAccountKey(tx.getAccountName(), tx.getAccountNumber());
+            String accountKey =
+                    ImportStatementPositions.accountKey(tx.getAccountName(), tx.getAccountNumber());
             Long accountId = accountKey == null ? fallbackAccountId : scopes.get(accountKey);
-            String currency = resolveTransactionCurrency(tx, accountId);
+            String currency =
+                    tx.getCurrency() == null || tx.getCurrency().isBlank()
+                            ? resolveTransactionCurrency(tx, accountId)
+                            : tx.getCurrency();
             try {
-                BigDecimal amount = resolveSignedAmount(tx, accountId, currency).abs();
+                BigDecimal amount = tx.getAmount().abs();
                 List<TransactionSplitRequest> splits =
                         tx.getSplits().stream()
                                 .map(
@@ -2726,6 +2727,25 @@ public class ImportService {
         }
         List<TransactionSplitRequest> requests =
                 buildSplitRequests(importedTx, userId, categoryMappings, categoryIdsBySource);
+        String sourceCurrency =
+                importedTx.getCurrency() == null || importedTx.getCurrency().isBlank()
+                        ? transaction.getCurrency()
+                        : importedTx.getCurrency();
+        requests =
+                transactionSplitService.reconcileForImport(
+                        importedTx.getAmount().abs(), sourceCurrency, requests);
+        if (!sourceCurrency.equalsIgnoreCase(transaction.getCurrency())) {
+            int scale = currencyTypeResolver.decimalsFor(transaction.getCurrency());
+            for (TransactionSplitRequest request : requests) {
+                request.setAmount(
+                        request.getAmount()
+                                .multiply(transaction.getAmount())
+                                .divide(
+                                        importedTx.getAmount().abs(),
+                                        scale,
+                                        java.math.RoundingMode.HALF_UP));
+            }
+        }
         List<TransactionSplitRequest> splits =
                 transactionSplitService.reconcileForImport(
                         transaction.getAmount(), transaction.getCurrency(), requests);
@@ -2744,15 +2764,15 @@ public class ImportService {
                 .map(
                         splitEntry -> {
                             Long categoryId =
-                                    splitEntry.getSourceCategoryId() != null
-                                            ? categoryIdsBySource.get(
-                                                    splitEntry.getSourceCategoryId())
-                                            : null;
-                            if (categoryId == null
-                                    && splitEntry.getCategory() != null
-                                    && categoryMappings != null) {
-                                categoryId = categoryMappings.get(splitEntry.getCategory().trim());
-                            }
+                                    splitEntry.getCategory() != null
+                                            ? categoryMappings == null
+                                                    ? null
+                                                    : categoryMappings.get(
+                                                            splitEntry.getCategory().trim())
+                                            : splitEntry.getSourceCategoryId() == null
+                                                    ? null
+                                                    : categoryIdsBySource.get(
+                                                            splitEntry.getSourceCategoryId());
                             if (categoryId != null) {
                                 validateImportedCategory(categoryId, userId, categoryType);
                             }
@@ -2902,9 +2922,21 @@ public class ImportService {
                         "Using source account balance delta for imported transaction {} because historical FX conversion failed: {}",
                         importedTx.getReferenceNumber(),
                         ex.getMessage());
-                return importedTx.getSourceAccountBalanceDelta();
+                return importedTx.isSplitTransaction()
+                        ? importedTx
+                                .getSourceAccountBalanceDelta()
+                                .setScale(
+                                        currencyTypeResolver.decimalsFor(transactionCurrency),
+                                        java.math.RoundingMode.HALF_UP)
+                        : importedTx.getSourceAccountBalanceDelta();
             }
             throw ex;
+        }
+        if (importedTx.isSplitTransaction()) {
+            convertedAmount =
+                    convertedAmount.setScale(
+                            currencyTypeResolver.decimalsFor(transactionCurrency),
+                            java.math.RoundingMode.HALF_UP);
         }
         return signedAmount.signum() < 0 ? convertedAmount.negate() : convertedAmount;
     }
@@ -3167,13 +3199,7 @@ public class ImportService {
                 && importedTx.getCategory() != null
                 && !importedTx.getCategory().trim().isEmpty()) {
             String categoryName = importedTx.getCategory().trim();
-            Long categoryId =
-                    importedTx.getSourceCategoryId() != null
-                            ? categoryIdsBySource.get(importedTx.getSourceCategoryId())
-                            : null;
-            if (categoryId == null) {
-                categoryId = categoryMappings != null ? categoryMappings.get(categoryName) : null;
-            }
+            Long categoryId = categoryMappings != null ? categoryMappings.get(categoryName) : null;
 
             if (categoryId != null) {
                 log.debug(

@@ -711,7 +711,9 @@
     "sources": "Règles fiscales officielles",
     "invalid": "Saisissez des montants annuels positifs ou nuls et une année de revenus 2025 ou 2026.",
     "assumptions": "La comparaison utilise les recettes annuelles du foyer saisies pour les plafonds micro. Elle n’applique pas les règles transitoires, dispositifs immobiliers particuliers, reports de déficits ou abattements personnels. L’amortissement reste une estimation simplifiée. La déduction des intérêts d’emprunt et l’exclusion du terrain de l’amortissement ne sont pas modélisées. L’abattement minimum micro-BIC du foyer est réparti au prorata des recettes locatives.",
-    "rates": "Revenus {{year}} : plafond micro-BIC longue durée {{threshold}} € ; prélèvements sociaux de 18,6 % en meublé et 17,2 % en location nue."
+    "rates": "Revenus {{year}} : plafond micro-BIC longue durée {{threshold}} € ; prélèvements sociaux de 18,6 % en meublé et 17,2 % en location nue.",
+    "requiresUnfurnished": "Nécessite une location nue.",
+    "requiresFurnished": "Nécessite une location meublée."
   },
   "validation": {
     "propertyPrice": "Le prix du bien doit être positif",

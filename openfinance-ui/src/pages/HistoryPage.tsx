@@ -1,3 +1,4 @@
+import { useVisibility } from '@/context/VisibilityContext';
 import { Fragment, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -61,6 +62,7 @@ const inputClass = 'h-10 rounded-md border border-input bg-background/50 px-3 py
 export default function HistoryPage() {
   const { t } = useTranslation('history');
   const { dateTime } = useDateFormatter();
+  const { isAmountsVisible } = useVisibility();
   useDocumentTitle(t('title'));
   const queryClient = useQueryClient();
   const [currentPage, setCurrentPage] = useState(0);
@@ -106,14 +108,19 @@ export default function HistoryPage() {
     : null;
   const entityLabel = (type: EntityType): string =>
     t(`filters.${type === 'REAL_ESTATE' ? 'realEstate' : type.toLowerCase()}`);
-  const valueLabel = (value: unknown): string =>
-    value === null || value === undefined || value === ''
-      ? '—'
-      : typeof value === 'boolean'
-        ? t(value ? 'yes' : 'no')
-        : typeof value === 'object'
-          ? JSON.stringify(value)
-          : String(value);
+  const valueLabel = (field: string, value: unknown): string =>
+    !isAmountsVisible &&
+    /amount|balance|price|value|principal|payment|income|expense|cost|allocation|interest|rate|deposit|withdraw|profit|loss|rent|splits/i.test(
+      field
+    )
+      ? '••••'
+      : value === null || value === undefined || value === ''
+        ? '—'
+        : typeof value === 'boolean'
+          ? t(value ? 'yes' : 'no')
+          : typeof value === 'object'
+            ? JSON.stringify(value)
+            : String(value);
 
   return (
     <div className="p-4 sm:p-8 space-y-6">
@@ -307,11 +314,11 @@ export default function HistoryPage() {
                                     </dt>
                                     <dd className="break-words">
                                       <span className="text-muted-foreground">{t('before')}: </span>
-                                      {valueLabel(field.before)}
+                                      {valueLabel(field.field, field.before)}
                                     </dd>
                                     <dd className="break-words">
                                       <span className="text-muted-foreground">{t('after')}: </span>
-                                      {valueLabel(field.after)}
+                                      {valueLabel(field.field, field.after)}
                                     </dd>
                                   </div>
                                 ))}
@@ -330,7 +337,7 @@ export default function HistoryPage() {
               </tbody>
             </table>
           </div>
-          {historyPage.totalPages > 1 && (
+          {historyPage.totalElements > 0 && (
             <div className="p-4 border-t border-border">
               <Pagination
                 currentPage={currentPage}

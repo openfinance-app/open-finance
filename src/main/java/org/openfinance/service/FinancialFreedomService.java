@@ -156,7 +156,7 @@ public class FinancialFreedomService {
                         targetAmount);
 
         // Determine if achievable
-        boolean achievable = monthsToFreedom < (MAX_PROJECTION_YEARS * MONTHS_PER_YEAR);
+        boolean achievable = monthsToFreedom <= (MAX_PROJECTION_YEARS * MONTHS_PER_YEAR);
 
         // Generate yearly projections
         List<ProjectionResult> projections =
@@ -173,7 +173,7 @@ public class FinancialFreedomService {
                         request.getCurrentSavings(),
                         request.getMonthlyExpenses(),
                         monthlyContribution,
-                        request.getExpectedAnnualReturn(),
+                        effectiveReturnRate,
                         withdrawalRate);
 
         // Calculate progress percentage

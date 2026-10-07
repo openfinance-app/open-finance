@@ -8,6 +8,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.Objects;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -240,7 +241,20 @@ public class BudgetService {
         BudgetResponse beforeSnapshot = toResponseWithDecryption(budget, category);
 
         // Update fields from request (only non-null fields will be copied)
-        preservePreviousPeriod(budget, request);
+        boolean preserved = preservePreviousPeriod(budget, request);
+        if (!preserved
+                && (!request.getStartDate().equals(budget.getStartDate())
+                        || !request.getEndDate().equals(budget.getEndDate())
+                        || !request.getCategoryId().equals(budget.getCategoryId())
+                        || !request.getCurrency().equals(budget.getCurrency())
+                        || request.getAmount().compareTo(new BigDecimal(budget.getAmount())) != 0
+                        || !Objects.equals(request.getRollover(), budget.getRollover()))) {
+            for (BudgetAlert alert : budgetAlertRepository.findByBudgetId(budget.getId())) {
+                alert.setLastTriggered(null);
+                alert.setRead(true);
+                budgetAlertRepository.save(alert);
+            }
+        }
         budgetMapper.updateEntityFromRequest(request, budget);
         budget.setCurrencyId(resolveCurrencyId(budget.getCurrency()));
 
@@ -1218,23 +1232,41 @@ public class BudgetService {
                         previous.getEndDate());
     }
 
-    private void preservePreviousPeriod(Budget budget, BudgetRequest request) {
+    private boolean preservePreviousPeriod(Budget budget, BudgetRequest request) {
         if (!request.getCategoryId().equals(budget.getCategoryId())
                 || request.getPeriod() != budget.getPeriod()
-                || !request.getStartDate().isAfter(budget.getEndDate())) return;
-        budgetRepository.save(
-                Budget.builder()
-                        .userId(budget.getUserId())
-                        .categoryId(budget.getCategoryId())
-                        .amount(budget.getAmount())
-                        .currency(budget.getCurrency())
-                        .currencyId(budget.getCurrencyId())
-                        .period(budget.getPeriod())
-                        .startDate(budget.getStartDate())
-                        .endDate(budget.getEndDate())
-                        .rollover(budget.getRollover())
-                        .notes(budget.getNotes())
-                        .build());
+                || !request.getStartDate().isAfter(budget.getEndDate())) return false;
+        Budget archived =
+                budgetRepository.save(
+                        Budget.builder()
+                                .userId(budget.getUserId())
+                                .categoryId(budget.getCategoryId())
+                                .amount(budget.getAmount())
+                                .currency(budget.getCurrency())
+                                .currencyId(budget.getCurrencyId())
+                                .period(budget.getPeriod())
+                                .startDate(budget.getStartDate())
+                                .endDate(budget.getEndDate())
+                                .rollover(budget.getRollover())
+                                .notes(budget.getNotes())
+                                .build());
+        List<BudgetAlert> priorAlerts = budgetAlertRepository.findByBudgetId(budget.getId());
+        for (BudgetAlert alert : priorAlerts) {
+            alert.setBudget(archived);
+            budgetAlertRepository.save(alert);
+        }
+        // Release the original budget/threshold unique keys before copying configurations.
+        budgetAlertRepository.flush();
+        for (BudgetAlert alert : priorAlerts) {
+            budgetAlertRepository.save(
+                    BudgetAlert.builder()
+                            .budget(budget)
+                            .threshold(alert.getThreshold())
+                            .isEnabled(alert.isEnabled())
+                            .isRead(true)
+                            .build());
+        }
+        return true;
     }
 
     /**

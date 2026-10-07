@@ -437,8 +437,23 @@ public class HistoryStateStore {
                         .thenComparing(HistoryStateStore::compareIds));
         List<Change> reverse = new ArrayList<>(ordered);
         Collections.reverse(reverse);
+        // Detach moved alerts before deleting their former budget: ON DELETE CASCADE would
+        // otherwise remove them before their ownership can be restored. Reinsert them after
+        // the target budgets exist, which also releases budget/threshold unique keys.
+        Set<Key> movedAlerts =
+                ordered.stream()
+                        .filter(change -> change.table().equals("budget_alerts"))
+                        .filter(change -> change.before() != null && change.after() != null)
+                        .filter(
+                                change ->
+                                        !Objects.equals(
+                                                change.before().get("budget_id"),
+                                                change.after().get("budget_id")))
+                        .map(Change::key)
+                        .collect(Collectors.toSet());
         for (Change change : reverse) {
-            if ((redo ? change.after() : change.before()) == null)
+            if ((redo ? change.after() : change.before()) == null
+                    || movedAlerts.contains(change.key()))
                 jdbc.update(
                         "DELETE FROM "
                                 + identifier(change.table())
@@ -450,7 +465,8 @@ public class HistoryStateStore {
         for (Change change : ordered) {
             Map<String, String> target = redo ? change.after() : change.before();
             if (target == null) continue;
-            if ((redo ? change.before() : change.after()) == null) insert(change.table(), target);
+            if ((redo ? change.before() : change.after()) == null
+                    || movedAlerts.contains(change.key())) insert(change.table(), target);
             else update(change, target, current.rows().get(change.key()), redo, userId);
         }
         entityManager.clear();

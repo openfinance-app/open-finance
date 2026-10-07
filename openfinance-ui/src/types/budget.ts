@@ -25,7 +25,8 @@ export interface BudgetResponse {
   categoryId: number;
   categoryName: string;
   categoryType: 'INCOME' | 'EXPENSE';
-  amount: number;
+  /** API returns an exact decimal string; number permits legacy cached responses. */
+  amount: string | number;
   currency: string;
   period: BudgetPeriod;
   startDate: string;

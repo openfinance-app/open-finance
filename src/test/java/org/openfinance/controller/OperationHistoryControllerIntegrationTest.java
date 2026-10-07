@@ -580,6 +580,49 @@ class OperationHistoryControllerIntegrationTest {
     }
 
     @Test
+    void advancingBudgetPreservesAlertOwnershipAcrossUndoAndRedo() throws Exception {
+        JsonNode category =
+                call(
+                        post("/api/v1/categories"),
+                        Map.of("name", "Period alert correction", "type", "EXPENSE"));
+        Map<String, Object> request = auditBudgetRequest(category.get("id").asLong());
+        long budgetId = call(post("/api/v1/budgets"), request).get("id").asLong();
+        String path = "/api/v1/budgets/alerts/" + budgetId;
+        JsonNode originalAlerts = call(get(path), null);
+        String alertId = originalAlerts.get(0).get("id").asText();
+        jdbc.update(
+                "UPDATE budget_alerts SET last_triggered = ?, is_read = FALSE WHERE id = ?",
+                "2026-01-01T12:00:00",
+                alertId);
+        originalAlerts = call(get(path), null);
+        java.time.LocalDate nextStart =
+                java.time.LocalDate.parse(request.get("endDate").toString()).plusDays(1);
+        request.put("startDate", nextStart.toString());
+        request.put("endDate", nextStart.plusMonths(1).minusDays(1).toString());
+        call(put("/api/v1/budgets/" + budgetId), request);
+        long action = latest("BUDGET").get("id").asLong();
+        JsonNode futureAlerts = call(get(path), null);
+        assertThat(futureAlerts).hasSize(3);
+        for (JsonNode alert : futureAlerts)
+            assertThat(alert.get("lastTriggered").isNull()).isTrue();
+        reverse(action, false);
+        JsonNode restoredAlerts = call(get(path), null);
+        assertThat(restoredAlerts).hasSize(3);
+        for (int i = 0; i < 3; i++) {
+            assertThat(restoredAlerts.get(i).get("id")).isEqualTo(originalAlerts.get(i).get("id"));
+            assertThat(restoredAlerts.get(i).get("lastTriggered"))
+                    .isEqualTo(originalAlerts.get(i).get("lastTriggered"));
+        }
+        reverse(action, true);
+        JsonNode redoneAlerts = call(get(path), null);
+        assertThat(redoneAlerts).hasSize(3);
+        for (int i = 0; i < 3; i++) {
+            assertThat(redoneAlerts.get(i).get("id")).isEqualTo(futureAlerts.get(i).get("id"));
+            assertThat(redoneAlerts.get(i).get("lastTriggered").isNull()).isTrue();
+        }
+    }
+
+    @Test
     void undoBudgetDeletionRejectsReplacementOverlapAndKeepsBothActionsIntact() throws Exception {
         JsonNode category =
                 call(post("/api/v1/categories"), Map.of("name", "Water audit", "type", "EXPENSE"));
@@ -599,15 +642,15 @@ class OperationHistoryControllerIntegrationTest {
         assertThat(
                         call(get("/api/v1/budgets/" + replacement.get("id").asLong()), null)
                                 .get("amount")
-                                .decimalValue())
-                .isEqualByComparingTo("50");
+                                .asText())
+                .isEqualTo("50");
         reverse(replacementAction, false);
         reverse(deletion.get("id").asLong(), false);
         assertThat(
                         call(get("/api/v1/budgets/" + original.get("id").asLong()), null)
                                 .get("amount")
-                                .decimalValue())
-                .isEqualByComparingTo("100");
+                                .asText())
+                .isEqualTo("100");
     }
 
     @Test
@@ -793,14 +836,14 @@ class OperationHistoryControllerIntegrationTest {
         call(put("/api/v1/budgets/" + budgetId), request);
         long update = latest("BUDGET").get("id").asLong();
         reverse(update, false);
-        assertThat(call(get("/api/v1/budgets/" + budgetId), null).get("amount").decimalValue())
-                .isEqualByComparingTo("200.12");
+        assertThat(call(get("/api/v1/budgets/" + budgetId), null).get("amount").asText())
+                .isEqualTo("200.12");
         reverse(update, true);
         call(delete("/api/v1/budgets/" + budgetId), null);
         long deletion = latest("BUDGET").get("id").asLong();
         reverse(deletion, false);
-        assertThat(call(get("/api/v1/budgets/" + budgetId), null).get("amount").decimalValue())
-                .isEqualByComparingTo("250.34");
+        assertThat(call(get("/api/v1/budgets/" + budgetId), null).get("amount").asText())
+                .isEqualTo("250.34");
         reverse(deletion, true);
         call(delete("/api/v1/categories/" + categoryId), null);
         long deleteCategory = latest("CATEGORY").get("id").asLong();

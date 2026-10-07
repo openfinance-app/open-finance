@@ -102,6 +102,63 @@ class BudgetServiceTest {
     private BudgetRequest testRequest;
     private BudgetResponse testResponse;
 
+    @Test
+    void serializesAuthoritativeBudgetAmountWithoutBinaryRounding() throws Exception {
+        com.fasterxml.jackson.databind.ObjectMapper json =
+                new com.fasterxml.jackson.databind.ObjectMapper();
+        com.fasterxml.jackson.databind.JsonNode amount =
+                json.readTree(
+                                json.writeValueAsString(
+                                        BudgetResponse.builder()
+                                                .amount(new BigDecimal("0.123456789012345678"))
+                                                .build()))
+                        .get("amount");
+        assertThat(amount.isTextual()).isTrue();
+        assertThat(amount.asText()).isEqualTo("0.123456789012345678");
+    }
+
+    @Test
+    void advancingPeriodMovesTriggeredAlertsToHistoryAndCopiesOnlyConfiguration() {
+        testBudget.setEndDate(LocalDate.of(2026, 1, 31));
+        testRequest.setStartDate(LocalDate.of(2026, 2, 1));
+        testRequest.setEndDate(LocalDate.of(2026, 2, 28));
+        org.openfinance.entity.BudgetAlert old =
+                org.openfinance.entity.BudgetAlert.builder()
+                        .id(java.util.UUID.randomUUID())
+                        .budget(testBudget)
+                        .threshold(new BigDecimal("75"))
+                        .lastTriggered(java.time.LocalDateTime.of(2026, 1, 20, 10, 0))
+                        .isRead(false)
+                        .build();
+        when(budgetAlertRepository.findByBudgetId(testBudget.getId())).thenReturn(List.of(old));
+        when(budgetRepository.save(any(Budget.class)))
+                .thenAnswer(
+                        i -> {
+                            Budget b = i.getArgument(0);
+                            b.setId(99L);
+                            return b;
+                        });
+        Boolean preserved =
+                org.springframework.test.util.ReflectionTestUtils.invokeMethod(
+                        budgetService, "preservePreviousPeriod", testBudget, testRequest);
+        assertThat(preserved).isTrue();
+        assertThat(old.getBudget().getId()).isEqualTo(99L);
+        assertThat(old.getBudget().getEndDate()).isEqualTo(LocalDate.of(2026, 1, 31));
+        assertThat(old.getLastTriggered()).isNotNull();
+        assertThat(old.isRead()).isFalse();
+        verify(budgetAlertRepository)
+                .save(
+                        org.mockito.ArgumentMatchers.argThat(
+                                alert ->
+                                        alert != old
+                                                && alert.getBudget() == testBudget
+                                                && alert.getThreshold()
+                                                                .compareTo(new BigDecimal("75"))
+                                                        == 0
+                                                && alert.getLastTriggered() == null
+                                                && alert.isRead()));
+    }
+
     @BeforeEach
     void setUp() {
         LocaleContextHolder.setLocale(Locale.ENGLISH);

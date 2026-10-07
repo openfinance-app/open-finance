@@ -83,7 +83,7 @@ export interface ImportSessionResponse {
 export interface ImportSplit {
   category: string;
   /** Preserve server decimal strings when reviewed rows are submitted again. */
-  amount: string | number;
+  amount: string | number | null;
   memo: string;
 }
 
@@ -91,12 +91,12 @@ export interface ImportSplit {
  * Import transaction DTO
  */
 export interface ImportTransactionDTO {
-  transactionDate: string;
+  transactionDate: string | null;
   payee: string;
   /** Original payee from the import file before any auto-categorization replacement. */
   originalPayee?: string | null;
   /** Decimal strings retain source precision; numbers support older API responses. */
-  amount: string | number;
+  amount: string | number | null;
   currency: string;
   /** Server-resolved source currency for review, including implicit account currency. */
   reviewCurrency?: string;

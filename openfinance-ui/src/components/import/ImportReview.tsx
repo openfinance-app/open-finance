@@ -820,7 +820,9 @@ export function ImportReview({
 
                         {/* Date */}
                         <td className="py-2.5 px-4 text-sm text-text-secondary whitespace-nowrap">
-                          {formatDate(transaction.transactionDate)}
+                          {transaction.transactionDate
+                            ? formatDate(transaction.transactionDate)
+                            : t('review.table.missingDate')}
                         </td>
 
                         {/* Payee */}
@@ -846,19 +848,25 @@ export function ImportReview({
 
                         {/* Amount */}
                         <td className="py-2.5 px-4 text-sm text-right font-mono whitespace-nowrap">
-                          <span
-                            className={
-                              Number(transaction.amount) >= 0 ? 'text-green-600' : 'text-red-500'
-                            }
-                          >
-                            <ConvertedAmount
-                              amount={Number(transaction.amount)}
-                              currency={
-                                transaction.currency || transaction.reviewCurrency || baseCurrency
+                          {transaction.amount == null ? (
+                            <span className="text-text-tertiary">
+                              {t('review.table.missingAmount')}
+                            </span>
+                          ) : (
+                            <span
+                              className={
+                                Number(transaction.amount) >= 0 ? 'text-green-600' : 'text-red-500'
                               }
-                              inline
-                            />
-                          </span>
+                            >
+                              <ConvertedAmount
+                                amount={Number(transaction.amount)}
+                                currency={
+                                  transaction.currency || transaction.reviewCurrency || baseCurrency
+                                }
+                                inline
+                              />
+                            </span>
+                          )}
                         </td>
 
                         {/* Category */}

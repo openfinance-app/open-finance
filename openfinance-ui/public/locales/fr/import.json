@@ -183,7 +183,9 @@
       "memo": "Mémo",
       "status": "État",
       "validationErrors": "Erreurs de validation",
-      "splitLines": "Lignes ventilées"
+      "splitLines": "Lignes ventilées",
+      "missingDate": "Date manquante",
+      "missingAmount": "Montant manquant"
     },
     "autoAssignedCount_one": "{{count}} transaction automatiquement assignée.",
     "autoAssignedCount_other": "{{count}} transactions automatiquement assignées.",

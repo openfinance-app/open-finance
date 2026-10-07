@@ -16,6 +16,7 @@ import { NumberInput } from '@/components/ui/NumberInput';
 import { CurrencySelector } from '@/components/ui/CurrencySelector';
 import { CategorySelect } from '@/components/ui/CategorySelect';
 import { useAuthContext } from '@/context/AuthContext';
+import Decimal from 'decimal.js';
 import { isValidDecimalString } from '@/utils/money';
 import { budgetPeriodEnd } from '@/utils/budget-dates';
 import type { BudgetRequest, BudgetResponse, BudgetPeriod } from '@/types/budget';
@@ -30,7 +31,10 @@ function createBudgetSchema(t: (key: string) => string) {
         .string()
         .min(1, t('validation.amountInvalid'))
         .refine(isValidDecimalString, t('validation.amountInvalid'))
-        .refine(v => Number(v) > 0, t('validation.amountPositive')),
+        .refine(
+          v => isValidDecimalString(v) && new Decimal(v).gte('0.01'),
+          t('validation.amountMinimum')
+        ),
       currency: z
         .string()
         .trim()
@@ -60,6 +64,7 @@ interface BudgetFormProps {
   onCancel: () => void;
   isLoading?: boolean;
   serverError?: string | null;
+  serverFieldErrors?: Record<string, string>;
 }
 
 export function BudgetForm({
@@ -68,6 +73,7 @@ export function BudgetForm({
   onCancel,
   isLoading,
   serverError,
+  serverFieldErrors,
 }: BudgetFormProps) {
   const isEditing = !!budget;
   const { baseCurrency } = useAuthContext();
@@ -81,6 +87,7 @@ export function BudgetForm({
     control,
     watch,
     setValue,
+    setError,
     formState: { errors },
   } = useForm<BudgetFormData>({
     resolver: zodResolver(budgetSchema),
@@ -107,6 +114,22 @@ export function BudgetForm({
           notes: '',
         },
   });
+
+  useEffect(() => {
+    const fields = new Set([
+      'categoryId',
+      'amount',
+      'currency',
+      'period',
+      'startDate',
+      'endDate',
+      'rollover',
+      'notes',
+    ]);
+    for (const [field, message] of Object.entries(serverFieldErrors ?? {})) {
+      if (fields.has(field)) setError(field as keyof BudgetFormData, { type: 'server', message });
+    }
+  }, [serverFieldErrors, setError]);
 
   const watchedPeriod = watch('period');
   const watchedStartDate = watch('startDate');

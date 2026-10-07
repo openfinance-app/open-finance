@@ -71,6 +71,8 @@
     "delete": "Delete conversation",
     "error": "Could not load or update conversation history. Please try again.",
     "offline": "AI is unavailable. You can still read your saved conversations.",
-    "loading": "Loading conversation…"
-  }
+    "loading": "Loading conversation…",
+    "hiddenTitle": "Conversation {{id}}"
+  },
+  "contentHidden": "Chat content is hidden while amounts are hidden."
 }

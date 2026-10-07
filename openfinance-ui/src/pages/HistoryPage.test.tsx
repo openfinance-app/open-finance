@@ -262,4 +262,29 @@ describe('HistoryPage', () => {
       expect(historyService.redo).not.toHaveBeenCalled();
     });
   });
+  it('masks monetary changes in privacy mode', async () => {
+    const { historyService } = await import('@/services/historyService');
+    vi.mocked(historyService.getHistory).mockResolvedValueOnce({
+      ...mockHistoryPage,
+      content: [
+        {
+          ...mockHistoryItems[0],
+          changedFieldsJson: JSON.stringify({ amount: { before: '50.01', after: '65.02' } }),
+        },
+      ],
+    });
+    localStorage.setItem('open_finance_amounts_visible', 'false');
+    const user = userEvent.setup();
+    renderWithProviders(<HistoryPage />);
+    await user.click(await screen.findByRole('button', { name: /show changes/i }));
+    expect(screen.queryByText('50.01')).not.toBeInTheDocument();
+    expect(screen.queryByText('65.02')).not.toBeInTheDocument();
+    expect(screen.getAllByText('••••')).toHaveLength(2);
+    localStorage.removeItem('open_finance_amounts_visible');
+  });
+  it('keeps the page size selector for a single page of results', async () => {
+    renderWithProviders(<HistoryPage />);
+    await screen.findByText('Weekly groceries');
+    expect(screen.getByRole('option', { name: '50' })).toBeInTheDocument();
+  });
 });

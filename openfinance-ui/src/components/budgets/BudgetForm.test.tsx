@@ -257,4 +257,35 @@ describe('BudgetForm', () => {
       vi.useRealTimers();
     }
   });
+  it('keeps the exact decimal amount on a notes-only edit', async () => {
+    const user = userEvent.setup();
+    const precise = '0.123456789012345678';
+    renderWithProviders(
+      <BudgetForm
+        budget={{ ...mockBudget, amount: precise, currency: 'BTC' }}
+        onSubmit={mockOnSubmit}
+        onCancel={mockOnCancel}
+      />
+    );
+    await user.clear(screen.getByLabelText(/Notes/i));
+    await user.type(screen.getByLabelText(/Notes/i), 'Updated note');
+    await user.click(screen.getByRole('button', { name: /save|update/i }));
+    await waitFor(() =>
+      expect(mockOnSubmit).toHaveBeenCalledWith(
+        expect.objectContaining({ amount: precise, notes: 'Updated note' })
+      )
+    );
+  });
+  it('shows server validation beside the amount field', async () => {
+    renderWithProviders(
+      <BudgetForm
+        budget={mockBudget}
+        onSubmit={mockOnSubmit}
+        onCancel={mockOnCancel}
+        serverFieldErrors={{ amount: 'Server amount detail' }}
+      />
+    );
+    expect(await screen.findByText('Server amount detail')).toBeInTheDocument();
+    expect(screen.getByLabelText(/Budget Amount/i)).toHaveAttribute('aria-invalid', 'true');
+  });
 });

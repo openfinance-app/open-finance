@@ -266,7 +266,9 @@ describe('Tax Regime Calculations', () => {
 
   describe('calculateMicroBIC', () => {
     it('should calculate Micro-BIC correctly for eligible income', () => {
-      const inputs = createTestInputs();
+      const inputs = createTestInputs({
+        property: { totalPrice: 300000, furnishingType: 'basic', furnitureValue: 5000 },
+      });
       const result = calculateMicroBIC(inputs);
 
       expect(result.regime).toBe('micro_bic');
@@ -278,6 +280,7 @@ describe('Tax Regime Calculations', () => {
 
     it('should mark as ineligible for revenue over 77700 EUR', () => {
       const inputs = createTestInputs({
+        property: { totalPrice: 300000, furnishingType: 'basic', furnitureValue: 5000 },
         revenue: {
           monthlyRent: 7000,
           recoverableCharges: 0,
@@ -292,7 +295,9 @@ describe('Tax Regime Calculations', () => {
     });
 
     it('should calculate 18.6% social contributions', () => {
-      const inputs = createTestInputs();
+      const inputs = createTestInputs({
+        property: { totalPrice: 300000, furnishingType: 'basic', furnitureValue: 5000 },
+      });
       const result = calculateMicroBIC(inputs);
 
       const expectedSocial = result.revenue.taxable * 0.186;
@@ -301,6 +306,7 @@ describe('Tax Regime Calculations', () => {
 
     it('should handle exactly 77700 EUR revenue (boundary)', () => {
       const inputs = createTestInputs({
+        property: { totalPrice: 300000, furnishingType: 'basic', furnitureValue: 5000 },
         revenue: {
           monthlyRent: 6475,
           recoverableCharges: 0,
@@ -633,5 +639,31 @@ describe('Tax Regime Calculations', () => {
       // With higher depreciation, deduction should be higher
       expect(result2.revenue.deduction).toBeGreaterThan(result1.revenue.deduction);
     });
+  });
+});
+
+describe('Rental recommendations respect the configured property', () => {
+  it('does not recommend furnished regimes for an unfurnished property', () => {
+    const results = calculateAllRegimes(createTestInputs());
+    expect(results.microFoncier.eligible).toBe(true);
+    expect(results.reelFoncier.eligible).toBe(true);
+    expect(results.microBic.eligible).toBe(false);
+    expect(results.lmnpReel.eligible).toBe(false);
+    expect(['micro_foncier', 'reel_foncier']).toContain(getRecommendedRegime(results));
+  });
+  it('offers no inapplicable fallback for professional furnished activity', () => {
+    const inputs = createTestInputs({
+      property: { totalPrice: 120000, furnishingType: 'basic', furnitureValue: 5000 },
+      revenue: { monthlyRent: 2000, recoverableCharges: 100, occupancyRate: 100, badDebtRate: 0 },
+      tax: {
+        incomeYear: 2026,
+        otherHouseholdIncome: 10000,
+        otherFurnishedReceipts: 0,
+        otherUnfurnishedRent: 0,
+      },
+    });
+    const results = calculateAllRegimes(inputs);
+    expect(Object.values(results).every(result => !result.eligible)).toBe(true);
+    expect(getRecommendedRegime(results)).toBeNull();
   });
 });

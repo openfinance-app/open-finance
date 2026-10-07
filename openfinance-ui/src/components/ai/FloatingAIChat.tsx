@@ -23,6 +23,7 @@ import {
   useConversations,
   useDeleteConversation,
 } from '@/hooks/useAIChat';
+import { useVisibility } from '@/context/VisibilityContext';
 import { useAuthContext } from '@/context/AuthContext';
 import ChatMessage from '@/components/ai/ChatMessage';
 import ChatInput from '@/components/ai/ChatInput';
@@ -41,6 +42,7 @@ export const FloatingAIChat: React.FC = () => {
 
 const FloatingAIChatSession: React.FC<{ selectionKey: string }> = ({ selectionKey }) => {
   const { t } = useTranslation('ai');
+  const { isAmountsVisible } = useVisibility();
   const generation = useRef(0);
   const [historyError, setHistoryError] = React.useState(false);
 
@@ -266,7 +268,9 @@ const FloatingAIChatSession: React.FC<{ selectionKey: string }> = ({ selectionKe
               <option value="">{t('newConversation')}</option>
               {conversations.data?.map(item => (
                 <option key={item.id} value={String(item.id)}>
-                  {item.title || t('history.untitled')}
+                  {isAmountsVisible
+                    ? item.title || t('history.untitled')
+                    : t('history.hiddenTitle', { id: item.id })}
                 </option>
               ))}
             </select>
@@ -353,14 +357,16 @@ const FloatingAIChatSession: React.FC<{ selectionKey: string }> = ({ selectionKe
 
           {/* Input Area */}
           <div className="flex-shrink-0 px-4 py-3 border-t border-border rounded-b-2xl">
-            <ChatInput
-              value={inputValue}
-              onChange={setInputValue}
-              onSubmit={handleSendMessage}
-              isLoading={sendMessage.isPending}
-              disabled={!isOllamaAvailable || isLoadingConversation || !!conversationError}
-              placeholder={t('inputPlaceholder', 'Ask about your finances...')}
-            />
+            {isAmountsVisible && (
+              <ChatInput
+                value={inputValue}
+                onChange={setInputValue}
+                onSubmit={handleSendMessage}
+                isLoading={sendMessage.isPending}
+                disabled={!isOllamaAvailable || isLoadingConversation || !!conversationError}
+                placeholder={t('inputPlaceholder', 'Ask about your finances...')}
+              />
+            )}
 
             {sendMessage.error && (
               <div className="mt-1.5 flex items-center gap-1.5 text-xs text-red-600">
