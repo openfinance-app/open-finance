@@ -17,6 +17,7 @@ class BudgetAlertMapperTest {
         ResourceBundleMessageSource messages = new ResourceBundleMessageSource();
         messages.setBasename("i18n/messages");
         messages.setDefaultEncoding("UTF-8");
+        messages.setFallbackToSystemLocale(false);
         BudgetAlertMapper mapper = new BudgetAlertMapper(messages);
         Category category =
                 Category.builder()
