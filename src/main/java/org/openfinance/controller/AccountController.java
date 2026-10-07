@@ -8,7 +8,6 @@ import org.openfinance.dto.AccountRequest;
 import org.openfinance.dto.AccountResponse;
 import org.openfinance.dto.AccountSearchCriteria;
 import org.openfinance.dto.AccountSummaryResponse;
-import org.openfinance.dto.BalanceHistoryPoint;
 import org.openfinance.entity.User;
 import org.openfinance.exception.AccountHasTransactionsException;
 import org.openfinance.service.AccountService;
@@ -636,19 +635,20 @@ public class AccountController {
      * @return HTTP 200 OK with list of balance history points
      */
     @GetMapping("/{id}/balance-history")
-    public ResponseEntity<List<BalanceHistoryPoint>> getAccountBalanceHistory(
-            @PathVariable("id") Long accountId,
-            @org.springframework.web.bind.annotation.RequestParam(
-                            value = "period",
-                            required = false,
-                            defaultValue = "3M")
-                    String period,
-            Authentication authentication) {
+    public ResponseEntity<List<org.openfinance.dto.AccountBalanceHistoryResponse>>
+            getAccountBalanceHistory(
+                    @PathVariable("id") Long accountId,
+                    @org.springframework.web.bind.annotation.RequestParam(
+                                    value = "period",
+                                    required = false,
+                                    defaultValue = "3M")
+                            String period,
+                    Authentication authentication) {
 
         log.info("Retrieving balance history for account: id={}, period={}", accountId, period);
         User user = (User) authentication.getPrincipal();
-        List<BalanceHistoryPoint> history =
-                accountService.getAccountBalanceHistory(accountId, user.getId(), period);
+        List<org.openfinance.dto.AccountBalanceHistoryResponse> history =
+                accountService.getAccountBalanceHistoryForDisplay(accountId, user.getId(), period);
 
         log.info(
                 "Balance history retrieved successfully: id={}, points={}",

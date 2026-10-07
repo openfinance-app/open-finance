@@ -184,6 +184,7 @@ export function GeneralSettings({ onHasChanges }: { onHasChanges?: (dirty: boole
   const [selectedCountry, setSelectedCountry] = useState<string>('FR');
   const [countrySaveSuccess, setCountrySaveSuccess] = useState(false);
   const [secondarySaveSuccess, setSecondarySaveSuccess] = useState(false);
+  const [secondarySaveError, setSecondarySaveError] = useState(false);
 
   // Update selected currency when user changes (e.g., after successful update)
   useEffect(() => {
@@ -191,17 +192,6 @@ export function GeneralSettings({ onHasChanges }: { onHasChanges?: (dirty: boole
       setSelectedCurrency(user.baseCurrency);
     }
   }, [user?.baseCurrency]);
-
-  /**
-   * Sync secondary currency from backend profile on first load.
-   * Requirement REQ-2.7, REQ-6.3
-   */
-  useEffect(() => {
-    if (settings?.secondaryCurrency && !secondaryCurrency) {
-      setSecondaryCurrency(settings.secondaryCurrency);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [settings]);
 
   // Sync country from backend settings on load
   useEffect(() => {
@@ -221,29 +211,16 @@ export function GeneralSettings({ onHasChanges }: { onHasChanges?: (dirty: boole
     }
   };
 
-  /**
-   * Handle secondary currency change.
-   * Updates the local context (localStorage) and persists to backend.
-   * Requirement REQ-15.1–REQ-15.4, REQ-2.2
-   */
-  const handleSecondaryCurrencyChange = (value: string) => {
-    const code = value === '__none__' ? null : value || null;
-    setSecondaryCurrency(code);
-    updateSettings.mutate(
-      { secondaryCurrency: code ?? '' },
-      {
-        onSuccess: () => {
-          setSecondarySaveSuccess(true);
-          setTimeout(() => setSecondarySaveSuccess(false), SETTINGS_SUCCESS_MESSAGE_DURATION_MS);
-        },
-        onError: () => {
-          // Revert to previous value on error
-          if (settings) {
-            setSecondaryCurrency(settings.secondaryCurrency ?? null);
-          }
-        },
-      }
-    );
+  const handleSecondaryCurrencyChange = async (value: string) => {
+    setSecondarySaveError(false);
+    setSecondarySaveSuccess(false);
+    try {
+      await setSecondaryCurrency(value === '__none__' ? null : value || null);
+      setSecondarySaveSuccess(true);
+      setTimeout(() => setSecondarySaveSuccess(false), SETTINGS_SUCCESS_MESSAGE_DURATION_MS);
+    } catch {
+      setSecondarySaveError(true);
+    }
   };
 
   /** Handle country change — persists to backend immediately */
@@ -269,7 +246,9 @@ export function GeneralSettings({ onHasChanges }: { onHasChanges?: (dirty: boole
 
   // Notify parent whenever the unsaved-changes flag flips
   const onHasChangesRef = useRef(onHasChanges);
-  onHasChangesRef.current = onHasChanges;
+  useEffect(() => {
+    onHasChangesRef.current = onHasChanges;
+  }, [onHasChanges]);
   useEffect(() => {
     onHasChangesRef.current?.(hasChanges);
   }, [hasChanges]);
@@ -373,6 +352,11 @@ export function GeneralSettings({ onHasChanges }: { onHasChanges?: (dirty: boole
             </p>
           )}
 
+          {secondarySaveError && (
+            <p role="alert" className="text-sm text-red-400">
+              {t('general.currencies.updateError')}
+            </p>
+          )}
           {secondarySaveSuccess && (
             <div className="mt-3 flex items-center gap-2 text-sm text-green-400">
               <Check className="h-4 w-4" />

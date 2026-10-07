@@ -507,6 +507,29 @@ class FinancialContextBuilderTest {
                 .build();
     }
 
+    @Test
+    void retainsCryptoAndThreeDecimalFiatFactPrecision() {
+        when(defaultCurrencyProvider.resolveForUser(1L)).thenReturn("BTC");
+        when(accountRepository.findByUserIdAndIsActive(1L, true))
+                .thenReturn(
+                        List.of(
+                                Account.builder()
+                                        .id(1L)
+                                        .name("Bitcoin")
+                                        .currency("BTC")
+                                        .balance(new BigDecimal("0.07636913001"))
+                                        .build(),
+                                Account.builder()
+                                        .id(2L)
+                                        .name("Dinar")
+                                        .currency("KWD")
+                                        .balance(new BigDecimal("1.234"))
+                                        .build()));
+        Map<String, FinancialFact> result = facts(builder.buildContext(1L, Locale.ENGLISH));
+        assertThat(result.get("account.1").amount()).isEqualTo("0.07636913001");
+        assertThat(result.get("account.2").amount()).isEqualTo("1.234");
+    }
+
     private Map<String, FinancialFact> facts(String context) {
         return context.lines()
                 .filter(s -> s.startsWith("[FACT] "))

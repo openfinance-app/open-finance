@@ -213,7 +213,8 @@ public class Transaction {
      * Exchange rate applied at save time: {@code 1 originalCurrency = conversionRate * currency}.
      * Plaintext (a market rate, like {@code exchange_rates.rate}). Null unless converted.
      */
-    @Column(name = "conversion_rate", precision = 18, scale = 8)
+    @Column(name = "conversion_rate", length = 512)
+    @Convert(converter = org.openfinance.converter.ExactDecimalConverter.class)
     private BigDecimal conversionRate;
 
     /**

@@ -40,11 +40,23 @@ import org.springframework.test.context.ActiveProfiles;
 class ExchangeRateRepositoryTest {
 
     @Autowired private ExchangeRateRepository exchangeRateRepository;
+    @Autowired private jakarta.persistence.EntityManager entityManager;
 
     @BeforeEach
     void setUp() {
         // Clean database before each test
         exchangeRateRepository.deleteAll();
+    }
+
+    @Test
+    void reloadsRatesWithoutFixedScaleOrFloatingPointLoss() {
+        BigDecimal exact = new BigDecimal("0.000000001234567890123456789012345678901234");
+        ExchangeRate stored =
+                exchangeRateRepository.saveAndFlush(
+                        createRate("USD", "BTC", exact, LocalDate.now()));
+        entityManager.clear();
+        assertThat(exchangeRateRepository.findById(stored.getId()).orElseThrow().getRate())
+                .isEqualByComparingTo(exact);
     }
 
     // ==================== findLatestByBaseCurrencyAndTargetCurrency() Tests ====================

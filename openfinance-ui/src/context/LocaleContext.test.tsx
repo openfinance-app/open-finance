@@ -65,9 +65,9 @@ describe('LocaleContext', () => {
   it('awaits language persistence and updates the same settings cache used on remount', async () => {
     localStorage.setItem('auth_token', 'test-token');
     const client = new QueryClient();
-    client.setQueryData(['user', 'settings'], { language: 'en' });
+    client.setQueryData(['user', 'settings', 1], { language: 'en' });
     vi.mocked(apiClient.put).mockResolvedValueOnce({
-      data: { language: 'fr', dateFormat: 'DD/MM/YYYY' },
+      data: { userId: 1, language: 'fr', dateFormat: 'DD/MM/YYYY' },
     });
     const { result } = renderHook(() => useLocale(), {
       wrapper: ({ children }) => (
@@ -77,7 +77,7 @@ describe('LocaleContext', () => {
       ),
     });
     await act(() => result.current.setLocale('fr'));
-    expect(client.getQueryData(['user', 'settings'])).toMatchObject({ language: 'fr' });
+    expect(client.getQueryData(['user', 'settings', 1])).toMatchObject({ language: 'fr' });
     expect(localStorage.getItem('openfinance_language')).toBe('fr');
     expect(apiClient.put).toHaveBeenCalledWith('/users/me/settings', { language: 'fr' });
   });

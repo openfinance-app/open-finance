@@ -442,7 +442,7 @@ class ExchangeRateTest {
         BigDecimal inverseRate = rate.getInverseRate();
 
         // 1 / 0.85 = 1.17647058...
-        BigDecimal expected = new BigDecimal("1.17647059"); // rounded to 8 decimals with HALF_UP
+        BigDecimal expected = new BigDecimal("1.176470588235294117647058823529412");
         assertThat(inverseRate).isEqualByComparingTo(expected);
     }
 
@@ -460,7 +460,7 @@ class ExchangeRateTest {
         BigDecimal inverseRate = rate.getInverseRate();
 
         // 1 / 95000 = 0.00001052631...
-        BigDecimal expected = new BigDecimal("0.00001053"); // rounded to 8 decimals with HALF_UP
+        BigDecimal expected = new BigDecimal("0.00001052631578947368421052631578947368");
         assertThat(inverseRate).isEqualByComparingTo(expected);
     }
 

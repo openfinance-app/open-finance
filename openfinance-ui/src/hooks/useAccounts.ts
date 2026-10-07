@@ -29,6 +29,14 @@ interface PaginatedResponse<T> {
 export interface BalanceHistoryPoint {
   date: string;
   balance: number;
+  currency?: string;
+  balanceInBaseCurrency?: number;
+  baseCurrency?: string;
+  exchangeRate?: number;
+  isConverted?: boolean;
+  balanceInSecondaryCurrency?: number;
+  secondaryCurrency?: string;
+  secondaryExchangeRate?: number;
 }
 
 /**

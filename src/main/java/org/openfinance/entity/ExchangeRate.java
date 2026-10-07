@@ -1,6 +1,7 @@
 package org.openfinance.entity;
 
 import jakarta.persistence.Column;
+import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -13,6 +14,7 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import java.math.BigDecimal;
+import java.math.MathContext;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import lombok.AccessLevel;
@@ -24,6 +26,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
 import org.hibernate.annotations.CreationTimestamp;
+import org.openfinance.converter.ExactDecimalConverter;
 
 /**
  * Entity representing an exchange rate between two currencies.
@@ -94,7 +97,8 @@ public class ExchangeRate {
      */
     @NotNull(message = "{exchangeRate.rate.notnull}")
     @DecimalMin(value = "0.0", inclusive = false, message = "{exchangeRate.rate.decimalMin}")
-    @Column(name = "rate", nullable = false, precision = 18, scale = 8)
+    @Column(name = "rate", nullable = false, length = 512)
+    @Convert(converter = ExactDecimalConverter.class)
     private BigDecimal rate;
 
     /**
@@ -124,10 +128,10 @@ public class ExchangeRate {
      * @return The inverse rate (1 / rate)
      */
     public BigDecimal getInverseRate() {
-        if (rate == null || rate.compareTo(BigDecimal.ZERO) == 0) {
+        if (rate == null || rate.signum() <= 0) {
             throw new IllegalStateException("Cannot calculate inverse of zero or null rate");
         }
-        return BigDecimal.ONE.divide(rate, 8, java.math.RoundingMode.HALF_UP);
+        return BigDecimal.ONE.divide(rate, MathContext.DECIMAL128);
     }
 
     /**

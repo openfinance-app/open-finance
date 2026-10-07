@@ -1,6 +1,7 @@
 package org.openfinance.service;
 
 import java.math.BigDecimal;
+import java.math.MathContext;
 import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -11,6 +12,7 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.openfinance.dto.ExchangeRateLeg;
 import org.openfinance.dto.MarketQuote;
 import org.openfinance.entity.Currency;
 import org.openfinance.entity.CurrencyType;
@@ -105,6 +107,14 @@ public class ExchangeRateService {
             value = "exchangeRates",
             key = "#fromCurrency + '-' + #toCurrency + '-' + (#date != null ? #date : 'latest')")
     public BigDecimal getExchangeRate(String fromCurrency, String toCurrency, LocalDate date) {
+        return getExchangeRateQuote(fromCurrency, toCurrency, date).rate();
+    }
+
+    /**
+     * Resolves the rate with the actual quote dates and sources, including both cross-rate legs.
+     */
+    public ExchangeRateQuote getExchangeRateQuote(
+            String fromCurrency, String toCurrency, LocalDate date) {
         log.debug("Getting exchange rate: {} → {} for date: {}", fromCurrency, toCurrency, date);
 
         // Validate currencies exist
@@ -114,10 +124,11 @@ public class ExchangeRateService {
         // Same currency conversion
         if (fromCurrency.equalsIgnoreCase(toCurrency)) {
             log.debug("Same currency conversion, returning 1.0");
-            return BigDecimal.ONE;
+            return new ExchangeRateQuote(BigDecimal.ONE, List.of());
         }
 
-        Optional<BigDecimal> storedRate = findStoredExchangeRate(fromCurrency, toCurrency, date);
+        Optional<ExchangeRateQuote> storedRate =
+                findExchangeRate(fromCurrency, toCurrency, date, List.of());
         if (storedRate.isPresent()) {
             return storedRate.get();
         }
@@ -128,7 +139,7 @@ public class ExchangeRateService {
                         : fetchPairRates(fromCurrency, toCurrency);
         if (!fetched.isEmpty()) {
             persistFetchedRates(fetched);
-            Optional<BigDecimal> fetchedRate =
+            Optional<ExchangeRateQuote> fetchedRate =
                     findExchangeRate(fromCurrency, toCurrency, date, fetched);
             if (fetchedRate.isPresent()) return fetchedRate.get();
         }
@@ -158,14 +169,14 @@ public class ExchangeRateService {
     /**
      * Converts an amount from one currency to another using a historical exchange rate.
      *
-     * <p>The result is rounded to 8 decimal places using HALF_UP rounding mode, which is sufficient
-     * for both fiat currencies (2-4 decimals) and cryptocurrencies.
+     * <p>Calculated money retains 18 decimal places, independently of display preferences.
+     * Intermediate rates use DECIMAL128 precision so small cross-rates remain meaningful.
      *
      * @param amount the amount to convert
      * @param fromCurrency the source currency code (e.g., "USD")
      * @param toCurrency the target currency code (e.g., "EUR")
      * @param date the date for the exchange rate (null for latest)
-     * @return the converted amount rounded to 8 decimal places
+     * @return the converted amount rounded to 18 decimal places
      * @throws IllegalArgumentException if amount is negative or currencies are invalid
      */
     public BigDecimal convert(
@@ -177,7 +188,7 @@ public class ExchangeRateService {
         log.debug("Converting {} {} to {} on {}", amount, fromCurrency, toCurrency, date);
 
         BigDecimal rate = getExchangeRate(fromCurrency, toCurrency, date);
-        BigDecimal converted = amount.multiply(rate).setScale(8, RoundingMode.HALF_UP);
+        BigDecimal converted = amount.multiply(rate).setScale(18, RoundingMode.HALF_UP);
 
         log.debug(
                 "Converted {} {} = {} {} (rate: {})",
@@ -258,12 +269,9 @@ public class ExchangeRateService {
                                             ExchangeRate.builder()
                                                     .baseCurrency(r.getTargetCurrency())
                                                     .targetCurrency(r.getBaseCurrency())
-                                                    .rate(
-                                                            BigDecimal.ONE.divide(
-                                                                    r.getRate(),
-                                                                    8,
-                                                                    java.math.RoundingMode.HALF_UP))
+                                                    .rate(r.getInverseRate())
                                                     .rateDate(r.getRateDate())
+                                                    .source(r.getSource())
                                                     .build())
                             .collect(java.util.stream.Collectors.toList());
             newRates.addAll(inverseRates);
@@ -500,71 +508,47 @@ public class ExchangeRateService {
         }
     }
 
-    /**
-     * Returns the latest rate for {@code currencyCode} → USD (i.e. 1 unit of the currency in USD).
-     *
-     * <p>Checks both the direct row ({@code currencyCode}→USD) and the inverse of USD→{@code
-     * currencyCode}. Used to compute cross-rates when neither a direct nor inverse pair is stored
-     * in the DB.
-     *
-     * @param currencyCode the non-USD currency
-     * @return rate in USD, or {@code null} if not available
-     */
-    private Optional<BigDecimal> findStoredExchangeRate(
-            String fromCurrency, String toCurrency, LocalDate date) {
-        return findExchangeRate(fromCurrency, toCurrency, date, List.of());
-    }
-
-    private Optional<BigDecimal> findExchangeRate(
+    /** Resolves direct, inverse or USD cross quotes while retaining all input provenance. */
+    private Optional<ExchangeRateQuote> findExchangeRate(
             String fromCurrency, String toCurrency, LocalDate date, List<ExchangeRate> fetched) {
-        Optional<ExchangeRate> directRate = findRate(fromCurrency, toCurrency, date, fetched);
-        if (directRate.isPresent()) {
-            BigDecimal rate = directRate.get().getRate();
-            log.debug("Found direct rate: {} → {} = {}", fromCurrency, toCurrency, rate);
-            return Optional.of(rate);
-        }
-
-        Optional<ExchangeRate> inverseRate = findRate(toCurrency, fromCurrency, date, fetched);
-        if (inverseRate.isPresent()) {
-            BigDecimal rate = inverseRate.get().getInverseRate();
-            log.debug(
-                    "Found inverse rate: {} → {} = {} (calculated from inverse)",
-                    fromCurrency,
-                    toCurrency,
-                    rate);
-            return Optional.of(rate);
-        }
-
+        Optional<ExchangeRate> direct = findRate(fromCurrency, toCurrency, date, fetched);
+        if (direct.isPresent()) return Optional.of(quote(direct.get(), false));
+        Optional<ExchangeRate> inverse = findRate(toCurrency, fromCurrency, date, fetched);
+        if (inverse.isPresent()) return Optional.of(quote(inverse.get(), true));
         if (!"USD".equalsIgnoreCase(fromCurrency) && !"USD".equalsIgnoreCase(toCurrency)) {
-            BigDecimal fromUsd = getRateViaUsd(fromCurrency, date, fetched);
-            BigDecimal toUsd = getRateViaUsd(toCurrency, date, fetched);
-            if (fromUsd != null && toUsd != null && toUsd.compareTo(BigDecimal.ZERO) != 0) {
-                BigDecimal crossRate = fromUsd.divide(toUsd, 8, RoundingMode.HALF_UP);
-                log.debug(
-                        "Found cross-rate via USD for {} → {} = {} (fromUsd={}, toUsd={})",
-                        fromCurrency,
-                        toCurrency,
-                        crossRate,
-                        fromUsd,
-                        toUsd);
-                return Optional.of(crossRate);
+            Optional<ExchangeRateQuote> fromUsd = rateViaUsd(fromCurrency, date, fetched);
+            Optional<ExchangeRateQuote> toUsd = rateViaUsd(toCurrency, date, fetched);
+            if (fromUsd.isPresent() && toUsd.isPresent()) {
+                List<ExchangeRateLeg> legs = new ArrayList<>(fromUsd.get().legs());
+                legs.addAll(toUsd.get().legs());
+                return Optional.of(
+                        new ExchangeRateQuote(
+                                fromUsd.get()
+                                        .rate()
+                                        .divide(toUsd.get().rate(), MathContext.DECIMAL128),
+                                legs));
             }
         }
-
         return Optional.empty();
     }
 
-    private BigDecimal getRateViaUsd(
-            String currencyCode, LocalDate date, List<ExchangeRate> fetched) {
-        Optional<ExchangeRate> direct = findRate(currencyCode, "USD", date, fetched);
-        if (direct.isPresent()) {
-            return direct.get().getRate();
-        }
-        Optional<ExchangeRate> inverse = findRate("USD", currencyCode, date, fetched);
-        if (inverse.isPresent()) {
-            return inverse.get().getInverseRate();
-        }
-        return null;
+    private Optional<ExchangeRateQuote> rateViaUsd(
+            String currency, LocalDate date, List<ExchangeRate> fetched) {
+        return findRate(currency, "USD", date, fetched)
+                .map(rate -> quote(rate, false))
+                .or(() -> findRate("USD", currency, date, fetched).map(rate -> quote(rate, true)));
+    }
+
+    private ExchangeRateQuote quote(ExchangeRate rate, boolean inverse) {
+        return new ExchangeRateQuote(
+                inverse ? rate.getInverseRate() : rate.getRate(),
+                List.of(
+                        new ExchangeRateLeg(
+                                rate.getBaseCurrency(),
+                                rate.getTargetCurrency(),
+                                rate.getRate(),
+                                rate.getRateDate(),
+                                rate.getSource())));
     }
 
     private Optional<ExchangeRate> findRate(
@@ -692,9 +676,7 @@ public class ExchangeRateService {
                                 ExchangeRate.builder()
                                         .baseCurrency(rate.getTargetCurrency())
                                         .targetCurrency(rate.getBaseCurrency())
-                                        .rate(
-                                                BigDecimal.ONE.divide(
-                                                        rate.getRate(), 8, RoundingMode.HALF_UP))
+                                        .rate(rate.getInverseRate())
                                         .rateDate(rate.getRateDate())
                                         .source(rate.getSource())
                                         .build())
@@ -789,7 +771,7 @@ public class ExchangeRateService {
         if (isCryptocurrency(baseCurrency)) {
             // Crypto: Store as USD → crypto (inverse)
             // Example: BTC-USD = 95000 → store USD → BTC = 0.00001053
-            rate = BigDecimal.ONE.divide(price, 8, RoundingMode.HALF_UP);
+            rate = BigDecimal.ONE.divide(price, MathContext.DECIMAL128);
             storedBase = "USD";
             storedTarget = baseCurrency;
         } else {

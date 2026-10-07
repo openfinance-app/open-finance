@@ -141,7 +141,7 @@ export const LocaleProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
       // 3. Persist to backend
       const settings = await persistLocaleToBackend(locale);
-      if (settings) queryClient.setQueryData(['user', 'settings'], settings);
+      if (settings) queryClient.setQueryData(['user', 'settings', settings.userId], settings);
 
       if (import.meta.env.MODE !== 'test') {
         console.log(`[LocaleContext] Successfully switched to: ${locale}`);

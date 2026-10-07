@@ -86,6 +86,13 @@ public class BudgetProgressResponse {
      */
     private String currency;
 
+    /** Original progress retained when summary totals are expressed in the reporting currency. */
+    private String nativeCurrency;
+
+    private BigDecimal nativeBudgeted;
+    private BigDecimal nativeSpent;
+    private BigDecimal nativeRemaining;
+
     /** Budget period type. */
     private BudgetPeriod period;
 

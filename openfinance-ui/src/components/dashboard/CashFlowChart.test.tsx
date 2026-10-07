@@ -8,6 +8,7 @@ import i18n from '@/test/i18n-test';
 import { VisibilityProvider, useVisibility } from '@/context/VisibilityContext';
 import { NumberFormatProvider } from '@/context/NumberFormatContext';
 import { DecimalPlacesProvider } from '@/context/DecimalPlacesContext';
+import { AuthProvider } from '@/context/AuthContext';
 import { CurrencyDisplayProvider } from '@/context/CurrencyDisplayContext';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
@@ -84,11 +85,13 @@ const renderChart = (props: Partial<Parameters<typeof CashFlowChart>[0]> = {}) =
         <I18nextProvider i18n={i18n}>
           <NumberFormatProvider>
             <DecimalPlacesProvider>
-              <CurrencyDisplayProvider>
-                <MemoryRouter>
-                  <CashFlowChart cashFlow={mockCashFlow} {...props} />
-                </MemoryRouter>
-              </CurrencyDisplayProvider>
+              <AuthProvider>
+                <CurrencyDisplayProvider>
+                  <MemoryRouter>
+                    <CashFlowChart cashFlow={mockCashFlow} {...props} />
+                  </MemoryRouter>
+                </CurrencyDisplayProvider>
+              </AuthProvider>
             </DecimalPlacesProvider>
           </NumberFormatProvider>
         </I18nextProvider>

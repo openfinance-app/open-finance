@@ -499,6 +499,7 @@ function TransactionItem({
           {transaction.type === 'EXPENSE' && '-'}
           {/* Reference REQ-9.1: Display transaction amount with base-currency conversion when available */}
           <ConvertedAmount
+            conversionDate={transaction.date}
             amount={transaction.amount}
             currency={transaction.currency}
             convertedAmount={transaction.amountInBaseCurrency}

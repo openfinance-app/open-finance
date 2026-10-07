@@ -62,6 +62,7 @@ public class RecurringOccurrenceServiceImpl implements RecurringOccurrenceServic
                         .isReconciled(false)
                         .build();
         if (template.getType() == TransactionType.TRANSFER) {
+            transactionService.prepareTransferInstruction(userId, request);
             transactionService.createTransfer(userId, request);
         } else {
             transactionService.createTransaction(userId, request);

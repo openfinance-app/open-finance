@@ -27,6 +27,14 @@ export interface ExchangeRate {
   inverseRate: number;
   rateDate: string;
   source: string;
+  valuationDate?: string;
+  quoteLegs?: {
+    baseCurrency: string;
+    targetCurrency: string;
+    rate: number;
+    rateDate: string;
+    source: string;
+  }[];
 }
 
 /**

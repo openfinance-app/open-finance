@@ -1,6 +1,5 @@
 package org.openfinance.repository;
 
-import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.Comparator;
 import java.util.List;
@@ -53,7 +52,7 @@ public interface ExchangeRateRepository extends JpaRepository<ExchangeRate, Long
                                 upsert(
                                         rate.getBaseCurrency(),
                                         rate.getTargetCurrency(),
-                                        rate.getRate(),
+                                        rate.getRate().toPlainString(),
                                         rate.getRateDate().toString(),
                                         rate.getSource()));
     }
@@ -79,7 +78,7 @@ public interface ExchangeRateRepository extends JpaRepository<ExchangeRate, Long
     int upsert(
             @Param("base") String base,
             @Param("target") String target,
-            @Param("rate") BigDecimal rate,
+            @Param("rate") String rate,
             @Param("rateDate") String rateDate,
             @Param("source") String source);
 

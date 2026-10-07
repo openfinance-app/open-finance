@@ -1474,6 +1474,10 @@ public class BudgetService {
     /** Native progress stays native; summary rows share a dated reporting-currency snapshot. */
     private BudgetProgressResponse convertSummaryProgress(
             BudgetProgressResponse progress, Long userId) {
+        progress.setNativeCurrency(progress.getCurrency());
+        progress.setNativeBudgeted(progress.getBudgeted());
+        progress.setNativeSpent(progress.getSpent());
+        progress.setNativeRemaining(progress.getRemaining());
         String currency = defaultCurrencyProvider.resolveForUser(userId);
         if (!currency.equalsIgnoreCase(progress.getCurrency())) {
             LocalDate date = LocalDate.now();

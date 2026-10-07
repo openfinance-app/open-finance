@@ -62,13 +62,25 @@ const CustomTooltip = ({
           {globalFormatDate(data.date, dateFormat)}
         </p>
         <p className="text-lg font-bold text-text-primary mb-1">
-          <ConvertedAmount amount={data.netWorth} currency={currency} inline />
+          <ConvertedAmount
+            conversionDate={data.date}
+            showComparisons
+            amount={data.netWorth}
+            currency={currency}
+            inline
+          />
         </p>
         {data.previousNetWorth && (
           <p className={`text-sm ${change >= 0 ? 'text-green-600' : 'text-red-600'}`}>
             {change >= 0 ? '+' : '-'}
-            <ConvertedAmount amount={Math.abs(change)} currency={currency} inline /> (
-            {change >= 0 ? '+' : ''}
+            <ConvertedAmount
+              amount={Math.abs(change)}
+              currency={currency}
+              conversionDate={data.date}
+              showComparisons
+              inline
+            />{' '}
+            ({change >= 0 ? '+' : ''}
             {changePercent}%)
           </p>
         )}

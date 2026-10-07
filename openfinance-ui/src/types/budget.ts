@@ -38,6 +38,10 @@ export interface BudgetResponse {
 }
 
 export interface BudgetProgressResponse {
+  nativeCurrency?: string;
+  nativeBudgeted?: number;
+  nativeSpent?: number;
+  nativeRemaining?: number;
   budgetId: number;
   categoryName: string;
   budgeted: number;

@@ -6,7 +6,6 @@ import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
@@ -119,7 +118,7 @@ class ExchangeRateServiceTest {
         assertThat(result)
                 .isEqualByComparingTo(
                         BigDecimal.ONE.divide(
-                                new BigDecimal("1.17647059"), 8, RoundingMode.HALF_UP));
+                                new BigDecimal("1.17647059"), java.math.MathContext.DECIMAL128));
     }
 
     @Test
@@ -266,8 +265,8 @@ class ExchangeRateServiceTest {
     }
 
     @Test
-    @DisplayName("Should round result to 8 decimal places")
-    void shouldRoundResultTo8DecimalPlaces() {
+    @DisplayName("Should retain 18 decimal places in converted money")
+    void shouldRetainMonetaryPrecision() {
         // Arrange
         when(currencyRepository.existsByCode("USD")).thenReturn(true);
         when(currencyRepository.existsByCode("BTC")).thenReturn(true);
@@ -280,7 +279,7 @@ class ExchangeRateServiceTest {
         BigDecimal result = exchangeRateService.convert(new BigDecimal("1000"), "USD", "BTC");
 
         // Assert
-        assertThat(result.scale()).isEqualTo(8);
+        assertThat(result.scale()).isEqualTo(18);
     }
 
     // ==================== updateExchangeRates() Tests ====================
@@ -534,7 +533,7 @@ class ExchangeRateServiceTest {
         BigDecimal result = exchangeRateService.convert(new BigDecimal("100"), "EUR", "XOF", date);
 
         // Assert
-        assertThat(result).isEqualByComparingTo("66666.66666700");
+        assertThat(result).isEqualByComparingTo("66666.666666666666666667");
         verify(currencyRepository, never()).findByIsActiveTrueOrderByCodeAsc();
         ArgumentCaptor<String> symbolCaptor = ArgumentCaptor.forClass(String.class);
         verify(marketDataProvider, times(2))
@@ -561,7 +560,7 @@ class ExchangeRateServiceTest {
         BigDecimal stored = exchangeRateService.getExchangeRate("USD", "BTC", null);
 
         // Assert
-        assertThat(stored).isEqualByComparingTo("0.00001053");
+        assertThat(stored).isEqualByComparingTo("0.00001052631578947368421052631578947368");
 
         // Crypto symbol must be built as BTC-USD (proves the addSymbolForCurrency crypto branch).
         verify(marketDataProvider).getHistoricalPrices(eq("BTC-USD"), any(), any());
@@ -571,7 +570,7 @@ class ExchangeRateServiceTest {
         ArgumentCaptor<List<ExchangeRate>> ratesCaptor = ArgumentCaptor.forClass(List.class);
         verify(exchangeRateRepository).upsertAll(ratesCaptor.capture());
         BigDecimal expectedInverseRate =
-                BigDecimal.ONE.divide(new BigDecimal("95000"), 8, RoundingMode.HALF_UP);
+                BigDecimal.ONE.divide(new BigDecimal("95000"), java.math.MathContext.DECIMAL128);
         assertThat(ratesCaptor.getValue())
                 .anySatisfy(
                         rate -> {

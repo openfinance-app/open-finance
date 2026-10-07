@@ -17,7 +17,6 @@ import type {
   UserSettings,
 } from '@/types/user';
 import { useAuthContext } from '@/context/AuthContext';
-import { useCurrencyDisplay } from '@/context/CurrencyDisplayContext';
 import { clearStoredEncryptionEnabled, setStoredEncryptionEnabled } from '@/utils/encryption';
 import { DEFAULT_CURRENCY } from '@/utils/currency';
 import { STORAGE_KEYS } from '@/constants/storage';
@@ -302,7 +301,6 @@ export function useDeleteProfileImage() {
 export function useCompleteOnboarding() {
   const navigate = useNavigate();
   const { updateUser } = useAuthContext();
-  const { setDisplayMode } = useCurrencyDisplay();
   const queryClient = useQueryClient();
 
   return useMutation<UserSettings, AxiosError, OnboardingRequest>({
@@ -313,9 +311,7 @@ export function useCompleteOnboarding() {
     onSuccess: (settings: UserSettings, variables: OnboardingRequest) => {
       // Sync the base currency into auth context so the whole app updates immediately
       updateUser({ baseCurrency: variables.baseCurrency });
-      // Sync the amount display mode into context (and localStorage)
-      setDisplayMode(variables.amountDisplayMode);
-      queryClient.setQueryData(['user', 'settings'], settings);
+      queryClient.setQueryData(['user', 'settings', settings.userId], settings);
       queryClient.invalidateQueries({ queryKey: ['user', 'profile'] });
       sessionStorage.removeItem(STORAGE_KEYS.PENDING_LANGUAGE_SYNC);
       navigate(ROUTES.DASHBOARD, { replace: true });

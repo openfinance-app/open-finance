@@ -307,6 +307,7 @@ describe('BackupPage', () => {
         ),
         http.get('/api/v1/users/me/settings', () =>
           HttpResponse.json({
+            userId: 1,
             language: 'en',
             amountDisplayMode: 'both',
             secondaryCurrency: 'EUR',

@@ -34,7 +34,6 @@ import { PrivateAmount } from '@/components/ui/PrivateAmount';
 import { ConvertedAmount } from '@/components/ui/ConvertedAmount';
 import { useSecondaryConversion } from '@/hooks/useSecondaryConversion';
 import { useAuthContext } from '@/context/AuthContext';
-import { DEFAULT_CURRENCY } from '@/utils/currency';
 import {
   useAssetsSearch,
   useAssets,
@@ -49,7 +48,7 @@ import {
   formatPercentage,
   getGainLossColor,
 } from '@/utils/portfolio';
-import { sum, subtract, percentage, multiply, divide } from '@/utils/money';
+import { computeAssetSummary } from '@/utils/asset-summary';
 import type { Asset, AssetRequest, AssetFilters as Filters } from '@/types/asset';
 import { DEFAULT_PAGE_SIZE, FETCH_ALL_PAGE_SIZE } from '@/constants/pagination';
 
@@ -159,55 +158,14 @@ export default function AssetsPage() {
     filters.valueMax !== undefined
   );
 
-  /** Compute summary stats for a set of assets, summing in base currency when available */
-  const computeAssetSummary = (assetList: Asset[]) => {
-    assetList = assetList.filter(asset => asset.acquisitionType !== 'PLANNED');
-    // Use the user-entered current value (totalValue) for every asset, including physical ones.
-    // Auto-depreciation is only a fallback for physical assets that lack an entered current price.
-    const totalValue = sum(
-      assetList.map(a => {
-        // Coerce to Number first: keeps NaN-propagation semantics (instead of throwing) if a
-        // field is unexpectedly missing, matching the previous `sum + effectiveNative` behavior.
-        const effectiveNative = Number(
-          a.isPhysical
-            ? (a.totalValue ?? a.conditionAdjustedValue ?? a.depreciatedValue)
-            : a.totalValue
-        );
-        if (
-          a.valueInBaseCurrency !== undefined &&
-          a.valueInBaseCurrency !== null &&
-          a.totalValue > 0
-        ) {
-          const rate = divide(a.valueInBaseCurrency, a.totalValue);
-          return multiply(effectiveNative, rate);
-        }
-        return effectiveNative;
-      })
-    );
-    const totalCost = sum(
-      assetList.map(a => {
-        const cost = Number(a.totalCost);
-        if (
-          a.valueInBaseCurrency !== undefined &&
-          a.valueInBaseCurrency !== null &&
-          a.totalValue > 0
-        ) {
-          const rate = divide(a.valueInBaseCurrency, a.totalValue);
-          return multiply(cost, rate);
-        }
-        return cost;
-      })
-    );
-    const totalGain = subtract(totalValue, totalCost);
-    const gainPct = totalCost > 0 ? percentage(totalGain, totalCost) : 0;
-    // Prefer the base currency from the server response; fall back to auth context baseCurrency
-    const currency =
-      assetList[0]?.baseCurrency ?? baseCurrency ?? assetList[0]?.currency ?? DEFAULT_CURRENCY;
-    return { totalValue, totalCost, totalGain, gainPct, currency };
-  };
-
-  const globalSummary = useMemo(() => computeAssetSummary(allAssets), [allAssets]);
-  const filteredSummary = useMemo(() => computeAssetSummary(assets), [assets]);
+  const globalSummary = useMemo(
+    () => computeAssetSummary(allAssets, baseCurrency),
+    [allAssets, baseCurrency]
+  );
+  const filteredSummary = useMemo(
+    () => computeAssetSummary(assets, baseCurrency),
+    [assets, baseCurrency]
+  );
 
   const {
     convert,
@@ -348,6 +306,17 @@ export default function AssetsPage() {
         </div>
       )}
 
+      {globalSummary.missingCurrencies.length > 0 && (
+        <p
+          role="status"
+          className="mb-4 rounded-lg border border-warning/30 bg-warning/10 p-3 text-sm"
+        >
+          {t('summary.missingRates', {
+            currencies: globalSummary.missingCurrencies.join(', '),
+            currency: globalSummary.currency,
+          })}
+        </p>
+      )}
       {/* Summary Cards — Portfolio-style */}
       {!isLoading && allAssets.length > 0 && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">

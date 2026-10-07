@@ -11,7 +11,8 @@
     "initialInvestment": "Initial investment",
     "overallReturn": "Overall Return",
     "bestPerformer": "Best Performer",
-    "noGainsYet": "No gains yet"
+    "noGainsYet": "No gains yet",
+    "missingRates": "Partial totals in {{currency}}: {{currencies}} holdings are excluded because exchange rates are unavailable."
   },
   "assetCount_one": "{{count}} asset",
   "assetCount_other": "{{count}} assets",

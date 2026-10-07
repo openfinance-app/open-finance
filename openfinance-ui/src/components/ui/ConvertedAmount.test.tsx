@@ -5,6 +5,14 @@ vi.mock('@/context/CurrencyDisplayContext', () => ({
   useCurrencyDisplay: vi.fn(),
 }));
 
+vi.mock('@/hooks/useSecondaryConversion', () => ({
+  useSecondaryConversion: () => ({
+    secondaryCurrency: 'GBP',
+    secondaryExchangeRate: 0.78,
+    convert: (value: number) => value * 0.78,
+  }),
+}));
+
 vi.mock('@/context/NumberFormatContext', () => ({
   useNumberFormat: vi.fn(),
 }));
@@ -181,7 +189,7 @@ describe('ConvertedAmount', () => {
     expect(tooltip).toHaveTextContent('EUR');
   });
 
-  it('uses context secondary currency when prop not provided', () => {
+  it('fetches the selected comparison when the supplied amount has no currency metadata', () => {
     mockCurrencyDisplay.mockReturnValue({
       displayMode: 'base',
       secondaryCurrency: 'GBP',

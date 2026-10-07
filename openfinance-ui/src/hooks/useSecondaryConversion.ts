@@ -17,7 +17,7 @@
  */
 import { useMemo } from 'react';
 import { useCurrencyDisplay } from '@/context/CurrencyDisplayContext';
-import { useLatestExchangeRate } from '@/hooks/useCurrency';
+import { useExchangeRate, useLatestExchangeRate } from '@/hooks/useCurrency';
 import { multiply } from '@/utils/money';
 
 export interface SecondaryConversionResult {
@@ -44,14 +44,27 @@ export interface SecondaryConversionResult {
  *                      nulls in that case.
  */
 export function useSecondaryConversion(
-  fromCurrency: string | null | undefined
+  fromCurrency: string | null | undefined,
+  date?: string
 ): SecondaryConversionResult {
   const { secondaryCurrency } = useCurrencyDisplay();
 
   // Only fetch when both currencies are known and different
   const enabled = !!fromCurrency && !!secondaryCurrency && fromCurrency !== secondaryCurrency;
 
-  const { data: rateData } = useLatestExchangeRate(fromCurrency ?? '', secondaryCurrency ?? '');
+  const { data: latestRate } = useLatestExchangeRate(
+    fromCurrency ?? '',
+    secondaryCurrency ?? '',
+    undefined,
+    enabled && !date
+  );
+  const { data: datedRate } = useExchangeRate(
+    fromCurrency ?? '',
+    secondaryCurrency ?? '',
+    date,
+    enabled && !!date
+  );
+  const rateData = date ? datedRate : latestRate;
 
   const rate = enabled && rateData ? rateData.rate : null;
 

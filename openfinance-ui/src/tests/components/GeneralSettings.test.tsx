@@ -330,38 +330,25 @@ describe('GeneralSettings', () => {
       expect(mockSetSecondaryCurrency).toHaveBeenCalledWith(null);
     });
 
-    it('should call updateSettings.mutate when secondary currency changes', async () => {
-      const mockMutate = vi.fn();
-      mockUseUpdateUserSettings.mockReturnValue({
-        mutate: mockMutate,
-        isPending: false,
+    it('shows confirmation after saving a secondary preference', async () => {
+      mockUseCurrencyDisplay.mockReturnValue({
+        secondaryCurrency: null,
+        setSecondaryCurrency: vi.fn().mockResolvedValue(undefined),
       });
-
       renderWithProviders(<GeneralSettings />);
-
-      const eurOption = screen.getByRole('button', { name: 'EUR' });
-      await user.click(eurOption);
-
-      expect(mockMutate).toHaveBeenCalledWith({ secondaryCurrency: 'EUR' }, expect.any(Object));
+      await user.click(screen.getByRole('button', { name: 'EUR' }));
+      expect(screen.getByText('Secondary currency cleared')).toBeInTheDocument();
+      expect(screen.queryByRole('alert')).not.toBeInTheDocument();
     });
 
-    it('should call updateSettings.mutate with empty string when "None" is selected', async () => {
-      const mockMutate = vi.fn();
-      mockUseUpdateUserSettings.mockReturnValue({
-        mutate: mockMutate,
-        isPending: false,
-      });
+    it('reports a rejected secondary preference save', async () => {
       mockUseCurrencyDisplay.mockReturnValue({
-        secondaryCurrency: 'EUR',
-        setSecondaryCurrency: vi.fn(),
+        secondaryCurrency: 'GBP',
+        setSecondaryCurrency: vi.fn().mockRejectedValue(new Error('Offline')),
       });
-
       renderWithProviders(<GeneralSettings />);
-
-      const noneOption = screen.getAllByRole('button', { name: 'None' })[0];
-      await user.click(noneOption);
-
-      expect(mockMutate).toHaveBeenCalledWith({ secondaryCurrency: '' }, expect.any(Object));
+      await user.click(screen.getByRole('button', { name: 'EUR' }));
+      expect(await screen.findByRole('alert')).toHaveTextContent(/failed|unable|error/i);
     });
 
     it('should show a hint when a secondary currency is active', () => {
@@ -386,7 +373,7 @@ describe('GeneralSettings', () => {
       expect(screen.queryByText(/amounts will show/i)).not.toBeInTheDocument();
     });
 
-    it('should sync secondary currency from backend settings on initial load', () => {
+    it('does not issue a preference write when settings load', () => {
       const mockSetSecondaryCurrency = vi.fn();
       mockUseCurrencyDisplay.mockReturnValue({
         secondaryCurrency: null, // no localStorage value yet
@@ -400,8 +387,8 @@ describe('GeneralSettings', () => {
 
       renderWithProviders(<GeneralSettings />);
 
-      // The sync useEffect should fire and call setSecondaryCurrency
-      expect(mockSetSecondaryCurrency).toHaveBeenCalledWith('GBP');
+      // The provider owns hydration; rendering settings must not write it back.
+      expect(mockSetSecondaryCurrency).not.toHaveBeenCalled();
     });
 
     it('should NOT override an existing context value with backend settings', () => {

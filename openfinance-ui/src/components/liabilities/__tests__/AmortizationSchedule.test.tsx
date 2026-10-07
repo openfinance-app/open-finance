@@ -5,7 +5,7 @@
 import { screen, fireEvent, within } from '@testing-library/react';
 import { vi, describe, it, expect, beforeEach } from 'vitest';
 import React from 'react';
-import { renderWithProviders, createTestQueryClient } from '@/test/test-utils';
+import { renderWithProviders, createTestQueryClient, mockAuthentication } from '@/test/test-utils';
 import { AmortizationSchedule } from '../AmortizationSchedule';
 import type { AmortizationSchedule as AmortizationScheduleType } from '@/types/liability';
 
@@ -57,6 +57,7 @@ const mockSchedule: AmortizationScheduleType = {
 describe('AmortizationSchedule', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockAuthentication();
     (useVisibility as any).mockReturnValue({ isAmountsVisible: true });
   });
 
@@ -354,7 +355,7 @@ describe('AmortizationSchedule', () => {
   describe('Locale-aware dates', () => {
     it('uses the saved numeric date format for payment dates', async () => {
       const queryClient = createTestQueryClient();
-      queryClient.setQueryData(['user', 'settings'], { dateFormat: 'DD/MM/YYYY' });
+      queryClient.setQueryData(['user', 'settings', 1], { userId: 1, dateFormat: 'DD/MM/YYYY' });
       renderWithProviders(<AmortizationSchedule schedule={mockSchedule} />, { queryClient });
       expect(screen.getAllByText('01/02/2020').length).toBeGreaterThan(0);
       expect(screen.queryByText('Feb 1, 2020')).not.toBeInTheDocument();

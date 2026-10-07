@@ -93,9 +93,9 @@ export function useUpdateBaseCurrency() {
  * @returns UserSettings data with React Query state
  */
 export function useUserSettings() {
-  const { isAuthenticated } = useAuthContext();
+  const { isAuthenticated, user } = useAuthContext();
   return useQuery<UserSettings>({
-    queryKey: ['user', 'settings'],
+    queryKey: ['user', 'settings', user?.id],
     queryFn: async () => {
       const response = await apiClient.get('/users/me/settings');
       return response.data;
@@ -112,15 +112,30 @@ export function useUserSettings() {
  */
 export function useUpdateUserSettings() {
   const queryClient = useQueryClient();
+  const { user } = useAuthContext();
 
   return useMutation({
+    scope: { id: `user-settings-${user?.id}` },
     mutationFn: async (settings: UpdateUserSettingsRequest) => {
       const response = await apiClient.put('/users/me/settings', settings);
       return response.data as UserSettings;
     },
     onSuccess: data => {
       // Update settings cache
-      queryClient.setQueryData(['user', 'settings'], data);
+      queryClient.setQueryData(['user', 'settings', data.userId], data);
+      // Entity DTOs carry secondary amounts and must follow the same preference.
+      for (const key of [
+        'accounts',
+        'assets',
+        'liabilities',
+        'realEstate',
+        'budgets',
+        'transactions',
+        'insights',
+        'recurringTransactions',
+      ]) {
+        queryClient.invalidateQueries({ queryKey: [key] });
+      }
 
       // Invalidate user profile in case settings affect other parts
       queryClient.invalidateQueries({ queryKey: ['user', 'profile'] });

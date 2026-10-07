@@ -40,7 +40,7 @@ import type {
 } from '@/types/transaction';
 import type { Account } from '@/types/account';
 import { formatDateForInput, getToday } from '@/utils/date';
-import { DEFAULT_CURRENCY, getCurrencyDecimals, getMonetaryScale } from '@/utils/currency';
+import { DEFAULT_CURRENCY, getMonetaryScale } from '@/utils/currency';
 import { CurrencySelector } from '@/components/ui/CurrencySelector';
 import { ExchangeRateInline } from '@/components/ui/ExchangeRateDisplay';
 import { useExchangeRate } from '@/hooks/useCurrency';
@@ -220,7 +220,7 @@ export function reconstructInitialSplits(transaction?: Transaction): Transaction
     return rows;
   }
 
-  const decimals = getCurrencyDecimals(originalCurrency);
+  const decimals = getMonetaryScale(originalCurrency);
   const reconstructed = rows.map((s, i) =>
     i < rows.length - 1 ? { ...s, amount: roundToDecimals(s.amount / rate, decimals) } : { ...s }
   );
@@ -419,7 +419,7 @@ function buildTransactionRequest(ctx: SubmitContext): TransactionRequest {
     repaymentPreview,
     linkedLiability,
   } = ctx;
-  const decimals = getCurrencyDecimals(accountCurrency);
+  const decimals = getMonetaryScale(accountCurrency);
   const convert = (value: number): number =>
     needsConversion && rate ? roundToDecimals(multiply(value, rate), decimals) : Number(value);
 
@@ -444,7 +444,7 @@ function buildTransactionRequest(ctx: SubmitContext): TransactionRequest {
           originalAmount: inSplit
             ? sumToDecimals(
                 splits.map(s => Number(s.amount) || 0),
-                getCurrencyDecimals(inputCurrency)
+                getMonetaryScale(inputCurrency)
               )
             : Number(data.amount),
           originalCurrency: inputCurrency,

@@ -246,7 +246,10 @@ describe('useUserSettings hooks', () => {
       });
 
       await waitFor(() => expect(result.current.isSuccess).toBe(true));
-      expect(setQueryDataSpy).toHaveBeenCalledWith(['user', 'settings'], updatedSettings);
+      expect(setQueryDataSpy).toHaveBeenCalledWith(
+        ['user', 'settings', updatedSettings.userId],
+        updatedSettings
+      );
     });
 
     it('should invalidate dashboard and exchangeRate queries on success', async () => {

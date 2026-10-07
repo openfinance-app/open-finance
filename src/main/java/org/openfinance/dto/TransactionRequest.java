@@ -107,7 +107,7 @@ public class TransactionRequest {
      * conversion.
      */
     @DecimalMin(value = "0", inclusive = false, message = "{transaction.amount.greater}")
-    @Digits(integer = 10, fraction = 8, message = "{transaction.amount.digits}")
+    @Digits(integer = 34, fraction = 48, message = "{transaction.amount.digits}")
     private BigDecimal conversionRate;
 
     /**

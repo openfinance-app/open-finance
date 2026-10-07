@@ -305,3 +305,25 @@ describe('CURRENCIES constant', () => {
     expect(codes).toContain('BTC');
   });
 });
+
+it.each([
+  ['KWD', 3],
+  ['BHD', 3],
+  ['CLF', 4],
+  ['JPY', 0],
+  ['XOF', 0],
+  ['USD', 2],
+] as const)('uses the natural minor-unit precision for %s', (code, scale) => {
+  setDecimalPlacesOverride(null);
+  expect(getCurrencyDecimals(code)).toBe(scale);
+});
+
+it('preserves KWD precision in both supported number formats', () => {
+  setDecimalPlacesOverride(null);
+  expect(formatCurrency(1.234, 'KWD')).toBe('KWD1.234');
+  expect(formatCurrency(1.234, 'KWD', { numberFormat: '1 234,56' })).toBe('KWD1,234');
+  setDecimalPlacesOverride(1);
+  expect(formatCurrency(1.234, 'KWD')).toBe('KWD1.2');
+  expect(getMonetaryScale('KWD')).toBe(3);
+  setDecimalPlacesOverride(null);
+});

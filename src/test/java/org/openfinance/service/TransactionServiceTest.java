@@ -175,6 +175,36 @@ class TransactionServiceTest {
     // ---------- createTransaction tests ----------
 
     @Test
+    void preservesOriginalInstructionAndUsesDueDateWhenPreparingARebasedTransfer() {
+        Long userId = 104L;
+        LocalDate due = LocalDate.now().minusDays(5);
+        TransactionRequest request =
+                TransactionRequest.builder()
+                        .accountId(10L)
+                        .toAccountId(20L)
+                        .type(TransactionType.TRANSFER)
+                        .amount(new BigDecimal("10"))
+                        .currency("GBP")
+                        .date(due)
+                        .build();
+        when(accountRepository.findByIdAndUserId(10L, userId))
+                .thenReturn(Optional.of(accountFixture(10L, userId, "Rebased source", "USD")));
+        when(exchangeRateService.getExchangeRate("GBP", "USD", due))
+                .thenReturn(new BigDecimal("1.5"));
+        when(exchangeRateService.convert(new BigDecimal("10"), "GBP", "USD", due))
+                .thenReturn(new BigDecimal("15"));
+        transactionService.prepareTransferInstruction(userId, request);
+        transactionService.prepareTransferInstruction(userId, request);
+        assertThat(request.getAmount()).isEqualByComparingTo("15");
+        assertThat(request.getCurrency()).isEqualTo("USD");
+        assertThat(request.getOriginalAmount()).isEqualByComparingTo("10");
+        assertThat(request.getOriginalCurrency()).isEqualTo("GBP");
+        assertThat(request.getConversionRate()).isEqualByComparingTo("1.5");
+        assertThat(request.getDate()).isEqualTo(due);
+        verify(exchangeRateService).convert(new BigDecimal("10"), "GBP", "USD", due);
+    }
+
+    @Test
     @DisplayName("Should create INCOME transaction successfully with encryption")
     void shouldCreateIncomeTransactionSuccessfully() {
         // Arrange
@@ -934,7 +964,7 @@ class TransactionServiceTest {
     }
 
     @Test
-    @DisplayName("Should round converted amount to 4 decimal places during transfer")
+    @DisplayName("Should preserve transfer precision and reconcile original metadata for both legs")
     void shouldPreserveConvertedAmountPrecisionOnTransfer() {
         // Given
         Long userId = 104L;
@@ -980,6 +1010,9 @@ class TransactionServiceTest {
         when(transactionMapper.toResponse(any(Transaction.class)))
                 .thenReturn(new TransactionResponse());
 
+        request.setOriginalAmount(new BigDecimal("80"));
+        request.setOriginalCurrency("GBP");
+        request.setConversionRate(new BigDecimal("1.25"));
         // When
         transactionService.createTransfer(userId, request);
 
@@ -987,6 +1020,15 @@ class TransactionServiceTest {
         ArgumentCaptor<Transaction> txCaptor = ArgumentCaptor.forClass(Transaction.class);
         // source + destination
         verify(transactionRepository, times(2)).save(txCaptor.capture());
+        Transaction debit = txCaptor.getAllValues().get(0);
+        Transaction credit = txCaptor.getAllValues().get(1);
+        assertThat(debit.getOriginalAmount()).isEqualByComparingTo("80");
+        assertThat(debit.getOriginalCurrency()).isEqualTo("GBP");
+        assertThat(debit.getConversionRate()).isEqualByComparingTo("1.25");
+        assertThat(credit.getOriginalAmount()).isEqualByComparingTo("80");
+        assertThat(credit.getOriginalCurrency()).isEqualTo("GBP");
+        assertThat(credit.getOriginalAmount().multiply(credit.getConversionRate()))
+                .isEqualByComparingTo(credit.getAmount());
 
         Transaction destinationTx = txCaptor.getAllValues().get(1);
         // Preserve the conversion result exactly on the destination leg.

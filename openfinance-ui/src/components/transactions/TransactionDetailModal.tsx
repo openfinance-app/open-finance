@@ -183,6 +183,7 @@ export function TransactionDetailModal({
               <p className={cn('text-3xl font-bold font-mono', typeConfig.color)}>
                 {typeConfig.sign}
                 <ConvertedAmount
+                  conversionDate={transaction.date}
                   amount={transaction.amount}
                   currency={transaction.currency}
                   convertedAmount={transaction.amountInBaseCurrency}

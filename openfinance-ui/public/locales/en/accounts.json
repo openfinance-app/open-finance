@@ -148,7 +148,9 @@
     "institution": "Institution",
     "description": "Description",
     "failedToLoad": "Failed to load account details.",
-    "editTitle": "Edit Account"
+    "editTitle": "Edit Account",
+    "historyCurrency": "History in {{currency}}",
+    "historyMissingRates": "Some dates have no exchange rate; those points are omitted."
   },
   "interest": {
     "historyTitle": "Interest Rate History",

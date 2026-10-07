@@ -58,7 +58,10 @@ function getStatusVariant(status: string): 'success' | 'warning' | 'error' | 'de
 }
 
 export function BudgetCard({ budget, onEdit, onDelete, onViewDetail }: BudgetCardProps) {
-  const displayCurrency = budget.currency;
+  const displayCurrency = budget.nativeCurrency ?? budget.currency;
+  const budgeted = budget.nativeBudgeted ?? budget.budgeted;
+  const spent = budget.nativeSpent ?? budget.spent;
+  const remaining = budget.nativeRemaining ?? budget.remaining;
   const {
     convert,
     secondaryCurrency: secCurrency,
@@ -132,10 +135,12 @@ export function BudgetCard({ budget, onEdit, onDelete, onViewDetail }: BudgetCar
           <span className="text-sm text-text-secondary">{t('card.budgeted')}</span>
           <span className="text-sm font-medium font-mono text-text-primary">
             <ConvertedAmount
-              amount={budget.budgeted}
+              amount={budgeted}
+              convertedAmount={budget.budgeted}
               currency={displayCurrency}
-              isConverted={false}
-              secondaryAmount={convert(budget.budgeted)}
+              baseCurrency={budget.currency}
+              isConverted={displayCurrency !== budget.currency}
+              secondaryAmount={convert(budgeted)}
               secondaryCurrency={secCurrency}
               secondaryExchangeRate={secondaryExchangeRate}
               inline
@@ -146,10 +151,12 @@ export function BudgetCard({ budget, onEdit, onDelete, onViewDetail }: BudgetCar
           <span className="text-sm text-text-secondary">{t('card.spent')}</span>
           <span className="text-sm font-medium font-mono text-text-primary">
             <ConvertedAmount
-              amount={budget.spent}
+              amount={spent}
+              convertedAmount={budget.spent}
               currency={displayCurrency}
-              isConverted={false}
-              secondaryAmount={convert(budget.spent)}
+              baseCurrency={budget.currency}
+              isConverted={displayCurrency !== budget.currency}
+              secondaryAmount={convert(spent)}
               secondaryCurrency={secCurrency}
               secondaryExchangeRate={secondaryExchangeRate}
               inline
@@ -165,10 +172,12 @@ export function BudgetCard({ budget, onEdit, onDelete, onViewDetail }: BudgetCar
             )}
           >
             <ConvertedAmount
-              amount={budget.remaining}
+              amount={remaining}
+              convertedAmount={budget.remaining}
               currency={displayCurrency}
-              isConverted={false}
-              secondaryAmount={convert(budget.remaining)}
+              baseCurrency={budget.currency}
+              isConverted={displayCurrency !== budget.currency}
+              secondaryAmount={convert(remaining)}
               secondaryCurrency={secCurrency}
               secondaryExchangeRate={secondaryExchangeRate}
               inline
@@ -197,10 +206,12 @@ export function BudgetCard({ budget, onEdit, onDelete, onViewDetail }: BudgetCar
             <span className="text-xs font-medium">
               {t('card.overBudgetBy')}{' '}
               <ConvertedAmount
-                amount={Math.abs(budget.remaining)}
+                amount={Math.abs(remaining)}
+                convertedAmount={Math.abs(budget.remaining)}
                 currency={displayCurrency}
-                isConverted={false}
-                secondaryAmount={convert(Math.abs(budget.remaining))}
+                baseCurrency={budget.currency}
+                isConverted={displayCurrency !== budget.currency}
+                secondaryAmount={convert(Math.abs(remaining))}
                 secondaryCurrency={secCurrency}
                 secondaryExchangeRate={secondaryExchangeRate}
                 inline

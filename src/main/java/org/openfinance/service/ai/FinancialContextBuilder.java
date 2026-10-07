@@ -3,7 +3,6 @@ package org.openfinance.service.ai;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -595,6 +594,12 @@ public class FinancialContextBuilder {
         }
     }
 
+    private String factAmount(BigDecimal amount, String currency) {
+        BigDecimal exact = amount.stripTrailingZeros();
+        int minimum = Math.min(org.openfinance.util.MoneyPrecision.scale(currency), 8);
+        return exact.setScale(Math.max(minimum, exact.scale())).toPlainString();
+    }
+
     private void fact(
             StringBuilder context,
             String id,
@@ -608,7 +613,7 @@ public class FinancialContextBuilder {
                 new FinancialFact(
                         id,
                         messageSource.getMessage("ai.fact." + labelKey, null, locale),
-                        amount.setScale(2, RoundingMode.HALF_UP).toPlainString(),
+                        factAmount(amount, currency),
                         defaultCurrencyProvider.resolve(currency),
                         period,
                         entity == null ? "" : entity);

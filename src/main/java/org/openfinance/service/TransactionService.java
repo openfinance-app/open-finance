@@ -345,6 +345,29 @@ public class TransactionService {
         return txResponse;
     }
 
+    /** Keep the instruction's denomination stable across source-account currency changes. */
+    public void prepareTransferInstruction(Long userId, TransactionRequest request) {
+        String sourceCurrency =
+                accountRepository
+                        .findByIdAndUserId(request.getAccountId(), userId)
+                        .orElseThrow()
+                        .getCurrency();
+        if (sourceCurrency.equalsIgnoreCase(request.getCurrency())) return;
+        BigDecimal rate =
+                exchangeRateService.getExchangeRate(
+                        request.getCurrency(), sourceCurrency, request.getDate());
+        request.setOriginalAmount(request.getAmount());
+        request.setOriginalCurrency(request.getCurrency());
+        request.setConversionRate(rate);
+        request.setAmount(
+                exchangeRateService.convert(
+                        request.getAmount(),
+                        request.getCurrency(),
+                        sourceCurrency,
+                        request.getDate()));
+        request.setCurrency(sourceCurrency);
+    }
+
     /**
      * Creates a transfer transaction between two accounts.
      *
@@ -433,6 +456,7 @@ public class TransactionService {
 
         // Create source transaction (money leaving source account - EXPENSE)
         Transaction sourceTransaction = transactionMapper.toEntity(request);
+        applyConversionFields(sourceTransaction, request);
         sourceTransaction.setUserId(userId);
         sourceTransaction.setType(TransactionType.EXPENSE);
         sourceTransaction.setTransferId(transferId);
@@ -483,6 +507,12 @@ public class TransactionService {
         destinationTransaction.setAmount(roundedDestAmount);
 
         destinationTransaction.setCurrency(destCurrency);
+        applyConversionFields(destinationTransaction, request);
+        if (request.getOriginalAmount() != null) {
+            destinationTransaction.setConversionRate(
+                    destAmount.divide(
+                            request.getOriginalAmount(), java.math.MathContext.DECIMAL128));
+        }
         destinationTransaction.setTransferId(transferId);
         destinationTransaction.setCategoryId(null); // Transfers are not categorized
         resolveAndLinkPayee(destinationTransaction, userId);

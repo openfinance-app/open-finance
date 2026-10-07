@@ -1410,6 +1410,45 @@ public class AccountService {
         return calculateBalanceHistory(account, startDate, endDate);
     }
 
+    @Transactional(readOnly = true)
+    public List<org.openfinance.dto.AccountBalanceHistoryResponse>
+            getAccountBalanceHistoryForDisplay(Long accountId, Long userId, String period) {
+        List<org.openfinance.dto.BalanceHistoryPoint> history =
+                getAccountBalanceHistory(accountId, userId, period);
+        Account account =
+                accountRepository
+                        .findByIdAndUserId(accountId, userId)
+                        .orElseThrow(() -> AccountNotFoundException.byIdAndUser(accountId, userId));
+        return history.stream()
+                .map(
+                        point -> {
+                            AccountCurrencyService.Position nativePosition =
+                                    accountCurrencyService.historicalPosition(
+                                            account, point.balance(), point.date(), userId);
+                            CurrencyConversionHelper.ConversionResult converted =
+                                    currencyConversionHelper.convert(
+                                            userId,
+                                            nativePosition.currency(),
+                                            nativePosition.amount(),
+                                            true,
+                                            null,
+                                            "account balance history",
+                                            point.date());
+                            return new org.openfinance.dto.AccountBalanceHistoryResponse(
+                                    point.date(),
+                                    nativePosition.amount(),
+                                    nativePosition.currency(),
+                                    converted.amountInBaseCurrency(),
+                                    converted.baseCurrency(),
+                                    converted.exchangeRate(),
+                                    converted.converted(),
+                                    converted.amountInSecondaryCurrency(),
+                                    converted.secondaryCurrency(),
+                                    converted.secondaryExchangeRate());
+                        })
+                .toList();
+    }
+
     private List<org.openfinance.dto.BalanceHistoryPoint> calculateBalanceHistory(
             Account account, java.time.LocalDate startDate, java.time.LocalDate endDate) {
         Long accountId = account.getId();

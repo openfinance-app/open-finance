@@ -7,6 +7,9 @@ vi.mock('@/context/CurrencyDisplayContext', () => ({
   }),
 }));
 vi.mock('@/hooks/useCurrency', () => ({
+  useExchangeRate: (_from: string, _to: string, date?: string) => ({
+    data: date ? { rate: 0.9 } : null,
+  }),
   useLatestExchangeRate: (from: string, to: string) => ({
     data: from && to && from !== to ? { rate: 0.85 } : null,
   }),
@@ -17,6 +20,11 @@ import { useSecondaryConversion } from './useSecondaryConversion';
 describe('useSecondaryConversion', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+  });
+
+  it('uses a dated quote for historical amounts', () => {
+    const { result } = renderHook(() => useSecondaryConversion('USD', '2026-08-01'));
+    expect(result.current.convert(100)).toBe(90);
   });
 
   it('returns secondary currency when from differs', () => {

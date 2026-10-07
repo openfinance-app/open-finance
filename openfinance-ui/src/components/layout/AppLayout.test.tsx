@@ -58,7 +58,7 @@ describe('AppLayout', () => {
     mockAuthentication();
     qc.clear();
     await i18n.changeLanguage('en');
-    vi.mocked(apiClient.put).mockResolvedValue({ data: { language: 'fr' } });
+    vi.mocked(apiClient.put).mockResolvedValue({ data: { userId: 1, language: 'fr' } });
   });
 
   it('renders sidebar, topbar, and children', async () => {
@@ -87,6 +87,6 @@ describe('AppLayout', () => {
     // pending sync takes priority over backend setting
     await waitFor(() => expect(sessionStorage.getItem('pending_language_sync')).toBeNull());
     expect(apiClient.put).toHaveBeenCalledWith('/users/me/settings', { language: 'fr' });
-    expect(qc.getQueryData(['user', 'settings'])).toEqual({ language: 'fr' });
+    expect(qc.getQueryData(['user', 'settings', 1])).toEqual({ userId: 1, language: 'fr' });
   });
 });

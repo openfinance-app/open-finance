@@ -43,6 +43,7 @@ import { AccountForm } from './AccountForm';
 import { useAccount, useAccountBalanceHistory, useUpdateAccount } from '@/hooks/useAccounts';
 import { useTransactions } from '@/hooks/useTransactions';
 import { useFormatCurrency } from '@/hooks/useFormatCurrency';
+import { useCurrencyDisplay } from '@/context/CurrencyDisplayContext';
 import { DEFAULT_CURRENCY } from '@/utils/currency';
 import { cn } from '@/lib/utils';
 import type { AccountType, AccountRequest } from '@/types/account';
@@ -86,6 +87,7 @@ export function AccountDetailModal({ accountId, onClose, onEdit }: AccountDetail
   const { format: formatCurrency } = useFormatCurrency();
   const { t: tc } = useTranslation('common');
   const { t } = useTranslation('accounts');
+  const { displayMode } = useCurrencyDisplay();
 
   const { data: account, isLoading: isLoadingAccount } = useAccount(accountId);
   const updateAccount = useUpdateAccount();
@@ -119,10 +121,23 @@ export function AccountDetailModal({ accountId, onClose, onEdit }: AccountDetail
     }
   };
 
-  const chartCurrency =
-    account?.isConverted && account?.baseCurrency
-      ? account.baseCurrency
-      : (account?.currency ?? DEFAULT_CURRENCY);
+  const nativeCurrencies = new Set(
+    balanceHistory?.map(point => point.currency ?? account?.currency)
+  );
+  const plotBase = displayMode !== 'native' || nativeCurrencies.size > 1;
+  const chartCurrency = plotBase
+    ? (account?.baseCurrency ?? account?.currency ?? DEFAULT_CURRENCY)
+    : ([...nativeCurrencies][0] ?? account?.currency ?? DEFAULT_CURRENCY);
+  const chartHistory = balanceHistory?.map(point => ({
+    ...point,
+    displayBalance:
+      !plotBase || (point.currency ?? account?.currency) === chartCurrency
+        ? point.balance
+        : point.isConverted
+          ? point.balanceInBaseCurrency
+          : null,
+  }));
+  const missingHistoryRates = chartHistory?.some(point => point.displayBalance == null);
 
   const transactions = transactionsData?.content ?? [];
 
@@ -277,13 +292,21 @@ export function AccountDetailModal({ accountId, onClose, onEdit }: AccountDetail
                       </div>
                     </div>
 
+                    <p className="mb-2 text-xs text-muted-foreground">
+                      {t('detail.historyCurrency', { currency: chartCurrency })}
+                    </p>
+                    {missingHistoryRates && (
+                      <p role="status" className="mb-2 text-sm text-warning">
+                        {t('detail.historyMissingRates')}
+                      </p>
+                    )}
                     {isLoadingHistory ? (
                       <LoadingSkeleton className="h-52 w-full" />
                     ) : balanceHistory && balanceHistory.length > 0 ? (
                       <div className="h-52">
                         <ResponsiveContainer width="100%" height="100%" minWidth={0}>
                           <LineChart
-                            data={balanceHistory}
+                            data={chartHistory}
                             margin={{ top: 4, right: 20, left: 0, bottom: 4 }}
                           >
                             <CartesianGrid strokeDasharray="3 3" stroke="#333" />
@@ -301,21 +324,34 @@ export function AccountDetailModal({ accountId, onClose, onEdit }: AccountDetail
                               }
                             />
                             <Tooltip
-                              contentStyle={{
-                                backgroundColor: '#1a1a1a',
-                                border: '1px solid #333',
-                                borderRadius: '8px',
-                                color: '#fff',
+                              content={({ active, payload, label }) => {
+                                const point = payload?.[0]?.payload;
+                                if (!active || !point) return null;
+                                return (
+                                  <div className="rounded-lg border border-border bg-surface p-3 text-sm">
+                                    <p>
+                                      {label ? format(new Date(String(label)), 'MMMM d, yyyy') : ''}
+                                    </p>
+                                    <ConvertedAmount
+                                      amount={point.balance}
+                                      currency={point.currency ?? account.currency}
+                                      convertedAmount={point.balanceInBaseCurrency}
+                                      baseCurrency={point.baseCurrency}
+                                      isConverted={point.isConverted}
+                                      exchangeRate={point.exchangeRate}
+                                      secondaryAmount={point.balanceInSecondaryCurrency}
+                                      secondaryCurrency={point.secondaryCurrency}
+                                      secondaryExchangeRate={point.secondaryExchangeRate}
+                                      conversionDate={point.date}
+                                      showComparisons
+                                    />
+                                  </div>
+                                );
                               }}
-                              labelFormatter={v => format(new Date(v), 'MMMM d, yyyy')}
-                              formatter={(v: number | undefined) => [
-                                v !== undefined ? formatCurrency(v, chartCurrency) : '',
-                                t('detail.balance'),
-                              ]}
                             />
                             <Line
                               type="monotone"
-                              dataKey="balance"
+                              dataKey="displayBalance"
                               stroke="#c5a254"
                               strokeWidth={2}
                               dot={false}
@@ -342,10 +378,6 @@ export function AccountDetailModal({ accountId, onClose, onEdit }: AccountDetail
                     ) : transactions.length > 0 ? (
                       <div className="space-y-2">
                         {transactions.map(tx => {
-                          const txConverted =
-                            account.isConverted && account.exchangeRate && account.baseCurrency
-                              ? tx.amount * account.exchangeRate
-                              : undefined;
                           return (
                             <div
                               key={tx.id}
@@ -381,10 +413,11 @@ export function AccountDetailModal({ accountId, onClose, onEdit }: AccountDetail
                                   inline
                                   amount={tx.amount}
                                   currency={tx.currency}
-                                  convertedAmount={txConverted}
-                                  baseCurrency={account.baseCurrency}
-                                  exchangeRate={account.exchangeRate}
-                                  isConverted={account.isConverted}
+                                  convertedAmount={tx.amountInBaseCurrency}
+                                  baseCurrency={tx.baseCurrency}
+                                  exchangeRate={tx.exchangeRate}
+                                  isConverted={tx.isConverted}
+                                  conversionDate={tx.date}
                                 />
                               </span>
                             </div>

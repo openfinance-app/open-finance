@@ -112,10 +112,16 @@ export function DisplaySettings() {
     setTimeout(() => setSuccessMessage(null), SETTINGS_SUCCESS_MESSAGE_DURATION_MS);
   };
 
-  const handleDisplayModeChange = (mode: AmountDisplayMode) => {
-    setDisplayMode(mode);
-    setSuccessMessage(t('display.currencyDisplay.updateSuccess'));
-    setTimeout(() => setSuccessMessage(null), SETTINGS_SUCCESS_MESSAGE_DURATION_MS);
+  const handleDisplayModeChange = async (mode: AmountDisplayMode) => {
+    setErrorMessage(null);
+    setSuccessMessage(null);
+    try {
+      await setDisplayMode(mode);
+      setSuccessMessage(t('display.currencyDisplay.updateSuccess'));
+      setTimeout(() => setSuccessMessage(null), SETTINGS_SUCCESS_MESSAGE_DURATION_MS);
+    } catch {
+      setErrorMessage(t('display.currencyDisplay.updateError'));
+    }
   };
 
   const formatExample = (format: DateFormat): string => {

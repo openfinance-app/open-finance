@@ -55,11 +55,6 @@ export type CurrencyCode = (typeof CURRENCIES)[number]['code'];
 export const DEFAULT_CURRENCY = 'EUR';
 
 /**
- * Currencies that use zero decimal places
- */
-const ZERO_DECIMAL_CURRENCIES = ['JPY', 'KRW', 'VND', 'CLP', 'ISK'];
-
-/**
  * Minimal bootstrap fallback for crypto classification, used only until the currencies API
  * populates the dynamic set via `setCryptoCurrencyCodes`.
  */
@@ -166,13 +161,10 @@ export function getCurrencyDecimals(currencyCode: string | null | undefined): nu
     return decimalPlacesOverride;
   }
   currencyCode = currencyCode || DEFAULT_CURRENCY;
-  if (ZERO_DECIMAL_CURRENCIES.includes(currencyCode.toUpperCase())) {
-    return 0;
-  }
   if (isCryptoCurrency(currencyCode)) {
     return 8;
   }
-  return 2; // Default for most fiat currencies
+  return getMonetaryScale(currencyCode);
 }
 
 /** Precision for calculated money; display preferences must not change a posting. */

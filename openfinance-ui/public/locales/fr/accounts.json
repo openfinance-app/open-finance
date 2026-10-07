@@ -148,7 +148,9 @@
     "institution": "Établissement",
     "description": "Description",
     "failedToLoad": "Impossible de charger les détails du compte.",
-    "editTitle": "Modifier le compte"
+    "editTitle": "Modifier le compte",
+    "historyCurrency": "Historique en {{currency}}",
+    "historyMissingRates": "Les dates sans taux de change sont omises du graphique."
   },
   "interest": {
     "historyTitle": "Historique des taux d'intérêt",

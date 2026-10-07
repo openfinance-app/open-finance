@@ -11,7 +11,6 @@ import { useTranslation } from 'react-i18next';
 import { useQueryClient } from '@tanstack/react-query';
 import { useLocale } from '@/context/LocaleContext';
 import { useAuthContext } from '@/context/AuthContext';
-import { useCurrencyDisplay } from '@/context/CurrencyDisplayContext';
 import apiClient from '@/services/apiClient';
 import type { User, UserSettings } from '@/types/user';
 import { Button } from '@/components/ui/Button';
@@ -43,8 +42,7 @@ import type { BackupResponse, BackupStatus, BackupType } from '@/types/backup';
 export default function BackupPage() {
   const { t } = useTranslation('backup');
   const { locale, setLocale } = useLocale();
-  const { updateUser } = useAuthContext();
-  const { setDisplayMode, setSecondaryCurrency } = useCurrencyDisplay();
+  const { user, updateUser } = useAuthContext();
   const queryClient = useQueryClient();
   useDocumentTitle(t('title'));
 
@@ -91,7 +89,7 @@ export default function BackupPage() {
           queryFn: async () => (await apiClient.get<User>('/users/me')).data,
         }),
         queryClient.fetchQuery({
-          queryKey: ['user', 'settings'],
+          queryKey: ['user', 'settings', user?.id],
           queryFn: async () => (await apiClient.get<UserSettings>('/users/me/settings')).data,
         }),
       ]);
@@ -99,8 +97,6 @@ export default function BackupPage() {
         baseCurrency: profile.baseCurrency,
         profileImage: profile.profileImage ?? null,
       });
-      setDisplayMode(settings.amountDisplayMode ?? 'base');
-      setSecondaryCurrency(settings.secondaryCurrency ?? null);
       if (settings.language) await setLocale(settings.language);
     } catch {
       // The restore committed successfully even if refreshing the view fails.

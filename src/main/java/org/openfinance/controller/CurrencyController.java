@@ -2,7 +2,6 @@ package org.openfinance.controller;
 
 import jakarta.validation.Valid;
 import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Locale;
@@ -220,20 +219,10 @@ public class CurrencyController {
         LocalDate rateDate = (date != null) ? date : LocalDate.now();
         log.debug("Fetching exchange rate: {} -> {} on {}", from, to, rateDate);
 
-        BigDecimal rate = exchangeRateService.getExchangeRate(from, to, rateDate);
-
-        // Build response with calculated inverse rate
         ExchangeRateResponse response =
-                ExchangeRateResponse.builder()
-                        .baseCurrency(from)
-                        .targetCurrency(to)
-                        .rate(rate)
-                        .inverseRate(BigDecimal.ONE.divide(rate, 8, RoundingMode.HALF_UP))
-                        .rateDate(rateDate)
-                        .source("Yahoo Finance")
-                        .build();
-
-        log.info("Returned exchange rate: {} -> {} = {} on {}", from, to, rate, rateDate);
+                exchangeRateService
+                        .getExchangeRateQuote(from, to, rateDate)
+                        .response(from, to, rateDate);
         return ResponseEntity.ok(response);
     }
 
@@ -279,25 +268,11 @@ public class CurrencyController {
 
         log.debug("Fetching latest exchange rate: {} -> {}", from, to);
 
-        BigDecimal rate = exchangeRateService.getExchangeRate(from, to, LocalDate.now());
-
-        // Build response with calculated inverse rate
+        LocalDate valuationDate = LocalDate.now();
         ExchangeRateResponse response =
-                ExchangeRateResponse.builder()
-                        .baseCurrency(from)
-                        .targetCurrency(to)
-                        .rate(rate)
-                        .inverseRate(BigDecimal.ONE.divide(rate, 8, RoundingMode.HALF_UP))
-                        .rateDate(LocalDate.now())
-                        .source("Yahoo Finance")
-                        .build();
-
-        log.info(
-                "Returned latest exchange rate: {} -> {} = {} on {}",
-                from,
-                to,
-                rate,
-                LocalDate.now());
+                exchangeRateService
+                        .getExchangeRateQuote(from, to, valuationDate)
+                        .response(from, to, valuationDate);
         return ResponseEntity.ok(response);
     }
 

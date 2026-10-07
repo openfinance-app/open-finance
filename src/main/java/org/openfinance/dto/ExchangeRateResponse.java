@@ -2,7 +2,9 @@ package org.openfinance.dto;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.List;
 import lombok.Builder;
+import lombok.Singular;
 
 /**
  * DTO for exchange rate information.
@@ -38,4 +40,10 @@ public record ExchangeRateResponse(
         BigDecimal rate,
         BigDecimal inverseRate,
         LocalDate rateDate,
-        String source) {}
+        String source,
+        LocalDate valuationDate,
+        @Singular("quoteLeg") List<ExchangeRateLeg> quoteLegs) {
+    public ExchangeRateResponse {
+        quoteLegs = quoteLegs == null ? List.of() : List.copyOf(quoteLegs);
+    }
+}

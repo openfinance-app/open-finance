@@ -1,7 +1,7 @@
 package org.openfinance.service;
 
 import java.math.BigDecimal;
-import java.math.RoundingMode;
+import java.math.MathContext;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -161,7 +161,7 @@ public class CryptoListService {
                     rates,
                     "USD",
                     coin.code(),
-                    BigDecimal.ONE.divide(price, 8, RoundingMode.HALF_UP),
+                    BigDecimal.ONE.divide(price, MathContext.DECIMAL128),
                     today);
             addRateIfAbsent(rates, coin.code(), "USD", price, today);
         }

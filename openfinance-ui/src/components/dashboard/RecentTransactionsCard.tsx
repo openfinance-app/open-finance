@@ -256,6 +256,7 @@ export default function RecentTransactionsCard({
                   {isIncome && '+'}
                 </span>
                 <ConvertedAmount
+                  conversionDate={transaction.date}
                   inline
                   amount={transaction.amount}
                   currency={transaction.currency}

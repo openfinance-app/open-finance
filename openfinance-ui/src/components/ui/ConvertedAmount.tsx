@@ -30,7 +30,7 @@
  * No badge or icon is rendered. All conversion context is communicated via tooltip alone.
  * All amounts are wrapped in {@link PrivateAmount} to respect the global privacy toggle.
  */
-import { useId, useMemo } from 'react';
+import { useId, useMemo, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import { useCurrencyDisplay } from '@/context/CurrencyDisplayContext';
 import type { AmountDisplayMode } from '@/context/CurrencyDisplayContext';
@@ -40,6 +40,7 @@ import { PrivateAmount } from '@/components/ui/PrivateAmount';
 import { AnimatedNumber } from '@/components/ui/AnimatedNumber';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/Tooltip';
 import { formatCurrency, formatExchangeRate } from '@/utils/currency';
+import { useSecondaryConversion } from '@/hooks/useSecondaryConversion';
 import { cn } from '@/lib/utils';
 
 export interface ConvertedAmountProps {
@@ -82,6 +83,12 @@ export interface ConvertedAmountProps {
    * Shown in the tooltip as "1 {currency} = {rate} {secondaryCurrency}".
    */
   secondaryExchangeRate?: number | null;
+
+  /** Show comparisons directly inside an existing chart tooltip. */
+  showComparisons?: boolean;
+
+  /** Date of a historical valuation or posting; omitted for current values. */
+  conversionDate?: string;
 
   /** Use compact K/M notation (default: false) */
   compact?: boolean;
@@ -325,7 +332,40 @@ function buildPrimaryDisplay(
  * Requirement REQ-9.2: CurrencyBadge is not imported or used.
  * Requirement REQ-9.3: Tooltip uses role="tooltip" with aria-describedby linkage.
  */
-export function ConvertedAmount({
+export function ConvertedAmount(props: ConvertedAmountProps) {
+  const { secondaryCurrency } = useCurrencyDisplay();
+  const hasCurrentSecondary =
+    secondaryCurrency &&
+    props.secondaryCurrency === secondaryCurrency &&
+    props.secondaryAmount != null;
+  if (secondaryCurrency && secondaryCurrency !== props.currency && !hasCurrentSecondary) {
+    return <SecondaryConvertedAmount {...props} />;
+  }
+  return (
+    <AmountDisplay
+      {...props}
+      secondaryCurrency={secondaryCurrency}
+      secondaryAmount={hasCurrentSecondary ? props.secondaryAmount : null}
+    />
+  );
+}
+
+function SecondaryConvertedAmount(props: ConvertedAmountProps) {
+  const { convert, secondaryCurrency, secondaryExchangeRate } = useSecondaryConversion(
+    props.currency,
+    props.conversionDate
+  );
+  return (
+    <AmountDisplay
+      {...props}
+      secondaryCurrency={secondaryCurrency}
+      secondaryAmount={convert(props.amount)}
+      secondaryExchangeRate={secondaryExchangeRate}
+    />
+  );
+}
+
+function AmountDisplay({
   amount,
   currency,
   convertedAmount,
@@ -339,10 +379,14 @@ export function ConvertedAmount({
   animate = false,
   className,
   inline = false,
+  showComparisons = false,
 }: ConvertedAmountProps) {
   const { displayMode, secondaryCurrency: ctxSecondaryCurrency } = useCurrencyDisplay();
   const { numberFormat } = useNumberFormat();
   const tooltipId = useId();
+  const [open, setOpen] = useState(false);
+  const touchInteraction = useRef(false);
+  const touchWasOpen = useRef(false);
 
   const resolvedSecondaryCurrency = secondaryCurrencyProp ?? ctxSecondaryCurrency;
 
@@ -406,7 +450,7 @@ export function ConvertedAmount({
     ]
   );
 
-  const hasTooltip = tooltipLines.length > 0;
+  const hasTooltip = tooltipLines.length > 0 && !showComparisons;
 
   const content = (
     <span
@@ -414,8 +458,34 @@ export function ConvertedAmount({
       className={cn('inline-block', className)}
       tabIndex={hasTooltip ? 0 : undefined}
       aria-describedby={hasTooltip ? tooltipId : undefined}
+      onPointerDown={event => {
+        touchInteraction.current = event.pointerType === 'touch';
+        touchWasOpen.current = open;
+      }}
+      onClick={event => {
+        if (hasTooltip && touchInteraction.current) {
+          event.preventDefault();
+          event.stopPropagation();
+          // Touch focus can open Radix before click; toggle the state from pointer-down.
+          setOpen(!touchWasOpen.current);
+        }
+      }}
+      onKeyDown={event => {
+        if (hasTooltip && (event.key === 'Enter' || event.key === ' ')) {
+          event.preventDefault();
+          event.stopPropagation();
+          setOpen(value => !value);
+        }
+      }}
+      onBlur={() => setOpen(false)}
     >
       {primaryDisplay}
+      {showComparisons &&
+        tooltipLines.map((line, index) => (
+          <PrivateAmount key={index} className="block text-xs text-muted-foreground">
+            {line}
+          </PrivateAmount>
+        ))}
     </span>
   );
 
@@ -425,7 +495,7 @@ export function ConvertedAmount({
 
   return (
     <TooltipProvider delayDuration={150}>
-      <Tooltip>
+      <Tooltip open={open} onOpenChange={setOpen}>
         <TooltipTrigger asChild>{content}</TooltipTrigger>
         <TooltipContent
           id={tooltipId}
