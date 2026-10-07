@@ -1,6 +1,5 @@
 import { useDateFormatter } from '@/hooks/useDateFormatter';
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { useNavigate } from 'react-router';
 import { Plus, ChevronDown, GripVertical, SlidersHorizontal } from 'lucide-react';
 import { Responsive, WidthProvider } from 'react-grid-layout/legacy';
 import 'react-grid-layout/css/styles.css';
@@ -51,6 +50,8 @@ import { useSecondaryConversion } from '@/hooks/useSecondaryConversion';
 import { subtract, percentage } from '@/utils/money';
 import { periodToDateRange } from '@/utils/navigation';
 import { cn } from '@/lib/utils';
+import { Button } from '@/components/ui/Button';
+import { CreateTransactionDialog } from '@/components/transactions/CreateTransactionDialog';
 
 const ResponsiveGridLayout = WidthProvider(Responsive);
 
@@ -218,7 +219,6 @@ function requestErrorMessage(error: unknown, fallback: string): string {
 export default function DashboardPage() {
   const { date: formatDate } = useDateFormatter();
   const { t } = useTranslation('dashboard');
-  const navigate = useNavigate();
   useDocumentTitle(t('title'));
 
   // ── Period state ────────────────────────────────────────────────────────────
@@ -247,6 +247,8 @@ export default function DashboardPage() {
 
   // ── Layout / UI state ───────────────────────────────────────────────────────
   const [isCardMenuOpen, setIsCardMenuOpen] = useState(false);
+  const [isTransactionFormOpen, setIsTransactionFormOpen] = useState(false);
+  const transactionButtonRef = useRef<HTMLButtonElement>(null);
   const cardMenuRef = useRef<HTMLDivElement>(null);
   // The grid owns automatic compaction. Only completed user gestures update
   // controlled layouts; feeding automatic reports back creates a render cycle
@@ -938,18 +940,25 @@ export default function DashboardPage() {
             )}
           </div>
 
-          {/* Add Transaction — opens the create form on the transactions page,
-              which already owns the form/dialog/mutations (openForm deep-link) */}
-          <button
-            onClick={() => navigate('/transactions', { state: { openForm: true } })}
+          <Button
+            ref={transactionButtonRef}
+            variant="primary"
+            size="icon"
+            onClick={() => setIsTransactionFormOpen(true)}
             aria-label={t('addTransaction')}
-            className="px-4 py-2 bg-gradient-to-b from-brass-bright to-primary text-primary-foreground font-semibold rounded-lg shadow-[inset_0_1px_0_0_rgb(255_255_255/0.28),0_1px_2px_0_rgb(0_0_0/0.45)] hover:brightness-[1.07] active:brightness-95 active:translate-y-px transition-all flex items-center gap-2"
+            title={t('addTransaction')}
           >
-            <Plus className="h-5 w-5" />
-            <span className="hidden sm:inline">{t('addTransaction')}</span>
-          </button>
+            <Plus className="h-5 w-5" aria-hidden="true" />
+          </Button>
         </div>
       </div>
+
+      {isTransactionFormOpen && (
+        <CreateTransactionDialog
+          onClose={() => setIsTransactionFormOpen(false)}
+          onCloseAutoFocus={() => transactionButtonRef.current?.focus()}
+        />
+      )}
 
       {/* ── Global period selector ────────────────────────────────────────── */}
       <div className="mb-6 flex justify-center">

@@ -6,7 +6,7 @@
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { screen, fireEvent, waitFor } from '@testing-library/react';
+import { screen, fireEvent, waitFor, within } from '@testing-library/react';
 import { http, HttpResponse } from 'msw';
 import { renderWithProviders, mockAuthentication, clearAuthentication } from '@/test/test-utils';
 import { server } from '@/test/mocks/server';
@@ -209,19 +209,18 @@ describe('DashboardPage Integration Tests', () => {
   });
 
   describe('User Interactions', () => {
-    it('should have an add transaction button', async () => {
+    it('opens and cancels transaction creation without leaving the dashboard', async () => {
+      window.history.replaceState({}, '', '/dashboard');
       renderWithProviders(<DashboardPage />);
-
-      // Wait for page to load
-      await screen.findAllByText(/Net Worth/i);
-
-      // Find add transaction button
-      const addButton = await screen.findByText(/Add Transaction/i);
-      expect(addButton).toBeInTheDocument();
-
-      // Click on add transaction button
-      fireEvent.click(addButton);
-      // Navigation would be verified with a navigation mock
+      fireEvent.click(await screen.findByRole('button', { name: 'Add Transaction' }));
+      const dialog = await screen.findByRole('dialog', { name: 'Create Transaction' });
+      expect(window.location.pathname).toBe('/dashboard');
+      fireEvent.click(await within(dialog).findByRole('button', { name: 'Cancel' }));
+      await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+      expect(window.location.pathname).toBe('/dashboard');
+      await waitFor(() =>
+        expect(screen.getByRole('button', { name: 'Add Transaction' })).toHaveFocus()
+      );
     });
 
     it('should display period selector', async () => {

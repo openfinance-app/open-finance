@@ -269,7 +269,13 @@ export default function RecurringTransactionsPage() {
 
         {/* Actions */}
         <div className="flex items-center gap-2">
-          <Button variant="secondary" size="sm" onClick={() => setShowFilters(!showFilters)}>
+          <Button
+            variant={showFilters ? 'primary' : 'outline'}
+            size="sm"
+            onClick={() => setShowFilters(!showFilters)}
+            aria-expanded={showFilters}
+            aria-controls="recurring-filters"
+          >
             <Filter className="h-4 w-4 mr-2" />
             {t('filters.label')}
           </Button>
@@ -282,7 +288,7 @@ export default function RecurringTransactionsPage() {
 
       {/* Filters Panel */}
       {showFilters && (
-        <div className="mb-6 p-4 bg-surface rounded-lg border border-border">
+        <div id="recurring-filters" className="mb-6 p-4 bg-surface rounded-lg border border-border">
           {/* Search */}
           <div className="mb-4">
             <label htmlFor="search" className="block text-sm font-medium mb-2">

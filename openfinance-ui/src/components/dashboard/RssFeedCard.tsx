@@ -191,9 +191,20 @@ export default function RssFeedCard() {
             <CardTitle>{t('cards.rssFeed.title')}</CardTitle>
             <HelpTooltip text={t('cards.rssFeed.rssTooltip')} side="right" />
           </div>
-          <Button onClick={handleRetry} isLoading={isFetching} variant="secondary" size="sm">
-            <RefreshCw className={`h-4 w-4 mr-2 ${isFetching ? 'animate-spin' : ''}`} />
-            {t('insightsCard.refresh')}
+          <Button
+            onClick={handleRetry}
+            disabled={isFetching}
+            aria-busy={isFetching}
+            aria-label={t('insightsCard.refresh')}
+            title={t('insightsCard.refresh')}
+            variant="ghost"
+            size="icon"
+            className="shrink-0 text-text-secondary hover:text-text-primary md:h-8 md:w-8"
+          >
+            <RefreshCw
+              className={`h-4 w-4 ${isFetching ? 'animate-spin motion-reduce:animate-none' : ''}`}
+              aria-hidden="true"
+            />
           </Button>
         </div>
       </CardHeader>

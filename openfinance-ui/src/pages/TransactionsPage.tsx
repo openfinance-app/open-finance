@@ -268,7 +268,12 @@ export default function TransactionsPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <PageHeader title={t('title')} description={t('description')} />
         <div className="flex gap-2 shrink-0">
-          <Button variant="ghost" onClick={() => setShowFilters(!showFilters)}>
+          <Button
+            variant={showFilters ? 'primary' : 'outline'}
+            onClick={() => setShowFilters(!showFilters)}
+            aria-expanded={showFilters}
+            aria-controls="transaction-filters"
+          >
             <Filter className="h-4 w-4 mr-2" />
             {t('filters')}
           </Button>
@@ -287,7 +292,7 @@ export default function TransactionsPage() {
 
       {/* Filters */}
       {showFilters && (
-        <div className="mb-6">
+        <div id="transaction-filters" className="mb-6">
           <TransactionFilters filters={filters} onFiltersChange={handleFiltersChange} />
         </div>
       )}

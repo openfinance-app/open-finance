@@ -31,6 +31,7 @@ import { cn } from '@/lib/utils';
 import { AppLogo } from '@/components/ui/AppLogo';
 import { useIsMobile } from '@/hooks/useBreakpoint';
 import { useCountryToolConfig } from '@/hooks/useCountryToolConfig';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/Tooltip';
 
 interface NavItem {
   labelKey: string;
@@ -264,42 +265,46 @@ function SidebarContent({ isCollapsed, onToggle, onClose, showCloseButton }: Sid
             )}
           </button>
         )}
-
-        {/* Tooltip for collapsed state */}
-        {isCollapsed && (
-          <div className="absolute left-full ml-2 px-3 py-1.5 bg-surface border border-border rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50">
-            <span className="text-sm text-text-primary">{label}</span>
-          </div>
-        )}
       </>
     );
 
-    if (item.href) {
-      return (
-        <NavLink
-          key={item.href}
-          to={item.href}
-          onClick={onClose}
-          className={({ isActive }) =>
-            cn(
-              baseClasses,
-              isActive && [
-                'bg-surface text-text-primary shadow-slot',
-                'before:absolute before:left-0 before:top-1/2 before:-translate-y-1/2',
-                'before:h-[60%] before:w-[3px] before:bg-gradient-to-b before:from-brass-bright before:to-primary before:rounded-full',
-              ]
-            )
-          }
-        >
-          {content}
-        </NavLink>
-      );
-    }
-
-    return (
+    const trigger = item.href ? (
+      <NavLink
+        key={item.href}
+        to={item.href}
+        onClick={onClose}
+        aria-label={isCollapsed ? label : undefined}
+        className={({ isActive }) =>
+          cn(
+            baseClasses,
+            isActive && [
+              'bg-surface text-text-primary shadow-slot',
+              'before:absolute before:left-0 before:top-1/2 before:-translate-y-1/2',
+              'before:h-[60%] before:w-[3px] before:bg-gradient-to-b before:from-brass-bright before:to-primary before:rounded-full',
+            ]
+          )
+        }
+      >
+        {content}
+      </NavLink>
+    ) : (
       <div key={item.labelKey} className={baseClasses}>
         {content}
       </div>
+    );
+
+    return isCollapsed ? (
+      <Tooltip key={item.href || item.labelKey}>
+        <TooltipTrigger asChild>
+          {/* Keep Radix's slot props off NavLink's functional className. */}
+          <div>{trigger}</div>
+        </TooltipTrigger>
+        <TooltipContent side="right" sideOffset={12}>
+          {label}
+        </TooltipContent>
+      </Tooltip>
+    ) : (
+      trigger
     );
   };
 
@@ -348,14 +353,11 @@ function SidebarContent({ isCollapsed, onToggle, onClose, showCloseButton }: Sid
       </div>
 
       {/* Navigation */}
-      <nav
-        className={cn(
-          'flex-1 px-3 space-y-1 scrollbar-hide overflow-y-auto min-h-0',
-          isCollapsed && 'overflow-x-visible'
-        )}
-      >
-        {renderNavItems(navItems)}
-      </nav>
+      <TooltipProvider delayDuration={150}>
+        <nav className="flex-1 px-3 space-y-1 scrollbar-hide overflow-y-auto min-h-0">
+          {renderNavItems(navItems)}
+        </nav>
+      </TooltipProvider>
 
       {/* Collapse toggle (desktop) */}
       {onToggle && (
