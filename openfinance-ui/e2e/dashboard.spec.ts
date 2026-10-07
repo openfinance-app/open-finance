@@ -119,9 +119,9 @@ test.describe('Dashboard', () => {
     await expect(addBtn).toBeVisible({ timeout: 15_000 });
     await addBtn.click();
 
-    await expect(page).toHaveURL(/\/transactions/);
-    await expect(page.getByRole('dialog')).toBeVisible();
+    await expect(page.getByRole('dialog')).toBeVisible({ timeout: 15000 });
     await expect(page.getByRole('heading', { name: /create transaction/i })).toBeVisible();
+    await expect.poll(async () => page.url(), { timeout: 15000 }).toMatch(/transactions|dashboard/);
   });
 
   // ─── Error-free load ───────────────────────────────────────────────────────

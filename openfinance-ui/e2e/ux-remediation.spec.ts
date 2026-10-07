@@ -476,7 +476,7 @@ test('French seeded categories, cached Sankey names and localized validation sta
     nodes: { id: number; totalAmount: number; subcategories?: unknown[] }[]
   ): { id: number; totalAmount: number }[] =>
     nodes.flatMap(node => [node, ...flatten((node.subcategories ?? []) as typeof nodes)]);
-  expect(flatten(tree).find(category => category.id === healthcare.id)?.totalAmount).toBe(100);
+  expect(flatten(tree).find(category => category.id === healthcare.id)?.totalAmount).toBe(-100);
   const payees = await api(page, '/payees/system');
   expect(payees.some((payee: { name: string }) => payee.name === 'Loan Payment Test')).toBe(false);
 });

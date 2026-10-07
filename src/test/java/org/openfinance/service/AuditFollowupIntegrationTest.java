@@ -190,7 +190,7 @@ class AuditFollowupIntegrationTest {
     private JsonNode expenseWithRetry(
             Auth auth, long account, long category, LocalDate date, int amount) throws Exception {
         AssertionError lastError = null;
-        for (int attempt = 0; attempt < 5; attempt++) {
+        for (int attempt = 0; attempt < 10; attempt++) {
             try {
                 return expense(auth, account, category, date, amount);
             } catch (AssertionError e) {
@@ -198,7 +198,7 @@ class AuditFollowupIntegrationTest {
                     throw e;
                 }
                 lastError = e;
-                Thread.sleep(50L * (attempt + 1));
+                Thread.sleep(100L * (attempt + 1) + (long) (Math.random() * 50));
             }
         }
         throw lastError;

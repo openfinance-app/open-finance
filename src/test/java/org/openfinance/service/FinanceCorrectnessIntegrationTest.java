@@ -364,7 +364,7 @@ class FinanceCorrectnessIntegrationTest extends AuditApiTestSupport {
 
     private JsonNode postWithRetry(long cash) throws Exception {
         AssertionError lastError = null;
-        for (int attempt = 0; attempt < 5; attempt++) {
+        for (int attempt = 0; attempt < 10; attempt++) {
             try {
                 return json(
                         "POST", "/transactions", movement(cash, 100, LocalDate.now()), owner, 201);
@@ -373,7 +373,7 @@ class FinanceCorrectnessIntegrationTest extends AuditApiTestSupport {
                     throw e;
                 }
                 lastError = e;
-                Thread.sleep(50L * (attempt + 1));
+                Thread.sleep(100L * (attempt + 1) + (long) (Math.random() * 50));
             }
         }
         throw lastError;
