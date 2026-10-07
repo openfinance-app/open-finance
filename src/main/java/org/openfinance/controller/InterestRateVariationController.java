@@ -3,6 +3,7 @@ package org.openfinance.controller;
 import jakarta.validation.Valid;
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.openfinance.dto.InterestRateVariationRequest;
@@ -36,6 +37,14 @@ public class InterestRateVariationController {
         User user = (User) authentication.getPrincipal();
         List<InterestRateVariationResponse> responses =
                 variationService.getVariations(accountId, user.getId());
+        Map<Long, InterestCalculatorService.Accrual> accruals =
+                calculatorService.calculateAccrualsByVariation(accountId, user.getId());
+        for (InterestRateVariationResponse response : responses) {
+            InterestCalculatorService.Accrual accrual =
+                    accruals.getOrDefault(response.getId(), InterestCalculatorService.Accrual.ZERO);
+            response.setInterestProduced(accrual.interestProduced());
+            response.setActiveDays(accrual.activeDays());
+        }
         return ResponseEntity.ok(responses);
     }
 

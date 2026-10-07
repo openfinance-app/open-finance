@@ -1,3 +1,4 @@
+import { CURRENCY_CODE_PATTERN } from '@/utils/currency-code';
 import { formatDecimal } from '@/utils/format';
 /**
  * AccountForm Component
@@ -122,7 +123,7 @@ export function AccountForm({
             .max(100, t('validation.nameTooLong')),
           accountNumber: z.string().max(50, t('validation.accountNumberTooLong')).optional(),
           type: z.enum(['CHECKING', 'SAVINGS', 'CREDIT_CARD', 'INVESTMENT', 'CASH', 'OTHER']),
-          currency: z.string().length(3),
+          currency: z.string().regex(CURRENCY_CODE_PATTERN),
           initialBalance: z
             .string()
             .min(1, t('validation.balanceInvalid'))

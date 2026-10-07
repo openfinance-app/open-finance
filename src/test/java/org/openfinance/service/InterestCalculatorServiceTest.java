@@ -173,4 +173,61 @@ class InterestCalculatorServiceTest {
         assertThat(result.scale()).isEqualTo(0);
         assertThat(result).isEqualByComparingTo("1268");
     }
+
+    @Test
+    void quarterlyProjectionUsesFourCompoundingPeriods() {
+        givenAccount(new BigDecimal("1000"), InterestPeriod.QUARTERLY);
+        givenRate("4", "0");
+        assertThat(service.calculateInterestEstimate(ACCOUNT_ID, USER_ID, "1Y"))
+                .isEqualByComparingTo("40.60");
+    }
+
+    @Test
+    void futureOnlyRateDoesNotApplyBeforeItsEffectiveDate() {
+        givenAccount(new BigDecimal("1000"), InterestPeriod.ANNUAL);
+        when(variationRepository.findByAccountIdOrderByValidFromDesc(ACCOUNT_ID))
+                .thenReturn(
+                        List.of(
+                                InterestRateVariation.builder()
+                                        .id(1L)
+                                        .validFrom(LocalDate.now().plusDays(1))
+                                        .rate(new BigDecimal("4"))
+                                        .build()));
+        assertThat(service.calculateInterestEstimate(ACCOUNT_ID, USER_ID, "1Y")).isZero();
+    }
+
+    @Test
+    void perRateAccrualUsesChangingCashBalancesAndExcludesFutureDays() {
+        givenAccount(new BigDecimal("2000"), InterestPeriod.ANNUAL);
+        LocalDate today = LocalDate.now();
+        InterestRateVariation active =
+                InterestRateVariation.builder()
+                        .id(1L)
+                        .validFrom(today.minusDays(2))
+                        .rate(new BigDecimal("36.5"))
+                        .taxRate(new BigDecimal("25"))
+                        .build();
+        InterestRateVariation future =
+                InterestRateVariation.builder()
+                        .id(2L)
+                        .validFrom(today.plusMonths(6))
+                        .rate(new BigDecimal("73"))
+                        .build();
+        when(variationRepository.findByAccountIdOrderByValidFromDesc(ACCOUNT_ID))
+                .thenReturn(List.of(future, active));
+        when(accountService.getAccountBalanceHistory(ACCOUNT_ID, USER_ID, "ALL"))
+                .thenReturn(
+                        List.of(
+                                new org.openfinance.dto.BalanceHistoryPoint(
+                                        today.minusDays(2), new BigDecimal("1000")),
+                                new org.openfinance.dto.BalanceHistoryPoint(
+                                        today.minusDays(1), new BigDecimal("2000"))));
+        java.util.Map<Long, InterestCalculatorService.Accrual> accruals =
+                service.calculateAccrualsByVariation(ACCOUNT_ID, USER_ID);
+        assertThat(accruals.get(1L).activeDays()).isEqualTo(3);
+        assertThat(accruals.get(1L).interestProduced()).isEqualByComparingTo("3.75");
+        assertThat(accruals).doesNotContainKey(2L);
+        assertThat(service.calculateHistoricalAccumulated(ACCOUNT_ID, USER_ID, "ALL"))
+                .isEqualByComparingTo("3.75");
+    }
 }

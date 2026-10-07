@@ -59,7 +59,7 @@
       "invalidDateFormat": "Format de date invalide",
       "paymentNonNegative": "Le paiement ne peut pas être négatif",
       "paymentInvalid": "Saisissez un montant valide (ex. 1234,56)",
-      "currencyCode": "La devise doit être un code de 3 lettres",
+      "currencyCode": "Sélectionnez une devise prise en charge",
       "notesTooLong": "Les notes sont trop longues",
       "insuranceRateNonNegative": "Le taux d'assurance ne peut pas être négatif",
       "insuranceRateMax": "Le taux d'assurance ne peut pas dépasser 100 %",

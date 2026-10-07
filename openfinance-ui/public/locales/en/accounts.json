@@ -164,6 +164,7 @@
       "periodActive": "Period Active",
       "interestProduced": "Interest Produced"
     },
+    "scheduled": "Scheduled",
     "today": "today",
     "noVariations": "No interest rate variations found. Add one to start calculating interest.",
     "addDialog": {

@@ -307,7 +307,7 @@ class ExchangeRateServiceTest {
         assertThat(count).isEqualTo(4); // 2 direct quotes + 2 inverse rates
         verify(currencyRepository).findByIsActiveTrueOrderByCodeAsc();
         verify(marketDataProvider).getQuotes(anyList());
-        verify(exchangeRateRepository, times(1)).saveAll(any());
+        verify(exchangeRateRepository, times(1)).upsertAll(any());
     }
 
     @Test
@@ -356,7 +356,7 @@ class ExchangeRateServiceTest {
         exchangeRateService.updateExchangeRates();
 
         // Assert
-        verify(exchangeRateRepository, times(1)).saveAll(any());
+        verify(exchangeRateRepository, times(1)).upsertAll(any());
     }
 
     @Test
@@ -394,7 +394,7 @@ class ExchangeRateServiceTest {
 
         // Assert
         assertThat(count).isEqualTo(2); // 1 valid quote + 1 inverse rate
-        verify(exchangeRateRepository, times(1)).saveAll(any());
+        verify(exchangeRateRepository, times(1)).upsertAll(any());
     }
 
     @Test
@@ -459,7 +459,7 @@ class ExchangeRateServiceTest {
         // Assert
         assertThat(result).isEqualTo(4);
         ArgumentCaptor<List<ExchangeRate>> ratesCaptor = ArgumentCaptor.forClass(List.class);
-        verify(exchangeRateRepository).saveAll(ratesCaptor.capture());
+        verify(exchangeRateRepository).upsertAll(ratesCaptor.capture());
         List<ExchangeRate> savedRates = ratesCaptor.getValue();
         assertThat(savedRates)
                 .extracting(ExchangeRate::getBaseCurrency, ExchangeRate::getTargetCurrency)
@@ -554,15 +554,14 @@ class ExchangeRateServiceTest {
         when(currencyTypeResolver.isCrypto("BTC")).thenReturn(true);
         when(marketDataProvider.getHistoricalPrices(eq("BTC-USD"), any(), any()))
                 .thenReturn(List.of(createHistoricalPrice("BTC-USD", LocalDate.now(), "95000")));
-        when(exchangeRateRepository.findByBaseCurrencyAndTargetCurrencyAndRateDate(
-                        eq("USD"), eq("BTC"), any()))
-                .thenReturn(Optional.empty());
+        when(currencyRepository.existsByCode("USD")).thenReturn(true);
+        when(currencyRepository.existsByCode("BTC")).thenReturn(true);
 
         // Act
-        boolean stored = exchangeRateService.fetchAndStorePairRate("USD", "BTC");
+        BigDecimal stored = exchangeRateService.getExchangeRate("USD", "BTC", null);
 
         // Assert
-        assertThat(stored).isTrue();
+        assertThat(stored).isEqualByComparingTo("0.00001053");
 
         // Crypto symbol must be built as BTC-USD (proves the addSymbolForCurrency crypto branch).
         verify(marketDataProvider).getHistoricalPrices(eq("BTC-USD"), any(), any());
@@ -570,7 +569,7 @@ class ExchangeRateServiceTest {
         // Rate must be stored as USD -> BTC = 1/price (proves the parseQuoteToExchangeRate crypto
         // branch; fiat handling would store BTC -> USD = price instead).
         ArgumentCaptor<List<ExchangeRate>> ratesCaptor = ArgumentCaptor.forClass(List.class);
-        verify(exchangeRateRepository).saveAll(ratesCaptor.capture());
+        verify(exchangeRateRepository).upsertAll(ratesCaptor.capture());
         BigDecimal expectedInverseRate =
                 BigDecimal.ONE.divide(new BigDecimal("95000"), 8, RoundingMode.HALF_UP);
         assertThat(ratesCaptor.getValue())

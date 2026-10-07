@@ -119,8 +119,8 @@ public class LiabilityTranche {
     private String notes;
 
     @NotNull(message = "{liabilityTranche.currency.notnull}")
-    @Pattern(regexp = "^[A-Z]{3}$", message = "{liabilityTranche.currency.pattern}")
-    @Column(name = "currency", nullable = false, length = 3)
+    @Pattern(regexp = "^[A-Z]{3,10}$", message = "{liabilityTranche.currency.pattern}")
+    @Column(name = "currency", nullable = false, length = 10)
     private String currency;
 
     @CreationTimestamp

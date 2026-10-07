@@ -182,8 +182,8 @@ public class Asset {
      * support for assets
      */
     @NotNull(message = "{asset.currency.notnull}")
-    @Size(min = 3, max = 3, message = "{asset.currency.size}")
-    @Column(name = "currency", nullable = false, length = 3)
+    @Size(min = 3, max = 10, message = "{asset.currency.size}")
+    @Column(name = "currency", nullable = false, length = 10)
     private String currency;
 
     /** FK to the currencies table for referential integrity. */

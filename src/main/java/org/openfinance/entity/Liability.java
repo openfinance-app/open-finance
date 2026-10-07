@@ -125,9 +125,9 @@ public class Liability {
     @Convert(converter = EncryptedStringConverter.class)
     private String minimumPayment;
 
-    @Column(name = "currency", nullable = false, length = 3)
+    @Column(name = "currency", nullable = false, length = 10)
     @NotBlank(message = "{liability.currency.notblank}")
-    @Pattern(regexp = "^[A-Z]{3}$", message = "{liability.currency.pattern}")
+    @Pattern(regexp = "^[A-Z]{3,10}$", message = "{liability.currency.pattern}")
     @ToString.Include
     private String currency;
 

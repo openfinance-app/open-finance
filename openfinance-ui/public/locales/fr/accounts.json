@@ -164,6 +164,7 @@
       "periodActive": "Période active",
       "interestProduced": "Intérêts produits"
     },
+    "scheduled": "Prévu",
     "today": "aujourd'hui",
     "noVariations": "Aucune variation de taux d'intérêt trouvée. Ajoutez-en une pour commencer à calculer les intérêts.",
     "addDialog": {

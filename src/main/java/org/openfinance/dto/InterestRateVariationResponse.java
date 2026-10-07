@@ -21,4 +21,9 @@ public class InterestRateVariationResponse {
     private LocalDate validFrom;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+
+    /** Net interest estimated from dated closing cash balances, through today only. */
+    private BigDecimal interestProduced;
+
+    private long activeDays;
 }

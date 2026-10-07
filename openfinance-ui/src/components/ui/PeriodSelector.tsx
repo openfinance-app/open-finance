@@ -12,6 +12,8 @@
  *  - Dark-theme consistent with the rest of the dashboard
  */
 import { useState } from 'react';
+import { differenceInCalendarDays } from 'date-fns';
+import { toLocalISODate } from '@/utils/date';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/Popover';
 import { Calendar, ChevronDown } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
@@ -38,12 +40,12 @@ interface PeriodOption {
 function getYTDDays(): number {
   const now = new Date();
   const startOfYear = new Date(now.getFullYear(), 0, 1);
-  return Math.ceil((now.getTime() - startOfYear.getTime()) / (1000 * 60 * 60 * 24));
+  return differenceInCalendarDays(now, startOfYear) + 1;
 }
 
 /** Format today / start-of-year as ISO date strings for default custom range */
 function toISODate(d: Date): string {
-  return d.toISOString().split('T')[0];
+  return toLocalISODate(d);
 }
 
 function defaultCustomRange(): DateRange {

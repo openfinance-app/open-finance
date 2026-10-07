@@ -1,13 +1,18 @@
 package org.openfinance.repository;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 import org.openfinance.entity.ExchangeRate;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
  * Repository interface for {@link ExchangeRate} entity operations.
@@ -34,6 +39,49 @@ import org.springframework.stereotype.Repository;
  */
 @Repository
 public interface ExchangeRateRepository extends JpaRepository<ExchangeRate, Long> {
+
+    /** A preview and financial write may fetch the same rate concurrently. */
+    @Transactional
+    default void upsertAll(List<ExchangeRate> rates) {
+        rates.stream()
+                .sorted(
+                        Comparator.comparing(ExchangeRate::getBaseCurrency)
+                                .thenComparing(ExchangeRate::getTargetCurrency)
+                                .thenComparing(ExchangeRate::getRateDate))
+                .forEach(
+                        rate ->
+                                upsert(
+                                        rate.getBaseCurrency(),
+                                        rate.getTargetCurrency(),
+                                        rate.getRate(),
+                                        rate.getRateDate().toString(),
+                                        rate.getSource()));
+    }
+
+    /** Runs after the financial transaction commits, when its SQLite write lock is released. */
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    default void upsertAllIndependently(List<ExchangeRate> rates) {
+        upsertAll(rates);
+    }
+
+    /** Atomic on both SQLite and PostgreSQL; a competing insert cannot abort the caller. */
+    @Modifying
+    @Transactional
+    @Query(
+            value =
+                    """
+            INSERT INTO exchange_rates (base_currency, target_currency, rate, rate_date, source, created_at)
+            VALUES (:base, :target, :rate, date(:rateDate), :source, CURRENT_TIMESTAMP)
+            ON CONFLICT (base_currency, target_currency, rate_date)
+            DO UPDATE SET rate = excluded.rate, source = excluded.source
+            """,
+            nativeQuery = true)
+    int upsert(
+            @Param("base") String base,
+            @Param("target") String target,
+            @Param("rate") BigDecimal rate,
+            @Param("rateDate") String rateDate,
+            @Param("source") String source);
 
     /**
      * Finds the latest exchange rate for a currency pair.

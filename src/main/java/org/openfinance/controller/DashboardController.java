@@ -536,7 +536,7 @@ public class DashboardController {
                 log.warn("Invalid period parameter: {}", period);
                 return ResponseEntity.badRequest().build();
             }
-            effectiveStart = effectiveEnd.minusDays(period);
+            effectiveStart = effectiveEnd.minusDays(period - 1L);
         }
 
         if (effectiveStart.isAfter(effectiveEnd)) {
@@ -1065,14 +1065,26 @@ public class DashboardController {
      */
     @GetMapping("/estimated-interest")
     public ResponseEntity<EstimatedInterestSummary> getEstimatedInterest(
-            Authentication authentication, @RequestParam(defaultValue = "1Y") String period) {
+            Authentication authentication,
+            @RequestParam(defaultValue = "1Y") String period,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
+                    LocalDate startDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
+                    LocalDate endDate) {
+        if ((startDate == null) != (endDate == null)
+                || (startDate != null && startDate.isAfter(endDate))) {
+            return ResponseEntity.badRequest().build();
+        }
 
         log.debug("Received estimated interest request for period: {}", period);
 
         User user = (User) authentication.getPrincipal();
         Long userId = user.getId();
         EstimatedInterestSummary summary =
-                dashboardService.getEstimatedInterestSummary(userId, period);
+                startDate == null
+                        ? dashboardService.getEstimatedInterestSummary(userId, period)
+                        : dashboardService.getEstimatedInterestSummary(
+                                userId, period, startDate, endDate);
 
         return ResponseEntity.ok(summary);
     }

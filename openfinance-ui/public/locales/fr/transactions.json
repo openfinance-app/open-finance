@@ -105,7 +105,7 @@
     "validation": {
       "amountPositive": "Le montant doit être positif",
       "selectAccount": "Veuillez sélectionner un compte",
-      "currencyCode": "La devise doit être un code de 3 lettres",
+      "currencyCode": "Sélectionnez une devise prise en charge",
       "rateUnavailable": "Taux de change indisponible. Veuillez réessayer.",
       "dateRequired": "La date est obligatoire",
       "descriptionTooLong": "La description est trop longue",

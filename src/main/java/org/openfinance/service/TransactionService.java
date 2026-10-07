@@ -169,7 +169,8 @@ public class TransactionService {
                             "spendingByCategory",
                             "cashflowSankey",
                             "portfolioPerformance",
-                            "networthAllocation"
+                            "networthAllocation",
+                            "assetAllocation"
                         },
                         allEntries = true),
                 @CacheEvict(value = "borrowingCapacity", allEntries = true)
@@ -394,7 +395,8 @@ public class TransactionService {
                             "spendingByCategory",
                             "cashflowSankey",
                             "portfolioPerformance",
-                            "networthAllocation"
+                            "networthAllocation",
+                            "assetAllocation"
                         },
                         allEntries = true),
                 @CacheEvict(value = "borrowingCapacity", allEntries = true)
@@ -624,7 +626,8 @@ public class TransactionService {
                             "spendingByCategory",
                             "cashflowSankey",
                             "portfolioPerformance",
-                            "networthAllocation"
+                            "networthAllocation",
+                            "assetAllocation"
                         },
                         allEntries = true),
                 @CacheEvict(value = "borrowingCapacity", allEntries = true)
@@ -921,7 +924,8 @@ public class TransactionService {
                             "spendingByCategory",
                             "cashflowSankey",
                             "portfolioPerformance",
-                            "networthAllocation"
+                            "networthAllocation",
+                            "assetAllocation"
                         },
                         allEntries = true),
                 @CacheEvict(value = "borrowingCapacity", allEntries = true)
@@ -1165,7 +1169,8 @@ public class TransactionService {
                             "spendingByCategory",
                             "cashflowSankey",
                             "portfolioPerformance",
-                            "networthAllocation"
+                            "networthAllocation",
+                            "assetAllocation"
                         },
                         allEntries = true),
                 @CacheEvict(value = "borrowingCapacity", allEntries = true)

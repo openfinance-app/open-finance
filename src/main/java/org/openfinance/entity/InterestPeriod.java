@@ -4,6 +4,7 @@ package org.openfinance.entity;
 public enum InterestPeriod {
     ANNUAL,
     HALF_YEARLY,
+    QUARTERLY,
     MONTHLY,
     DAILY
 }

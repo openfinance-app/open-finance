@@ -320,6 +320,7 @@ export function useCreateVariation() {
       return response.data;
     },
     onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['dashboard', 'estimated-interest'] });
       queryClient.invalidateQueries({
         queryKey: ['accounts', variables.accountId, 'interest-variations'],
       });
@@ -343,6 +344,7 @@ export function useDeleteVariation() {
       });
     },
     onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['dashboard', 'estimated-interest'] });
       queryClient.invalidateQueries({
         queryKey: ['accounts', variables.accountId, 'interest-variations'],
       });

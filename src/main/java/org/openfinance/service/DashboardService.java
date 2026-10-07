@@ -438,7 +438,7 @@ public class DashboardService {
         log.debug("Calculating cash flow for user {} over {} days", userId, period);
 
         LocalDate endDate = LocalDate.now();
-        LocalDate startDate = endDate.minusDays(period);
+        LocalDate startDate = endDate.minusDays(period - 1L);
 
         // Get all transactions in the period
         List<Transaction> transactions =
@@ -710,7 +710,7 @@ public class DashboardService {
         log.debug("Calculating spending by category for user {} over {} days", userId, period);
 
         LocalDate endDate = LocalDate.now();
-        LocalDate startDate = endDate.minusDays(period);
+        LocalDate startDate = endDate.minusDays(period - 1L);
 
         // Get all expense transactions in the period (excluding internal transfer legs,
         // which are not real spending).
@@ -819,7 +819,7 @@ public class DashboardService {
         log.debug("Building cashflow sankey for user {} over {} days", userId, period);
 
         LocalDate endDate = LocalDate.now();
-        LocalDate startDate = endDate.minusDays(period);
+        LocalDate startDate = endDate.minusDays(period - 1L);
         return buildCashflowSankey(userId, startDate, endDate, period);
     }
 
@@ -1125,7 +1125,7 @@ public class DashboardService {
             throw new IllegalArgumentException("User ID cannot be null");
         }
         LocalDate endDate = LocalDate.now();
-        LocalDate startDate = endDate.minusDays(period);
+        LocalDate startDate = endDate.minusDays(period - 1L);
         return buildPortfolioPerformance(userId, startDate, endDate);
     }
 
@@ -1794,6 +1794,15 @@ public class DashboardService {
      * @return EstimatedInterestSummary containing account list and totals
      */
     public EstimatedInterestSummary getEstimatedInterestSummary(Long userId, String period) {
+        return getEstimatedInterestSummary(userId, period, null, null);
+    }
+
+    public EstimatedInterestSummary getEstimatedInterestSummary(
+            Long userId, String period, LocalDate startDate, LocalDate endDate) {
+        if ((startDate == null) != (endDate == null)
+                || (startDate != null && startDate.isAfter(endDate))) {
+            throw new IllegalArgumentException("A valid interest date range is required");
+        }
         if (userId == null) {
             throw new IllegalArgumentException("User ID cannot be null");
         }
@@ -1821,8 +1830,11 @@ public class DashboardService {
                 String accountName = account.getName();
 
                 BigDecimal earned =
-                        interestCalculatorService.calculateHistoricalAccumulated(
-                                account.getId(), userId, period);
+                        startDate == null
+                                ? interestCalculatorService.calculateHistoricalAccumulated(
+                                        account.getId(), userId, period)
+                                : interestCalculatorService.calculateHistoricalAccumulated(
+                                        account.getId(), userId, startDate, endDate);
                 BigDecimal projected =
                         interestCalculatorService.calculateInterestEstimate(
                                 account.getId(), userId, "1Y");
@@ -1847,7 +1859,6 @@ public class DashboardService {
         // Also include liabilities with interest rates to show interest cost burden
         List<Liability> liabilities = liabilityRepository.findByUserIdOrderByCreatedAtDesc(userId);
         for (Liability liability : liabilities) {
-            if (liability.getRepresentedByAccountId() != null) continue;
             if (liability.getInterestRate() == null || liability.getInterestRate().isBlank()) {
                 continue;
             }
@@ -1856,20 +1867,43 @@ public class DashboardService {
                 if (interestRate.compareTo(BigDecimal.ZERO) <= 0) {
                     continue;
                 }
-                BigDecimal currentBalance = BigDecimal.ZERO;
-                if (liability.getCurrentBalance() != null
-                        && !liability.getCurrentBalance().isBlank()) {
-                    currentBalance = new BigDecimal(liability.getCurrentBalance());
-                }
+                Account representedAccount =
+                        liability.getRepresentedByAccountId() == null
+                                ? null
+                                : accountRepository
+                                        .findByIdAndUserId(
+                                                liability.getRepresentedByAccountId(), userId)
+                                        .orElseThrow(
+                                                () ->
+                                                        new IllegalStateException(
+                                                                "Represented account not found"));
+                BigDecimal currentBalance =
+                        representedAccount == null
+                                ? (liability.getCurrentBalance() == null
+                                                || liability.getCurrentBalance().isBlank()
+                                        ? BigDecimal.ZERO
+                                        : new BigDecimal(liability.getCurrentBalance()))
+                                : representedAccount.getBalance().negate().max(BigDecimal.ZERO);
+                String debtCurrency =
+                        representedAccount == null
+                                ? liability.getCurrency()
+                                : representedAccount.getCurrency();
                 int scale = org.openfinance.util.MoneyPrecision.scale(baseCurrency);
                 BigDecimal annualInterest =
                         convertToBase(
                                         currentBalance.multiply(interestRate).movePointLeft(2),
-                                        liability.getCurrency(),
+                                        debtCurrency,
                                         baseCurrency)
                                 .setScale(scale, RoundingMode.HALF_UP);
                 BigDecimal periodInterest =
-                        historicalLiabilityInterest(liability, period, interestRate, baseCurrency)
+                        historicalLiabilityInterest(
+                                        liability,
+                                        period,
+                                        startDate,
+                                        endDate,
+                                        interestRate,
+                                        baseCurrency,
+                                        debtCurrency)
                                 .negate();
 
                 // Name already decrypted by JPA converter
@@ -2064,23 +2098,55 @@ public class DashboardService {
      * Estimates elapsed interest from closing principal each day, using the recorded annual rate.
      */
     private BigDecimal historicalLiabilityInterest(
-            Liability liability, String period, BigDecimal annualPercentage, String baseCurrency) {
-        LocalDate endDate = LocalDate.now();
+            Liability liability,
+            String period,
+            LocalDate selectedStart,
+            LocalDate selectedEnd,
+            BigDecimal annualPercentage,
+            String baseCurrency,
+            String debtCurrency) {
+        LocalDate endDate =
+                selectedEnd == null || selectedEnd.isAfter(LocalDate.now())
+                        ? LocalDate.now()
+                        : selectedEnd;
         LocalDate startDate =
-                org.openfinance.util.HistoricalPeriod.startDate(
-                        period == null ? "1M" : period, endDate, liability.getStartDate());
+                selectedStart == null
+                        ? org.openfinance.util.HistoricalPeriod.startDate(
+                                period == null ? "1M" : period, endDate, liability.getStartDate())
+                        : selectedStart;
+        if (liability.getStartDate() != null && liability.getStartDate().isAfter(startDate)) {
+            startDate = liability.getStartDate();
+        }
+        if (startDate.isAfter(endDate)) return BigDecimal.ZERO;
+        List<org.openfinance.dto.BalanceHistoryPoint> history;
+        if (liability.getRepresentedByAccountId() == null) {
+            history =
+                    netWorthService.getStandaloneLiabilityBalanceHistory(
+                            liability, startDate, endDate);
+        } else {
+            history =
+                    interestCalculatorService
+                            .getDailyCashBalances(
+                                    liability.getRepresentedByAccountId(),
+                                    liability.getUserId(),
+                                    startDate,
+                                    endDate)
+                            .entrySet()
+                            .stream()
+                            .map(
+                                    entry ->
+                                            new org.openfinance.dto.BalanceHistoryPoint(
+                                                    entry.getKey(),
+                                                    entry.getValue().negate().max(BigDecimal.ZERO)))
+                            .toList();
+        }
         BigDecimal balanceDays = BigDecimal.ZERO;
-        for (org.openfinance.dto.BalanceHistoryPoint point :
-                netWorthService.getStandaloneLiabilityBalanceHistory(
-                        liability, startDate, endDate)) {
+        for (org.openfinance.dto.BalanceHistoryPoint point : history) {
             if (point.balance().signum() > 0) {
                 balanceDays =
                         balanceDays.add(
                                 convertToBase(
-                                        point.balance(),
-                                        liability.getCurrency(),
-                                        baseCurrency,
-                                        point.date()));
+                                        point.balance(), debtCurrency, baseCurrency, point.date()));
             }
         }
         return balanceDays

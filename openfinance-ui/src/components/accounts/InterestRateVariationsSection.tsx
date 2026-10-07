@@ -1,6 +1,7 @@
 import { formatDecimal } from '@/utils/format';
 import { useMemo, useState } from 'react';
-import { format, differenceInDays } from 'date-fns';
+import { format, parseISO } from 'date-fns';
+import { toLocalISODate } from '@/utils/date';
 import { Plus, Trash2, TrendingUp } from 'lucide-react';
 import { Controller, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -27,46 +28,18 @@ import {
   useInterestEstimate,
 } from '@/hooks/useAccounts';
 import { DEFAULT_CURRENCY } from '@/utils/currency';
-import { add, divide, multiply, percentage, pow, subtract, sum } from '@/utils/money';
-import type { InterestPeriod } from '@/types/account';
+import { percentage, sum } from '@/utils/money';
 
 interface Props {
   accountId: number;
   accountBalance?: number;
   accountCurrency?: string;
-  accountInterestPeriod?: InterestPeriod;
-}
-
-const periodCompoundsPerYear: Record<InterestPeriod, number> = {
-  DAILY: 365,
-  MONTHLY: 12,
-  QUARTERLY: 4,
-  HALF_YEARLY: 2,
-  ANNUAL: 1,
-};
-
-/** Net compound interest for `days` elapsed with given rate, taxRate, balance, and compounding n */
-function calcPeriodInterest(
-  balance: number,
-  ratePercent: number,
-  taxPercent: number,
-  n: number,
-  days: number
-): number {
-  if (!balance || balance <= 0 || ratePercent <= 0 || days <= 0) return 0;
-  const r = divide(ratePercent, 100);
-  const elapsed = divide(days, 365);
-  const factor = pow(add(1, divide(r, n)), multiply(n, elapsed));
-  const gross = multiply(balance, subtract(factor, 1));
-  const net = multiply(gross, subtract(1, divide(taxPercent, 100)));
-  return net;
 }
 
 export function InterestRateVariationsSection({
   accountId,
   accountBalance = 0,
   accountCurrency = DEFAULT_CURRENCY,
-  accountInterestPeriod = 'ANNUAL',
 }: Props) {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const { t } = useTranslation('accounts');
@@ -87,7 +60,7 @@ export function InterestRateVariationsSection({
 
   type VariationFormData = z.infer<typeof variationSchema>;
   const { data: variations, isLoading } = useInterestRateVariations(accountId);
-  const { data: interestEstimate } = useInterestEstimate(accountId, '1Y');
+  const { data: interestEstimate } = useInterestEstimate(accountId, 'ALL');
   const createVariation = useCreateVariation();
   const deleteVariation = useDeleteVariation();
 
@@ -130,25 +103,12 @@ export function InterestRateVariationsSection({
     }
   };
 
-  // Compute per-variation interest produced (days active × daily accrual)
-  const variationsWithInterest = useMemo(() => {
-    if (!variations || variations.length === 0) return [];
-    const n = periodCompoundsPerYear[accountInterestPeriod];
-    const today = new Date();
-
-    // Sorted ascending by date for period calculation
-    const sorted = [...variations].sort(
-      (a, b) => new Date(a.validFrom).getTime() - new Date(b.validFrom).getTime()
-    );
-
-    return sorted.map((v, idx) => {
-      const from = new Date(v.validFrom);
-      const to = idx < sorted.length - 1 ? new Date(sorted[idx + 1].validFrom) : today;
-      const days = Math.max(0, differenceInDays(to, from));
-      const netInterest = calcPeriodInterest(accountBalance, v.rate, v.taxRate ?? 0, n, days);
-      return { ...v, days, netInterest };
-    });
-  }, [variations, accountBalance, accountInterestPeriod]);
+  // Accrual comes from the same dated cash ledger as the account summary.
+  const variationsWithInterest = useMemo(
+    () => [...(variations ?? [])].sort((a, b) => a.validFrom.localeCompare(b.validFrom)),
+    [variations]
+  );
+  const today = toLocalISODate(new Date());
 
   const earned = interestEstimate?.historicalAccumulated ?? 0;
   const projected = interestEstimate?.estimate ?? 0;
@@ -192,7 +152,7 @@ export function InterestRateVariationsSection({
             </div>
             {variationsWithInterest.length > 0 &&
               (() => {
-                const totalProduced = sum(variationsWithInterest.map(v => v.netInterest));
+                const totalProduced = sum(variationsWithInterest.map(v => v.interestProduced ?? 0));
                 return totalProduced > 0 ? (
                   <>
                     <div className="text-text-muted text-xs">|</div>
@@ -233,7 +193,7 @@ export function InterestRateVariationsSection({
               {variationsWithInterest.map(variation => (
                 <tr key={variation.id} className="hover:bg-surface-elevated/50 transition-colors">
                   <td className="px-4 py-3 text-text-primary">
-                    {format(new Date(variation.validFrom), 'MMM d, yyyy')}
+                    {format(parseISO(variation.validFrom), 'MMM d, yyyy')}
                   </td>
                   <td className="px-4 py-3 text-text-primary font-mono bg-success/5">
                     {formatDecimal(variation.rate, 2)}%
@@ -244,18 +204,20 @@ export function InterestRateVariationsSection({
                       : `${formatDecimal(0, 2)}%`}
                   </td>
                   <td className="px-4 py-3 text-text-secondary">
-                    {variation.days === 0 ? (
-                      <span className="text-xs text-text-muted italic">{t('interest.today')}</span>
+                    {variation.validFrom > today ? (
+                      <span className="text-xs text-text-muted italic">
+                        {t('interest.scheduled')}
+                      </span>
                     ) : (
-                      <span>{variation.days}d</span>
+                      <span>{variation.activeDays ?? 0}d</span>
                     )}
                   </td>
                   <td className="px-4 py-3 text-right">
-                    {variation.netInterest > 0 ? (
+                    {(variation.interestProduced ?? 0) > 0 ? (
                       <span className="font-mono font-semibold text-success">
                         +
                         <ConvertedAmount
-                          amount={variation.netInterest}
+                          amount={variation.interestProduced ?? 0}
                           currency={accountCurrency}
                           inline
                         />

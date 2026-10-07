@@ -134,8 +134,8 @@ public class Account {
      * support
      */
     @NotNull(message = "{account.currency.notnull}")
-    @Size(min = 3, max = 3, message = "{account.currency.size}")
-    @Column(name = "currency", nullable = false, length = 3)
+    @Size(min = 3, max = 10, message = "{account.currency.size}")
+    @Column(name = "currency", nullable = false, length = 10)
     private String currency;
 
     /**

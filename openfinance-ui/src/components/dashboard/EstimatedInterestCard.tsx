@@ -11,6 +11,7 @@ import { SimpleSelect } from '../ui/SimpleSelect';
 interface EstimatedInterestCardProps {
   summary: IEstimatedInterestSummary;
   period: string;
+  periodLabel?: string;
 }
 
 function isLiability(interest: IAccountInterest): boolean {
@@ -21,7 +22,11 @@ function isLiability(interest: IAccountInterest): boolean {
  * EstimatedInterestCard - Displays estimated interest earned across accounts
  * Dashboard Estimated Interest component
  */
-export default function EstimatedInterestCard({ summary, period }: EstimatedInterestCardProps) {
+export default function EstimatedInterestCard({
+  summary,
+  period,
+  periodLabel: selectedPeriodLabel,
+}: EstimatedInterestCardProps) {
   const [filterType, setFilterType] = useState<'ALL' | 'ACCOUNTS' | 'LIABILITIES'>('ALL');
   const {
     convert,
@@ -39,9 +44,11 @@ export default function EstimatedInterestCard({ summary, period }: EstimatedInte
     );
   };
 
-  const periodLabel = t(`estimatedInterest.period.${period}`, {
-    defaultValue: t('estimatedInterest.period.default'),
-  });
+  const periodLabel =
+    selectedPeriodLabel ??
+    t(`estimatedInterest.period.${period}`, {
+      defaultValue: t('estimatedInterest.period.default'),
+    });
 
   const filteredAccounts = useMemo(() => {
     if (!summary || !summary.accounts) return [];

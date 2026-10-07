@@ -29,10 +29,10 @@ export function buildTransactionsLink(params: TransactionsLinkParams): string {
   return qs ? `/transactions?${qs}` : '/transactions';
 }
 
-/** `{from: today − days, to: today}` as ISO yyyy-MM-dd — matches the dashboard period semantics. */
+/** `{from: today − (days − 1), to: today}` as ISO yyyy-MM-dd — matches the dashboard period semantics. */
 export function periodToDateRange(days: number): DateRange {
   const today = new Date();
   const start = new Date(today);
-  start.setDate(today.getDate() - days);
+  start.setDate(today.getDate() - (days - 1));
   return { from: toLocalISODate(start), to: toLocalISODate(today) };
 }

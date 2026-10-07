@@ -1,3 +1,4 @@
+import { CURRENCY_CODE_PATTERN } from '@/utils/currency-code';
 /**
  * TransactionForm Component
  * Task 3.2.14: Create TransactionForm component
@@ -78,7 +79,9 @@ const transactionSchema = (tValidation: (key: string) => string) =>
         z.enum(['INCOME', 'EXPENSE', 'TRANSFER'])
       ),
       amount: z.coerce.number().positive(tValidation('form.validation.amountPositive')),
-      currency: z.string().length(3, tValidation('form.validation.currencyCode')),
+      currency: z
+        .string()
+        .regex(CURRENCY_CODE_PATTERN, tValidation('form.validation.currencyCode')),
       categoryId: optionalNumber,
       date: z.string().min(1, tValidation('form.validation.dateRequired')),
       description: z

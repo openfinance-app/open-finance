@@ -1,3 +1,4 @@
+import { CURRENCY_CODE_PATTERN } from '@/utils/currency-code';
 /**
  * RealEstateForm Component
  * Task 9.1.9: Create RealEstateForm component with validation
@@ -64,7 +65,7 @@ const propertySchema = (tv: (key: string) => string) =>
         .min(1, tv('form.validation.priceInvalid'))
         .refine(isValidDecimalString, tv('form.validation.priceInvalid'))
         .refine(v => Number(v) >= 0, tv('form.validation.valueTooSmall')),
-      currency: z.string().length(3, tv('form.validation.currencyCode')),
+      currency: z.string().regex(CURRENCY_CODE_PATTERN, tv('form.validation.currencyCode')),
       mortgageId: z.number().optional(),
       rentalIncome: z
         .string()

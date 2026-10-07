@@ -1,3 +1,5 @@
+import Decimal from 'decimal.js';
+import { CURRENCY_CODE_PATTERN } from '@/utils/currency-code';
 /**
  * AssetForm Component
  * Task 5.2.8: Create AssetForm component with validation
@@ -91,7 +93,10 @@ export function AssetForm({ asset, onSubmit, onCancel, isLoading }: AssetFormPro
             .string()
             .min(1, t('validation.quantityInvalid'))
             .refine(isValidDecimalString, t('validation.quantityInvalid'))
-            .refine(v => Number(v) >= 0.000001, t('validation.quantityRequired')),
+            .refine(
+              v => isValidDecimalString(v) && new Decimal(v).gte('0.00000001'),
+              t('validation.quantityRequired')
+            ),
           purchasePrice: z
             .string()
             .min(1, t('validation.purchasePriceInvalid'))
@@ -102,7 +107,7 @@ export function AssetForm({ asset, onSubmit, onCancel, isLoading }: AssetFormPro
             .min(1, t('validation.currentPriceInvalid'))
             .refine(isValidDecimalString, t('validation.currentPriceInvalid'))
             .refine(v => Number(v) >= 0, t('validation.currentPriceRequired')),
-          currency: z.string().length(3, t('validation.currencyInvalid')),
+          currency: z.string().regex(CURRENCY_CODE_PATTERN, t('validation.currencyInvalid')),
           purchaseDate: z.string().min(1, t('validation.purchaseDateRequired')),
           notes: z.string().max(500, t('validation.notesTooLong')).optional().or(z.literal('')),
           serialNumber: z.string().max(100).optional().or(z.literal('')),
@@ -486,7 +491,7 @@ export function AssetForm({ asset, onSubmit, onCancel, isLoading }: AssetFormPro
                   onBlur={field.onBlur}
                   placeholder="0.00"
                   error={errors.quantity?.message}
-                  min="0.000001"
+                  min="0.00000001"
                 />
               )}
             />

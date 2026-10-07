@@ -305,6 +305,33 @@ describe('useDashboard hooks', () => {
     });
   });
 
+  it('refetches interest with the exact custom range when either boundary changes', async () => {
+    mockedApiClient.get.mockResolvedValue({ data: { accounts: [] } });
+    const { result, rerender } = renderHook(
+      ({ from, to }) => useEstimatedInterest('30', { from, to }),
+      {
+        wrapper,
+        initialProps: { from: '2026-08-01', to: '2026-08-31' },
+      }
+    );
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(mockedApiClient.get).toHaveBeenLastCalledWith(
+      '/dashboard/estimated-interest',
+      expect.objectContaining({
+        params: { startDate: '2026-08-01', endDate: '2026-08-31' },
+      })
+    );
+    rerender({ from: '2026-08-02', to: '2026-08-30' });
+    await waitFor(() =>
+      expect(mockedApiClient.get).toHaveBeenLastCalledWith(
+        '/dashboard/estimated-interest',
+        expect.objectContaining({
+          params: { startDate: '2026-08-02', endDate: '2026-08-30' },
+        })
+      )
+    );
+  });
+
   // ── useTransactionsByPeriod ─────────────────────────────────────────────
   describe('useTransactionsByPeriod', () => {
     it('sends both search date boundaries for a custom range', async () => {

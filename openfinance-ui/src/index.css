@@ -444,7 +444,8 @@ h6 {
 /* ─── Entrance utilities ─────────────────────────────────────────────────── */
 /* Keyed page transition — applied by AppLayout on route change */
 .page-enter {
-  animation: page-enter var(--duration-normal) var(--ease-out-expo) both;
+  /* Release the transform after entry so fixed dialogs use the viewport. */
+  animation: page-enter var(--duration-normal) var(--ease-out-expo) backwards;
 }
 
 /* Staggered list entrance: set --stagger-index on each child (0-based).

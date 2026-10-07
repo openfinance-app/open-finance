@@ -51,6 +51,30 @@ describe('InterestRateVariationsSection', () => {
     );
   });
 
+  it('shows ledger-derived accrued interest and marks future rates as scheduled', () => {
+    useInterestRateVariationsMock.mockReturnValue({
+      isLoading: false,
+      data: [
+        {
+          id: 1,
+          validFrom: '2020-01-01',
+          rate: 4,
+          taxRate: 0,
+          activeDays: 3,
+          interestProduced: 3.75,
+        },
+        { id: 2, validFrom: '2099-01-01', rate: 6, taxRate: 0, activeDays: 0, interestProduced: 0 },
+      ],
+    });
+    renderWithProviders(
+      <InterestRateVariationsSection accountId={1} accountBalance={999999} accountCurrency="USD" />
+    );
+    expect(screen.getByText('3d')).toBeInTheDocument();
+    expect(screen.getByText('Scheduled')).toBeInTheDocument();
+    expect(screen.getAllByText('$3.75')).toHaveLength(2);
+    expect(useInterestEstimateMock).toHaveBeenCalledWith(1, 'ALL');
+  });
+
   it('renders empty state when there are no variations', () => {
     renderWithProviders(
       <InterestRateVariationsSection accountId={1} accountBalance={1000} accountCurrency="USD" />

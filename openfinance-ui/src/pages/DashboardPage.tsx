@@ -480,9 +480,7 @@ export default function DashboardPage() {
   );
   const { data: netWorthAllocations, isLoading: netWorthAllocationLoading } =
     useNetWorthAllocation();
-  const { data: estimatedInterest } = useEstimatedInterest(
-    selectedPeriod === 'CUSTOM' ? '1M' : selectedPeriod
-  );
+  const { data: estimatedInterest } = useEstimatedInterest(String(periodDays), activeDateRange);
   const { data: periodTransactions, isLoading: transactionsLoading } = useTransactionsByPeriod(
     periodDays,
     activeDateRange
@@ -690,7 +688,8 @@ export default function DashboardPage() {
           estimatedInterest ? (
             <EstimatedInterestCard
               summary={estimatedInterest}
-              period={selectedPeriod === 'CUSTOM' ? '1M' : selectedPeriod}
+              period={selectedPeriod}
+              periodLabel={periodLabel}
             />
           ) : null,
       },

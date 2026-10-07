@@ -1,3 +1,4 @@
+import { CURRENCY_CODE_PATTERN } from '@/utils/currency-code';
 /**
  * RecurringTransactionForm Component
  * Task 12.2.9: Add recurring option to TransactionForm (standalone recurring form)
@@ -73,7 +74,7 @@ function createRecurringTransactionSchema(t: (key: string) => string) {
         .min(1, t('form.validation.amountInvalid'))
         .refine(isValidDecimalString, t('form.validation.amountInvalid'))
         .refine(v => Number(v) > 0, t('form.validation.amountPositive')),
-      currency: z.string().length(3, t('form.validation.currencyLength')),
+      currency: z.string().regex(CURRENCY_CODE_PATTERN, t('form.validation.currencyLength')),
       categoryId: optionalNumber,
       payee: z.string().optional(),
       description: z

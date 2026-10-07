@@ -67,7 +67,7 @@ public class RealEstateValueHistory {
     @Column(name = "recorded_value", nullable = false, length = 500)
     private String recordedValue;
 
-    @Column(name = "currency", nullable = false, length = 3)
+    @Column(name = "currency", nullable = false, length = 10)
     private String currency;
 
     /** FK to the currencies table for referential integrity. */

@@ -1,3 +1,4 @@
+import { CURRENCY_CODE_PATTERN } from '@/utils/currency-code';
 /**
  * LiabilityForm Component
  * Task 6.2.2: Create LiabilityForm component with validation
@@ -82,7 +83,7 @@ const liabilitySchema = (tv: (key: string) => string) =>
         .refine(v => v === '' || Number(v) >= 0, tv('form.validation.paymentNonNegative'))
         .optional()
         .or(z.literal('')),
-      currency: z.string().length(3, tv('form.validation.currencyCode')),
+      currency: z.string().regex(CURRENCY_CODE_PATTERN, tv('form.validation.currencyCode')),
       notes: z.string().max(500, tv('form.validation.notesTooLong')).optional().or(z.literal('')),
       institutionId: z.string().optional(),
       // Requirement 1.1: Insurance percentage (annual, 0–100%) and one-time/periodic additional fees

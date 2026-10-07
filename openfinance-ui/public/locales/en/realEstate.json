@@ -128,7 +128,7 @@
       "invalidDateFormat": "Invalid date format",
       "currentValuePositive": "Current value must be positive",
       "valueTooSmall": "Value is too small",
-      "currencyCode": "Currency must be a 3-letter code",
+      "currencyCode": "Select a supported currency",
       "rentalIncomeNonNegative": "Rental income cannot be negative",
       "rentalIncomeInvalid": "Enter a valid amount (e.g. 1234.56)",
       "notesTooLong": "Notes are too long",

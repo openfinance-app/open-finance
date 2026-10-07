@@ -425,7 +425,7 @@ class DashboardServiceTest {
     void shouldCalculateCashFlowWithIncomeAndExpenses() {
         // Arrange
         int period = 30;
-        LocalDate startDate = LocalDate.now().minusDays(period);
+        LocalDate startDate = LocalDate.now().minusDays(period - 1L);
         LocalDate endDate = LocalDate.now();
 
         List<Transaction> transactions =
@@ -458,7 +458,7 @@ class DashboardServiceTest {
     void shouldReturnZeroWhenNoTransactionsForCashFlow() {
         // Arrange
         int period = 30;
-        LocalDate startDate = LocalDate.now().minusDays(period);
+        LocalDate startDate = LocalDate.now().minusDays(period - 1L);
         LocalDate endDate = LocalDate.now();
 
         when(transactionRepository.findByUserIdAndDateBetween(userId, startDate, endDate))
@@ -478,7 +478,7 @@ class DashboardServiceTest {
     void shouldExcludeDeletedTransactionsFromCashFlow() {
         // Arrange
         int period = 30;
-        LocalDate startDate = LocalDate.now().minusDays(period);
+        LocalDate startDate = LocalDate.now().minusDays(period - 1L);
         LocalDate endDate = LocalDate.now();
 
         List<Transaction> transactions =
@@ -517,7 +517,7 @@ class DashboardServiceTest {
     void shouldExcludeTransferLegsFromCashFlow() {
         // Arrange
         int period = 30;
-        LocalDate startDate = LocalDate.now().minusDays(period);
+        LocalDate startDate = LocalDate.now().minusDays(period - 1L);
         LocalDate endDate = LocalDate.now();
 
         Transaction realIncome =
@@ -582,7 +582,7 @@ class DashboardServiceTest {
     void shouldGroupSpendingByCategoryAndSort() {
         // Arrange
         int period = 30;
-        LocalDate startDate = LocalDate.now().minusDays(period);
+        LocalDate startDate = LocalDate.now().minusDays(period - 1L);
         LocalDate endDate = LocalDate.now();
 
         List<Transaction> transactions =
@@ -651,7 +651,7 @@ class DashboardServiceTest {
     void shouldHandleUncategorizedTransactions() {
         // Arrange
         int period = 30;
-        LocalDate startDate = LocalDate.now().minusDays(period);
+        LocalDate startDate = LocalDate.now().minusDays(period - 1L);
         LocalDate endDate = LocalDate.now();
 
         List<Transaction> transactions =
@@ -694,7 +694,7 @@ class DashboardServiceTest {
     void shouldReturnEmptyMapWhenNoExpenses() {
         // Arrange
         int period = 30;
-        LocalDate startDate = LocalDate.now().minusDays(period);
+        LocalDate startDate = LocalDate.now().minusDays(period - 1L);
         LocalDate endDate = LocalDate.now();
 
         when(transactionRepository.findByUserIdAndDateBetween(userId, startDate, endDate))

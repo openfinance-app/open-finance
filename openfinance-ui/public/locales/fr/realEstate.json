@@ -128,7 +128,7 @@
       "invalidDateFormat": "Format de date invalide",
       "currentValuePositive": "La valeur actuelle doit être positive",
       "valueTooSmall": "La valeur est trop petite",
-      "currencyCode": "La devise doit être un code de 3 lettres",
+      "currencyCode": "Sélectionnez une devise prise en charge",
       "rentalIncomeNonNegative": "Les revenus locatifs ne peuvent pas être négatifs",
       "rentalIncomeInvalid": "Saisissez un montant valide (ex. 1234,56)",
       "notesTooLong": "Les notes sont trop longues",

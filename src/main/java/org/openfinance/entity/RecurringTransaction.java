@@ -141,8 +141,8 @@ public class RecurringTransaction {
      * <p>Three-letter uppercase code. Defaults to user's base currency if not specified.
      */
     @NotNull(message = "{recurringTransaction.currency.notnull}")
-    @Size(min = 3, max = 3, message = "{recurringTransaction.currency.size}")
-    @Column(nullable = false, length = 3)
+    @Size(min = 3, max = 10, message = "{recurringTransaction.currency.size}")
+    @Column(nullable = false, length = 10)
     private String currency;
 
     /** FK to the currencies table for referential integrity. */

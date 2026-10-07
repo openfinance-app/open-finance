@@ -21,6 +21,7 @@ import { AssetForm } from '@/components/assets/AssetForm';
 vi.mock('@/components/ui/CurrencySelector', () => ({
   CurrencySelector: ({ value, onValueChange, placeholder }: any) => (
     <select
+      aria-label="Currency"
       data-testid="currency-selector"
       value={value || ''}
       onChange={e => onValueChange(e.target.value)}
@@ -28,6 +29,7 @@ vi.mock('@/components/ui/CurrencySelector', () => ({
       <option value="">{placeholder || 'Select currency'}</option>
       <option value="USD">USD</option>
       <option value="EUR">EUR</option>
+      <option value="USDT">USDT</option>
     </select>
   ),
 }));
@@ -60,6 +62,30 @@ describe('AssetForm', () => {
     mockOnSubmit.mockClear();
     mockOnCancel.mockClear();
   });
+
+  it.each(['0.00000001', '0.0000005'])(
+    'saves a crypto quantity of %s in a supported four-letter currency',
+    async quantity => {
+      const user = userEvent.setup();
+      renderWithProviders(<AssetForm onSubmit={mockOnSubmit} onCancel={mockOnCancel} />);
+      await waitFor(() => expect(screen.getByLabelText(/Purchase Date/i)).toHaveValue());
+      fireEvent.change(screen.getByLabelText(/Asset Name/i), {
+        target: { value: 'Fractional crypto' },
+      });
+      await user.selectOptions(screen.getByLabelText(/Asset Type/i), 'CRYPTO');
+      await user.selectOptions(screen.getByRole('combobox', { name: 'Currency' }), 'USDT');
+      for (const [label, value] of [
+        [/Quantity/i, quantity],
+        [/Purchase Price/i, '60000'],
+        [/Current Price/i, '80000'],
+      ] as const) {
+        fireEvent.change(screen.getByLabelText(label), { target: { value } });
+      }
+      await user.click(screen.getByRole('button', { name: /Create Asset/i }));
+      await waitFor(() => expect(mockOnSubmit).toHaveBeenCalled());
+      expect(mockOnSubmit.mock.calls[0][0]).toMatchObject({ currency: 'USDT', quantity });
+    }
+  );
 
   describe('Rendering', () => {
     it('should render all required form fields', () => {
@@ -183,7 +209,7 @@ describe('AssetForm', () => {
 
       await waitFor(
         () => {
-          expect(screen.getByText(/Quantity must be greater than 0/i)).toBeInTheDocument();
+          expect(screen.getByText(/Quantity must be at least 0.00000001/i)).toBeInTheDocument();
         },
         { timeout: 3000 }
       );

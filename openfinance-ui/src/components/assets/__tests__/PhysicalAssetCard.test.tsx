@@ -69,6 +69,23 @@ describe('PhysicalAssetCard', () => {
     }
   );
 
+  it('shows planned cost without claiming a market loss for an unowned asset', () => {
+    renderWithProviders(
+      <PhysicalAssetCard asset={{ ...mockAsset, acquisitionType: 'PLANNED', totalValue: 0 }} />
+    );
+    expect(screen.getByText('Planned Cost')).toBeInTheDocument();
+    expect(screen.queryByText('Value Change')).not.toBeInTheDocument();
+    expect(screen.queryByText('Loss')).not.toBeInTheDocument();
+  });
+
+  it('still shows an actual loss for an acquired asset worth zero', () => {
+    renderWithProviders(
+      <PhysicalAssetCard asset={{ ...mockAsset, acquisitionType: 'PURCHASE', totalValue: 0 }} />
+    );
+    expect(screen.getByText('Value Change')).toBeInTheDocument();
+    expect(screen.getByText('Loss')).toBeInTheDocument();
+  });
+
   it('preserves ownership duration for acquired assets', () => {
     renderWithProviders(
       <PhysicalAssetCard

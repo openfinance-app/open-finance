@@ -1386,8 +1386,36 @@ public class AccountService {
         // Calculate start date based on period
         java.time.LocalDate startDate = calculateStartDate(period, account.getOpeningDate());
 
+        return calculateBalanceHistory(account, startDate, java.time.LocalDate.now());
+    }
+
+    /** Closing cash balances for an inclusive date range, excluding linked asset valuations. */
+    @Transactional(readOnly = true)
+    public List<org.openfinance.dto.BalanceHistoryPoint> getAccountBalanceHistory(
+            Long accountId,
+            Long userId,
+            java.time.LocalDate startDate,
+            java.time.LocalDate endDate) {
+        if (accountId == null
+                || userId == null
+                || startDate == null
+                || endDate == null
+                || startDate.isAfter(endDate)) {
+            throw new IllegalArgumentException("A valid account, user and date range are required");
+        }
+        Account account =
+                accountRepository
+                        .findByIdAndUserId(accountId, userId)
+                        .orElseThrow(() -> AccountNotFoundException.byIdAndUser(accountId, userId));
+        return calculateBalanceHistory(account, startDate, endDate);
+    }
+
+    private List<org.openfinance.dto.BalanceHistoryPoint> calculateBalanceHistory(
+            Account account, java.time.LocalDate startDate, java.time.LocalDate endDate) {
+        Long accountId = account.getId();
+        if (account.getOpeningDate().isAfter(endDate)) return List.of();
+
         // Get transactions for the account within the date range
-        java.time.LocalDate endDate = java.time.LocalDate.now();
         List<org.openfinance.entity.Transaction> transactions =
                 transactionRepository
                         .findByAccountIdAndTransactionDateBetweenOrderByTransactionDateAsc(

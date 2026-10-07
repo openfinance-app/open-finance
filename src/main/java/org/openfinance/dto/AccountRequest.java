@@ -72,8 +72,7 @@ public class AccountRequest {
     /**
      * Units of the requested current balance; defaults to the existing account's currency on edits.
      */
-    @jakarta.validation.constraints.Pattern(regexp = "[A-Z]{3}")
-    private String balanceCurrency;
+    @ValidCurrency private String balanceCurrency;
 
     /**
      * Optional description of the account (e.g., institution details, account purpose).

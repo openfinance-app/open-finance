@@ -156,7 +156,7 @@ public class Transaction {
     @Convert(converter = EncryptedBigDecimalConverter.class)
     private BigDecimal accountAmount;
 
-    @Column(name = "account_currency", length = 3)
+    @Column(name = "account_currency", length = 10)
     private String accountCurrency;
 
     public BigDecimal getBalanceAmount() {

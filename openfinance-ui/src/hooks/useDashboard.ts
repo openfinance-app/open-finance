@@ -1,3 +1,4 @@
+import { periodToDateRange } from '@/utils/navigation';
 import { useQuery } from '@tanstack/react-query';
 import apiClient from '@/services/apiClient';
 import type {
@@ -112,12 +113,9 @@ const fetchTransactionsByPeriod = async (
     searchParams['dateFrom'] = params['startDate'];
     searchParams['dateTo'] = params['endDate'];
   } else {
-    const endDate = new Date().toISOString().split('T')[0];
-    const startDate = new Date(Date.now() - period * 24 * 60 * 60 * 1000)
-      .toISOString()
-      .split('T')[0];
-    searchParams['dateFrom'] = startDate;
-    searchParams['dateTo'] = endDate;
+    const range = periodToDateRange(period);
+    searchParams['dateFrom'] = range.from;
+    searchParams['dateTo'] = range.to;
   }
   searchParams['sort'] = 'date,desc';
   searchParams['size'] = 50;
@@ -172,10 +170,11 @@ const fetchCashflowSankey = async (
 };
 
 const fetchEstimatedInterest = async (
-  period: string = '1Y'
+  period: string = '1Y',
+  dateRange?: DateRange
 ): Promise<IEstimatedInterestSummary> => {
   const response = await apiClient.get<IEstimatedInterestSummary>('/dashboard/estimated-interest', {
-    params: { period },
+    params: dateRange ? { startDate: dateRange.from, endDate: dateRange.to } : { period },
     headers: buildEncryptionHeaders(),
   });
   return response.data;
@@ -297,10 +296,14 @@ export const useCashflowSankey = (period: number = 30, dateRange?: DateRange) =>
     retry: 1,
   });
 
-export const useEstimatedInterest = (period: string = '1Y') =>
+export const useEstimatedInterest = (period: string = '1Y', dateRange?: DateRange) =>
   useQuery({
-    queryKey: ['dashboard', 'estimated-interest', period],
-    queryFn: () => fetchEstimatedInterest(period),
+    queryKey: [
+      'dashboard',
+      'estimated-interest',
+      dateRange ? `${dateRange.from}__${dateRange.to}` : period,
+    ],
+    queryFn: () => fetchEstimatedInterest(period, dateRange),
     staleTime: 5 * 60 * 1000,
     retry: 1,
   });

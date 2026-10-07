@@ -148,8 +148,8 @@ public class RealEstateProperty {
      * Currency code for monetary amounts (ISO 4217). Requirement REQ-2.8: Multi-currency support
      */
     @NotNull(message = "{realEstateProperty.currency.notnull}")
-    @Pattern(regexp = "[A-Z]{3}", message = "{realEstateProperty.currency.pattern}")
-    @Column(name = "currency", nullable = false, length = 3)
+    @Pattern(regexp = "[A-Z]{3,10}", message = "{realEstateProperty.currency.pattern}")
+    @Column(name = "currency", nullable = false, length = 10)
     private String currency;
 
     /** FK to the currencies table for referential integrity. */

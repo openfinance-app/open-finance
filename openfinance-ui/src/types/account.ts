@@ -28,6 +28,8 @@ export interface AccountFilters {
 }
 
 export interface InterestRateVariation {
+  interestProduced?: number;
+  activeDays?: number;
   id: number;
   accountId: number;
   rate: number;

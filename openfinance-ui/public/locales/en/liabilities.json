@@ -59,7 +59,7 @@
       "invalidDateFormat": "Invalid date format",
       "paymentNonNegative": "Payment cannot be negative",
       "paymentInvalid": "Enter a valid amount (e.g. 1234.56)",
-      "currencyCode": "Currency must be a 3-letter code",
+      "currencyCode": "Select a supported currency",
       "notesTooLong": "Notes are too long",
       "insuranceRateNonNegative": "Insurance rate cannot be negative",
       "insuranceRateMax": "Insurance rate cannot exceed 100%",

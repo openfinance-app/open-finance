@@ -105,7 +105,7 @@
     "validation": {
       "amountPositive": "Amount must be positive",
       "selectAccount": "Please select an account",
-      "currencyCode": "Currency must be a 3-letter code",
+      "currencyCode": "Select a supported currency",
       "rateUnavailable": "Exchange rate unavailable. Please try again.",
       "dateRequired": "Date is required",
       "descriptionTooLong": "Description is too long",

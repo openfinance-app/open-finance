@@ -469,9 +469,8 @@ export function AccountDetailModal({ accountId, onClose, onEdit }: AccountDetail
               {activeTab === 'interest' && account.isInterestEnabled && (
                 <InterestRateVariationsSection
                   accountId={account.id}
-                  accountBalance={account.balance}
+                  accountBalance={account.ownBalance}
                   accountCurrency={account.currency}
-                  accountInterestPeriod={account.interestPeriod}
                 />
               )}
 

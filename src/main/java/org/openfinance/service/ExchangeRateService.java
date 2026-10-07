@@ -23,6 +23,8 @@ import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 /**
  * Service for managing currency exchange rates and performing currency conversions.
@@ -120,40 +122,15 @@ public class ExchangeRateService {
             return storedRate.get();
         }
 
-        if (date != null && date.isBefore(LocalDate.now())) {
-            log.info(
-                    "No historical rate found for {} → {} on {}, attempting historical fetch",
-                    fromCurrency,
-                    toCurrency,
-                    date);
-            int fetched = fetchAndStorePairRateForDate(fromCurrency, toCurrency, date);
-            if (fetched > 0) {
-                Optional<BigDecimal> refetchedRate =
-                        findStoredExchangeRate(fromCurrency, toCurrency, date);
-                if (refetchedRate.isPresent()) {
-                    return refetchedRate.get();
-                }
-            }
-        }
-
-        // No cached rate found — attempt on-demand fetch from Yahoo Finance.
-        // Trigger for "latest" requests: date is null, or date is today/future
-        // (callers like CurrencyController pass LocalDate.now() for current-rate
-        // lookups).
-        boolean isLatestRequest = date == null || !date.isBefore(LocalDate.now());
-        if (isLatestRequest) {
-            log.info(
-                    "No rate found for {} → {}, attempting on-demand fetch from Yahoo Finance",
-                    fromCurrency,
-                    toCurrency);
-            boolean fetched = fetchAndStorePairRate(fromCurrency, toCurrency);
-            if (fetched) {
-                Optional<BigDecimal> refetchedRate =
-                        findStoredExchangeRate(fromCurrency, toCurrency, null);
-                if (refetchedRate.isPresent()) {
-                    return refetchedRate.get();
-                }
-            }
+        List<ExchangeRate> fetched =
+                date != null && date.isBefore(LocalDate.now())
+                        ? fetchPairRatesForDate(fromCurrency, toCurrency, date)
+                        : fetchPairRates(fromCurrency, toCurrency);
+        if (!fetched.isEmpty()) {
+            persistFetchedRates(fetched);
+            Optional<BigDecimal> fetchedRate =
+                    findExchangeRate(fromCurrency, toCurrency, date, fetched);
+            if (fetchedRate.isPresent()) return fetchedRate.get();
         }
 
         // No rate found
@@ -293,7 +270,7 @@ public class ExchangeRateService {
 
             // Save all rates to database
             if (!newRates.isEmpty()) {
-                exchangeRateRepository.saveAll(newRates);
+                exchangeRateRepository.upsertAll(newRates);
                 log.info(
                         "Successfully updated {} exchange rates for {} (including {} inverse rates)",
                         newRates.size(),
@@ -341,9 +318,8 @@ public class ExchangeRateService {
         return fetchAndStoreHistoricalRates(symbols, from, date);
     }
 
-    @Transactional
-    @CacheEvict(value = "exchangeRates", allEntries = true)
-    int fetchAndStorePairRateForDate(String fromCurrency, String toCurrency, LocalDate date) {
+    private List<ExchangeRate> fetchPairRatesForDate(
+            String fromCurrency, String toCurrency, LocalDate date) {
         if (date.isAfter(LocalDate.now())) {
             throw new IllegalArgumentException(
                     "Cannot fetch exchange rates for future date: " + date);
@@ -355,14 +331,21 @@ public class ExchangeRateService {
         addSymbolForCurrency(symbols, toCurrency);
         if (symbols.isEmpty()) {
             log.debug("Both currencies are USD, no historical fetch needed");
-            return 0;
+            return List.of();
         }
 
         log.debug("Historical on-demand fetch: requesting symbols {}", symbols);
-        return fetchAndStoreHistoricalRates(symbols, from, date);
+        return fetchHistoricalRates(symbols, from, date);
     }
 
     private int fetchAndStoreHistoricalRates(List<String> symbols, LocalDate from, LocalDate date) {
+        List<ExchangeRate> rates = filterExistingRates(fetchHistoricalRates(symbols, from, date));
+        if (!rates.isEmpty()) exchangeRateRepository.upsertAll(rates);
+        return rates.size();
+    }
+
+    private List<ExchangeRate> fetchHistoricalRates(
+            List<String> symbols, LocalDate from, LocalDate date) {
         List<ExchangeRate> newRates = new ArrayList<>();
 
         for (String symbol : symbols) {
@@ -411,18 +394,7 @@ public class ExchangeRateService {
         List<ExchangeRate> inverseRates = buildInverseRates(newRates);
         newRates.addAll(inverseRates);
 
-        List<ExchangeRate> ratesToSave = filterExistingRates(newRates);
-        if (ratesToSave.isEmpty()) {
-            log.warn("No new historical exchange rates were fetched for {}", date);
-            return 0;
-        }
-
-        exchangeRateRepository.saveAll(ratesToSave);
-        log.info(
-                "Stored {} historical exchange rates for {} (including inverse rates)",
-                ratesToSave.size(),
-                date);
-        return ratesToSave.size();
+        return newRates;
     }
 
     /**
@@ -438,7 +410,7 @@ public class ExchangeRateService {
     // ==================== Private Helper Methods ====================
 
     /**
-     * Attempts to fetch and store the exchange rate for a specific currency pair on-demand.
+     * Fetches exchange-rate quotes for a specific currency pair on demand.
      *
      * <p>Builds the appropriate Yahoo Finance symbol for the given pair and calls the market data
      * provider. If the pair involves USD, a single symbol is fetched. For cross pairs (e.g., XOF →
@@ -447,11 +419,9 @@ public class ExchangeRateService {
      *
      * @param fromCurrency the source currency code
      * @param toCurrency the target currency code
-     * @return {@code true} if at least one rate was successfully stored; {@code false} otherwise
+     * @return fetched quotes, which can be used without a write inside the caller's snapshot
      */
-    @Transactional
-    @CacheEvict(value = "exchangeRates", allEntries = true)
-    boolean fetchAndStorePairRate(String fromCurrency, String toCurrency) {
+    private List<ExchangeRate> fetchPairRates(String fromCurrency, String toCurrency) {
         List<String> symbols = new ArrayList<>();
         LocalDate today = LocalDate.now();
 
@@ -461,7 +431,7 @@ public class ExchangeRateService {
 
         if (symbols.isEmpty()) {
             log.debug("Both currencies are USD, no fetch needed");
-            return false;
+            return List.of();
         }
 
         // Use the chart endpoint (v8/finance/chart) via getHistoricalPrices — it
@@ -501,55 +471,33 @@ public class ExchangeRateService {
             }
         }
 
-        if (!newRates.isEmpty()) {
-            try {
-                // Filter out rates that already exist for (base, target, today) to avoid UNIQUE
-                // constraint violations.
-                // This can happen when two concurrent requests both trigger on-demand fetch for
-                // the same pair.
-                List<ExchangeRate> ratesToSave =
-                        newRates.stream()
-                                .filter(
-                                        r ->
-                                                exchangeRateRepository
-                                                        .findByBaseCurrencyAndTargetCurrencyAndRateDate(
-                                                                r.getBaseCurrency(),
-                                                                r.getTargetCurrency(),
-                                                                r.getRateDate())
-                                                        .isEmpty())
-                                .collect(java.util.stream.Collectors.toList());
+        return newRates;
+    }
 
-                if (ratesToSave.isEmpty()) {
-                    log.info(
-                            "On-demand fetch: rates for pair {} → {} already exist for {}, skipping save",
-                            fromCurrency,
-                            toCurrency,
-                            today);
-                    return true; // rates are already present — lookup will succeed
-                }
-
-                exchangeRateRepository.saveAll(ratesToSave);
-                log.info(
-                        "On-demand fetch stored {} rate(s) for pair {} → {}",
-                        ratesToSave.size(),
-                        fromCurrency,
-                        toCurrency);
-                return true;
-            } catch (Exception e) {
-                log.warn(
-                        "Failed to save on-demand rates for pair {} → {}: {}",
-                        fromCurrency,
-                        toCurrency,
-                        e.getMessage());
-                return false;
-            }
+    /**
+     * Quote caching must not upgrade a financial read or poison History's repeatable-read
+     * transaction. Use fetched quotes immediately and store them after a successful commit.
+     */
+    private void persistFetchedRates(List<ExchangeRate> rates) {
+        if (TransactionSynchronizationManager.isActualTransactionActive()
+                && TransactionSynchronizationManager.isSynchronizationActive()) {
+            List<ExchangeRate> pending = List.copyOf(rates);
+            TransactionSynchronizationManager.registerSynchronization(
+                    new TransactionSynchronization() {
+                        @Override
+                        public void afterCommit() {
+                            try {
+                                exchangeRateRepository.upsertAllIndependently(pending);
+                            } catch (RuntimeException failure) {
+                                log.warn(
+                                        "Unable to cache fetched exchange rates after commit",
+                                        failure);
+                            }
+                        }
+                    });
+        } else {
+            exchangeRateRepository.upsertAll(rates);
         }
-
-        log.warn(
-                "On-demand fetch returned no parseable rates for pair {} → {}",
-                fromCurrency,
-                toCurrency);
-        return false;
     }
 
     /**
@@ -564,14 +512,19 @@ public class ExchangeRateService {
      */
     private Optional<BigDecimal> findStoredExchangeRate(
             String fromCurrency, String toCurrency, LocalDate date) {
-        Optional<ExchangeRate> directRate = findRate(fromCurrency, toCurrency, date);
+        return findExchangeRate(fromCurrency, toCurrency, date, List.of());
+    }
+
+    private Optional<BigDecimal> findExchangeRate(
+            String fromCurrency, String toCurrency, LocalDate date, List<ExchangeRate> fetched) {
+        Optional<ExchangeRate> directRate = findRate(fromCurrency, toCurrency, date, fetched);
         if (directRate.isPresent()) {
             BigDecimal rate = directRate.get().getRate();
             log.debug("Found direct rate: {} → {} = {}", fromCurrency, toCurrency, rate);
             return Optional.of(rate);
         }
 
-        Optional<ExchangeRate> inverseRate = findRate(toCurrency, fromCurrency, date);
+        Optional<ExchangeRate> inverseRate = findRate(toCurrency, fromCurrency, date, fetched);
         if (inverseRate.isPresent()) {
             BigDecimal rate = inverseRate.get().getInverseRate();
             log.debug(
@@ -583,8 +536,8 @@ public class ExchangeRateService {
         }
 
         if (!"USD".equalsIgnoreCase(fromCurrency) && !"USD".equalsIgnoreCase(toCurrency)) {
-            BigDecimal fromUsd = getRateViaUsd(fromCurrency, date);
-            BigDecimal toUsd = getRateViaUsd(toCurrency, date);
+            BigDecimal fromUsd = getRateViaUsd(fromCurrency, date, fetched);
+            BigDecimal toUsd = getRateViaUsd(toCurrency, date, fetched);
             if (fromUsd != null && toUsd != null && toUsd.compareTo(BigDecimal.ZERO) != 0) {
                 BigDecimal crossRate = fromUsd.divide(toUsd, 8, RoundingMode.HALF_UP);
                 log.debug(
@@ -601,16 +554,29 @@ public class ExchangeRateService {
         return Optional.empty();
     }
 
-    private BigDecimal getRateViaUsd(String currencyCode, LocalDate date) {
-        Optional<ExchangeRate> direct = findRate(currencyCode, "USD", date);
+    private BigDecimal getRateViaUsd(
+            String currencyCode, LocalDate date, List<ExchangeRate> fetched) {
+        Optional<ExchangeRate> direct = findRate(currencyCode, "USD", date, fetched);
         if (direct.isPresent()) {
             return direct.get().getRate();
         }
-        Optional<ExchangeRate> inverse = findRate("USD", currencyCode, date);
+        Optional<ExchangeRate> inverse = findRate("USD", currencyCode, date, fetched);
         if (inverse.isPresent()) {
             return inverse.get().getInverseRate();
         }
         return null;
+    }
+
+    private Optional<ExchangeRate> findRate(
+            String base, String target, LocalDate date, List<ExchangeRate> fetched) {
+        return fetched.stream()
+                .filter(
+                        rate ->
+                                base.equals(rate.getBaseCurrency())
+                                        && target.equals(rate.getTargetCurrency()))
+                .filter(rate -> date == null || !rate.getRateDate().isAfter(date))
+                .max(Comparator.comparing(ExchangeRate::getRateDate))
+                .or(() -> findRate(base, target, date));
     }
 
     /**

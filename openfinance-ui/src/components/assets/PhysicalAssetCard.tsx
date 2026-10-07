@@ -38,8 +38,8 @@ export function PhysicalAssetCard({ asset, onClick }: PhysicalAssetCardProps) {
   const lossPercent = asset.totalCost > 0 ? percentage(valueLoss, asset.totalCost) : 0;
   const retainedPercent =
     asset.totalCost > 0 ? Math.min(percentage(currentValue, asset.totalCost), 100) : 0;
-  const hasValueChange = asset.totalCost > 0 && currentValue !== asset.totalCost;
   const isPlanned = asset.acquisitionType === 'PLANNED';
+  const hasValueChange = !isPlanned && asset.totalCost > 0 && currentValue !== asset.totalCost;
 
   return (
     <Card
@@ -198,7 +198,9 @@ export function PhysicalAssetCard({ asset, onClick }: PhysicalAssetCardProps) {
           </div>
         </div>
         <div>
-          <div className="text-xs text-text-secondary mb-1">{t('physicalCard.purchaseCost')}</div>
+          <div className="text-xs text-text-secondary mb-1">
+            {t(isPlanned ? 'physicalCard.plannedCost' : 'physicalCard.purchaseCost')}
+          </div>
           <div className="text-lg font-semibold text-text-secondary">
             <ConvertedAmount
               amount={asset.totalCost}

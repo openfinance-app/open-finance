@@ -4,6 +4,7 @@ import java.math.BigDecimal;
 import java.math.MathContext;
 import java.math.RoundingMode;
 import java.time.LocalDate;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
@@ -61,7 +62,7 @@ public class InterestCalculatorService {
         if (balance == null || balance.compareTo(BigDecimal.ZERO) <= 0) return BigDecimal.ZERO;
 
         InterestRateVariation variation = getVariationForDate(variations, LocalDate.now());
-        if (variation == null) variation = variations.get(0);
+        if (variation == null) return BigDecimal.ZERO;
 
         BigDecimal ratePct = variation.getRate();
         BigDecimal taxPct =
@@ -71,6 +72,7 @@ public class InterestCalculatorService {
                 switch (interestPeriodType) {
                     case DAILY -> 365;
                     case MONTHLY -> 12;
+                    case QUARTERLY -> 4;
                     case HALF_YEARLY -> 2;
                     case ANNUAL -> 1;
                 };
@@ -118,49 +120,98 @@ public class InterestCalculatorService {
                 accountService.getAccountBalanceHistory(accountId, userId, period);
         if (history.isEmpty()) return BigDecimal.ZERO;
 
-        TreeMap<LocalDate, BigDecimal> dailyBalances = expandToDailyBalances(history);
-        BigDecimal totalNetInterest = BigDecimal.ZERO;
-
-        for (Map.Entry<LocalDate, BigDecimal> entry : dailyBalances.entrySet()) {
-            LocalDate date = entry.getKey();
-            BigDecimal balance = entry.getValue();
-            if (balance.compareTo(BigDecimal.ZERO) <= 0) continue;
-
-            InterestRateVariation applicable = getVariationForDate(variations, date);
-            if (applicable == null) continue;
-
-            BigDecimal annualRate =
-                    applicable.getRate().divide(MathConstants.HUNDRED, 10, RoundingMode.HALF_UP);
-            BigDecimal dailyGross =
-                    balance.multiply(annualRate)
-                            .divide(new BigDecimal("365"), 10, RoundingMode.HALF_UP);
-
-            BigDecimal taxPct =
-                    applicable.getTaxRate() != null ? applicable.getTaxRate() : BigDecimal.ZERO;
-            BigDecimal keep =
-                    BigDecimal.ONE.subtract(
-                            taxPct.divide(MathConstants.HUNDRED, 10, RoundingMode.HALF_UP));
-            totalNetInterest = totalNetInterest.add(dailyGross.multiply(keep));
-        }
-
-        return totalNetInterest.setScale(
-                currencyTypeResolver.decimalsFor(account.getCurrency()), RoundingMode.HALF_UP);
+        return totalAccrued(account, accrue(variations, history, LocalDate.now()));
     }
 
-    // -------------------------------------------------------------------------
-    // Private helpers
-    // -------------------------------------------------------------------------
+    /** Estimates interest only within the selected inclusive range, capped at today. */
+    @Transactional(readOnly = true)
+    public BigDecimal calculateHistoricalAccumulated(
+            Long accountId, Long userId, LocalDate startDate, LocalDate endDate) {
+        if (startDate == null || endDate == null || startDate.isAfter(endDate)) {
+            throw new IllegalArgumentException("A valid interest date range is required");
+        }
+        AccountResponse account = accountService.getAccountById(accountId, userId);
+        LocalDate through = endDate.isAfter(LocalDate.now()) ? LocalDate.now() : endDate;
+        if (!Boolean.TRUE.equals(account.getIsInterestEnabled()) || startDate.isAfter(through)) {
+            return BigDecimal.ZERO;
+        }
+        return totalAccrued(
+                account,
+                accrue(
+                        variationRepository.findByAccountIdOrderByValidFromDesc(accountId),
+                        accountService.getAccountBalanceHistory(
+                                accountId, userId, startDate, through),
+                        through));
+    }
+
+    /** Unrounded per-rate estimates share the same daily cash ledger as the summary. */
+    @Transactional(readOnly = true)
+    public Map<Long, Accrual> calculateAccrualsByVariation(Long accountId, Long userId) {
+        AccountResponse account = accountService.getAccountById(accountId, userId);
+        if (!Boolean.TRUE.equals(account.getIsInterestEnabled())) return Map.of();
+        return accrue(
+                variationRepository.findByAccountIdOrderByValidFromDesc(accountId),
+                accountService.getAccountBalanceHistory(accountId, userId, "ALL"),
+                LocalDate.now());
+    }
+
+    public record Accrual(long activeDays, BigDecimal interestProduced) {
+        public static final Accrual ZERO = new Accrual(0, BigDecimal.ZERO);
+
+        Accrual add(Accrual other) {
+            return new Accrual(
+                    activeDays + other.activeDays, interestProduced.add(other.interestProduced));
+        }
+    }
+
+    private BigDecimal totalAccrued(AccountResponse account, Map<Long, Accrual> accruals) {
+        return accruals.values().stream()
+                .map(Accrual::interestProduced)
+                .reduce(BigDecimal.ZERO, BigDecimal::add)
+                .setScale(
+                        currencyTypeResolver.decimalsFor(account.getCurrency()),
+                        RoundingMode.HALF_UP);
+    }
+
+    private Map<Long, Accrual> accrue(
+            List<InterestRateVariation> variations,
+            List<BalanceHistoryPoint> history,
+            LocalDate endDate) {
+        Map<Long, Accrual> accruals = new HashMap<>();
+        for (Map.Entry<LocalDate, BigDecimal> entry :
+                expandToDailyBalances(history, endDate).entrySet()) {
+            InterestRateVariation applicable = getVariationForDate(variations, entry.getKey());
+            if (applicable == null) continue;
+            BigDecimal annualRate = applicable.getRate().movePointLeft(2);
+            BigDecimal dailyGross =
+                    entry.getValue()
+                            .max(BigDecimal.ZERO)
+                            .multiply(annualRate)
+                            .divide(new BigDecimal("365"), 18, RoundingMode.HALF_UP);
+            BigDecimal taxPct =
+                    applicable.getTaxRate() == null ? BigDecimal.ZERO : applicable.getTaxRate();
+            BigDecimal net = dailyGross.multiply(BigDecimal.ONE.subtract(taxPct.movePointLeft(2)));
+            accruals.merge(applicable.getId(), new Accrual(1, net), Accrual::add);
+        }
+        return accruals;
+    }
+
+    /** Dated closing cash is also the source of principal for account-backed liabilities. */
+    @Transactional(readOnly = true)
+    public Map<LocalDate, BigDecimal> getDailyCashBalances(
+            Long accountId, Long userId, LocalDate startDate, LocalDate endDate) {
+        return expandToDailyBalances(
+                accountService.getAccountBalanceHistory(accountId, userId, startDate, endDate),
+                endDate);
+    }
 
     private TreeMap<LocalDate, BigDecimal> expandToDailyBalances(
-            List<BalanceHistoryPoint> history) {
+            List<BalanceHistoryPoint> history, LocalDate endDate) {
         TreeMap<LocalDate, BigDecimal> dailyBalances = new TreeMap<>();
         if (history.isEmpty()) return dailyBalances;
-
         LocalDate startDate = history.get(0).date();
-        LocalDate endDate = LocalDate.now();
         BigDecimal current = BigDecimal.ZERO;
         int index = 0;
-
         for (LocalDate date = startDate; !date.isAfter(endDate); date = date.plusDays(1)) {
             while (index < history.size() && !history.get(index).date().isAfter(date)) {
                 current = history.get(index).balance();
