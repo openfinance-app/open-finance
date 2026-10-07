@@ -111,8 +111,8 @@ describe('DecimalPlacesContext', () => {
     expect(result.current.decimalPlaces).toBe(3);
 
     // Attempt a change; the PUT rejects, so state must revert to 3.
-    act(() => {
-      result.current.setDecimalPlaces(6);
+    await act(async () => {
+      await expect(result.current.setDecimalPlaces(6)).rejects.toThrow('network');
     });
 
     await waitFor(() => expect(result.current.decimalPlaces).toBe(3));

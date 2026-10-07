@@ -7,23 +7,21 @@
  * These helpers remain for backward-compat and simple use-cases.
  */
 
-import { DEFAULT_CURRENCY, getCurrencyDecimals } from './currency';
-import i18n from '@/i18n';
+import { DEFAULT_CURRENCY, getCurrencyDecimals, applyNumberFormat } from '@/utils/currency';
+import { numberLocale, preferredNumberFormat } from '@/utils/number-preference';
+import Decimal from 'decimal.js';
 
-/** Use the same persisted number preference as monetary amounts. */
-function numberLocale(): string | undefined {
-  const locales: Record<string, string> = {
-    '1,234.56': 'en-US',
-    '1.234,56': 'de-DE',
-    '1 234,56': 'fr-FR',
-  };
+/** Preserve recorded numeric precision while applying the user's separators. */
+export function formatExactNumber(value: number | string): string {
+  let plain: string;
   try {
-    const preference = localStorage.getItem('open_finance_number_format');
-    if (preference && locales[preference]) return locales[preference];
+    plain = new Decimal(value).toFixed();
   } catch {
-    // Fall back to the active language when storage is unavailable.
+    return String(value);
   }
-  return i18n.language || undefined;
+  const [whole, fraction] = plain.split('.');
+  const grouped = whole.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  return applyNumberFormat(fraction ? `${grouped}.${fraction}` : grouped, preferredNumberFormat());
 }
 
 /**
@@ -38,7 +36,7 @@ export interface FormatOptions {
 export function formatCurrency(amount: number, currency?: string, options?: FormatOptions): string {
   // Default to the app default currency if none provided
   const actualCurrency = currency ?? DEFAULT_CURRENCY;
-  const formatter = new Intl.NumberFormat('fr-FR', {
+  const formatter = new Intl.NumberFormat(numberLocale(), {
     style: 'currency',
     currency: actualCurrency,
     notation: options?.compact ? 'compact' : 'standard',
@@ -75,7 +73,7 @@ export function formatDecimal(value: number, decimals = 2): string {
  * Example: formatNumber(1048396) => "1 048 396"
  */
 export function formatNumber(value: number): string {
-  return new Intl.NumberFormat('fr-FR', {
+  return new Intl.NumberFormat(numberLocale(), {
     minimumFractionDigits: 0,
     maximumFractionDigits: 2,
   }).format(value);
@@ -86,7 +84,7 @@ export function formatNumber(value: number): string {
  * Example: formatCompactCurrency(1048396, 'EUR') => "1.05M €"
  */
 export function formatCompactCurrency(amount: number, currency: string): string {
-  const formatter = new Intl.NumberFormat('fr-FR', {
+  const formatter = new Intl.NumberFormat(numberLocale(), {
     style: 'currency',
     currency: currency,
     notation: 'compact',

@@ -60,7 +60,7 @@ export function CompoundInterestCalculator({ className }: CompoundInterestCalcul
   const { t } = useTranslation('tools');
   const { baseCurrency } = useAuthContext();
   const { input, result, isLoading, error, updateInput, resetInputs, calculate } =
-    useCompoundInterest();
+    useCompoundInterest(baseCurrency);
   const { format: formatCurrency } = useFormatCurrency();
 
   const handleCalculate = useCallback(() => {

@@ -1,3 +1,4 @@
+import { formatExactNumber } from '@/utils/format';
 import { useVisibility } from '@/context/VisibilityContext';
 import { Fragment, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -120,7 +121,14 @@ export default function HistoryPage() {
           ? t(value ? 'yes' : 'no')
           : typeof value === 'object'
             ? JSON.stringify(value)
-            : String(value);
+            : (typeof value === 'number' ||
+                  (typeof value === 'string' && /^-?\d+(\.\d+)?$/.test(value))) &&
+                !/id$/i.test(field) &&
+                /amount|balance|price|value|principal|payment|income|expense|cost|allocation|interest|rate|deposit|withdraw|profit|loss|rent|quantity|percentage/i.test(
+                  field
+                )
+              ? formatExactNumber(value)
+              : String(value);
 
   return (
     <div className="p-4 sm:p-8 space-y-6">

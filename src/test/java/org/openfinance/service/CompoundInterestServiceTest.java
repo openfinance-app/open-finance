@@ -32,6 +32,23 @@ class CompoundInterestServiceTest {
                 new BigDecimal("16470.09"), result.getYearlyBreakdown().get(9).getEndingBalance());
     }
 
+    @Test
+    void keepsKuwaitiDinarAndCryptoCalculationPrecision() {
+        CompoundInterestRequest input =
+                requestWithContribution("12.345", "0", 1, 1, "0.001", false);
+        input.setCurrency("KWD");
+        CompoundInterestResult kwd = service.calculate(input);
+        assertEquals(new BigDecimal("12.346"), kwd.getFinalBalance());
+        assertEquals(new BigDecimal("12.345"), kwd.getPrincipal());
+        assertEquals(new BigDecimal("0.001"), kwd.getTotalContributions());
+        input.setCurrency("BTC");
+        input.setPrincipal(new BigDecimal("0.00000001"));
+        input.setRegularContribution(new BigDecimal("0.00000002"));
+        assertEquals(
+                0,
+                new BigDecimal("0.00000003").compareTo(service.calculate(input).getFinalBalance()));
+    }
+
     // -----------------------------------------------------------------------
     // Helpers
     // -----------------------------------------------------------------------

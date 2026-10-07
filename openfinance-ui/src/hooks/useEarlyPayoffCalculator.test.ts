@@ -25,6 +25,23 @@ describe('useEarlyPayoffCalculator', () => {
     vi.clearAllMocks();
   });
 
+  it('repays a small BTC balance instead of treating it as below half a cent', () => {
+    const { result } = renderHook(() => useEarlyPayoffCalculator(noIraConfig, 'BTC'));
+    act(() => {
+      result.current.updateInput('loanBalance', 0.001);
+      result.current.updateInput('annualRate', 0);
+      result.current.updateInput('remainingYears', 1);
+      result.current.updateInput('remainingMonthsExtra', 0);
+      result.current.updateInput('lumpSumPayments', []);
+      result.current.updateInput('monthlyExtraPayment', 0);
+    });
+    act(() => result.current.calculate());
+    expect(result.current.error).toBeNull();
+    expect(result.current.result?.base.totalMonths).toBe(12);
+    expect(result.current.result?.base.totalCost).toBeCloseTo(0.001, 18);
+    expect(result.current.result?.base.yearlySchedule.at(-1)?.endBalance).toBe(0);
+  });
+
   it('should initialize with default input', () => {
     const { result } = renderHook(() => useEarlyPayoffCalculator(frenchConfig));
 

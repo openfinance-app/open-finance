@@ -1,3 +1,4 @@
+import { useDateFormatter } from '@/hooks/useDateFormatter';
 /**
  * RecurringTransactionCard Component
  * Task 12.2.10: Create RecurringTransactionCard component
@@ -14,7 +15,7 @@ import {
   TrendingDown,
   ArrowRightLeft,
 } from 'lucide-react';
-import { differenceInCalendarDays, parseISO, format } from 'date-fns';
+import { differenceInCalendarDays, parseISO } from 'date-fns';
 import { useTranslation } from 'react-i18next';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
@@ -49,7 +50,8 @@ export function RecurringTransactionCard({
 }: RecurringTransactionCardProps) {
   const { baseCurrency } = useAuthContext();
   const { t } = useTranslation('recurring');
-  const { dateFnsLocale, locale } = useLocale();
+  const { date: formatDate } = useDateFormatter();
+  const { locale } = useLocale();
 
   const getStatusText = () => {
     if (recurringTransaction.isEnded) return t('status.ended');
@@ -155,14 +157,10 @@ export function RecurringTransactionCard({
               <div className="text-xs text-muted-foreground mt-1">
                 {recurringTransaction.isEnded
                   ? t('card.endedOn', {
-                      date: format(new Date(recurringTransaction.endDate), 'PP', {
-                        locale: dateFnsLocale,
-                      }),
+                      date: formatDate(recurringTransaction.endDate),
                     })
                   : t('card.endsOn', {
-                      date: format(new Date(recurringTransaction.endDate), 'PP', {
-                        locale: dateFnsLocale,
-                      }),
+                      date: formatDate(recurringTransaction.endDate),
                     })}
               </div>
             )}

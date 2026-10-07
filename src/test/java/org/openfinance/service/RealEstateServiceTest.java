@@ -131,6 +131,29 @@ class RealEstateServiceTest {
     // ========== CREATE PROPERTY TESTS ==========
 
     @Test
+    void preservesSubCentPropertyAppreciation() {
+        RealEstateProperty property =
+                RealEstateProperty.builder()
+                        .id(propertyId)
+                        .userId(userId)
+                        .name("Dinar property")
+                        .currency("KWD")
+                        .purchaseDate(purchaseDate)
+                        .purchasePrice("12.345")
+                        .currentValue("12.346")
+                        .isActive(true)
+                        .build();
+        when(realEstateRepository.findByIdAndUserIdWithMortgage(propertyId, userId))
+                .thenReturn(Optional.of(property));
+        when(realEstateMapper.toResponse(property))
+                .thenReturn(RealEstatePropertyResponse.builder().currency("KWD").build());
+        when(exchangeRateService.getExchangeRate(eq("KWD"), eq("USD"), any()))
+                .thenReturn(BigDecimal.ONE);
+        RealEstatePropertyResponse result = realEstateService.getPropertyById(propertyId, userId);
+        assertThat(result.getAppreciation()).isEqualByComparingTo("0.001");
+    }
+
+    @Test
     @DisplayName("Should create property successfully and encrypt sensitive fields")
     void shouldCreatePropertySuccessfully() {
         RealEstatePropertyRequest request =

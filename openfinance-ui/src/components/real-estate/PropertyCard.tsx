@@ -1,3 +1,4 @@
+import { useDateFormatter } from '@/hooks/useDateFormatter';
 import { formatDecimal } from '@/utils/format';
 /**
  * PropertyCard Component
@@ -66,6 +67,7 @@ export function PropertyCard({ property, onEdit, onView, isHighlighted }: Proper
     secondaryExchangeRate,
   } = useSecondaryConversion(property.currency);
   const { t: tc } = useTranslation('common');
+  const { date: formatDate } = useDateFormatter();
   const { t } = useTranslation('realEstate');
 
   useEffect(() => {
@@ -192,10 +194,7 @@ export function PropertyCard({ property, onEdit, onView, isHighlighted }: Proper
           <div className="flex justify-between">
             <span className="text-text-secondary">{t('card.purchased')}</span>
             <span className="text-text-primary font-medium">
-              {new Date(property.purchaseDate).toLocaleDateString('en-US', {
-                month: 'short',
-                year: 'numeric',
-              })}
+              {formatDate(property.purchaseDate)}
             </span>
           </div>
 

@@ -115,7 +115,8 @@
       "liabilityCurrencyUnsupported": "Enter the amount in the account or liability currency.",
       "movementTargetRequired": "Select the property or physical asset this movement applies to",
       "movementSingleTarget": "Select either a property or an asset, not both",
-      "movementLiabilityExclusive": "A transaction can be linked to a liability or target a property/asset, not both"
+      "movementLiabilityExclusive": "A transaction can be linked to a liability or target a property/asset, not both",
+      "splitTotalMismatch": "Split amounts must add up exactly to the transaction amount."
     },
     "types": {
       "INCOME": "Income",

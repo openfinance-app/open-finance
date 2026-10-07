@@ -1,3 +1,4 @@
+import { useDateFormatter } from '@/hooks/useDateFormatter';
 /**
  * ExchangeRateDisplay component
  * Sprint 6 - Task 6.2.14: Display exchange rates
@@ -62,6 +63,7 @@ export function ExchangeRateDisplay({
   compact = false,
   className = '',
 }: ExchangeRateDisplayProps) {
+  const { date: formatDate } = useDateFormatter();
   const [refreshKey, setRefreshKey] = useState(0);
   const {
     data: exchangeRate,
@@ -107,11 +109,7 @@ export function ExchangeRateDisplay({
   const convertedAmount = amount ? multiply(amount, rate) : undefined;
 
   // Format date
-  const formattedDate = new Date(rateDate).toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-  });
+  const formattedDate = formatDate(rateDate);
 
   // Handle refresh
   const handleRefresh = async () => {

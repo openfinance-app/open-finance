@@ -4,6 +4,7 @@ import type { ReactNode } from 'react';
 import { I18nextProvider } from 'react-i18next';
 import i18n from '@/test/i18n-test';
 
+const { persistNumberFormat } = vi.hoisted(() => ({ persistNumberFormat: vi.fn() }));
 vi.mock('@/hooks/useUserSettings', () => ({
   useUserSettings: () => ({
     data: { numberFormat: '1,234.56' },
@@ -11,7 +12,7 @@ vi.mock('@/hooks/useUserSettings', () => ({
   }),
   useUpdateUserSettings: () => ({
     mutate: vi.fn(),
-    mutateAsync: vi.fn().mockResolvedValue({}),
+    mutateAsync: persistNumberFormat,
   }),
 }));
 
@@ -28,6 +29,7 @@ function wrapper({ children }: { children: ReactNode }) {
 describe('NumberFormatContext', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    persistNumberFormat.mockResolvedValue({});
     localStorage.clear();
   });
 
@@ -44,6 +46,16 @@ describe('NumberFormatContext', () => {
   it('provides isLoading', () => {
     const { result } = renderHook(() => useNumberFormat(), { wrapper });
     expect(result.current.isLoading).toBe(false);
+  });
+
+  it('rejects a failed save and restores the previous persisted format and cache', async () => {
+    const { result } = renderHook(() => useNumberFormat(), { wrapper });
+    persistNumberFormat.mockRejectedValueOnce(new Error('offline'));
+    await act(async () => {
+      await expect(result.current.setNumberFormat('1.234,56')).rejects.toThrow('offline');
+    });
+    expect(result.current.numberFormat).toBe('1,234.56');
+    expect(localStorage.getItem('open_finance_number_format')).toBe('1,234.56');
   });
 
   it('throws when used outside provider', () => {

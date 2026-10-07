@@ -206,3 +206,28 @@ describe('DisplaySettings — decimal places card', () => {
     expect(mockSetDecimalPlaces).toHaveBeenCalledWith(4);
   });
 });
+
+it('waits for persistence and reports a failed number preference save', async () => {
+  let rejectSave: (error: Error) => void = () => {};
+  mockSetNumberFormat.mockImplementationOnce(
+    () =>
+      new Promise<void>((_, reject) => {
+        rejectSave = reject;
+      })
+  );
+  render(<DisplaySettings />, { wrapper: Wrapper });
+  fireEvent.click(screen.getByRole('button', { name: /european style/i }));
+  expect(screen.queryByText(/number format updated/i)).not.toBeInTheDocument();
+  expect(screen.getByRole('button', { name: /european style/i })).toBeDisabled();
+  rejectSave(new Error('offline'));
+  expect(await screen.findByText('Unable to save number format.')).toBeInTheDocument();
+  expect(screen.queryByText(/number format updated/i)).not.toBeInTheDocument();
+});
+
+it('reports decimal preference failures without a success banner', async () => {
+  mockSetOverrideEnabled.mockRejectedValueOnce(new Error('offline'));
+  render(<DisplaySettings />, { wrapper: Wrapper });
+  fireEvent.click(screen.getByRole('switch'));
+  expect(await screen.findByText('Unable to save decimal places.')).toBeInTheDocument();
+  expect(screen.queryByText(/decimal places updated/i)).not.toBeInTheDocument();
+});

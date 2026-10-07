@@ -12,14 +12,8 @@ import { Input } from '@/components/ui/Input';
 import { NumberInput } from '@/components/ui/NumberInput';
 import { CategorySelect } from '@/components/ui/CategorySelect';
 import { ConvertedAmount } from '@/components/ui/ConvertedAmount';
-import {
-  fromMinorUnits,
-  multiply,
-  sumToDecimals,
-  toMinorUnits,
-  distributeRemainder,
-} from '@/utils/money';
-import { getCurrencyDecimals } from '@/utils/currency';
+import { decimalPlaces, multiply, sum, subtract, distributeRemainder } from '@/utils/money';
+import { getMonetaryScale } from '@/utils/currency';
 import type { TransactionSplitRequest } from '@/types/transaction';
 import type { TransactionType } from '@/types/transaction';
 
@@ -41,14 +35,6 @@ interface SplitTransactionFormProps {
 }
 
 /**
- * Splits must sum EXACTLY to the total (REQ-SPL-1.2). Comparison is done on integer minor units at
- * the currency's precision, so it is float-safe and currency-aware (JPY = 0 decimals, crypto = 8).
- */
-function isExactMatch(a: number, b: number, decimals: number): boolean {
-  return toMinorUnits(a, decimals) === toMinorUnits(b, decimals);
-}
-
-/**
  * SplitTransactionForm renders an editable list of split entries.
  * Each entry has a category selector, an amount input, an optional description
  * field, and a remove button.  A running total and validation banner are shown
@@ -64,17 +50,14 @@ export function SplitTransactionForm({
   exchangeRate,
 }: SplitTransactionFormProps) {
   const { t } = useTranslation('transactions');
-  const decimals = getCurrencyDecimals(currency);
-  // REQ-SPL-3.3: running total via exact integer minor-units arithmetic.
-  const splitTotal = sumToDecimals(
-    splits.map(s => Number(s.amount) || 0),
-    decimals
+  const decimals = Math.max(
+    getMonetaryScale(currency),
+    decimalPlaces(totalAmount),
+    ...splits.map(split => decimalPlaces(split.amount))
   );
-  const remaining = fromMinorUnits(
-    toMinorUnits(totalAmount, decimals) - toMinorUnits(splitTotal, decimals),
-    decimals
-  );
-  const isValid = isExactMatch(splitTotal, totalAmount, decimals);
+  const splitTotal = sum(splits.map(split => Number(split.amount) || 0));
+  const remaining = subtract(totalAmount, splitTotal);
+  const isValid = splitTotal === Number(totalAmount);
 
   // REQ-SPL-1.2: allocate the leftover across lines so the splits sum exactly to the total.
   const handleDistribute = () => {

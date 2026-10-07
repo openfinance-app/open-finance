@@ -229,7 +229,10 @@ describe('useCompoundInterest', () => {
       });
 
       expect(mockCalculate).toHaveBeenCalledOnce();
-      expect(mockCalculate).toHaveBeenCalledWith(DEFAULT_COMPOUND_INTEREST_INPUT);
+      expect(mockCalculate).toHaveBeenCalledWith({
+        ...DEFAULT_COMPOUND_INTEREST_INPUT,
+        currency: 'EUR',
+      });
     });
 
     it('sets result on success', async () => {

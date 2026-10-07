@@ -50,9 +50,9 @@ interface DecimalPlacesContextType {
   /** Whether backend settings are still loading. */
   isLoading: boolean;
   /** Enable/disable the override (persisted, optimistic, reverts on error). */
-  setOverrideEnabled: (enabled: boolean) => void;
+  setOverrideEnabled: (enabled: boolean) => Promise<void>;
   /** Change the number of decimal places (clamped 1-8; persisted, optimistic). */
-  setDecimalPlaces: (places: number) => void;
+  setDecimalPlaces: (places: number) => Promise<void>;
 }
 
 const DecimalPlacesContext = createContext<DecimalPlacesContextType | undefined>(undefined);
@@ -116,31 +116,22 @@ export function DecimalPlacesProvider({ children }: DecimalPlacesProviderProps) 
   }, [settings]);
 
   const persist = useCallback(
-    (next: StoredPref) => {
+    async (next: StoredPref) => {
+      const previous = pref;
       setPref(next);
       writeStored(next);
-      updateSettings.mutate(
-        {
+      try {
+        await updateSettings.mutateAsync({
           decimalPlacesOverrideEnabled: next.enabled,
           preferredDecimalPlaces: next.places,
-        },
-        {
-          onError: () => {
-            const reverted: StoredPref = {
-              enabled: settings?.decimalPlacesOverrideEnabled === true,
-              places: clampPlaces(
-                typeof settings?.preferredDecimalPlaces === 'number'
-                  ? settings.preferredDecimalPlaces
-                  : DEFAULT_PLACES
-              ),
-            };
-            setPref(reverted);
-            writeStored(reverted);
-          },
-        }
-      );
+        });
+      } catch (error) {
+        setPref(previous);
+        writeStored(previous);
+        throw error;
+      }
     },
-    [settings, updateSettings]
+    [pref, updateSettings]
   );
 
   const setOverrideEnabled = useCallback(

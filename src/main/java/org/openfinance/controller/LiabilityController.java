@@ -803,14 +803,14 @@ public class LiabilityController {
     public ResponseEntity<RepaymentPreviewResponse> getRepaymentPreview(
             @PathVariable("id") Long liabilityId,
             @RequestParam
-                    @DecimalMin(value = "0.01", message = "Total must be positive")
+                    @DecimalMin(value = "0", inclusive = false, message = "Total must be positive")
                     @Digits(
                             integer = 26,
-                            fraction = 2,
-                            message = "Total supports at most 2 decimal places")
+                            fraction = 18,
+                            message = "Total supports at most 18 decimal places")
                     BigDecimal total,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
-            @RequestParam(required = false) @Size(min = 3, max = 3) String inputCurrency,
+            @RequestParam(required = false) @Size(min = 3, max = 10) String inputCurrency,
             Authentication authentication) {
 
         log.info(

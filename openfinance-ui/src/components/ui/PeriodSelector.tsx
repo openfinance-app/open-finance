@@ -1,3 +1,4 @@
+import { useDateFormatter } from '@/hooks/useDateFormatter';
 /* eslint-disable react-refresh/only-export-components */
 /**
  * PeriodSelector Component
@@ -93,24 +94,13 @@ export function PeriodSelector({
   onPeriodChange,
   className,
 }: PeriodSelectorProps) {
-  const { t, i18n } = useTranslation('common');
+  const { t } = useTranslation('common');
   const [customRange, setCustomRange] = useState<DateRange>(
     () => activeDateRange ?? defaultCustomRange()
   );
   const [customOpen, setCustomOpen] = useState(false);
 
-  const formatCustomLabelDate = (isoDate: string): string => {
-    const date = new Date(`${isoDate}T00:00:00`);
-    if (Number.isNaN(date.getTime())) {
-      return isoDate;
-    }
-
-    return new Intl.DateTimeFormat(i18n.language || undefined, {
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-    }).format(date);
-  };
+  const { date: formatCustomLabelDate } = useDateFormatter();
 
   const isCustomActive = selectedPeriod === 'CUSTOM';
 

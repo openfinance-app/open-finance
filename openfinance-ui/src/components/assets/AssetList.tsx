@@ -1,3 +1,4 @@
+import { formatExactNumber } from '@/utils/format';
 import { formatDecimal } from '@/utils/format';
 /**
  * AssetList Component
@@ -252,10 +253,7 @@ export function AssetList({ assets, onEdit, onDelete, onView, highlightedId }: A
                         {asset.symbol || '—'}
                       </td>
                       <td className="py-3 px-4 text-sm text-text-primary text-right font-mono">
-                        {asset.quantity.toLocaleString('en-US', {
-                          minimumFractionDigits: 2,
-                          maximumFractionDigits: 8,
-                        })}
+                        {formatExactNumber(asset.quantity)}
                       </td>
                       <td className="py-3 px-4 text-sm text-text-primary text-right font-mono">
                         {/* REQ-2.2: Show converted base-currency value when available */}
@@ -454,10 +452,7 @@ export function AssetList({ assets, onEdit, onDelete, onView, highlightedId }: A
                     <div className="flex justify-between text-sm">
                       <span className="text-text-secondary">{t('table.quantity')}:</span>
                       <span className="text-text-primary font-mono">
-                        {asset.quantity.toLocaleString('en-US', {
-                          minimumFractionDigits: 2,
-                          maximumFractionDigits: 8,
-                        })}
+                        {formatExactNumber(asset.quantity)}
                       </span>
                     </div>
                     {asset.accountName && (

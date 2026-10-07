@@ -10,7 +10,8 @@
  */
 import { render, screen, waitFor, act, fireEvent, within } from '@testing-library/react';
 import { vi, describe, it, expect, beforeAll, beforeEach } from 'vitest';
-import { TransactionForm, reconstructInitialSplits } from './TransactionForm';
+import { TransactionForm } from './TransactionForm';
+import { reconstructInitialSplits, buildTransactionRequest } from '@/utils/transaction-request';
 import * as usePayeesModule from '@/hooks/usePayees';
 import * as useTransactionTagsModule from '@/hooks/useTransactionTags';
 import * as useTransactionsModule from '@/hooks/useTransactions';
@@ -1926,11 +1927,8 @@ describe('TransactionForm', () => {
       ]);
     });
 
-    it('reconciles the parent to the sum of converted splits under rounding drift', async () => {
-      // rate 0.00135 with the mocked splits [60, 40] (parent 100):
-      //   convert(60) = round2(0.081) = 0.08 ; convert(40) = round2(0.054) = 0.05 ; sum = 0.13
-      //   naive convert(100) = round2(0.135) = 0.14 (HALF_UP)  ← what we must NOT submit
-      // So the submitted parent must be 0.13 (Σ converted splits), not 0.14.
+    it('allocates conversion rounding to splits while preserving the converted parent', async () => {
+      // 100 × 0.00135 = 0.135 → 0.14; distribute the rounding cent to a split.
       mockUseExchangeRate.mockReturnValue({
         data: { rate: 0.00135 },
         isLoading: false,
@@ -1964,11 +1962,11 @@ describe('TransactionForm', () => {
       const submitted = onSubmit.mock.calls[0][0];
       expect(submitted.currency).toBe('EUR');
       expect(submitted.splits).toEqual([
-        { categoryId: 10, amount: 0.08 },
+        { categoryId: 10, amount: 0.09 },
         { categoryId: 20, amount: 0.05 },
       ]);
-      // Reconciliation: parent = 0.08 + 0.05 = 0.13, NOT naive convert(100) = 0.14
-      expect(submitted.amount).toBe(0.13);
+      // Parent and split sum both retain the converted total.
+      expect(submitted.amount).toBe(0.14);
     });
 
     it('blocks submit and shows an error when a conversion is needed but no rate is available', async () => {
@@ -2079,6 +2077,10 @@ describe('TransactionForm', () => {
       const splitButton = screen.getByRole('button', { name: /split transaction/i });
       await act(async () => {
         splitButton.click();
+      });
+
+      await act(async () => {
+        screen.getByTestId('set-splits').click();
       });
 
       // Submit
@@ -2284,5 +2286,80 @@ describe('TransactionForm', () => {
       expect(rows[0].amount).toBeCloseTo(33.33, 2); // 30 / 0.9
       expect(rows[1].amount).toBeCloseTo(66.67, 2); // 100 - 33.33
     });
+  });
+});
+
+describe('booking precision regressions', () => {
+  const context = (): Parameters<typeof buildTransactionRequest>[0] => ({
+    data: {
+      accountId: 1,
+      type: 'EXPENSE',
+      amount: 0.001,
+      currency: 'BTC',
+      date: '2026-10-07',
+      liabilityId: 1,
+      movementType: 'REPAYMENT',
+      principalAmount: 10050,
+    },
+    splits: [],
+    splitMode: false,
+    tags: [],
+    categories: [],
+    inputCurrency: 'BTC',
+    accountCurrency: 'BTC',
+    needsConversion: false,
+    needsLiabilityFx: true,
+    liabilityCurrency: 'JPY',
+    liabilityRate: 12800000,
+    applyRepaymentSplit: false,
+    linkedLiability: true,
+  });
+
+  it('books BTC paid against JPY without rounding the inverse to eight decimal places', () => {
+    const request = buildTransactionRequest(context());
+    expect(request.amount).toBe(0.001);
+    expect(request.originalAmount).toBe(12800);
+    expect(request.conversionRate).toBe(0.000000078125);
+    expect(request.originalAmount! * request.conversionRate!).toBe(0.001);
+  });
+
+  it('preserves a legacy booking and principal through a notes-only edit', () => {
+    const ctx = context();
+    ctx.transaction = {
+      id: 1,
+      userId: 1,
+      accountId: 1,
+      type: 'EXPENSE',
+      amount: 0.001,
+      currency: 'BTC',
+      originalCurrency: 'JPY',
+      originalAmount: 12800,
+      conversionRate: 0.00000008,
+      date: '2026-10-07',
+      liabilityId: 1,
+      principalAmount: 10050,
+      movementType: 'REPAYMENT',
+      hasSplits: true,
+      splits: [
+        { id: 1, categoryId: undefined, amount: 0.000785625 },
+        { id: 2, categoryId: 10, amount: 0.000214375 },
+      ],
+    } as Transaction;
+    ctx.data = { ...ctx.data, amount: 12800, currency: 'JPY', notes: 'Updated note' };
+    ctx.inputCurrency = 'JPY';
+    ctx.needsConversion = true;
+    ctx.rate = 0.00000008;
+    ctx.splitMode = true;
+    ctx.splits = reconstructInitialSplits(ctx.transaction);
+    const request = buildTransactionRequest(ctx);
+    expect(request.notes).toBe('Updated note');
+    expect(request.amount).toBe(0.001);
+    expect(request.principalAmount).toBe(10050);
+    expect(request.conversionRate).toBe(0.00000008);
+    expect(request.splits?.map(split => split.amount)).toEqual([0.000785625, 0.000214375]);
+    ctx.data.amount = 13000;
+    ctx.splitMode = false;
+    ctx.splits = [];
+    expect(buildTransactionRequest(ctx).amount).toBe(0.00104);
   });
 });

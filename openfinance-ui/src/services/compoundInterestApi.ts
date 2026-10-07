@@ -8,6 +8,7 @@ export async function calculateCompoundInterest(
   input: CompoundInterestInput
 ): Promise<CompoundInterestResult> {
   const response = await apiClient.post('/calculator/compound-interest/calculate', {
+    currency: input.currency,
     principal: input.principal,
     annualRate: input.annualRate,
     compoundingFrequency: input.compoundingFrequency,

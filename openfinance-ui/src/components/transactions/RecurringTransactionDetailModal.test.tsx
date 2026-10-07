@@ -301,7 +301,7 @@ describe('RecurringTransactionDetailModal', () => {
         <RecurringTransactionDetailModal recurringTransaction={activeExpense} onClose={onClose} />
       );
       expect(screen.getByText('Created')).toBeInTheDocument();
-      expect(screen.getByText('Jan 1, 2023')).toBeInTheDocument();
+      expect(screen.getByText('01/01/2023')).toBeInTheDocument();
     });
   });
 

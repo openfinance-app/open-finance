@@ -266,7 +266,8 @@ class ImportServiceMultiAccountTest {
                 .syncTransactionFts(any(Transaction.class), any(), any());
         verify(accountService, times(2)).recalculateBalance(anyLong(), eq(USER_ID));
         verify(netWorthRepository)
-                .deleteByUserIdAndSnapshotDateBefore(eq(USER_ID), eq(LocalDate.of(2024, 1, 11)));
+                .deleteByUserIdAndSnapshotDateBetween(
+                        eq(USER_ID), eq(LocalDate.of(2024, 1, 1)), eq(LocalDate.now()));
         assertThat(result.getStatus()).isEqualTo(ImportStatus.COMPLETED);
         assertThat(result.getImportedCount()).isEqualTo(2);
     }

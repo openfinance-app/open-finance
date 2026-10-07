@@ -1,3 +1,4 @@
+import { formatDecimal } from '@/utils/format';
 /**
  * DisplaySettings - Display preferences component
  *
@@ -51,20 +52,29 @@ export function DisplaySettings() {
   const { overrideEnabled, decimalPlaces, setOverrideEnabled, setDecimalPlaces } =
     useDecimalPlaces();
 
-  const handleToggleDecimalOverride = (enabled: boolean) => {
-    setOverrideEnabled(enabled);
-    setSuccessMessage(t('display.decimalPlaces.updateSuccess'));
-    setTimeout(() => setSuccessMessage(null), SETTINGS_SUCCESS_MESSAGE_DURATION_MS);
+  const [savingPreference, setSavingPreference] = useState(false);
+  const savePreference = async (
+    save: () => Promise<void>,
+    section: 'numberFormat' | 'decimalPlaces'
+  ) => {
+    setSavingPreference(true);
+    setErrorMessage(null);
+    setSuccessMessage(null);
+    try {
+      await save();
+      setSuccessMessage(t(`display.${section}.updateSuccess`));
+      setTimeout(() => setSuccessMessage(null), SETTINGS_SUCCESS_MESSAGE_DURATION_MS);
+    } catch {
+      setErrorMessage(t(`display.${section}.updateError`));
+    } finally {
+      setSavingPreference(false);
+    }
   };
-
-  const handleDecimalPlacesChange = (places: number) => {
-    setDecimalPlaces(places);
-    setSuccessMessage(t('display.decimalPlaces.updateSuccess'));
-    setTimeout(() => setSuccessMessage(null), SETTINGS_SUCCESS_MESSAGE_DURATION_MS);
-  };
-
-  // Sample amount used for the decimal-places live preview.
-  const decimalPreview = (1234.56789).toFixed(overrideEnabled ? decimalPlaces : 2);
+  const handleToggleDecimalOverride = (enabled: boolean) =>
+    savePreference(() => setOverrideEnabled(enabled), 'decimalPlaces');
+  const handleDecimalPlacesChange = (places: number) =>
+    savePreference(() => setDecimalPlaces(places), 'decimalPlaces');
+  const decimalPreview = formatDecimal(1234.56789, overrideEnabled ? decimalPlaces : 2);
 
   // Local state for UI updates before API response
   const [dateFormat, setDateFormat] = useState<DateFormat>('MM/DD/YYYY');
@@ -106,11 +116,8 @@ export function DisplaySettings() {
     );
   };
 
-  const handleNumberFormatChange = (format: NumberFormat) => {
-    setNumberFormat(format);
-    setSuccessMessage(t('display.numberFormat.updateSuccess'));
-    setTimeout(() => setSuccessMessage(null), SETTINGS_SUCCESS_MESSAGE_DURATION_MS);
-  };
+  const handleNumberFormatChange = (format: NumberFormat) =>
+    savePreference(() => setNumberFormat(format), 'numberFormat');
 
   const handleDisplayModeChange = async (mode: AmountDisplayMode) => {
     setErrorMessage(null);
@@ -356,6 +363,7 @@ export function DisplaySettings() {
               key={value}
               type="button"
               onClick={() => handleNumberFormatChange(value)}
+              disabled={savingPreference}
               className={`w-full p-4 rounded-lg border-2 transition-all text-left ${
                 numberFormat === value
                   ? 'border-primary bg-primary/10'
@@ -437,6 +445,7 @@ export function DisplaySettings() {
           role="switch"
           aria-checked={overrideEnabled}
           onClick={() => handleToggleDecimalOverride(!overrideEnabled)}
+          disabled={savingPreference}
           className={`w-full p-4 rounded-lg border-2 transition-all text-left flex items-center justify-between ${
             overrideEnabled
               ? 'border-primary bg-primary/10'
@@ -479,7 +488,7 @@ export function DisplaySettings() {
               <button
                 key={n}
                 type="button"
-                disabled={!overrideEnabled}
+                disabled={!overrideEnabled || savingPreference}
                 onClick={() => handleDecimalPlacesChange(n)}
                 aria-pressed={overrideEnabled && decimalPlaces === n}
                 className={`p-2 rounded-lg border-2 font-mono text-sm transition-all ${

@@ -1,3 +1,4 @@
+import { preferredNumberFormat } from '@/utils/number-preference';
 /**
  * Currency formatting and handling utilities
  * Task 2.2.14: Add currency formatting utility
@@ -489,5 +490,8 @@ export function formatCurrencyWithColor(
 export function formatExchangeRate(rate: number): string {
   if (!isFinite(rate) || rate === 0) return '0';
   // toPrecision gives 6 significant figures; parseFloat strips trailing zeros.
-  return parseFloat(rate.toPrecision(6)).toString();
+  return new Intl.NumberFormat(
+    { '1,234.56': 'en-US', '1.234,56': 'de-DE', '1 234,56': 'fr-FR' }[preferredNumberFormat()],
+    { maximumSignificantDigits: 6, useGrouping: false }
+  ).format(rate);
 }

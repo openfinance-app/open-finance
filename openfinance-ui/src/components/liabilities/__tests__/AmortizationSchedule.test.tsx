@@ -326,6 +326,37 @@ describe('AmortizationSchedule', () => {
       expect(screen.getByText(/Export CSV/i)).toBeInTheDocument();
     });
 
+    it('exports all KWD minor units independent of display rounding', async () => {
+      const createObjectURL = vi.fn((_blob: Blob) => 'blob:kwd');
+      global.URL.createObjectURL = createObjectURL;
+      global.URL.revokeObjectURL = vi.fn();
+      renderWithProviders(
+        <AmortizationSchedule
+          schedule={{
+            ...mockSchedule,
+            currency: 'KWD',
+            payments: [
+              {
+                ...mockSchedule.payments[0],
+                paymentAmount: 1.234,
+                principalPayment: 1.222,
+                interestPayment: 0.012,
+                insurancePayment: 0,
+                remainingBalance: 11.123,
+              },
+            ],
+          }}
+        />
+      );
+      fireEvent.click(screen.getByRole('button', { name: /Export CSV/i }));
+      const csv = await new Promise<string>(resolve => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result));
+        reader.readAsText(createObjectURL.mock.calls[0][0]);
+      });
+      expect(csv).toContain('1.234,1.222,0.012,0.000,11.123');
+    });
+
     it('creates CSV download on export click', () => {
       const createObjectURL = vi.fn(() => 'blob:test');
       const revokeObjectURL = vi.fn();

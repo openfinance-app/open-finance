@@ -7,6 +7,7 @@
 import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import { vi, describe, it, expect, beforeAll, beforeEach } from 'vitest';
 import { act } from 'react';
+import { setDecimalPlacesOverride } from '@/utils/currency';
 import { SplitTransactionForm } from './SplitTransactionForm';
 import * as useTransactionsModule from '@/hooks/useTransactions';
 import { renderWithProviders } from '@/test/test-utils';
@@ -114,6 +115,18 @@ describe('SplitTransactionForm', () => {
       isLoading: false,
       isError: false,
     } as ReturnType<typeof useTransactionsModule.useCategoryTree>);
+  });
+
+  it('keeps the entered USD total when the display is limited to one decimal', () => {
+    setDecimalPlacesOverride(1);
+    const { onChange } = renderForm({
+      totalAmount: 12.34,
+      currency: 'USD',
+      splits: [{ amount: 6.1 }, { amount: 6.1 }],
+    });
+    fireEvent.click(screen.getByRole('button', { name: /distribute remainder/i }));
+    expect(onChange).toHaveBeenCalledWith([{ amount: 6.24 }, { amount: 6.1 }]);
+    setDecimalPlacesOverride(null);
   });
 
   it('detects a one-satoshi remainder and distributes it without losing crypto precision', () => {
@@ -272,10 +285,8 @@ describe('SplitTransactionForm', () => {
       ]);
     });
 
-    it('pre-populates new split with the precisely-rounded remaining amount (no float rounding-boundary bug)', () => {
-      // Regression test: Math.round(1.005 * 100) / 100 === 1 (not 1.01) in plain JS floats,
-      // because 1.005 * 100 === 100.49999999999999. The remaining amount must be rounded
-      // half-away-from-zero (matching the backend's BigDecimal HALF_UP), not truncated.
+    it('retains an entered fractional cent when adding the remaining split', () => {
+      // Existing imported values can carry more precision than a currency minor unit.
       const { onChange } = renderForm({
         totalAmount: 1.005,
         splits: [{ categoryId: 10, amount: 0 }],
@@ -288,7 +299,7 @@ describe('SplitTransactionForm', () => {
         { categoryId: 10, amount: 0 },
         {
           categoryId: undefined,
-          amount: 1.01,
+          amount: 1.005,
           description: undefined,
         },
       ]);

@@ -773,17 +773,43 @@ class LiabilityDisburseApiTest {
     }
 
     @Test
-    @DisplayName("Repayment preview with more than 2 decimal places is rejected with 400")
+    @DisplayName("Repayment preview with more than 18 decimal places is rejected with 400")
     void repaymentPreviewRejectsTooManyDecimals() throws Exception {
         Long liabilityId = createLiabilityWithBalance(new BigDecimal("50000.00"));
 
         mockMvc.perform(
                         get("/api/v1/liabilities/" + liabilityId + "/repayment-preview")
-                                .param("total", "1200.999")
+                                .param("total", "1200.1234567890123456789")
                                 .param("date", LocalDate.now().toString())
                                 .header("Authorization", "Bearer " + token)
                                 .header("X-Encryption-Session", encKey))
                 .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void repaymentPreviewAcceptsKuwaitiDinarMinorUnits() throws Exception {
+        LiabilityRequest request = new LiabilityRequest();
+        request.setName("Dinar loan");
+        request.setType(LiabilityType.LOAN);
+        request.setPrincipal(new BigDecimal("12.345"));
+        request.setCurrentBalance(new BigDecimal("12.345"));
+        request.setInterestRate(new BigDecimal("1.2"));
+        request.setStartDate(LocalDate.now().minusMonths(1));
+        request.setCurrency("KWD");
+        long id =
+                objectMapper
+                        .readTree(performPost("/api/v1/liabilities", request))
+                        .get("id")
+                        .asLong();
+        mockMvc.perform(
+                        get("/api/v1/liabilities/" + id + "/repayment-preview")
+                                .param("total", "1.234")
+                                .param("date", LocalDate.now().toString())
+                                .header("Authorization", "Bearer " + token)
+                                .header("X-Encryption-Session", encKey))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.principal").value(1.222))
+                .andExpect(jsonPath("$.interest").value(0.012));
     }
 
     // ---------- assertion helper ----------

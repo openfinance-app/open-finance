@@ -1,3 +1,5 @@
+import { useDateFormatter } from '@/hooks/useDateFormatter';
+import { formatExactNumber } from '@/utils/format';
 import { AssetFinancingSection } from '@/components/assets/AssetFinancingSection';
 /**
  * AssetDetailModal Component
@@ -68,7 +70,8 @@ export function AssetDetailModal({ asset, onClose, onEdit, onDelete }: AssetDeta
     asset.isConverted && asset.baseCurrency ? asset.baseCurrency : asset.currency
   );
   const { t: tc } = useTranslation('common');
-  const { t, i18n } = useTranslation('assets');
+  const { date: formatDate } = useDateFormatter();
+  const { t } = useTranslation('assets');
   const [timeRange, setTimeRange] = useState<'1M' | '3M' | '6M' | '1Y'>('3M');
   const [activeTab, setActiveTab] = useState<'overview' | 'gallery' | 'attachments'>('overview');
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -137,10 +140,7 @@ export function AssetDetailModal({ asset, onClose, onEdit, onDelete }: AssetDeta
   // Transform historical data for chart
   const chartData =
     historicalData?.map(item => ({
-      date: new Date(item.date).toLocaleDateString(i18n.language, {
-        month: 'short',
-        day: 'numeric',
-      }),
+      date: formatDate(item.date),
       price:
         isConverted && asset.exchangeRate ? multiply(item.close, asset.exchangeRate) : item.close,
     })) || [];
@@ -243,7 +243,7 @@ export function AssetDetailModal({ asset, onClose, onEdit, onDelete }: AssetDeta
                         />
                       </p>
                       <p className="text-xs text-muted-foreground mt-1">
-                        {asset.quantity} ×{' '}
+                        {formatExactNumber(asset.quantity)} ×{' '}
                         <ConvertedAmount
                           amount={
                             isConverted && asset.exchangeRate
@@ -287,7 +287,7 @@ export function AssetDetailModal({ asset, onClose, onEdit, onDelete }: AssetDeta
                         />
                       </p>
                       <p className="text-xs text-muted-foreground mt-1">
-                        {asset.quantity} ×{' '}
+                        {formatExactNumber(asset.quantity)} ×{' '}
                         <ConvertedAmount
                           amount={
                             isConverted && asset.exchangeRate
@@ -441,11 +441,7 @@ export function AssetDetailModal({ asset, onClose, onEdit, onDelete }: AssetDeta
                             {t('detail.fields.purchaseDate')}
                           </p>
                           <p className="text-sm font-medium text-foreground">
-                            {new Date(asset.purchaseDate).toLocaleDateString(i18n.language, {
-                              month: 'long',
-                              day: 'numeric',
-                              year: 'numeric',
-                            })}
+                            {formatDate(asset.purchaseDate)}
                           </p>
                           <p className="text-xs text-muted-foreground">
                             {t('detail.fields.daysHeld', { count: asset.holdingDays })}

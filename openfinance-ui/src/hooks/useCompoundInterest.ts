@@ -1,5 +1,6 @@
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import axios from 'axios';
+import { DEFAULT_CURRENCY } from '@/utils/currency';
 import { validateCompoundInterest } from '@/validators/calculatorValidation';
 import i18n from '@/i18n';
 import { calculateCompoundInterest } from '@/services/compoundInterestApi';
@@ -23,9 +24,13 @@ const defaultState: CompoundInterestState = {
   error: null,
 };
 
-export function useCompoundInterest() {
+export function useCompoundInterest(currency: string = DEFAULT_CURRENCY) {
   const [state, setState] = useState<CompoundInterestState>(defaultState);
   const generation = useRef(0);
+  useEffect(() => {
+    generation.current += 1;
+    setState(previous => ({ ...previous, result: null, isLoading: false, error: null }));
+  }, [currency]);
 
   const updateInput = useCallback(
     <K extends keyof CompoundInterestInput>(key: K, value: CompoundInterestInput[K]) => {
@@ -58,7 +63,7 @@ export function useCompoundInterest() {
     setState(prev => ({ ...prev, isLoading: !error, result: null, error }));
     if (error) return;
     try {
-      const result = await calculateCompoundInterest(state.input);
+      const result = await calculateCompoundInterest({ ...state.input, currency });
       if (requestGeneration !== generation.current) return;
       setState(prev => ({ ...prev, result, isLoading: false }));
     } catch (err: unknown) {
@@ -73,7 +78,7 @@ export function useCompoundInterest() {
         : i18n.t('validation.calculationFailed', { ns: 'tools' });
       setState(prev => ({ ...prev, error: message, isLoading: false }));
     }
-  }, [state.input]);
+  }, [state.input, currency]);
 
   return {
     input: state.input,

@@ -1,3 +1,5 @@
+import { getMonetaryScale } from '@/utils/currency';
+import { toFixedDecimal } from '@/utils/money';
 import { formatDecimal } from '@/utils/format';
 import { useDateFormatter } from '@/hooks/useDateFormatter';
 /**
@@ -110,11 +112,11 @@ export function AmortizationSchedule({
         [
           payment.paymentNumber,
           payment.paymentDate,
-          payment.paymentAmount.toFixed(2),
-          payment.principalPayment.toFixed(2),
-          payment.interestPayment.toFixed(2),
-          (payment.insurancePayment ?? 0).toFixed(2),
-          payment.remainingBalance.toFixed(2),
+          toFixedDecimal(payment.paymentAmount, getMonetaryScale(schedule.currency)),
+          toFixedDecimal(payment.principalPayment, getMonetaryScale(schedule.currency)),
+          toFixedDecimal(payment.interestPayment, getMonetaryScale(schedule.currency)),
+          toFixedDecimal(payment.insurancePayment ?? 0, getMonetaryScale(schedule.currency)),
+          toFixedDecimal(payment.remainingBalance, getMonetaryScale(schedule.currency)),
         ].join(',')
       ),
     ].join('\n');

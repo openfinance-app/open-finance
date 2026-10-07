@@ -295,6 +295,8 @@ export type CompoundingFrequency = 1 | 2 | 4 | 12 | 52 | 365;
 
 /** Input parameters for the compound interest calculator. */
 export interface CompoundInterestInput {
+  /** Calculation currency; the UI supplies the current base currency. */
+  currency?: string;
   /** Initial investment (principal). */
   principal: number;
   /** Annual interest rate as a percentage (e.g. 5 for 5%). */

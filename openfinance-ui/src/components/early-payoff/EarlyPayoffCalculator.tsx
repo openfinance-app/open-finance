@@ -230,7 +230,7 @@ export function EarlyPayoffCalculator({ className }: { className?: string }) {
     removeLumpSum,
     resetInputs,
     calculate,
-  } = useEarlyPayoffCalculator(cfg);
+  } = useEarlyPayoffCalculator(cfg, baseCurrency);
 
   const { format: formatCurrency } = useFormatCurrency();
 
@@ -252,10 +252,12 @@ export function EarlyPayoffCalculator({ className }: { className?: string }) {
           result.reduceDuration.yearlySchedule.length,
           result.reducePayment.yearlySchedule.length
         );
-        return Array.from({ length: maxYears }, (_, i) => {
-          const y = i + 1;
+        return Array.from({ length: maxYears + 1 }, (_, i) => {
+          const y = i;
           const getBalance = (s: EarlyPayoffScenario) =>
-            s.yearlySchedule.find(r => r.year === y)?.endBalance ?? 0;
+            y === 0
+              ? input.loanBalance
+              : (s.yearlySchedule.find(r => r.year === y)?.endBalance ?? 0);
           return {
             year: y,
             base: getBalance(result.base),
@@ -764,14 +766,15 @@ export function EarlyPayoffCalculator({ className }: { className?: string }) {
                       tickFormatter={v => `Y${v}`}
                     />
                     <YAxis
+                      width={Math.max(
+                        70,
+                        formatCurrency(input.loanBalance, baseCurrency, { compact: true }).length *
+                          7 +
+                          16
+                      )}
                       stroke="#888888"
                       fontSize={12}
-                      tickFormatter={v =>
-                        new Intl.NumberFormat('en', {
-                          notation: 'compact',
-                          compactDisplay: 'short',
-                        }).format(v)
-                      }
+                      tickFormatter={v => formatCurrency(v, baseCurrency, { compact: true })}
                     />
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
                     <Tooltip

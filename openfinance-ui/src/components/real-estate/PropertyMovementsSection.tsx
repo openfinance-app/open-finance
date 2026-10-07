@@ -1,3 +1,4 @@
+import { useDateFormatter } from '@/hooks/useDateFormatter';
 import { useQuery } from '@tanstack/react-query';
 import apiClient from '@/services/apiClient';
 import type { LiabilityTranche } from '@/types/liability';
@@ -35,7 +36,7 @@ function MovementRow({
   label: string;
   currency: string;
 }) {
-  const { i18n } = useTranslation('realEstate');
+  const { date: formatDate } = useDateFormatter();
   return (
     <div className="flex items-center justify-between px-4 py-3 bg-surface hover:bg-surface-elevated transition-colors">
       <div className="flex items-center gap-3 min-w-0">
@@ -46,13 +47,7 @@ function MovementRow({
               {label}
             </span>
           </div>
-          <div className="text-xs text-text-tertiary">
-            {new Date(tx.date).toLocaleDateString(i18n.language, {
-              year: 'numeric',
-              month: 'short',
-              day: 'numeric',
-            })}
-          </div>
+          <div className="text-xs text-text-tertiary">{formatDate(tx.date)}</div>
         </div>
       </div>
       <div className="text-sm font-mono font-semibold text-text-primary ml-4 flex-shrink-0">

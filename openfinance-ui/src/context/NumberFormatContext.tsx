@@ -54,7 +54,7 @@ interface NumberFormatContextType {
    * Persists to the backend and keeps localStorage in sync.
    * Reverts on API failure.
    */
-  setNumberFormat: (format: NumberFormat) => void;
+  setNumberFormat: (format: NumberFormat) => Promise<void>;
 }
 
 const NumberFormatContext = createContext<NumberFormatContextType | undefined>(undefined);
@@ -117,34 +117,27 @@ export function NumberFormatProvider({ children }: NumberFormatProviderProps) {
   }, [i18n.language, isLoading, settings?.numberFormat]);
 
   const setNumberFormat = useCallback(
-    (newFormat: NumberFormat) => {
-      // Optimistic update — instant UI feedback.
+    async (newFormat: NumberFormat) => {
+      const previous = numberFormat;
       setNumberFormatState(newFormat);
       try {
         localStorage.setItem(LS_KEY, newFormat);
       } catch {
-        /* ignore */
+        /* storage unavailable */
       }
-
-      updateSettings.mutate(
-        { numberFormat: newFormat },
-        {
-          onError: () => {
-            // Revert to the previously persisted format on failure.
-            const previous: NumberFormat = isValidFormat(settings?.numberFormat)
-              ? settings!.numberFormat
-              : DEFAULT_FORMAT;
-            setNumberFormatState(previous);
-            try {
-              localStorage.setItem(LS_KEY, previous);
-            } catch {
-              /* ignore */
-            }
-          },
+      try {
+        await updateSettings.mutateAsync({ numberFormat: newFormat });
+      } catch (error) {
+        setNumberFormatState(previous);
+        try {
+          localStorage.setItem(LS_KEY, previous);
+        } catch {
+          /* storage unavailable */
         }
-      );
+        throw error;
+      }
     },
-    [settings, updateSettings]
+    [numberFormat, updateSettings]
   );
 
   const value = useMemo<NumberFormatContextType>(

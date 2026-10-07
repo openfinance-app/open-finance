@@ -115,7 +115,8 @@
       "liabilityCurrencyUnsupported": "Saisissez le montant dans la devise du compte ou du passif.",
       "movementTargetRequired": "Sélectionnez le bien immobilier ou l'actif physique concerné par ce mouvement",
       "movementSingleTarget": "Sélectionnez un bien immobilier ou un actif, pas les deux",
-      "movementLiabilityExclusive": "Une transaction peut être liée à un passif ou cibler un bien ou un actif, pas les deux"
+      "movementLiabilityExclusive": "Une transaction peut être liée à un passif ou cibler un bien ou un actif, pas les deux",
+      "splitTotalMismatch": "La somme des ventilations doit être exactement égale au montant de la transaction."
     },
     "types": {
       "INCOME": "Revenu",

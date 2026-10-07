@@ -282,3 +282,21 @@ describe('distributeRemainder', () => {
     expect(result).toEqual([40, 60]);
   });
 });
+
+describe('split remainder allocation', () => {
+  it('allocates a remainder larger than the number of rows', () => {
+    expect(distributeRemainder(12.34, [6.1, 6.1], 2)).toEqual([6.24, 6.1]);
+  });
+
+  it('removes a large over-allocation without making any row nonpositive', () => {
+    const amounts = distributeRemainder(1, [100, 2], 2);
+    expect(sum(amounts)).toBe(1);
+    expect(amounts.every(amount => amount > 0)).toBe(true);
+  });
+
+  it('retains a one-unit residue above the safe integer range at crypto scale', () => {
+    expect(distributeRemainder('0.010000000000000001', ['0.005', '0.005'], 18)).toEqual([
+      0.005000000000000001, 0.005,
+    ]);
+  });
+});

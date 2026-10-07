@@ -157,7 +157,7 @@ describe('TransactionDetailModal', () => {
         <TransactionDetailModal transaction={baseTransaction} onClose={onClose} />
       );
       // Date appears in both the subtitle and the Details section Date field
-      expect(screen.getAllByText(/March 15, 2024/).length).toBeGreaterThan(0);
+      expect(screen.getAllByText('03/15/2024').length).toBeGreaterThan(0);
     });
 
     it('renders the amount hero with ConvertedAmount', () => {

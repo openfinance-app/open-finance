@@ -1008,28 +1008,7 @@ public class ImportService {
                     session.getErrorCount(),
                     session.getSkippedCount());
 
-            // Transparently invalidate net worth snapshots affected by imported transaction
-            // dates.
-            try {
-                toImport.stream()
-                        .map(ImportedTransaction::getTransactionDate)
-                        .filter(d -> d != null)
-                        .reduce((a, b) -> a.isAfter(b) ? a : b)
-                        .ifPresent(
-                                maxDate -> {
-                                    netWorthRepository.deleteByUserIdAndSnapshotDateBefore(
-                                            userId, maxDate);
-                                    log.debug(
-                                            "Invalidated net worth snapshots for user {} after import (cutoff: {})",
-                                            userId,
-                                            maxDate);
-                                });
-            } catch (Exception e) {
-                log.warn(
-                        "Failed to invalidate net worth snapshots after import for user {}: {}",
-                        userId,
-                        e.getMessage());
-            }
+            invalidateImportedSnapshots(userId, toImport);
 
             importSessionRepository.save(session);
             budgetAlertService.checkBudgetAlertsAfterTransaction(userId);
@@ -1752,25 +1731,24 @@ public class ImportService {
             session.setAccountId(accountIdsBySource.values().iterator().next());
         }
 
-        try {
-            toImport.stream()
-                    .map(ImportedTransaction::getTransactionDate)
-                    .filter(date -> date != null)
-                    .reduce((left, right) -> left.isAfter(right) ? left : right)
-                    .ifPresent(
-                            maxDate ->
-                                    netWorthRepository.deleteByUserIdAndSnapshotDateBefore(
-                                            userId, maxDate));
-        } catch (Exception ex) {
-            log.warn(
-                    "Failed to invalidate net worth snapshots after Skrooge import for user {}: {}",
-                    userId,
-                    ex.getMessage());
-        }
+        invalidateImportedSnapshots(userId, toImport);
 
         importSessionRepository.save(session);
         budgetAlertService.checkBudgetAlertsAfterTransaction(userId);
         return session;
+    }
+
+    /** An imported posting affects its date and every later cached balance. */
+    private void invalidateImportedSnapshots(Long userId, List<ImportedTransaction> transactions) {
+        transactions.stream()
+                .map(ImportedTransaction::getTransactionDate)
+                .filter(java.util.Objects::nonNull)
+                .min(LocalDate::compareTo)
+                .filter(date -> !date.isAfter(LocalDate.now()))
+                .ifPresent(
+                        date ->
+                                netWorthRepository.deleteByUserIdAndSnapshotDateBetween(
+                                        userId, date.withDayOfMonth(1), LocalDate.now()));
     }
 
     private void saveSkroogeTransferTransactions(
@@ -2047,21 +2025,7 @@ public class ImportService {
             session.setAccountId(resolvedAccountIds.iterator().next());
         }
 
-        try {
-            toImport.stream()
-                    .map(ImportedTransaction::getTransactionDate)
-                    .filter(date -> date != null)
-                    .reduce((left, right) -> left.isAfter(right) ? left : right)
-                    .ifPresent(
-                            maxDate ->
-                                    netWorthRepository.deleteByUserIdAndSnapshotDateBefore(
-                                            userId, maxDate));
-        } catch (Exception ex) {
-            log.warn(
-                    "Failed to invalidate net worth snapshots after multi-account import for user {}: {}",
-                    userId,
-                    ex.getMessage());
-        }
+        invalidateImportedSnapshots(userId, toImport);
 
         importSessionRepository.save(session);
         budgetAlertService.checkBudgetAlertsAfterTransaction(userId);

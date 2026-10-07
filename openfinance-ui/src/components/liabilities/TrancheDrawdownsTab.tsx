@@ -1,3 +1,4 @@
+import { useDateFormatter } from '@/hooks/useDateFormatter';
 import { useReverseDirectDraw } from '@/hooks/useTranches';
 /**
  * TrancheDrawdownsTab Component (Task 8)
@@ -143,6 +144,7 @@ function AddTrancheForm({ liability, onDone }: { liability: Liability; onDone: (
 
 export function TrancheDrawdownsTab({ liability }: { liability: Liability }) {
   const { t } = useTranslation('liabilities');
+  const { date: formatDate } = useDateFormatter();
   const { data: tranches = [], isLoading, error } = useTranches(liability.id);
   const reverse = useReverseDirectDraw();
   const [reverseId, setReverseId] = useState<number | null>(null);
@@ -225,9 +227,7 @@ export function TrancheDrawdownsTab({ liability }: { liability: Liability }) {
               {tranche.interestOnly && (
                 <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-info/10 text-info border border-info/30 text-xs font-medium">
                   {t('drawdowns.interestOnly')}
-                  {tranche.interestOnlyUntil
-                    ? ` (${new Date(tranche.interestOnlyUntil).toLocaleDateString()})`
-                    : ''}
+                  {tranche.interestOnlyUntil ? ` (${formatDate(tranche.interestOnlyUntil)})` : ''}
                 </span>
               )}
               {tranche.realEstateId != null && (

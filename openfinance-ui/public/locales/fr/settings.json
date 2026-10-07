@@ -82,7 +82,8 @@
       "small": "Petit",
       "medium": "Moyen",
       "large": "Grand",
-      "updateSuccess": "Format des nombres mis à jour avec succès"
+      "updateSuccess": "Format des nombres mis à jour avec succès",
+      "updateError": "Impossible d’enregistrer le format des nombres."
     },
     "decimalPlaces": {
       "label": "Décimales",
@@ -91,7 +92,8 @@
       "enableHint": "S'applique à toutes les devises. Minimum 1 pour ne pas masquer les petits montants.",
       "placesLabel": "Décimales",
       "livePreview": "Aperçu en direct",
-      "updateSuccess": "Décimales mises à jour avec succès"
+      "updateSuccess": "Décimales mises à jour avec succès",
+      "updateError": "Impossible d’enregistrer le nombre de décimales."
     },
     "currencyDisplay": {
       "label": "Affichage de la devise",

@@ -1442,8 +1442,7 @@ public class RealEstateService {
                         org.openfinance.util.CapitalizedCosts.total(
                                 transactionRepository.findByRealEstateIdAndUserId(
                                         property.getId(), property.getUserId())));
-        BigDecimal appreciation =
-                currentValue.subtract(costBasis).setScale(2, RoundingMode.HALF_UP);
+        BigDecimal appreciation = currentValue.subtract(costBasis);
         response.setAppreciation(appreciation);
 
         if (costBasis.compareTo(BigDecimal.ZERO) > 0) {

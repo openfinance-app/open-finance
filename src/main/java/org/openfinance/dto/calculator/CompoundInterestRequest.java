@@ -6,7 +6,9 @@ import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Digits;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Pattern;
 import java.math.BigDecimal;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -21,10 +23,16 @@ import org.openfinance.util.ExactIntegerDeserializer;
 @AllArgsConstructor
 public class CompoundInterestRequest {
 
+    /** Calculation currency. Omission retains the legacy USD (two-decimal) API default. */
+    @Builder.Default
+    @NotBlank
+    @Pattern(regexp = "[A-Z][A-Z0-9]{2,9}")
+    private String currency = "USD";
+
     /** Initial principal amount. */
     @NotNull(message = "{calc.compound.principal.required}")
     @DecimalMin(value = "0.0", message = "{calc.compound.principal.min}")
-    @Digits(integer = 15, fraction = 2, message = "{calc.compound.principal.digits}")
+    @Digits(integer = 15, fraction = 18, message = "{calc.compound.principal.digits}")
     private BigDecimal principal;
 
     /** Annual interest rate as a percentage (e.g. 5 means 5%). */
@@ -51,7 +59,7 @@ public class CompoundInterestRequest {
     /** Optional regular contribution per period. Defaults to 0. */
     @Builder.Default
     @DecimalMin(value = "0.0", message = "{calc.compound.contribution.min}")
-    @Digits(integer = 12, fraction = 2, message = "{calc.compound.contribution.digits}")
+    @Digits(integer = 12, fraction = 18, message = "{calc.compound.contribution.digits}")
     private BigDecimal regularContribution = BigDecimal.ZERO;
 
     /**

@@ -162,33 +162,37 @@ export function fromMinorUnits(units: Numeric, decimals = 2): number {
 }
 
 /**
- * Distributes the difference between `total` and the sum of `amounts` across the amounts, using the
- * largest-remainder method in integer minor units, so the returned array sums EXACTLY to `total`.
- * The residue is applied one minor unit at a time to the largest-magnitude lines first (least
- * proportional distortion); a line is never reduced below one minor unit. Returns a new array;
- * `amounts` is not mutated.
- *
- * If the residue cannot be fully placed (empty input, |residue| exceeds the number of lines, or
- * every line is already at the one-minor-unit minimum), the amounts are returned only partially
- * adjusted; the caller's own balance check is expected to surface the remaining difference.
+ * Allocate the full remainder in decimal minor units, largest lines first. Positive
+ * lines stay positive; an impossible allocation remains visibly unbalanced.
+ * Decimal integer arithmetic also works at crypto scales above Number.MAX_SAFE_INTEGER.
  */
 export function distributeRemainder(total: Numeric, amounts: Numeric[], decimals = 2): number[] {
-  const units = amounts.map(a => toMinorUnits(a, decimals));
-  const totalUnits = toMinorUnits(total, decimals);
-  let residue = totalUnits - units.reduce((acc, u) => acc + u, 0);
-
+  const factor = new Decimal(10).pow(decimals);
+  const units = amounts.map(amount => toDecimal(amount).times(factor).toDecimalPlaces(0));
+  let residue = toDecimal(total)
+    .times(factor)
+    .toDecimalPlaces(0)
+    .minus(units.reduce((acc, value) => acc.plus(value), new Decimal(0)));
   const order = units
-    .map((_, i) => i)
-    .sort((a, b) => Math.abs(units[b]) - Math.abs(units[a]) || a - b);
-
-  const step = residue > 0 ? 1 : -1;
-  for (const idx of order) {
-    if (residue === 0) break;
-    const next = units[idx] + step;
-    if (next >= 1) {
-      units[idx] = next;
-      residue -= step;
-    }
+    .map((_, index) => index)
+    .sort((a, b) => units[b].abs().comparedTo(units[a].abs()) || a - b);
+  for (const index of order) {
+    if (!residue.isFinite() || residue.isZero()) break;
+    const adjustment = residue.isPositive()
+      ? residue
+      : Decimal.max(residue, new Decimal(1).minus(units[index]));
+    units[index] = units[index].plus(adjustment);
+    residue = residue.minus(adjustment);
   }
-  return units.map(u => fromMinorUnits(u, decimals));
+  return units.map(value => value.dividedBy(factor).toNumber());
+}
+
+/** Fraction digits in the entered value, independent of display preferences. */
+export function decimalPlaces(value: Numeric): number {
+  return toDecimal(value).decimalPlaces();
+}
+
+/** Plain decimal output for exports; avoid native toFixed's binary rounding. */
+export function toFixedDecimal(value: Numeric, decimals: number): string {
+  return toDecimal(value).toFixed(decimals);
 }

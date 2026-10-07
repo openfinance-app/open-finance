@@ -1,4 +1,5 @@
-import { useState, useCallback } from 'react';
+import { DEFAULT_CURRENCY, getMonetaryScale } from '@/utils/currency';
+import { useState, useCallback, useEffect } from 'react';
 import { validateEarlyPayoff } from '@/validators/calculatorValidation';
 import type {
   EarlyPayoffInput,
@@ -66,7 +67,8 @@ function simulate(
   lumpSums: LumpSumPayment[],
   monthlyExtraPayment: number,
   mode: 'base' | 'reduceDuration' | 'reducePayment',
-  cfg: EarlyPayoffCountryConfig
+  cfg: EarlyPayoffCountryConfig,
+  currency: string
 ): { rows: MonthRow[]; baseMonthlyPayment: number; finalMonthlyPayment: number } {
   const basePayment = calcMonthlyPayment(initialBalance, monthlyRate, totalRemainingMonths);
 
@@ -87,17 +89,18 @@ function simulate(
   let currentMonthlyPayment = basePayment;
   const rows: MonthRow[] = [];
   const maxMonths = Math.max(totalRemainingMonths * 2, 600);
+  const payoffTolerance = 0.5 * 10 ** -getMonetaryScale(currency);
 
-  for (let month = 1; month <= maxMonths && balance > 0.005; month++) {
+  for (let month = 1; month <= maxMonths && balance > 0; month++) {
     const interest = multiply(balance, monthlyRate);
     // Cap payment at remaining balance + interest (handles last payment rounding)
-    const payment = Math.min(currentMonthlyPayment, add(balance, interest));
-    const principal = Math.max(0, subtract(payment, interest));
+    let payment = Math.min(currentMonthlyPayment, add(balance, interest));
+    let principal = Math.max(0, subtract(payment, interest));
     balance = Math.max(0, subtract(balance, principal));
 
     // Apply monthly extra payment if balance remains
     let extraApplied = 0;
-    if (effectiveMonthlyExtra > 0 && balance > 0.005) {
+    if (effectiveMonthlyExtra > 0 && balance > 0) {
       extraApplied = Math.min(effectiveMonthlyExtra, balance);
       balance = Math.max(0, subtract(balance, extraApplied));
     }
@@ -106,13 +109,13 @@ function simulate(
     let iraApplied = 0;
     const lsAmount = lumpSumByMonth.get(month) ?? 0;
 
-    if (lsAmount > 0 && balance > 0.005) {
+    if (lsAmount > 0 && balance > 0) {
       const balanceBefore = balance;
       lumpSumApplied = Math.min(lsAmount, balance);
       iraApplied = computeIRA(lumpSumApplied, balanceBefore, monthlyRate, cfg);
       balance = Math.max(0, subtract(balance, lumpSumApplied));
 
-      if (balance > 0.005) {
+      if (balance > 0) {
         if (mode === 'reducePayment') {
           // Maintain original payoff date: recalculate payment for remaining original months
           const origRemainingFromHere = totalRemainingMonths - month;
@@ -122,6 +125,14 @@ function simulate(
         }
         // For 'reduceDuration': keep same payment; the loop naturally ends sooner.
       }
+    }
+
+    // Include the final fractional-unit remainder in cash and principal rather than
+    // ending the schedule with an unpaid floating-point residue.
+    if (balance > 0 && balance <= payoffTolerance) {
+      payment = add(payment, balance);
+      principal = add(principal, balance);
+      balance = 0;
     }
 
     // Accumulate extra payment into lump sum for reporting purposes
@@ -135,7 +146,7 @@ function simulate(
       ira: iraApplied,
       balance,
     });
-    if (balance <= 0.005) break;
+    if (balance <= 0) break;
   }
 
   return { rows, baseMonthlyPayment: basePayment, finalMonthlyPayment: currentMonthlyPayment };
@@ -207,10 +218,17 @@ function nextId(): string {
   return String(++_idCounter);
 }
 
-export function useEarlyPayoffCalculator(cfg: EarlyPayoffCountryConfig) {
+export function useEarlyPayoffCalculator(
+  cfg: EarlyPayoffCountryConfig,
+  currency = DEFAULT_CURRENCY
+) {
   const [input, setInput] = useState<EarlyPayoffInput>(DEFAULT_EARLY_PAYOFF_INPUT);
   const [result, setResult] = useState<EarlyPayoffResult | null>(null);
   const [error, setError] = useState<string | null>(null);
+  useEffect(() => {
+    setResult(null);
+    setError(null);
+  }, [currency]);
 
   const updateInput = useCallback(
     <K extends keyof EarlyPayoffInput>(key: K, value: EarlyPayoffInput[K]) => {
@@ -287,7 +305,8 @@ export function useEarlyPayoffCalculator(cfg: EarlyPayoffCountryConfig) {
       [],
       0,
       'base',
-      noIraCfg
+      noIraCfg,
+      currency
     );
     const base = buildScenario(baseRows, baseMonthlyPayment, baseMonthlyPayment, null);
 
@@ -303,7 +322,8 @@ export function useEarlyPayoffCalculator(cfg: EarlyPayoffCountryConfig) {
       lumpSumPayments,
       monthlyExtraPayment,
       'reduceDuration',
-      cfg
+      cfg,
+      currency
     );
     const reduceDuration = buildScenario(rdRows, rdBase, rdFinal, base);
 
@@ -319,12 +339,13 @@ export function useEarlyPayoffCalculator(cfg: EarlyPayoffCountryConfig) {
       lumpSumPayments,
       monthlyExtraPayment,
       'reducePayment',
-      cfg
+      cfg,
+      currency
     );
     const reducePayment = buildScenario(rpRows, rpBase, rpFinal, base);
 
     setResult({ base, reduceDuration, reducePayment });
-  }, [input, cfg]);
+  }, [input, cfg, currency]);
 
   return {
     input,

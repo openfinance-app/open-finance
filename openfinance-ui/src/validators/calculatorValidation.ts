@@ -23,7 +23,8 @@ export function validateCompoundInterest(input: CompoundInterestInput): string |
 }
 
 export function validateLoan(input: LoanCalculatorInput): string | null {
-  if (!between(input.principal, 0.01, 1e15 - 1)) return error('loanPrincipal');
+  if (!between(input.principal, 0, 1e15 - 1) || input.principal === 0)
+    return error('loanPrincipal');
   if (!between(input.annualRate, 0, 100)) return error('rate');
   const months = input.years * 12;
   if (!between(months, 1, 1200) || Math.abs(months - Math.round(months)) > 1e-8) {
@@ -57,7 +58,8 @@ export function validateFreedom(input: FreedomCalculatorInput): string | null {
 }
 
 export function validateEarlyPayoff(input: EarlyPayoffInput): string | null {
-  if (!between(input.loanBalance, 0.01, 1e15 - 1)) return error('loanPrincipal');
+  if (!between(input.loanBalance, 0, 1e15 - 1) || input.loanBalance === 0)
+    return error('loanPrincipal');
   if (!between(input.annualRate, 0, 100)) return error('rate');
   if (
     !Number.isInteger(input.remainingYears) ||

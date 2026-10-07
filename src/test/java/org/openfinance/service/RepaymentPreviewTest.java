@@ -93,6 +93,19 @@ class RepaymentPreviewTest {
                 .build();
     }
 
+    @Test
+    void retainsThreeDecimalRepaymentAndInterest() {
+        Liability loan = liability("12.345", "1.2", "12.345", null);
+        loan.setCurrency("KWD");
+        givenLiability(loan, List.of());
+        RepaymentPreviewResponse preview =
+                liabilityService.getRepaymentPreview(
+                        USER_ID, LIABILITY_ID, new BigDecimal("1.234"), DATE);
+        assertThat(preview.getInterest()).isEqualByComparingTo("0.012");
+        assertThat(preview.getPrincipal()).isEqualByComparingTo("1.222");
+        assertThat(preview.getTotal()).isEqualByComparingTo("1.234");
+    }
+
     // ---------- (a) Standard P&I ----------
 
     @Test

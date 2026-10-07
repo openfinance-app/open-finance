@@ -1,3 +1,4 @@
+import { useDateFormatter } from '@/hooks/useDateFormatter';
 /**
  * TransactionDetailModal Component
  *
@@ -22,7 +23,6 @@ import {
   Scissors,
   Receipt,
 } from 'lucide-react';
-import { format } from 'date-fns';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { AttachmentList, AttachmentUpload } from '@/components/attachments';
@@ -82,6 +82,7 @@ export function TransactionDetailModal({
   const navigate = useNavigate();
   const { format: formatCurrency } = useFormatCurrency();
   const { t: tc } = useTranslation('common');
+  const { date: formatDate } = useDateFormatter();
   const { t } = useTranslation('transactions');
 
   const handleAccountClick = () => {
@@ -144,7 +145,7 @@ export function TransactionDetailModal({
                 {t('form.types.' + transaction.type)}
                 {transaction.payee && ` · ${transaction.payee}`}
                 {' · '}
-                {format(new Date(transaction.date), 'MMMM d, yyyy')}
+                {formatDate(transaction.date)}
               </p>
             </div>
           </div>
@@ -247,7 +248,7 @@ export function TransactionDetailModal({
                       {t('detail.fields.date')}
                     </dt>
                     <dd className="text-sm font-medium text-foreground">
-                      {format(new Date(transaction.date), 'MMMM d, yyyy')}
+                      {formatDate(transaction.date)}
                     </dd>
                   </div>
                   <div>

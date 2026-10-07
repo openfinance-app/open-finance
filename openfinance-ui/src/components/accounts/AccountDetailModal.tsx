@@ -1,3 +1,4 @@
+import { useDateFormatter } from '@/hooks/useDateFormatter';
 /**
  * AccountDetailModal Component
  *
@@ -31,7 +32,6 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from 'recharts';
-import { format } from 'date-fns';
 import { Button } from '@/components/ui/Button';
 import { LoadingSkeleton } from '@/components/LoadingComponents';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/Dialog';
@@ -86,6 +86,7 @@ export function AccountDetailModal({ accountId, onClose, onEdit }: AccountDetail
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const { format: formatCurrency } = useFormatCurrency();
   const { t: tc } = useTranslation('common');
+  const { date: formatDate } = useDateFormatter();
   const { t } = useTranslation('accounts');
   const { displayMode } = useCurrencyDisplay();
 
@@ -314,7 +315,7 @@ export function AccountDetailModal({ accountId, onClose, onEdit }: AccountDetail
                               dataKey="date"
                               stroke="#666"
                               tick={{ fill: '#666', fontSize: 11 }}
-                              tickFormatter={v => format(new Date(v), 'MMM d')}
+                              tickFormatter={v => formatDate(String(v))}
                             />
                             <YAxis
                               stroke="#666"
@@ -329,9 +330,7 @@ export function AccountDetailModal({ accountId, onClose, onEdit }: AccountDetail
                                 if (!active || !point) return null;
                                 return (
                                   <div className="rounded-lg border border-border bg-surface p-3 text-sm">
-                                    <p>
-                                      {label ? format(new Date(String(label)), 'MMMM d, yyyy') : ''}
-                                    </p>
+                                    <p>{label ? formatDate(String(label)) : ''}</p>
                                     <ConvertedAmount
                                       amount={point.balance}
                                       currency={point.currency ?? account.currency}
@@ -396,7 +395,7 @@ export function AccountDetailModal({ accountId, onClose, onEdit }: AccountDetail
                                     {tx.payee || tx.description || 'Transaction'}
                                   </p>
                                   <p className="text-xs text-muted-foreground">
-                                    {format(new Date(tx.date), 'MMM d, yyyy')}
+                                    {formatDate(tx.date)}
                                     {tx.category && ` · ${tx.category.name}`}
                                   </p>
                                 </div>

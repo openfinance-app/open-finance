@@ -371,7 +371,8 @@ class ImportServiceSkroogeJsonTest {
                         any(Transaction.class), eq("Local Market"), eq("Weekly groceries"));
         verify(accountService, times(2)).recalculateBalance(anyLong(), eq(USER_ID));
         verify(netWorthRepository, times(1))
-                .deleteByUserIdAndSnapshotDateBefore(eq(USER_ID), eq(LocalDate.of(2024, 1, 12)));
+                .deleteByUserIdAndSnapshotDateBetween(
+                        eq(USER_ID), eq(LocalDate.of(2024, 1, 1)), eq(LocalDate.now()));
     }
 
     @Test

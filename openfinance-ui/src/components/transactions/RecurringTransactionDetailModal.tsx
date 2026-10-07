@@ -1,3 +1,4 @@
+import { useDateFormatter } from '@/hooks/useDateFormatter';
 /**
  * RecurringTransactionDetailModal Component
  *
@@ -20,7 +21,7 @@ import {
   Paperclip,
   Edit,
 } from 'lucide-react';
-import { format, formatDistanceToNow } from 'date-fns';
+import { parseISO, formatDistanceToNow } from 'date-fns';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { AttachmentList, AttachmentUpload } from '@/components/attachments';
@@ -79,6 +80,7 @@ export function RecurringTransactionDetailModal({
   onEdit,
 }: RecurringTransactionDetailModalProps) {
   const { t } = useTranslation('common');
+  const { date: formatDate } = useDateFormatter();
   const { t: tr } = useTranslation('recurring');
   const [activeTab, setActiveTab] = useState<Tab>('overview');
   const { baseCurrency } = useAuthContext();
@@ -116,8 +118,8 @@ export function RecurringTransactionDetailModal({
 
   const formatNextOccurrence = () => {
     try {
-      const date = new Date(recurringTransaction.nextOccurrence);
-      return `${format(date, 'PP', { locale: dateFnsLocale })} (${formatDistanceToNow(date, { addSuffix: true, locale: dateFnsLocale })})`;
+      const date = parseISO(recurringTransaction.nextOccurrence);
+      return `${formatDate(recurringTransaction.nextOccurrence)} (${formatDistanceToNow(date, { addSuffix: true, locale: dateFnsLocale })})`;
     } catch {
       return recurringTransaction.nextOccurrence;
     }
@@ -280,9 +282,7 @@ export function RecurringTransactionDetailModal({
                           : tr('detail.fields.endDate')}
                       </dt>
                       <dd className="text-sm font-medium text-foreground">
-                        {format(new Date(recurringTransaction.endDate), 'PP', {
-                          locale: dateFnsLocale,
-                        })}
+                        {formatDate(recurringTransaction.endDate)}
                       </dd>
                     </div>
                   )}
@@ -291,9 +291,7 @@ export function RecurringTransactionDetailModal({
                       {tr('detail.fields.created')}
                     </dt>
                     <dd className="text-sm font-medium text-foreground">
-                      {format(new Date(recurringTransaction.createdAt), 'PP', {
-                        locale: dateFnsLocale,
-                      })}
+                      {formatDate(recurringTransaction.createdAt)}
                     </dd>
                   </div>
                 </dl>

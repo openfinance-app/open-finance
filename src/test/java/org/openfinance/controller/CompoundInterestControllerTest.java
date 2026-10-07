@@ -51,6 +51,22 @@ class CompoundInterestControllerTest {
                         .build();
     }
 
+    @Test
+    void acceptsCurrencyPrecisionAtTheHttpBoundary() throws Exception {
+        validRequest.setCurrency("KWD");
+        validRequest.setPrincipal(new BigDecimal("12.345"));
+        validRequest.setAnnualRate(BigDecimal.ZERO);
+        validRequest.setRegularContribution(new BigDecimal("0.001"));
+        validRequest.setCompoundingFrequency(1);
+        validRequest.setYears(1);
+        mockMvc.perform(
+                        post(URL)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(validRequest)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.finalBalance").value(12.346));
+    }
+
     // -----------------------------------------------------------------------
     // Happy-path
     // -----------------------------------------------------------------------

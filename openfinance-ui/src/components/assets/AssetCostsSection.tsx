@@ -1,3 +1,4 @@
+import { useDateFormatter } from '@/hooks/useDateFormatter';
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/Button';
 /**
@@ -18,7 +19,7 @@ import { cn } from '@/lib/utils';
 const MOVEMENTS_PAGE_SIZE = 200;
 
 function CostRow({ tx, label, currency }: { tx: Transaction; label: string; currency: string }) {
-  const { i18n } = useTranslation('assets');
+  const { date: formatDate } = useDateFormatter();
   return (
     <div className="flex items-center justify-between px-4 py-3 bg-background hover:bg-surface transition-colors">
       <div className="flex items-center gap-3 min-w-0">
@@ -29,13 +30,7 @@ function CostRow({ tx, label, currency }: { tx: Transaction; label: string; curr
               {label}
             </span>
           </div>
-          <div className="text-xs text-muted-foreground">
-            {new Date(tx.date).toLocaleDateString(i18n.language, {
-              year: 'numeric',
-              month: 'short',
-              day: 'numeric',
-            })}
-          </div>
+          <div className="text-xs text-muted-foreground">{formatDate(tx.date)}</div>
         </div>
       </div>
       <div className="text-sm font-mono font-semibold text-foreground ml-4 flex-shrink-0">

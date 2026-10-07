@@ -82,7 +82,8 @@
       "small": "Small",
       "medium": "Medium",
       "large": "Large",
-      "updateSuccess": "Number format updated successfully"
+      "updateSuccess": "Number format updated successfully",
+      "updateError": "Unable to save number format."
     },
     "decimalPlaces": {
       "label": "Decimal Places",
@@ -91,7 +92,8 @@
       "enableHint": "Applies to every currency. Minimum 1 to avoid hiding small amounts.",
       "placesLabel": "Decimal places",
       "livePreview": "Live preview",
-      "updateSuccess": "Decimal places updated successfully"
+      "updateSuccess": "Decimal places updated successfully",
+      "updateError": "Unable to save decimal places."
     },
     "currencyDisplay": {
       "label": "Currency Display",
