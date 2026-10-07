@@ -20,7 +20,7 @@ import org.openfinance.entity.Budget;
  *
  * <ul>
  *   <li>Encryption/decryption of the amount field
- *   <li>Setting categoryName and categoryType (denormalized from Category entity)
+ *   <li>Setting categoryName (denormalized from Category entity)
  *   <li>Setting userId from authenticated user
  * </ul>
  *
@@ -90,17 +90,15 @@ public interface BudgetMapper {
      * <ul>
      *   <li>amount - must be decrypted
      *   <li>categoryName - populated from Category entity lookup
-     *   <li>categoryType - populated from Category entity lookup
      * </ul>
      *
      * <p>This method maps the basic fields (id, categoryId, period, dates, rollover, etc.) directly
      * from the entity.
      *
      * @param budget the budget entity
-     * @return the budget response DTO (amount still encrypted, categoryName/Type null)
+     * @return the budget response DTO (amount still encrypted, categoryName null)
      */
     @Mapping(target = "amount", ignore = true)
     @Mapping(target = "categoryName", ignore = true)
-    @Mapping(target = "categoryType", ignore = true)
     BudgetResponse toResponse(Budget budget);
 }

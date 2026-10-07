@@ -98,7 +98,6 @@ class UnusualTransactionRepositoryTest {
                         Category.builder()
                                 .userId(user1.getId())
                                 .name("Groceries")
-                                .type(CategoryType.EXPENSE)
                                 .icon("🛒")
                                 .isSystem(false)
                                 .build());
@@ -512,7 +511,6 @@ class UnusualTransactionRepositoryTest {
                             Category.builder()
                                     .userId(user1.getId())
                                     .name("Travel")
-                                    .type(CategoryType.EXPENSE)
                                     .icon("✈")
                                     .isSystem(false)
                                     .build());
@@ -546,7 +544,6 @@ class UnusualTransactionRepositoryTest {
                             Category.builder()
                                     .userId(user2.getId())
                                     .name("Groceries2")
-                                    .type(CategoryType.EXPENSE)
                                     .icon("🛒")
                                     .isSystem(false)
                                     .build());

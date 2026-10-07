@@ -8,7 +8,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.openfinance.entity.Category;
-import org.openfinance.entity.CategoryType;
 import org.openfinance.entity.User;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
@@ -26,7 +25,6 @@ import org.springframework.test.context.ActiveProfiles;
  * <ul>
  *   <li>CRUD operations
  *   <li>User isolation queries
- *   <li>Type filtering (INCOME vs EXPENSE)
  *   <li>Hierarchical queries (parent/subcategories)
  *   <li>System vs user-created categories
  *   <li>Count and existence checks
@@ -83,7 +81,6 @@ class CategoryRepositoryTest {
                 Category.builder()
                         .userId(testUser1.getId())
                         .name("Salary")
-                        .type(CategoryType.INCOME)
                         .icon("💰")
                         .color("#10B981")
                         .isSystem(true)
@@ -93,7 +90,6 @@ class CategoryRepositoryTest {
                 Category.builder()
                         .userId(testUser1.getId())
                         .name("Groceries")
-                        .type(CategoryType.EXPENSE)
                         .icon("🛒")
                         .color("#EF4444")
                         .isSystem(false)
@@ -103,7 +99,6 @@ class CategoryRepositoryTest {
                 Category.builder()
                         .userId(testUser1.getId())
                         .name("Shopping")
-                        .type(CategoryType.EXPENSE)
                         .icon("🛍️")
                         .color("#8B5CF6")
                         .parentId(null) // Root category
@@ -114,7 +109,6 @@ class CategoryRepositoryTest {
                 Category.builder()
                         .userId(testUser1.getId())
                         .name("Electronics")
-                        .type(CategoryType.EXPENSE)
                         .icon("📱")
                         .color("#3B82F6")
                         .isSystem(false)
@@ -134,7 +128,7 @@ class CategoryRepositoryTest {
         assertThat(savedCategory.getId()).isNotNull();
         assertThat(savedCategory.getUserId()).isEqualTo(testUser1.getId());
         assertThat(savedCategory.getName()).isEqualTo("Salary");
-        assertThat(savedCategory.getType()).isEqualTo(CategoryType.INCOME);
+
         assertThat(savedCategory.getIcon()).isEqualTo("💰");
         assertThat(savedCategory.getColor()).isEqualTo("#10B981");
         assertThat(savedCategory.getIsSystem()).isTrue();
@@ -201,7 +195,6 @@ class CategoryRepositoryTest {
                 Category.builder()
                         .userId(testUser2.getId())
                         .name("User2 Category")
-                        .type(CategoryType.INCOME)
                         .isSystem(false)
                         .build();
         categoryRepository.save(user2Category);
@@ -236,51 +229,6 @@ class CategoryRepositoryTest {
         assertThat(found).isPresent();
         assertThat(found.get().getName()).isEqualTo("Salary");
         assertThat(notFound).isEmpty(); // Different user cannot access
-    }
-
-    // === Type Filtering Tests ===
-
-    @Test
-    @DisplayName("Should find categories by user ID and type")
-    void shouldFindCategoriesByUserIdAndType() {
-        // Given
-        categoryRepository.save(incomeCategory);
-        categoryRepository.save(expenseCategory);
-        categoryRepository.save(parentCategory);
-
-        // When
-        List<Category> incomeCategories =
-                categoryRepository.findByUserIdAndType(testUser1.getId(), CategoryType.INCOME);
-        List<Category> expenseCategories =
-                categoryRepository.findByUserIdAndType(testUser1.getId(), CategoryType.EXPENSE);
-
-        // Then
-        assertThat(incomeCategories).hasSize(1);
-        assertThat(incomeCategories.get(0).getName()).isEqualTo("Salary");
-
-        assertThat(expenseCategories).hasSize(2);
-        assertThat(expenseCategories)
-                .extracting(Category::getName)
-                .containsExactlyInAnyOrder("Groceries", "Shopping");
-    }
-
-    @Test
-    @DisplayName("Should count categories by user ID and type")
-    void shouldCountCategoriesByUserIdAndType() {
-        // Given
-        categoryRepository.save(incomeCategory);
-        categoryRepository.save(expenseCategory);
-        categoryRepository.save(parentCategory);
-
-        // When
-        Long incomeCount =
-                categoryRepository.countByUserIdAndType(testUser1.getId(), CategoryType.INCOME);
-        Long expenseCount =
-                categoryRepository.countByUserIdAndType(testUser1.getId(), CategoryType.EXPENSE);
-
-        // Then
-        assertThat(incomeCount).isEqualTo(1L);
-        assertThat(expenseCount).isEqualTo(2L);
     }
 
     // === Hierarchical Structure Tests ===
@@ -324,7 +272,6 @@ class CategoryRepositoryTest {
                 Category.builder()
                         .userId(testUser1.getId())
                         .name("Clothing")
-                        .type(CategoryType.EXPENSE)
                         .parentId(savedParent.getId())
                         .isSystem(false)
                         .build();

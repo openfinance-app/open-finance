@@ -22,7 +22,6 @@ import org.openfinance.dto.BudgetProgressResponse;
 import org.openfinance.dto.InsightResponse;
 import org.openfinance.entity.Budget;
 import org.openfinance.entity.Category;
-import org.openfinance.entity.CategoryType;
 import org.openfinance.entity.InsightType;
 import org.openfinance.entity.RecurringFrequency;
 import org.openfinance.entity.RecurringTransaction;
@@ -144,8 +143,7 @@ class InsightServiceTest {
 
     @Test
     void usesCanonicalNetWorthAndBudgetProgress() {
-        Category category =
-                Category.builder().id(3L).name("Food").type(CategoryType.EXPENSE).build();
+        Category category = Category.builder().id(3L).name("Food").build();
         when(budgetRepository.findActiveByUserIdAndDate(1L, LocalDate.now()))
                 .thenReturn(List.of(Budget.builder().id(5L).category(category).build()));
         when(budgetService.calculateBudgetProgress(5L, 1L))
@@ -211,17 +209,11 @@ class InsightServiceTest {
                         .id(1L)
                         .name("Subscriptions")
                         .nameKey("category.subscriptions")
-                        .type(CategoryType.EXPENSE)
                         .build();
         Category donations =
-                Category.builder()
-                        .id(2L)
-                        .name("Donations")
-                        .nameKey("category.donations")
-                        .type(CategoryType.EXPENSE)
-                        .build();
-        when(categoryRepository.findByUserIdAndType(1L, CategoryType.EXPENSE))
-                .thenReturn(List.of(subscriptions, donations));
+                Category.builder().id(2L).name("Donations").nameKey("category.donations").build();
+
+        when(categoryRepository.findByUserId(1L)).thenReturn(List.of(subscriptions, donations));
         when(transactionRepository.findByCategoryIdAndDateRange(eq(1L), any(), any(), eq(1L)))
                 .thenReturn(List.of(tx("80", "EUR", TransactionType.EXPENSE)));
         when(transactionRepository.findByCategoryIdAndDateRange(eq(2L), any(), any(), eq(1L)))

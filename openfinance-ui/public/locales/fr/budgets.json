@@ -73,12 +73,13 @@
       "QUARTERLY": "Trimestriel",
       "YEARLY": "Annuel",
       "UNKNOWN": "Inconnu"
-    }
+    },
+    "netSpendingHelp": "Les montants reçus dans cette catégorie réduisent les dépenses du budget."
   },
   "card": {
     "budget": "Budget",
     "budgeted": "Budgété",
-    "spent": "Dépensé",
+    "spent": "Dépenses nettes",
     "remaining": "Restant",
     "progress": "Progression",
     "overBudgetBy": "Dépassé de",

@@ -47,7 +47,7 @@ import { RegexToggle } from '@/components/ui/RegexToggle';
 import { matchesQuery } from '@/utils/searchMatch';
 import { useSecondaryConversion } from '@/hooks/useSecondaryConversion';
 import { useAuthContext } from '@/context/AuthContext';
-import type { CategoryTreeNode, TransactionType } from '@/types/transaction';
+import type { CategoryTreeNode } from '@/types/transaction';
 
 /**
  * CategoryTree component - displays hierarchical category tree with expand/collapse
@@ -83,16 +83,14 @@ function TreeNode({ node, depth = 0, onEdit, onDelete }: TreeNodeProps) {
   const [isExpanded, setIsExpanded] = useState(depth < 1); // Expand first level by default
   const hasChildren = Array.isArray(node?.subcategories) && node.subcategories.length > 0;
   const { baseCurrency } = useAuthContext();
+  const reportingCurrency = node?.currency || baseCurrency;
   const {
     convert,
     secondaryCurrency: secCurrency,
     secondaryExchangeRate,
-  } = useSecondaryConversion(baseCurrency);
+  } = useSecondaryConversion(reportingCurrency);
 
   if (!node) return null;
-
-  const typeColor =
-    node.type === 'INCOME' ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500';
 
   return (
     <div className="select-none">
@@ -142,13 +140,6 @@ function TreeNode({ node, depth = 0, onEdit, onDelete }: TreeNodeProps) {
           {node.mccCode && <span className="text-xs text-text-secondary">MCC: {node.mccCode}</span>}
         </div>
 
-        {/* Type Badge */}
-        <div className="w-[80px] shrink-0">
-          <Badge className={typeColor}>
-            {node.type === 'INCOME' ? t('badges.income') : t('badges.expense')}
-          </Badge>
-        </div>
-
         {/* Transaction Count */}
         <div className="w-[120px] shrink-0 text-sm text-text-secondary text-right">
           {t('transactionCount', { count: node.transactionCount || 0 })}
@@ -156,13 +147,13 @@ function TreeNode({ node, depth = 0, onEdit, onDelete }: TreeNodeProps) {
 
         {/* Total Amount */}
         <div
-          className={`w-[110px] shrink-0 text-sm text-right font-medium ${node.type === 'INCOME' ? 'text-green-600' : 'text-red-600'}`}
+          className={`w-[110px] shrink-0 text-sm text-right font-medium ${(node.totalAmount ?? 0) > 0 ? 'text-green-600' : (node.totalAmount ?? 0) < 0 ? 'text-red-600' : 'text-text-secondary'}`}
         >
           <ConvertedAmount
-            amount={Math.abs(node.totalAmount ?? 0)}
-            currency={baseCurrency}
+            amount={node.totalAmount ?? 0}
+            currency={reportingCurrency}
             isConverted={false}
-            secondaryAmount={convert(Math.abs(node.totalAmount ?? 0))}
+            secondaryAmount={convert(node.totalAmount ?? 0)}
             secondaryCurrency={secCurrency}
             secondaryExchangeRate={secondaryExchangeRate}
             inline
@@ -224,7 +215,6 @@ interface CategoryFormDialogProps {
 
 interface CategoryFormData {
   name: string;
-  type: TransactionType;
   parentId?: number;
   icon?: string;
   color?: string;
@@ -264,7 +254,6 @@ export function CategoryFormDialog({
   const { t } = useTranslation('categories');
   const [formData, setFormData] = useState<CategoryFormData>({
     name: '',
-    type: 'EXPENSE',
     parentId: undefined,
     icon: '📁',
     color: CATEGORY_COLOR_FALLBACK,
@@ -276,7 +265,6 @@ export function CategoryFormDialog({
     if (category) {
       setFormData({
         name: category.name,
-        type: category.type,
         parentId: category.parentId || undefined,
         icon: category.icon || '📁',
         color: category.color || CATEGORY_COLOR_FALLBACK,
@@ -284,7 +272,6 @@ export function CategoryFormDialog({
     } else {
       setFormData({
         name: '',
-        type: 'EXPENSE',
         parentId: undefined,
         icon: '📁',
         color: CATEGORY_COLOR_FALLBACK,
@@ -315,7 +302,9 @@ export function CategoryFormDialog({
           {/* Name */}
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <label className="text-sm font-medium text-text-primary">{t('form.name')}</label>
+              <label htmlFor="category-name" className="text-sm font-medium text-text-primary">
+                {t('form.name')}
+              </label>
               {/* Bug #6 fix: character counter */}
               <span
                 className={`text-xs ${formData.name.length > 90 ? 'text-red-500' : 'text-text-secondary'}`}
@@ -324,51 +313,13 @@ export function CategoryFormDialog({
               </span>
             </div>
             <Input
+              id="category-name"
               value={formData.name}
               onChange={e => setFormData(previous => ({ ...previous, name: e.target.value }))}
               placeholder={t('form.name')}
               maxLength={100}
               required
             />
-          </div>
-
-          {/* Type */}
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-text-primary">{t('form.type')}</label>
-            <div className="flex gap-2">
-              <button
-                type="button"
-                onClick={() =>
-                  setFormData(previous => ({ ...previous, type: 'EXPENSE', parentId: undefined }))
-                }
-                className={`
-                  flex-1 py-2 px-4 rounded-lg border transition-colors
-                  ${
-                    formData.type === 'EXPENSE'
-                      ? 'bg-red-500/10 border-red-500 text-red-600'
-                      : 'border-border text-text-secondary hover:bg-surface'
-                  }
-                `}
-              >
-                {t('form.expense')}
-              </button>
-              <button
-                type="button"
-                onClick={() =>
-                  setFormData(previous => ({ ...previous, type: 'INCOME', parentId: undefined }))
-                }
-                className={`
-                  flex-1 py-2 px-4 rounded-lg border transition-colors
-                  ${
-                    formData.type === 'INCOME'
-                      ? 'bg-green-500/10 border-green-500 text-green-600'
-                      : 'border-border text-text-secondary hover:bg-surface'
-                  }
-                `}
-              >
-                {t('form.income')}
-              </button>
-            </div>
           </div>
 
           {/* Parent Category */}
@@ -380,7 +331,6 @@ export function CategoryFormDialog({
               value={formData.parentId}
               onValueChange={value => setFormData(previous => ({ ...previous, parentId: value }))}
               placeholder={t('form.selectParentCategory')}
-              type={formData.type}
               allowNone={true}
             />
           </div>
@@ -455,7 +405,6 @@ export default function CategoriesPage() {
   const { t } = useTranslation('categories');
   useDocumentTitle(t('title'));
 
-  const [activeTab, setActiveTab] = useState<'ALL' | 'EXPENSE' | 'INCOME'>('ALL');
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingCategory, setEditingCategory] = useState<CategoryTreeNode | null>(null);
   const [deletingCategory, setDeletingCategory] = useState<CategoryTreeNode | null>(null);
@@ -487,18 +436,7 @@ export default function CategoriesPage() {
   };
 
   const filteredCategories = useMemo(() => {
-    // 1. Filter by active tab (keep tree structure)
-    const filterTree = (nodes: CategoryTreeNode[]): CategoryTreeNode[] => {
-      if (activeTab === 'ALL') return nodes;
-      return nodes
-        .filter(c => c.type === activeTab)
-        .map(c => ({
-          ...c,
-          subcategories: c.subcategories ? filterTree(c.subcategories) : [],
-        }));
-    };
-
-    const result = filterTree(categories);
+    const result = categories;
 
     // 2. Search and Sort
     const searchTrimmed = searchQuery.trim();
@@ -539,7 +477,7 @@ export default function CategoriesPage() {
       };
       return sortTree(result);
     }
-  }, [categories, activeTab, searchQuery, searchRegex, sortBy]);
+  }, [categories, searchQuery, searchRegex, sortBy]);
 
   const displayCategories = filteredCategories;
 
@@ -566,7 +504,6 @@ export default function CategoriesPage() {
           id: editingCategory.id,
           data: {
             name: data.name,
-            type: data.type,
             parentId: data.parentId,
             icon: data.icon,
             color: data.color,
@@ -575,7 +512,6 @@ export default function CategoriesPage() {
       } else {
         await createCategory.mutateAsync({
           name: data.name,
-          type: data.type,
           parentId: data.parentId,
           icon: data.icon,
           color: data.color,
@@ -608,23 +544,8 @@ export default function CategoriesPage() {
   const flatAllCategories = useMemo(() => flattenCategories(categories), [categories]);
   const totalCategories = flatAllCategories.length;
 
-  // transactionCount on each node is a rollup (own + all descendants), so summing
-  // the flattened list would double-count parents and children. Count each
-  // category's own direct transactions instead: rollup − children's rollup.
-  const { totalIncome, totalExpense } = useMemo(() => {
-    let income = 0;
-    let expense = 0;
-    const visit = (node: CategoryTreeNode) => {
-      const children = node.subcategories ?? [];
-      const childrenRollup = children.reduce((sum, c) => sum + (c.transactionCount || 0), 0);
-      const directCount = (node.transactionCount || 0) - childrenRollup;
-      if (node.type === 'INCOME') income += directCount;
-      else if (node.type === 'EXPENSE') expense += directCount;
-      children.forEach(visit);
-    };
-    categories.forEach(visit);
-    return { totalIncome: income, totalExpense: expense };
-  }, [categories]);
+  const rootCategories = categories.length;
+  const subcategories = totalCategories - rootCategories;
 
   return (
     <div className="space-y-6">
@@ -646,47 +567,13 @@ export default function CategoriesPage() {
           <div className="text-sm text-text-secondary">{t('summary.totalCategories')}</div>
         </div>
         <div className="bg-surface rounded-xl p-4 border border-border">
-          <div className="text-2xl font-bold text-green-600">{totalIncome}</div>
-          <div className="text-sm text-text-secondary">{t('summary.incomeTransactions')}</div>
+          <div className="text-2xl font-bold text-text-primary">{rootCategories}</div>
+          <div className="text-sm text-text-secondary">{t('summary.rootCategories')}</div>
         </div>
         <div className="bg-surface rounded-xl p-4 border border-border">
-          <div className="text-2xl font-bold text-red-600">{totalExpense}</div>
-          <div className="text-sm text-text-secondary">{t('summary.expenseTransactions')}</div>
+          <div className="text-2xl font-bold text-text-primary">{subcategories}</div>
+          <div className="text-sm text-text-secondary">{t('summary.subcategories')}</div>
         </div>
-      </div>
-
-      {/* Tabs */}
-      <div className="flex gap-2 border-b border-border">
-        <button
-          onClick={() => setActiveTab('ALL')}
-          className={`px-4 py-2 text-sm font-medium transition-colors ${
-            activeTab === 'ALL'
-              ? 'text-primary border-b-2 border-primary'
-              : 'text-text-secondary hover:text-text-primary'
-          }`}
-        >
-          {t('tabs.all')}
-        </button>
-        <button
-          onClick={() => setActiveTab('EXPENSE')}
-          className={`px-4 py-2 text-sm font-medium transition-colors ${
-            activeTab === 'EXPENSE'
-              ? 'text-red-600 border-b-2 border-red-500'
-              : 'text-text-secondary hover:text-text-primary'
-          }`}
-        >
-          {t('tabs.expenses')}
-        </button>
-        <button
-          onClick={() => setActiveTab('INCOME')}
-          className={`px-4 py-2 text-sm font-medium transition-colors ${
-            activeTab === 'INCOME'
-              ? 'text-green-600 border-b-2 border-green-500'
-              : 'text-text-secondary hover:text-text-primary'
-          }`}
-        >
-          {t('tabs.income')}
-        </button>
       </div>
 
       {/* Search and Sort Bar */}
@@ -754,7 +641,6 @@ export default function CategoriesPage() {
           <div className="w-6 shrink-0"></div>
           <div className="w-8 shrink-0"></div>
           <div className="flex-1">{t('table.name')}</div>
-          <div className="w-[80px] shrink-0">{t('table.type')}</div>
           <div className="w-[120px] shrink-0 text-right">{t('table.txns')}</div>
           <div className="w-[110px] shrink-0 text-right">{t('table.amount')}</div>
           <div className="w-[80px] shrink-0"></div>

@@ -12,7 +12,6 @@ import org.openfinance.config.TestDatabaseConfig;
 import org.openfinance.dto.CategoryRequest;
 import org.openfinance.dto.LoginRequest;
 import org.openfinance.dto.UserRegistrationRequest;
-import org.openfinance.entity.CategoryType;
 import org.openfinance.service.OperationHistoryService;
 import org.openfinance.service.UserService;
 import org.openfinance.util.DatabaseCleanupService;
@@ -107,13 +106,9 @@ class CategoryLocalizationIntegrationTest {
                                 .header("X-Encryption-Session", encryptionKeyHeader))
                 .andExpect(status().isOk())
                 .andExpect(
-                        jsonPath(
-                                        "$[?(@.isSystem == true && @.type == 'INCOME' && @.name == 'Employment Income')]")
+                        jsonPath("$[?(@.isSystem == true && @.name == 'Employment Income')]")
                                 .exists())
-                .andExpect(
-                        jsonPath(
-                                        "$[?(@.isSystem == true && @.type == 'EXPENSE' && @.name == 'Groceries')]")
-                                .exists());
+                .andExpect(jsonPath("$[?(@.isSystem == true && @.name == 'Groceries')]").exists());
     }
 
     @Test
@@ -125,13 +120,9 @@ class CategoryLocalizationIntegrationTest {
                                 .header("Accept-Language", "en"))
                 .andExpect(status().isOk())
                 .andExpect(
-                        jsonPath(
-                                        "$[?(@.isSystem == true && @.type == 'INCOME' && @.name == 'Employment Income')]")
+                        jsonPath("$[?(@.isSystem == true && @.name == 'Employment Income')]")
                                 .exists())
-                .andExpect(
-                        jsonPath(
-                                        "$[?(@.isSystem == true && @.type == 'EXPENSE' && @.name == 'Groceries')]")
-                                .exists());
+                .andExpect(jsonPath("$[?(@.isSystem == true && @.name == 'Groceries')]").exists());
     }
 
     @Test
@@ -143,22 +134,13 @@ class CategoryLocalizationIntegrationTest {
                                 .header("Accept-Language", "fr"))
                 .andExpect(status().isOk())
                 // Should have French translations
-                .andExpect(
-                        jsonPath(
-                                        "$[?(@.isSystem == true && @.type == 'INCOME' && @.name == 'Salaire')]")
-                                .exists())
-                .andExpect(
-                        jsonPath(
-                                        "$[?(@.isSystem == true && @.type == 'EXPENSE' && @.name == 'Épiceries')]")
-                                .exists())
+                .andExpect(jsonPath("$[?(@.isSystem == true && @.name == 'Salaire')]").exists())
+                .andExpect(jsonPath("$[?(@.isSystem == true && @.name == 'Épiceries')]").exists())
                 // Should NOT contain English names for translated categories
                 .andExpect(
-                        jsonPath(
-                                        "$[?(@.isSystem == true && @.type == 'INCOME' && @.name == 'Salary')]")
-                                .doesNotExist())
+                        jsonPath("$[?(@.isSystem == true && @.name == 'Salary')]").doesNotExist())
                 .andExpect(
-                        jsonPath(
-                                        "$[?(@.isSystem == true && @.type == 'EXPENSE' && @.name == 'Groceries')]")
+                        jsonPath("$[?(@.isSystem == true && @.name == 'Groceries')]")
                                 .doesNotExist());
     }
 
@@ -180,7 +162,6 @@ class CategoryLocalizationIntegrationTest {
         Long systemCategoryId = null;
         for (var category : categories) {
             if (category.get("isSystem").asBoolean()
-                    && "INCOME".equals(category.get("type").asText())
                     && "Salary".equals(category.get("name").asText())) {
                 systemCategoryId = category.get("id").asLong();
                 break;
@@ -215,7 +196,6 @@ class CategoryLocalizationIntegrationTest {
     void shouldReturnIncomeCategoriesInFrench() throws Exception {
         mockMvc.perform(
                         get("/api/v1/categories")
-                                .param("type", "INCOME")
                                 .header("Authorization", "Bearer " + authToken)
                                 .header("X-Encryption-Session", encryptionKeyHeader)
                                 .header("Accept-Language", "fr"))
@@ -228,7 +208,6 @@ class CategoryLocalizationIntegrationTest {
     void shouldReturnExpenseCategoriesInFrench() throws Exception {
         mockMvc.perform(
                         get("/api/v1/categories")
-                                .param("type", "EXPENSE")
                                 .header("Authorization", "Bearer " + authToken)
                                 .header("X-Encryption-Session", encryptionKeyHeader)
                                 .header("Accept-Language", "fr"))
@@ -242,7 +221,6 @@ class CategoryLocalizationIntegrationTest {
         // Create a user-created category
         CategoryRequest categoryRequest = new CategoryRequest();
         categoryRequest.setName("My Custom Category");
-        categoryRequest.setType(CategoryType.EXPENSE);
 
         String categoryJson = objectMapper.writeValueAsString(categoryRequest);
 
@@ -291,8 +269,7 @@ class CategoryLocalizationIntegrationTest {
                                 .header("Accept-Language", "de"))
                 .andExpect(status().isOk())
                 .andExpect(
-                        jsonPath(
-                                        "$[?(@.isSystem == true && @.type == 'INCOME' && @.name == 'Employment Income')]")
+                        jsonPath("$[?(@.isSystem == true && @.name == 'Employment Income')]")
                                 .exists());
     }
 
@@ -306,9 +283,6 @@ class CategoryLocalizationIntegrationTest {
                                 .header("X-Encryption-Session", encryptionKeyHeader)
                                 .header("Accept-Language", "fr, en-US;q=0.9, en;q=0.8"))
                 .andExpect(status().isOk())
-                .andExpect(
-                        jsonPath(
-                                        "$[?(@.isSystem == true && @.type == 'INCOME' && @.name == 'Salaire')]")
-                                .exists());
+                .andExpect(jsonPath("$[?(@.isSystem == true && @.name == 'Salaire')]").exists());
     }
 }

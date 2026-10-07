@@ -9,8 +9,6 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  * <p>This exception is thrown when:
  *
  * <ul>
- *   <li>Transaction type doesn't match category type (e.g., INCOME transaction with EXPENSE
- *       category)
  *   <li>TRANSFER transaction has same source and destination account
  *   <li>TRANSFER transaction has a category (transfers should not be categorized)
  *   <li>Account doesn't belong to the user
@@ -64,21 +62,6 @@ public class InvalidTransactionException extends RuntimeException implements Loc
     public static InvalidTransactionException accountNotOwnedByUser(Long accountId, Long userId) {
         return new InvalidTransactionException(
                 String.format("Account with ID %d does not belong to user %d", accountId, userId));
-    }
-
-    /**
-     * Factory method for category type mismatch.
-     *
-     * @param categoryType the category type (INCOME or EXPENSE)
-     * @param transactionType the transaction type
-     * @return a new InvalidTransactionException
-     */
-    public static InvalidTransactionException categoryTypeMismatch(
-            String categoryType, String transactionType) {
-        return new InvalidTransactionException(
-                String.format(
-                        "Category type %s does not match transaction type %s",
-                        categoryType, transactionType));
     }
 
     /**

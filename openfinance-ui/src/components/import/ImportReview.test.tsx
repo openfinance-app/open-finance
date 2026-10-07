@@ -8,13 +8,16 @@ import type { ImportTransactionDTO } from '@/types/import';
 vi.mock('@/hooks/useCategories', () => ({
   useCategories: () => ({
     data: [
-      { id: 7, name: 'Fast Food', type: 'EXPENSE' },
-      { id: 8, name: 'Shopping', type: 'EXPENSE' },
+      { id: 7, name: 'Fast Food' },
+      { id: 8, name: 'Shopping' },
+      { id: 401, name: 'Home' },
+      { id: 402, name: 'Insurance', parentId: 401 },
+      { id: 403, name: 'Vehicles' },
+      { id: 404, name: 'Insurance', parentId: 403 },
       {
         id: 308,
         name: 'Courses alimentaires',
         canonicalName: 'Groceries',
-        type: 'EXPENSE',
       },
     ],
   }),
@@ -34,6 +37,41 @@ vi.mock('@/components/ui/PayeeSelector', () => ({
 describe('ImportReview source categories', () => {
   beforeEach(() => {
     mockAuthentication();
+  });
+
+  it('maps full paths without creating duplicates or guessing between identical leaf names', async () => {
+    const mappings = vi.fn();
+    const create = vi.fn();
+    renderWithProviders(
+      <ImportReview
+        transactions={['Home:Insurance', 'Insurance', 'Vehicles:Insurance'].map(
+          (category, i) =>
+            ({
+              transactionDate: '2026-10-07',
+              amount: i === 0 ? '-20' : '10',
+              currency: 'EUR',
+              payee: 'Insurance provider',
+              category,
+              memo: '',
+              validationErrors: [],
+              splits: [],
+            }) as ImportTransactionDTO
+        )}
+        onTransactionsChange={vi.fn()}
+        categoryMappings={{}}
+        onCategoryMappingsChange={mappings}
+        newCategoryNames={[]}
+        onNewCategoryNamesChange={create}
+      />
+    );
+
+    await waitFor(() =>
+      expect(mappings).toHaveBeenCalledWith({
+        'Home:Insurance': 402,
+        'Vehicles:Insurance': 404,
+      })
+    );
+    expect(create).not.toHaveBeenCalled();
   });
 
   it('identifies a legacy rule with an incompatible condition in the review error', () => {

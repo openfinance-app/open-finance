@@ -26,17 +26,12 @@
     "cashAndSavings": "Épargne & Liquidités"
   },
   "title": "Catégories",
-  "description": "Gérez vos catégories de transactions organisées en arborescence hiérarchique",
+  "description": "Organisez revenus et dépenses dans le même arbre de catégories",
   "addCategory": "Ajouter une catégorie",
   "summary": {
     "totalCategories": "Total des catégories",
-    "incomeTransactions": "Transactions de revenus",
-    "expenseTransactions": "Transactions de dépenses"
-  },
-  "tabs": {
-    "all": "Toutes les catégories",
-    "expenses": "Dépenses",
-    "income": "Revenus"
+    "rootCategories": "Catégories principales",
+    "subcategories": "Sous-catégories"
   },
   "search": {
     "placeholder": "Rechercher des catégories..."
@@ -54,17 +49,14 @@
   "table": {
     "name": "Nom",
     "transactionCount": "Nombre de transactions",
-    "totalAmount": "Montant total",
-    "type": "Type",
+    "totalAmount": "Solde net",
     "txns": "Trans.",
-    "amount": "Montant"
+    "amount": "Solde net"
   },
   "badges": {
     "system": "Système",
     "expand": "Développer",
-    "collapse": "Réduire",
-    "income": "Revenu",
-    "expense": "Dépense"
+    "collapse": "Réduire"
   },
   "aria": {
     "editCategory": "Modifier la catégorie",
@@ -86,9 +78,6 @@
     "editTitle": "Modifier la catégorie",
     "addTitle": "Ajouter une catégorie",
     "name": "Nom",
-    "type": "Type",
-    "expense": "Dépense",
-    "income": "Revenu",
     "parentCategory": "Catégorie parente (facultatif)",
     "selectParentCategory": "Sélectionner une catégorie parente...",
     "color": "Couleur",

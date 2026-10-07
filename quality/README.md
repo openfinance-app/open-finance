@@ -39,6 +39,14 @@ request-scoped, validated nested purchase DTOs. The new broad catch and two dead
 stores were fixed in source. An independent unmodified-HEAD run still reports 64
 unmatched existing findings; these were not added to the baseline by this change.
 
+The shared-category change reviewed nine exact constructor identities: six are existing
+mutable DTO/JPA associations or Spring collaborators whose constructor signatures
+changed when category types were removed; three are the new category activity
+service's injected repositories and exchange-rate service. These collaborators must
+retain their Spring-managed identity. Four obsolete local assignments were removed
+from validation code. An independent build of unmodified HEAD still reports 92
+unmatched findings; those remain outside this change and were not added to the baseline.
+
 ## Dependency applicability reviews
 
 `dependency-check-suppressions.xml` identifies individual CVEs and exact artifact

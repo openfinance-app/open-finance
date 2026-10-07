@@ -69,6 +69,7 @@ export function useUpdateBaseCurrency() {
       queryClient.invalidateQueries({ queryKey: ['liabilities'] });
       queryClient.invalidateQueries({ queryKey: ['realEstate'] });
       queryClient.invalidateQueries({ queryKey: ['budgets'] });
+      queryClient.invalidateQueries({ queryKey: ['categories', 'tree'] });
       queryClient.invalidateQueries({ queryKey: ['transactions'] });
       queryClient.invalidateQueries({ queryKey: ['insights'] });
       queryClient.invalidateQueries({ queryKey: ['recurringTransactions'] });

@@ -271,6 +271,31 @@ describe('useTransactions', () => {
   });
 
   describe('useCreateTransaction', () => {
+    it('refreshes a recently cached category total after an incoming refund', async () => {
+      mockSessionStorage.getItem.mockReturnValue('test-key');
+      queryClient.setQueryData(['categories', 'tree'], [{ id: 1, totalAmount: -100 }]);
+      mockedApiClient.get.mockResolvedValue({ data: [{ id: 1, totalAmount: -70 }] });
+      mockedApiClient.post.mockResolvedValue({ data: { id: 2 } });
+      const { result } = renderHook(
+        () => ({ tree: useCategoryTree(), create: useCreateTransaction() }),
+        { wrapper }
+      );
+
+      expect(result.current.tree.data?.[0].totalAmount).toBe(-100);
+      expect(mockedApiClient.get).not.toHaveBeenCalled();
+      await result.current.create.mutateAsync({
+        type: 'INCOME',
+        accountId: 1,
+        categoryId: 1,
+        amount: 30,
+        currency: 'EUR',
+        date: '2026-10-07',
+        description: 'Refund',
+      });
+
+      await waitFor(() => expect(result.current.tree.data?.[0].totalAmount).toBe(-70));
+    });
+
     it('calls POST /transactions on mutate', async () => {
       mockSessionStorage.getItem.mockReturnValue('test-key');
       mockedApiClient.post.mockResolvedValue({ data: { id: 1, description: 'New' } });
@@ -429,16 +454,13 @@ describe('useTransactions', () => {
       expect(mockedApiClient.get).toHaveBeenCalledWith('/categories', expect.any(Object));
     });
 
-    it('fetches categories by type', async () => {
+    it('fetches shared categories', async () => {
       mockSessionStorage.getItem.mockReturnValue('test-key');
       mockedApiClient.get.mockResolvedValue({ data: [{ id: 1, name: 'Salary' }] });
 
-      const { result } = renderHook(() => useCategories('INCOME'), { wrapper });
+      const { result } = renderHook(() => useCategories(), { wrapper });
       await waitFor(() => expect(result.current.data).toBeDefined());
-      expect(mockedApiClient.get).toHaveBeenCalledWith(
-        '/categories?type=INCOME',
-        expect.any(Object)
-      );
+      expect(mockedApiClient.get).toHaveBeenCalledWith('/categories', expect.any(Object));
     });
   });
 
@@ -448,7 +470,7 @@ describe('useTransactions', () => {
       mockedApiClient.post.mockResolvedValue({ data: { id: 3, name: 'New Cat' } });
 
       const { result } = renderHook(() => useCreateCategory(), { wrapper });
-      await result.current.mutateAsync({ name: 'New Cat', type: 'EXPENSE' } as any);
+      await result.current.mutateAsync({ name: 'New Cat' } as any);
 
       expect(mockedApiClient.post).toHaveBeenCalledWith(
         '/categories',

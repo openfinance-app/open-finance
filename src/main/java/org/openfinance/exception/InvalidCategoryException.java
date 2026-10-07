@@ -12,7 +12,6 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  *   <li>Attempting to update/delete system categories
  *   <li>Invalid parent-child relationships (type mismatch, circular reference)
  *   <li>Deleting categories with subcategories
- *   <li>Category type mismatch with transaction type
  * </ul>
  *
  * <p>Requirement REQ-2.4: Category Management - Business rule enforcement

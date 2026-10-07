@@ -12,7 +12,6 @@ import org.openfinance.dto.CategoryRequest;
 import org.openfinance.dto.CategoryResponse;
 import org.openfinance.dto.CategoryTreeNode;
 import org.openfinance.entity.Category;
-import org.openfinance.entity.CategoryType;
 import org.openfinance.entity.EntityType;
 import org.openfinance.entity.OperationType;
 import org.openfinance.exception.CategoryNotFoundException;
@@ -62,6 +61,8 @@ import org.springframework.transaction.annotation.Transactional;
 public class CategoryService {
 
     private final CategoryRepository categoryRepository;
+    private final CategoryActivityService categoryActivityService;
+    private final DefaultCurrencyProvider defaultCurrencyProvider;
     private final TransactionRepository transactionRepository;
     private final CategoryMapper categoryMapper;
     private final EncryptionService encryptionService;
@@ -79,7 +80,6 @@ public class CategoryService {
      *
      * <ul>
      *   <li>Parent must exist and belong to the same user
-     *   <li>Parent and child must have the same CategoryType
      * </ul>
      *
      * <p>Requirement REQ-2.4.1: Create new category with encrypted sensitive data
@@ -104,11 +104,7 @@ public class CategoryService {
         if (request == null) {
             throw new IllegalArgumentException("Category request cannot be null");
         }
-        log.debug(
-                "Creating category for user {}: name={}, type={}",
-                userId,
-                request.getName(),
-                request.getType());
+        log.debug("Creating category for user {}: name={}", userId, request.getName());
 
         // Validate parent-child relationship if parent is specified
         if (request.getParentId() != null) {
@@ -124,11 +120,7 @@ public class CategoryService {
 
         // Save to database (name is automatically encrypted by JPA converter)
         Category savedCategory = categoryRepository.save(category);
-        log.info(
-                "Category created successfully: id={}, userId={}, type={}",
-                savedCategory.getId(),
-                userId,
-                savedCategory.getType());
+        log.info("Category created successfully: id={}, userId={}", savedCategory.getId(), userId);
 
         operationHistoryService.record(
                 userId,
@@ -426,61 +418,6 @@ public class CategoryService {
     }
 
     /**
-     * Retrieves categories by type (INCOME or EXPENSE).
-     *
-     * <p>Requirement REQ-2.4.1: Filter categories by type
-     *
-     * @param userId the ID of the user
-     * @param type the category type to filter by
-     * @param encryptionKey the AES-256 encryption key for decrypting sensitive fields
-     * @return list of categories matching the type
-     */
-    @Transactional(readOnly = true)
-    public List<CategoryResponse> getCategoriesByType(Long userId, CategoryType type) {
-        return getCategoriesByType(userId, type, LocaleContextHolder.getLocale());
-    }
-
-    /**
-     * Retrieves categories by type (INCOME or EXPENSE) with localized system category names.
-     *
-     * @param userId the ID of the user
-     * @param type the category type to filter by
-     * @param encryptionKey the AES-256 encryption key for decrypting sensitive fields
-     * @param locale the locale for localized category names
-     * @return list of categories matching the type with localized data
-     */
-    @Transactional(readOnly = true)
-    public List<CategoryResponse> getCategoriesByType(
-            Long userId, CategoryType type, Locale locale) {
-        if (userId == null) {
-            throw new IllegalArgumentException("User ID cannot be null");
-        }
-        if (type == null) {
-            throw new IllegalArgumentException("Category type cannot be null");
-        }
-
-        log.debug(
-                "Fetching categories for user {}, type={}, locale={}, keyPresent={}",
-                userId,
-                type,
-                locale,
-                EncryptionContext.getKey() != null);
-
-        List<Category> categories = categoryRepository.findByUserIdAndType(userId, type);
-
-        if (!canReadUserCategoryFields()) {
-            return categories.stream()
-                    .filter(Category::getIsSystem)
-                    .map(category -> toResponseWithDecryption(category, locale))
-                    .collect(Collectors.toList());
-        }
-
-        return categories.stream()
-                .map(category -> toResponseWithDecryption(category, locale))
-                .collect(Collectors.toList());
-    }
-
-    /**
      * Retrieves all root categories (categories without a parent).
      *
      * <p>Requirement REQ-2.4.1: List root categories
@@ -578,15 +515,18 @@ public class CategoryService {
             categoriesForTree = categoryRepository.findByUserId(userId);
         }
 
+        String currency = defaultCurrencyProvider.resolveForUser(userId);
+        java.util.Map<Long, CategoryActivityService.Activity> activity =
+                canReadUserCategoryFields()
+                        ? categoryActivityService.summarize(userId, categoriesForTree, currency)
+                        : java.util.Map.of();
+
         // Build tree starting from root categories (those without parent)
         List<CategoryTreeNode> rootNodes =
                 categoriesForTree.stream()
                         .filter(c -> c.getParentId() == null)
                         .sorted(
                                 (c1, c2) -> {
-                                    // Sort by type first (INCOME before EXPENSE), then by name
-                                    int typeCompare = c1.getType().compareTo(c2.getType());
-                                    if (typeCompare != 0) return typeCompare;
                                     String name1 =
                                             c1.getIsSystem()
                                                     ? resolveDisplayName(c1, c1.getName(), locale)
@@ -597,7 +537,7 @@ public class CategoryService {
                                                     : decryptName(c2);
                                     return name1.compareToIgnoreCase(name2);
                                 })
-                        .map(c -> buildTreeNode(c, categoriesForTree, locale))
+                        .map(c -> buildTreeNode(c, categoriesForTree, locale, activity, currency))
                         .collect(Collectors.toList());
 
         return rootNodes;
@@ -605,7 +545,11 @@ public class CategoryService {
 
     /** Recursively builds a tree node from a category entity. */
     private CategoryTreeNode buildTreeNode(
-            Category category, List<Category> allCategories, Locale locale) {
+            Category category,
+            List<Category> allCategories,
+            Locale locale,
+            java.util.Map<Long, CategoryActivityService.Activity> activity,
+            String currency) {
         // Find subcategories
         List<CategoryTreeNode> children =
                 allCategories.stream()
@@ -620,63 +564,31 @@ public class CategoryService {
                                     String name2 = resolveDisplayName(c2, plainName2, locale);
                                     return name1.compareToIgnoreCase(name2);
                                 })
-                        .map(c -> buildTreeNode(c, allCategories, locale))
+                        .map(c -> buildTreeNode(c, allCategories, locale, activity, currency))
                         .collect(Collectors.toList());
 
         // Get decrypted/localized name
         String plainName = category.getIsSystem() ? category.getName() : decryptName(category);
         String name = resolveDisplayName(category, plainName, locale);
 
-        // Get transaction count
-        Long transactionCount = transactionRepository.countByCategoryId(category.getId());
-
-        // Get total amount (computed in Java — SQL SUM cannot operate on encrypted
-        // amounts)
-        List<org.openfinance.entity.Transaction> categoryTransactions =
-                transactionRepository.findByCategoryId(category.getId());
-        java.math.BigDecimal totalAmount =
-                categoryTransactions.stream()
-                        .filter(t -> t.getTransferId() == null)
-                        .filter(
-                                t ->
-                                        t.getType() != null
-                                                && t.getType()
-                                                        .name()
-                                                        .equals(category.getType().name()))
-                        .filter(t -> t.getAmount() != null)
-                        .map(org.openfinance.entity.Transaction::getAmount)
-                        .reduce(java.math.BigDecimal.ZERO, java.math.BigDecimal::add);
-
-        // Bug #2 fix: roll up child transaction counts and amounts so parent totals
-        // include all nested subcategory transactions (not just direct ones)
-        long rollupCount =
-                (transactionCount != null ? transactionCount : 0L)
-                        + children.stream()
-                                .mapToLong(
-                                        c ->
-                                                c.getTransactionCount() != null
-                                                        ? c.getTransactionCount()
-                                                        : 0L)
-                                .sum();
-        BigDecimal rollupAmount =
-                (totalAmount != null ? totalAmount : BigDecimal.ZERO)
-                        .add(
-                                children.stream()
-                                        .map(CategoryTreeNode::getTotalAmount)
-                                        .filter(Objects::nonNull)
-                                        .reduce(BigDecimal.ZERO, BigDecimal::add));
+        CategoryActivityService.Activity totals =
+                activity.getOrDefault(
+                        category.getId(),
+                        new CategoryActivityService.Activity(BigDecimal.ZERO, BigDecimal.ZERO, 0));
 
         return CategoryTreeNode.builder()
                 .id(category.getId())
                 .name(name)
-                .type(category.getType())
                 .icon(category.getIcon())
                 .color(category.getColor())
                 .mccCode(category.getMccCode())
                 .parentId(category.getParentId())
                 .subcategories(children)
-                .transactionCount(rollupCount)
-                .totalAmount(rollupAmount)
+                .transactionCount(totals.transactionCount())
+                .totalAmount(totals.net())
+                .incomeAmount(totals.income())
+                .expenseAmount(totals.expenses())
+                .currency(currency)
                 .isSystem(category.getIsSystem())
                 .build();
     }
@@ -721,10 +633,6 @@ public class CategoryService {
 
     /**
      * Validates that a parent category exists and belongs to the user.
-     *
-     * <p>Parent and child are intentionally allowed to have different types (e.g. an EXPENSE parent
-     * with an INCOME child), because imported taxonomies (such as Skrooge) freely mix income and
-     * expense within a single hierarchy.
      *
      * @param userId the ID of the user
      * @param parentId the ID of the parent category

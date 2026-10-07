@@ -37,7 +37,6 @@ import org.openfinance.dto.TransactionSplitResponse;
 import org.openfinance.entity.Account;
 import org.openfinance.entity.AccountType;
 import org.openfinance.entity.Category;
-import org.openfinance.entity.CategoryType;
 import org.openfinance.entity.Payee;
 import org.openfinance.entity.Transaction;
 import org.openfinance.entity.TransactionType;
@@ -129,14 +128,12 @@ class TransactionServiceTest {
         return a;
     }
 
-    private Category categoryFixture(
-            Long id, Long userId, String name, CategoryType type, boolean isSystem) {
+    private Category categoryFixture(Long id, Long userId, String name, boolean isSystem) {
         Category c =
                 Category.builder()
                         .id(id)
                         .userId(userId)
                         .name(name)
-                        .type(type)
                         .isSystem(isSystem)
                         .icon("ic")
                         .color("#fff")
@@ -215,7 +212,7 @@ class TransactionServiceTest {
         req.setNotes("monthly");
 
         Account acc = accountFixture(10L, 1L, "Checking", "USD");
-        Category cat = categoryFixture(5L, 1L, "Salary", CategoryType.INCOME, false);
+        Category cat = categoryFixture(5L, 1L, "Salary", false);
 
         Transaction mapped = transactionEntity(null, null, req);
         Transaction saved = transactionEntity(100L, 1L, req);
@@ -256,7 +253,7 @@ class TransactionServiceTest {
         req.setDescription("groceries");
 
         Account acc = accountFixture(10L, 2L, "Checking", "USD");
-        Category cat = categoryFixture(7L, 2L, "Groceries", CategoryType.EXPENSE, false);
+        Category cat = categoryFixture(7L, 2L, "Groceries", false);
         Transaction mapped = transactionEntity(null, null, req);
         Transaction saved = transactionEntity(101L, 2L, req);
         saved.setDescription("groceries");
@@ -346,20 +343,23 @@ class TransactionServiceTest {
     }
 
     @Test
-    @DisplayName(
-            "Should throw InvalidTransactionException when category type mismatches transaction type")
-    void shouldThrowWhenCategoryTypeMismatchOnCreate() {
+    @DisplayName("The same category accepts purchases and incoming reimbursements")
+    void shouldAcceptAnIncomingTransactionInAnyOwnedCategory() {
         TransactionRequest req = baseRequest();
         req.setType(TransactionType.INCOME);
         req.setCategoryId(2L);
-
-        when(accountRepository.findByIdAndUserId(10L, 5L))
-                .thenReturn(Optional.of(accountFixture(10L, 5L, "Checking", "USD")));
-        Category cat = categoryFixture(2L, 5L, "name", CategoryType.EXPENSE, false);
-        when(categoryRepository.findByIdAndUserId(2L, 5L)).thenReturn(Optional.of(cat));
-
-        assertThatThrownBy(() -> transactionService.createTransaction(5L, req))
-                .isInstanceOf(InvalidTransactionException.class);
+        Account account = accountFixture(10L, 5L, "Checking", "USD");
+        BigDecimal before = account.getBalance();
+        when(accountRepository.findByIdAndUserId(10L, 5L)).thenReturn(Optional.of(account));
+        when(categoryRepository.findByIdAndUserId(2L, 5L))
+                .thenReturn(Optional.of(categoryFixture(2L, 5L, "Groceries", false)));
+        Transaction transaction = transactionEntity(8L, 5L, req);
+        when(transactionMapper.toEntity(req)).thenReturn(transaction);
+        when(transactionRepository.save(any(Transaction.class))).thenReturn(transaction);
+        when(transactionMapper.toResponse(transaction)).thenReturn(new TransactionResponse());
+        assertThat(transactionService.createTransaction(5L, req)).isNotNull();
+        assertThat(account.getBalance()).isEqualByComparingTo(before.add(req.getAmount()));
+        assertThat(transaction.getCategoryId()).isEqualTo(2L);
     }
 
     @Test
@@ -477,7 +477,7 @@ class TransactionServiceTest {
 
     @Test
     @DisplayName("Should enforce same validation rules on update as create (category mismatch)")
-    void shouldEnforceValidationOnUpdate_CategoryMismatch() {
+    void shouldEnforceCategoryOwnershipOnUpdate() {
         TransactionRequest req = baseRequest();
         req.setType(TransactionType.INCOME);
         req.setCategoryId(77L);
@@ -489,12 +489,12 @@ class TransactionServiceTest {
         when(transactionRepository.findByIdAndUserId(60L, 66L)).thenReturn(Optional.of(existing));
         when(accountRepository.findByIdAndUserId(10L, 66L))
                 .thenReturn(Optional.of(accountFixture(10L, 66L, "Checking", "USD")));
-        Category cat = categoryFixture(77L, 66L, "n", CategoryType.EXPENSE, false);
-        when(categoryRepository.findByIdAndUserId(77L, 66L)).thenReturn(Optional.of(cat));
+        Category cat = categoryFixture(77L, 66L, "n", false);
+        when(categoryRepository.findByIdAndUserId(77L, 66L)).thenReturn(Optional.empty());
         when(transactionMapper.toResponse(any(Transaction.class))).thenReturn(mockResponse);
 
         assertThatThrownBy(() -> transactionService.updateTransaction(60L, 66L, req))
-                .isInstanceOf(InvalidTransactionException.class);
+                .isInstanceOf(CategoryNotFoundException.class);
     }
 
     // ---------- deleteTransaction tests ----------
@@ -591,7 +591,7 @@ class TransactionServiceTest {
 
         Account acc = accountFixture(10L, 12L, "My Account", "USD");
         Account toAcc = accountFixture(11L, 12L, "To Account", "USD");
-        Category cat = categoryFixture(5L, 12L, "Shopping", CategoryType.EXPENSE, false);
+        Category cat = categoryFixture(5L, 12L, "Shopping", false);
 
         when(transactionRepository.findByIdAndUserId(300L, 12L)).thenReturn(Optional.of(tx));
         when(accountRepository.findByIdAndUserId(10L, 12L)).thenReturn(Optional.of(acc));
@@ -1690,8 +1690,7 @@ class TransactionServiceTest {
         req.setPayee("Walmart");
         // req.getCategoryId() == null (not set)
 
-        Category defaultCategory =
-                categoryFixture(7L, 1L, "Groceries", CategoryType.EXPENSE, false);
+        Category defaultCategory = categoryFixture(7L, 1L, "Groceries", false);
         Payee payee =
                 Payee.builder()
                         .id(1L)
@@ -1733,8 +1732,7 @@ class TransactionServiceTest {
         req.setCategoryId(5L);
         req.setPayee("Walmart");
 
-        Category existingCategory =
-                categoryFixture(5L, 2L, "Shopping", CategoryType.EXPENSE, false);
+        Category existingCategory = categoryFixture(5L, 2L, "Shopping", false);
         Account acc = accountFixture(10L, 2L, "Checking Account", "USD");
         Transaction mapped = transactionEntity(null, null, req);
         Transaction saved = transactionEntity(102L, 2L, req);
@@ -1911,13 +1909,7 @@ class TransactionServiceTest {
                         .currency("JPY")
                         .type(AccountType.CHECKING)
                         .build();
-        Category category =
-                Category.builder()
-                        .id(1L)
-                        .userId(1L)
-                        .name("Groceries")
-                        .type(CategoryType.EXPENSE)
-                        .build();
+        Category category = Category.builder().id(1L).userId(1L).name("Groceries").build();
 
         TransactionRequest request =
                 TransactionRequest.builder()
@@ -2085,20 +2077,26 @@ class TransactionServiceTest {
     }
 
     @Test
-    void expenseDoesNotInheritPayeeIncomeCategory() {
+    void expenseInheritsTheSharedPayeeCategory() {
         TransactionRequest request = baseRequest();
         request.setPayee("Income merchant");
-        Category income = categoryFixture(31L, 11L, "Salary", CategoryType.INCOME, false);
+        Category income = categoryFixture(31L, 11L, "Salary", false);
         Payee payee = Payee.builder().name("Income merchant").defaultCategory(income).build();
         when(payeeRepository.findAllByUser(11L)).thenReturn(List.of(payee));
         when(accountRepository.findByIdAndUserId(10L, 11L))
                 .thenReturn(Optional.of(accountFixture(10L, 11L, "Checking", "USD")));
+        when(categoryRepository.findByIdAndUserId(31L, 11L)).thenReturn(Optional.of(income));
         Transaction transaction = transactionEntity(50L, 11L, request);
-        when(transactionMapper.toEntity(request)).thenReturn(transaction);
+        when(transactionMapper.toEntity(request))
+                .thenAnswer(
+                        invocation -> {
+                            transaction.setCategoryId(request.getCategoryId());
+                            return transaction;
+                        });
         when(transactionRepository.save(any())).thenReturn(transaction);
         when(transactionMapper.toResponse(transaction)).thenReturn(new TransactionResponse());
         transactionService.createTransaction(11L, request);
-        assertThat(request.getCategoryId()).isNull();
-        assertThat(transaction.getCategoryId()).isNull();
+        assertThat(request.getCategoryId()).isEqualTo(31L);
+        assertThat(transaction.getCategoryId()).isEqualTo(31L);
     }
 }

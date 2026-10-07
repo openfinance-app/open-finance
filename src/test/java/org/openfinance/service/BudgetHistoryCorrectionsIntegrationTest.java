@@ -31,7 +31,7 @@ class BudgetHistoryCorrectionsIntegrationTest extends AuditApiTestSupport {
 
     @Test
     void deletingRolloverSourceTriggersAlertsAndUndoRedoRestoresThem() throws Exception {
-        long category = category("Rollover food", "EXPENSE");
+        long category = category("Rollover food");
         LocalDate currentMonth = LocalDate.now().withDayOfMonth(1);
         JsonNode previous = budget(category, currentMonth.minusMonths(1));
         JsonNode current = budget(category, currentMonth);
@@ -94,8 +94,8 @@ class BudgetHistoryCorrectionsIntegrationTest extends AuditApiTestSupport {
     }
 
     private long suggestionLedger() throws Exception {
-        long food = category("Suggestion food", "EXPENSE");
-        long other = category("Other split", "EXPENSE");
+        long food = category("Suggestion food");
+        long other = category("Other split");
         long cash = account(owner);
         LocalDate older = LocalDate.now().minusDays(2);
         LocalDate newer = LocalDate.now().minusDays(1);
@@ -126,33 +126,29 @@ class BudgetHistoryCorrectionsIntegrationTest extends AuditApiTestSupport {
     }
 
     @Test
-    void incomeCategoryIsRejectedOnCreateAndUpdateWithoutChangingBudgetsOrHistory()
-            throws Exception {
-        long income = category("Salary", "INCOME");
-        long food = category("Expense food", "EXPENSE");
+    void anyOwnedCategoryCanBeBudgetedAndUpdated() throws Exception {
+        long shared = category("Salary");
+        long food = category("Food");
         JsonNode budget = budget(food, LocalDate.now().withDayOfMonth(1));
-        JsonNode beforeBudgets = json("GET", "/budgets", null, owner, 200);
-        JsonNode beforeHistory = budgetHistory();
-        Map<String, Object> invalid = budgetRequest(income, LocalDate.now().withDayOfMonth(1));
-        json("POST", "/budgets", invalid, owner, 400);
-        invalid.put("startDate", LocalDate.now().plusMonths(1).withDayOfMonth(1).toString());
-        invalid.put(
+        Map<String, Object> request = budgetRequest(shared, LocalDate.now().withDayOfMonth(1));
+        JsonNode created = json("POST", "/budgets", request, owner, 201);
+        assertThat(created.path("categoryId").asLong()).isEqualTo(shared);
+        assertThat(created.has("categoryType")).isFalse();
+        request.put("startDate", LocalDate.now().plusMonths(1).withDayOfMonth(1).toString());
+        request.put(
                 "endDate", LocalDate.now().plusMonths(2).withDayOfMonth(1).minusDays(1).toString());
-        invalid.put("amount", "200");
-        json("PUT", "/budgets/" + budget.path("id").asLong(), invalid, owner, 400);
-
-        JsonNode unchanged = json("GET", "/budgets", null, owner, 200);
-        assertThat(unchanged).hasSize(1);
-        assertThat(unchanged).isEqualTo(beforeBudgets);
-        assertThat(budgetHistory()).isEqualTo(beforeHistory);
+        request.put("amount", "200");
+        JsonNode updated =
+                json("PUT", "/budgets/" + budget.path("id").asLong(), request, owner, 200);
+        assertThat(updated.path("categoryId").asLong()).isEqualTo(shared);
+        assertThat(new BigDecimal(updated.path("amount").asText())).isEqualByComparingTo("200");
+        assertThat(json("GET", "/budgets", null, owner, 200)).hasSize(2);
         assertThat(json("GET", "/budgets/alerts/" + budget.path("id").asLong(), null, owner, 200))
                 .hasSize(3);
     }
 
-    private long category(String name, String type) throws Exception {
-        return json("POST", "/categories", data("name", name, "type", type), owner, 201)
-                .path("id")
-                .asLong();
+    private long category(String name) throws Exception {
+        return json("POST", "/categories", data("name", name), owner, 201).path("id").asLong();
     }
 
     private Map<String, Object> budgetRequest(long category, LocalDate start) {

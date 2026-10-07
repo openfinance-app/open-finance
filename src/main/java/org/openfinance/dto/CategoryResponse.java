@@ -5,7 +5,6 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.openfinance.entity.CategoryType;
 
 /**
  * Data Transfer Object for category responses.
@@ -37,13 +36,6 @@ public class CategoryResponse {
      * Stored, decrypted name for matching import categories independently of the display locale.
      */
     private String canonicalName;
-
-    /**
-     * Type of category: INCOME or EXPENSE.
-     *
-     * <p>Requirement REQ-2.4.1: Display category type
-     */
-    private CategoryType type;
 
     /**
      * ID of the parent category (null for root categories).

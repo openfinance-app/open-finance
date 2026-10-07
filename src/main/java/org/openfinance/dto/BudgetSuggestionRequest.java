@@ -72,8 +72,8 @@ public class BudgetSuggestionRequest {
     /**
      * Optional list of category IDs to restrict the analysis to.
      *
-     * <p>When {@code null} or empty the service analyses ALL EXPENSE categories that have at least
-     * one transaction in the lookback window.
+     * <p>When {@code null} or empty the service analyses ALL categories that have at least one
+     * transaction in the lookback window.
      */
     private List<Long> categoryIds;
 }

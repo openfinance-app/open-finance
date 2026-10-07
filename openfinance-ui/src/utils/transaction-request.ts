@@ -64,12 +64,10 @@ function findRepaymentCategoryId(
   nameKey: string,
   nameFallbacks: string[]
 ): number | undefined {
-  const byKey = categories.find(c => c.type === 'EXPENSE' && c.nameKey === nameKey);
+  const byKey = categories.find(c => c.nameKey === nameKey);
   if (byKey) return byKey.id;
   const lower = nameFallbacks.map(n => n.toLowerCase());
-  const byName = categories.find(
-    c => c.type === 'EXPENSE' && c.name && lower.includes(c.name.toLowerCase())
-  );
+  const byName = categories.find(c => c.name && lower.includes(c.name.toLowerCase()));
   return byName?.id;
 }
 

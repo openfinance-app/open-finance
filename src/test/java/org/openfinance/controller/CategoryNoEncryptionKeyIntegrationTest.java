@@ -12,7 +12,6 @@ import org.openfinance.config.TestDatabaseConfig;
 import org.openfinance.dto.CategoryRequest;
 import org.openfinance.dto.LoginRequest;
 import org.openfinance.dto.UserRegistrationRequest;
-import org.openfinance.entity.CategoryType;
 import org.openfinance.service.OperationHistoryService;
 import org.openfinance.service.UserService;
 import org.openfinance.util.DatabaseCleanupService;
@@ -79,8 +78,7 @@ class CategoryNoEncryptionKeyIntegrationTest {
     @Test
     void shouldRejectCategoriesWhenHeaderMissing() throws Exception {
         // Create a user category first (with key)
-        CategoryRequest userCat =
-                CategoryRequest.builder().name("Private Stuff").type(CategoryType.EXPENSE).build();
+        CategoryRequest userCat = CategoryRequest.builder().name("Private Stuff").build();
 
         mockMvc.perform(
                         post("/api/v1/categories")
@@ -106,8 +104,7 @@ class CategoryNoEncryptionKeyIntegrationTest {
     @Test
     void shouldReturn401WhenGettingUserCategoryWithoutHeader() throws Exception {
         // Create user category
-        CategoryRequest userCat =
-                CategoryRequest.builder().name("Hidden").type(CategoryType.EXPENSE).build();
+        CategoryRequest userCat = CategoryRequest.builder().name("Hidden").build();
 
         String resp =
                 mockMvc.perform(

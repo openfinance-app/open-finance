@@ -50,8 +50,8 @@ public class BudgetProgressResponse {
     /**
      * Amount spent so far in the current period.
      *
-     * <p>Sum of all transactions in this category between startDate and endDate. For EXPENSE
-     * categories, this is positive. For INCOME categories, this represents income received.
+     * <p>Net expenses less income in this category between startDate and endDate, including split
+     * allocations and excluding transfers. Credits can make this value negative.
      *
      * <p>Requirement REQ-2.9.1.2: Calculate spent amount from transactions
      */

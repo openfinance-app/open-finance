@@ -37,6 +37,7 @@ import { useUserSettings, useBaseCurrency } from '@/hooks/useUserSettings';
 import { DEFAULT_CURRENCY } from '@/utils/currency';
 import { formatDate as globalFormatDate } from '@/utils/date';
 import { translateCategoryName } from '@/utils/categoryTranslation';
+import { categoryPath, matchingCategories, type CategoryPathNode } from '@/utils/category-path';
 import type { ImportTransactionDTO } from '@/types/import';
 
 // ---------------------------------------------------------------------------
@@ -80,13 +81,11 @@ const INFO_PREFIXES = [
 /** Canonicalize supplied categories; preserve the backend's decision to abstain. */
 function autoAssignCategory(
   transaction: ImportTransactionDTO,
-  categories: Array<{ id: number; name: string }>
+  categories: CategoryPathNode[]
 ): string | null {
   if (transaction.category?.trim()) {
-    const exact = categories.find(
-      category => category.name.toLowerCase() === transaction.category!.trim().toLowerCase()
-    );
-    return exact?.name ?? transaction.category;
+    const matches = matchingCategories(categories, transaction.category);
+    return matches.length === 1 ? categoryPath(categories, matches[0].id) : transaction.category;
   }
 
   return null;
@@ -223,18 +222,14 @@ export function ImportReview({
     let mappingChanged = false;
 
     uniqueCategories.forEach(({ name }) => {
+      const matches = matchingCategories(categories, name);
       if (!(name in newMappings)) {
-        const match = categories.find(
-          c =>
-            c.name.toLowerCase() === name.toLowerCase() ||
-            c.canonicalName?.toLowerCase() === name.toLowerCase()
-        );
-        if (match) {
-          newMappings[name] = match.id;
+        if (matches.length === 1) {
+          newMappings[name] = matches[0].id;
           mappingChanged = true;
         }
       }
-      if (!(name in newMappings)) newToCreate.push(name);
+      if (!(name in newMappings) && matches.length === 0) newToCreate.push(name);
     });
 
     if (mappingChanged) onCategoryMappingsChange(newMappings);
@@ -294,11 +289,7 @@ export function ImportReview({
         if (!t.category) return false;
         return (
           categoryMappings[t.category] != null ||
-          categories.some(
-            c =>
-              c.name.toLowerCase() === t.category!.toLowerCase() ||
-              c.canonicalName?.toLowerCase() === t.category!.toLowerCase()
-          ) ||
+          matchingCategories(categories, t.category).length === 1 ||
           newCategoryNames.includes(t.category)
         );
       }).length,
@@ -404,7 +395,7 @@ export function ImportReview({
   };
 
   const categoryDisplayName = (name: string): string =>
-    categories.find(c => c.id === categoryMappings[name])?.name ??
+    categoryPath(categories, categoryMappings[name], 'display') ||
     translateCategoryName(tCategories, name);
 
   // -------------------------------------------------------------------------

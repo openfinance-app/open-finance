@@ -80,7 +80,6 @@ const mockSplits: TransactionSplitRequest[] = [
 interface RenderFormOptions {
   totalAmount?: number;
   currency?: string;
-  transactionType?: 'INCOME' | 'EXPENSE';
   splits?: TransactionSplitRequest[];
   onChange?: ReturnType<typeof vi.fn>;
 }
@@ -88,7 +87,6 @@ interface RenderFormOptions {
 function renderForm({
   totalAmount = 100,
   currency = 'EUR',
-  transactionType = 'EXPENSE',
   splits = mockSplits,
   onChange = vi.fn(),
 }: RenderFormOptions = {}) {
@@ -96,7 +94,6 @@ function renderForm({
     <SplitTransactionForm
       totalAmount={totalAmount}
       currency={currency}
-      transactionType={transactionType}
       splits={splits}
       onChange={onChange}
     />
@@ -539,7 +536,6 @@ describe('SplitTransactionForm', () => {
         <SplitTransactionForm
           totalAmount={100}
           currency="USD"
-          transactionType="EXPENSE"
           splits={[
             { categoryId: 10, amount: 33.33 },
             { categoryId: 20, amount: 33.33 },
@@ -578,7 +574,6 @@ describe('SplitTransactionForm', () => {
           currency="USD"
           accountCurrency="EUR"
           exchangeRate={0.9}
-          transactionType="EXPENSE"
           splits={[
             { categoryId: 10, amount: 60 },
             { categoryId: 20, amount: 40 },
@@ -599,7 +594,6 @@ describe('SplitTransactionForm', () => {
           currency="EUR"
           accountCurrency="EUR"
           exchangeRate={undefined}
-          transactionType="EXPENSE"
           splits={[
             { categoryId: 10, amount: 60 },
             { categoryId: 20, amount: 40 },

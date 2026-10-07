@@ -13,7 +13,6 @@ import org.junit.jupiter.api.Test;
 import org.openfinance.config.TestDatabaseConfig;
 import org.openfinance.dto.*;
 import org.openfinance.entity.Category;
-import org.openfinance.entity.CategoryType;
 import org.openfinance.entity.TransactionType;
 import org.openfinance.entity.User;
 import org.openfinance.repository.CategoryRepository;
@@ -164,7 +163,6 @@ class TransactionControllerTest {
                 Category.builder()
                         .userId(user.getId())
                         .name("Groceries")
-                        .type(CategoryType.EXPENSE)
                         .icon("🛒")
                         .color("#10B981")
                         .isSystem(true)
@@ -175,7 +173,6 @@ class TransactionControllerTest {
                 Category.builder()
                         .userId(user.getId())
                         .name("Salary")
-                        .type(CategoryType.INCOME)
                         .icon("💰")
                         .color("#10B981")
                         .isSystem(true)

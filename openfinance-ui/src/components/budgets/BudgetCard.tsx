@@ -70,7 +70,7 @@ export function BudgetCard({ budget, onEdit, onDelete, onViewDetail }: BudgetCar
   const { t } = useTranslation('budgets');
   const { t: tc } = useTranslation('common');
   const isOverBudget = budget.percentageSpent > 100;
-  const progressWidth = Math.min(budget.percentageSpent, 100);
+  const progressWidth = Math.max(0, Math.min(budget.percentageSpent, 100));
 
   return (
     <Card

@@ -6,7 +6,6 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.openfinance.entity.CategoryType;
 
 /**
  * DTO representing a category tree node for hierarchical display.
@@ -30,9 +29,6 @@ public class CategoryTreeNode {
     /** Display name of the category (decrypted for user categories). */
     private String name;
 
-    /** Category type - INCOME or EXPENSE. */
-    private CategoryType type;
-
     /** Icon identifier for UI display. */
     private String icon;
 
@@ -51,8 +47,12 @@ public class CategoryTreeNode {
     /** Number of transactions using this category. */
     private Long transactionCount;
 
-    /** Total amount of transactions in this category. */
+    /** Net incoming minus outgoing activity, including descendants, in currency. */
     private java.math.BigDecimal totalAmount;
+
+    private java.math.BigDecimal incomeAmount;
+    private java.math.BigDecimal expenseAmount;
+    private String currency;
 
     /** Whether this is a system-provided category. */
     private Boolean isSystem;

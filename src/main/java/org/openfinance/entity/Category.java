@@ -20,7 +20,7 @@ import lombok.*;
  * <ul>
  *   <li>User-specific categories (each user has their own set)
  *   <li>Hierarchical structure (parent/subcategories)
- *   <li>Type classification (INCOME or EXPENSE)
+ *   <li>Shared categories for incoming and outgoing transactions
  *   <li>Customizable with icons and colors for UI display
  *   <li>System-provided default categories can be created on user registration
  * </ul>
@@ -42,7 +42,6 @@ import lombok.*;
  * </ul>
  *
  * @see Transaction
- * @see CategoryType
  * @since 1.0
  */
 @Entity
@@ -50,7 +49,6 @@ import lombok.*;
         name = "categories",
         indexes = {
             @Index(name = "idx_category_user_id", columnList = "user_id"),
-            @Index(name = "idx_category_type", columnList = "category_type"),
             @Index(name = "idx_category_parent_id", columnList = "parent_id")
         })
 @Getter
@@ -90,23 +88,6 @@ public class Category {
     @Size(min = 1, max = 100, message = "{category.name.size}")
     @Column(name = "name", nullable = false, length = 100)
     private String name;
-
-    /**
-     * Type of category - INCOME or EXPENSE.
-     *
-     * <p>Determines which transactions can use this category:
-     *
-     * <ul>
-     *   <li>INCOME categories: For salary, dividends, gifts, etc.
-     *   <li>EXPENSE categories: For groceries, rent, utilities, etc.
-     * </ul>
-     *
-     * <p>Requirement REQ-2.10.1: Category type classification
-     */
-    @NotNull(message = "{category.type.notnull}")
-    @Enumerated(EnumType.STRING)
-    @Column(name = "category_type", nullable = false, length = 20)
-    private CategoryType type;
 
     /**
      * ID of the parent category for hierarchical structure (nullable for root categories).
@@ -246,8 +227,6 @@ public class Category {
                 + ", nameKey='"
                 + nameKey
                 + '\''
-                + ", type="
-                + type
                 + ", parentId="
                 + parentId
                 + ", icon='"

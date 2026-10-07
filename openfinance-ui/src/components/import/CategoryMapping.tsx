@@ -12,6 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { useCategories, useCreateCategory } from '@/hooks/useTransactions';
+import { categoryPath } from '@/utils/category-path';
 import type { ImportTransactionDTO } from '@/types/import';
 
 interface CategoryMappingProps {
@@ -27,7 +28,6 @@ export function CategoryMapping({
 }: CategoryMappingProps) {
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState('');
-  const [newCategoryType, setNewCategoryType] = useState<'INCOME' | 'EXPENSE'>('EXPENSE');
   const [creatingForSource, setCreatingForSource] = useState<string | null>(null);
   const { t } = useTranslation('import');
 
@@ -66,7 +66,6 @@ export function CategoryMapping({
     try {
       const result = await createCategory.mutateAsync({
         name: newCategoryName.trim(),
-        type: newCategoryType,
       });
 
       // Map to the newly created category
@@ -75,7 +74,6 @@ export function CategoryMapping({
       // Reset form
       setShowCreateDialog(false);
       setNewCategoryName('');
-      setNewCategoryType('EXPENSE');
       setCreatingForSource(null);
     } catch (error) {
       console.error('Failed to create category:', error);
@@ -93,7 +91,9 @@ export function CategoryMapping({
     if (!categoryId) return t('categoryMapping.notMapped');
 
     const category = categories.find(c => c.id === categoryId);
-    return category ? category.name : t('categoryMapping.unknown');
+    return category
+      ? categoryPath(categories, category.id, 'display')
+      : t('categoryMapping.unknown');
   };
 
   const unmappedCount = uniqueCategories.filter(uc => !categoryMappings[uc.category]).length;
@@ -158,7 +158,7 @@ export function CategoryMapping({
                       <option value="">{t('categoryMapping.selectCategory')}</option>
                       {categories.map(cat => (
                         <option key={cat.id} value={cat.id}>
-                          {cat.name} ({cat.type})
+                          {categoryPath(categories, cat.id, 'display')}
                         </option>
                       ))}
                       <option value="create">{t('categoryMapping.createNew')}</option>
@@ -229,19 +229,6 @@ export function CategoryMapping({
                 onChange={e => setNewCategoryName(e.target.value)}
                 placeholder={t('categoryMapping.enterCategoryName')}
               />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-text-primary mb-2">
-                {t('categoryMapping.type')}
-              </label>
-              <SimpleSelect
-                value={newCategoryType}
-                onChange={e => setNewCategoryType(e.target.value as 'INCOME' | 'EXPENSE')}
-              >
-                <option value="EXPENSE">{t('categoryMapping.expense')}</option>
-                <option value="INCOME">{t('categoryMapping.income')}</option>
-              </SimpleSelect>
             </div>
 
             <div className="flex justify-end space-x-3 pt-4">

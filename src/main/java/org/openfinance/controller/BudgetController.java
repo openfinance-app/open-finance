@@ -105,7 +105,6 @@ public class BudgetController {
      * "id": 1,
      * "categoryId": 1,
      * "categoryName": "Groceries",
-     * "categoryType": "EXPENSE",
      * "amount": 500.00,
      * "currency": "USD",
      * "period": "MONTHLY",
@@ -169,7 +168,6 @@ public class BudgetController {
      * "id": 1,
      * "categoryId": 1,
      * "categoryName": "Groceries",
-     * "categoryType": "EXPENSE",
      * "amount": 500.00,
      * "currency": "USD",
      * "period": "MONTHLY",
@@ -541,11 +539,11 @@ public class BudgetController {
     }
 
     /**
-     * Analyses past EXPENSE transactions and returns automatic budget suggestions.
+     * Analyses past net spending and returns automatic budget suggestions.
      *
      * <p>The service scans the user's transaction history over the specified lookback window,
-     * groups EXPENSE transactions by category, computes per-period averages, and flags categories
-     * that already have a budget for the requested period.
+     * groups income and expense transactions by category, computes per-period averages, and flags
+     * categories that already have a budget for the requested period.
      *
      * <p><strong>Request Headers:</strong>
      *

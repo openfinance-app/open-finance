@@ -123,7 +123,6 @@ class TransactionLiabilitySyncTest {
                                     org.openfinance.entity.Category.builder()
                                             .id(categoryId)
                                             .userId(1L)
-                                            .type(org.openfinance.entity.CategoryType.EXPENSE)
                                             .name("Loan costs")
                                             .build()));
         }

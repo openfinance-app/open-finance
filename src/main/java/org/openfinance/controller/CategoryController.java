@@ -2,13 +2,11 @@ package org.openfinance.controller;
 
 import jakarta.validation.Valid;
 import java.util.List;
-import java.util.Locale;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.openfinance.dto.CategoryRequest;
 import org.openfinance.dto.CategoryResponse;
 import org.openfinance.dto.CategoryTreeNode;
-import org.openfinance.entity.CategoryType;
 import org.openfinance.entity.User;
 import org.openfinance.service.CategoryService;
 import org.springframework.context.i18n.LocaleContextHolder;
@@ -136,25 +134,16 @@ public class CategoryController {
      * <p>Returns both system-provided categories and the user's custom categories. If the {@code
      * X-Encryption-Session} header is missing, only system categories will be returned.
      *
-     * @param type optional category type filter (INCOME or EXPENSE)
      * @param encodedKey Base64-encoded encryption key from header
      * @param authentication Spring Security authentication object
      * @return HTTP 200 OK with list of CategoryResponse (may be empty)
      */
     @GetMapping
-    public ResponseEntity<List<CategoryResponse>> getCategories(
-            @RequestParam(required = false) CategoryType type, Authentication authentication) {
+    public ResponseEntity<List<CategoryResponse>> getCategories(Authentication authentication) {
 
-        log.debug("REST request to get all categories for current user. Type filter: {}", type);
         User user = (User) authentication.getPrincipal();
-        List<CategoryResponse> categories;
-        Locale locale = LocaleContextHolder.getLocale();
-
-        if (type != null) {
-            categories = categoryService.getCategoriesByType(user.getId(), type, locale);
-        } else {
-            categories = categoryService.getAllCategories(user.getId(), locale);
-        }
+        List<CategoryResponse> categories =
+                categoryService.getAllCategories(user.getId(), LocaleContextHolder.getLocale());
 
         return ResponseEntity.ok(categories);
     }

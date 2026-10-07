@@ -27,7 +27,6 @@ import org.openfinance.dto.BudgetSuggestion;
 import org.openfinance.entity.Budget;
 import org.openfinance.entity.BudgetPeriod;
 import org.openfinance.entity.Category;
-import org.openfinance.entity.CategoryType;
 import org.openfinance.entity.Transaction;
 import org.openfinance.entity.TransactionSplit;
 import org.openfinance.entity.TransactionType;
@@ -61,12 +60,98 @@ class BudgetAuditRegressionTest {
     @InjectMocks private BudgetService service;
 
     private Category groceries() {
-        return Category.builder()
-                .id(4L)
-                .userId(9L)
-                .name("Groceries")
-                .type(CategoryType.EXPENSE)
-                .isSystem(true)
+        return Category.builder().id(4L).userId(9L).name("Groceries").isSystem(true).build();
+    }
+
+    @ParameterizedTest
+    @org.junit.jupiter.params.provider.CsvSource({"30,40,60", "130,-60,160"})
+    void refundsAndIncomingSplitsReduceBudgetConsumption(
+            String refund, String spent, String remaining) {
+        LocalDate start = LocalDate.of(2026, 10, 1);
+        LocalDate end = LocalDate.of(2026, 10, 31);
+        Budget budget =
+                Budget.builder()
+                        .id(7L)
+                        .userId(9L)
+                        .categoryId(4L)
+                        .amount("100")
+                        .currency("EUR")
+                        .period(BudgetPeriod.MONTHLY)
+                        .startDate(start)
+                        .endDate(end)
+                        .build();
+        when(budgets.findByIdAndUserId(7L, 9L)).thenReturn(Optional.of(budget));
+        when(categories.findByIdAndUserId(4L, 9L)).thenReturn(Optional.of(groceries()));
+        Transaction expense = activity(TransactionType.EXPENSE, "100", start);
+        Transaction credit = activity(TransactionType.INCOME, refund, start);
+        Transaction outgoing = activity(TransactionType.EXPENSE, "20", start);
+        Transaction incoming = activity(TransactionType.INCOME, "50", start);
+        Transaction transfer = activity(TransactionType.INCOME, "900", start);
+        transfer.setTransferId("internal");
+        when(transactions.findByCategoryIdInAndDateRange(List.of(4L), start, end, 9L))
+                .thenReturn(List.of(expense, credit, transfer));
+        when(splits.findByCategoryIdInAndDateRange(List.of(4L), start, end, 9L))
+                .thenReturn(
+                        List.of(
+                                TransactionSplit.builder()
+                                        .transaction(outgoing)
+                                        .amount(new BigDecimal("20"))
+                                        .build(),
+                                TransactionSplit.builder()
+                                        .transaction(incoming)
+                                        .amount(new BigDecimal("50"))
+                                        .build()));
+
+        org.openfinance.dto.BudgetProgressResponse progress =
+                service.calculateBudgetProgress(7L, 9L);
+        assertThat(progress.getSpent()).isEqualByComparingTo(spent);
+        assertThat(progress.getRemaining()).isEqualByComparingTo(remaining);
+        assertThat(progress.getStatus()).isEqualTo("ON_TRACK");
+    }
+
+    @Test
+    void netCreditsIncreaseTheAllowanceCarriedToTheNextPeriod() {
+        LocalDate start = LocalDate.of(2026, 10, 1);
+        Budget prior =
+                Budget.builder()
+                        .id(6L)
+                        .userId(9L)
+                        .categoryId(4L)
+                        .amount("100")
+                        .currency("EUR")
+                        .period(BudgetPeriod.MONTHLY)
+                        .startDate(start.minusMonths(1))
+                        .endDate(start.minusDays(1))
+                        .rollover(true)
+                        .build();
+        Budget current =
+                Budget.builder()
+                        .id(7L)
+                        .userId(9L)
+                        .categoryId(4L)
+                        .amount("100")
+                        .currency("EUR")
+                        .period(BudgetPeriod.MONTHLY)
+                        .startDate(start)
+                        .endDate(start.plusMonths(1).minusDays(1))
+                        .rollover(true)
+                        .build();
+        when(budgets.findByIdAndUserId(7L, 9L)).thenReturn(Optional.of(current));
+        when(categories.findByIdAndUserId(4L, 9L)).thenReturn(Optional.of(groceries()));
+        when(budgets.findByUserIdAndCategoryId(9L, 4L)).thenReturn(List.of(prior, current));
+        when(transactions.findByCategoryIdInAndDateRange(
+                        List.of(4L), prior.getStartDate(), prior.getEndDate(), 9L))
+                .thenReturn(List.of(activity(TransactionType.INCOME, "30", prior.getStartDate())));
+        assertThat(service.calculateBudgetProgress(7L, 9L).getRemaining())
+                .isEqualByComparingTo("230");
+    }
+
+    private Transaction activity(TransactionType direction, String amount, LocalDate date) {
+        return Transaction.builder()
+                .type(direction)
+                .amount(new BigDecimal(amount))
+                .currency("EUR")
+                .date(date)
                 .build();
     }
 
@@ -214,8 +299,7 @@ class BudgetAuditRegressionTest {
                         .categoryId(4L)
                         .amount(new BigDecimal("50"))
                         .build();
-        when(categories.findByUserIdAndType(9L, CategoryType.EXPENSE))
-                .thenReturn(List.of(category));
+        when(categories.findByUserId(9L)).thenReturn(List.of(category));
         when(defaultCurrency.resolveForUser(9L)).thenReturn("EUR");
         when(transactions.findByCategoryIdInAndDateRange(anyList(), any(), any(), eq(9L)))
                 .thenAnswer(

@@ -180,12 +180,12 @@ export function BudgetForm({
                 onValueChange={value => field.onChange(value ?? 0)}
                 placeholder={t('form.categoryPlaceholder')}
                 searchPlaceholder={t('form.categorySearchPlaceholder')}
-                type="EXPENSE"
                 allowNone={false}
                 className="w-full"
               />
             )}
           />
+          <p className="mt-1 text-xs text-text-secondary">{t('form.netSpendingHelp')}</p>
           {errors.categoryId && (
             <p className="mt-1 text-sm text-error">{errors.categoryId.message}</p>
           )}

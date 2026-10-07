@@ -339,8 +339,8 @@ class DashboardControllerIntegrationTest {
     void shouldGetSpendingByCategoryWithDefaultPeriod() throws Exception {
         // Create test account, categories, and transactions
         Account account = createAccount("Checking", AccountType.CHECKING, new BigDecimal("10000"));
-        Category food = createCategory("Food", CategoryType.EXPENSE);
-        Category transport = createCategory("Transport", CategoryType.EXPENSE);
+        Category food = createCategory("Food");
+        Category transport = createCategory("Transport");
 
         createTransaction(
                 account.getId(),
@@ -431,13 +431,12 @@ class DashboardControllerIntegrationTest {
         return accountRepository.save(account);
     }
 
-    private Category createCategory(String name, CategoryType type) {
+    private Category createCategory(String name) {
         String encryptedName = encryptionService.encrypt(name, secretKey);
         Category category =
                 Category.builder()
                         .userId(testUser.getId())
                         .name(encryptedName)
-                        .type(type)
                         .icon("icon")
                         .color("#000000")
                         .isSystem(false)

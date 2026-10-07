@@ -73,7 +73,8 @@
       "QUARTERLY": "Quarterly",
       "YEARLY": "Yearly",
       "UNKNOWN": "Unknown"
-    }
+    },
+    "netSpendingHelp": "Incoming amounts in this category reduce budget spending."
   },
   "summary": {
     "title": "Current Budget Overview",
@@ -156,7 +157,7 @@
   "card": {
     "budget": "Budget",
     "budgeted": "Budgeted",
-    "spent": "Spent",
+    "spent": "Net spent",
     "remaining": "Remaining",
     "progress": "Progress",
     "overBudgetBy": "Over budget by",

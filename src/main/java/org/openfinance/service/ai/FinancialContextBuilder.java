@@ -239,23 +239,48 @@ public class FinancialContextBuilder {
                                                         TransactionSplit::getTransactionId));
                 for (Category category : matching) {
                     Set<Long> categoryIds = descendants(category, categories);
-                    boolean incomeCategory =
-                            category.getType() == org.openfinance.entity.CategoryType.INCOME;
-                    fact(
-                            selected,
-                            "requested.category." + category.getId(),
-                            incomeCategory ? "categoryIncome" : "categoryExpenses",
+                    BigDecimal income =
                             categoryTotal(
                                     transactions,
                                     splits,
                                     categoryIds,
-                                    incomeCategory
-                                            ? TransactionType.INCOME
-                                            : TransactionType.EXPENSE,
-                                    currency),
+                                    TransactionType.INCOME,
+                                    currency);
+                    BigDecimal expenses =
+                            categoryTotal(
+                                    transactions,
+                                    splits,
+                                    categoryIds,
+                                    TransactionType.EXPENSE,
+                                    currency);
+                    String id = "requested.category." + category.getId();
+                    String name = categoryName(category, locale);
+                    fact(
+                            selected,
+                            id + ".income",
+                            "categoryIncome",
+                            income,
                             currency,
                             period,
-                            categoryName(category, locale),
+                            name,
+                            locale);
+                    fact(
+                            selected,
+                            id + ".expenses",
+                            "categoryExpenses",
+                            expenses,
+                            currency,
+                            period,
+                            name,
+                            locale);
+                    fact(
+                            selected,
+                            id + ".net",
+                            "categoryNet",
+                            income.subtract(expenses),
+                            currency,
+                            period,
+                            name,
                             locale);
                 }
             } else {

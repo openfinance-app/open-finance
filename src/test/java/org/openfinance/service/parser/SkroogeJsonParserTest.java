@@ -717,9 +717,7 @@ class SkroogeJsonParserTest {
                 .filteredOn(category -> category.getName().equals("Interest income"))
                 .singleElement()
                 .satisfies(
-                        category ->
-                                assertThat(category.getType())
-                                        .isEqualTo(org.openfinance.entity.CategoryType.INCOME));
+                        category -> assertThat(category.getFullName()).contains("Interest income"));
     }
 
     @Test

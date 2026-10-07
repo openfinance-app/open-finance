@@ -195,12 +195,13 @@ export default function CashflowSankeyCard({
   );
 
   const navToFlow = useCallback(
-    (node: ICashflowSankeyNode) => {
+    (node: ICashflowSankeyNode, type: 'INCOME' | 'EXPENSE') => {
       if (node.categoryId != null) {
         navigate(
           buildTransactionsLink({
             categoryId: node.categoryId,
             excludeTransfers: true,
+            type,
             dateRange: navDateRange,
           })
         );
@@ -209,6 +210,7 @@ export default function CashflowSankeyCard({
           buildTransactionsLink({
             noCategory: true,
             excludeTransfers: true,
+            type,
             dateRange: navDateRange,
           })
         );
@@ -500,7 +502,7 @@ export default function CashflowSankeyCard({
                 fill={`url(#${gradId}ig${i})`}
                 className="cursor-pointer"
                 onClick={() => {
-                  if (!n.isOther) navToFlow(n);
+                  if (!n.isOther) navToFlow(n, 'INCOME');
                 }}
               />
             ))}
@@ -513,7 +515,7 @@ export default function CashflowSankeyCard({
                 fill={`url(#${gradId}eg${i})`}
                 className="cursor-pointer"
                 onClick={() => {
-                  if (!n.isOther) navToFlow(n);
+                  if (!n.isOther) navToFlow(n, 'EXPENSE');
                 }}
               />
             ))}
@@ -531,12 +533,12 @@ export default function CashflowSankeyCard({
                     n.isOther ? undefined : t('cashflowSankey.viewFlow', { name: n.name })
                   }
                   onClick={() => {
-                    if (!n.isOther) navToFlow(n);
+                    if (!n.isOther) navToFlow(n, 'INCOME');
                   }}
                   onKeyDown={e => {
                     if (e.key === 'Enter' || e.key === ' ') {
                       e.preventDefault();
-                      if (!n.isOther) navToFlow(n);
+                      if (!n.isOther) navToFlow(n, 'INCOME');
                     }
                   }}
                 >
@@ -595,12 +597,12 @@ export default function CashflowSankeyCard({
                     n.isOther ? undefined : t('cashflowSankey.viewFlow', { name: n.name })
                   }
                   onClick={() => {
-                    if (!n.isOther) navToFlow(n);
+                    if (!n.isOther) navToFlow(n, 'EXPENSE');
                   }}
                   onKeyDown={e => {
                     if (e.key === 'Enter' || e.key === ' ') {
                       e.preventDefault();
-                      if (!n.isOther) navToFlow(n);
+                      if (!n.isOther) navToFlow(n, 'EXPENSE');
                     }
                   }}
                 >

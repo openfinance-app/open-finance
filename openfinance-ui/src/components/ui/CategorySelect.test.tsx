@@ -48,7 +48,7 @@ const mockUseCategoryTree = vi.mocked(useTransactionsModule.useCategoryTree);
 const mockExpenseRoot: CategoryTreeNode = {
   id: 1,
   name: 'Shopping',
-  type: 'EXPENSE',
+
   icon: '🛒',
   color: '#10b981',
   mccCode: '5411',
@@ -57,7 +57,7 @@ const mockExpenseRoot: CategoryTreeNode = {
     {
       id: 3,
       name: 'Groceries',
-      type: 'EXPENSE',
+
       icon: '🥦',
       color: '#22c55e',
       mccCode: '5411',
@@ -76,7 +76,7 @@ const mockExpenseRoot: CategoryTreeNode = {
 const mockIncomeRoot: CategoryTreeNode = {
   id: 2,
   name: 'Salary',
-  type: 'INCOME',
+
   icon: '💼',
   color: '#3b82f6',
   mccCode: undefined,
@@ -174,35 +174,6 @@ describe('CategorySelect', () => {
 
     it('renders without crashing when categories list is empty', () => {
       mockUseCategoryTree.mockReturnValue(loadedResult([]));
-
-      renderSelect();
-
-      expect(screen.getByRole('combobox')).toBeInTheDocument();
-    });
-  });
-
-  // ── Type Filtering ────────────────────────────────────────────────────────
-
-  describe('Type Filtering', () => {
-    it('does not throw and renders trigger when type is EXPENSE', () => {
-      // Only EXPENSE categories should appear in the dropdown
-      mockUseCategoryTree.mockReturnValue(loadedResult());
-
-      renderSelect({ type: 'EXPENSE' });
-
-      expect(screen.getByRole('combobox')).toBeInTheDocument();
-    });
-
-    it('does not throw and renders trigger when type is INCOME', () => {
-      mockUseCategoryTree.mockReturnValue(loadedResult());
-
-      renderSelect({ type: 'INCOME' });
-
-      expect(screen.getByRole('combobox')).toBeInTheDocument();
-    });
-
-    it('renders trigger without type filter when type prop is omitted', () => {
-      mockUseCategoryTree.mockReturnValue(loadedResult());
 
       renderSelect();
 
@@ -367,37 +338,33 @@ describe('CategorySelect', () => {
       });
     });
 
-    it('shows only EXPENSE categories when type=EXPENSE filter is applied', async () => {
+    it('shows categories for purchases and refunds together', async () => {
       mockUseCategoryTree.mockReturnValue(loadedResult());
 
-      renderSelect({ type: 'EXPENSE' });
+      renderSelect();
 
       const trigger = screen.getByRole('combobox');
       fireEvent.click(trigger);
 
       await waitFor(() => {
-        // EXPENSE categories should appear
         expect(screen.getByText('Shopping')).toBeInTheDocument();
         expect(screen.getByText('Groceries')).toBeInTheDocument();
-        // INCOME category should be filtered out
-        expect(screen.queryByText('Salary')).not.toBeInTheDocument();
+        expect(screen.getByText('Salary')).toBeInTheDocument();
       });
     });
 
-    it('shows only INCOME categories when type=INCOME filter is applied', async () => {
+    it('keeps the full hierarchy available', async () => {
       mockUseCategoryTree.mockReturnValue(loadedResult());
 
-      renderSelect({ type: 'INCOME' });
+      renderSelect();
 
       const trigger = screen.getByRole('combobox');
       fireEvent.click(trigger);
 
       await waitFor(() => {
-        // INCOME category should appear
         expect(screen.getByText('Salary')).toBeInTheDocument();
-        // EXPENSE categories should be filtered out
-        expect(screen.queryByText('Shopping')).not.toBeInTheDocument();
-        expect(screen.queryByText('Groceries')).not.toBeInTheDocument();
+        expect(screen.getByText('Shopping')).toBeInTheDocument();
+        expect(screen.getByText('Groceries')).toBeInTheDocument();
       });
     });
 
@@ -509,7 +476,7 @@ function makeNode(name: string): { category: CategoryTreeNode } {
     category: {
       id: 1,
       name,
-      type: 'EXPENSE',
+
       color: '#000',
       icon: null,
       mccCode: null,

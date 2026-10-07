@@ -111,7 +111,6 @@ class FinancialContextBuilderTest {
                         .id(41L)
                         .name("Groceries")
                         .nameKey("category.groceries")
-                        .type(org.openfinance.entity.CategoryType.EXPENSE)
                         .build();
         when(categoryRepository.findByUserId(1L)).thenReturn(List.of(groceries));
         Transaction purchase = tx("200", "EUR", TransactionType.EXPENSE);
@@ -127,8 +126,13 @@ class FinancialContextBuilderTest {
                         Locale.FRENCH,
                         "Combien ai-je dépensé en courses en septembre 2026 ?",
                         "");
-        assertThat(facts(context)).containsOnlyKeys("requested.category.41");
-        assertThat(facts(context).get("requested.category.41").amount()).isEqualTo("200.00");
+        assertThat(facts(context))
+                .containsOnlyKeys(
+                        "requested.category.41.income",
+                        "requested.category.41.expenses",
+                        "requested.category.41.net");
+        assertThat(facts(context).get("requested.category.41.expenses").amount())
+                .isEqualTo("200.00");
     }
 
     @Test
@@ -138,14 +142,10 @@ class FinancialContextBuilderTest {
                         .id(41L)
                         .name("Groceries")
                         .nameKey("category.groceries")
-                        .type(org.openfinance.entity.CategoryType.EXPENSE)
                         .build();
         org.openfinance.entity.Category courses =
-                org.openfinance.entity.Category.builder()
-                        .id(42L)
-                        .name("Courses")
-                        .type(org.openfinance.entity.CategoryType.EXPENSE)
-                        .build();
+                org.openfinance.entity.Category.builder().id(42L).name("Courses").build();
+
         when(categoryRepository.findByUserId(1L)).thenReturn(List.of(groceries, courses));
         Transaction grocery = tx("200", "EUR", TransactionType.EXPENSE);
         grocery.setCategoryId(41L);
@@ -161,8 +161,12 @@ class FinancialContextBuilderTest {
                                 Locale.FRENCH,
                                 "Combien ai-je dépensé en courses en septembre 2026 ?",
                                 ""));
-        assertThat(selected).containsOnlyKeys("requested.category.42");
-        assertThat(selected.get("requested.category.42").amount()).isEqualTo("35.00");
+        assertThat(selected)
+                .containsOnlyKeys(
+                        "requested.category.42.income",
+                        "requested.category.42.expenses",
+                        "requested.category.42.net");
+        assertThat(selected.get("requested.category.42.expenses").amount()).isEqualTo("35.00");
     }
 
     @BeforeEach
@@ -321,20 +325,21 @@ class FinancialContextBuilderTest {
                                 Locale.ENGLISH,
                                 "How much did I spend on Food in September 2025?",
                                 "[VERIFIED_FINANCIAL_DATA]"));
-        assertThat(selected).containsOnlyKeys("requested.category.40");
-        assertThat(selected.get("requested.category.40").amount()).isEqualTo("135.00");
-        assertThat(selected.get("requested.category.40").period())
+        assertThat(selected)
+                .containsOnlyKeys(
+                        "requested.category.40.income",
+                        "requested.category.40.expenses",
+                        "requested.category.40.net");
+        assertThat(selected.get("requested.category.40.expenses").amount()).isEqualTo("135.00");
+        assertThat(selected.get("requested.category.40.expenses").period())
                 .isEqualTo("2025-09-01 / 2025-09-30");
     }
 
     @Test
     void categoryIncomeDoesNotUseExpenseTotals() {
         org.openfinance.entity.Category salary =
-                org.openfinance.entity.Category.builder()
-                        .id(51L)
-                        .name("Salary")
-                        .type(org.openfinance.entity.CategoryType.INCOME)
-                        .build();
+                org.openfinance.entity.Category.builder().id(51L).name("Salary").build();
+
         when(categoryRepository.findByUserId(1L)).thenReturn(List.of(salary));
         Transaction income = tx("2500", "EUR", TransactionType.INCOME);
         income.setCategoryId(51L);
@@ -350,7 +355,7 @@ class FinancialContextBuilderTest {
                                         Locale.ENGLISH,
                                         "What was my Salary income in September 2025?",
                                         "[VERIFIED_FINANCIAL_DATA]"))
-                        .get("requested.category.51");
+                        .get("requested.category.51.income");
         assertThat(fact.amount()).isEqualTo("2500.00");
         assertThat(fact.label()).isEqualTo("Category income");
     }
@@ -358,17 +363,11 @@ class FinancialContextBuilderTest {
     @Test
     void allocatesSplitsBeforeCategoryFilteringAndConvertsAtTheTransactionDate() {
         org.openfinance.entity.Category groceries =
-                org.openfinance.entity.Category.builder()
-                        .id(41L)
-                        .name("Groceries")
-                        .type(org.openfinance.entity.CategoryType.EXPENSE)
-                        .build();
+                org.openfinance.entity.Category.builder().id(41L).name("Groceries").build();
+
         org.openfinance.entity.Category utilities =
-                org.openfinance.entity.Category.builder()
-                        .id(42L)
-                        .name("Utilities")
-                        .type(org.openfinance.entity.CategoryType.EXPENSE)
-                        .build();
+                org.openfinance.entity.Category.builder().id(42L).name("Utilities").build();
+
         when(categoryRepository.findByUserId(1L)).thenReturn(List.of(groceries, utilities));
         Transaction ordinary = tx("72.35", "EUR", TransactionType.EXPENSE);
         ordinary.setId(10L);
@@ -401,8 +400,8 @@ class FinancialContextBuilderTest {
                                 Locale.ENGLISH,
                                 "How much did I spend on Groceries and Utilities in September 2025?",
                                 ""));
-        assertThat(selected.get("requested.category.41").amount()).isEqualTo("102.35");
-        assertThat(selected.get("requested.category.42").amount()).isEqualTo("20.00");
+        assertThat(selected.get("requested.category.41.expenses").amount()).isEqualTo("102.35");
+        assertThat(selected.get("requested.category.42.expenses").amount()).isEqualTo("20.00");
         verify(exchangeRateService).convert(new BigDecimal("60"), "USD", "EUR", split.getDate());
     }
 
@@ -449,11 +448,8 @@ class FinancialContextBuilderTest {
     @Test
     void historySelectsTheCategoryWithTheNewPeriodAndUnresolvedPeriodsReadNoLedger() {
         org.openfinance.entity.Category groceries =
-                org.openfinance.entity.Category.builder()
-                        .id(41L)
-                        .name("Groceries")
-                        .type(org.openfinance.entity.CategoryType.EXPENSE)
-                        .build();
+                org.openfinance.entity.Category.builder().id(41L).name("Groceries").build();
+
         when(categoryRepository.findByUserId(1L)).thenReturn(List.of(groceries));
         Transaction purchase = tx("72.35", "EUR", TransactionType.EXPENSE);
         purchase.setCategoryId(41L);
@@ -469,7 +465,7 @@ class FinancialContextBuilderTest {
                                         "",
                                         List.of(
                                                 "How much did I spend on Groceries in September 2025?")))
-                        .get("requested.category.41");
+                        .get("requested.category.41.expenses");
         assertThat(fact.amount()).isEqualTo("72.35");
         assertThat(fact.period()).isEqualTo("2025-10-01 / 2025-10-31");
         clearInvocations(transactionRepository);

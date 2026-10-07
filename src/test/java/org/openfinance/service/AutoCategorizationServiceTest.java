@@ -17,7 +17,6 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.openfinance.dto.ImportedTransaction;
 import org.openfinance.entity.Category;
-import org.openfinance.entity.CategoryType;
 import org.openfinance.entity.Transaction;
 import org.openfinance.repository.CategoryRepository;
 import org.openfinance.repository.TransactionRepository;
@@ -41,11 +40,9 @@ class AutoCategorizationServiceTest {
     @BeforeEach
     void setUp() {
         // Setup mock categories
-        shoppingCategory =
-                Category.builder().id(1L).name("Shopping").type(CategoryType.EXPENSE).build();
+        shoppingCategory = Category.builder().id(1L).name("Shopping").build();
 
-        fastFoodCategory =
-                Category.builder().id(2L).name("Fast Food").type(CategoryType.EXPENSE).build();
+        fastFoodCategory = Category.builder().id(2L).name("Fast Food").build();
 
         // Setup mock historical transactions
         historicAmazon =

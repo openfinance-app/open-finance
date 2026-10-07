@@ -27,7 +27,6 @@ import org.openfinance.dto.ImportedTransaction;
 import org.openfinance.dto.SkroogeImportMetadata;
 import org.openfinance.dto.SkroogeImportParseResult;
 import org.openfinance.entity.AccountType;
-import org.openfinance.entity.CategoryType;
 import org.springframework.stereotype.Component;
 
 @Slf4j
@@ -73,39 +72,13 @@ public class SkroogeJsonParser {
                     "ADEUDO",
                     "TRANSFERENCIA");
 
-    /**
-     * Accent-normalised substrings identifying a transfer category, across the languages Skrooge is
-     * commonly used in (fr/en/de/es/it/pt). This is only a <em>soft</em> signal: transfers are
-     * detected structurally (a balanced two-operation group on currency units moving between two
-     * distinct accounts), so uncategorised or differently-named transfers are still recognised. The
-     * keyword additionally rescues the rare same-account group Skrooge labelled as a transfer.
-     */
     private static final List<String> TRANSFER_CATEGORY_KEYWORDS =
             List.of(
                     "transfer", // English (French "transfert" matches as prefix)
                     "virement", // French
                     "uberweisung", // German (normalised from "Überweisung")
                     "transferencia", // Spanish / Portuguese
-                    "trasferimento"); // Italian
-
-    /**
-     * Accent-normalised substrings suggesting an income category when no signed total is available
-     * to infer the type from.
-     */
-    private static final List<String> INCOME_CATEGORY_KEYWORDS =
-            List.of(
-                    "revenu", // French "revenu(s)"
-                    "salaire", // French
-                    "inter", // "intérêts" (fr) and "interest" (en) — shared prefix
-                    "cadeaux recus", // French "cadeaux reçus" (normalised)
-                    "revente",
-                    "plus-values",
-                    "income",
-                    "salary",
-                    "dividend",
-                    "gift",
-                    "refund",
-                    "capital gain");
+                    "trasferimento");
 
     private final ObjectMapper objectMapper;
 
@@ -172,11 +145,7 @@ public class SkroogeJsonParser {
                                         referencedAccountIds,
                                         accountCurrencyBySourceId,
                                         currencyRatesToPrimary))
-                        .categories(
-                                buildCategories(
-                                        categoriesById,
-                                        subOperationsByOperationId,
-                                        referencedCategoryIds))
+                        .categories(buildCategories(categoriesById, referencedCategoryIds))
                         .build();
 
         List<ImportedTransaction> transactions = new ArrayList<>();
@@ -628,11 +597,7 @@ public class SkroogeJsonParser {
     }
 
     private List<SkroogeImportMetadata.SkroogeCategory> buildCategories(
-            Map<Long, JsonNode> categoriesById,
-            Map<Long, List<JsonNode>> subOperationsByOperationId,
-            Set<Long> referencedCategoryIds) {
-        Map<Long, CategoryType> inferredTypes =
-                inferCategoryTypes(categoriesById, subOperationsByOperationId);
+            Map<Long, JsonNode> categoriesById, Set<Long> referencedCategoryIds) {
         List<SkroogeImportMetadata.SkroogeCategory> categories =
                 referencedCategoryIds.stream()
                         .map(categoriesById::get)
@@ -645,10 +610,6 @@ public class SkroogeJsonParser {
                                                         longValue(category, "rd_category_id"))
                                                 .name(textValue(category, "t_name"))
                                                 .fullName(textValue(category, "t_fullname"))
-                                                .type(
-                                                        inferredTypes.getOrDefault(
-                                                                longValue(category, "id"),
-                                                                CategoryType.EXPENSE))
                                                 .build())
                         .sorted(
                                 Comparator.comparing(
@@ -671,43 +632,6 @@ public class SkroogeJsonParser {
             parentId = parent != null ? longValue(parent, "rd_category_id") : null;
         }
         return depth;
-    }
-
-    private Map<Long, CategoryType> inferCategoryTypes(
-            Map<Long, JsonNode> categoriesById,
-            Map<Long, List<JsonNode>> subOperationsByOperationId) {
-        Map<Long, BigDecimal> totals = new HashMap<>();
-        for (List<JsonNode> subOperations : subOperationsByOperationId.values()) {
-            for (JsonNode subOperation : subOperations) {
-                Long categoryId = longValue(subOperation, "r_category_id");
-                if (categoryId == null || categoryId == 0L) {
-                    continue;
-                }
-                totals.merge(categoryId, decimalValue(subOperation, "f_value"), BigDecimal::add);
-            }
-        }
-
-        Map<Long, CategoryType> types = new HashMap<>();
-        for (Map.Entry<Long, JsonNode> entry : categoriesById.entrySet()) {
-            Long categoryId = entry.getKey();
-            BigDecimal total = totals.get(categoryId);
-            if (total != null && total.compareTo(BigDecimal.ZERO) > 0) {
-                types.put(categoryId, CategoryType.INCOME);
-                continue;
-            }
-            if (total != null && total.compareTo(BigDecimal.ZERO) < 0) {
-                types.put(categoryId, CategoryType.EXPENSE);
-                continue;
-            }
-
-            String fullName = normalizeKeyword(textValue(entry.getValue(), "t_fullname"));
-            if (containsAny(fullName, INCOME_CATEGORY_KEYWORDS)) {
-                types.put(categoryId, CategoryType.INCOME);
-            } else {
-                types.put(categoryId, CategoryType.EXPENSE);
-            }
-        }
-        return types;
     }
 
     private boolean containsAny(String text, Collection<String> fragments) {

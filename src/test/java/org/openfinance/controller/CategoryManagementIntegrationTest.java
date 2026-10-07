@@ -18,7 +18,6 @@ import org.openfinance.dto.LoginRequest;
 import org.openfinance.dto.TransactionRequest;
 import org.openfinance.dto.UserRegistrationRequest;
 import org.openfinance.entity.AccountType;
-import org.openfinance.entity.CategoryType;
 import org.openfinance.entity.TransactionType;
 import org.openfinance.repository.UserRepository;
 import org.openfinance.security.KeyManagementService;
@@ -118,11 +117,10 @@ class CategoryManagementIntegrationTest {
 
     // ── Helpers ───────────────────────────────────────────────────────────────
 
-    private Long createCategory(String name, CategoryType type, Long parentId) throws Exception {
+    private Long createCategory(String name, Long parentId) throws Exception {
         CategoryRequest req =
                 CategoryRequest.builder()
                         .name(name)
-                        .type(type)
                         .parentId(parentId)
                         .icon("🛒")
                         .color("#10b981")
@@ -149,12 +147,7 @@ class CategoryManagementIntegrationTest {
     @Test
     void shouldCreateRootExpenseCategory() throws Exception {
         CategoryRequest req =
-                CategoryRequest.builder()
-                        .name("Entertainment")
-                        .type(CategoryType.EXPENSE)
-                        .icon("🎬")
-                        .color("#6366f1")
-                        .build();
+                CategoryRequest.builder().name("Entertainment").icon("🎬").color("#6366f1").build();
 
         mockMvc.perform(
                         post("/api/v1/categories")
@@ -165,7 +158,7 @@ class CategoryManagementIntegrationTest {
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.id").isNumber())
                 .andExpect(jsonPath("$.name").value("Entertainment"))
-                .andExpect(jsonPath("$.type").value("EXPENSE"))
+                .andExpect(jsonPath("$.type").doesNotExist())
                 .andExpect(jsonPath("$.isSystem").value(false))
                 .andExpect(jsonPath("$.parentId").doesNotExist());
     }
@@ -173,11 +166,7 @@ class CategoryManagementIntegrationTest {
     /** POST /api/v1/categories - Create a root INCOME category. Requirement REQ-2.4.1 */
     @Test
     void shouldCreateRootIncomeCategory() throws Exception {
-        CategoryRequest req =
-                CategoryRequest.builder()
-                        .name("Freelance Income")
-                        .type(CategoryType.INCOME)
-                        .build();
+        CategoryRequest req = CategoryRequest.builder().name("Freelance Income").build();
 
         mockMvc.perform(
                         post("/api/v1/categories")
@@ -187,13 +176,13 @@ class CategoryManagementIntegrationTest {
                                 .content(objectMapper.writeValueAsString(req)))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.name").value("Freelance Income"))
-                .andExpect(jsonPath("$.type").value("INCOME"));
+                .andExpect(jsonPath("$.type").doesNotExist());
     }
 
     /** POST /api/v1/categories - Validation error when name is blank. Requirement REQ-2.4.1 */
     @Test
     void shouldReturn400WhenCreatingCategoryWithBlankName() throws Exception {
-        CategoryRequest req = CategoryRequest.builder().name("").type(CategoryType.EXPENSE).build();
+        CategoryRequest req = CategoryRequest.builder().name("").build();
 
         mockMvc.perform(
                         post("/api/v1/categories")
@@ -209,11 +198,7 @@ class CategoryManagementIntegrationTest {
      */
     @Test
     void shouldReturn400WhenCreatingCategoryWithoutEncryptionKey() throws Exception {
-        CategoryRequest req =
-                CategoryRequest.builder()
-                        .name("No Key Category")
-                        .type(CategoryType.EXPENSE)
-                        .build();
+        CategoryRequest req = CategoryRequest.builder().name("No Key Category").build();
 
         mockMvc.perform(
                         post("/api/v1/categories")
@@ -228,8 +213,8 @@ class CategoryManagementIntegrationTest {
     /** GET /api/v1/categories - list all categories. Requirement REQ-2.4.1 */
     @Test
     void shouldListAllCategories() throws Exception {
-        createCategory("Shopping", CategoryType.EXPENSE, null);
-        createCategory("Salary", CategoryType.INCOME, null);
+        createCategory("Shopping", null);
+        createCategory("Salary", null);
 
         mockMvc.perform(
                         get("/api/v1/categories")
@@ -241,22 +226,24 @@ class CategoryManagementIntegrationTest {
 
     /** GET /api/v1/categories?type=EXPENSE - filter by type. Requirement REQ-2.4.1 */
     @Test
-    void shouldFilterCategoriesByType() throws Exception {
-        createCategory("Shopping", CategoryType.EXPENSE, null);
-        createCategory("Salary", CategoryType.INCOME, null);
+    void shouldReturnOneSharedCategoryList() throws Exception {
+        createCategory("Shopping", null);
+        createCategory("Salary", null);
 
         mockMvc.perform(
-                        get("/api/v1/categories?type=EXPENSE")
+                        get("/api/v1/categories")
                                 .header("Authorization", "Bearer " + token)
                                 .header("X-Encryption-Session", encKey))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[?(@.type == 'INCOME')]").isEmpty());
+                .andExpect(
+                        jsonPath("$[*].name")
+                                .value(org.hamcrest.Matchers.hasItems("Shopping", "Salary")));
     }
 
     /** GET /api/v1/categories/{id} - get a specific category by ID. Requirement REQ-2.4.1 */
     @Test
     void shouldGetCategoryById() throws Exception {
-        Long categoryId = createCategory("Travel", CategoryType.EXPENSE, null);
+        Long categoryId = createCategory("Travel", null);
 
         mockMvc.perform(
                         get("/api/v1/categories/" + categoryId)
@@ -282,15 +269,10 @@ class CategoryManagementIntegrationTest {
     /** PUT /api/v1/categories/{id} - update an existing user category. Requirement REQ-2.4.2 */
     @Test
     void shouldUpdateCategory() throws Exception {
-        Long categoryId = createCategory("Old Name", CategoryType.EXPENSE, null);
+        Long categoryId = createCategory("Old Name", null);
 
         CategoryRequest updateReq =
-                CategoryRequest.builder()
-                        .name("New Name")
-                        .type(CategoryType.EXPENSE)
-                        .icon("✏️")
-                        .color("#ef4444")
-                        .build();
+                CategoryRequest.builder().name("New Name").icon("✏️").color("#ef4444").build();
 
         mockMvc.perform(
                         put("/api/v1/categories/" + categoryId)
@@ -309,7 +291,7 @@ class CategoryManagementIntegrationTest {
     /** DELETE /api/v1/categories/{id} - delete a user-created category. Requirement REQ-2.4.2 */
     @Test
     void shouldDeleteUserCategory() throws Exception {
-        Long categoryId = createCategory("To Be Deleted", CategoryType.EXPENSE, null);
+        Long categoryId = createCategory("To Be Deleted", null);
 
         mockMvc.perform(
                         delete("/api/v1/categories/" + categoryId)
@@ -341,15 +323,11 @@ class CategoryManagementIntegrationTest {
     @Test
     void shouldCreateSubcategoryWithParentRelationship() throws Exception {
         // Step 1: Create parent category
-        Long parentId = createCategory("Shopping", CategoryType.EXPENSE, null);
+        Long parentId = createCategory("Shopping", null);
 
         // Step 2: Create subcategory
         CategoryRequest subReq =
-                CategoryRequest.builder()
-                        .name("Online Shopping")
-                        .type(CategoryType.EXPENSE)
-                        .parentId(parentId)
-                        .build();
+                CategoryRequest.builder().name("Online Shopping").parentId(parentId).build();
 
         mockMvc.perform(
                         post("/api/v1/categories")
@@ -365,8 +343,8 @@ class CategoryManagementIntegrationTest {
     /** Category tree should include parent with nested subcategory. Requirement REQ-CAT-3.1 */
     @Test
     void shouldReturnSubcategoryNestedInsideParentInTree() throws Exception {
-        Long parentId = createCategory("Food", CategoryType.EXPENSE, null);
-        Long childId = createCategory("Restaurants", CategoryType.EXPENSE, parentId);
+        Long parentId = createCategory("Food", null);
+        Long childId = createCategory("Restaurants", parentId);
 
         mockMvc.perform(
                         get("/api/v1/categories/tree")
@@ -396,10 +374,10 @@ class CategoryManagementIntegrationTest {
      */
     @Test
     void shouldSupportMultipleSubcategoriesUnderOneParent() throws Exception {
-        Long parentId = createCategory("Utilities", CategoryType.EXPENSE, null);
-        Long subId1 = createCategory("Electricity", CategoryType.EXPENSE, parentId);
-        Long subId2 = createCategory("Water", CategoryType.EXPENSE, parentId);
-        Long subId3 = createCategory("Internet", CategoryType.EXPENSE, parentId);
+        Long parentId = createCategory("Utilities", null);
+        Long subId1 = createCategory("Electricity", parentId);
+        Long subId2 = createCategory("Water", parentId);
+        Long subId3 = createCategory("Internet", parentId);
 
         mockMvc.perform(
                         get("/api/v1/categories/tree")
@@ -437,9 +415,9 @@ class CategoryManagementIntegrationTest {
      */
     @Test
     void shouldReportCorrectSubcategoryCount() throws Exception {
-        Long parentId = createCategory("Housing", CategoryType.EXPENSE, null);
-        createCategory("Rent", CategoryType.EXPENSE, parentId);
-        createCategory("Maintenance", CategoryType.EXPENSE, parentId);
+        Long parentId = createCategory("Housing", null);
+        createCategory("Rent", parentId);
+        createCategory("Maintenance", parentId);
 
         mockMvc.perform(
                         get("/api/v1/categories/" + parentId)
@@ -455,8 +433,8 @@ class CategoryManagementIntegrationTest {
      */
     @Test
     void shouldNotDeleteParentCategoryThatHasSubcategories() throws Exception {
-        Long parentId = createCategory("Parent Category", CategoryType.EXPENSE, null);
-        createCategory("Child Category", CategoryType.EXPENSE, parentId);
+        Long parentId = createCategory("Parent Category", null);
+        createCategory("Child Category", parentId);
 
         // Attempt to delete the parent — should be rejected (400 or 409)
         mockMvc.perform(
@@ -470,7 +448,7 @@ class CategoryManagementIntegrationTest {
      */
     @Test
     void shouldNotDeleteCategoryInUseByTransactions() throws Exception {
-        Long categoryId = createCategory("In Use Category", CategoryType.EXPENSE, null);
+        Long categoryId = createCategory("In Use Category", null);
 
         // Create an account for the transaction
         AccountRequest accountReq =
@@ -527,8 +505,8 @@ class CategoryManagementIntegrationTest {
      */
     @Test
     void shouldReturnCategoryTree() throws Exception {
-        createCategory("My Expense", CategoryType.EXPENSE, null);
-        createCategory("My Income", CategoryType.INCOME, null);
+        createCategory("My Expense", null);
+        createCategory("My Income", null);
 
         mockMvc.perform(
                         get("/api/v1/categories/tree")

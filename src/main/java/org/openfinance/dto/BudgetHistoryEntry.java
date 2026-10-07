@@ -44,7 +44,7 @@ public class BudgetHistoryEntry {
     /**
      * Amount actually spent in this sub-period.
      *
-     * <p>Sum of EXPENSE transactions in the budget's category within [periodStart, periodEnd].
+     * <p>Net expenses less income in the budget's category within [periodStart, periodEnd].
      */
     private BigDecimal spent;
 

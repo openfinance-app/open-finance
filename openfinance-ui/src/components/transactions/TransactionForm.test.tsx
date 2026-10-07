@@ -494,7 +494,7 @@ describe('TransactionForm', () => {
       expect(screen.queryByText(/auto-filled from payee/i)).not.toBeInTheDocument();
     });
 
-    it('does not auto-fill when payee category type does not match transaction type', async () => {
+    it('uses the payee category for an incoming refund', async () => {
       // "Amazon" has categoryId=10 which is EXPENSE type.
       // If the form type is INCOME, the category should NOT be auto-filled.
       renderForm();
@@ -509,8 +509,8 @@ describe('TransactionForm', () => {
       // Now select Amazon (which has EXPENSE category)
       await selectPayee('Amazon');
 
-      // Category type mismatch — auto-fill should NOT happen
-      expect(screen.queryByText(/auto-filled from payee/i)).not.toBeInTheDocument();
+      // The same payee category is appropriate for a refund.
+      expect(screen.queryByText(/auto-filled from payee/i)).toBeInTheDocument();
     });
   });
 

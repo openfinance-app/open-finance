@@ -3,7 +3,7 @@
  * Task CAT-2.3: Create CategorySelect component
  *
  * A dropdown component for selecting categories with search functionality.
- * Supports grouping by parent category, type filtering, and creating new categories.
+ * Supports grouping by parent category and creating shared categories.
  *
  * Uses Popover (not Radix Select) so that async inline-create can set the
  * value reliably — Radix Select requires values to match a rendered SelectItem
@@ -19,7 +19,7 @@ import { markSelectInteraction } from '@/utils/selectClickGuard';
 import { useCategoryTree, useCreateCategory } from '@/hooks/useTransactions';
 import { useQueryClient } from '@tanstack/react-query';
 import { Loader2, Search, FolderOpen, Plus, ChevronRight, ChevronDown, Check } from 'lucide-react';
-import type { CategoryTreeNode, TransactionType } from '@/types/transaction';
+import type { CategoryTreeNode } from '@/types/transaction';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 
@@ -29,10 +29,6 @@ interface CategorySelectProps {
   placeholder?: string;
   disabled?: boolean;
   className?: string;
-  /**
-   * Filter categories by type
-   */
-  type?: TransactionType;
   /**
    * Show "None" option at the top
    */
@@ -54,11 +50,6 @@ interface CategorySelectProps {
    * The item calls createCategory immediately on selection.
    */
   allowCreateInline?: boolean;
-  /**
-   * Category type to use when creating a new category inline.
-   * Pass the parent form's current transaction type. Defaults to 'EXPENSE'.
-   */
-  inferredType?: TransactionType;
 }
 
 /**
@@ -71,12 +62,7 @@ function flattenCategories(
 ): Array<{ category: CategoryTreeNode; depth: number; path: string }> {
   const result: Array<{ category: CategoryTreeNode; depth: number; path: string }> = [];
 
-  // Sort: by type first (INCOME before EXPENSE), then by name
-  const sorted = [...categories].sort((a, b) => {
-    const typeCompare = a.type.localeCompare(b.type);
-    if (typeCompare !== 0) return typeCompare;
-    return a.name.localeCompare(b.name);
-  });
+  const sorted = [...categories].sort((a, b) => a.name.localeCompare(b.name));
 
   for (const category of sorted) {
     const currentPath = parentPath ? `${parentPath} / ${category.name}` : category.name;
@@ -112,13 +98,11 @@ export function CategorySelect({
   placeholder = 'Select category',
   disabled = false,
   className,
-  type,
   allowNone = true,
   allowCreateNew = false,
   onCreateNew,
   searchPlaceholder,
   allowCreateInline = false,
-  inferredType = 'EXPENSE',
 }: CategorySelectProps) {
   const { t } = useTranslation('categories');
   const { data: categories = [], isLoading, isError } = useCategoryTree();
@@ -126,15 +110,9 @@ export function CategorySelect({
   const queryClient = useQueryClient();
   const [searchQuery, setSearchQuery] = useState('');
   const [isOpen, setIsOpen] = useState(false);
-  // Filter categories by type
-  const filteredByType = useMemo(() => {
-    if (!type) return categories;
-    return categories.filter(c => c.type === type);
-  }, [categories, type]);
-
   // Flatten and filter by search query
   const flatCategories = useMemo(() => {
-    const flattened = flattenCategories(filteredByType);
+    const flattened = flattenCategories(categories);
 
     if (!searchQuery.trim()) return flattened;
 
@@ -145,7 +123,7 @@ export function CategorySelect({
         path.toLowerCase().includes(query) ||
         (category.mccCode && category.mccCode.toLowerCase().includes(query))
     );
-  }, [filteredByType, searchQuery]);
+  }, [categories, searchQuery]);
 
   // Find selected category
   const selectedCategory = useMemo(() => {
@@ -175,7 +153,6 @@ export function CategorySelect({
     try {
       const newCategory = await createCategoryAsync({
         name: searchQuery.trim(),
-        type: inferredType,
       });
       onValueChange(newCategory.id);
       setIsOpen(false);

@@ -11,8 +11,8 @@ import org.openfinance.entity.BudgetPeriod;
 /**
  * DTO representing a single automatic budget suggestion derived from transaction history analysis.
  *
- * <p>Each suggestion corresponds to one EXPENSE category and contains the computed average spending
- * per target period together with metadata the frontend needs for display and user-confirmation.
+ * <p>Each suggestion corresponds to one category and contains the computed average spending per
+ * target period together with metadata the frontend needs for display and user-confirmation.
  *
  * <p><strong>Requirements:</strong>
  *
@@ -50,8 +50,8 @@ public class BudgetSuggestion {
     private BigDecimal averageSpent;
 
     /**
-     * Total number of individual EXPENSE transactions found for this category in the lookback
-     * window (across all sub-periods).
+     * Total number of individual income and expense transactions found for this category in the
+     * lookback window (across all sub-periods).
      */
     private int transactionCount;
 

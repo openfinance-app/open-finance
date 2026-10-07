@@ -1,13 +1,11 @@
 package org.openfinance.dto;
 
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.openfinance.entity.CategoryType;
 
 /**
  * Data Transfer Object for creating or updating a category.
@@ -15,7 +13,7 @@ import org.openfinance.entity.CategoryType;
  * <p>This DTO is used for both POST (create) and PUT (update) operations. Validation annotations
  * ensure data integrity before processing.
  *
- * <p>Requirement REQ-2.4.1: Category creation with name, type, and optional parent
+ * <p>Requirement REQ-2.4.1: Category creation with name and optional parent
  *
  * <p>Requirement REQ-2.4.2: Category updates
  *
@@ -37,14 +35,6 @@ public class CategoryRequest {
     @NotBlank(message = "{category.name.required}")
     @Size(min = 1, max = 100, message = "{category.name.between}")
     private String name;
-
-    /**
-     * Type of category: INCOME or EXPENSE.
-     *
-     * <p>Requirement REQ-2.4.1: Categories must be classified as income or expense
-     */
-    @NotNull(message = "{category.type.required}")
-    private CategoryType type;
 
     /**
      * ID of the parent category (for subcategories).

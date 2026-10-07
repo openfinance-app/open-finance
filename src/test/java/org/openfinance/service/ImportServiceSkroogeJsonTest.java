@@ -42,7 +42,6 @@ import org.openfinance.dto.TransactionRequest;
 import org.openfinance.entity.Account;
 import org.openfinance.entity.AccountType;
 import org.openfinance.entity.Category;
-import org.openfinance.entity.CategoryType;
 import org.openfinance.entity.ImportSession;
 import org.openfinance.entity.ImportSession.ImportStatus;
 import org.openfinance.entity.Institution;
@@ -1381,14 +1380,12 @@ class ImportServiceSkroogeJsonTest {
                                         .sourceId(100L)
                                         .name("Food")
                                         .fullName("Food")
-                                        .type(CategoryType.EXPENSE)
                                         .build(),
                                 SkroogeImportMetadata.SkroogeCategory.builder()
                                         .sourceId(101L)
                                         .parentSourceId(100L)
                                         .name("Groceries")
                                         .fullName("Food:Groceries")
-                                        .type(CategoryType.EXPENSE)
                                         .build()))
                 .build();
     }

@@ -422,9 +422,9 @@ export function TransactionForm({
     if (selectedPayee && selectedPayee.categoryId && !transaction) {
       // Only auto-fill if no category has been manually set (or if it was auto-filled before)
       if (!currentCategoryId || autoFilledCategory) {
-        // Check if the payee's category matches the transaction type
+        // A payee's category can be used for either transaction direction
         const category = categories.find(c => c.id === selectedPayee.categoryId);
-        if (category && category.type === selectedType) {
+        if (category) {
           setValue('categoryId', selectedPayee.categoryId, { shouldValidate: true });
           setAutoFilledCategory(selectedPayee.categoryId);
           setAutoFilledFromPayee(selectedPayee.name);
@@ -833,11 +833,9 @@ export function TransactionForm({
                       field.onChange(value);
                     }}
                     placeholder={t('form.selectCategory')}
-                    type={selectedType}
                     allowNone={true}
                     allowCreateNew={true}
                     allowCreateInline
-                    inferredType={selectedType ?? 'EXPENSE'}
                     onCreateNew={() => {
                       // Could open a dialog to create new category
                       // For now, just clear the category
@@ -881,7 +879,6 @@ export function TransactionForm({
               currency={inputCurrency || DEFAULT_CURRENCY}
               accountCurrency={accountCurrency}
               exchangeRate={needsConversion ? effectiveRate : undefined}
-              transactionType={selectedType}
               splits={splits}
               onChange={setSplits}
             />

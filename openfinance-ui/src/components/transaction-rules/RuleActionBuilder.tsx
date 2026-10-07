@@ -23,6 +23,7 @@ import { HelpTooltip } from '@/components/ui/HelpTooltip';
 import { Input } from '@/components/ui/Input';
 import { NumberInput } from '@/components/ui/NumberInput';
 import { CategorySelect } from '@/components/ui/CategorySelect';
+import { categoryPath } from '@/utils/category-path';
 import { PayeeSelector } from '@/components/ui/PayeeSelector';
 import { TagInput } from '@/components/transactions/TagInput';
 import { useCategories } from '@/hooks/useCategories';
@@ -75,14 +76,15 @@ function ActionParams({ action, index, onChange, t }: ActionParamsProps) {
   switch (action.actionType) {
     case 'SET_CATEGORY': {
       // CategorySelect uses numeric IDs; actionValue stores category name
-      const selectedId = categories.find(c => c.name === action.actionValue)?.id;
+      const selectedId = categories.find(
+        c => categoryPath(categories, c.id) === action.actionValue
+      )?.id;
       return (
         <div className="flex-1">
           <CategorySelect
             value={selectedId}
             onValueChange={id => {
-              const cat = categories.find(c => c.id === id);
-              onChange(index, { actionValue: cat?.name ?? '' });
+              onChange(index, { actionValue: categoryPath(categories, id) });
             }}
             placeholder={t('form.actions.placeholders.category')}
             className="w-full"
@@ -148,14 +150,15 @@ function ActionParams({ action, index, onChange, t }: ActionParamsProps) {
 
     case 'ADD_SPLIT': {
       // Same name<->id resolution as SET_CATEGORY — actionValue stores the category name
-      const splitCategoryId = categories.find(c => c.name === action.actionValue)?.id;
+      const splitCategoryId = categories.find(
+        c => categoryPath(categories, c.id) === action.actionValue
+      )?.id;
       return (
         <div className="flex-1 flex flex-col gap-2">
           <CategorySelect
             value={splitCategoryId}
             onValueChange={id => {
-              const cat = categories.find(c => c.id === id);
-              onChange(index, { actionValue: cat?.name ?? '' });
+              onChange(index, { actionValue: categoryPath(categories, id) });
             }}
             placeholder={t('form.actions.placeholders.splitCategory')}
             className="w-full"

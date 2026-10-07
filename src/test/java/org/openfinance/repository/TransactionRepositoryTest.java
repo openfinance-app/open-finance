@@ -117,7 +117,6 @@ class TransactionRepositoryTest {
                 Category.builder()
                         .userId(testUser1.getId())
                         .name("Salary")
-                        .type(CategoryType.INCOME)
                         .icon("💰")
                         .isSystem(true)
                         .build();
@@ -127,7 +126,6 @@ class TransactionRepositoryTest {
                 Category.builder()
                         .userId(testUser1.getId())
                         .name("Groceries")
-                        .type(CategoryType.EXPENSE)
                         .icon("🛒")
                         .isSystem(false)
                         .build();

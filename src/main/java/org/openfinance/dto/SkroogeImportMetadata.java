@@ -9,7 +9,6 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.openfinance.entity.AccountType;
-import org.openfinance.entity.CategoryType;
 
 @Data
 @Builder
@@ -60,6 +59,5 @@ public class SkroogeImportMetadata {
         private Long parentSourceId;
         private String name;
         private String fullName;
-        private CategoryType type;
     }
 }

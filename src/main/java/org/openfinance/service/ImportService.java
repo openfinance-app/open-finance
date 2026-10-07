@@ -35,7 +35,6 @@ import org.openfinance.dto.TransactionSplitRequest;
 import org.openfinance.entity.Account;
 import org.openfinance.entity.AccountType;
 import org.openfinance.entity.Category;
-import org.openfinance.entity.CategoryType;
 import org.openfinance.entity.EntityType;
 import org.openfinance.entity.ImportSession;
 import org.openfinance.entity.ImportSession.ImportStatus;
@@ -1551,48 +1550,6 @@ public class ImportService {
         return created.getId();
     }
 
-    /**
-     * Create a new category for the user during import. Determines category type (INCOME/EXPENSE)
-     * based on transaction amount.
-     *
-     * @param categoryName the name of the category to create
-     * @param userId the user ID
-     * @param transactionType the transaction type (INCOME or EXPENSE)
-     * @param encryptionKey the user's encryption key
-     * @return the created Category entity
-     */
-    @SuppressWarnings("unused")
-    private Category createCategoryForImport(
-            String categoryName,
-            Long userId,
-            TransactionType transactionType,
-            String encryptionKey) {
-        log.info(
-                "Creating new category '{}' for user {} (type: {})",
-                categoryName,
-                userId,
-                transactionType);
-
-        // Determine category type
-        CategoryType categoryType =
-                (transactionType == TransactionType.INCOME)
-                        ? CategoryType.INCOME
-                        : CategoryType.EXPENSE;
-
-        // Create category using builder pattern
-        Category category =
-                Category.builder()
-                        .userId(userId)
-                        .name(categoryName)
-                        .type(categoryType)
-                        .isSystem(false)
-                        .icon("tag") // Default icon
-                        .color("#6B7280") // Default gray color
-                        .build();
-
-        return categoryRepository.save(category);
-    }
-
     /** Check if transaction is marked as duplicate. */
     private boolean isDuplicate(ImportedTransaction tx) {
         return tx.getValidationErrors().stream().anyMatch(error -> error.startsWith("DUPLICATE:"));
@@ -2581,9 +2538,6 @@ public class ImportService {
                     existingCategories.stream()
                             .filter(
                                     existingCategory ->
-                                            existingCategory.getType() == category.getType())
-                            .filter(
-                                    existingCategory ->
                                             Objects.equals(
                                                     existingCategory.getParentId(), parentId))
                             .filter(
@@ -2599,7 +2553,6 @@ public class ImportService {
                                 Category.builder()
                                         .userId(userId)
                                         .name(category.getName())
-                                        .type(category.getType())
                                         .parentId(parentId)
                                         .isSystem(false)
                                         .icon("tag")
@@ -2723,7 +2676,6 @@ public class ImportService {
             Long userId,
             Map<String, Long> categoryMappings,
             Map<Long, Long> categoryIdsBySource) {
-        CategoryType categoryType = importedCategoryType(importedTx);
         return importedTx.getSplits().stream()
                 .map(
                         splitEntry -> {
@@ -2738,14 +2690,13 @@ public class ImportService {
                                                     : categoryIdsBySource.get(
                                                             splitEntry.getSourceCategoryId());
                             if (categoryId != null) {
-                                validateImportedCategory(categoryId, userId, categoryType);
+                                validateImportedCategory(categoryId, userId);
                             }
                             if (categoryId == null && splitEntry.getCategory() != null) {
                                 String catName = splitEntry.getCategory().trim();
                                 if (!catName.isEmpty() && !catName.startsWith("[")) {
                                     categoryId =
-                                            resolveOrCreateHierarchicalCategory(
-                                                    catName, userId, categoryType);
+                                            resolveOrCreateHierarchicalCategory(catName, userId);
                                 }
                             }
                             return TransactionSplitRequest.builder()
@@ -2760,19 +2711,10 @@ public class ImportService {
                 .collect(Collectors.toList());
     }
 
-    private CategoryType importedCategoryType(ImportedTransaction transaction) {
-        return transaction.getAmount().signum() >= 0 ? CategoryType.INCOME : CategoryType.EXPENSE;
-    }
-
-    private void validateImportedCategory(Long categoryId, Long userId, CategoryType type) {
-        Category category =
-                categoryRepository
-                        .findByIdAndUserId(categoryId, userId)
-                        .orElseThrow(() -> new ResourceNotFoundException("Category not found"));
-        if (category.getType() != type) {
-            throw new IllegalArgumentException(
-                    "Mapped category type does not match transaction type");
-        }
+    private void validateImportedCategory(Long categoryId, Long userId) {
+        categoryRepository
+                .findByIdAndUserId(categoryId, userId)
+                .orElseThrow(() -> new ResourceNotFoundException("Category not found"));
     }
 
     /** Validate untrusted mappings before accounts or transactions can be created. */
@@ -2789,13 +2731,12 @@ public class ImportService {
             if (transaction.hasErrors()
                     || transaction.isTransfer()
                     || transaction.isOpeningBalance()) continue;
-            CategoryType type = importedCategoryType(transaction);
             List<String> names = new ArrayList<>();
             names.add(transaction.getCategory());
             transaction.getSplits().forEach(split -> names.add(split.getCategory()));
             for (String name : names) {
                 Long categoryId = name == null ? null : mappings.get(name.trim());
-                if (categoryId != null) validateImportedCategory(categoryId, userId, type);
+                if (categoryId != null) validateImportedCategory(categoryId, userId);
             }
         }
     }
@@ -2920,150 +2861,62 @@ public class ImportService {
      * <p>Resolution order:
      *
      * <ol>
-     *   <li>Exact match on full path name (e.g., "Income:Salary")
-     *   <li>Match child name under matching parent (parent "Income", child "Salary")
-     *   <li>Match leaf name only (e.g., "Salary")
-     *   <li>Create parent and child categories if no match found
+     *   <li>Reuse an unambiguous bare category name; reject ambiguous bare names
+     *   <li>Resolve every segment under its parent, without using transaction direction
+     *   <li>Create missing hierarchy segments
      * </ol>
      *
      * @param categoryPath full category path from import file (e.g., "Income:Salary")
      * @param userId the user who owns the categories
-     * @param type INCOME or EXPENSE for newly created categories
      * @return the resolved or created category ID, or null if path is blank
      */
-    private Long resolveOrCreateHierarchicalCategory(
-            String categoryPath, Long userId, CategoryType type) {
+    private Long resolveOrCreateHierarchicalCategory(String categoryPath, Long userId) {
         if (categoryPath == null || categoryPath.isBlank()) {
             return null;
         }
 
-        List<Category> userCategories =
-                categoryRepository.findByUserId(userId).stream()
-                        .filter(category -> category.getType() == type)
-                        .toList();
-
-        // 1. Try exact match on full path name
-        Optional<Category> exactMatch =
-                userCategories.stream()
-                        .filter(c -> c.getName().equalsIgnoreCase(categoryPath))
-                        .findFirst();
-        if (exactMatch.isPresent()) {
-            log.debug(
-                    "Category '{}' matched exactly to ID={}",
-                    categoryPath,
-                    exactMatch.get().getId());
-            return exactMatch.get().getId();
+        List<Category> userCategories = new ArrayList<>(categoryRepository.findByUserId(userId));
+        if (!categoryPath.contains(":")) {
+            List<Category> matches =
+                    userCategories.stream()
+                            .filter(
+                                    category ->
+                                            category.getName()
+                                                    .equalsIgnoreCase(categoryPath.trim()))
+                            .toList();
+            if (matches.size() == 1) return matches.getFirst().getId();
+            if (matches.size() > 1)
+                throw new IllegalArgumentException(
+                        "Ambiguous category name; choose its full path or an explicit mapping");
         }
-
-        // 2. If hierarchical (contains ":"), try parent/child match then leaf match
-        if (categoryPath.contains(":")) {
-            String[] segments = categoryPath.split(":");
-            String parentName = segments[0].trim();
-            String childName = segments[segments.length - 1].trim();
-
-            // Try to find child with a matching parent
-            Optional<Category> hierarchicalMatch =
+        Long parentId = null;
+        for (String segment : categoryPath.split(":", -1)) {
+            String name = segment.trim();
+            if (name.isEmpty())
+                throw new IllegalArgumentException("Category path contains an empty name");
+            Long currentParent = parentId;
+            Category category =
                     userCategories.stream()
                             .filter(
-                                    c ->
-                                            c.getName().equalsIgnoreCase(childName)
-                                                    && c.getParentId() != null)
-                            .filter(
-                                    c ->
-                                            userCategories.stream()
-                                                    .anyMatch(
-                                                            p ->
-                                                                    p.getId()
-                                                                                    .equals(
-                                                                                            c
-                                                                                                    .getParentId())
-                                                                            && p.getName()
-                                                                                    .equalsIgnoreCase(
-                                                                                            parentName)))
-                            .findFirst();
-            if (hierarchicalMatch.isPresent()) {
-                log.debug(
-                        "Category '{}' matched hierarchically (parent '{}', child '{}') to ID={}",
-                        categoryPath,
-                        parentName,
-                        childName,
-                        hierarchicalMatch.get().getId());
-                return hierarchicalMatch.get().getId();
-            }
-
-            // Try just the leaf name
-            Optional<Category> leafMatch =
-                    userCategories.stream()
-                            .filter(c -> c.getName().equalsIgnoreCase(childName))
-                            .findFirst();
-            if (leafMatch.isPresent()) {
-                log.debug(
-                        "Category '{}' matched by leaf name '{}' to ID={}",
-                        categoryPath,
-                        childName,
-                        leafMatch.get().getId());
-                return leafMatch.get().getId();
-            }
-
-            // No match — create parent (if not existing) and child
-            Category parent =
-                    userCategories.stream()
-                            .filter(
-                                    c ->
-                                            c.getName().equalsIgnoreCase(parentName)
-                                                    && c.getParentId() == null)
+                                    candidate ->
+                                            Objects.equals(candidate.getParentId(), currentParent))
+                            .filter(candidate -> candidate.getName().equalsIgnoreCase(name))
                             .findFirst()
-                            .orElseGet(
-                                    () -> {
-                                        Category newParent =
-                                                categoryRepository.save(
-                                                        Category.builder()
-                                                                .userId(userId)
-                                                                .name(parentName)
-                                                                .type(type)
-                                                                .isSystem(false)
-                                                                .build());
-                                        log.info(
-                                                "Created parent category '{}' (ID={}) for user {}",
-                                                parentName,
-                                                newParent.getId(),
-                                                userId);
-                                        return newParent;
-                                    });
-
-            Category child =
-                    categoryRepository.save(
-                            Category.builder()
-                                    .userId(userId)
-                                    .name(childName)
-                                    .parentId(parent.getId())
-                                    .type(type)
-                                    .isSystem(false)
-                                    .build());
-            log.info(
-                    "Created child category '{}' under parent '{}' (ID={}) for user {}",
-                    childName,
-                    parentName,
-                    child.getId(),
-                    userId);
-            return child.getId();
+                            .orElse(null);
+            if (category == null) {
+                category =
+                        categoryRepository.save(
+                                Category.builder()
+                                        .userId(userId)
+                                        .name(name)
+                                        .parentId(parentId)
+                                        .isSystem(false)
+                                        .build());
+                userCategories.add(category);
+            }
+            parentId = category.getId();
         }
-
-        // Non-hierarchical: no exact match was found, create as root category
-        Category newCategory =
-                categoryRepository.save(
-                        Category.builder()
-                                .userId(userId)
-                                .name(categoryPath)
-                                .type(type)
-                                .isSystem(false)
-                                .build());
-        log.info(
-                "Created root category '{}' (ID={}) for user {}",
-                categoryPath,
-                newCategory.getId(),
-                userId);
-        return newCategory.getId();
+        return parentId;
     }
 
     /**
@@ -3170,32 +3023,15 @@ public class ImportService {
                         "Mapping category '{}' using provided mapping to ID {}",
                         categoryName,
                         categoryId);
-                Category selectedCategory =
-                        categoryRepository
-                                .findByIdAndUserId(categoryId, userId)
-                                .orElseThrow(
-                                        () ->
-                                                new IllegalArgumentException(
-                                                        "Invalid import category"));
-                CategoryType expectedType =
-                        transactionType == TransactionType.INCOME
-                                ? CategoryType.INCOME
-                                : CategoryType.EXPENSE;
-                if (selectedCategory.getType() != expectedType) {
-                    throw new IllegalArgumentException(
-                            "Import category type does not match transaction type");
-                }
+                categoryRepository
+                        .findByIdAndUserId(categoryId, userId)
+                        .orElseThrow(() -> new IllegalArgumentException("Invalid import category"));
                 builder.categoryId(categoryId);
             } else if (!categoryName.startsWith("[")) {
                 // Resolve hierarchical category (e.g., "Income:Salary" → parent "Income", child
                 // "Salary")
                 // Skip transfer categories (bracket syntax like "[Savings Account]")
-                CategoryType catType =
-                        transactionType == TransactionType.INCOME
-                                ? CategoryType.INCOME
-                                : CategoryType.EXPENSE;
-                Long resolvedId =
-                        resolveOrCreateHierarchicalCategory(categoryName, userId, catType);
+                Long resolvedId = resolveOrCreateHierarchicalCategory(categoryName, userId);
                 if (resolvedId != null) {
                     builder.categoryId(resolvedId);
                 }

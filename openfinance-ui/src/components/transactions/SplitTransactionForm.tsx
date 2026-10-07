@@ -15,15 +15,12 @@ import { ConvertedAmount } from '@/components/ui/ConvertedAmount';
 import { decimalPlaces, multiply, sum, subtract, distributeRemainder } from '@/utils/money';
 import { getMonetaryScale } from '@/utils/currency';
 import type { TransactionSplitRequest } from '@/types/transaction';
-import type { TransactionType } from '@/types/transaction';
 
 interface SplitTransactionFormProps {
   /** The parent transaction total amount */
   totalAmount: number;
   /** ISO 4217 currency code, e.g. "EUR" */
   currency: string;
-  /** INCOME or EXPENSE — used to filter category options */
-  transactionType: TransactionType;
   /** Current list of split lines managed by the parent form */
   splits: TransactionSplitRequest[];
   /** Called whenever the split list changes */
@@ -43,7 +40,6 @@ interface SplitTransactionFormProps {
 export function SplitTransactionForm({
   totalAmount,
   currency,
-  transactionType,
   splits,
   onChange,
   accountCurrency,
@@ -115,10 +111,8 @@ export function SplitTransactionForm({
               value={split.categoryId}
               onValueChange={value => handleChangeField(index, 'categoryId', value)}
               placeholder={t('splitForm.categoryPlaceholder')}
-              type={transactionType}
               allowNone={true}
               allowCreateInline
-              inferredType={transactionType ?? 'EXPENSE'}
             />
           </div>
 

@@ -267,8 +267,7 @@ public class InsightService {
             LocalDate sixtyDaysAgo = today.minusDays(LOOKBACK_DAYS * 2);
 
             // Get all categories for user
-            List<Category> categories =
-                    categoryRepository.findByUserIdAndType(userId, CategoryType.EXPENSE);
+            List<Category> categories = categoryRepository.findByUserId(userId);
 
             for (Category category : categories) {
                 try {
@@ -436,8 +435,7 @@ public class InsightService {
             LocalDate thirtyDaysAgo = today.minusDays(LOOKBACK_DAYS);
 
             // Find categories with recurring small transactions (potential subscriptions)
-            List<Category> categories =
-                    categoryRepository.findByUserIdAndType(userId, CategoryType.EXPENSE);
+            List<Category> categories = categoryRepository.findByUserId(userId);
 
             for (Category category : categories) {
                 try {
@@ -825,8 +823,7 @@ public class InsightService {
                             InsightPriority.MEDIUM));
 
             // Check for potential deduction categories (donations, professional expenses)
-            List<Category> expenseCategories =
-                    categoryRepository.findByUserIdAndType(userId, CategoryType.EXPENSE);
+            List<Category> expenseCategories = categoryRepository.findByUserId(userId);
             BigDecimal potentialDeductions = BigDecimal.ZERO;
 
             for (Category category : expenseCategories) {

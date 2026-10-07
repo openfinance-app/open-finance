@@ -8,7 +8,6 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.openfinance.entity.BudgetPeriod;
-import org.openfinance.entity.CategoryType;
 
 /**
  * Data Transfer Object for budget responses.
@@ -47,14 +46,6 @@ public class BudgetResponse {
      * <p>Populated from Category entity to avoid client-side lookups. This field is decrypted.
      */
     private String categoryName;
-
-    /**
-     * Type of category - INCOME or EXPENSE.
-     *
-     * <p>Denormalized from Category entity to help clients filter and display budgets
-     * appropriately.
-     */
-    private CategoryType categoryType;
 
     /**
      * Budget amount (decrypted).

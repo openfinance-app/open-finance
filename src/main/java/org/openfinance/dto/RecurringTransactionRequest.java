@@ -87,7 +87,7 @@ public class RecurringTransactionRequest {
     /**
      * ID of the category this recurring transaction belongs to (optional).
      *
-     * <p>Category must match the transaction type (INCOME category for INCOME transaction).
+     * <p>Any category owned by the user can be used for income or expense.
      *
      * <p>For TRANSFER transactions, category should be null.
      *

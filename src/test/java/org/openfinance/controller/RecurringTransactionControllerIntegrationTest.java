@@ -669,7 +669,6 @@ class RecurringTransactionControllerIntegrationTest {
                     Category.builder()
                             .userId(user2.getId())
                             .name("Bob's Category")
-                            .type(CategoryType.EXPENSE)
                             .icon("tag")
                             .color("#000000")
                             .build();

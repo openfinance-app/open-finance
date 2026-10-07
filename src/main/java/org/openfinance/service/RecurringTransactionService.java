@@ -11,7 +11,6 @@ import org.openfinance.dto.RecurringTransactionRequest;
 import org.openfinance.dto.RecurringTransactionResponse;
 import org.openfinance.entity.Account;
 import org.openfinance.entity.Category;
-import org.openfinance.entity.CategoryType;
 import org.openfinance.entity.EntityType;
 import org.openfinance.entity.OperationType;
 import org.openfinance.entity.RecurringFrequency;
@@ -56,7 +55,6 @@ import org.springframework.transaction.annotation.Transactional;
  *
  * <ul>
  *   <li>Account ownership - user must own the account(s)
- *   <li>Category type match - INCOME category for INCOME transaction
  *   <li>Transfer accounts - must be different accounts
  *   <li>Transfer category - transfers should not have categories
  *   <li>End date - must be after next occurrence
@@ -108,7 +106,6 @@ public class RecurringTransactionService {
      *
      * <ul>
      *   <li>Account ownership
-     *   <li>Category type matches transaction type
      *   <li>For TRANSFER: toAccountId is provided and different from accountId
      *   <li>For TRANSFER: categoryId is null
      *   <li>End date (if provided) is after next occurrence
@@ -890,25 +887,12 @@ public class RecurringTransactionService {
 
         // Validate category if provided
         if (request.getCategoryId() != null) {
-            Category category =
-                    categoryRepository
-                            .findByIdAndUserId(request.getCategoryId(), userId)
-                            .orElseThrow(
-                                    () ->
-                                            CategoryNotFoundException.byIdAndUser(
-                                                    request.getCategoryId(), userId));
-
-            // Validate category type matches transaction type
-            if (request.getType() == TransactionType.INCOME
-                    && category.getType() != CategoryType.INCOME) {
-                throw new InvalidTransactionException(
-                        "INCOME transactions must use an INCOME category");
-            }
-            if (request.getType() == TransactionType.EXPENSE
-                    && category.getType() != CategoryType.EXPENSE) {
-                throw new InvalidTransactionException(
-                        "EXPENSE transactions must use an EXPENSE category");
-            }
+            categoryRepository
+                    .findByIdAndUserId(request.getCategoryId(), userId)
+                    .orElseThrow(
+                            () ->
+                                    CategoryNotFoundException.byIdAndUser(
+                                            request.getCategoryId(), userId));
         }
 
         // Validate end date is after next occurrence

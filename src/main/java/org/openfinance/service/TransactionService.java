@@ -16,8 +16,6 @@ import org.openfinance.dto.TransactionSplitRequest;
 import org.openfinance.dto.TransactionSplitResponse;
 import org.openfinance.dto.TransferUpdateRequest;
 import org.openfinance.entity.Account;
-import org.openfinance.entity.Category;
-import org.openfinance.entity.CategoryType;
 import org.openfinance.entity.EntityType;
 import org.openfinance.entity.Liability;
 import org.openfinance.entity.LiabilityTranche;
@@ -78,7 +76,6 @@ import org.springframework.transaction.annotation.Transactional;
  *
  * <ul>
  *   <li>Account ownership - user must own the account(s)
- *   <li>Category type match - INCOME category for INCOME transaction
  *   <li>Transfer accounts - must be different accounts
  *   <li>Transfer category - transfers should not have categories
  * </ul>
@@ -142,7 +139,6 @@ public class TransactionService {
      *
      * <ul>
      *   <li>Account ownership
-     *   <li>Category type matches transaction type
      *   <li>For TRANSFER: toAccountId is provided and different from accountId
      *   <li>For TRANSFER: categoryId is null
      * </ul>
@@ -222,12 +218,7 @@ public class TransactionService {
                                                                     request.getPayee().trim()))
                             .findFirst()
                             .orElse(null);
-            if (payee != null
-                    && payee.getDefaultCategory() != null
-                    && payee.getDefaultCategory()
-                            .getType()
-                            .name()
-                            .equals(request.getType().name())) {
+            if (payee != null && payee.getDefaultCategory() != null) {
                 log.info(
                         "Auto-filling category {} from payee {}",
                         payee.getDefaultCategory().getId(),
@@ -1650,7 +1641,6 @@ public class TransactionService {
      *
      * <ul>
      *   <li>Account ownership - user must own the account
-     *   <li>Category type matches transaction type (if category provided)
      *   <li>For TRANSFER: toAccountId is provided and different from accountId
      *   <li>For TRANSFER: categoryId should be null
      * </ul>
@@ -1731,26 +1721,12 @@ public class TransactionService {
 
         // Validate category if provided
         if (request.getCategoryId() != null) {
-            Category category =
-                    categoryRepository
-                            .findByIdAndUserId(request.getCategoryId(), userId)
-                            .orElseThrow(
-                                    () ->
-                                            CategoryNotFoundException.byIdAndUser(
-                                                    request.getCategoryId(), userId));
-
-            // Category type must match transaction type (INCOME category for INCOME
-            // transaction)
-            if (request.getType() == TransactionType.INCOME
-                    && category.getType() != CategoryType.INCOME) {
-                throw InvalidTransactionException.categoryTypeMismatch(
-                        category.getType().toString(), request.getType().toString());
-            }
-            if (request.getType() == TransactionType.EXPENSE
-                    && category.getType() != CategoryType.EXPENSE) {
-                throw InvalidTransactionException.categoryTypeMismatch(
-                        category.getType().toString(), request.getType().toString());
-            }
+            categoryRepository
+                    .findByIdAndUserId(request.getCategoryId(), userId)
+                    .orElseThrow(
+                            () ->
+                                    CategoryNotFoundException.byIdAndUser(
+                                            request.getCategoryId(), userId));
         }
 
         if (request.getSplits() != null) {
@@ -1758,17 +1734,12 @@ public class TransactionService {
                 if (split.getCategoryId() == null) {
                     continue;
                 }
-                Category splitCategory =
-                        categoryRepository
-                                .findByIdAndUserId(split.getCategoryId(), userId)
-                                .orElseThrow(
-                                        () ->
-                                                CategoryNotFoundException.byIdAndUser(
-                                                        split.getCategoryId(), userId));
-                if (!splitCategory.getType().name().equals(request.getType().name())) {
-                    throw InvalidTransactionException.categoryTypeMismatch(
-                            splitCategory.getType().name(), request.getType().name());
-                }
+                categoryRepository
+                        .findByIdAndUserId(split.getCategoryId(), userId)
+                        .orElseThrow(
+                                () ->
+                                        CategoryNotFoundException.byIdAndUser(
+                                                split.getCategoryId(), userId));
             }
         }
 

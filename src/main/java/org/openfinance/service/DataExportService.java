@@ -224,7 +224,6 @@ public class DataExportService {
                             Map<String, Object> data = new LinkedHashMap<>();
                             data.put("id", category.getId());
                             data.put("name", category.getName());
-                            data.put("type", category.getType().name());
                             data.put("parentId", category.getParentId());
                             data.put("icon", category.getIcon());
                             data.put("color", category.getColor());

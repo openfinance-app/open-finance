@@ -37,7 +37,6 @@ export interface Category {
   id: number;
   userId: number;
   name: string;
-  type: TransactionType;
   parentId?: number;
   icon?: string;
   color?: string;
@@ -54,7 +53,6 @@ export interface Category {
 export interface CategoryTreeNode {
   id: number;
   name: string;
-  type: TransactionType;
   icon?: string;
   color?: string;
   mccCode?: string;
@@ -62,6 +60,9 @@ export interface CategoryTreeNode {
   subcategories: CategoryTreeNode[];
   transactionCount?: number;
   totalAmount?: number;
+  incomeAmount?: number;
+  expenseAmount?: number;
+  currency?: string;
   isSystem?: boolean;
 }
 

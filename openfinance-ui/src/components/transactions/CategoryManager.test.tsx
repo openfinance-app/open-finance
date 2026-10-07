@@ -9,10 +9,10 @@ const mockDeleteMutateAsync = vi.fn().mockResolvedValue({});
 vi.mock('@/hooks/useTransactions', () => ({
   useCategories: vi.fn(() => ({
     data: [
-      { id: 1, name: 'Salary', type: 'INCOME', icon: '💰', color: '#00ff00' },
-      { id: 2, name: 'Food', type: 'EXPENSE', icon: '🍕', color: '#ff0000', parentId: null },
-      { id: 3, name: 'Transport', type: 'EXPENSE', icon: '🚗', color: '#0000ff' },
-      { id: 4, name: 'Fast Food', type: 'EXPENSE', icon: '🍔', color: '#ff0000', parentId: 2 },
+      { id: 1, name: 'Salary', icon: '💰', color: '#00ff00' },
+      { id: 2, name: 'Food', icon: '🍕', color: '#ff0000', parentId: null },
+      { id: 3, name: 'Transport', icon: '🚗', color: '#0000ff' },
+      { id: 4, name: 'Fast Food', icon: '🍔', color: '#ff0000', parentId: 2 },
     ],
   })),
   useCreateCategory: () => ({ mutateAsync: mockCreateMutateAsync, isPending: false }),
@@ -37,11 +37,11 @@ describe('CategoryManager', () => {
     vi.clearAllMocks();
   });
 
-  it('renders expense categories by default when open', () => {
+  it('renders every category in one list', () => {
     renderWithProviders(<CategoryManager open={true} onOpenChange={vi.fn()} />);
     expect(screen.getByText('Food')).toBeInTheDocument();
     expect(screen.getByText('Transport')).toBeInTheDocument();
-    expect(screen.queryByText('Salary')).not.toBeInTheDocument();
+    expect(screen.getByText('Salary')).toBeInTheDocument();
   });
 
   it('does not render content when closed', () => {
@@ -49,12 +49,11 @@ describe('CategoryManager', () => {
     expect(screen.queryByText('Food')).not.toBeInTheDocument();
   });
 
-  it('switches to INCOME tab and shows income categories', async () => {
-    const user = userEvent.setup();
+  it('has no category direction tabs', () => {
     renderWithProviders(<CategoryManager open={true} onOpenChange={vi.fn()} />);
-    await user.click(screen.getByRole('button', { name: /income/i }));
+    expect(screen.queryByRole('button', { name: /income|expenses/i })).not.toBeInTheDocument();
     expect(screen.getByText('Salary')).toBeInTheDocument();
-    expect(screen.queryByText('Food')).not.toBeInTheDocument();
+    expect(screen.getByText('Food')).toBeInTheDocument();
   });
 
   it('shows subcategory badge for categories with parentId', () => {
@@ -77,7 +76,7 @@ describe('CategoryManager', () => {
           !btn.textContent?.includes('Delete')
       );
     await user.click(addButton!);
-    expect(mockCreateMutateAsync).toHaveBeenCalledWith({ name: 'Groceries', type: 'EXPENSE' });
+    expect(mockCreateMutateAsync).toHaveBeenCalledWith({ name: 'Groceries' });
   });
 
   it('creates a category on Enter key press', async () => {
@@ -85,7 +84,7 @@ describe('CategoryManager', () => {
     renderWithProviders(<CategoryManager open={true} onOpenChange={vi.fn()} />);
     const input = screen.getByRole('textbox');
     await user.type(input, 'Rent{Enter}');
-    expect(mockCreateMutateAsync).toHaveBeenCalledWith({ name: 'Rent', type: 'EXPENSE' });
+    expect(mockCreateMutateAsync).toHaveBeenCalledWith({ name: 'Rent' });
   });
 
   it('does not create category with empty name', async () => {
@@ -111,7 +110,7 @@ describe('CategoryManager', () => {
     await user.click(deleteButtons[0]);
     const confirmBtn = screen.getByText('Confirm');
     fireEvent.click(confirmBtn);
-    expect(mockDeleteMutateAsync).toHaveBeenCalledWith(2);
+    expect(mockDeleteMutateAsync).toHaveBeenCalledWith(1);
   });
 
   it('calls onOpenChange(false) when Close button is clicked', async () => {

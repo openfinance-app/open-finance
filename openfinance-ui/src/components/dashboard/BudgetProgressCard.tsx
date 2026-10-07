@@ -81,7 +81,7 @@ interface BudgetRowProps {
 }
 
 function BudgetRow({ budget, baseCurrency, onOpen }: BudgetRowProps) {
-  const pct = Math.min(budget.percentageSpent, 100);
+  const pct = Math.max(0, Math.min(budget.percentageSpent, 100));
   const {
     convert,
     secondaryCurrency: secCurrency,

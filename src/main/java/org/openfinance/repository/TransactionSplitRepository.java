@@ -55,8 +55,8 @@ public interface TransactionSplitRepository extends JpaRepository<TransactionSpl
     List<TransactionSplit> findByTransactionIdIn(List<Long> transactionIds);
 
     /**
-     * /** Counts how many unique EXPENSE transactions have splits in the given categories and date
-     * range.
+     * /** Counts how many unique income/expense transactions have splits in the given categories
+     * and date range.
      *
      * @param categoryIds list of category IDs
      * @param startDate start date
@@ -68,7 +68,7 @@ public interface TransactionSplitRepository extends JpaRepository<TransactionSpl
             "SELECT COUNT(DISTINCT s.transactionId) FROM TransactionSplit s JOIN Transaction t ON s.transactionId = t.id "
                     + "WHERE s.categoryId IN :categoryIds AND t.userId = :userId "
                     + "AND t.date BETWEEN :startDate AND :endDate AND t.isDeleted = false "
-                    + "AND t.type = org.openfinance.entity.TransactionType.EXPENSE")
+                    + "AND t.transferId IS NULL AND t.type IN (org.openfinance.entity.TransactionType.EXPENSE, org.openfinance.entity.TransactionType.INCOME)")
     Long countUniqueTransactionsByCategoryIdInAndDateRange(
             @Param("categoryIds") List<Long> categoryIds,
             @Param("startDate") LocalDate startDate,
@@ -76,7 +76,7 @@ public interface TransactionSplitRepository extends JpaRepository<TransactionSpl
             @Param("userId") Long userId);
 
     /**
-     * Finds expense splits for specific categories within a date range.
+     * Finds incoming and outgoing splits for specific categories within a date range.
      *
      * <p>Used for in-memory aggregation when amounts are encrypted.
      *
@@ -90,7 +90,7 @@ public interface TransactionSplitRepository extends JpaRepository<TransactionSpl
             "SELECT s FROM TransactionSplit s JOIN Transaction t ON s.transactionId = t.id "
                     + "WHERE s.categoryId IN :categoryIds AND t.userId = :userId "
                     + "AND t.date BETWEEN :startDate AND :endDate AND t.isDeleted = false "
-                    + "AND t.type = org.openfinance.entity.TransactionType.EXPENSE")
+                    + "AND t.transferId IS NULL AND t.type IN (org.openfinance.entity.TransactionType.EXPENSE, org.openfinance.entity.TransactionType.INCOME)")
     List<TransactionSplit> findByCategoryIdInAndDateRange(
             @Param("categoryIds") List<Long> categoryIds,
             @Param("startDate") LocalDate startDate,

@@ -11,7 +11,6 @@ import org.junit.jupiter.api.Test;
 import org.openfinance.entity.Budget;
 import org.openfinance.entity.BudgetPeriod;
 import org.openfinance.entity.Category;
-import org.openfinance.entity.CategoryType;
 import org.openfinance.entity.User;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
@@ -93,7 +92,6 @@ class BudgetRepositoryTest {
                 Category.builder()
                         .userId(testUser1.getId())
                         .name("Groceries")
-                        .type(CategoryType.EXPENSE)
                         .icon("🛒")
                         .color("#EF4444")
                         .isSystem(false)
@@ -104,7 +102,6 @@ class BudgetRepositoryTest {
                 Category.builder()
                         .userId(testUser1.getId())
                         .name("Dining Out")
-                        .type(CategoryType.EXPENSE)
                         .icon("🍽️")
                         .color("#F59E0B")
                         .isSystem(false)
@@ -240,7 +237,6 @@ class BudgetRepositoryTest {
                 Category.builder()
                         .userId(testUser2.getId())
                         .name("User2 Category")
-                        .type(CategoryType.EXPENSE)
                         .icon("💰")
                         .color("#10B981")
                         .isSystem(false)

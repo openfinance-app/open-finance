@@ -12,7 +12,7 @@ let mockCategoryData: any[] = [
   {
     id: 1,
     name: 'Food & Dining',
-    type: 'EXPENSE',
+
     transactionCount: 10,
     totalAmount: 500,
     currency: 'USD',
@@ -21,7 +21,7 @@ let mockCategoryData: any[] = [
       {
         id: 2,
         name: 'Groceries',
-        type: 'EXPENSE',
+
         transactionCount: 5,
         totalAmount: 300,
         currency: 'USD',
@@ -33,7 +33,7 @@ let mockCategoryData: any[] = [
   {
     id: 3,
     name: 'Salary',
-    type: 'INCOME',
+
     transactionCount: 2,
     totalAmount: 5000,
     currency: 'USD',
@@ -95,7 +95,7 @@ describe('CategoriesPage', () => {
       {
         id: 1,
         name: 'Food & Dining',
-        type: 'EXPENSE',
+
         transactionCount: 10,
         totalAmount: 500,
         currency: 'USD',
@@ -104,7 +104,7 @@ describe('CategoriesPage', () => {
           {
             id: 2,
             name: 'Groceries',
-            type: 'EXPENSE',
+
             transactionCount: 5,
             totalAmount: 300,
             currency: 'USD',
@@ -116,7 +116,7 @@ describe('CategoriesPage', () => {
       {
         id: 3,
         name: 'Salary',
-        type: 'INCOME',
+
         transactionCount: 2,
         totalAmount: 5000,
         currency: 'USD',
@@ -144,10 +144,10 @@ describe('CategoriesPage', () => {
     expect(screen.getByText('Groceries')).toBeInTheDocument();
   });
 
-  it('shows type badges', () => {
+  it('does not assign a direction badge to categories', () => {
     renderWithProviders(<CategoriesPage />);
-    expect(screen.getAllByText('Expense').length).toBeGreaterThan(0);
-    expect(screen.getAllByText('Income').length).toBeGreaterThan(0);
+    expect(screen.queryByText('Expense')).not.toBeInTheDocument();
+    expect(screen.queryByText('Income')).not.toBeInTheDocument();
   });
 
   it('shows transaction counts', () => {
@@ -246,23 +246,11 @@ describe('CategoriesPage', () => {
     expect(mockDeleteMutateAsync).toHaveBeenCalled();
   });
 
-  it('switches tabs between All, Expenses, and Income', async () => {
-    const user = userEvent.setup();
+  it('shows a shared hierarchy without direction tabs', () => {
     renderWithProviders(<CategoriesPage />);
-
-    // Click Income tab
-    await user.click(screen.getByRole('button', { name: /^income$/i }));
-    // Salary (INCOME) should remain visible
-    expect(screen.getByText('Salary')).toBeInTheDocument();
-
-    // Click Expenses tab
-    await user.click(screen.getByRole('button', { name: /expenses/i }));
-    expect(screen.getByText('Food & Dining')).toBeInTheDocument();
-
-    // Click All tab
-    await user.click(screen.getByRole('button', { name: /all categories/i }));
     expect(screen.getByText('Food & Dining')).toBeInTheDocument();
     expect(screen.getByText('Salary')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /^income$|^expenses$/i })).not.toBeInTheDocument();
   });
 
   it('shows stats cards with counts', () => {

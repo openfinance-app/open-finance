@@ -206,7 +206,7 @@ export function RecurringTransactionForm({
     if (selectedPayee && selectedPayee.categoryId && !recurringTransaction) {
       if (!watch('categoryId')) {
         const category = categories.find(c => c.id === selectedPayee.categoryId);
-        if (category && category.type === selectedType) {
+        if (category) {
           setValue('categoryId', selectedPayee.categoryId);
         }
       }
@@ -395,10 +395,8 @@ export function RecurringTransactionForm({
               value={watch('categoryId')}
               onValueChange={value => setValue('categoryId', value)}
               placeholder={t('form.selectCategory')}
-              type={selectedType}
               allowNone={true}
               allowCreateInline
-              inferredType={selectedType ?? 'EXPENSE'}
             />
             {errors.categoryId && (
               <p className="mt-1 text-sm text-error">{errors.categoryId.message}</p>

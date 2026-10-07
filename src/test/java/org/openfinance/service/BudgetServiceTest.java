@@ -35,7 +35,6 @@ import org.openfinance.dto.BudgetSummaryResponse;
 import org.openfinance.entity.Budget;
 import org.openfinance.entity.BudgetPeriod;
 import org.openfinance.entity.Category;
-import org.openfinance.entity.CategoryType;
 import org.openfinance.entity.Transaction;
 import org.openfinance.entity.TransactionSplit;
 import org.openfinance.entity.TransactionType;
@@ -164,13 +163,7 @@ class BudgetServiceTest {
         LocaleContextHolder.setLocale(Locale.ENGLISH);
         // Create test category
         testCategory =
-                Category.builder()
-                        .id(1L)
-                        .userId(1L)
-                        .name("Groceries")
-                        .type(CategoryType.EXPENSE)
-                        .isSystem(true)
-                        .build();
+                Category.builder().id(1L).userId(1L).name("Groceries").isSystem(true).build();
 
         // Create test budget request
         testRequest =
@@ -208,7 +201,6 @@ class BudgetServiceTest {
                         .id(1L)
                         .categoryId(1L)
                         .categoryName("Groceries")
-                        .categoryType(CategoryType.EXPENSE)
                         .amount(new BigDecimal("500.00"))
                         .currency("USD")
                         .period(BudgetPeriod.MONTHLY)
@@ -287,7 +279,6 @@ class BudgetServiceTest {
                         .id(1L)
                         .userId(999L) // Different user
                         .name("Other User's Category")
-                        .type(CategoryType.EXPENSE)
                         .build();
 
         when(categoryRepository.findByIdAndUserId(1L, 1L)).thenReturn(Optional.empty());
@@ -548,13 +539,7 @@ class BudgetServiceTest {
                         .build();
 
         Category category2 =
-                Category.builder()
-                        .id(2L)
-                        .userId(1L)
-                        .name("Entertainment")
-                        .type(CategoryType.EXPENSE)
-                        .isSystem(true)
-                        .build();
+                Category.builder().id(2L).userId(1L).name("Entertainment").isSystem(true).build();
 
         when(budgetRepository.findByUserId(1L)).thenReturn(Arrays.asList(testBudget, budget2));
         when(categoryRepository.findByIdAndUserId(1L, 1L)).thenReturn(Optional.of(testCategory));
@@ -785,13 +770,7 @@ class BudgetServiceTest {
                         .endDate(LocalDate.of(2026, 2, 28))
                         .build();
 
-        Category category2 =
-                Category.builder()
-                        .id(2L)
-                        .userId(1L)
-                        .name("Entertainment")
-                        .type(CategoryType.EXPENSE)
-                        .build();
+        Category category2 = Category.builder().id(2L).userId(1L).name("Entertainment").build();
 
         Transaction transaction1 =
                 Transaction.builder()

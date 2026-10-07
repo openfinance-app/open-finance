@@ -24,7 +24,6 @@ import org.openfinance.entity.Budget;
 import org.openfinance.entity.BudgetAlert;
 import org.openfinance.entity.BudgetPeriod;
 import org.openfinance.entity.Category;
-import org.openfinance.entity.CategoryType;
 import org.openfinance.entity.EntityType;
 import org.openfinance.entity.OperationType;
 import org.openfinance.entity.Transaction;
@@ -146,7 +145,7 @@ public class BudgetService {
                 request.getPeriod(),
                 request.getAmount());
 
-        Category category = validateExpenseCategory(request.getCategoryId(), userId);
+        Category category = validateCategory(request.getCategoryId(), userId);
 
         // Validate no duplicate budget
         validateNoDuplicateBudget(request, userId, null);
@@ -229,7 +228,7 @@ public class BudgetService {
                         .findByIdAndUserId(budgetId, userId)
                         .orElseThrow(() -> BudgetNotFoundException.byIdAndUser(budgetId, userId));
 
-        Category category = validateExpenseCategory(request.getCategoryId(), userId);
+        Category category = validateCategory(request.getCategoryId(), userId);
 
         // Validate no duplicate budget (exclude current budget)
         validateNoDuplicateBudget(request, userId, budgetId);
@@ -739,17 +738,16 @@ public class BudgetService {
     }
 
     /**
-     * Analyses past EXPENSE transactions to generate budget suggestions per category.
+     * Analyses past net spending to generate budget suggestions per category.
      *
      * <p>The method:
      *
      * <ol>
      *   <li>Determines the analysis window: [{@code today - lookbackMonths}, {@code today}].
-     *   <li>Enumerates the EXPENSE categories to analyse — either those in {@code categoryIds}
-     *       (when provided) or all categories returned by {@link
-     *       CategoryRepository#findByUserIdAndType}.
+     *   <li>Enumerates the categories to analyse — either those in {@code categoryIds} (when
+     *       provided) or all categories returned by {@link CategoryRepository#findByUserId}.
      *   <li>For each category, splits the window into sub-periods matching {@code period} and sums
-     *       EXPENSE transactions per sub-period (reuses {@link #calculateSpentAmount}).
+     *       net outflow per sub-period (reuses {@link #calculateSpentAmount}).
      *   <li>Computes the arithmetic average across non-empty sub-periods and rounds up (ceiling) to
      *       the nearest whole unit.
      *   <li>Sets {@code hasExistingBudget = true} when a budget already exists for the category +
@@ -763,8 +761,8 @@ public class BudgetService {
      * @param period the target budget period (WEEKLY / MONTHLY / QUARTERLY / YEARLY)
      * @param lookbackMonths number of months to scan (1–24)
      * @param categoryIds restrict analysis to these category IDs; pass {@code null} to analyse ALL
-     *     EXPENSE categories
-     * @return ordered list of suggestions (one per qualifying EXPENSE category)
+     *     categories
+     * @return ordered list of suggestions (one per qualifying category)
      * @throws IllegalArgumentException if userId or period is null
      */
     @Transactional(readOnly = true)
@@ -806,10 +804,10 @@ public class BudgetService {
                                             categoryRepository
                                                     .findByIdAndUserId(id, userId)
                                                     .orElse(null))
-                            .filter(c -> c != null && c.getType() == CategoryType.EXPENSE)
+                            .filter(Objects::nonNull)
                             .collect(Collectors.toList());
         } else {
-            categories = categoryRepository.findByUserIdAndType(userId, CategoryType.EXPENSE);
+            categories = categoryRepository.findByUserId(userId);
         }
 
         List<BudgetSuggestion> suggestions = new ArrayList<>();
@@ -835,21 +833,17 @@ public class BudgetService {
 
                 BigDecimal windowSpent =
                         txList.stream()
-                                .filter(t -> t.getType() == TransactionType.EXPENSE)
+                                .filter(this::isBudgetActivity)
                                 .map(
                                         t ->
                                                 budgetAmount(
-                                                        t.getAmount(),
+                                                        netOutflow(t.getAmount(), t),
                                                         t.getCurrency(),
                                                         suggestionCurrency,
                                                         t.getDate()))
                                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-                int windowTxCount =
-                        (int)
-                                txList.stream()
-                                        .filter(t -> t.getType() == TransactionType.EXPENSE)
-                                        .count();
+                int windowTxCount = (int) txList.stream().filter(this::isBudgetActivity).count();
 
                 // Also include split transaction amounts for these categories
                 List<TransactionSplit> splits =
@@ -879,7 +873,7 @@ public class BudgetService {
             }
 
             // Skip categories with no transactions in the lookback window
-            if (totalTxCount == 0) {
+            if (totalTxCount == 0 || totalSpent.signum() <= 0) {
                 continue;
             }
 
@@ -1018,8 +1012,8 @@ public class BudgetService {
     /**
      * Calculates the total amount spent in a category (and its subcategories) during a date range.
      *
-     * <p>Sums all EXPENSE transactions in the specified category (and subcategories) between
-     * startDate and endDate (inclusive).
+     * <p>Nets incoming credits against outgoing transactions in the specified category (and
+     * subcategories) between startDate and endDate (inclusive).
      *
      * <p>Requirement REQ-2.9.1.2: Calculate spent amount from transactions
      *
@@ -1027,7 +1021,7 @@ public class BudgetService {
      * @param startDate the start date (inclusive)
      * @param endDate the end date (inclusive)
      * @param userId the user ID (for security/isolation)
-     * @return total amount spent (always positive or zero)
+     * @return net outflow (negative when incoming credits exceed expenses)
      */
     private BigDecimal calculateSpentAmount(
             Category category,
@@ -1042,11 +1036,11 @@ public class BudgetService {
 
         BigDecimal mainSpent =
                 transactions.stream()
-                        .filter(t -> t.getType() == TransactionType.EXPENSE)
+                        .filter(this::isBudgetActivity)
                         .map(
                                 t ->
                                         budgetAmount(
-                                                t.getAmount(),
+                                                netOutflow(t.getAmount(), t),
                                                 t.getCurrency(),
                                                 currency,
                                                 t.getDate()))
@@ -1069,7 +1063,23 @@ public class BudgetService {
         Transaction parent = split.getTransaction();
         if (parent == null)
             parent = transactionRepository.findById(split.getTransactionId()).orElseThrow();
-        return budgetAmount(split.getAmount(), parent.getCurrency(), currency, parent.getDate());
+        return budgetAmount(
+                netOutflow(split.getAmount(), parent),
+                parent.getCurrency(),
+                currency,
+                parent.getDate());
+    }
+
+    private boolean isBudgetActivity(Transaction transaction) {
+        return !Boolean.TRUE.equals(transaction.getIsDeleted())
+                && transaction.getTransferId() == null
+                && (transaction.getType() == TransactionType.INCOME
+                        || transaction.getType() == TransactionType.EXPENSE);
+    }
+
+    private BigDecimal netOutflow(BigDecimal amount, Transaction transaction) {
+        if (!isBudgetActivity(transaction)) return BigDecimal.ZERO;
+        return transaction.getType() == TransactionType.INCOME ? amount.negate() : amount;
     }
 
     private void createDefaultAlerts(Budget budget) {
@@ -1119,7 +1129,7 @@ public class BudgetService {
     }
 
     /**
-     * Validates that an expense category exists and belongs to the user.
+     * Validates that a category exists and belongs to the user.
      *
      * <p>Requirement REQ-3.2: Authorization - verify category ownership
      *
@@ -1128,7 +1138,7 @@ public class BudgetService {
      * @return the Category entity if valid
      * @throws CategoryNotFoundException if category doesn't exist or doesn't belong to user
      */
-    private Category validateExpenseCategory(Long categoryId, Long userId) {
+    private Category validateCategory(Long categoryId, Long userId) {
         Category category =
                 categoryRepository
                         .findByIdAndUserId(categoryId, userId)
@@ -1138,11 +1148,6 @@ public class BudgetService {
                                                 String.format(
                                                         "Category not found with id: %d for user: %d",
                                                         categoryId, userId)));
-        if (category.getType() != CategoryType.EXPENSE) {
-            throw new IllegalArgumentException(
-                    messageSource.getMessage(
-                            "budget.category.expenseOnly", null, LocaleContextHolder.getLocale()));
-        }
         return category;
     }
 
@@ -1339,7 +1344,6 @@ public class BudgetService {
         BudgetResponse response = budgetMapper.toResponse(budget);
         response.setAmount(amountValue);
         response.setCategoryName(getDecryptedCategoryName(category));
-        response.setCategoryType(category.getType());
 
         return response;
     }

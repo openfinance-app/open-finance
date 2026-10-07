@@ -17,7 +17,6 @@ import org.openfinance.dto.PayeeRequest;
 import org.openfinance.dto.TransactionRequest;
 import org.openfinance.dto.UserRegistrationRequest;
 import org.openfinance.entity.AccountType;
-import org.openfinance.entity.CategoryType;
 import org.openfinance.entity.TransactionType;
 import org.openfinance.repository.UserRepository;
 import org.openfinance.security.KeyManagementService;
@@ -150,9 +149,8 @@ class CategoryTransactionFlowIntegrationTest {
      * @param parentId optional parent category ID (null for root)
      * @return the newly created category's ID
      */
-    private Long createCategory(String name, CategoryType type, Long parentId) throws Exception {
-        CategoryRequest req =
-                CategoryRequest.builder().name(name).type(type).parentId(parentId).build();
+    private Long createCategory(String name, Long parentId) throws Exception {
+        CategoryRequest req = CategoryRequest.builder().name(name).parentId(parentId).build();
 
         String resp =
                 mockMvc.perform(
@@ -196,6 +194,102 @@ class CategoryTransactionFlowIntegrationTest {
 
     // ── TASK-CAT-3.3.1 Tests ─────────────────────────────────────────────────
 
+    @Test
+    void sharedCategoryReconcilesPurchaseRefundSplitBudgetAndBalance() throws Exception {
+        Long categoryId = createCategory("Shared groceries", null);
+        java.time.LocalDate date = java.time.LocalDate.now();
+        for (TransactionRequest request :
+                java.util.List.of(
+                        TransactionRequest.builder()
+                                .accountId(accountId)
+                                .categoryId(categoryId)
+                                .type(TransactionType.EXPENSE)
+                                .amount(new BigDecimal("100"))
+                                .currency("EUR")
+                                .date(date)
+                                .build(),
+                        TransactionRequest.builder()
+                                .accountId(accountId)
+                                .categoryId(categoryId)
+                                .type(TransactionType.INCOME)
+                                .amount(new BigDecimal("30"))
+                                .currency("EUR")
+                                .date(date)
+                                .build(),
+                        TransactionRequest.builder()
+                                .accountId(accountId)
+                                .type(TransactionType.INCOME)
+                                .amount(new BigDecimal("20"))
+                                .currency("EUR")
+                                .date(date)
+                                .splits(
+                                        java.util.List.of(
+                                                org.openfinance.dto.TransactionSplitRequest
+                                                        .builder()
+                                                        .categoryId(categoryId)
+                                                        .amount(new BigDecimal("15"))
+                                                        .build(),
+                                                org.openfinance.dto.TransactionSplitRequest
+                                                        .builder()
+                                                        .amount(new BigDecimal("5"))
+                                                        .build()))
+                                .build())) {
+            mockMvc.perform(
+                            post("/api/v1/transactions")
+                                    .header("Authorization", "Bearer " + token)
+                                    .header("X-Encryption-Session", encKey)
+                                    .contentType(MediaType.APPLICATION_JSON)
+                                    .content(objectMapper.writeValueAsString(request)))
+                    .andExpect(status().isCreated());
+        }
+        mockMvc.perform(
+                        get("/api/v1/categories/tree")
+                                .header("Authorization", "Bearer " + token)
+                                .header("X-Encryption-Session", encKey))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].type").doesNotExist())
+                .andExpect(jsonPath("$[0].incomeAmount").value(45))
+                .andExpect(jsonPath("$[0].expenseAmount").value(100))
+                .andExpect(jsonPath("$[0].totalAmount").value(-55))
+                .andExpect(jsonPath("$[0].transactionCount").value(3))
+                .andExpect(jsonPath("$[0].currency").value("EUR"));
+        mockMvc.perform(
+                        get("/api/v1/accounts/" + accountId)
+                                .header("Authorization", "Bearer " + token)
+                                .header("X-Encryption-Session", encKey))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.balance").value(-50));
+        org.openfinance.dto.BudgetRequest budget =
+                org.openfinance.dto.BudgetRequest.builder()
+                        .categoryId(categoryId)
+                        .amount(new BigDecimal("200"))
+                        .currency("EUR")
+                        .period(org.openfinance.entity.BudgetPeriod.MONTHLY)
+                        .startDate(date.withDayOfMonth(1))
+                        .endDate(date.withDayOfMonth(date.lengthOfMonth()))
+                        .rollover(false)
+                        .build();
+        String response =
+                mockMvc.perform(
+                                post("/api/v1/budgets")
+                                        .header("Authorization", "Bearer " + token)
+                                        .header("X-Encryption-Session", encKey)
+                                        .contentType(MediaType.APPLICATION_JSON)
+                                        .content(objectMapper.writeValueAsString(budget)))
+                        .andExpect(status().isCreated())
+                        .andReturn()
+                        .getResponse()
+                        .getContentAsString();
+        long budgetId = objectMapper.readTree(response).get("id").asLong();
+        mockMvc.perform(
+                        get("/api/v1/budgets/" + budgetId + "/progress")
+                                .header("Authorization", "Bearer " + token)
+                                .header("X-Encryption-Session", encKey))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.spent").value(55))
+                .andExpect(jsonPath("$.remaining").value(145));
+    }
+
     /**
      * Full flow: create category → create transaction with that category → verify transaction
      * stores the correct category.
@@ -205,7 +299,7 @@ class CategoryTransactionFlowIntegrationTest {
     @Test
     void shouldCreateCategoryAndUseItInTransaction() throws Exception {
         // Step 1: Create a custom EXPENSE category
-        Long categoryId = createCategory("Online Shopping", CategoryType.EXPENSE, null);
+        Long categoryId = createCategory("Online Shopping", null);
 
         // Step 2: Create an expense transaction using the new category
         TransactionRequest txReq =
@@ -240,7 +334,7 @@ class CategoryTransactionFlowIntegrationTest {
     @Test
     void shouldAutoFillCategoryFromPayeeWhenCreatingTransaction() throws Exception {
         // Step 1: Create an EXPENSE category
-        Long categoryId = createCategory("Groceries", CategoryType.EXPENSE, null);
+        Long categoryId = createCategory("Groceries", null);
 
         // Step 2: Create a payee associated with that category
         createPayee("SuperMarket", categoryId);
@@ -277,8 +371,8 @@ class CategoryTransactionFlowIntegrationTest {
     @Test
     void shouldNotOverrideExplicitCategoryWithPayeeDefault() throws Exception {
         // Step 1: Create two categories
-        Long payeeDefaultCategoryId = createCategory("Groceries", CategoryType.EXPENSE, null);
-        Long userChosenCategoryId = createCategory("Electronics", CategoryType.EXPENSE, null);
+        Long payeeDefaultCategoryId = createCategory("Groceries", null);
+        Long userChosenCategoryId = createCategory("Electronics", null);
 
         // Step 2: Create a payee with the first category
         createPayee("BestBuy", payeeDefaultCategoryId);
@@ -344,7 +438,7 @@ class CategoryTransactionFlowIntegrationTest {
      */
     @Test
     void shouldReturnNewCategoryInCategoryTree() throws Exception {
-        Long categoryId = createCategory("My Custom Expenses", CategoryType.EXPENSE, null);
+        Long categoryId = createCategory("My Custom Expenses", null);
 
         mockMvc.perform(
                         get("/api/v1/categories/tree")

@@ -108,7 +108,6 @@ class RecurringTransactionServiceTest {
                         .id(50L)
                         .userId(1L)
                         .name("Rent")
-                        .type(CategoryType.EXPENSE)
                         .icon("home")
                         .color("#FF5733")
                         .isSystem(false)
@@ -119,7 +118,6 @@ class RecurringTransactionServiceTest {
                         .id(60L)
                         .userId(1L)
                         .name("Salary")
-                        .type(CategoryType.INCOME)
                         .icon("dollar-sign")
                         .color("#28A745")
                         .isSystem(false)
@@ -230,23 +228,17 @@ class RecurringTransactionServiceTest {
         }
 
         @Test
-        @DisplayName("Should throw InvalidTransactionException when category type mismatch")
-        void shouldThrowExceptionWhenCategoryTypeMismatch() {
-            // Given - EXPENSE transaction with INCOME category
+        @DisplayName("Recurring activity accepts any owned category")
+        void shouldAcceptSharedCategory() {
             when(accountRepository.findByIdAndUserId(100L, 1L))
                     .thenReturn(Optional.of(testAccount));
             when(categoryRepository.findByIdAndUserId(50L, 1L))
                     .thenReturn(Optional.of(testIncomeCategory));
-
-            // When/Then
-            assertThatThrownBy(
-                            () ->
-                                    recurringTransactionService.createRecurringTransaction(
-                                            1L, testRequest))
-                    .isInstanceOf(InvalidTransactionException.class)
-                    .hasMessageContaining("EXPENSE transactions must use an EXPENSE category");
-
-            verify(recurringTransactionRepository, never()).save(any());
+            when(recurringTransactionRepository.save(any(RecurringTransaction.class)))
+                    .thenReturn(testRecurringTransaction);
+            assertThat(recurringTransactionService.createRecurringTransaction(1L, testRequest))
+                    .isNotNull();
+            verify(recurringTransactionRepository).save(any(RecurringTransaction.class));
         }
 
         @Test

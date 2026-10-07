@@ -3,7 +3,6 @@ package org.openfinance.repository;
 import java.util.List;
 import java.util.Optional;
 import org.openfinance.entity.Category;
-import org.openfinance.entity.CategoryType;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -19,7 +18,6 @@ import org.springframework.stereotype.Repository;
  *
  * <ul>
  *   <li>User-scoped queries for data isolation
- *   <li>Type filtering (INCOME vs EXPENSE categories)
  *   <li>Hierarchical navigation (parent/subcategories)
  *   <li>System category management
  * </ul>
@@ -57,22 +55,6 @@ public interface CategoryRepository extends JpaRepository<Category, Long> {
      */
     @Query("SELECT c FROM Category c WHERE c.id = :id AND c.userId = :userId")
     Optional<Category> findByIdAndUserId(@Param("id") Long id, @Param("userId") Long userId);
-
-    /**
-     * Finds all categories of a specific type for a user.
-     *
-     * <p>Filter categories by INCOME or EXPENSE type. Results ordered by name alphabetically.
-     *
-     * <p>Requirement REQ-2.10.1: Category type filtering
-     *
-     * @param userId the user ID
-     * @param type the category type (INCOME or EXPENSE)
-     * @return list of categories of specified type, empty list if none found
-     */
-    @Query(
-            "SELECT c FROM Category c WHERE c.userId = :userId AND c.type = :type ORDER BY c.name ASC")
-    List<Category> findByUserIdAndType(
-            @Param("userId") Long userId, @Param("type") CategoryType type);
 
     /**
      * Finds all root categories (no parent) for a user.
@@ -181,18 +163,6 @@ public interface CategoryRepository extends JpaRepository<Category, Long> {
      */
     @Query("SELECT COUNT(c) FROM Category c WHERE c.userId = :userId")
     Long countByUserId(@Param("userId") Long userId);
-
-    /**
-     * Counts categories of a specific type for a user.
-     *
-     * <p>Used for statistics (e.g., "You have 15 expense categories").
-     *
-     * @param userId the user ID
-     * @param type the category type
-     * @return number of categories of specified type
-     */
-    @Query("SELECT COUNT(c) FROM Category c WHERE c.userId = :userId AND c.type = :type")
-    Long countByUserIdAndType(@Param("userId") Long userId, @Param("type") CategoryType type);
 
     /**
      * Counts the number of direct subcategories for a parent category.

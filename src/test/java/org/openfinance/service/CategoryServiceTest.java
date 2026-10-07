@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -34,8 +35,6 @@ import org.openfinance.dto.CategoryRequest;
 import org.openfinance.dto.CategoryResponse;
 import org.openfinance.dto.CategoryTreeNode;
 import org.openfinance.entity.Category;
-import org.openfinance.entity.CategoryType;
-import org.openfinance.entity.Transaction;
 import org.openfinance.exception.CategoryNotFoundException;
 import org.openfinance.exception.InvalidCategoryException;
 import org.openfinance.mapper.CategoryMapper;
@@ -58,6 +57,8 @@ import org.springframework.context.MessageSource;
 class CategoryServiceTest {
 
     @Mock private CategoryRepository categoryRepository;
+    @Mock private CategoryActivityService categoryActivityService;
+    @Mock private DefaultCurrencyProvider defaultCurrencyProvider;
 
     @Mock private TransactionRepository transactionRepository;
 
@@ -80,6 +81,9 @@ class CategoryServiceTest {
     void setUp() {
         EncryptionContext.setKey(new SecretKeySpec(new byte[32], "AES"));
         when(encryptionProperties.isEnabled()).thenReturn(true);
+        when(defaultCurrencyProvider.resolveForUser(USER_ID)).thenReturn("EUR");
+        when(categoryActivityService.summarize(anyLong(), anyList(), anyString()))
+                .thenReturn(java.util.Map.of());
     }
 
     @AfterEach
@@ -92,13 +96,11 @@ class CategoryServiceTest {
     // ============================================================
 
     /** Builds a user (non-system) Category entity. */
-    private Category userCategoryFixture(
-            Long id, Long userId, String name, CategoryType type, Long parentId) {
+    private Category userCategoryFixture(Long id, Long userId, String name, Long parentId) {
         return Category.builder()
                 .id(id)
                 .userId(userId)
                 .name(name)
-                .type(type)
                 .parentId(parentId)
                 .icon("icon")
                 .color("#fff")
@@ -112,13 +114,11 @@ class CategoryServiceTest {
     /**
      * Builds a system Category entity with plain-text name (system categories are NOT encrypted).
      */
-    private Category systemCategoryFixture(
-            Long id, Long userId, String plainName, CategoryType type) {
+    private Category systemCategoryFixture(Long id, Long userId, String plainName) {
         return Category.builder()
                 .id(id)
                 .userId(userId)
                 .name(plainName)
-                .type(type)
                 .parentId(null)
                 .icon("icon")
                 .color("#000")
@@ -128,21 +128,20 @@ class CategoryServiceTest {
                 .build();
     }
 
-    private CategoryRequest buildRequest(String name, CategoryType type, Long parentId) {
+    private CategoryRequest buildRequest(String name, Long parentId) {
         return CategoryRequest.builder()
                 .name(name)
-                .type(type)
                 .parentId(parentId)
                 .icon("icon")
                 .color("#abc")
                 .build();
     }
 
-    private CategoryResponse buildResponse(Long id, String name, CategoryType type, Long parentId) {
+    private CategoryResponse buildResponse(Long id, String name, Long parentId) {
         CategoryResponse resp = new CategoryResponse();
         resp.setId(id);
         resp.setName(name);
-        resp.setType(type);
+
         resp.setParentId(parentId);
         resp.setIsSystem(false);
         resp.setSubcategoryCount(0);
@@ -157,13 +156,10 @@ class CategoryServiceTest {
     @DisplayName("Should create a user category successfully with encryption")
     void shouldCreateCategorySuccessfully() {
         // Arrange
-        CategoryRequest request = buildRequest("Groceries", CategoryType.EXPENSE, null);
-        Category mapped =
-                userCategoryFixture(null, USER_ID, "Groceries", CategoryType.EXPENSE, null);
-        Category saved =
-                userCategoryFixture(CATEGORY_ID, USER_ID, "Groceries", CategoryType.EXPENSE, null);
-        CategoryResponse expected =
-                buildResponse(CATEGORY_ID, "Groceries", CategoryType.EXPENSE, null);
+        CategoryRequest request = buildRequest("Groceries", null);
+        Category mapped = userCategoryFixture(null, USER_ID, "Groceries", null);
+        Category saved = userCategoryFixture(CATEGORY_ID, USER_ID, "Groceries", null);
+        CategoryResponse expected = buildResponse(CATEGORY_ID, "Groceries", null);
 
         when(categoryMapper.toEntity(request)).thenReturn(mapped);
         when(categoryRepository.save(any(Category.class))).thenReturn(saved);
@@ -185,15 +181,11 @@ class CategoryServiceTest {
     void shouldCreateSubcategoryWithValidParent() {
         // Arrange
         Long parentId = 5L;
-        CategoryRequest request = buildRequest("Supermarket", CategoryType.EXPENSE, parentId);
-        Category parent =
-                userCategoryFixture(parentId, USER_ID, "Shopping", CategoryType.EXPENSE, null);
-        Category mapped =
-                userCategoryFixture(null, USER_ID, "Supermarket", CategoryType.EXPENSE, parentId);
-        Category saved =
-                userCategoryFixture(20L, USER_ID, "Supermarket", CategoryType.EXPENSE, parentId);
-        CategoryResponse expected =
-                buildResponse(20L, "Supermarket", CategoryType.EXPENSE, parentId);
+        CategoryRequest request = buildRequest("Supermarket", parentId);
+        Category parent = userCategoryFixture(parentId, USER_ID, "Shopping", null);
+        Category mapped = userCategoryFixture(null, USER_ID, "Supermarket", parentId);
+        Category saved = userCategoryFixture(20L, USER_ID, "Supermarket", parentId);
+        CategoryResponse expected = buildResponse(20L, "Supermarket", parentId);
 
         when(categoryRepository.findByIdAndUserId(parentId, USER_ID))
                 .thenReturn(Optional.of(parent));
@@ -217,7 +209,7 @@ class CategoryServiceTest {
     void shouldThrowWhenParentNotFoundOnCreate() {
         // Arrange
         Long parentId = 999L;
-        CategoryRequest request = buildRequest("Supermarket", CategoryType.EXPENSE, parentId);
+        CategoryRequest request = buildRequest("Supermarket", parentId);
         when(categoryRepository.findByIdAndUserId(parentId, USER_ID)).thenReturn(Optional.empty());
 
         // Act & Assert
@@ -230,14 +222,11 @@ class CategoryServiceTest {
     void shouldAllowParentTypeMismatchOnCreate() {
         // Arrange — imported taxonomies (e.g. Skrooge) mix income/expense in one tree.
         Long parentId = 5L;
-        CategoryRequest request = buildRequest("SubIncome", CategoryType.INCOME, parentId);
-        Category parent =
-                userCategoryFixture(parentId, USER_ID, "Shopping", CategoryType.EXPENSE, null);
-        Category mapped =
-                userCategoryFixture(null, USER_ID, "SubIncome", CategoryType.INCOME, parentId);
-        Category savedEntity =
-                userCategoryFixture(21L, USER_ID, "SubIncome", CategoryType.INCOME, parentId);
-        CategoryResponse expected = buildResponse(21L, "SubIncome", CategoryType.INCOME, parentId);
+        CategoryRequest request = buildRequest("SubIncome", parentId);
+        Category parent = userCategoryFixture(parentId, USER_ID, "Shopping", null);
+        Category mapped = userCategoryFixture(null, USER_ID, "SubIncome", parentId);
+        Category savedEntity = userCategoryFixture(21L, USER_ID, "SubIncome", parentId);
+        CategoryResponse expected = buildResponse(21L, "SubIncome", parentId);
 
         when(categoryRepository.findByIdAndUserId(parentId, USER_ID))
                 .thenReturn(Optional.of(parent));
@@ -252,7 +241,7 @@ class CategoryServiceTest {
 
         // Assert
         assertThat(result).isNotNull();
-        assertThat(result.getType()).isEqualTo(CategoryType.INCOME);
+
         assertThat(result.getParentId()).isEqualTo(parentId);
     }
 
@@ -261,17 +250,12 @@ class CategoryServiceTest {
     void shouldAllowDuplicateLeafNameUnderDifferentParent() {
         // Arrange — "Informatique" (root) and "Loisirs:Informatique" (child) may coexist.
         Long parentId = 7L;
-        CategoryRequest request = buildRequest("Informatique", CategoryType.EXPENSE, parentId);
-        Category parent =
-                userCategoryFixture(parentId, USER_ID, "Loisirs", CategoryType.EXPENSE, null);
-        Category rootDuplicate =
-                userCategoryFixture(3L, USER_ID, "Informatique", CategoryType.EXPENSE, null);
-        Category mapped =
-                userCategoryFixture(null, USER_ID, "Informatique", CategoryType.EXPENSE, parentId);
-        Category savedEntity =
-                userCategoryFixture(30L, USER_ID, "Informatique", CategoryType.EXPENSE, parentId);
-        CategoryResponse expected =
-                buildResponse(30L, "Informatique", CategoryType.EXPENSE, parentId);
+        CategoryRequest request = buildRequest("Informatique", parentId);
+        Category parent = userCategoryFixture(parentId, USER_ID, "Loisirs", null);
+        Category rootDuplicate = userCategoryFixture(3L, USER_ID, "Informatique", null);
+        Category mapped = userCategoryFixture(null, USER_ID, "Informatique", parentId);
+        Category savedEntity = userCategoryFixture(30L, USER_ID, "Informatique", parentId);
+        CategoryResponse expected = buildResponse(30L, "Informatique", parentId);
 
         when(categoryRepository.findByIdAndUserId(parentId, USER_ID))
                 .thenReturn(Optional.of(parent));
@@ -295,11 +279,9 @@ class CategoryServiceTest {
     void shouldRejectDuplicateLeafNameUnderSameParent() {
         // Arrange
         Long parentId = 7L;
-        CategoryRequest request = buildRequest("Informatique", CategoryType.EXPENSE, parentId);
-        Category parent =
-                userCategoryFixture(parentId, USER_ID, "Loisirs", CategoryType.EXPENSE, null);
-        Category sibling =
-                userCategoryFixture(8L, USER_ID, "Informatique", CategoryType.EXPENSE, parentId);
+        CategoryRequest request = buildRequest("Informatique", parentId);
+        Category parent = userCategoryFixture(parentId, USER_ID, "Loisirs", null);
+        Category sibling = userCategoryFixture(8L, USER_ID, "Informatique", parentId);
 
         when(categoryRepository.findByIdAndUserId(parentId, USER_ID))
                 .thenReturn(Optional.of(parent));
@@ -316,9 +298,7 @@ class CategoryServiceTest {
     void shouldThrowWhenCreateUserIdNull() {
         assertThrows(
                 IllegalArgumentException.class,
-                () ->
-                        categoryService.createCategory(
-                                null, buildRequest("Name", CategoryType.EXPENSE, null)));
+                () -> categoryService.createCategory(null, buildRequest("Name", null)));
     }
 
     @Test
@@ -337,14 +317,10 @@ class CategoryServiceTest {
     @DisplayName("Should update a user category successfully")
     void shouldUpdateCategorySuccessfully() {
         // Arrange
-        CategoryRequest request = buildRequest("Updated Name", CategoryType.EXPENSE, null);
-        Category existing =
-                userCategoryFixture(CATEGORY_ID, USER_ID, "OldName", CategoryType.EXPENSE, null);
-        Category saved =
-                userCategoryFixture(
-                        CATEGORY_ID, USER_ID, "Updated Name", CategoryType.EXPENSE, null);
-        CategoryResponse expected =
-                buildResponse(CATEGORY_ID, "Updated Name", CategoryType.EXPENSE, null);
+        CategoryRequest request = buildRequest("Updated Name", null);
+        Category existing = userCategoryFixture(CATEGORY_ID, USER_ID, "OldName", null);
+        Category saved = userCategoryFixture(CATEGORY_ID, USER_ID, "Updated Name", null);
+        CategoryResponse expected = buildResponse(CATEGORY_ID, "Updated Name", null);
 
         when(categoryRepository.findByIdAndUserId(CATEGORY_ID, USER_ID))
                 .thenReturn(Optional.of(existing));
@@ -366,9 +342,8 @@ class CategoryServiceTest {
     @DisplayName("Should throw InvalidCategoryException when updating a system category")
     void shouldThrowWhenUpdatingSystemCategory() {
         // Arrange
-        CategoryRequest request = buildRequest("New Name", CategoryType.EXPENSE, null);
-        Category systemCat =
-                systemCategoryFixture(CATEGORY_ID, USER_ID, "Groceries", CategoryType.EXPENSE);
+        CategoryRequest request = buildRequest("New Name", null);
+        Category systemCat = systemCategoryFixture(CATEGORY_ID, USER_ID, "Groceries");
         when(categoryRepository.findByIdAndUserId(CATEGORY_ID, USER_ID))
                 .thenReturn(Optional.of(systemCat));
 
@@ -388,9 +363,7 @@ class CategoryServiceTest {
         assertThatThrownBy(
                         () ->
                                 categoryService.updateCategory(
-                                        USER_ID,
-                                        999L,
-                                        buildRequest("Name", CategoryType.EXPENSE, null)))
+                                        USER_ID, 999L, buildRequest("Name", null)))
                 .isInstanceOf(CategoryNotFoundException.class);
     }
 
@@ -399,9 +372,8 @@ class CategoryServiceTest {
             "Should throw InvalidCategoryException when setting category as its own parent on update")
     void shouldThrowWhenCategoryIsOwnParentOnUpdate() {
         // Arrange
-        CategoryRequest request = buildRequest("Name", CategoryType.EXPENSE, CATEGORY_ID);
-        Category existing =
-                userCategoryFixture(CATEGORY_ID, USER_ID, "Name", CategoryType.EXPENSE, null);
+        CategoryRequest request = buildRequest("Name", CATEGORY_ID);
+        Category existing = userCategoryFixture(CATEGORY_ID, USER_ID, "Name", null);
         when(categoryRepository.findByIdAndUserId(CATEGORY_ID, USER_ID))
                 .thenReturn(Optional.of(existing));
         // Also mock parent lookup (it will try to validate the parent)
@@ -421,9 +393,7 @@ class CategoryServiceTest {
                 IllegalArgumentException.class,
                 () ->
                         categoryService.updateCategory(
-                                null,
-                                CATEGORY_ID,
-                                buildRequest("Name", CategoryType.EXPENSE, null)));
+                                null, CATEGORY_ID, buildRequest("Name", null)));
     }
 
     @Test
@@ -431,9 +401,7 @@ class CategoryServiceTest {
     void shouldThrowWhenUpdateCategoryIdNull() {
         assertThrows(
                 IllegalArgumentException.class,
-                () ->
-                        categoryService.updateCategory(
-                                USER_ID, null, buildRequest("Name", CategoryType.EXPENSE, null)));
+                () -> categoryService.updateCategory(USER_ID, null, buildRequest("Name", null)));
     }
 
     @Test
@@ -452,8 +420,7 @@ class CategoryServiceTest {
     @DisplayName("Should delete a user category successfully")
     void shouldDeleteCategorySuccessfully() {
         // Arrange
-        Category existing =
-                userCategoryFixture(CATEGORY_ID, USER_ID, "Name", CategoryType.EXPENSE, null);
+        Category existing = userCategoryFixture(CATEGORY_ID, USER_ID, "Name", null);
         when(categoryRepository.findByIdAndUserId(CATEGORY_ID, USER_ID))
                 .thenReturn(Optional.of(existing));
         when(categoryRepository.hasSubcategories(CATEGORY_ID)).thenReturn(false);
@@ -470,8 +437,7 @@ class CategoryServiceTest {
     @DisplayName("Should throw InvalidCategoryException when deleting a system category")
     void shouldThrowWhenDeletingSystemCategory() {
         // Arrange
-        Category systemCat =
-                systemCategoryFixture(CATEGORY_ID, USER_ID, "Groceries", CategoryType.EXPENSE);
+        Category systemCat = systemCategoryFixture(CATEGORY_ID, USER_ID, "Groceries");
         when(categoryRepository.findByIdAndUserId(CATEGORY_ID, USER_ID))
                 .thenReturn(Optional.of(systemCat));
 
@@ -486,8 +452,7 @@ class CategoryServiceTest {
     @DisplayName("Should throw InvalidCategoryException when deleting category with subcategories")
     void shouldThrowWhenDeletingCategoryWithSubcategories() {
         // Arrange
-        Category existing =
-                userCategoryFixture(CATEGORY_ID, USER_ID, "Shopping", CategoryType.EXPENSE, null);
+        Category existing = userCategoryFixture(CATEGORY_ID, USER_ID, "Shopping", null);
         when(categoryRepository.findByIdAndUserId(CATEGORY_ID, USER_ID))
                 .thenReturn(Optional.of(existing));
         when(categoryRepository.hasSubcategories(CATEGORY_ID)).thenReturn(true);
@@ -534,10 +499,8 @@ class CategoryServiceTest {
     @DisplayName("Should get user category by ID with decryption")
     void shouldGetCategoryByIdSuccessfully() {
         // Arrange
-        Category cat =
-                userCategoryFixture(CATEGORY_ID, USER_ID, "Groceries", CategoryType.EXPENSE, null);
-        CategoryResponse expected =
-                buildResponse(CATEGORY_ID, "Groceries", CategoryType.EXPENSE, null);
+        Category cat = userCategoryFixture(CATEGORY_ID, USER_ID, "Groceries", null);
+        CategoryResponse expected = buildResponse(CATEGORY_ID, "Groceries", null);
 
         when(categoryRepository.findByIdAndUserId(CATEGORY_ID, USER_ID))
                 .thenReturn(Optional.of(cat));
@@ -556,10 +519,8 @@ class CategoryServiceTest {
     @DisplayName("Should get system category by ID without decryption")
     void shouldGetSystemCategoryByIdWithoutDecryption() {
         // Arrange
-        Category systemCat =
-                systemCategoryFixture(CATEGORY_ID, USER_ID, "Groceries", CategoryType.EXPENSE);
-        CategoryResponse expected =
-                buildResponse(CATEGORY_ID, "Groceries", CategoryType.EXPENSE, null);
+        Category systemCat = systemCategoryFixture(CATEGORY_ID, USER_ID, "Groceries");
+        CategoryResponse expected = buildResponse(CATEGORY_ID, "Groceries", null);
         expected.setIsSystem(true);
 
         when(categoryRepository.findByIdAndUserId(CATEGORY_ID, USER_ID))
@@ -582,11 +543,8 @@ class CategoryServiceTest {
     void shouldGetUserCategoryWithoutEncryptionKeyWhenEncryptionDisabled() {
         EncryptionContext.clear();
         when(encryptionProperties.isEnabled()).thenReturn(false);
-        Category category =
-                userCategoryFixture(
-                        CATEGORY_ID, USER_ID, "Plain Groceries", CategoryType.EXPENSE, null);
-        CategoryResponse response =
-                buildResponse(CATEGORY_ID, "Plain Groceries", CategoryType.EXPENSE, null);
+        Category category = userCategoryFixture(CATEGORY_ID, USER_ID, "Plain Groceries", null);
+        CategoryResponse response = buildResponse(CATEGORY_ID, "Plain Groceries", null);
 
         when(categoryRepository.findByIdAndUserId(CATEGORY_ID, USER_ID))
                 .thenReturn(Optional.of(category));
@@ -628,11 +586,10 @@ class CategoryServiceTest {
     @DisplayName("Should return all categories with decryption for user categories")
     void shouldGetAllCategoriesSuccessfully() {
         // Arrange
-        Category userCat =
-                userCategoryFixture(1L, USER_ID, "Groceries", CategoryType.EXPENSE, null);
-        Category sysCat = systemCategoryFixture(2L, USER_ID, "Salary", CategoryType.INCOME);
-        CategoryResponse userResp = buildResponse(1L, "Groceries", CategoryType.EXPENSE, null);
-        CategoryResponse sysResp = buildResponse(2L, "Salary", CategoryType.INCOME, null);
+        Category userCat = userCategoryFixture(1L, USER_ID, "Groceries", null);
+        Category sysCat = systemCategoryFixture(2L, USER_ID, "Salary");
+        CategoryResponse userResp = buildResponse(1L, "Groceries", null);
+        CategoryResponse sysResp = buildResponse(2L, "Salary", null);
         sysResp.setIsSystem(true);
 
         when(categoryRepository.findByUserId(USER_ID)).thenReturn(List.of(userCat, sysCat));
@@ -653,12 +610,10 @@ class CategoryServiceTest {
     void shouldGetAllCategoriesWithoutEncryptionKeyWhenEncryptionDisabled() {
         EncryptionContext.clear();
         when(encryptionProperties.isEnabled()).thenReturn(false);
-        Category userCat =
-                userCategoryFixture(1L, USER_ID, "Plain Groceries", CategoryType.EXPENSE, null);
-        Category sysCat = systemCategoryFixture(2L, USER_ID, "Salary", CategoryType.INCOME);
-        CategoryResponse userResp =
-                buildResponse(1L, "Plain Groceries", CategoryType.EXPENSE, null);
-        CategoryResponse sysResp = buildResponse(2L, "Salary", CategoryType.INCOME, null);
+        Category userCat = userCategoryFixture(1L, USER_ID, "Plain Groceries", null);
+        Category sysCat = systemCategoryFixture(2L, USER_ID, "Salary");
+        CategoryResponse userResp = buildResponse(1L, "Plain Groceries", null);
+        CategoryResponse sysResp = buildResponse(2L, "Salary", null);
         sysResp.setIsSystem(true);
 
         when(categoryRepository.findByUserId(USER_ID)).thenReturn(List.of(userCat, sysCat));
@@ -693,61 +648,6 @@ class CategoryServiceTest {
     }
 
     // ============================================================
-    // getCategoriesByType tests
-    // ============================================================
-
-    @Test
-    @DisplayName("Should filter categories by type EXPENSE")
-    void shouldGetCategoriesByTypeExpense() {
-        // Arrange
-        Category cat = userCategoryFixture(1L, USER_ID, "Food", CategoryType.EXPENSE, null);
-        CategoryResponse resp = buildResponse(1L, "Food", CategoryType.EXPENSE, null);
-
-        when(categoryRepository.findByUserIdAndType(USER_ID, CategoryType.EXPENSE))
-                .thenReturn(List.of(cat));
-        when(categoryMapper.toResponse(cat)).thenReturn(resp);
-        when(categoryRepository.countSubcategories(1L)).thenReturn(0);
-
-        // Act
-        List<CategoryResponse> results =
-                categoryService.getCategoriesByType(USER_ID, CategoryType.EXPENSE);
-
-        // Assert
-        assertThat(results).hasSize(1);
-        assertThat(results.get(0).getType()).isEqualTo(CategoryType.EXPENSE);
-        verify(categoryRepository).findByUserIdAndType(USER_ID, CategoryType.EXPENSE);
-    }
-
-    @Test
-    @DisplayName(
-            "Should return typed user categories without encryption key when encryption is disabled")
-    void shouldGetCategoriesByTypeWithoutEncryptionKeyWhenEncryptionDisabled() {
-        EncryptionContext.clear();
-        when(encryptionProperties.isEnabled()).thenReturn(false);
-        Category cat = userCategoryFixture(1L, USER_ID, "Plain Food", CategoryType.EXPENSE, null);
-        CategoryResponse resp = buildResponse(1L, "Plain Food", CategoryType.EXPENSE, null);
-
-        when(categoryRepository.findByUserIdAndType(USER_ID, CategoryType.EXPENSE))
-                .thenReturn(List.of(cat));
-        when(categoryMapper.toResponse(cat)).thenReturn(resp);
-        when(categoryRepository.countSubcategories(1L)).thenReturn(0);
-
-        List<CategoryResponse> results =
-                categoryService.getCategoriesByType(USER_ID, CategoryType.EXPENSE);
-
-        assertThat(results).hasSize(1);
-        assertThat(results.get(0).getName()).isEqualTo("Plain Food");
-    }
-
-    @Test
-    @DisplayName("Should throw IllegalArgumentException when userId is null on getCategoriesByType")
-    void shouldThrowWhenGetCategoriesByTypeUserIdNull() {
-        assertThrows(
-                IllegalArgumentException.class,
-                () -> categoryService.getCategoriesByType(null, CategoryType.EXPENSE));
-    }
-
-    // ============================================================
     // getRootCategories tests
     // ============================================================
 
@@ -755,8 +655,8 @@ class CategoryServiceTest {
     @DisplayName("Should return only root categories")
     void shouldGetRootCategoriesSuccessfully() {
         // Arrange
-        Category root = systemCategoryFixture(1L, USER_ID, "Shopping", CategoryType.EXPENSE);
-        CategoryResponse resp = buildResponse(1L, "Shopping", CategoryType.EXPENSE, null);
+        Category root = systemCategoryFixture(1L, USER_ID, "Shopping");
+        CategoryResponse resp = buildResponse(1L, "Shopping", null);
         resp.setIsSystem(true);
 
         when(categoryRepository.findRootCategoriesByUserId(USER_ID)).thenReturn(List.of(root));
@@ -780,9 +680,8 @@ class CategoryServiceTest {
     void shouldGetSubcategoriesSuccessfully() {
         // Arrange
         Long parentId = 5L;
-        Category sub =
-                userCategoryFixture(20L, USER_ID, "Supermarket", CategoryType.EXPENSE, parentId);
-        CategoryResponse resp = buildResponse(20L, "Supermarket", CategoryType.EXPENSE, parentId);
+        Category sub = userCategoryFixture(20L, USER_ID, "Supermarket", parentId);
+        CategoryResponse resp = buildResponse(20L, "Supermarket", parentId);
 
         when(categoryRepository.findByUserIdAndParentId(USER_ID, parentId))
                 .thenReturn(List.of(sub));
@@ -815,14 +714,13 @@ class CategoryServiceTest {
     @DisplayName("Should build category tree with root categories and subcategories")
     void shouldBuildCategoryTreeSuccessfully() {
         // Arrange: parent (Shopping/EXPENSE) with one child (Groceries/EXPENSE)
-        Category parent = systemCategoryFixture(1L, USER_ID, "Shopping", CategoryType.EXPENSE);
-        Category child = systemCategoryFixture(2L, USER_ID, "Groceries", CategoryType.EXPENSE);
+        Category parent = systemCategoryFixture(1L, USER_ID, "Shopping");
+        Category child = systemCategoryFixture(2L, USER_ID, "Groceries");
         child =
                 Category.builder()
                         .id(2L)
                         .userId(USER_ID)
                         .name("Groceries")
-                        .type(CategoryType.EXPENSE)
                         .parentId(1L)
                         .icon("icon")
                         .color("#000")
@@ -832,22 +730,15 @@ class CategoryServiceTest {
                         .build();
 
         when(categoryRepository.findByUserId(USER_ID)).thenReturn(List.of(parent, child));
-        when(transactionRepository.countByCategoryId(1L)).thenReturn(5L);
-        when(transactionRepository.countByCategoryId(2L)).thenReturn(3L);
-        when(transactionRepository.findByCategoryId(1L))
+        when(categoryActivityService.summarize(anyLong(), anyList(), anyString()))
                 .thenReturn(
-                        List.of(
-                                Transaction.builder()
-                                        .type(org.openfinance.entity.TransactionType.EXPENSE)
-                                        .amount(BigDecimal.valueOf(500.0))
-                                        .build()));
-        when(transactionRepository.findByCategoryId(2L))
-                .thenReturn(
-                        List.of(
-                                Transaction.builder()
-                                        .type(org.openfinance.entity.TransactionType.EXPENSE)
-                                        .amount(BigDecimal.valueOf(300.0))
-                                        .build()));
+                        java.util.Map.of(
+                                1L,
+                                        new CategoryActivityService.Activity(
+                                                BigDecimal.ZERO, new BigDecimal("800"), 8),
+                                2L,
+                                        new CategoryActivityService.Activity(
+                                                BigDecimal.ZERO, new BigDecimal("300"), 3)));
 
         // Act
         List<CategoryTreeNode> tree = categoryService.getCategoryTree(USER_ID);
@@ -868,8 +759,7 @@ class CategoryServiceTest {
     @DisplayName("Should decrypt user category names in tree but not system category names")
     void shouldDecryptUserCategoryNamesInTree() {
         // Arrange: user category (not system) - name is stored encrypted
-        Category userCat =
-                userCategoryFixture(3L, USER_ID, "My Category", CategoryType.INCOME, null);
+        Category userCat = userCategoryFixture(3L, USER_ID, "My Category", null);
 
         when(categoryRepository.findByUserId(USER_ID)).thenReturn(List.of(userCat));
         when(transactionRepository.countByCategoryId(3L)).thenReturn(0L);
@@ -889,8 +779,7 @@ class CategoryServiceTest {
     void shouldIncludeUserCategoriesInTreeWithoutEncryptionKeyWhenEncryptionDisabled() {
         EncryptionContext.clear();
         when(encryptionProperties.isEnabled()).thenReturn(false);
-        Category userCat =
-                userCategoryFixture(3L, USER_ID, "Plain Category", CategoryType.INCOME, null);
+        Category userCat = userCategoryFixture(3L, USER_ID, "Plain Category", null);
 
         when(categoryRepository.findByUserId(USER_ID)).thenReturn(List.of(userCat));
         when(transactionRepository.countByCategoryId(3L)).thenReturn(0L);
@@ -916,13 +805,11 @@ class CategoryServiceTest {
     }
 
     @Test
-    @DisplayName("Should sort root categories by type then name in tree")
+    @DisplayName("Should sort root categories by name in tree")
     void shouldSortRootCategoriesInTree() {
-        // Arrange: two root categories - INCOME and EXPENSE
-        // CategoryType enum ordinal: INCOME=0, EXPENSE=1, so INCOME sorts before
-        // EXPENSE
-        Category income = systemCategoryFixture(1L, USER_ID, "Salary", CategoryType.INCOME);
-        Category expense = systemCategoryFixture(2L, USER_ID, "Zara", CategoryType.EXPENSE);
+        // Arrange: roots arrive from persistence in reverse alphabetical order.
+        Category income = systemCategoryFixture(1L, USER_ID, "Salary");
+        Category expense = systemCategoryFixture(2L, USER_ID, "Zara");
 
         when(categoryRepository.findByUserId(USER_ID)).thenReturn(List.of(expense, income));
         when(transactionRepository.countByCategoryId(anyLong())).thenReturn(0L);
@@ -931,27 +818,21 @@ class CategoryServiceTest {
         // Act
         List<CategoryTreeNode> tree = categoryService.getCategoryTree(USER_ID);
 
-        // Assert — INCOME comes before EXPENSE (enum ordinal order: INCOME=0,
-        // EXPENSE=1)
-        assertThat(tree).hasSize(2);
-        assertThat(tree.get(0).getType()).isEqualTo(CategoryType.INCOME);
-        assertThat(tree.get(1).getType()).isEqualTo(CategoryType.EXPENSE);
+        assertThat(tree).extracting(CategoryTreeNode::getName).containsExactly("Salary", "Zara");
     }
 
     @Test
     @DisplayName("Should include transactionCount and totalAmount in tree nodes")
     void shouldIncludeTransactionStatsInTreeNodes() {
         // Arrange
-        Category cat = systemCategoryFixture(1L, USER_ID, "Food", CategoryType.EXPENSE);
+        Category cat = systemCategoryFixture(1L, USER_ID, "Food");
         when(categoryRepository.findByUserId(USER_ID)).thenReturn(List.of(cat));
-        when(transactionRepository.countByCategoryId(1L)).thenReturn(10L);
-        when(transactionRepository.findByCategoryId(1L))
+        when(categoryActivityService.summarize(anyLong(), anyList(), anyString()))
                 .thenReturn(
-                        List.of(
-                                Transaction.builder()
-                                        .type(org.openfinance.entity.TransactionType.EXPENSE)
-                                        .amount(BigDecimal.valueOf(1234.56))
-                                        .build()));
+                        java.util.Map.of(
+                                1L,
+                                new CategoryActivityService.Activity(
+                                        new BigDecimal("40"), new BigDecimal("1274.56"), 10)));
 
         // Act
         List<CategoryTreeNode> tree = categoryService.getCategoryTree(USER_ID);
@@ -959,36 +840,24 @@ class CategoryServiceTest {
         // Assert
         assertThat(tree).hasSize(1);
         assertThat(tree.get(0).getTransactionCount()).isEqualTo(10L);
-        assertThat(tree.get(0).getTotalAmount()).isEqualByComparingTo(BigDecimal.valueOf(1234.56));
+        assertThat(tree.get(0).getTotalAmount()).isEqualByComparingTo(BigDecimal.valueOf(-1234.56));
     }
 
     @Test
-    @DisplayName("Expense category totals exclude income reimbursements and transfer legs")
-    void expenseCategoryDoesNotAddIncomeOrTransfers() {
-        Category healthcare =
-                systemCategoryFixture(1L, USER_ID, "Healthcare", CategoryType.EXPENSE);
+    @DisplayName("Category totals show signed activity including reimbursements")
+    void categoryShowsSignedNetActivity() {
+        Category healthcare = systemCategoryFixture(1L, USER_ID, "Healthcare");
         when(categoryRepository.findByUserId(USER_ID)).thenReturn(List.of(healthcare));
-        when(transactionRepository.countByCategoryId(1L)).thenReturn(3L);
-        when(transactionRepository.findByCategoryId(1L))
+        when(categoryActivityService.summarize(anyLong(), anyList(), anyString()))
                 .thenReturn(
-                        List.of(
-                                Transaction.builder()
-                                        .type(org.openfinance.entity.TransactionType.EXPENSE)
-                                        .amount(new BigDecimal("100.00"))
-                                        .build(),
-                                Transaction.builder()
-                                        .type(org.openfinance.entity.TransactionType.INCOME)
-                                        .amount(new BigDecimal("45.20"))
-                                        .build(),
-                                Transaction.builder()
-                                        .type(org.openfinance.entity.TransactionType.EXPENSE)
-                                        .amount(new BigDecimal("200.00"))
-                                        .transferId("internal-transfer")
-                                        .build()));
+                        java.util.Map.of(
+                                1L,
+                                new CategoryActivityService.Activity(
+                                        new BigDecimal("45.20"), new BigDecimal("100"), 2)));
 
         CategoryTreeNode category = categoryService.getCategoryTree(USER_ID).get(0);
-        assertThat(category.getTotalAmount()).isEqualByComparingTo("100.00");
-        assertThat(category.getTransactionCount()).isEqualTo(3L);
+        assertThat(category.getTotalAmount()).isEqualByComparingTo("-54.80");
+        assertThat(category.getTransactionCount()).isEqualTo(2L);
     }
 
     @Test
@@ -1001,13 +870,12 @@ class CategoryServiceTest {
     @DisplayName("Should build multi-level tree with correct parent-child nesting")
     void shouldBuildMultiLevelTree() {
         // Arrange: Shopping → Groceries → Fresh Produce (3 levels)
-        Category lvl0 = systemCategoryFixture(1L, USER_ID, "Shopping", CategoryType.EXPENSE);
+        Category lvl0 = systemCategoryFixture(1L, USER_ID, "Shopping");
         Category lvl1 =
                 Category.builder()
                         .id(2L)
                         .userId(USER_ID)
                         .name("Groceries")
-                        .type(CategoryType.EXPENSE)
                         .parentId(1L)
                         .icon("ic")
                         .color("#000")
@@ -1020,7 +888,6 @@ class CategoryServiceTest {
                         .id(3L)
                         .userId(USER_ID)
                         .name("Fresh Produce")
-                        .type(CategoryType.EXPENSE)
                         .parentId(2L)
                         .icon("ic")
                         .color("#000")
@@ -1053,11 +920,9 @@ class CategoryServiceTest {
     @DisplayName("Should resolve system category name in English locale")
     void shouldResolveSystemCategoryNameInEnglish() {
         // Arrange
-        Category systemCat =
-                systemCategoryFixture(CATEGORY_ID, USER_ID, "Groceries", CategoryType.EXPENSE);
+        Category systemCat = systemCategoryFixture(CATEGORY_ID, USER_ID, "Groceries");
         systemCat.setNameKey("category.groceries");
-        CategoryResponse expected =
-                buildResponse(CATEGORY_ID, "Groceries", CategoryType.EXPENSE, null);
+        CategoryResponse expected = buildResponse(CATEGORY_ID, "Groceries", null);
         expected.setIsSystem(true);
 
         when(categoryRepository.findByIdAndUserId(CATEGORY_ID, USER_ID))
@@ -1084,11 +949,9 @@ class CategoryServiceTest {
     @DisplayName("Should resolve system category name in French locale")
     void shouldResolveSystemCategoryNameInFrench() {
         // Arrange
-        Category systemCat =
-                systemCategoryFixture(CATEGORY_ID, USER_ID, "Groceries", CategoryType.EXPENSE);
+        Category systemCat = systemCategoryFixture(CATEGORY_ID, USER_ID, "Groceries");
         systemCat.setNameKey("category.groceries");
-        CategoryResponse expected =
-                buildResponse(CATEGORY_ID, "Épicerie", CategoryType.EXPENSE, null);
+        CategoryResponse expected = buildResponse(CATEGORY_ID, "Épicerie", null);
         expected.setIsSystem(true);
 
         when(categoryRepository.findByIdAndUserId(CATEGORY_ID, USER_ID))
@@ -1116,12 +979,9 @@ class CategoryServiceTest {
     @DisplayName("Should use fallback name when message key is not found")
     void shouldUseFallbackWhenMessageKeyNotFound() {
         // Arrange
-        Category systemCat =
-                systemCategoryFixture(
-                        CATEGORY_ID, USER_ID, "Custom Category", CategoryType.EXPENSE);
+        Category systemCat = systemCategoryFixture(CATEGORY_ID, USER_ID, "Custom Category");
         systemCat.setNameKey("category.unknown");
-        CategoryResponse expected =
-                buildResponse(CATEGORY_ID, "Custom Category", CategoryType.EXPENSE, null);
+        CategoryResponse expected = buildResponse(CATEGORY_ID, "Custom Category", null);
         expected.setIsSystem(true);
 
         when(categoryRepository.findByIdAndUserId(CATEGORY_ID, USER_ID))
@@ -1145,11 +1005,8 @@ class CategoryServiceTest {
     @DisplayName("Should decrypt user category name regardless of locale")
     void shouldDecryptUserCategoryNameRegardlessOfLocale() {
         // Arrange - user category (not system)
-        Category userCat =
-                userCategoryFixture(
-                        CATEGORY_ID, USER_ID, "My Category", CategoryType.EXPENSE, null);
-        CategoryResponse expected =
-                buildResponse(CATEGORY_ID, "My Category", CategoryType.EXPENSE, null);
+        Category userCat = userCategoryFixture(CATEGORY_ID, USER_ID, "My Category", null);
+        CategoryResponse expected = buildResponse(CATEGORY_ID, "My Category", null);
 
         when(categoryRepository.findByIdAndUserId(CATEGORY_ID, USER_ID))
                 .thenReturn(Optional.of(userCat));
@@ -1171,14 +1028,14 @@ class CategoryServiceTest {
     @DisplayName("Should resolve all system category names in French for getAllCategories")
     void shouldResolveAllSystemCategoryNamesInFrench() {
         // Arrange
-        Category systemCat1 = systemCategoryFixture(1L, USER_ID, "Groceries", CategoryType.EXPENSE);
+        Category systemCat1 = systemCategoryFixture(1L, USER_ID, "Groceries");
         systemCat1.setNameKey("category.groceries");
-        Category systemCat2 = systemCategoryFixture(2L, USER_ID, "Salary", CategoryType.INCOME);
+        Category systemCat2 = systemCategoryFixture(2L, USER_ID, "Salary");
         systemCat2.setNameKey("category.salary");
 
-        CategoryResponse resp1 = buildResponse(1L, "Épicerie", CategoryType.EXPENSE, null);
+        CategoryResponse resp1 = buildResponse(1L, "Épicerie", null);
         resp1.setIsSystem(true);
-        CategoryResponse resp2 = buildResponse(2L, "Salaire", CategoryType.INCOME, null);
+        CategoryResponse resp2 = buildResponse(2L, "Salaire", null);
         resp2.setIsSystem(true);
 
         when(categoryRepository.findByUserId(USER_ID)).thenReturn(List.of(systemCat1, systemCat2));
@@ -1207,9 +1064,9 @@ class CategoryServiceTest {
     @DisplayName("Should build category tree with French localized names")
     void shouldBuildCategoryTreeWithFrenchLocalizedNames() {
         // Arrange
-        Category parent = systemCategoryFixture(1L, USER_ID, "Shopping", CategoryType.EXPENSE);
+        Category parent = systemCategoryFixture(1L, USER_ID, "Shopping");
         parent.setNameKey("category.shopping");
-        Category child = systemCategoryFixture(2L, USER_ID, "Groceries", CategoryType.EXPENSE);
+        Category child = systemCategoryFixture(2L, USER_ID, "Groceries");
         child.setNameKey("category.groceries");
         child =
                 Category.builder()
@@ -1217,7 +1074,6 @@ class CategoryServiceTest {
                         .userId(USER_ID)
                         .name("Groceries")
                         .nameKey("category.groceries")
-                        .type(CategoryType.EXPENSE)
                         .parentId(1L)
                         .icon("icon")
                         .color("#000")

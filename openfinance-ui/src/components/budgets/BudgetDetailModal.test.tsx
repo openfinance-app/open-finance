@@ -175,7 +175,7 @@ describe('BudgetDetailModal', () => {
       expect(screen.getByText('Period')).toBeInTheDocument();
       expect(screen.getByText('Date Range')).toBeInTheDocument();
       expect(screen.getByText('Budgeted')).toBeInTheDocument();
-      expect(screen.getByText('Spent')).toBeInTheDocument();
+      expect(screen.getByText('Net spent')).toBeInTheDocument();
       expect(screen.getAllByText('Remaining').length).toBeGreaterThan(0);
     });
 

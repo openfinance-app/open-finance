@@ -694,7 +694,6 @@ class ImportServiceTest {
                                         .id(10L)
                                         .userId(USER_ID)
                                         .name("Groceries")
-                                        .type(org.openfinance.entity.CategoryType.EXPENSE)
                                         .build()));
 
         // Mock ObjectMapper to return Map first, then List via convertValue
@@ -727,18 +726,10 @@ class ImportServiceTest {
 
     @Test
     @DisplayName("Should reject an expense mapped to income before posting any row")
-    void shouldRejectWrongTypeMappingBeforePosting() throws Exception {
+    void shouldRejectForeignCategoryMappingBeforePosting() throws Exception {
         testSession.setStatus(ImportStatus.PARSED);
         testSession.setMetadata("{\"transactions\":[]}");
-        when(categoryRepository.findByIdAndUserId(10L, USER_ID))
-                .thenReturn(
-                        Optional.of(
-                                Category.builder()
-                                        .id(10L)
-                                        .userId(USER_ID)
-                                        .name("Salary")
-                                        .type(org.openfinance.entity.CategoryType.INCOME)
-                                        .build()));
+        when(categoryRepository.findByIdAndUserId(10L, USER_ID)).thenReturn(Optional.empty());
         Map<String, Object> metadataMap = new HashMap<>();
         metadataMap.put("transactions", testTransactions);
         when(importSessionRepository.findById(1L)).thenReturn(Optional.of(testSession));
@@ -750,7 +741,7 @@ class ImportServiceTest {
                 .thenReturn(testTransactions);
 
         assertThrows(
-                IllegalArgumentException.class,
+                ResourceNotFoundException.class,
                 () ->
                         importService.confirmImport(
                                 1L, USER_ID, ACCOUNT_ID, Map.of("Groceries", 10L), true));
@@ -1316,7 +1307,7 @@ class ImportServiceTest {
     }
 
     @Test
-    void rejectsWrongTypeSplitMappingsBeforeAnyPosting() throws Exception {
+    void rejectsForeignCategorySplitMappingsBeforeAnyPosting() throws Exception {
         ImportedTransaction transaction =
                 ImportedTransaction.builder()
                         .amount(new BigDecimal("-10"))
@@ -1337,14 +1328,7 @@ class ImportServiceTest {
         when(objectMapper.convertValue(
                         any(), any(com.fasterxml.jackson.core.type.TypeReference.class)))
                 .thenReturn(List.of(transaction));
-        when(categoryRepository.findByIdAndUserId(987L, USER_ID))
-                .thenReturn(
-                        Optional.of(
-                                Category.builder()
-                                        .id(987L)
-                                        .userId(USER_ID)
-                                        .type(org.openfinance.entity.CategoryType.INCOME)
-                                        .build()));
+        when(categoryRepository.findByIdAndUserId(987L, USER_ID)).thenReturn(Optional.empty());
         assertThatThrownBy(
                         () ->
                                 importService.confirmImport(
@@ -1353,8 +1337,7 @@ class ImportServiceTest {
                                         ACCOUNT_ID,
                                         Map.of("Mapped split", 987L),
                                         true))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("type");
+                .isInstanceOf(ResourceNotFoundException.class);
         verify(transactionRepository, never()).save(any());
         verify(accountService, never()).createAccount(anyLong(), any());
     }

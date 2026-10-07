@@ -4,7 +4,6 @@ import java.util.ArrayList;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.openfinance.entity.Category;
-import org.openfinance.entity.CategoryType;
 import org.openfinance.repository.CategoryRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -114,7 +113,6 @@ public class CategorySeeder {
                         buildCategory(
                                 userId,
                                 "Employment Income",
-                                CategoryType.INCOME,
                                 "💼",
                                 "#10B981",
                                 "6010",
@@ -127,7 +125,6 @@ public class CategorySeeder {
                 buildCategory(
                         userId,
                         "Salary",
-                        CategoryType.INCOME,
                         "💰",
                         "#10B981",
                         "6010",
@@ -137,7 +134,6 @@ public class CategorySeeder {
                 buildCategory(
                         userId,
                         "Bonus",
-                        CategoryType.INCOME,
                         "🎁",
                         "#10B981",
                         "6010",
@@ -147,7 +143,6 @@ public class CategorySeeder {
                 buildCategory(
                         userId,
                         "Commission",
-                        CategoryType.INCOME,
                         "💵",
                         "#10B981",
                         "6010",
@@ -160,7 +155,6 @@ public class CategorySeeder {
                         buildCategory(
                                 userId,
                                 "Self Employment",
-                                CategoryType.INCOME,
                                 "🏢",
                                 "#3B82F6",
                                 "6810",
@@ -171,7 +165,6 @@ public class CategorySeeder {
                 buildCategory(
                         userId,
                         "Freelance Work",
-                        CategoryType.INCOME,
                         "💻",
                         "#3B82F6",
                         "6810",
@@ -181,7 +174,6 @@ public class CategorySeeder {
                 buildCategory(
                         userId,
                         "Consulting",
-                        CategoryType.INCOME,
                         "📊",
                         "#3B82F6",
                         "6810",
@@ -194,7 +186,6 @@ public class CategorySeeder {
                         buildCategory(
                                 userId,
                                 "Investments",
-                                CategoryType.INCOME,
                                 "📈",
                                 "#8B5CF6",
                                 "6211",
@@ -205,7 +196,6 @@ public class CategorySeeder {
                 buildCategory(
                         userId,
                         "Dividends",
-                        CategoryType.INCOME,
                         "💹",
                         "#8B5CF6",
                         "6211",
@@ -215,7 +205,6 @@ public class CategorySeeder {
                 buildCategory(
                         userId,
                         "Interest Income",
-                        CategoryType.INCOME,
                         "🏦",
                         "#8B5CF6",
                         "6211",
@@ -225,7 +214,6 @@ public class CategorySeeder {
                 buildCategory(
                         userId,
                         "Capital Gains",
-                        CategoryType.INCOME,
                         "📊",
                         "#8B5CF6",
                         "6211",
@@ -238,7 +226,6 @@ public class CategorySeeder {
                         buildCategory(
                                 userId,
                                 "Rental Income",
-                                CategoryType.INCOME,
                                 "🏠",
                                 "#14B8A6",
                                 "6513",
@@ -249,7 +236,6 @@ public class CategorySeeder {
                 buildCategory(
                         userId,
                         "Residential Rent",
-                        CategoryType.INCOME,
                         "🏡",
                         "#14B8A6",
                         "6513",
@@ -259,7 +245,6 @@ public class CategorySeeder {
                 buildCategory(
                         userId,
                         "Commercial Rent",
-                        CategoryType.INCOME,
                         "🏢",
                         "#14B8A6",
                         "6513",
@@ -271,7 +256,6 @@ public class CategorySeeder {
                 buildCategory(
                         userId,
                         "Government Benefits",
-                        CategoryType.INCOME,
                         "🏛️",
                         "#6366F1",
                         "9016",
@@ -279,19 +263,12 @@ public class CategorySeeder {
                         "category.government.benefits"));
         incomeCategories.add(
                 buildCategory(
-                        userId,
-                        "Pension",
-                        CategoryType.INCOME,
-                        "👴",
-                        "#6366F1",
-                        "9016",
-                        null,
-                        "category.pension"));
+                        userId, "Pension", "👴", "#6366F1", "9016", null, "category.pension"));
+
         incomeCategories.add(
                 buildCategory(
                         userId,
                         "Social Security",
-                        CategoryType.INCOME,
                         "🛡️",
                         "#6366F1",
                         "9016",
@@ -301,7 +278,6 @@ public class CategorySeeder {
                 buildCategory(
                         userId,
                         "Unemployment",
-                        CategoryType.INCOME,
                         "🔍",
                         "#6366F1",
                         "9016",
@@ -313,7 +289,6 @@ public class CategorySeeder {
                 buildCategory(
                         userId,
                         "Retirement Income",
-                        CategoryType.INCOME,
                         "🏖️",
                         "#EC4899",
                         null,
@@ -323,7 +298,6 @@ public class CategorySeeder {
                 buildCategory(
                         userId,
                         "401k Withdrawal",
-                        CategoryType.INCOME,
                         "💼",
                         "#EC4899",
                         null,
@@ -333,7 +307,6 @@ public class CategorySeeder {
                 buildCategory(
                         userId,
                         "IRA Withdrawal",
-                        CategoryType.INCOME,
                         "📋",
                         "#EC4899",
                         null,
@@ -344,20 +317,13 @@ public class CategorySeeder {
         Category gifts =
                 categoryRepository.save(
                         buildCategory(
-                                userId,
-                                "Gifts",
-                                CategoryType.INCOME,
-                                "🎁",
-                                "#F59E0B",
-                                "5937",
-                                null,
-                                "category.gifts"));
+                                userId, "Gifts", "🎁", "#F59E0B", "5937", null, "category.gifts"));
+
         incomeCategories.add(gifts);
         incomeCategories.add(
                 buildCategory(
                         userId,
                         "Inheritance",
-                        CategoryType.INCOME,
                         "📜",
                         "#F59E0B",
                         "5937",
@@ -369,7 +335,6 @@ public class CategorySeeder {
                 buildCategory(
                         userId,
                         "Other Income",
-                        CategoryType.INCOME,
                         "💵",
                         "#6B7280",
                         null,
@@ -391,7 +356,6 @@ public class CategorySeeder {
                         buildCategory(
                                 userId,
                                 "Groceries",
-                                CategoryType.EXPENSE,
                                 "🛒",
                                 "#10B981",
                                 "5411",
@@ -402,7 +366,6 @@ public class CategorySeeder {
                 buildCategory(
                         userId,
                         "Supermarkets",
-                        CategoryType.EXPENSE,
                         "🏪",
                         "#10B981",
                         "5411",
@@ -412,7 +375,6 @@ public class CategorySeeder {
                 buildCategory(
                         userId,
                         "Convenience Stores",
-                        CategoryType.EXPENSE,
                         "🏪",
                         "#10B981",
                         "5411",
@@ -422,7 +384,6 @@ public class CategorySeeder {
                 buildCategory(
                         userId,
                         "Organic Foods",
-                        CategoryType.EXPENSE,
                         "🥬",
                         "#10B981",
                         "5411",
@@ -435,7 +396,6 @@ public class CategorySeeder {
                         buildCategory(
                                 userId,
                                 "Dining Out",
-                                CategoryType.EXPENSE,
                                 "🍽️",
                                 "#F97316",
                                 "5812",
@@ -446,7 +406,6 @@ public class CategorySeeder {
                 buildCategory(
                         userId,
                         "Fast Food",
-                        CategoryType.EXPENSE,
                         "🍔",
                         "#F97316",
                         "5814",
@@ -456,7 +415,6 @@ public class CategorySeeder {
                 buildCategory(
                         userId,
                         "Casual Dining",
-                        CategoryType.EXPENSE,
                         "🍴",
                         "#F97316",
                         "5812",
@@ -466,7 +424,6 @@ public class CategorySeeder {
                 buildCategory(
                         userId,
                         "Fine Dining",
-                        CategoryType.EXPENSE,
                         "🥂",
                         "#F97316",
                         "5812",
@@ -476,7 +433,6 @@ public class CategorySeeder {
                 buildCategory(
                         userId,
                         "Coffee Shops",
-                        CategoryType.EXPENSE,
                         "☕",
                         "#F97316",
                         "5814",
@@ -486,7 +442,6 @@ public class CategorySeeder {
                 buildCategory(
                         userId,
                         "Bars and Nightlife",
-                        CategoryType.EXPENSE,
                         "🍺",
                         "#F97316",
                         "5813",
@@ -500,7 +455,6 @@ public class CategorySeeder {
                         buildCategory(
                                 userId,
                                 "Auto Expenses",
-                                CategoryType.EXPENSE,
                                 "🚗",
                                 "#3B82F6",
                                 "5541",
@@ -511,7 +465,6 @@ public class CategorySeeder {
                 buildCategory(
                         userId,
                         "Gas/Fuel",
-                        CategoryType.EXPENSE,
                         "⛽",
                         "#3B82F6",
                         "5541",
@@ -521,7 +474,6 @@ public class CategorySeeder {
                 buildCategory(
                         userId,
                         "Auto Maintenance",
-                        CategoryType.EXPENSE,
                         "🔧",
                         "#3B82F6",
                         "7538",
@@ -531,7 +483,6 @@ public class CategorySeeder {
                 buildCategory(
                         userId,
                         "Auto Insurance",
-                        CategoryType.EXPENSE,
                         "🛡️",
                         "#3B82F6",
                         "6300",
@@ -541,7 +492,6 @@ public class CategorySeeder {
                 buildCategory(
                         userId,
                         "Parking",
-                        CategoryType.EXPENSE,
                         "🅿️",
                         "#3B82F6",
                         "7542",
@@ -551,7 +501,6 @@ public class CategorySeeder {
                 buildCategory(
                         userId,
                         "Tolls",
-                        CategoryType.EXPENSE,
                         "💳",
                         "#3B82F6",
                         "7542",
@@ -561,7 +510,6 @@ public class CategorySeeder {
                 buildCategory(
                         userId,
                         "Car Payment",
-                        CategoryType.EXPENSE,
                         "📑",
                         "#3B82F6",
                         null,
@@ -574,7 +522,6 @@ public class CategorySeeder {
                         buildCategory(
                                 userId,
                                 "Public Transit",
-                                CategoryType.EXPENSE,
                                 "🚇",
                                 "#06B6D4",
                                 "4111",
@@ -585,7 +532,6 @@ public class CategorySeeder {
                 buildCategory(
                         userId,
                         "Bus/Metro",
-                        CategoryType.EXPENSE,
                         "🚌",
                         "#06B6D4",
                         "4111",
@@ -595,7 +541,6 @@ public class CategorySeeder {
                 buildCategory(
                         userId,
                         "Taxi/Rideshare",
-                        CategoryType.EXPENSE,
                         "🚕",
                         "#06B6D4",
                         "4121",
@@ -605,7 +550,6 @@ public class CategorySeeder {
                 buildCategory(
                         userId,
                         "Train",
-                        CategoryType.EXPENSE,
                         "🚆",
                         "#06B6D4",
                         "4112",
@@ -618,7 +562,6 @@ public class CategorySeeder {
                         buildCategory(
                                 userId,
                                 "Air Travel",
-                                CategoryType.EXPENSE,
                                 "✈️",
                                 "#14B8A6",
                                 "4511",
@@ -629,7 +572,6 @@ public class CategorySeeder {
                 buildCategory(
                         userId,
                         "Airlines",
-                        CategoryType.EXPENSE,
                         "🛫",
                         "#14B8A6",
                         "4511",
@@ -639,7 +581,6 @@ public class CategorySeeder {
                 buildCategory(
                         userId,
                         "Hotels",
-                        CategoryType.EXPENSE,
                         "🏨",
                         "#14B8A6",
                         "7011",
@@ -653,7 +594,6 @@ public class CategorySeeder {
                         buildCategory(
                                 userId,
                                 "Shopping",
-                                CategoryType.EXPENSE,
                                 "🛍️",
                                 "#8B5CF6",
                                 "5310",
@@ -664,7 +604,6 @@ public class CategorySeeder {
                 buildCategory(
                         userId,
                         "Department Stores",
-                        CategoryType.EXPENSE,
                         "🏬",
                         "#8B5CF6",
                         "5310",
@@ -674,7 +613,6 @@ public class CategorySeeder {
                 buildCategory(
                         userId,
                         "Clothing",
-                        CategoryType.EXPENSE,
                         "👕",
                         "#8B5CF6",
                         "5651",
@@ -684,7 +622,6 @@ public class CategorySeeder {
                 buildCategory(
                         userId,
                         "Electronics",
-                        CategoryType.EXPENSE,
                         "📱",
                         "#8B5CF6",
                         "5732",
@@ -694,7 +631,6 @@ public class CategorySeeder {
                 buildCategory(
                         userId,
                         "Home Goods",
-                        CategoryType.EXPENSE,
                         "🏠",
                         "#8B5CF6",
                         "5712",
@@ -708,7 +644,6 @@ public class CategorySeeder {
                         buildCategory(
                                 userId,
                                 "Entertainment",
-                                CategoryType.EXPENSE,
                                 "🎬",
                                 "#EC4899",
                                 "7832",
@@ -719,7 +654,6 @@ public class CategorySeeder {
                 buildCategory(
                         userId,
                         "Movies",
-                        CategoryType.EXPENSE,
                         "🎥",
                         "#EC4899",
                         "7832",
@@ -729,7 +663,6 @@ public class CategorySeeder {
                 buildCategory(
                         userId,
                         "Music",
-                        CategoryType.EXPENSE,
                         "🎵",
                         "#EC4899",
                         "5733",
@@ -739,7 +672,6 @@ public class CategorySeeder {
                 buildCategory(
                         userId,
                         "Gaming",
-                        CategoryType.EXPENSE,
                         "🎮",
                         "#EC4899",
                         "5816",
@@ -749,7 +681,6 @@ public class CategorySeeder {
                 buildCategory(
                         userId,
                         "Events",
-                        CategoryType.EXPENSE,
                         "🎭",
                         "#EC4899",
                         "7922",
@@ -762,7 +693,6 @@ public class CategorySeeder {
                         buildCategory(
                                 userId,
                                 "Subscriptions",
-                                CategoryType.EXPENSE,
                                 "📺",
                                 "#F43F5E",
                                 "5968",
@@ -773,7 +703,6 @@ public class CategorySeeder {
                 buildCategory(
                         userId,
                         "Streaming Services",
-                        CategoryType.EXPENSE,
                         "📡",
                         "#F43F5E",
                         "5968",
@@ -783,7 +712,6 @@ public class CategorySeeder {
                 buildCategory(
                         userId,
                         "Software",
-                        CategoryType.EXPENSE,
                         "💻",
                         "#F43F5E",
                         "5812",
@@ -793,7 +721,6 @@ public class CategorySeeder {
                 buildCategory(
                         userId,
                         "Memberships",
-                        CategoryType.EXPENSE,
                         "💳",
                         "#F43F5E",
                         "5968",
@@ -803,7 +730,6 @@ public class CategorySeeder {
                 buildCategory(
                         userId,
                         "Digital Subscriptions",
-                        CategoryType.EXPENSE,
                         "🖥️",
                         "#F43F5E",
                         "5968",
@@ -817,7 +743,6 @@ public class CategorySeeder {
                         buildCategory(
                                 userId,
                                 "Housing",
-                                CategoryType.EXPENSE,
                                 "🏠",
                                 "#EF4444",
                                 "7011",
@@ -826,19 +751,12 @@ public class CategorySeeder {
         expenseCategories.add(housing);
         expenseCategories.add(
                 buildCategory(
-                        userId,
-                        "Rent",
-                        CategoryType.EXPENSE,
-                        "🏢",
-                        "#EF4444",
-                        "6513",
-                        housing.getId(),
-                        "category.rent"));
+                        userId, "Rent", "🏢", "#EF4444", "6513", housing.getId(), "category.rent"));
+
         expenseCategories.add(
                 buildCategory(
                         userId,
                         "Mortgage",
-                        CategoryType.EXPENSE,
                         "🏦",
                         "#EF4444",
                         null,
@@ -848,7 +766,6 @@ public class CategorySeeder {
                 buildCategory(
                         userId,
                         "Property Tax",
-                        CategoryType.EXPENSE,
                         "📋",
                         "#EF4444",
                         "9311",
@@ -858,7 +775,6 @@ public class CategorySeeder {
                 buildCategory(
                         userId,
                         "Loan Repayment",
-                        CategoryType.EXPENSE,
                         "💳",
                         "#EF4444",
                         null,
@@ -871,7 +787,6 @@ public class CategorySeeder {
                         buildCategory(
                                 userId,
                                 "Utilities",
-                                CategoryType.EXPENSE,
                                 "💡",
                                 "#F59E0B",
                                 "4900",
@@ -882,7 +797,6 @@ public class CategorySeeder {
                 buildCategory(
                         userId,
                         "Electricity",
-                        CategoryType.EXPENSE,
                         "⚡",
                         "#F59E0B",
                         "4900",
@@ -892,7 +806,6 @@ public class CategorySeeder {
                 buildCategory(
                         userId,
                         "Water",
-                        CategoryType.EXPENSE,
                         "💧",
                         "#F59E0B",
                         "4900",
@@ -902,7 +815,6 @@ public class CategorySeeder {
                 buildCategory(
                         userId,
                         "Gas/Heating",
-                        CategoryType.EXPENSE,
                         "🔥",
                         "#F59E0B",
                         "4900",
@@ -912,7 +824,6 @@ public class CategorySeeder {
                 buildCategory(
                         userId,
                         "Internet",
-                        CategoryType.EXPENSE,
                         "📶",
                         "#F59E0B",
                         "4816",
@@ -922,7 +833,6 @@ public class CategorySeeder {
                 buildCategory(
                         userId,
                         "Phone",
-                        CategoryType.EXPENSE,
                         "📞",
                         "#F59E0B",
                         "4814",
@@ -932,7 +842,6 @@ public class CategorySeeder {
                 buildCategory(
                         userId,
                         "Cable TV",
-                        CategoryType.EXPENSE,
                         "📺",
                         "#F59E0B",
                         "4899",
@@ -946,7 +855,6 @@ public class CategorySeeder {
                         buildCategory(
                                 userId,
                                 "Healthcare",
-                                CategoryType.EXPENSE,
                                 "⚕️",
                                 "#06B6D4",
                                 "8011",
@@ -957,7 +865,6 @@ public class CategorySeeder {
                 buildCategory(
                         userId,
                         "Doctor Visits",
-                        CategoryType.EXPENSE,
                         "🩺",
                         "#06B6D4",
                         "8011",
@@ -967,7 +874,6 @@ public class CategorySeeder {
                 buildCategory(
                         userId,
                         "Dental",
-                        CategoryType.EXPENSE,
                         "🦷",
                         "#06B6D4",
                         "8021",
@@ -977,7 +883,6 @@ public class CategorySeeder {
                 buildCategory(
                         userId,
                         "Vision",
-                        CategoryType.EXPENSE,
                         "👁️",
                         "#06B6D4",
                         "8043",
@@ -987,7 +892,6 @@ public class CategorySeeder {
                 buildCategory(
                         userId,
                         "Prescriptions",
-                        CategoryType.EXPENSE,
                         "💊",
                         "#06B6D4",
                         "5912",
@@ -997,7 +901,6 @@ public class CategorySeeder {
                 buildCategory(
                         userId,
                         "Health Insurance",
-                        CategoryType.EXPENSE,
                         "🛡️",
                         "#06B6D4",
                         "6324",
@@ -1011,7 +914,6 @@ public class CategorySeeder {
                         buildCategory(
                                 userId,
                                 "Insurance",
-                                CategoryType.EXPENSE,
                                 "🛡️",
                                 "#6366F1",
                                 "6300",
@@ -1022,7 +924,6 @@ public class CategorySeeder {
                 buildCategory(
                         userId,
                         "Life Insurance",
-                        CategoryType.EXPENSE,
                         "👼",
                         "#6366F1",
                         "6300",
@@ -1032,7 +933,6 @@ public class CategorySeeder {
                 buildCategory(
                         userId,
                         "Home Insurance",
-                        CategoryType.EXPENSE,
                         "🏠",
                         "#6366F1",
                         "6300",
@@ -1042,7 +942,6 @@ public class CategorySeeder {
                 buildCategory(
                         userId,
                         "Disability Insurance",
-                        CategoryType.EXPENSE,
                         "🦓",
                         "#6366F1",
                         "6300",
@@ -1055,7 +954,6 @@ public class CategorySeeder {
                 buildCategory(
                         userId,
                         "Interest",
-                        CategoryType.EXPENSE,
                         "％",
                         "#F59E0B",
                         null,
@@ -1069,7 +967,6 @@ public class CategorySeeder {
                         buildCategory(
                                 userId,
                                 "Education",
-                                CategoryType.EXPENSE,
                                 "📚",
                                 "#A855F7",
                                 "8220",
@@ -1080,7 +977,6 @@ public class CategorySeeder {
                 buildCategory(
                         userId,
                         "Tuition",
-                        CategoryType.EXPENSE,
                         "🎓",
                         "#A855F7",
                         "8220",
@@ -1090,7 +986,6 @@ public class CategorySeeder {
                 buildCategory(
                         userId,
                         "Books/Supplies",
-                        CategoryType.EXPENSE,
                         "📖",
                         "#A855F7",
                         "5942",
@@ -1100,7 +995,6 @@ public class CategorySeeder {
                 buildCategory(
                         userId,
                         "Online Courses",
-                        CategoryType.EXPENSE,
                         "💻",
                         "#A855F7",
                         "8244",
@@ -1114,7 +1008,6 @@ public class CategorySeeder {
                         buildCategory(
                                 userId,
                                 "Personal Care",
-                                CategoryType.EXPENSE,
                                 "💅",
                                 "#F472B6",
                                 "7230",
@@ -1125,7 +1018,6 @@ public class CategorySeeder {
                 buildCategory(
                         userId,
                         "Haircut/Salon",
-                        CategoryType.EXPENSE,
                         "💇",
                         "#F472B6",
                         "7230",
@@ -1135,7 +1027,6 @@ public class CategorySeeder {
                 buildCategory(
                         userId,
                         "Spa",
-                        CategoryType.EXPENSE,
                         "🧖",
                         "#F472B6",
                         "7298",
@@ -1145,7 +1036,6 @@ public class CategorySeeder {
                 buildCategory(
                         userId,
                         "Gym/Fitness",
-                        CategoryType.EXPENSE,
                         "🏋️",
                         "#F472B6",
                         "7297",
@@ -1157,20 +1047,13 @@ public class CategorySeeder {
         Category pets =
                 categoryRepository.save(
                         buildCategory(
-                                userId,
-                                "Pets",
-                                CategoryType.EXPENSE,
-                                "🐾",
-                                "#84CC16",
-                                "5995",
-                                null,
-                                "category.pets"));
+                                userId, "Pets", "🐾", "#84CC16", "5995", null, "category.pets"));
+
         expenseCategories.add(pets);
         expenseCategories.add(
                 buildCategory(
                         userId,
                         "Pet Food",
-                        CategoryType.EXPENSE,
                         "🦴",
                         "#84CC16",
                         "5995",
@@ -1180,7 +1063,6 @@ public class CategorySeeder {
                 buildCategory(
                         userId,
                         "Veterinary",
-                        CategoryType.EXPENSE,
                         "🏥",
                         "#84CC16",
                         "0742",
@@ -1191,27 +1073,12 @@ public class CategorySeeder {
         // Charitable Donations (MCC 8398 - Charitable Organizations)
         expenseCategories.add(
                 buildCategory(
-                        userId,
-                        "Charity",
-                        CategoryType.EXPENSE,
-                        "❤️",
-                        "#EF4444",
-                        "8398",
-                        null,
-                        "category.charity"));
+                        userId, "Charity", "❤️", "#EF4444", "8398", null, "category.charity"));
 
         // ========== TAXES ==========
         // Taxes (MCC 9311 - Tax Payments)
         expenseCategories.add(
-                buildCategory(
-                        userId,
-                        "Taxes",
-                        CategoryType.EXPENSE,
-                        "📋",
-                        "#6B7280",
-                        "9311",
-                        null,
-                        "category.taxes"));
+                buildCategory(userId, "Taxes", "📋", "#6B7280", "9311", null, "category.taxes"));
 
         // ========== OTHER ==========
         // Miscellaneous
@@ -1219,7 +1086,6 @@ public class CategorySeeder {
                 buildCategory(
                         userId,
                         "Other Expenses",
-                        CategoryType.EXPENSE,
                         "💵",
                         "#6B7280",
                         null,
@@ -1238,7 +1104,6 @@ public class CategorySeeder {
      *
      * @param userId the user ID
      * @param name category name (NOT encrypted for system categories)
-     * @param type INCOME or EXPENSE
      * @param icon emoji icon for UI display
      * @param color hex color code for UI display
      * @param mccCode ISO 18245 Merchant Category Code (optional)
@@ -1249,7 +1114,6 @@ public class CategorySeeder {
     private Category buildCategory(
             Long userId,
             String name,
-            CategoryType type,
             String icon,
             String color,
             String mccCode,
@@ -1258,7 +1122,6 @@ public class CategorySeeder {
         return Category.builder()
                 .userId(userId)
                 .name(name)
-                .type(type)
                 .icon(icon)
                 .color(color)
                 .mccCode(mccCode)

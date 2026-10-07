@@ -184,7 +184,7 @@ function HistoryRow({ entry, currency }: { entry: BudgetHistoryEntry; currency: 
                 'h-full rounded-full transition-all',
                 isExceeded ? 'bg-error' : isWarning ? 'bg-warning' : 'bg-success'
               )}
-              style={{ width: `${Math.min(entry.percentageSpent, 100)}%` }}
+              style={{ width: `${Math.max(0, Math.min(entry.percentageSpent, 100))}%` }}
             />
           </div>
           <span className={cn(isExceeded ? 'text-error font-semibold' : 'text-text-primary')}>

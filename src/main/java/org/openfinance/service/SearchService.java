@@ -1057,7 +1057,7 @@ public class SearchService {
                                                 .resultType(SearchResultType.CATEGORY)
                                                 .id(category.getId())
                                                 .title(name)
-                                                .subtitle(category.getType().name())
+                                                .subtitle("")
                                                 .icon(
                                                         category.getIcon() != null
                                                                 ? category.getIcon()

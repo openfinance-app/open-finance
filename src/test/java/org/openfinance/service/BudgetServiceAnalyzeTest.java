@@ -78,22 +78,10 @@ class BudgetServiceAnalyzeTest {
 
         // Create test categories
         testCategory1 =
-                Category.builder()
-                        .id(1L)
-                        .userId(1L)
-                        .name("Groceries")
-                        .type(CategoryType.EXPENSE)
-                        .isSystem(true)
-                        .build();
+                Category.builder().id(1L).userId(1L).name("Groceries").isSystem(true).build();
 
         testCategory2 =
-                Category.builder()
-                        .id(2L)
-                        .userId(1L)
-                        .name("Entertainment")
-                        .type(CategoryType.EXPENSE)
-                        .isSystem(true)
-                        .build();
+                Category.builder().id(2L).userId(1L).name("Entertainment").isSystem(true).build();
 
         // Create test transaction
         testTransaction =
@@ -117,8 +105,7 @@ class BudgetServiceAnalyzeTest {
         List<Category> categories = Arrays.asList(testCategory1, testCategory2);
         List<Transaction> transactions = Arrays.asList(testTransaction);
 
-        when(categoryRepository.findByUserIdAndType(1L, CategoryType.EXPENSE))
-                .thenReturn(categories);
+        when(categoryRepository.findByUserId(1L)).thenReturn(categories);
         when(transactionRepository.findByCategoryIdInAndDateRange(anyList(), any(), any(), eq(1L)))
                 .thenReturn(transactions); // Return transactions for any category
         when(budgetRepository.existsByUserIdAndCategoryIdAndPeriod(
@@ -141,7 +128,7 @@ class BudgetServiceAnalyzeTest {
         assertThat(suggestion.getCurrency()).isEqualTo("USD");
         assertThat(suggestion.isHasExistingBudget()).isFalse();
 
-        verify(categoryRepository).findByUserIdAndType(1L, CategoryType.EXPENSE);
+        verify(categoryRepository).findByUserId(1L);
         verify(transactionRepository, times(14))
                 .findByCategoryIdInAndDateRange(
                         anyList(), any(), any(), eq(1L)); // 7 months * 2 categories
@@ -179,8 +166,7 @@ class BudgetServiceAnalyzeTest {
         // Given
         List<Category> categories = Arrays.asList(testCategory1, testCategory2);
 
-        when(categoryRepository.findByUserIdAndType(1L, CategoryType.EXPENSE))
-                .thenReturn(categories);
+        when(categoryRepository.findByUserId(1L)).thenReturn(categories);
         when(transactionRepository.findByCategoryIdInAndDateRange(anyList(), any(), any(), eq(1L)))
                 .thenReturn(Collections.emptyList());
 
@@ -191,7 +177,7 @@ class BudgetServiceAnalyzeTest {
         // Then
         assertThat(suggestions).isEmpty();
 
-        verify(categoryRepository).findByUserIdAndType(1L, CategoryType.EXPENSE);
+        verify(categoryRepository).findByUserId(1L);
         verify(transactionRepository, times(14))
                 .findByCategoryIdInAndDateRange(anyList(), any(), any(), eq(1L));
     }
@@ -202,8 +188,7 @@ class BudgetServiceAnalyzeTest {
         List<Category> categories = Arrays.asList(testCategory1);
         List<Transaction> transactions = Arrays.asList(testTransaction);
 
-        when(categoryRepository.findByUserIdAndType(1L, CategoryType.EXPENSE))
-                .thenReturn(categories);
+        when(categoryRepository.findByUserId(1L)).thenReturn(categories);
         when(transactionRepository.findByCategoryIdInAndDateRange(anyList(), any(), any(), eq(1L)))
                 .thenReturn(transactions);
         // existsByUserIdAndCategoryIdAndPeriod returns true → hasExistingBudget should
@@ -228,8 +213,7 @@ class BudgetServiceAnalyzeTest {
         List<Category> categories = Arrays.asList(testCategory1);
         List<Transaction> transactions = Arrays.asList(testTransaction);
 
-        when(categoryRepository.findByUserIdAndType(1L, CategoryType.EXPENSE))
-                .thenReturn(categories);
+        when(categoryRepository.findByUserId(1L)).thenReturn(categories);
         when(transactionRepository.findByCategoryIdInAndDateRange(anyList(), any(), any(), eq(1L)))
                 .thenReturn(transactions);
         when(budgetRepository.existsByUserIdAndCategoryIdAndPeriod(1L, 1L, BudgetPeriod.MONTHLY))
@@ -249,8 +233,7 @@ class BudgetServiceAnalyzeTest {
         List<Category> categories = Arrays.asList(testCategory1);
         List<Transaction> transactions = Arrays.asList(testTransaction);
 
-        when(categoryRepository.findByUserIdAndType(1L, CategoryType.EXPENSE))
-                .thenReturn(categories);
+        when(categoryRepository.findByUserId(1L)).thenReturn(categories);
         when(transactionRepository.findByCategoryIdInAndDateRange(anyList(), any(), any(), eq(1L)))
                 .thenReturn(transactions);
         when(budgetRepository.existsByUserIdAndCategoryIdAndPeriod(1L, 1L, BudgetPeriod.MONTHLY))

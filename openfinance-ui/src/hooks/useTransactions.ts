@@ -168,6 +168,7 @@ export function useCreateTransaction() {
       }
       // Invalidate budget queries so spent amounts reflect new transactions
       queryClient.invalidateQueries({ queryKey: ['budgets'] });
+      queryClient.invalidateQueries({ queryKey: ['categories', 'tree'] });
     },
   });
 }
@@ -198,6 +199,7 @@ export function useCreateTransfer() {
       }
       // Invalidate budget queries so spent amounts reflect new transactions
       queryClient.invalidateQueries({ queryKey: ['budgets'] });
+      queryClient.invalidateQueries({ queryKey: ['categories', 'tree'] });
     },
   });
 }
@@ -227,6 +229,7 @@ export function useUpdateTransaction() {
       }
       // Invalidate budget queries so spent amounts reflect updated transactions
       queryClient.invalidateQueries({ queryKey: ['budgets'] });
+      queryClient.invalidateQueries({ queryKey: ['categories', 'tree'] });
     },
   });
 }
@@ -260,6 +263,7 @@ export function useUpdateTransfer() {
       }
       // Invalidate budget queries so spent amounts reflect updated transactions
       queryClient.invalidateQueries({ queryKey: ['budgets'] });
+      queryClient.invalidateQueries({ queryKey: ['categories', 'tree'] });
     },
   });
 }
@@ -287,18 +291,19 @@ export function useDeleteTransaction() {
       }
       // Invalidate budget queries so spent amounts reflect deleted transactions
       queryClient.invalidateQueries({ queryKey: ['budgets'] });
+      queryClient.invalidateQueries({ queryKey: ['categories', 'tree'] });
     },
   });
 }
 
-/** * Fetch all categories
+/**
+ * Fetch all categories
  */
-export function useCategories(type?: 'INCOME' | 'EXPENSE') {
+export function useCategories() {
   return useQuery<Category[]>({
-    queryKey: ['categories', type],
+    queryKey: ['categories'],
     queryFn: async () => {
-      const params = type ? `?type=${type}` : '';
-      const response = await apiClient.get<Category[]>(`/categories${params}`, {
+      const response = await apiClient.get<Category[]>('/categories', {
         headers: buildEncryptionHeaders(),
       });
       return response.data;

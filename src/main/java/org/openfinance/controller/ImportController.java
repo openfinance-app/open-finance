@@ -427,7 +427,6 @@ public class ImportController {
      *   <li>If category name is in categoryMappings, use the provided category ID
      *   <li>If category name not in map, system will auto-create category
      *   <li>Categories are created with default icon and color
-     *   <li>CategoryType (INCOME/EXPENSE) is determined from transaction type
      * </ul>
      *
      * <p>Requirement REQ-2.5.1.7: Import confirmation and transaction creation

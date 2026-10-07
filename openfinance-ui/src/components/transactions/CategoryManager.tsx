@@ -2,7 +2,7 @@
  * CategoryManager Component
  * Task 3.2.17: Create CategoryManager component
  *
- * Modal for managing income and expense categories
+ * Modal for managing shared transaction categories
  */
 import { useState } from 'react';
 import { Plus, Trash2, FolderOpen } from 'lucide-react';
@@ -20,7 +20,6 @@ interface CategoryManagerProps {
 }
 
 export function CategoryManager({ open, onOpenChange }: CategoryManagerProps) {
-  const [activeTab, setActiveTab] = useState<'INCOME' | 'EXPENSE'>('EXPENSE');
   const [newCategoryName, setNewCategoryName] = useState('');
   const [deletingCategory, setDeletingCategory] = useState<Category | null>(null);
 
@@ -28,7 +27,7 @@ export function CategoryManager({ open, onOpenChange }: CategoryManagerProps) {
   const createCategory = useCreateCategory();
   const deleteCategory = useDeleteCategory();
 
-  const filteredCategories = allCategories.filter(cat => cat.type === activeTab);
+  const filteredCategories = allCategories;
 
   const handleCreateCategory = async () => {
     if (!newCategoryName.trim()) return;
@@ -36,7 +35,6 @@ export function CategoryManager({ open, onOpenChange }: CategoryManagerProps) {
     try {
       await createCategory.mutateAsync({
         name: newCategoryName.trim(),
-        type: activeTab,
       });
       setNewCategoryName('');
     } catch (error) {
@@ -64,34 +62,10 @@ export function CategoryManager({ open, onOpenChange }: CategoryManagerProps) {
           </DialogHeader>
 
           <div className="space-y-4">
-            {/* Tabs */}
-            <div className="flex gap-2 border-b border-border">
-              <button
-                onClick={() => setActiveTab('EXPENSE')}
-                className={`px-4 py-2 text-sm font-medium transition-colors ${
-                  activeTab === 'EXPENSE'
-                    ? 'text-primary border-b-2 border-primary'
-                    : 'text-text-secondary hover:text-text-primary'
-                }`}
-              >
-                Expenses
-              </button>
-              <button
-                onClick={() => setActiveTab('INCOME')}
-                className={`px-4 py-2 text-sm font-medium transition-colors ${
-                  activeTab === 'INCOME'
-                    ? 'text-primary border-b-2 border-primary'
-                    : 'text-text-secondary hover:text-text-primary'
-                }`}
-              >
-                Income
-              </button>
-            </div>
-
             {/* Create new category */}
             <div className="flex gap-2">
               <Input
-                placeholder={`New ${activeTab.toLowerCase()} category...`}
+                placeholder="New category..."
                 value={newCategoryName}
                 onChange={e => setNewCategoryName(e.target.value)}
                 onKeyPress={e => {

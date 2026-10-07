@@ -24,7 +24,6 @@ export interface BudgetResponse {
   id: number;
   categoryId: number;
   categoryName: string;
-  categoryType: 'INCOME' | 'EXPENSE';
   /** API returns an exact decimal string; number permits legacy cached responses. */
   amount: string | number;
   currency: string;
@@ -116,7 +115,7 @@ export interface BudgetSuggestionRequest {
   lookbackMonths: number;
   /** Optional ISO 4217 currency code; backend defaults to "EUR" when absent. */
   currency?: string;
-  /** Restrict analysis to specific category IDs; null / omitted = all EXPENSE categories. */
+  /** Restrict analysis to specific category IDs; null / omitted = all categories. */
   categoryIds?: number[];
 }
 
@@ -132,7 +131,7 @@ export interface BudgetSuggestion {
   suggestedAmount: number;
   /** Exact arithmetic average (before ceiling rounding). */
   averageSpent: number;
-  /** Total EXPENSE transactions found in the lookback window for this category. */
+  /** Total income and expense transactions found in the lookback window for this category. */
   transactionCount: number;
   period: BudgetPeriod;
   currency: string;

@@ -26,17 +26,12 @@
     "cashAndSavings": "Cash & Savings"
   },
   "title": "Categories",
-  "description": "Manage your transaction categories organized in a hierarchical tree structure",
+  "description": "Organize income and expenses in the same category tree",
   "addCategory": "Add Category",
   "summary": {
     "totalCategories": "Total Categories",
-    "incomeTransactions": "Income Transactions",
-    "expenseTransactions": "Expense Transactions"
-  },
-  "tabs": {
-    "all": "All Categories",
-    "expenses": "Expenses",
-    "income": "Income"
+    "rootCategories": "Root Categories",
+    "subcategories": "Subcategories"
   },
   "search": {
     "placeholder": "Search categories..."
@@ -54,17 +49,14 @@
   "table": {
     "name": "Name",
     "transactionCount": "Transaction Count",
-    "totalAmount": "Total Amount",
-    "type": "Type",
+    "totalAmount": "Net amount",
     "txns": "Txns",
-    "amount": "Amount"
+    "amount": "Net amount"
   },
   "badges": {
     "system": "System",
     "expand": "Expand",
-    "collapse": "Collapse",
-    "income": "Income",
-    "expense": "Expense"
+    "collapse": "Collapse"
   },
   "aria": {
     "editCategory": "Edit category",
@@ -86,9 +78,6 @@
     "editTitle": "Edit Category",
     "addTitle": "Add Category",
     "name": "Name",
-    "type": "Type",
-    "expense": "Expense",
-    "income": "Income",
     "parentCategory": "Parent Category (Optional)",
     "selectParentCategory": "Select parent category...",
     "color": "Color",

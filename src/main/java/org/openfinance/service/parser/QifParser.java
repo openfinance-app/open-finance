@@ -9,10 +9,8 @@ import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
 import org.openfinance.dto.ImportedTransaction;
 import org.springframework.stereotype.Component;
@@ -145,11 +143,9 @@ public class QifParser {
             String currentQifAccountType = null;
             // When true, the next N line inside an !Account block is the account name
             boolean inAccountBlock = false;
-            boolean inCategoryType = false;
+            boolean inCategoryDefinitions = false;
             boolean skipCurrentType = false;
             boolean isInvestmentType = false;
-            String currentCategoryName = null;
-            Map<String, Character> categoryTypes = new HashMap<>();
             int lineNumber = 0;
             int transactionStartLine = 0;
 
@@ -182,16 +178,14 @@ public class QifParser {
                         String typeValue = line.substring("!Type:".length()).trim();
                         currentAccountType = typeValue;
                         String typeLower = typeValue.toLowerCase(Locale.ROOT);
-                        inCategoryType = typeLower.startsWith("cat");
-                        currentCategoryName = null;
+                        inCategoryDefinitions = typeLower.startsWith("cat");
                         skipCurrentType = SKIP_TYPES.stream().anyMatch(typeLower::startsWith);
                         isInvestmentType = typeLower.equals("invst");
                         inAccountBlock = false;
                         log.debug("Found account type: {}", currentAccountType);
                     } else if (line.equalsIgnoreCase("!Account")) {
                         inAccountBlock = true;
-                        inCategoryType = false;
-                        currentCategoryName = null;
+                        inCategoryDefinitions = false;
                         skipCurrentType = false; // !Account ends any prior skip section
                         log.debug("Entering !Account block");
                     } else if (line.toLowerCase(Locale.ROOT).startsWith("!option:")) {
@@ -202,14 +196,9 @@ public class QifParser {
                     continue;
                 }
 
-                if (inCategoryType) {
-                    if (code == 'N') {
-                        currentCategoryName = value;
-                    } else if ((code == 'E' || code == 'I') && currentCategoryName != null) {
-                        categoryTypes.put(currentCategoryName, code);
-                    } else if (code == '^') {
-                        currentCategoryName = null;
-                    }
+                // QIF category definitions may contain E/I hints; transaction amounts alone
+                // determine direction in our shared category model.
+                if (inCategoryDefinitions) {
                     continue;
                 }
 
@@ -248,12 +237,7 @@ public class QifParser {
                         case 'D':
                             if (currentTransaction != null) {
                                 applyComputedAmountIfNeeded(
-                                        currentTransaction,
-                                        uAmount,
-                                        invQuantity,
-                                        invPrice,
-                                        true,
-                                        categoryTypes);
+                                        currentTransaction, uAmount, invQuantity, invPrice, true);
                                 finalizeSplits(currentTransaction, currentSplits);
                                 transactions.add(
                                         buildTransaction(
@@ -359,12 +343,7 @@ public class QifParser {
                         case '^':
                             if (currentTransaction != null) {
                                 applyComputedAmountIfNeeded(
-                                        currentTransaction,
-                                        uAmount,
-                                        invQuantity,
-                                        invPrice,
-                                        true,
-                                        categoryTypes);
+                                        currentTransaction, uAmount, invQuantity, invPrice, true);
                                 finalizeSplits(currentTransaction, currentSplits);
                                 transactions.add(
                                         buildTransaction(
@@ -391,12 +370,7 @@ public class QifParser {
                     case 'D': // Date — starts a new transaction
                         if (currentTransaction != null) {
                             applyComputedAmountIfNeeded(
-                                    currentTransaction,
-                                    uAmount,
-                                    invQuantity,
-                                    invPrice,
-                                    false,
-                                    categoryTypes);
+                                    currentTransaction, uAmount, invQuantity, invPrice, false);
                             finalizeSplits(currentTransaction, currentSplits);
                             transactions.add(
                                     buildTransaction(
@@ -560,12 +534,7 @@ public class QifParser {
                                 currentSplit = null;
                             }
                             applyComputedAmountIfNeeded(
-                                    currentTransaction,
-                                    uAmount,
-                                    invQuantity,
-                                    invPrice,
-                                    false,
-                                    categoryTypes);
+                                    currentTransaction, uAmount, invQuantity, invPrice, false);
                             finalizeSplits(currentTransaction, currentSplits);
                             transactions.add(
                                     buildTransaction(
@@ -593,12 +562,7 @@ public class QifParser {
             // Add last transaction if file doesn't end with '^'
             if (currentTransaction != null) {
                 applyComputedAmountIfNeeded(
-                        currentTransaction,
-                        uAmount,
-                        invQuantity,
-                        invPrice,
-                        isInvestmentType,
-                        categoryTypes);
+                        currentTransaction, uAmount, invQuantity, invPrice, isInvestmentType);
                 finalizeSplits(currentTransaction, currentSplits);
                 transactions.add(
                         buildTransaction(
@@ -626,8 +590,7 @@ public class QifParser {
             BigDecimal uAmount,
             BigDecimal invQuantity,
             BigDecimal invPrice,
-            boolean investmentTransaction,
-            Map<String, Character> categoryTypes) {
+            boolean investmentTransaction) {
         ImportedTransaction peek = builder.build();
         if (peek.getAmount() != null) {
             return; // T was set

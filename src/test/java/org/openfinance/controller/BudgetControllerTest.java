@@ -28,7 +28,6 @@ import org.openfinance.dto.BudgetSuggestion;
 import org.openfinance.dto.BudgetSuggestionRequest;
 import org.openfinance.dto.BudgetSummaryResponse;
 import org.openfinance.entity.BudgetPeriod;
-import org.openfinance.entity.CategoryType;
 import org.openfinance.entity.User;
 import org.openfinance.exception.BudgetNotFoundException;
 import org.openfinance.exception.CategoryNotFoundException;
@@ -106,7 +105,6 @@ class BudgetControllerTest {
                         .id(BUDGET_ID)
                         .categoryId(CATEGORY_ID)
                         .categoryName("Groceries")
-                        .categoryType(CategoryType.EXPENSE)
                         .amount(new BigDecimal("500.00"))
                         .currency("USD")
                         .period(BudgetPeriod.MONTHLY)
@@ -283,7 +281,6 @@ class BudgetControllerTest {
                                 .id(2L)
                                 .categoryId(2L)
                                 .categoryName("Dining Out")
-                                .categoryType(CategoryType.EXPENSE)
                                 .amount(new BigDecimal("300.00"))
                                 .currency("USD")
                                 .period(BudgetPeriod.MONTHLY)
@@ -424,7 +421,6 @@ class BudgetControllerTest {
                         .id(BUDGET_ID)
                         .categoryId(CATEGORY_ID)
                         .categoryName("Groceries")
-                        .categoryType(CategoryType.EXPENSE)
                         .amount(new BigDecimal("600.00"))
                         .currency("USD")
                         .period(BudgetPeriod.MONTHLY)
