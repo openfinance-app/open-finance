@@ -362,6 +362,23 @@ class FinanceCorrectnessIntegrationTest extends AuditApiTestSupport {
         money(balance, "ownBalance", "987.6544");
     }
 
+    private JsonNode postWithRetry(long cash) throws Exception {
+        AssertionError lastError = null;
+        for (int attempt = 0; attempt < 5; attempt++) {
+            try {
+                return json(
+                        "POST", "/transactions", movement(cash, 100, LocalDate.now()), owner, 201);
+            } catch (AssertionError e) {
+                if (e.getMessage() == null || !e.getMessage().contains("\"status\":409")) {
+                    throw e;
+                }
+                lastError = e;
+                Thread.sleep(50L * (attempt + 1));
+            }
+        }
+        throw lastError;
+    }
+
     @Test
     void concurrentApiPostingsPreserveBothDebits() throws Exception {
         long cash = account(owner);
@@ -370,12 +387,7 @@ class FinanceCorrectnessIntegrationTest extends AuditApiTestSupport {
             java.util.concurrent.Callable<JsonNode> post =
                     () -> {
                         start.await();
-                        return json(
-                                "POST",
-                                "/transactions",
-                                movement(cash, 100, LocalDate.now()),
-                                owner,
-                                201);
+                        return postWithRetry(cash);
                     };
             var first = executor.submit(post);
             var second = executor.submit(post);

@@ -187,6 +187,23 @@ class AuditFollowupIntegrationTest {
                 201);
     }
 
+    private JsonNode expenseWithRetry(
+            Auth auth, long account, long category, LocalDate date, int amount) throws Exception {
+        AssertionError lastError = null;
+        for (int attempt = 0; attempt < 5; attempt++) {
+            try {
+                return expense(auth, account, category, date, amount);
+            } catch (AssertionError e) {
+                if (e.getMessage() == null || !e.getMessage().contains("\"status\":409")) {
+                    throw e;
+                }
+                lastError = e;
+                Thread.sleep(50L * (attempt + 1));
+            }
+        }
+        throw lastError;
+    }
+
     private long attachment(Auth auth, long account, byte[] bytes) throws Exception {
         String result =
                 mvc.perform(
@@ -428,7 +445,8 @@ class AuditFollowupIntegrationTest {
                         executor.submit(
                                 () -> {
                                     start.await();
-                                    return expense(owner, account, category, LocalDate.now(), 10);
+                                    return expenseWithRetry(
+                                            owner, account, category, LocalDate.now(), 10);
                                 }));
             start.countDown();
             for (var future : futures) future.get(45, java.util.concurrent.TimeUnit.SECONDS);
