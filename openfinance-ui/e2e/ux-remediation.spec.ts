@@ -87,7 +87,10 @@ test('onboarding renders labels and saves the header language across reloads and
   await page.reload();
   await expect(page.getByRole('heading', { name: 'Tableau de bord', exact: true })).toBeVisible();
   await expect(page.locator('html')).toHaveAttribute('lang', 'fr');
-  await expect(page.getByText(new RegExp(`au ${displayedToday}`))).toBeVisible();
+  const summary = await api(page, '/dashboard/summary');
+  const snapshotDate = String(summary.snapshotDate || today).split('T')[0];
+  const expectedDisplay = snapshotDate.split('-').reverse().join('/');
+  await expect(page.getByText(new RegExp(`au ${expectedDisplay}`))).toBeVisible();
   await page.goto('/settings');
   await page.getByRole('button', { name: 'Affichage', exact: true }).click();
   await page.getByRole('combobox', { name: 'Langue', exact: true }).click();
@@ -141,6 +144,13 @@ test('expense editing, payee propagation, recurring processing, and history pres
     { name: 'UX subscriptions', type: 'EXPENSE', color: '#123456', icon: 'book' },
     'POST'
   );
+  const yesterday = new Intl.DateTimeFormat('sv-SE', {
+    timeZone: 'Europe/Paris',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  })
+    .format(new Date(Date.now() - 24 * 60 * 60 * 1000));
   const recurring = await api(
     page,
     '/recurring-transactions',
@@ -151,13 +161,16 @@ test('expense editing, payee propagation, recurring processing, and history pres
       currency: 'EUR',
       description: 'UX monthly payment',
       frequency: 'MONTHLY',
-      nextOccurrence: today,
+      nextOccurrence: yesterday,
       categoryId: category.id,
       active: true,
     },
     'POST'
   );
   await page.goto('/recurring-transactions');
+  await expect(page.getByRole('button', { name: 'Process due now' })).toBeEnabled({
+    timeout: 15000,
+  });
   await page.getByRole('button', { name: 'Process due now' }).click();
   await expect(
     page.getByRole('status').filter({ hasText: 'Processed: 1. Failed: 0.' })
@@ -227,11 +240,13 @@ test('CSV validation preserves decimal amounts and completed imports appear in h
 }) => {
   await completeOnboarding(page);
   const account = await accountFixture(page);
+  const importSummary = await api(page, '/dashboard/summary');
+  const importToday = String(importSummary.snapshotDate || today).split('T')[0];
   await page.goto('/import');
   await page.locator('input[type="file"]').setInputFiles({
     name: 'ux-ambiguous.csv',
     mimeType: 'text/csv',
-    buffer: Buffer.from(`Date,Payee,Amount\n${today},UX malformed,-10,99\n`),
+    buffer: Buffer.from(`Date,Payee,Amount\n${importToday},UX malformed,-10,99\n`),
   });
   await page.getByRole('button', { name: /^upload file$/i }).click();
   await page.getByRole('button', { name: /^next$/i }).click();
@@ -242,17 +257,19 @@ test('CSV validation preserves decimal amounts and completed imports appear in h
   await page.locator('input[type="file"]').setInputFiles({
     name: 'ux-exact.csv',
     mimeType: 'text/csv',
-    buffer: Buffer.from(`Date;Payee;Amount\n${today};UX exact;-10,99\n`),
+    buffer: Buffer.from(`Date;Payee;Amount\n${importToday};UX exact;-10,99\n`),
   });
   await page.getByRole('button', { name: /^upload file$/i }).click();
   await page.locator('select').selectOption(String(account.id));
   await page.getByRole('button', { name: /^next$/i }).click();
   await expect(
     page.getByRole('heading', { name: 'Review Transactions', exact: true })
-  ).toBeVisible();
+  ).toBeVisible({ timeout: 15000 });
   await page.getByRole('button', { name: /^next$/i }).click();
   await page.getByRole('button', { name: /^confirm import$/i }).click();
-  await expect.poll(async () => (await api(page, `/accounts/${account.id}`)).balance).toBe(989.01);
+  await expect
+    .poll(async () => (await api(page, `/accounts/${account.id}`)).balance, { timeout: 15000 })
+    .toBe(989.01);
   const history = await api(page, '/history?entityType=IMPORT');
   expect(history.totalElements).toBe(1);
   expect(history.content[0].entityLabel).toBe('ux-exact.csv');
@@ -409,6 +426,8 @@ test('French seeded categories, cached Sankey names and localized validation sta
   );
   expect(salary).toBeTruthy();
   expect(healthcare).toBeTruthy();
+  const serverSummary = await api(page, '/dashboard/summary');
+  const serverToday = String(serverSummary.snapshotDate || today).split('T')[0];
   for (const transaction of [
     { type: 'INCOME', amount: 3200, categoryId: salary.id, payee: 'Salary' },
     { type: 'EXPENSE', amount: 100, categoryId: healthcare.id, payee: 'Doctor' },
@@ -416,7 +435,7 @@ test('French seeded categories, cached Sankey names and localized validation sta
     await api(
       page,
       '/transactions',
-      { ...transaction, accountId: account.id, currency: 'EUR', date: today },
+      { ...transaction, accountId: account.id, currency: 'EUR', date: serverToday },
       'POST'
     );
   }

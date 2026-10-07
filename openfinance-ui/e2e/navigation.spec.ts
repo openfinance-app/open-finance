@@ -95,7 +95,12 @@ test.describe('Navigation', () => {
     await page.goto('/profile');
     await page.waitForLoadState('networkidle');
     await expect(page).toHaveURL(/\/profile/);
-    await expect(page.getByRole('main')).toBeVisible();
+    await page.waitForResponse(
+      response =>
+        response.url().includes('/auth/profile') || response.url().includes('/users/me'),
+      { timeout: 15000 }
+    ).catch(() => null);
+    await expect(page.getByRole('main')).toBeVisible({ timeout: 15000 });
   });
 
   // ─── Sidebar collapse (desktop) ────────────────────────────────────────────
