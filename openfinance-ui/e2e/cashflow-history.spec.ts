@@ -101,9 +101,23 @@ test('cash flow calendar, monthly and yearly split views work on desktop and mob
     true
   );
   await card.screenshot({ path: testInfo.outputPath('cashflow-monthly-mobile.png') });
-  await february.click();
   const lastDay = new Date(year, 2, 0).getDate();
-  await expect(page).toHaveURL(
-    new RegExp(`dateFrom=${year}-02-01&dateTo=${year}-02-${lastDay}&excludeTransfers=true`)
-  );
+  const filteredResponse = page.waitForResponse(response => {
+    const url = new URL(response.url());
+    return (
+      url.pathname === '/api/v1/transactions/search' &&
+      url.searchParams.get('dateFrom') === `${year}-02-01` &&
+      url.searchParams.get('dateTo') === `${year}-02-${lastDay}` &&
+      url.searchParams.get('excludeTransfers') === 'true'
+    );
+  });
+  await february.click();
+  // The page consumes deep-link parameters after initializing its filters.
+  const filtered = await filteredResponse;
+  expect(filtered.status()).toBe(200);
+  expect((await filtered.json()).totalElements).toBe(2);
+  await expect(page.getByRole('heading', { name: 'Transactions', exact: true })).toBeVisible();
+  await expect(page.getByLabel('From', { exact: true })).toHaveValue(`02/01/${year}`);
+  await expect(page.getByLabel('To', { exact: true })).toHaveValue(`02/${lastDay}/${year}`);
+  await expect(page.getByRole('button', { name: 'Transfers excluded', exact: true })).toBeVisible();
 });
