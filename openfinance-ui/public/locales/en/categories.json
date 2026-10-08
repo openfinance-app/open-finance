@@ -31,7 +31,8 @@
   "summary": {
     "totalCategories": "Total Categories",
     "rootCategories": "Root Categories",
-    "subcategories": "Subcategories"
+    "subcategories": "Subcategories",
+    "totalTransactions": "Transactions"
   },
   "search": {
     "placeholder": "Search categories..."
@@ -45,6 +46,10 @@
     "byName": "Sort by Name",
     "byTransactions": "Sort by Transactions",
     "byAmount": "Sort by Amount"
+  },
+  "rail": {
+    "label": "Drawers",
+    "all": "All drawers"
   },
   "table": {
     "name": "Name",

@@ -135,8 +135,9 @@ describe('CategoriesPage', () => {
 
   it('displays category names', () => {
     renderWithProviders(<CategoriesPage />);
-    expect(screen.getByText('Food & Dining')).toBeInTheDocument();
-    expect(screen.getByText('Salary')).toBeInTheDocument();
+    // Root names appear both on the rail drawer fronts and on the board
+    expect(screen.getAllByText('Food & Dining').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Salary').length).toBeGreaterThan(0);
   });
 
   it('displays subcategories (first level expanded by default)', () => {
@@ -194,7 +195,7 @@ describe('CategoriesPage', () => {
 
     const searchInput = screen.getByPlaceholderText(/search categories/i);
     await user.type(searchInput, 'Salary');
-    expect(screen.getByText('Salary')).toBeInTheDocument();
+    expect(screen.getAllByText('Salary').length).toBeGreaterThan(0);
   });
 
   it('opens add category dialog', async () => {
@@ -248,8 +249,8 @@ describe('CategoriesPage', () => {
 
   it('shows a shared hierarchy without direction tabs', () => {
     renderWithProviders(<CategoriesPage />);
-    expect(screen.getByText('Food & Dining')).toBeInTheDocument();
-    expect(screen.getByText('Salary')).toBeInTheDocument();
+    expect(screen.getAllByText('Food & Dining').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Salary').length).toBeGreaterThan(0);
     expect(screen.queryByRole('button', { name: /^income$|^expenses$/i })).not.toBeInTheDocument();
   });
 
@@ -257,6 +258,13 @@ describe('CategoriesPage', () => {
     renderWithProviders(<CategoriesPage />);
     // Should show total categories count, income count, expense count
     expect(screen.getByText('Total Categories')).toBeInTheDocument();
+  });
+
+  it('shows wall totals without double-counting subtrees', () => {
+    renderWithProviders(<CategoriesPage />);
+    // Roots aggregate their slots: 10 + 2 root transactions
+    expect(screen.getByText('Transactions')).toBeInTheDocument();
+    expect(screen.getByText('12')).toBeInTheDocument();
   });
 
   it('collapses and expands tree nodes', async () => {
