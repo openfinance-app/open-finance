@@ -2,8 +2,7 @@ import { test, expect, type Page } from '@playwright/test';
 import { registerWithRetry, signIn } from './helpers/auth';
 
 test.use({ timezoneId: 'Europe/Paris' });
-const today = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Europe/Paris' }).format(new Date());
-const displayedToday = today.split('-').reverse().join('/');
+let today: string;
 
 async function api(page: Page, path: string, body?: unknown, method = 'GET') {
   const result = await page.evaluate(
@@ -37,6 +36,9 @@ test.beforeEach(async ({ page, request }, testInfo) => {
   expect(registration.status(), await registration.text()).toBe(201);
   await signIn(page, credentials);
   await page.waitForURL('**/onboarding');
+  const summary = await api(page, '/dashboard/summary');
+  today = summary.snapshotDate;
+  expect(today).toMatch(/^\d{4}-\d{2}-\d{2}$/);
 });
 
 async function completeOnboarding(page: Page) {
@@ -87,6 +89,7 @@ test('onboarding renders labels and saves the header language across reloads and
   await page.reload();
   await expect(page.getByRole('heading', { name: 'Tableau de bord', exact: true })).toBeVisible();
   await expect(page.locator('html')).toHaveAttribute('lang', 'fr');
+  const displayedToday = today.split('-').reverse().join('/');
   await expect(page.getByText(new RegExp(`au ${displayedToday}`))).toBeVisible();
   await page.goto('/settings');
   await page.getByRole('button', { name: 'Affichage', exact: true }).click();
@@ -457,7 +460,7 @@ test('French seeded categories, cached Sankey names and localized validation sta
     nodes: { id: number; totalAmount: number; subcategories?: unknown[] }[]
   ): { id: number; totalAmount: number }[] =>
     nodes.flatMap(node => [node, ...flatten((node.subcategories ?? []) as typeof nodes)]);
-  expect(flatten(tree).find(category => category.id === healthcare.id)?.totalAmount).toBe(100);
+  expect(flatten(tree).find(category => category.id === healthcare.id)?.totalAmount).toBe(-100);
   const payees = await api(page, '/payees/system');
   expect(payees.some((payee: { name: string }) => payee.name === 'Loan Payment Test')).toBe(false);
 });

@@ -112,16 +112,16 @@ test.describe('Dashboard', () => {
     }
   });
 
-  // ─── Navigation from dashboard ─────────────────────────────────────────────
+  // ─── Transaction creation from dashboard ───────────────────────────────────
 
-  test('core-053: Add Transaction button navigates to transactions page', async ({ page }) => {
+  test('core-053: Add Transaction opens the creation dialog on the dashboard', async ({ page }) => {
     const addBtn = page.getByRole('button', { name: /add transaction/i });
     await expect(addBtn).toBeVisible({ timeout: 15_000 });
     await addBtn.click();
 
-    await expect(page).toHaveURL(/\/transactions/);
     await expect(page.getByRole('dialog')).toBeVisible();
     await expect(page.getByRole('heading', { name: /create transaction/i })).toBeVisible();
+    await expect(page).toHaveURL(/\/dashboard$/);
   });
 
   // ─── Error-free load ───────────────────────────────────────────────────────

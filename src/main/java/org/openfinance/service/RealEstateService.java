@@ -6,6 +6,7 @@ import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Locale;
 import java.util.Set;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
@@ -756,8 +757,8 @@ public class RealEstateService {
         switch (field) {
             case "name":
                 return (a, b) -> {
-                    String va = a.getName() != null ? a.getName().toLowerCase() : "";
-                    String vb = b.getName() != null ? b.getName().toLowerCase() : "";
+                    String va = a.getName() != null ? a.getName().toLowerCase(Locale.ROOT) : "";
+                    String vb = b.getName() != null ? b.getName().toLowerCase(Locale.ROOT) : "";
                     return va.compareTo(vb);
                 };
             case "currentValue":

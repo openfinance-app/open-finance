@@ -121,7 +121,12 @@ public class InsightService {
      * @throws ResourceNotFoundException if user not found
      */
     public record GenerationResult(
-            List<InsightResponse> insights, List<InsightType> unavailableSources) {}
+            List<InsightResponse> insights, List<InsightType> unavailableSources) {
+        public GenerationResult {
+            insights = List.copyOf(insights);
+            unavailableSources = List.copyOf(unavailableSources);
+        }
+    }
 
     @CacheEvict(value = "insights", key = "#userId")
     @Transactional(propagation = Propagation.NOT_SUPPORTED)

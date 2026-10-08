@@ -124,7 +124,20 @@ export async function registerUser(
     await page.locator('#confirmMasterPassword').fill(user.masterPassword);
   }
 
-  await page.getByRole('button', { name: /create account|register|sign up/i }).click();
-  // After successful registration navigate to /login
-  await page.waitForURL('**/login', { timeout: 15_000 });
+  for (let attempt = 0; attempt < 5; attempt++) {
+    const responsePromise = page.waitForResponse(
+      response =>
+        response.url().endsWith('/api/v1/auth/register') && response.request().method() === 'POST'
+    );
+    await page.getByRole('button', { name: /create account|register|sign up/i }).click();
+    const response = await responsePromise;
+    if (response.ok()) {
+      await page.waitForURL('**/login', { timeout: 15_000 });
+      return;
+    }
+    if (response.status() !== 429 || attempt === 4) {
+      throw new Error(`Registration failed: HTTP ${response.status()}`);
+    }
+    await page.waitForTimeout(retryDelay(response.headers()['retry-after']));
+  }
 }

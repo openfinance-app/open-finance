@@ -69,13 +69,16 @@ public class HistoryBackupSupport {
                         "SELECT COALESCE(MAX(id), 0) FROM "
                                 + EncryptedUserDataService.identifier(table),
                         Long.class);
-        if (table.equals("transactions") || table.equals("transactions_archive"))
+        if (table.equals("transactions") || table.equals("transactions_archive")) {
+            Long transactionMaximum =
+                    jdbc.queryForObject(
+                            "SELECT MAX(id) FROM (SELECT COALESCE(MAX(id), 0) AS id FROM transactions UNION ALL SELECT COALESCE(MAX(id), 0) AS id FROM transactions_archive) maxima",
+                            Long.class);
             maximum =
                     Math.max(
-                            maximum,
-                            jdbc.queryForObject(
-                                    "SELECT MAX(id) FROM (SELECT COALESCE(MAX(id), 0) AS id FROM transactions UNION ALL SELECT COALESCE(MAX(id), 0) AS id FROM transactions_archive) maxima",
-                                    Long.class));
+                            maximum == null ? 0 : maximum,
+                            transactionMaximum == null ? 0 : transactionMaximum);
+        }
         long next =
                 Math.max(
                                 maximum == null ? 0 : maximum,

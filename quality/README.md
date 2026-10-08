@@ -47,6 +47,18 @@ retain their Spring-managed identity. Four obsolete local assignments were remov
 from validation code. An independent build of unmodified HEAD still reports 92
 unmatched findings; those remain outside this change and were not added to the baseline.
 
+The 0.5.1-beta release review independently reproduced those 92 findings on main.
+It fixes locale-dependent property-name sorting, nullable JDBC aggregate handling,
+and the insight-generation result's mutable lists. The remaining 85 exact identities
+were reviewed: 64 constructor fields retain Spring-managed collaborators, two retain
+managed JPA user associations, and three preserve the mutable import-review DTO's
+existing constructor contract. Sixteen constructor/accessor identities belong to
+operation-scoped history assembly records: they intentionally share captured rows,
+references, and change sets within one operation; import undo normalizes the captured
+status before serialization. These records do not represent immutable public values.
+The baseline retains each reviewed identity individually. No bug type, package, or
+quality job is excluded, and any unreviewed identity still fails the release gate.
+
 ## Dependency applicability reviews
 
 `dependency-check-suppressions.xml` identifies individual CVEs and exact artifact
@@ -57,6 +69,14 @@ rendering, user-controlled SpEL, self-populating data-binding lists, native sort
 queries, or specific legacy authentication/encryption components. Reactor Netty
 is an outbound client here; Tomcat serves HTTP. One LangChain finding is a Python
 package matched to an unrelated Java artifact.
+
+The 2026-10-08 release review also checks CVE-2026-41707 against the packaged JAR
+and authentication configuration. The application uses its local JWT/password
+authentication, with no OAuth2 resource server or DPoP configuration. No
+`spring-security-oauth2` module or vulnerable `DPoPProofJwtDecoderFactory` is
+packaged. The finding for the four packaged Spring Security 6.5.11 artifacts is
+therefore recorded as not applicable, with the same review expiry. Recheck before
+enabling DPoP.
 
 These are applicability decisions, not upstream fixes. Adding an affected facility,
 changing the server architecture, or changing a dependency version requires review.

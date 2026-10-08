@@ -506,13 +506,14 @@ public class HistoryStateStore {
                             if (!entity.getValue().equals(parent)) continue;
                             List<Object> attachmentArguments = new ArrayList<>(arguments);
                             attachmentArguments.add(entity.getKey().name());
-                            if (jdbc.queryForObject(
+                            Integer attachmentCount =
+                                    jdbc.queryForObject(
                                             "SELECT COUNT(*) FROM attachments WHERE entity_id IN ("
                                                     + parameters
                                                     + ") AND user_id <> ? AND entity_type = ?",
                                             Integer.class,
-                                            attachmentArguments.toArray())
-                                    > 0)
+                                            attachmentArguments.toArray());
+                            if (attachmentCount != null && attachmentCount > 0)
                                 throw new org.openfinance.exception.HistoryConflictException(
                                         "dependencies");
                         }

@@ -114,7 +114,8 @@ function App() {
                 <DecimalPlacesProvider>
                   <CryptoCurrenciesProvider>
                     <LocaleProvider>
-                      <Router>
+                      {/* Query/store updates must not leave route changes in a pending transition. */}
+                      <Router useTransitions={false}>
                         <Suspense fallback={<PageLoadingFallback />}>
                           <Routes>
                             {/* Public routes */}

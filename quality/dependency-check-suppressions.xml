@@ -84,4 +84,9 @@
     <packageUrl>pkg:maven/dev.langchain4j/langchain4j-open-ai@1.0.0-beta2</packageUrl>
     <cve>CVE-2026-41488</cve>
   </suppress>
+  <suppress until="2026-12-20Z">
+    <notes>Reviewed 2026-10-08. SecurityConfig uses the application's stateless JwtAuthenticationFilter and JwtService for local password/Bearer authentication. No OAuth2 resource server or DPoP authentication is configured. The packaged application has no spring-security-oauth2 module or DPoPProofJwtDecoderFactory class; the affected proof replay cache is absent. Recheck before adding OAuth2/DPoP authentication. https://spring.io/security/cve-2026-41707/</notes>
+    <packageUrl regex="true">^pkg:maven/org\.springframework\.security/spring-security-(core|config|crypto|web)@6\.5\.11$</packageUrl>
+    <cve>CVE-2026-41707</cve>
+  </suppress>
 </suppressions>

@@ -108,6 +108,12 @@ abstract class AuditApiTestSupport {
 
     protected JsonNode json(String method, String path, Object body, Auth auth, int status)
             throws Exception {
+        return json(method, path, body, auth, status, 1);
+    }
+
+    protected JsonNode json(
+            String method, String path, Object body, Auth auth, int status, int attempts)
+            throws Exception {
         MockHttpServletRequestBuilder builder =
                 request(HttpMethod.valueOf(method), "/api/v1" + path);
         if (body != null)
@@ -117,7 +123,7 @@ abstract class AuditApiTestSupport {
             if (auth.session() != null) builder.header("X-Encryption-Session", auth.session());
         }
         org.springframework.mock.web.MockHttpServletResponse response =
-                mvc.perform(builder).andReturn().getResponse();
+                ConcurrentRequestSupport.perform(mvc, builder, attempts);
         assertThat(response.getStatus())
                 .as("%s %s: %s", method, path, response.getContentAsString())
                 .isEqualTo(status);

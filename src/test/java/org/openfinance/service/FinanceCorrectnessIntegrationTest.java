@@ -375,7 +375,8 @@ class FinanceCorrectnessIntegrationTest extends AuditApiTestSupport {
                                 "/transactions",
                                 movement(cash, 100, LocalDate.now()),
                                 owner,
-                                201);
+                                201,
+                                20);
                     };
             var first = executor.submit(post);
             var second = executor.submit(post);

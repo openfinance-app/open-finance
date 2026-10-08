@@ -119,6 +119,12 @@ class AuditFollowupIntegrationTest {
 
     private JsonNode json(String method, String path, Object body, Auth auth, int expected)
             throws Exception {
+        return json(method, path, body, auth, expected, 1);
+    }
+
+    private JsonNode json(
+            String method, String path, Object body, Auth auth, int expected, int attempts)
+            throws Exception {
         MockHttpServletRequestBuilder request =
                 request(HttpMethod.valueOf(method), "/api/v1" + path);
         if (body != null)
@@ -130,7 +136,7 @@ class AuditFollowupIntegrationTest {
                                                     .WRITE_DATES_AS_TIMESTAMPS)
                                     .writeValueAsBytes(body));
         org.springframework.mock.web.MockHttpServletResponse response =
-                mvc.perform(authenticated(request, auth)).andReturn().getResponse();
+                ConcurrentRequestSupport.perform(mvc, authenticated(request, auth), attempts);
         String result = response.getContentAsString();
         assertThat(response.getStatus()).as("%s %s: %s", method, path, result).isEqualTo(expected);
         return result.isBlank() ? mapper.nullNode() : mapper.readTree(result);
@@ -165,6 +171,12 @@ class AuditFollowupIntegrationTest {
 
     private JsonNode expense(Auth auth, long account, long category, LocalDate date, int amount)
             throws Exception {
+        return expense(auth, account, category, date, amount, 1);
+    }
+
+    private JsonNode expense(
+            Auth auth, long account, long category, LocalDate date, int amount, int attempts)
+            throws Exception {
         return json(
                 "POST",
                 "/transactions",
@@ -184,7 +196,8 @@ class AuditFollowupIntegrationTest {
                         "description",
                         "Private receipt"),
                 auth,
-                201);
+                201,
+                attempts);
     }
 
     private long attachment(Auth auth, long account, byte[] bytes) throws Exception {
@@ -428,7 +441,8 @@ class AuditFollowupIntegrationTest {
                         executor.submit(
                                 () -> {
                                     start.await();
-                                    return expense(owner, account, category, LocalDate.now(), 10);
+                                    return expense(
+                                            owner, account, category, LocalDate.now(), 10, 20);
                                 }));
             start.countDown();
             for (var future : futures) future.get(45, java.util.concurrent.TimeUnit.SECONDS);
