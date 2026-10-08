@@ -8,6 +8,8 @@
   "status": "Statut",
   "actions": "Actions",
   "empty": "Aucune opération ne correspond à ces filtres.",
+  "emptyHint": "Essayez d’élargir la période ou d’effacer un filtre.",
+  "clearFilters": "Effacer les filtres",
   "undo": "Annuler",
   "redo": "Rétablir",
   "undoSuccess": "Opération annulée avec succès",

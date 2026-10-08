@@ -287,4 +287,25 @@ describe('HistoryPage', () => {
     await screen.findByText('Weekly groceries');
     expect(screen.getByRole('option', { name: '50' })).toBeInTheDocument();
   });
+
+  it('offers clearing filters from the empty state', async () => {
+    const { historyService } = await import('@/services/historyService');
+    vi.mocked(historyService.getHistory).mockResolvedValue({
+      content: [],
+      totalElements: 0,
+      totalPages: 0,
+      number: 0,
+      size: 20,
+    });
+    const user = userEvent.setup();
+    renderWithProviders(<HistoryPage />);
+    await screen.findByText(/no operations match/i);
+
+    const entitySelect = screen.getAllByRole('combobox')[0];
+    await user.selectOptions(entitySelect, 'TRANSACTION');
+    await screen.findByRole('button', { name: /clear filters/i });
+
+    await user.click(screen.getByRole('button', { name: /clear filters/i }));
+    expect(entitySelect).toHaveValue('');
+  });
 });

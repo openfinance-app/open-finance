@@ -4,12 +4,13 @@ import { Fragment, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { isAxiosError } from 'axios';
-import { History, Undo2, Redo2, AlertCircle } from 'lucide-react';
+import { History, Undo2, Redo2, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { EmptyState } from '@/components/layout/EmptyState';
 import { LoadingSkeleton } from '@/components/LoadingComponents';
 import { Pagination } from '@/components/ui/Pagination';
 import { Button } from '@/components/ui/Button';
+import { Badge } from '@/components/ui/Badge';
 import { historyService } from '@/services/historyService';
 import type { EntityType, OperationType } from '@/types/history';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
@@ -58,7 +59,8 @@ const entities: EntityType[] = [
   'RECURRING_TRANSACTION',
   'IMPORT',
 ];
-const inputClass = 'h-10 rounded-md border border-input bg-background/50 px-3 py-2 text-sm';
+const inputClass =
+  'h-10 rounded-lg border border-border bg-background px-3 py-2 text-sm text-text-primary shadow-slot transition-colors hover:border-border-strong';
 
 export default function HistoryPage() {
   const { t } = useTranslation('history');
@@ -109,6 +111,14 @@ export default function HistoryPage() {
     : null;
   const entityLabel = (type: EntityType): string =>
     t(`filters.${type === 'REAL_ESTATE' ? 'realEstate' : type.toLowerCase()}`);
+  const hasActiveFilters = !!entityType || !!operationType || since !== '' || until !== '';
+  const handleClearFilters = () => {
+    setEntityType(undefined);
+    setOperationType(undefined);
+    setSince('');
+    setUntil('');
+    setCurrentPage(0);
+  };
   const valueLabel = (field: string, value: unknown): string =>
     !isAmountsVisible &&
     /amount|balance|price|value|principal|payment|income|expense|cost|allocation|interest|rate|deposit|withdraw|profit|loss|rent|splits/i.test(
@@ -131,9 +141,9 @@ export default function HistoryPage() {
               : String(value);
 
   return (
-    <div className="p-4 sm:p-8 space-y-6">
+    <div className="space-y-5">
       <PageHeader title={t('title')} description={t('description')} />
-      <div className="flex flex-wrap items-end gap-3">
+      <div className="flex flex-wrap items-end gap-3 rounded-xl border border-border bg-surface p-3 shadow-plate">
         <label className="flex flex-col gap-1 text-sm">
           {t('entityType')}
           <select
@@ -209,7 +219,11 @@ export default function HistoryPage() {
         </div>
       )}
       {notice && (
-        <p role="status" className="text-sm text-success">
+        <p
+          role="status"
+          className="flex items-center gap-2 rounded-lg border border-success/20 bg-success/10 p-4 text-sm text-success"
+        >
+          <CheckCircle2 className="h-5 w-5 shrink-0" aria-hidden="true" />
           {notice}
         </p>
       )}
@@ -221,19 +235,26 @@ export default function HistoryPage() {
         </div>
       )}
       {!isLoading && !error && historyPage?.content.length === 0 && (
-        <EmptyState title={t('empty')} description="" icon={History} />
+        <EmptyState
+          title={t('empty')}
+          description={hasActiveFilters ? t('emptyHint') : ''}
+          icon={History}
+          action={
+            hasActiveFilters ? { label: t('clearFilters'), onClick: handleClearFilters } : undefined
+          }
+        />
       )}
       {!isLoading && historyPage && historyPage.content.length > 0 && (
-        <div className="bg-card rounded-lg border border-border shadow-sm overflow-hidden">
+        <div className="bg-surface rounded-xl border border-border shadow-plate overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-sm text-left">
-              <thead className="text-xs uppercase bg-background/50 text-muted-foreground border-b border-border">
+              <thead className="plate-label bg-background border-b border-border">
                 <tr>
-                  <th className="px-4 py-4">{t('operation')}</th>
-                  <th className="px-4 py-4">{t('name')}</th>
-                  <th className="px-4 py-4">{t('date')}</th>
-                  <th className="px-4 py-4">{t('status')}</th>
-                  <th className="px-4 py-4 text-right">{t('actions')}</th>
+                  <th className="px-4 py-3 font-semibold">{t('operation')}</th>
+                  <th className="px-4 py-3 font-semibold">{t('name')}</th>
+                  <th className="px-4 py-3 font-semibold">{t('date')}</th>
+                  <th className="px-4 py-3 font-semibold">{t('status')}</th>
+                  <th className="px-4 py-3 font-semibold text-right">{t('actions')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
@@ -246,7 +267,7 @@ export default function HistoryPage() {
                     : t('unavailable');
                   return (
                     <Fragment key={item.id}>
-                      <tr className="hover:bg-muted/50">
+                      <tr className="hover:bg-surface-elevated transition-colors">
                         <td className="px-4 py-4 font-medium whitespace-nowrap">
                           {t(`operations.${item.operationType.toLowerCase()}`)}{' '}
                           {entityLabel(item.entityType)}
@@ -266,12 +287,13 @@ export default function HistoryPage() {
                             </Button>
                           )}
                         </td>
-                        <td className="px-4 py-4 text-muted-foreground whitespace-nowrap">
+                        <td className="px-4 py-4 text-text-secondary tabular-nums whitespace-nowrap">
                           {dateTime(item.createdAt)}
                         </td>
                         <td className="px-4 py-4">
-                          <span
-                            className={`inline-flex px-2.5 py-0.5 rounded-full text-xs font-medium ${undone ? 'bg-warning/10 text-warning' : item.redoneAt ? 'bg-primary/10 text-primary' : 'bg-success/10 text-success'}`}
+                          <Badge
+                            size="sm"
+                            variant={undone ? 'warning' : item.redoneAt ? 'info' : 'success'}
                           >
                             {t(
                               undone
@@ -280,7 +302,7 @@ export default function HistoryPage() {
                                   ? 'badge.redone'
                                   : 'badge.active'
                             )}
-                          </span>
+                          </Badge>
                         </td>
                         <td className="px-4 py-4 text-right">
                           <Button
@@ -299,7 +321,7 @@ export default function HistoryPage() {
                             {t(undone ? 'redo' : 'undo')}
                           </Button>
                           {!canAct && (
-                            <p className="mt-2 text-xs text-muted-foreground min-w-44 max-w-64 ml-auto">
+                            <p className="mt-2 text-xs text-text-secondary min-w-44 max-w-64 ml-auto">
                               {reason}
                             </p>
                           )}
@@ -308,31 +330,31 @@ export default function HistoryPage() {
                       {expanded === item.id &&
                         (fields.length > 0 || (item.affectedRecords ?? 0) > 1) && (
                           <tr id={`history-details-${item.id}`}>
-                            <td colSpan={5} className="px-4 py-4 bg-muted/20">
+                            <td colSpan={5} className="px-4 py-4 bg-background">
                               <dl className="space-y-2">
                                 {fields.map(field => (
                                   <div
                                     key={field.field}
                                     className="grid gap-2 sm:grid-cols-[minmax(8rem,1fr)_2fr_2fr]"
                                   >
-                                    <dt className="font-medium">
+                                    <dt className="font-medium text-text-primary">
                                       {t(`fields.${field.field}`, {
                                         defaultValue: field.field.replaceAll('_', ' '),
                                       })}
                                     </dt>
-                                    <dd className="break-words">
-                                      <span className="text-muted-foreground">{t('before')}: </span>
+                                    <dd className="break-words tabular-nums">
+                                      <span className="text-text-secondary">{t('before')}: </span>
                                       {valueLabel(field.field, field.before)}
                                     </dd>
-                                    <dd className="break-words">
-                                      <span className="text-muted-foreground">{t('after')}: </span>
+                                    <dd className="break-words tabular-nums">
+                                      <span className="text-text-secondary">{t('after')}: </span>
                                       {valueLabel(field.field, field.after)}
                                     </dd>
                                   </div>
                                 ))}
                               </dl>
                               {(item.affectedRecords ?? 0) > 1 && (
-                                <p className="mt-3 text-xs text-muted-foreground">
+                                <p className="mt-3 text-xs text-text-secondary">
                                   {t('relatedRecords', { count: item.affectedRecords })}
                                 </p>
                               )}

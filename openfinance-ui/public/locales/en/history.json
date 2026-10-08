@@ -8,6 +8,8 @@
   "status": "Status",
   "actions": "Actions",
   "empty": "No operations match these filters.",
+  "emptyHint": "Try widening the date range or clearing a filter.",
+  "clearFilters": "Clear filters",
   "undo": "Undo",
   "redo": "Redo",
   "undoSuccess": "Operation undone successfully",
