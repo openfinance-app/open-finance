@@ -125,7 +125,7 @@
   },
   "review": {
     "loadingTitle": "Analyzing transactions",
-    "loadingDescription": "AI is categorizing your transactions. This may take a few minutes with local models.",
+    "loadingDescription": "Applying rules, matching categories and checking for duplicates.",
     "autoAssignedCount": "{{count}} transaction(s) automatically assigned.",
     "autoAssignedDescription": "Categories were assigned based on your transaction history. You can adjust any assignment below.",
     "adjustAny": "You can adjust any assignment below.",
@@ -217,7 +217,9 @@
       "expandSplits": "Expand splits",
       "selectTransaction": "Select transaction {{number}}"
     },
-    "aiUnavailable": "AI suggestions could not be generated for some transactions. You can choose their categories manually and continue importing."
+    "aiUnavailable": "AI suggestions could not be generated for some transactions. You can choose their categories manually and continue importing.",
+    "aiProcessing": "AI categorization in progress ({{current}}/{{total}})...",
+    "aiProcessingDescription": "Generating suggestions for uncategorized transactions. This may take a few minutes."
   },
   "progress": {
     "preparing": "Preparing import...",
@@ -235,7 +237,9 @@
       "imported": "Imported",
       "duplicates": "Duplicates",
       "errors": "Errors"
-    }
+    },
+    "finalizing": "Finalizing import...",
+    "pendingCommit": "Changes are saved when the import completes."
   },
   "validation": {
     "dateRequired": "Transaction date is required",

@@ -42,6 +42,7 @@ import {
   useStartImport,
   useImportSession,
   useImportTransactions,
+  useImportProgress,
   useConfirmImport,
   useCancelImport,
   useUpdateAccount,
@@ -153,12 +154,20 @@ export function ImportWizard() {
   } = useImportSession(sessionId, {
     pollInterval: 2000,
   });
-  // Pass session status so the hook disables itself once the session reaches a
-  // terminal state (COMPLETED / FAILED / CANCELLED) — prevents 400 errors from
-  // React Query re-fetching /review on an already-completed session.
-  const { data: transactions = [], isLoading: isLoadingTransactions } = useImportTransactions(
+  // The review request runs AI categorization. Wait until Next has applied the
+  // account and opened review; also fetch when restoring a saved confirmation.
+  const {
+    data: transactions = [],
+    isLoading: isLoadingTransactions,
+    isFetching: isFetchingTransactions,
+  } = useImportTransactions(
     sessionId,
-    session?.status
+    session?.status,
+    selectedStep === 'review' || selectedStep === 'confirm'
+  );
+  const { data: liveProgress } = useImportProgress(
+    sessionId,
+    isFetchingTransactions || session?.status === 'IMPORTING'
   );
   const confirmImport = useConfirmImport();
   const cancelImport = useCancelImport();
@@ -371,9 +380,9 @@ export function ImportWizard() {
         if (startImport.isError && !sessionId) return false;
         return !!session && session.readyForReview;
       case 'review':
-        return localTransactions.length > 0;
+        return localTransactions.length > 0 && !isFetchingTransactions && !isLoadingTransactions;
       case 'confirm':
-        return !!session?.confirmable && !isLoadingTransactions;
+        return !!session?.confirmable && !isFetchingTransactions && !isLoadingTransactions;
       default:
         return false;
     }
@@ -505,6 +514,26 @@ export function ImportWizard() {
           </Button>
         </div>
       )}
+
+      {isFetchingTransactions &&
+        liveProgress?.phase === 'AI_CATEGORIZING' &&
+        (currentStep !== 'review' || !isLoadingTransactions) && (
+          <div
+            role="status"
+            aria-live="polite"
+            className="my-4 rounded-lg border border-primary/20 bg-primary/5 p-4"
+          >
+            <p className="text-sm font-medium text-text-primary">
+              {t('review.aiProcessing', {
+                current: liveProgress.processed,
+                total: liveProgress.total,
+              })}
+            </p>
+            <p className="mt-1 text-xs text-text-secondary">
+              {t('review.aiProcessingDescription')}
+            </p>
+          </div>
+        )}
 
       {/* ── Stepper header ─────────────────────────────────────────────── */}
       <div className="mb-8">
@@ -741,14 +770,25 @@ export function ImportWizard() {
         {currentStep === 'review' && (
           <div>
             {isLoadingTransactions ? (
-              <div className="flex flex-col items-center justify-center py-12 gap-4">
+              <div
+                role="status"
+                aria-live="polite"
+                className="flex flex-col items-center justify-center py-12 gap-4"
+              >
                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
                 <div className="text-center">
                   <p className="text-sm font-medium text-text-primary">
-                    {t('review.loadingTitle')}
+                    {liveProgress?.phase === 'AI_CATEGORIZING'
+                      ? t('review.aiProcessing', {
+                          current: liveProgress.processed,
+                          total: liveProgress.total,
+                        })
+                      : t('review.loadingTitle')}
                   </p>
                   <p className="text-xs text-text-secondary mt-1">
-                    {t('review.loadingDescription')}
+                    {liveProgress?.phase === 'AI_CATEGORIZING'
+                      ? t('review.aiProcessingDescription')
+                      : t('review.loadingDescription')}
                   </p>
                 </div>
               </div>
@@ -863,6 +903,7 @@ export function ImportWizard() {
         {currentStep === 'progress' && session && (
           <ImportProgress
             session={session}
+            liveProgress={liveProgress}
             onViewTransactions={handleViewTransactions}
             onClose={handleCancel}
           />

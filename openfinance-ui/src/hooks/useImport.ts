@@ -19,12 +19,33 @@ import type {
   ImportSessionStatus,
   ImportTransactionDTO,
   ImportReviewOptions,
+  ImportProgressResponse,
 } from '@/types/import';
 
 /**
  * Session statuses in which parsing has finished and review remains editable.
  */
 const REVIEW_STATUSES: ImportSessionStatus[] = ['PARSED', 'REVIEWING'];
+
+/** Poll only during active review preparation or confirmation. */
+export function useImportProgress(
+  sessionId: number | null,
+  active: boolean
+): UseQueryResult<ImportProgressResponse> {
+  const securityConfig = useSecurityConfig();
+  const encryptionEnabled = resolveEncryptionEnabled(securityConfig.data, securityConfig.isError);
+  return useQuery<ImportProgressResponse>({
+    queryKey: ['import-progress', sessionId, encryptionEnabled],
+    queryFn: ({ signal }) => {
+      if (!sessionId) throw new Error('Session ID is required');
+      return importService.getProgress(sessionId, encryptionEnabled, signal);
+    },
+    enabled: !!sessionId && active,
+    refetchInterval: active ? 1000 : false,
+    refetchIntervalInBackground: false,
+    retry: false,
+  });
+}
 
 /**
  * Start import from uploaded file
@@ -96,13 +117,15 @@ export function useImportSession(
  *
  * @param sessionId     - Import session ID
  * @param sessionStatus - Current session status (used to gate fetching)
+ * @param enabled       - Whether the user has entered review or confirmation
  *
  * @example
- * const { data: transactions } = useImportTransactions(sessionId, session?.status);
+ * const { data: transactions } = useImportTransactions(sessionId, session?.status, reviewActive);
  */
 export function useImportTransactions(
   sessionId: number | null,
-  sessionStatus?: ImportSessionStatus
+  sessionStatus?: ImportSessionStatus,
+  enabled = true
 ): UseQueryResult<ImportTransactionDTO[]> {
   const canReview = !!sessionStatus && REVIEW_STATUSES.includes(sessionStatus);
   const securityConfig = useSecurityConfig();
@@ -114,8 +137,8 @@ export function useImportTransactions(
       if (!sessionId) throw new Error('Session ID is required');
       return importService.getTransactions(sessionId, encryptionEnabled, signal);
     },
-    // Wait for parsing and stop fetching once confirmation starts.
-    enabled: !!sessionId && canReview,
+    // Reviewing triggers AI categorization: wait for the user to enter that step.
+    enabled: enabled && !!sessionId && canReview,
     staleTime: 5 * 60 * 1000, // 5 minutes
     retry: 1, // AI categorization is slow; avoid aggressive retries
   });

@@ -1,19 +1,21 @@
-import { fireEvent, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { mockAuthentication, renderWithProviders } from '@/test/test-utils';
 import { Link, Route, Routes } from 'react-router';
 import { useImportDraftStore } from '@/stores/importDraft';
-import type { ImportTransactionDTO } from '@/types/import';
+import type { ImportSessionStatus, ImportTransactionDTO } from '@/types/import';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { ImportWizard } from '@/components/import/ImportWizard';
 
 const cancel = vi.fn();
 const confirm = vi.fn();
 const saveReview = vi.fn();
+const applyAccount = vi.fn();
 let sessionStatus = 'PARSED';
 let sessionMetadata = '';
 let sessionError: Error | null = null;
 let reviewing = false;
+let liveProgress = { phase: 'IDLE', processed: 0, total: 0 };
 const transactions = [
   { date: '2026-09-10', amount: -10.99, payee: 'Groceries', validationErrors: [] },
 ];
@@ -35,13 +37,19 @@ vi.mock('@/hooks/useImport', () => ({
         : undefined,
     error: id ? sessionError : null,
   }),
-  useImportTransactions: (id: number | null) => ({
-    data: id ? transactions : undefined,
-    isLoading: reviewing,
+  useImportTransactions: (
+    id: number | null,
+    _status: ImportSessionStatus | undefined,
+    enabled = true
+  ) => ({
+    data: id && enabled ? transactions : undefined,
+    isLoading: enabled && reviewing,
+    isFetching: enabled && reviewing,
   }),
+  useImportProgress: () => ({ data: liveProgress }),
   useConfirmImport: () => ({ mutateAsync: confirm }),
   useCancelImport: () => ({ mutateAsync: cancel, isPending: false }),
-  useUpdateAccount: () => ({ mutateAsync: vi.fn() }),
+  useUpdateAccount: () => ({ mutateAsync: applyAccount }),
   useUpdateTransactions: () => ({ mutateAsync: saveReview }),
 }));
 vi.mock('@/hooks/useAccounts', () => ({ useAccounts: () => ({ data: [] }) }));
@@ -90,10 +98,12 @@ describe('ImportWizard cancellation', () => {
     sessionMetadata = '';
     sessionError = null;
     reviewing = false;
+    liveProgress = { phase: 'IDLE', processed: 0, total: 0 };
     useImportDraftStore.getState().clear();
     mockAuthentication();
     confirm.mockReset().mockResolvedValue({ id: 42, status: 'IMPORTING' });
     saveReview.mockReset().mockResolvedValue({ id: 42 });
+    applyAccount.mockReset().mockResolvedValue({ id: 42 });
     cancel.mockReset().mockResolvedValue({ id: 42, status: 'CANCELLED' });
   });
 
@@ -128,6 +138,53 @@ describe('ImportWizard cancellation', () => {
       sessionId: 42,
       selectedStep: 'progress',
     });
+  });
+
+  it('starts AI review only after Next applies the selected account', async () => {
+    let finishApplying!: () => void;
+    applyAccount.mockReturnValue(
+      new Promise<void>(resolve => {
+        finishApplying = resolve;
+      })
+    );
+    reviewing = true;
+    liveProgress = { phase: 'AI_CATEGORIZING', processed: 15, total: 45 };
+    renderWithProviders(<ImportWizard />);
+    fireEvent.click(screen.getByRole('button', { name: 'Upload statement' }));
+    await waitFor(() => expect(screen.getByRole('button', { name: /next/i })).toBeEnabled());
+    expect(screen.queryByText(/AI categorization in progress/)).not.toBeInTheDocument();
+
+    fireEvent.change(screen.getByRole('combobox'), { target: { value: '' } });
+    expect(screen.queryByText(/AI categorization in progress/)).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /next/i }));
+    expect(applyAccount).toHaveBeenCalledWith({ sessionId: 42, accountId: null });
+    expect(screen.getByRole('combobox')).toBeInTheDocument();
+    expect(screen.queryByText(/AI categorization in progress/)).not.toBeInTheDocument();
+
+    await act(async () => finishApplying());
+    expect(await screen.findByRole('status')).toHaveTextContent(
+      'AI categorization in progress (15/45)'
+    );
+    expect(screen.queryByRole('combobox')).not.toBeInTheDocument();
+  });
+
+  it('shows AI batch progress while review is loading and blocks continuing', async () => {
+    sessionStorage.setItem(
+      'import_recovery',
+      JSON.stringify({ userId: 1, sessionId: 42, selectedStep: 'review' })
+    );
+    reviewing = true;
+    liveProgress = { phase: 'AI_CATEGORIZING', processed: 15, total: 45 };
+    renderWithProviders(
+      <ProtectedRoute>
+        <ImportWizard />
+      </ProtectedRoute>
+    );
+    expect(await screen.findByRole('heading', { name: 'Review Transactions' })).toBeInTheDocument();
+    expect(await screen.findByRole('status')).toHaveTextContent(
+      'AI categorization in progress (15/45)'
+    );
+    expect(screen.getByRole('button', { name: /next/i })).toBeDisabled();
   });
 
   it('waits for restored review data before enabling confirmation', async () => {

@@ -6,6 +6,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.openfinance.dto.ImportConfirmRequest;
 import org.openfinance.dto.ImportProcessRequest;
+import org.openfinance.dto.ImportProgressResponse;
 import org.openfinance.dto.ImportReviewRequest;
 import org.openfinance.dto.ImportedTransaction;
 import org.openfinance.entity.ImportSession;
@@ -77,6 +78,13 @@ import org.springframework.web.bind.annotation.RestController;
 public class ImportController {
 
     private final ImportService importService;
+
+    @GetMapping("/sessions/{id}/progress")
+    public ResponseEntity<ImportProgressResponse> getProgress(
+            @PathVariable Long id, Authentication authentication) {
+        return ResponseEntity.ok(
+                importService.getProgress(id, ControllerUtil.extractUserId(authentication)));
+    }
 
     /**
      * Initiates transaction import process from uploaded file.

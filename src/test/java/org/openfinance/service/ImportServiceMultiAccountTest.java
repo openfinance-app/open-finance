@@ -153,7 +153,8 @@ class ImportServiceMultiAccountTest {
                         new CurrencyTypeResolver(currencyRepository),
                         importConfirmationExecutor,
                         userSettingsRepository,
-                        operationHistoryService);
+                        operationHistoryService,
+                        new ImportProgressTracker());
 
         // Lenient stubs for payee/currency resolution (used by convertToTransaction)
         lenient()
@@ -1024,7 +1025,8 @@ class ImportServiceMultiAccountTest {
                         null,
                         Map.of(),
                         true,
-                        rows);
+                        rows,
+                        new ImportProgressTracker().start(session.getId(), USER_ID));
         assertThat(result.getImportedCount()).isEqualTo(1);
         verify(transactionRepository)
                 .save(argThat(t -> t.getAmount().compareTo(new BigDecimal("10")) == 0));

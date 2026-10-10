@@ -415,7 +415,7 @@ class RulesImportRegressionTest {
                             return null;
                         })
                 .when(ai)
-                .categorizeWithAI(anyList(), anyList());
+                .categorizeWithAI(anyList(), anyList(), any());
         try (java.util.concurrent.ExecutorService executor =
                 Executors.newSingleThreadExecutor(task -> new Thread(task, "late-review"))) {
             java.util.concurrent.Future<List<ImportedTransaction>> pending =

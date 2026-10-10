@@ -11,6 +11,7 @@ import {
   useUpdateTransactions,
   useCancelImport,
   useImportSessions,
+  useImportProgress,
 } from './useImport';
 
 // Mock the importService module
@@ -18,6 +19,7 @@ vi.mock('@/services/importService', () => ({
   importService: {
     startImport: vi.fn(),
     getSession: vi.fn(),
+    getProgress: vi.fn(),
     getTransactions: vi.fn(),
     confirmImport: vi.fn(),
     updateAccount: vi.fn(),
@@ -58,6 +60,32 @@ describe('useImport hooks', () => {
     { id: 1, date: '2024-01-01', amount: -50, description: 'Grocery', isDuplicate: false },
     { id: 2, date: '2024-01-02', amount: -30, description: 'Coffee', isDuplicate: true },
   ];
+
+  describe('useImportProgress', () => {
+    it('polls active work and stops when it is no longer active', async () => {
+      vi.mocked(importService.getProgress).mockResolvedValue({
+        phase: 'IMPORTING',
+        processed: 500,
+        total: 3083,
+      });
+      const { result, rerender } = renderHook(({ active }) => useImportProgress(1, active), {
+        wrapper,
+        initialProps: { active: true },
+      });
+      await waitFor(() => expect(result.current.data?.processed).toBe(500));
+      await waitFor(() => expect(importService.getProgress).toHaveBeenCalledTimes(2), {
+        timeout: 2000,
+      });
+      rerender({ active: false });
+      await new Promise(resolve => setTimeout(resolve, 1100));
+      expect(importService.getProgress).toHaveBeenCalledTimes(2);
+    });
+
+    it('does not fetch for an inactive import', () => {
+      renderHook(() => useImportProgress(1, false), { wrapper });
+      expect(importService.getProgress).not.toHaveBeenCalled();
+    });
+  });
 
   // ── useStartImport ─────────────────────────────────────────────────
   describe('useStartImport', () => {
@@ -198,6 +226,37 @@ describe('useImport hooks', () => {
 
   // ── useUpdateAccount ─────────────────────────────────────────────────
   describe('useUpdateAccount', () => {
+    it('waits for review activation after account changes, including a cached review', async () => {
+      mockedImportService.getTransactions.mockResolvedValue(mockTransactions);
+      mockedImportService.updateAccount.mockResolvedValue({ ...mockSession, accountId: 2 });
+      const { result, rerender } = renderHook(
+        ({ reviewActive }) => ({
+          review: useImportTransactions(1, 'PARSED', reviewActive),
+          account: useUpdateAccount(),
+        }),
+        { wrapper, initialProps: { reviewActive: false } }
+      );
+
+      expect(mockedImportService.getTransactions).not.toHaveBeenCalled();
+      await act(async () => {
+        await result.current.account.mutateAsync({ sessionId: 1, accountId: 2 });
+      });
+      expect(mockedImportService.getTransactions).not.toHaveBeenCalled();
+
+      rerender({ reviewActive: true });
+      await waitFor(() => expect(result.current.review.data).toEqual(mockTransactions));
+      expect(mockedImportService.getTransactions).toHaveBeenCalledTimes(1);
+
+      rerender({ reviewActive: false });
+      await act(async () => {
+        await result.current.account.mutateAsync({ sessionId: 1, accountId: null });
+      });
+      expect(mockedImportService.getTransactions).toHaveBeenCalledTimes(1);
+
+      rerender({ reviewActive: true });
+      await waitFor(() => expect(mockedImportService.getTransactions).toHaveBeenCalledTimes(2));
+    });
+
     it('replaces an initial in-flight review when account selection completes', async () => {
       let releaseOld!: (value: typeof mockTransactions) => void;
       mockedImportService.getTransactions

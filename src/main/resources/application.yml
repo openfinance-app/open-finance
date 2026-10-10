@@ -194,6 +194,9 @@ application:
       interval-hours: 6
   ai:
     provider: ollama
+    categorization:
+      # Disable only AI import suggestions; rules and history matching still run.
+      enabled: ${AI_CATEGORIZATION_ENABLED:true}
     # Whole-operation deadline, including all insight calls; bounded to at most 600 seconds.
     request-timeout-seconds: 600
     ollama:

@@ -19,6 +19,10 @@ import org.springframework.stereotype.Repository;
  */
 @Repository
 public interface ImportSessionRepository extends JpaRepository<ImportSession, Long> {
+    /** Ownership-scoped status lookup without loading the encrypted transaction metadata. */
+    @Query("SELECT s.status FROM ImportSession s WHERE s.id = :id AND s.userId = :userId")
+    Optional<ImportStatus> findStatusForUser(@Param("id") Long id, @Param("userId") Long userId);
+
     @org.springframework.data.jpa.repository.Modifying
     @org.springframework.transaction.annotation.Transactional
     @Query(

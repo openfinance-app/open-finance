@@ -163,7 +163,8 @@ class ImportServiceSkroogeJsonTest {
                         new CurrencyTypeResolver(currencyRepository),
                         importConfirmationExecutor,
                         userSettingsRepository,
-                        operationHistoryService);
+                        operationHistoryService,
+                        new ImportProgressTracker());
 
         // Lenient stubs for payee/currency resolution (used by convertToTransaction)
         lenient()
@@ -177,6 +178,16 @@ class ImportServiceSkroogeJsonTest {
 
         org.openfinance.testutil.DefaultCurrencyProviderMocks.stub(
                 defaultCurrencyProvider, userRepository);
+        lenient()
+                .when(categoryRepository.findByIdAndUserId(anyLong(), eq(USER_ID)))
+                .thenAnswer(
+                        invocation ->
+                                categoryRepository.findByUserId(USER_ID).stream()
+                                        .filter(
+                                                category ->
+                                                        category.getId()
+                                                                .equals(invocation.getArgument(0)))
+                                        .findFirst());
     }
 
     @Test
@@ -1314,6 +1325,158 @@ class ImportServiceSkroogeJsonTest {
         assertThat(result.getStatus()).isEqualTo(ImportStatus.COMPLETED);
         assertThat(result.getImportedCount()).isZero();
         assertThat(result.getSkippedCount()).isEqualTo(1);
+    }
+
+    @ParameterizedTest
+    @ValueSource(
+            strings = {
+                "source",
+                "mapping",
+                "mapping_sibling",
+                "edited",
+                "cleared",
+                "split",
+                "skipped_closed"
+            })
+    void resolvesSourceCategoryWhenRootAndChildHaveTheSameName(String choice) throws Exception {
+        SkroogeImportMetadata metadata = buildMetadata();
+        metadata.setInstitutions(List.of());
+        metadata.setAccounts(List.of(metadata.getAccounts().get(0)));
+        Category root = Category.builder().id(401L).userId(USER_ID).name("Food").build();
+        Category parent = Category.builder().id(402L).userId(USER_ID).name("Other").build();
+        Category child =
+                Category.builder().id(403L).userId(USER_ID).name("Food").parentId(402L).build();
+        metadata.setCategories(List.of(metadata.getCategories().get(0)));
+        ImportedTransaction row =
+                ImportedTransaction.builder()
+                        .transactionDate(LocalDate.of(2024, 1, 2))
+                        .amount(new BigDecimal("-10"))
+                        .payee("Shop")
+                        .sourceAccountId(10L)
+                        .sourceCategoryId(100L)
+                        .category("Food")
+                        .currency("EUR")
+                        .build();
+        if (choice.equals("edited")) row.setCategory("Other:Food");
+        if (choice.equals("cleared")) row.setCategory(null);
+        if (choice.equals("mapping_sibling")) {
+            metadata.setCategories(
+                    List.of(
+                            metadata.getCategories().get(0),
+                            SkroogeImportMetadata.SkroogeCategory.builder()
+                                    .sourceId(200L)
+                                    .name("Other")
+                                    .fullName("Other")
+                                    .build(),
+                            SkroogeImportMetadata.SkroogeCategory.builder()
+                                    .sourceId(201L)
+                                    .parentSourceId(200L)
+                                    .name("Food")
+                                    .fullName("Other:Food")
+                                    .build()));
+            row.setCategory("Other:Food");
+            row.setSourceCategoryId(201L);
+        }
+        if (choice.equals("skipped_closed")) row.addValidationError("RULE_SKIP: Skip this row");
+        if (choice.equals("split")) {
+            row.setCategory(null);
+            row.setSourceCategoryId(null);
+            when(transactionSplitService.reconcileForImport(any(), any(), any()))
+                    .thenAnswer(invocation -> invocation.getArgument(2));
+            row.setSplits(
+                    List.of(
+                            ImportedTransaction.SplitEntry.builder()
+                                    .category("Food")
+                                    .sourceCategoryId(100L)
+                                    .amount(new BigDecimal("5"))
+                                    .build(),
+                            ImportedTransaction.SplitEntry.builder()
+                                    .category("Food")
+                                    .sourceCategoryId(100L)
+                                    .amount(new BigDecimal("5"))
+                                    .build()));
+        }
+        ImportSession session = buildSession(metadata, List.of(row));
+        Map<String, Object> reviewed =
+                objectMapper.readValue(
+                        session.getMetadata(),
+                        new com.fasterxml.jackson.core.type.TypeReference<
+                                Map<String, Object>>() {});
+        reviewed.put("reviewSaved", true);
+        session.setMetadata(objectMapper.writeValueAsString(reviewed));
+        Account account =
+                Account.builder()
+                        .id(101L)
+                        .userId(USER_ID)
+                        .name("Checking")
+                        .accountNumber("CHK-001")
+                        .currency("EUR")
+                        .type(AccountType.CHECKING)
+                        .isActive(!choice.equals("skipped_closed"))
+                        .build();
+        when(importSessionRepository.findById(1L)).thenReturn(Optional.of(session));
+        when(accountRepository.findByUserId(USER_ID)).thenReturn(List.of(account));
+        lenient().when(accountRepository.findById(101L)).thenReturn(Optional.of(account));
+        when(categoryRepository.findByUserId(USER_ID))
+                .thenReturn(new ArrayList<>(List.of(root, parent, child)));
+        lenient()
+                .when(transactionRepository.save(any(Transaction.class)))
+                .thenAnswer(
+                        invocation -> {
+                            Transaction saved = invocation.getArgument(0);
+                            saved.setId(501L);
+                            return saved;
+                        });
+
+        ImportSession result =
+                importService.confirmImport(
+                        1L,
+                        USER_ID,
+                        null,
+                        choice.equals("mapping")
+                                ? Map.of("Food", 403L)
+                                : choice.equals("mapping_sibling")
+                                        ? Map.of("Food", 402L)
+                                        : Map.of(),
+                        true);
+
+        assertThat(result.getErrorCount()).isZero();
+        if (choice.equals("skipped_closed")) {
+            assertThat(result.getImportedCount()).isZero();
+            assertThat(result.getSkippedCount()).isEqualTo(1);
+            assertThat(account.getIsActive()).isFalse();
+            verify(transactionRepository, never()).save(any(Transaction.class));
+            verify(accountRepository, never()).save(any(Account.class));
+            return;
+        }
+        assertThat(result.getImportedCount()).isEqualTo(1);
+        Long expectedCategory =
+                switch (choice) {
+                    case "edited", "mapping", "mapping_sibling" -> 403L;
+                    case "cleared", "split" -> null;
+                    default -> 401L;
+                };
+        verify(transactionRepository)
+                .save(
+                        argThat(
+                                transaction ->
+                                        java.util.Objects.equals(
+                                                expectedCategory, transaction.getCategoryId())));
+        if (choice.equals("split")) {
+            verify(transactionSplitService)
+                    .saveSplits(
+                            eq(501L),
+                            argThat(
+                                    splits ->
+                                            splits.size() == 2
+                                                    && splits.stream()
+                                                            .allMatch(
+                                                                    split ->
+                                                                            Long.valueOf(401L)
+                                                                                    .equals(
+                                                                                            split
+                                                                                                    .getCategoryId()))));
+        }
     }
 
     private ImportSession buildSession(

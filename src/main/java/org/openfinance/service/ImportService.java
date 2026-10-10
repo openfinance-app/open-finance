@@ -26,6 +26,8 @@ import org.openfinance.config.ImportProperties;
 import org.openfinance.dto.AccountRequest;
 import org.openfinance.dto.AccountResponse;
 import org.openfinance.dto.ImportParseResult;
+import org.openfinance.dto.ImportProgressResponse;
+import org.openfinance.dto.ImportProgressResponse.Phase;
 import org.openfinance.dto.ImportReviewRequest;
 import org.openfinance.dto.ImportedTransaction;
 import org.openfinance.dto.SkroogeImportMetadata;
@@ -146,6 +148,24 @@ public class ImportService {
 
     private final UserSettingsRepository userSettingsRepository;
     private final OperationHistoryService operationHistoryService;
+    private final ImportProgressTracker progressTracker;
+
+    @Transactional(readOnly = true)
+    public ImportProgressResponse getProgress(Long sessionId, Long userId) {
+        ImportStatus status =
+                importSessionRepository
+                        .findStatusForUser(sessionId, userId)
+                        .orElseThrow(
+                                () ->
+                                        new ResourceNotFoundException(
+                                                "Import session not found: " + sessionId));
+        if (status != ImportStatus.PARSED
+                && status != ImportStatus.REVIEWING
+                && status != ImportStatus.IMPORTING) {
+            return ImportProgressResponse.idle();
+        }
+        return progressTracker.get(sessionId, userId);
+    }
 
     /**
      * Start a new import session and parse the uploaded file.
@@ -480,14 +500,15 @@ public class ImportService {
         // Review is a projection of parsed input until the user explicitly saves it.
         // Never write a detached session here: confirmation may have completed while
         // categorization was running. Saved review edits must not run through rules again.
-        List<ImportedTransaction> transactions = deserializeTransactions(session.getMetadata());
-        prepareUnreviewedTransactions(session, transactions, userId);
-        validateImportedSplitAmounts(transactions, session.getAccountId(), userId);
-        detectDuplicates(transactions, session.getAccountId(), session.getFileFormat(), userId);
-
-        resolveReviewCurrencies(session, transactions, userId);
-
-        return transactions;
+        try (ImportProgressTracker.Task progress = progressTracker.start(sessionId, userId)) {
+            List<ImportedTransaction> transactions = deserializeTransactions(session.getMetadata());
+            prepareUnreviewedTransactions(session, transactions, userId, progress);
+            progress.update(Phase.PREPARING, 0, transactions.size());
+            validateImportedSplitAmounts(transactions, session.getAccountId(), userId);
+            detectDuplicates(transactions, session.getAccountId(), session.getFileFormat(), userId);
+            resolveReviewCurrencies(session, transactions, userId);
+            return transactions;
+        }
     }
 
     private void resolveReviewCurrencies(
@@ -753,8 +774,23 @@ public class ImportService {
                     "Session cannot be confirmed. Current status: " + session.getStatus());
         }
 
+        try (ImportProgressTracker.Task progress = progressTracker.start(sessionId, userId)) {
+            return executeConfirmation(
+                    session, userId, accountId, categoryMappings, skipDuplicates, progress);
+        }
+    }
+
+    private ImportSession executeConfirmation(
+            ImportSession session,
+            Long userId,
+            Long accountId,
+            Map<String, Long> categoryMappings,
+            boolean skipDuplicates,
+            ImportProgressTracker.Task progress) {
+        Long sessionId = session.getId();
         List<ImportedTransaction> transactions = deserializeTransactions(session.getMetadata());
-        prepareUnreviewedTransactions(session, transactions, userId);
+        prepareUnreviewedTransactions(session, transactions, userId, progress);
+        progress.update(Phase.PREPARING, 0, transactions.size());
         validateImportedSplitAmounts(
                 transactions, accountId != null ? accountId : session.getAccountId(), userId);
         validateImportCategoryMappings(transactions, userId, categoryMappings);
@@ -767,12 +803,18 @@ public class ImportService {
         if ("JSON".equalsIgnoreCase(session.getFileFormat())
                 && hasSkroogeMetadata(session.getMetadata())) {
             return confirmSkroogeImport(
-                    session, userId, categoryMappings, skipDuplicates, transactions);
+                    session, userId, categoryMappings, skipDuplicates, transactions, progress);
         }
 
         if (shouldUseImportedAccountRouting(transactions)) {
             return confirmImportedAccountImport(
-                    session, userId, accountId, categoryMappings, skipDuplicates, transactions);
+                    session,
+                    userId,
+                    accountId,
+                    categoryMappings,
+                    skipDuplicates,
+                    transactions,
+                    progress);
         }
 
         // Resolve target account: use provided ID, fall back to session's accountId,
@@ -912,6 +954,9 @@ public class ImportService {
             int imported = 0;
             int saveFailed = 0;
 
+            int processed = transactions.size() - toImport.size();
+            progress.update(Phase.IMPORTING, processed, transactions.size());
+
             for (ImportedTransaction importedTx : toImport) {
                 try {
                     Transaction transaction =
@@ -933,8 +978,11 @@ public class ImportService {
                 } catch (Exception e) {
                     log.error("Error saving transaction: {}", e.getMessage(), e);
                     saveFailed++;
+                } finally {
+                    progress.update(Phase.IMPORTING, ++processed, transactions.size());
                 }
             }
+            progress.update(Phase.FINALIZING, processed, transactions.size());
 
             // REQ-2.2.5: Recalculate account balance after successful import
             try {
@@ -1329,7 +1377,10 @@ public class ImportService {
      *     <p>Requirement: REQ-2.10.3 (Category mapping during import)
      */
     private void prepareUnreviewedTransactions(
-            ImportSession session, List<ImportedTransaction> transactions, Long userId) {
+            ImportSession session,
+            List<ImportedTransaction> transactions,
+            Long userId,
+            ImportProgressTracker.Task progress) {
         if (Boolean.TRUE.equals(readMetadataMap(session.getMetadata()).get("reviewSaved"))) {
             return;
         }
@@ -1346,10 +1397,13 @@ public class ImportService {
                                                                         || error.startsWith(
                                                                                 "RULE_SKIP:")))
                         .collect(Collectors.toList());
-        suggestCategories(unprocessed, userId);
+        suggestCategories(unprocessed, userId, progress);
     }
 
-    private void suggestCategories(List<ImportedTransaction> transactions, Long userId) {
+    private void suggestCategories(
+            List<ImportedTransaction> transactions,
+            Long userId,
+            ImportProgressTracker.Task progress) {
         // Preserve the raw imported payee BEFORE rules run — SET_PAYEE actions
         // overwrite
         // tx.payee, so capturing it here (rather than after applyRules) is required to
@@ -1431,6 +1485,9 @@ public class ImportService {
             }
 
             String importedCategory = tx.getCategory().trim();
+            // A source category is an explicit assignment, even when another branch has
+            // the same name. Keep its full path intact for confirmation and review edits.
+            if (tx.getSourceCategoryId() != null && tx.getSourceCategoryId() > 0) continue;
             String normalizedCategory = importedCategory.toLowerCase().trim();
 
             // Try exact match first
@@ -1481,7 +1538,10 @@ public class ImportService {
         // Final tier: AI-based categorization for any remaining uncategorized
         // transactions
         try {
-            aiCategorizationService.categorizeWithAI(transactions, userCategories);
+            aiCategorizationService.categorizeWithAI(
+                    transactions,
+                    userCategories,
+                    (processed, total) -> progress.update(Phase.AI_CATEGORIZING, processed, total));
         } catch (Exception e) {
             log.warn("AI categorization failed (non-blocking): {}", e.getMessage());
         }
@@ -1560,7 +1620,8 @@ public class ImportService {
             Long userId,
             Map<String, Long> categoryMappings,
             boolean skipDuplicates,
-            List<ImportedTransaction> transactions) {
+            List<ImportedTransaction> transactions,
+            ImportProgressTracker.Task progress) {
         session.setStatus(ImportStatus.IMPORTING);
         importSessionRepository.save(session);
 
@@ -1578,9 +1639,21 @@ public class ImportService {
                         .collect(Collectors.toList());
 
         SkroogeImportMetadata skroogeMetadata = extractSkroogeMetadata(session.getMetadata());
+        clearChangedSourceCategories(transactions, skroogeMetadata);
         Map<Long, Long> institutionIdsBySource = ensureInstitutions(skroogeMetadata, userId);
+        Set<Long> accountSourcesWithTransactions = new java.util.HashSet<>();
+        for (ImportedTransaction transaction : toImport) {
+            accountSourcesWithTransactions.add(transaction.getSourceAccountId());
+            if (transaction.isTransfer()) {
+                accountSourcesWithTransactions.add(transaction.getToAccountSourceId());
+            }
+        }
         Map<Long, Long> accountIdsBySource =
-                ensureAccounts(skroogeMetadata, institutionIdsBySource, userId);
+                ensureAccounts(
+                        skroogeMetadata,
+                        institutionIdsBySource,
+                        userId,
+                        accountSourcesWithTransactions);
         Map<Long, Long> categoryIdsBySource =
                 ensureCategories(skroogeMetadata, userId, categoryMappings);
 
@@ -1592,6 +1665,9 @@ public class ImportService {
                 toImport.stream()
                         .filter(tx -> tx.isTransfer() && tx.getTransferGroupKey() != null)
                         .collect(Collectors.groupingBy(ImportedTransaction::getTransferGroupKey));
+
+        int processed = transactions.size() - toImport.size();
+        progress.update(Phase.IMPORTING, processed, transactions.size());
 
         for (ImportedTransaction importedTx : toImport) {
             try {
@@ -1653,8 +1729,11 @@ public class ImportService {
                         ex.getMessage(),
                         ex);
                 saveFailed++;
+            } finally {
+                progress.update(Phase.IMPORTING, ++processed, transactions.size());
             }
         }
+        progress.update(Phase.FINALIZING, processed, transactions.size());
 
         for (Long affectedAccountId : affectedAccountIds) {
             try {
@@ -1776,7 +1855,8 @@ public class ImportService {
             Long requestedAccountId,
             Map<String, Long> categoryMappings,
             boolean skipDuplicates,
-            List<ImportedTransaction> transactions) {
+            List<ImportedTransaction> transactions,
+            ImportProgressTracker.Task progress) {
         session.setStatus(ImportStatus.IMPORTING);
         importSessionRepository.save(session);
 
@@ -1849,6 +1929,9 @@ public class ImportService {
         }
         Set<String> processedTransferKeys = new java.util.HashSet<>();
         ImportedTransferMatcher transferMatcher = new ImportedTransferMatcher();
+
+        int processed = transactions.size() - toImport.size();
+        progress.update(Phase.IMPORTING, processed, transactions.size());
 
         for (ImportedTransaction importedTx : toImport) {
             try {
@@ -1945,8 +2028,11 @@ public class ImportService {
                         ex.getMessage(),
                         ex);
                 saveFailed++;
+            } finally {
+                progress.update(Phase.IMPORTING, ++processed, transactions.size());
             }
         }
+        progress.update(Phase.FINALIZING, processed, transactions.size());
 
         for (Long affectedAccountId : affectedAccountIds) {
             try {
@@ -2140,11 +2226,21 @@ public class ImportService {
     }
 
     private Map<Long, Long> ensureAccounts(
-            SkroogeImportMetadata metadata, Map<Long, Long> institutionIdsBySource, Long userId) {
+            SkroogeImportMetadata metadata,
+            Map<Long, Long> institutionIdsBySource,
+            Long userId,
+            Set<Long> accountSourcesWithTransactions) {
         Map<Long, Long> accountIdsBySource = new HashMap<>();
         List<Account> existingAccounts = accountRepository.findByUserId(userId);
         for (SkroogeImportMetadata.SkroogeAccount account : metadata.getAccounts()) {
             Account matchingAccount = findMatchingAccount(existingAccounts, account);
+            if (matchingAccount != null
+                    && !accountSourcesWithTransactions.contains(account.getSourceId())) {
+                // Duplicate/skipped rows must not require reopening or change the active state
+                // of an existing account. This permits retrying a partially completed export.
+                accountIdsBySource.put(account.getSourceId(), matchingAccount.getId());
+                continue;
+            }
             if (matchingAccount == null) {
                 AccountRequest accountRequest =
                         AccountRequest.builder()
@@ -2513,6 +2609,35 @@ public class ImportService {
         return value;
     }
 
+    /** Source IDs apply only while the source assignment is unchanged by rules or review. */
+    private void clearChangedSourceCategories(
+            List<ImportedTransaction> transactions, SkroogeImportMetadata metadata) {
+        Map<Long, String> paths =
+                metadata.getCategories().stream()
+                        .collect(
+                                Collectors.toMap(
+                                        SkroogeImportMetadata.SkroogeCategory::getSourceId,
+                                        SkroogeImportMetadata.SkroogeCategory::getFullName));
+        for (ImportedTransaction transaction : transactions) {
+            if (!matchesSourceCategory(
+                    transaction.getCategory(), transaction.getSourceCategoryId(), paths)) {
+                transaction.setSourceCategoryId(null);
+            }
+            for (ImportedTransaction.SplitEntry split : transaction.getSplits()) {
+                if (!matchesSourceCategory(
+                        split.getCategory(), split.getSourceCategoryId(), paths)) {
+                    split.setSourceCategoryId(null);
+                }
+            }
+        }
+    }
+
+    private boolean matchesSourceCategory(String name, Long sourceId, Map<Long, String> paths) {
+        return name != null
+                && sourceId != null
+                && name.trim().equalsIgnoreCase(paths.get(sourceId));
+    }
+
     private Map<Long, Long> ensureCategories(
             SkroogeImportMetadata metadata, Long userId, Map<String, Long> categoryMappings) {
         Map<Long, Long> categoryIdsBySource = new HashMap<>();
@@ -2522,7 +2647,16 @@ public class ImportService {
         for (SkroogeImportMetadata.SkroogeCategory category : metadata.getCategories()) {
             Long mappedId =
                     categoryMappings != null ? categoryMappings.get(category.getFullName()) : null;
-            if (mappedId == null && categoryMappings != null) {
+            if (mappedId == null
+                    && categoryMappings != null
+                    && metadata.getCategories().stream()
+                                    .filter(
+                                            candidate ->
+                                                    category.getName()
+                                                            .equalsIgnoreCase(candidate.getName()))
+                                    .count()
+                            == 1) {
+                // A bare mapping for a root must not also remap a same-named child.
                 mappedId = categoryMappings.get(category.getName());
             }
             if (mappedId != null) {
@@ -2680,15 +2814,13 @@ public class ImportService {
                 .map(
                         splitEntry -> {
                             Long categoryId =
-                                    splitEntry.getCategory() != null
-                                            ? categoryMappings == null
-                                                    ? null
-                                                    : categoryMappings.get(
-                                                            splitEntry.getCategory().trim())
-                                            : splitEntry.getSourceCategoryId() == null
-                                                    ? null
-                                                    : categoryIdsBySource.get(
-                                                            splitEntry.getSourceCategoryId());
+                                    splitEntry.getCategory() != null && categoryMappings != null
+                                            ? categoryMappings.get(splitEntry.getCategory().trim())
+                                            : null;
+                            if (categoryId == null && splitEntry.getSourceCategoryId() != null) {
+                                categoryId =
+                                        categoryIdsBySource.get(splitEntry.getSourceCategoryId());
+                            }
                             if (categoryId != null) {
                                 validateImportedCategory(categoryId, userId);
                             }
@@ -3017,6 +3149,9 @@ public class ImportService {
                 && !importedTx.getCategory().trim().isEmpty()) {
             String categoryName = importedTx.getCategory().trim();
             Long categoryId = categoryMappings != null ? categoryMappings.get(categoryName) : null;
+            if (categoryId == null && importedTx.getSourceCategoryId() != null) {
+                categoryId = categoryIdsBySource.get(importedTx.getSourceCategoryId());
+            }
 
             if (categoryId != null) {
                 log.debug(

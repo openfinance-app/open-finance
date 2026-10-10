@@ -4,13 +4,14 @@
  *
  * Provides API client functions for import operations
  */
-import apiClient from './apiClient';
+import apiClient from '@/services/apiClient';
 import type {
   ImportProcessRequest,
   ImportConfirmRequest,
   ImportSessionResponse,
   ImportTransactionDTO,
   ImportReviewOptions,
+  ImportProgressResponse,
 } from '@/types/import';
 import { buildEncryptionHeaders } from '@/utils/encryption';
 
@@ -18,6 +19,18 @@ import { buildEncryptionHeaders } from '@/utils/encryption';
  * Import service API client
  */
 export const importService = {
+  getProgress: async (
+    sessionId: number,
+    encryptionEnabled = true,
+    signal?: AbortSignal
+  ): Promise<ImportProgressResponse> => {
+    const response = await apiClient.get<ImportProgressResponse>(
+      `/import/sessions/${sessionId}/progress`,
+      { headers: buildEncryptionHeaders(encryptionEnabled), signal }
+    );
+    return response.data;
+  },
+
   /**
    * Start import process from uploaded file
    */

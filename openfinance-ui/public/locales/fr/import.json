@@ -125,7 +125,7 @@
   },
   "review": {
     "loadingTitle": "Analyse des transactions",
-    "loadingDescription": "L'IA catégorise vos transactions. Cela peut prendre quelques minutes avec des modèles locaux.",
+    "loadingDescription": "Application des règles, recherche des catégories et vérification des doublons.",
     "autoAssignedCount": "{{count}} transaction(s) automatiquement assignée(s).",
     "autoAssignedDescription": "Les catégories ont été assignées en fonction de votre historique de transactions. Vous pouvez ajuster n'importe quelle affectation ci-dessous.",
     "adjustAny": "Vous pouvez ajuster n'importe quelle affectation ci-dessous.",
@@ -217,7 +217,9 @@
       "expandSplits": "Afficher la ventilation",
       "selectTransaction": "Sélectionner l’opération {{number}}"
     },
-    "aiUnavailable": "Les suggestions IA sont indisponibles pour certaines opérations. Vous pouvez choisir leurs catégories manuellement et poursuivre l’import."
+    "aiUnavailable": "Les suggestions IA sont indisponibles pour certaines opérations. Vous pouvez choisir leurs catégories manuellement et poursuivre l’import.",
+    "aiProcessing": "Catégorisation par IA en cours ({{current}}/{{total}})...",
+    "aiProcessingDescription": "Génération de suggestions pour les transactions sans catégorie. Cela peut prendre quelques minutes."
   },
   "progress": {
     "preparing": "Préparation de l'importation...",
@@ -235,7 +237,9 @@
       "imported": "Importées",
       "duplicates": "Doublons",
       "errors": "Erreurs"
-    }
+    },
+    "finalizing": "Finalisation de l’import...",
+    "pendingCommit": "Les modifications seront enregistrées à la fin de l’import."
   },
   "validation": {
     "dateRequired": "La date de la transaction est requise",

@@ -6,7 +6,9 @@ import static org.mockito.Mockito.*;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.IntStream;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -14,6 +16,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.openfinance.config.AICategorizationProperties;
 import org.openfinance.dto.ImportedTransaction;
 import org.openfinance.entity.Category;
 import org.openfinance.repository.CategoryRepository;
@@ -30,11 +33,53 @@ class AICategorizationServiceTest {
     @Mock MessageSource messageSource;
     @Mock DefaultCurrencyProvider defaultCurrencyProvider;
     @Spy ObjectMapper objectMapper = new ObjectMapper();
+    @Spy AICategorizationProperties properties = new AICategorizationProperties();
     @InjectMocks AICategorizationService service;
 
     @BeforeEach
     void setup() {
-        when(aiProvider.isAvailable()).thenReturn(Mono.just(true));
+        lenient().when(aiProvider.isAvailable()).thenReturn(Mono.just(true));
+    }
+
+    @Test
+    void disabledCategorizationMakesNoProviderOrSessionCalls() {
+        properties.setEnabled(false);
+        ImportedTransaction row = ImportedTransaction.builder().payee("Shop").build();
+        service.categorizeWithAI(
+                List.of(row),
+                List.of(category(1L, "Food")),
+                (processed, total) -> {
+                    throw new AssertionError("Disabled AI reported work");
+                });
+        service.categorizeSessionAsync(1L, 2L);
+        verifyNoInteractions(aiProvider, importSessionRepository, categoryRepository);
+        assertThat(row.getCategory()).isNull();
+        assertThat(row.getValidationErrors()).isEmpty();
+    }
+
+    @Test
+    void reportsCompletedBatchCountsEvenWhenTheProviderFails() {
+        List<ImportedTransaction> rows =
+                IntStream.range(0, 31)
+                        .mapToObj(
+                                index ->
+                                        ImportedTransaction.builder()
+                                                .payee("Shop " + index)
+                                                .build())
+                        .toList();
+        List<String> counts = new ArrayList<>();
+        when(aiProvider.sendStructuredPrompt(anyString(), anyString(), any()))
+                .thenReturn(Mono.error(new IllegalStateException("offline")));
+        service.categorizeWithAI(
+                rows,
+                List.of(category(1L, "Food")),
+                (processed, total) -> counts.add(processed + "/" + total));
+        assertThat(counts).containsExactly("0/31", "15/31", "30/31", "31/31");
+        assertThat(rows)
+                .allSatisfy(
+                        row ->
+                                assertThat(row.getValidationErrors())
+                                        .anyMatch(error -> error.startsWith("AI_UNAVAILABLE:")));
     }
 
     @Test

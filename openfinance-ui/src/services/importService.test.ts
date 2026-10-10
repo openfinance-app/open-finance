@@ -82,6 +82,17 @@ describe('importService', () => {
     });
   });
 
+  it('fetches lightweight progress with the encryption header and cancellation signal', async () => {
+    const progress = { phase: 'IMPORTING', processed: 500, total: 3083 };
+    const signal = new AbortController().signal;
+    mockApiClient.get.mockResolvedValueOnce({ data: progress });
+    expect(await importService.getProgress(1, true, signal)).toEqual(progress);
+    expect(mockApiClient.get).toHaveBeenCalledWith('/import/sessions/1/progress', {
+      headers: { 'X-Encryption-Session': MOCK_ENCRYPTION_KEY },
+      signal,
+    });
+  });
+
   describe('getTransactions', () => {
     it('should GET /import/sessions/:id/review', async () => {
       const mockTransactions = [{ id: 1, amount: 50 }];

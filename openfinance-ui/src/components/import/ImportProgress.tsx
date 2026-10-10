@@ -7,38 +7,34 @@
 import { CheckCircle2, XCircle, Loader2, ExternalLink, AlertTriangle } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/Button';
-import type { ImportSessionResponse } from '@/types/import';
+import type { ImportSessionResponse, ImportProgressResponse } from '@/types/import';
 
 interface ImportProgressProps {
   session: ImportSessionResponse;
+  liveProgress?: ImportProgressResponse;
   onViewTransactions?: () => void;
   onClose?: () => void;
 }
 
-export function ImportProgress({ session, onViewTransactions, onClose }: ImportProgressProps) {
+export function ImportProgress({
+  session,
+  liveProgress,
+  onViewTransactions,
+  onClose,
+}: ImportProgressProps) {
   const { t } = useTranslation('import');
   const isComplete = session.status === 'COMPLETED';
   const isFailed = session.status === 'FAILED';
   const isCancelled = session.status === 'CANCELLED';
   const isInProgress = ['PENDING', 'PARSING', 'IMPORTING'].includes(session.status);
 
-  // Calculate progress percentage
-  const getProgressPercentage = (): number => {
-    if (isComplete) return 100;
-    if (isFailed || isCancelled) return 0;
-
-    if (session.status === 'PARSING') return 25;
-    if (session.status === 'IMPORTING') {
-      // Calculate based on imported vs total
-      if (session.totalTransactions > 0) {
-        return 50 + (session.importedCount / session.totalTransactions) * 50;
-      }
-      return 50;
-    }
-    return 10;
-  };
-
-  const progress = getProgressPercentage();
+  const hasRowProgress =
+    session.status === 'IMPORTING' &&
+    (liveProgress?.phase === 'IMPORTING' || liveProgress?.phase === 'FINALIZING');
+  const progress =
+    hasRowProgress && liveProgress.total > 0
+      ? Math.min(100, (liveProgress.processed / liveProgress.total) * 100)
+      : undefined;
 
   // Get status message
   const getStatusMessage = (): string => {
@@ -48,9 +44,16 @@ export function ImportProgress({ session, onViewTransactions, onClose }: ImportP
       case 'PARSING':
         return t('progress.parsing');
       case 'IMPORTING':
+        if (liveProgress?.phase === 'AI_CATEGORIZING') {
+          return t('review.aiProcessing', {
+            current: liveProgress.processed,
+            total: liveProgress.total,
+          });
+        }
+        if (liveProgress?.phase === 'FINALIZING') return t('progress.finalizing');
         return t('progress.importing', {
-          current: session.importedCount,
-          total: session.totalTransactions,
+          current: hasRowProgress ? liveProgress.processed : 0,
+          total: hasRowProgress ? liveProgress.total : session.totalTransactions,
         });
       case 'COMPLETED':
         return t('progress.success');
@@ -91,7 +94,7 @@ export function ImportProgress({ session, onViewTransactions, onClose }: ImportP
           </div>
         )}
 
-        <div className="text-center">
+        <div className="text-center" role="status" aria-live="polite">
           <h3 className="plate-label  mb-2">{getStatusMessage()}</h3>
           <p className="text-sm text-text-secondary">{session.fileName}</p>
         </div>
@@ -100,15 +103,24 @@ export function ImportProgress({ session, onViewTransactions, onClose }: ImportP
       {/* Progress Bar */}
       {isInProgress && (
         <div className="space-y-2">
-          <div className="w-full bg-surface-elevated rounded-full h-3 overflow-hidden">
+          <div
+            role="progressbar"
+            aria-label={t('progress.processing')}
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-valuenow={progress === undefined ? undefined : Math.round(progress)}
+            className="w-full bg-surface-elevated rounded-full h-3 overflow-hidden"
+          >
             <div
-              className="h-full bg-primary transition-all duration-500 ease-out"
-              style={{ width: `${progress}%` }}
+              className={`h-full bg-primary transition-all duration-500 ease-out ${progress === undefined ? 'animate-pulse' : ''}`}
+              style={{ width: progress === undefined ? '100%' : `${progress}%` }}
             />
           </div>
           <div className="flex justify-between text-xs text-text-tertiary">
-            <span>{Math.round(progress)}%</span>
-            <span>{t('progress.processing')}</span>
+            <span>
+              {progress === undefined ? t('progress.processing') : `${Math.round(progress)}%`}
+            </span>
+            <span>{t('progress.pendingCommit')}</span>
           </div>
         </div>
       )}

@@ -13,9 +13,11 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.BiConsumer;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.openfinance.config.AICategorizationProperties;
 import org.openfinance.dto.ImportedTransaction;
 import org.openfinance.entity.Category;
 import org.openfinance.entity.ImportSession;
@@ -53,6 +55,8 @@ public class AICategorizationService {
     private final MessageSource messageSource;
     private final DefaultCurrencyProvider defaultCurrencyProvider;
 
+    private final AICategorizationProperties properties;
+
     /**
      * Asynchronously categorize uncategorized transactions for an import session. Loads the
      * session, runs AI categorization, and persists results back. Called after reviewTransactions()
@@ -63,6 +67,7 @@ public class AICategorizationService {
      */
     @Async("taskExecutor")
     public void categorizeSessionAsync(Long sessionId, Long userId) {
+        if (!properties.isEnabled()) return;
         log.info("Starting async AI categorization for session: {}", sessionId);
 
         try {
@@ -144,6 +149,25 @@ public class AICategorizationService {
      */
     public void categorizeWithAI(
             List<ImportedTransaction> transactions, List<Category> userCategories) {
+        categorizeWithAI(transactions, userCategories, (processed, total) -> {});
+    }
+
+    public void categorizeWithAI(
+            List<ImportedTransaction> transactions,
+            List<Category> userCategories,
+            BiConsumer<Integer, Integer> progress) {
+        if (!properties.isEnabled()) return;
+
+        List<Integer> uncategorizedIndices = new ArrayList<>();
+        for (int i = 0; i < transactions.size(); i++) {
+            ImportedTransaction tx = transactions.get(i);
+            if (tx.getCategory() == null || tx.getCategory().trim().isEmpty()) {
+                uncategorizedIndices.add(i);
+            }
+        }
+        if (uncategorizedIndices.isEmpty() || userCategories.isEmpty()) return;
+        progress.accept(0, uncategorizedIndices.size());
+
         // Check AI availability first
         Boolean available;
         try {
@@ -159,29 +183,10 @@ public class AICategorizationService {
             return;
         }
 
-        // Collect indices of uncategorized transactions
-        List<Integer> uncategorizedIndices = new ArrayList<>();
-        for (int i = 0; i < transactions.size(); i++) {
-            ImportedTransaction tx = transactions.get(i);
-            if (tx.getCategory() == null || tx.getCategory().trim().isEmpty()) {
-                uncategorizedIndices.add(i);
-            }
-        }
-
-        if (uncategorizedIndices.isEmpty()) {
-            log.debug("No uncategorized transactions to process with AI");
-            return;
-        }
-
         log.info(
                 "AI categorization: processing {} uncategorized transactions with {} user categories",
                 uncategorizedIndices.size(),
                 userCategories.size());
-
-        if (userCategories.isEmpty()) {
-            log.info("No user categories available — skipping AI categorization");
-            return;
-        }
 
         List<Category> candidates = userCategories.stream().filter(c -> !isGeneric(c)).toList();
 
@@ -225,6 +230,8 @@ public class AICategorizationService {
                         batchStart,
                         batchEnd - 1,
                         e.getClass().getSimpleName());
+            } finally {
+                progress.accept(batchEnd, uncategorizedIndices.size());
             }
         }
         log.info(

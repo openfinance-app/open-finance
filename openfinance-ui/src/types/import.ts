@@ -49,6 +49,13 @@ export type ImportSessionStatus =
  */
 export type FileFormat = 'QIF' | 'OFX' | 'CSV' | 'JSON';
 
+/** Live work counters; rows are committed when the import session completes. */
+export interface ImportProgressResponse {
+  phase: 'IDLE' | 'PREPARING' | 'AI_CATEGORIZING' | 'IMPORTING' | 'FINALIZING';
+  processed: number;
+  total: number;
+}
+
 /**
  * Import session response from backend
  */

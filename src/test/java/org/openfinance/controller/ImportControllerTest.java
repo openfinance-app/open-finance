@@ -18,6 +18,8 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.openfinance.dto.ImportConfirmRequest;
 import org.openfinance.dto.ImportProcessRequest;
+import org.openfinance.dto.ImportProgressResponse;
+import org.openfinance.dto.ImportProgressResponse.Phase;
 import org.openfinance.dto.ImportedTransaction;
 import org.openfinance.entity.ImportSession;
 import org.openfinance.entity.ImportSession.ImportStatus;
@@ -70,6 +72,21 @@ class ImportControllerTest {
     private static final Long ACCOUNT_ID = 1L;
 
     private static final String TEST_ENCRYPTION_SESSION = "test-encryption-session";
+
+    @Test
+    void exposesLightweightProgressForTheAuthenticatedOwner() throws Exception {
+        when(importService.getProgress(SESSION_ID, USER_ID))
+                .thenReturn(new ImportProgressResponse(Phase.IMPORTING, 500, 3083));
+        mockMvc.perform(
+                        get("/api/v1/import/sessions/{id}/progress", SESSION_ID)
+                                .with(authentication(createAuthentication(USER_ID))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.phase").value("IMPORTING"))
+                .andExpect(jsonPath("$.processed").value(500))
+                .andExpect(jsonPath("$.total").value(3083))
+                .andExpect(jsonPath("$.metadata").doesNotExist());
+        verify(importService).getProgress(SESSION_ID, USER_ID);
+    }
 
     // ========================================
     // Setup Methods

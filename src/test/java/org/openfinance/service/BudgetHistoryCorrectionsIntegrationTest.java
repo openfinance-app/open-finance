@@ -4,9 +4,16 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import java.math.BigDecimal;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import javax.sql.DataSource;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -22,11 +29,63 @@ import org.springframework.cache.CacheManager;
 class BudgetHistoryCorrectionsIntegrationTest extends AuditApiTestSupport {
     @Autowired private ExchangeRateRepository rates;
     @Autowired private CacheManager caches;
+    @Autowired private DataSource dataSource;
 
     @BeforeEach
     void useEuroBaseCurrency() {
         jdbc.update("UPDATE users SET base_currency = 'EUR' WHERE id = ?", owner.id());
         caches.getCacheNames().forEach(name -> caches.getCache(name).clear());
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"unread/count", "unread", "budget"})
+    void alertReadsDoNotWaitForAnUncommittedFinancialWrite(String endpoint) throws Exception {
+        long food = category("Concurrent alerts");
+        long budgetId = budget(food, LocalDate.now().withDayOfMonth(1)).path("id").asLong();
+        Map<String, Object> expense = movement(account(owner), 110, LocalDate.now());
+        expense.put("categoryId", food);
+        json("POST", "/transactions", expense, owner, 201);
+        assertThat(json("GET", "/budgets/alerts/unread/count", null, owner, 200).asLong())
+                .isEqualTo(3);
+        Auth other = register();
+        assertThat(json("GET", "/budgets/alerts/unread/count", null, other, 200).asLong()).isZero();
+        json("GET", "/budgets/alerts/" + budgetId, null, other, 400);
+
+        String path = "/budgets/alerts/" + (endpoint.equals("budget") ? budgetId : endpoint);
+        JsonNode committed = json("GET", path, null, owner, 200);
+        try (ExecutorService reader = Executors.newSingleThreadExecutor();
+                Connection writer = dataSource.getConnection()) {
+            writer.setAutoCommit(false);
+            try {
+                holdFinancialWrite(writer, budgetId);
+                Future<JsonNode> response =
+                        reader.submit(() -> json("GET", path, null, owner, 200));
+                // Must see committed alerts while the other connection still holds its lock.
+                // Waiting for the writer to finish would time out here (before busy_timeout).
+                assertThat(response.get(5, TimeUnit.SECONDS)).isEqualTo(committed);
+            } finally {
+                writer.rollback();
+            }
+        }
+
+        // Reading alerts must leave the write operations functional and owner-scoped.
+        assertThat(json("PUT", "/budgets/alerts/read-all", null, other, 200).asInt()).isZero();
+        assertThat(json("PUT", "/budgets/alerts/read-all", null, owner, 200).asInt()).isEqualTo(3);
+        assertThat(json("GET", "/budgets/alerts/unread/count", null, owner, 200).asLong()).isZero();
+    }
+
+    private void holdFinancialWrite(Connection writer, long budgetId) throws Exception {
+        try (PreparedStatement ownerLock =
+                        writer.prepareStatement(
+                                "UPDATE users SET updated_at = updated_at WHERE id = ?");
+                PreparedStatement pendingAlerts =
+                        writer.prepareStatement(
+                                "UPDATE budget_alerts SET is_read = true WHERE budget_id = ?")) {
+            ownerLock.setLong(1, owner.id());
+            ownerLock.executeUpdate();
+            pendingAlerts.setLong(1, budgetId);
+            assertThat(pendingAlerts.executeUpdate()).isEqualTo(3);
+        }
     }
 
     @Test

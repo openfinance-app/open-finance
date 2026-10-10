@@ -382,6 +382,7 @@ public class BudgetAlertService {
      * @return list of alerts for the budget
      * @throws IllegalArgumentException if budget doesn't belong to user
      */
+    @Transactional(readOnly = true)
     public List<BudgetAlert> findAlertsByBudget(Long budgetId, Long userId) {
         if (budgetId == null || userId == null) {
             throw new IllegalArgumentException("BudgetId and userId cannot be null");
@@ -404,6 +405,7 @@ public class BudgetAlertService {
      * @param userId the ID of the user
      * @return list of unread alerts
      */
+    @Transactional(readOnly = true)
     public List<BudgetAlert> findUnreadAlerts(Long userId) {
         if (userId == null) {
             throw new IllegalArgumentException("User ID cannot be null");
@@ -420,6 +422,7 @@ public class BudgetAlertService {
      * @param userId the ID of the user
      * @return count of unread alerts
      */
+    @Transactional(readOnly = true)
     public long countUnreadAlerts(Long userId) {
         if (userId == null) {
             throw new IllegalArgumentException("User ID cannot be null");

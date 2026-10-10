@@ -154,6 +154,7 @@ class ImportServiceTest {
     @Mock private BudgetAlertService budgetAlertService;
 
     private ImportService importService;
+    private final ImportProgressTracker progressTracker = new ImportProgressTracker();
 
     private static final Long USER_ID = 123L;
     private static final Long ACCOUNT_ID = 1L;
@@ -163,6 +164,30 @@ class ImportServiceTest {
     private Account testAccount;
     private ImportSession testSession;
     private List<ImportedTransaction> testTransactions;
+
+    @Test
+    void progressChecksOwnershipWithoutLoadingTransactionMetadata() {
+        when(importSessionRepository.findStatusForUser(1L, USER_ID))
+                .thenReturn(Optional.of(ImportStatus.IMPORTING));
+        try (ImportProgressTracker.Task task = progressTracker.start(1L, USER_ID)) {
+            task.update(org.openfinance.dto.ImportProgressResponse.Phase.IMPORTING, 500, 3083);
+            assertThat(importService.getProgress(1L, USER_ID).processed()).isEqualTo(500);
+            assertThatThrownBy(() -> importService.getProgress(1L, USER_ID + 1))
+                    .isInstanceOf(ResourceNotFoundException.class);
+            verify(importSessionRepository, never()).findById(anyLong());
+        }
+    }
+
+    @Test
+    void terminalSessionHidesAnyRemainingLiveCounters() {
+        when(importSessionRepository.findStatusForUser(1L, USER_ID))
+                .thenReturn(Optional.of(ImportStatus.FAILED));
+        try (ImportProgressTracker.Task task = progressTracker.start(1L, USER_ID)) {
+            task.update(org.openfinance.dto.ImportProgressResponse.Phase.IMPORTING, 500, 3083);
+            assertThat(importService.getProgress(1L, USER_ID).phase())
+                    .isEqualTo(org.openfinance.dto.ImportProgressResponse.Phase.IDLE);
+        }
+    }
 
     @BeforeEach
     void setUp() throws Exception {
@@ -230,7 +255,8 @@ class ImportServiceTest {
                         new CurrencyTypeResolver(currencyRepository),
                         importConfirmationExecutor,
                         userSettingsRepository,
-                        operationHistoryService);
+                        operationHistoryService,
+                        progressTracker);
 
         // Setup test account
         testAccount =
