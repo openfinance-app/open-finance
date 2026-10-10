@@ -59,6 +59,16 @@ status before serialization. These records do not represent immutable public val
 The baseline retains each reviewed identity individually. No bug type, package, or
 quality job is excluded, and any unreviewed identity still fails the release gate.
 
+The 0.5.3-beta release review reproduces 23 unmatched findings from the failed
+0.5.2-beta release. Locale-sensitive category matching, an unused category map, and
+an unnecessarily broad confirmation catch are fixed in source. The remaining 20
+exact constructor identities retain Spring-managed collaborators: 15 ImportService
+fields and two AICategorizationService fields whose constructor signatures changed,
+the new AI categorization configuration, and the existing ImportService references
+in its controller and background confirmation executor. These shared services,
+repositories, mapper and configuration must retain their managed identity. Only
+these reviewed identities are added; all release quality gates remain required.
+
 ## Dependency applicability reviews
 
 `dependency-check-suppressions.xml` identifies individual CVEs and exact artifact

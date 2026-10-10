@@ -29,12 +29,15 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.api.parallel.ResourceLock;
+import org.junit.jupiter.api.parallel.Resources;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.openfinance.config.ImportProperties;
@@ -542,6 +545,36 @@ class ImportServiceTest {
         assertThat(merchant.getCategory()).isEqualTo("Groceries");
         assertThat(merchant.getPayee()).isEqualTo("Leclerc");
         assertThat(merchant.getOriginalPayee()).isEqualTo("Leclerc");
+    }
+
+    @Test
+    @ResourceLock(Resources.LOCALE)
+    @DisplayName("Imported categories match regardless of the server default locale")
+    void categoryMatchingIgnoresServerDefaultLocale() throws Exception {
+        ImportedTransaction transaction = testTransactions.get(0);
+        transaction.setCategory("gift");
+        Category category = Category.builder().id(10L).userId(USER_ID).name("GIFT").build();
+        when(categoryRepository.findByUserId(USER_ID)).thenReturn(List.of(category));
+        when(importSessionRepository.findById(1L)).thenReturn(Optional.of(testSession));
+        testSession.setStatus(ImportStatus.PARSED);
+        testSession.setMetadata("{\"transactions\":[]}");
+        when(objectMapper.readValue(
+                        anyString(), any(com.fasterxml.jackson.core.type.TypeReference.class)))
+                .thenReturn(new HashMap<>(Map.of("transactions", List.of(transaction))));
+        when(objectMapper.convertValue(
+                        any(), any(com.fasterxml.jackson.core.type.TypeReference.class)))
+                .thenReturn(List.of(transaction));
+
+        Locale originalLocale = Locale.getDefault();
+        try {
+            Locale.setDefault(Locale.forLanguageTag("tr-TR"));
+            importService.reviewTransactions(1L, USER_ID);
+        } finally {
+            Locale.setDefault(originalLocale);
+        }
+
+        assertThat(transaction.getCategory()).isEqualTo("GIFT");
+        assertThat(transaction.getValidationErrors()).isNullOrEmpty();
     }
 
     @Test

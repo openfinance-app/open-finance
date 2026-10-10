@@ -155,7 +155,11 @@ function TreeNode({ node, depth = 0, index = 0, parentName, onEdit, onDelete }: 
           style={{ backgroundColor: node.color || CATEGORY_COLOR_FALLBACK }}
           aria-hidden="true"
         >
-          {node.icon ? <span className="text-sm leading-none">{node.icon}</span> : <FolderOpen size={16} />}
+          {node.icon ? (
+            <span className="text-sm leading-none">{node.icon}</span>
+          ) : (
+            <FolderOpen size={16} />
+          )}
         </div>
 
         {/* Name */}
@@ -525,7 +529,10 @@ export default function CategoriesPage() {
   };
 
   // Flatten categories, attaching each node's parent name for search breadcrumbs
-  const flattenWithParents = (cats: CategoryTreeNode[], parent?: CategoryTreeNode): FlatCategoryNode[] => {
+  const flattenWithParents = (
+    cats: CategoryTreeNode[],
+    parent?: CategoryTreeNode
+  ): FlatCategoryNode[] => {
     const result: FlatCategoryNode[] = [];
     const traverse = (nodes: CategoryTreeNode[], parentNode?: CategoryTreeNode) => {
       for (const node of nodes) {
@@ -718,44 +725,44 @@ export default function CategoriesPage() {
               </div>
             ) : (
               <>
-            <RailButton
-              active={selectedRoot === 'all'}
-              name={t('rail.all')}
-              meta={String(totalCategories)}
-              onClick={() => setSelectedRoot('all')}
-              medallion={
-                <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/15 text-primary">
-                  <Layers size={16} />
-                </span>
-              }
-            />
-            {sortedTree.map(root => (
-              <RailButton
-                key={root.id}
-                active={selectedRoot === root.id}
-                name={root.name || t('unknownCategory')}
-                title={`${root.name} — ${t('transactionCount', { count: root.transactionCount || 0 })}`}
-                onClick={() => setSelectedRoot(root.id)}
-                meta={
-                  root.subcategories && root.subcategories.length > 0
-                    ? String(root.subcategories.length)
-                    : undefined
-                }
-                medallion={
-                  <span
-                    className="flex h-8 w-8 items-center justify-center rounded-lg text-xs font-medium text-white ring-1 ring-inset ring-black/25"
-                    style={{ backgroundColor: root.color || CATEGORY_COLOR_FALLBACK }}
-                    aria-hidden="true"
-                  >
-                    {root.icon ? (
-                      <span className="text-xs leading-none">{root.icon}</span>
-                    ) : (
-                      <FolderOpen size={15} />
-                    )}
-                  </span>
-                }
-              />
-            ))}
+                <RailButton
+                  active={selectedRoot === 'all'}
+                  name={t('rail.all')}
+                  meta={String(totalCategories)}
+                  onClick={() => setSelectedRoot('all')}
+                  medallion={
+                    <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/15 text-primary">
+                      <Layers size={16} />
+                    </span>
+                  }
+                />
+                {sortedTree.map(root => (
+                  <RailButton
+                    key={root.id}
+                    active={selectedRoot === root.id}
+                    name={root.name || t('unknownCategory')}
+                    title={`${root.name} — ${t('transactionCount', { count: root.transactionCount || 0 })}`}
+                    onClick={() => setSelectedRoot(root.id)}
+                    meta={
+                      root.subcategories && root.subcategories.length > 0
+                        ? String(root.subcategories.length)
+                        : undefined
+                    }
+                    medallion={
+                      <span
+                        className="flex h-8 w-8 items-center justify-center rounded-lg text-xs font-medium text-white ring-1 ring-inset ring-black/25"
+                        style={{ backgroundColor: root.color || CATEGORY_COLOR_FALLBACK }}
+                        aria-hidden="true"
+                      >
+                        {root.icon ? (
+                          <span className="text-xs leading-none">{root.icon}</span>
+                        ) : (
+                          <FolderOpen size={15} />
+                        )}
+                      </span>
+                    }
+                  />
+                ))}
               </>
             )}
           </div>
@@ -836,7 +843,9 @@ export default function CategoriesPage() {
                     )}
                   </div>
                   <p className="mt-0.5 flex flex-wrap items-center gap-x-1.5 text-xs text-text-secondary">
-                    <span>{t('transactionCount', { count: selectedNode.transactionCount || 0 })}</span>
+                    <span>
+                      {t('transactionCount', { count: selectedNode.transactionCount || 0 })}
+                    </span>
                     {selectedNode.mccCode && <span>· MCC: {selectedNode.mccCode}</span>}
                     <span aria-hidden="true">·</span>
                     <span

@@ -278,7 +278,7 @@ test('minor fixes persist category icons and notification acknowledgement with a
   await dialog.getByRole('button', { name: /create|save/i }).click();
   await expect(dialog).not.toBeVisible();
   await page.reload();
-  await expect(page.getByText('UX fitness', { exact: true })).toBeVisible();
+  await expect(page.getByTitle('UX fitness', { exact: true })).toBeVisible();
   const categories = await api(page, '/categories');
   expect(categories.find((category: { name: string }) => category.name === 'UX fitness').icon).toBe(
     '🏋️'

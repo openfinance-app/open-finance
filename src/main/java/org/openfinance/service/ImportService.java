@@ -1062,7 +1062,7 @@ public class ImportService {
 
             return session;
 
-        } catch (Exception e) {
+        } catch (RuntimeException e) {
             log.error("Error confirming import for session {}: {}", sessionId, e.getMessage(), e);
             session.setStatus(ImportStatus.FAILED);
             session.setErrorMessage("Failed to import transactions: " + e.getMessage());
@@ -1425,13 +1425,10 @@ public class ImportService {
 
         // Build exact match map using translated display names (matching what the
         // frontend sees)
-        // Key: lowercase display name, Value: display name (properly cased)
-        Map<String, String> categoryDisplayMap = new HashMap<>();
         Map<String, Category> categoryMapExact = new HashMap<>();
         for (Category cat : userCategories) {
             String displayName = resolveDisplayName(cat, locale);
-            categoryMapExact.put(displayName.toLowerCase().trim(), cat);
-            categoryDisplayMap.put(cat.getName().toLowerCase().trim(), displayName);
+            categoryMapExact.put(displayName.toLowerCase(Locale.ROOT).trim(), cat);
         }
 
         // Process each transaction
@@ -1488,7 +1485,7 @@ public class ImportService {
             // A source category is an explicit assignment, even when another branch has
             // the same name. Keep its full path intact for confirmation and review edits.
             if (tx.getSourceCategoryId() != null && tx.getSourceCategoryId() > 0) continue;
-            String normalizedCategory = importedCategory.toLowerCase().trim();
+            String normalizedCategory = importedCategory.toLowerCase(Locale.ROOT).trim();
 
             // Try exact match first
             if (categoryMapExact.containsKey(normalizedCategory)) {
@@ -1508,7 +1505,7 @@ public class ImportService {
                 String displayName = resolveDisplayName(cat, locale);
                 double similarity =
                         ImportDuplicateMatcher.calculateStringSimilarity(
-                                normalizedCategory, displayName.toLowerCase());
+                                normalizedCategory, displayName.toLowerCase(Locale.ROOT));
                 if (similarity > bestSimilarity && similarity >= 0.80) {
                     bestSimilarity = similarity;
                     bestMatch = cat;

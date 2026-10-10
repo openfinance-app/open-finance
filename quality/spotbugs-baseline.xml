@@ -23869,4 +23869,524 @@
       <Message>At InsightWriterImpl.java:[line 16]</Message>
     </SourceLine>
   </BugInstance>
+  <BugInstance instanceOccurrenceNum="0" instanceHash="a52988ec4a0e88d0401041fae88900cd" cweid="374" rank="18" abbrev="EI2" category="MALICIOUS_CODE" priority="2" type="EI_EXPOSE_REP2" instanceOccurrenceMax="0">
+    <ShortMessage>May expose internal representation by incorporating reference to mutable object</ShortMessage>
+    <LongMessage>new org.openfinance.controller.ImportController(ImportService) may expose internal representation by storing an externally mutable object into ImportController.importService</LongMessage>
+    <Class classname="org.openfinance.controller.ImportController" classAnnotationNames="org.springframework.web.bind.annotation.RestController,org.springframework.web.bind.annotation.RequestMapping" primary="true">
+      <SourceLine classname="org.openfinance.controller.ImportController" start="74" end="653" sourcepath="org/openfinance/controller/ImportController.java" sourcefile="ImportController.java">
+        <Message>At ImportController.java:[lines 74-653]</Message>
+      </SourceLine>
+      <Message>In class org.openfinance.controller.ImportController</Message>
+    </Class>
+    <Method isStatic="false" classname="org.openfinance.controller.ImportController" signature="(Lorg/openfinance/service/ImportService;)V" name="&lt;init&gt;" classAnnotationNames="org.springframework.web.bind.annotation.RestController,org.springframework.web.bind.annotation.RequestMapping" primary="true">
+      <SourceLine endBytecode="61" classname="org.openfinance.controller.ImportController" start="77" end="77" sourcepath="org/openfinance/controller/ImportController.java" sourcefile="ImportController.java" startBytecode="0" />
+      <Message>In method new org.openfinance.controller.ImportController(ImportService)</Message>
+    </Method>
+    <Field isStatic="false" classname="org.openfinance.controller.ImportController" signature="Lorg/openfinance/service/ImportService;" name="importService" classAnnotationNames="org.springframework.web.bind.annotation.RestController,org.springframework.web.bind.annotation.RequestMapping" primary="true">
+      <SourceLine classname="org.openfinance.controller.ImportController" sourcepath="org/openfinance/controller/ImportController.java" sourcefile="ImportController.java">
+        <Message>In ImportController.java</Message>
+      </SourceLine>
+      <Message>Field org.openfinance.controller.ImportController.importService</Message>
+    </Field>
+    <LocalVariable role="LOCAL_VARIABLE_NAMED" pc="6" name="importService" register="1">
+      <Message>Local variable named importService</Message>
+    </LocalVariable>
+    <SourceLine endBytecode="6" classname="org.openfinance.controller.ImportController" start="77" end="77" sourcepath="org/openfinance/controller/ImportController.java" sourcefile="ImportController.java" startBytecode="6" primary="true">
+      <Message>At ImportController.java:[line 77]</Message>
+    </SourceLine>
+  </BugInstance>
+  <BugInstance instanceOccurrenceNum="0" instanceHash="d42f5f2bf456a0e0ee9f6f2c8e32dad" cweid="374" rank="18" abbrev="EI2" category="MALICIOUS_CODE" priority="2" type="EI_EXPOSE_REP2" instanceOccurrenceMax="0">
+    <ShortMessage>May expose internal representation by incorporating reference to mutable object</ShortMessage>
+    <LongMessage>new org.openfinance.service.AICategorizationService(AIProvider, ObjectMapper, ImportSessionRepository, CategoryRepository, MessageSource, DefaultCurrencyProvider, AICategorizationProperties) may expose internal representation by storing an externally mutable object into AICategorizationService.importSessionRepository</LongMessage>
+    <Class classname="org.openfinance.service.AICategorizationService" classAnnotationNames="org.springframework.stereotype.Service" primary="true">
+      <SourceLine classname="org.openfinance.service.AICategorizationService" start="42" end="526" sourcepath="org/openfinance/service/AICategorizationService.java" sourcefile="AICategorizationService.java">
+        <Message>At AICategorizationService.java:[lines 42-526]</Message>
+      </SourceLine>
+      <Message>In class org.openfinance.service.AICategorizationService</Message>
+    </Class>
+    <Method isStatic="false" classname="org.openfinance.service.AICategorizationService" signature="(Lorg/openfinance/service/ai/AIProvider;Lcom/fasterxml/jackson/databind/ObjectMapper;Lorg/openfinance/repository/ImportSessionRepository;Lorg/openfinance/repository/CategoryRepository;Lorg/springframework/context/MessageSource;Lorg/openfinance/service/DefaultCurrencyProvider;Lorg/openfinance/config/AICategorizationProperties;)V" name="&lt;init&gt;" classAnnotationNames="org.springframework.stereotype.Service" primary="true">
+      <SourceLine endBytecode="155" classname="org.openfinance.service.AICategorizationService" start="42" end="42" sourcepath="org/openfinance/service/AICategorizationService.java" sourcefile="AICategorizationService.java" startBytecode="0" />
+      <Message>In method new org.openfinance.service.AICategorizationService(AIProvider, ObjectMapper, ImportSessionRepository, CategoryRepository, MessageSource, DefaultCurrencyProvider, AICategorizationProperties)</Message>
+    </Method>
+    <Field isStatic="false" classname="org.openfinance.service.AICategorizationService" signature="Lorg/openfinance/repository/ImportSessionRepository;" name="importSessionRepository" classAnnotationNames="org.springframework.stereotype.Service" primary="true">
+      <SourceLine classname="org.openfinance.service.AICategorizationService" sourcepath="org/openfinance/service/AICategorizationService.java" sourcefile="AICategorizationService.java">
+        <Message>In AICategorizationService.java</Message>
+      </SourceLine>
+      <Message>Field org.openfinance.service.AICategorizationService.importSessionRepository</Message>
+    </Field>
+    <LocalVariable role="LOCAL_VARIABLE_NAMED" pc="16" name="importSessionRepository" register="3">
+      <Message>Local variable named importSessionRepository</Message>
+    </LocalVariable>
+    <SourceLine endBytecode="16" classname="org.openfinance.service.AICategorizationService" start="42" end="42" sourcepath="org/openfinance/service/AICategorizationService.java" sourcefile="AICategorizationService.java" startBytecode="16" primary="true">
+      <Message>At AICategorizationService.java:[line 42]</Message>
+    </SourceLine>
+  </BugInstance>
+  <BugInstance instanceOccurrenceNum="0" instanceHash="873eec78dc53b75068cb41a40b537fbd" cweid="374" rank="18" abbrev="EI2" category="MALICIOUS_CODE" priority="2" type="EI_EXPOSE_REP2" instanceOccurrenceMax="0">
+    <ShortMessage>May expose internal representation by incorporating reference to mutable object</ShortMessage>
+    <LongMessage>new org.openfinance.service.AICategorizationService(AIProvider, ObjectMapper, ImportSessionRepository, CategoryRepository, MessageSource, DefaultCurrencyProvider, AICategorizationProperties) may expose internal representation by storing an externally mutable object into AICategorizationService.objectMapper</LongMessage>
+    <Class classname="org.openfinance.service.AICategorizationService" classAnnotationNames="org.springframework.stereotype.Service" primary="true">
+      <SourceLine classname="org.openfinance.service.AICategorizationService" start="42" end="526" sourcepath="org/openfinance/service/AICategorizationService.java" sourcefile="AICategorizationService.java">
+        <Message>At AICategorizationService.java:[lines 42-526]</Message>
+      </SourceLine>
+      <Message>In class org.openfinance.service.AICategorizationService</Message>
+    </Class>
+    <Method isStatic="false" classname="org.openfinance.service.AICategorizationService" signature="(Lorg/openfinance/service/ai/AIProvider;Lcom/fasterxml/jackson/databind/ObjectMapper;Lorg/openfinance/repository/ImportSessionRepository;Lorg/openfinance/repository/CategoryRepository;Lorg/springframework/context/MessageSource;Lorg/openfinance/service/DefaultCurrencyProvider;Lorg/openfinance/config/AICategorizationProperties;)V" name="&lt;init&gt;" classAnnotationNames="org.springframework.stereotype.Service" primary="true">
+      <SourceLine endBytecode="155" classname="org.openfinance.service.AICategorizationService" start="42" end="42" sourcepath="org/openfinance/service/AICategorizationService.java" sourcefile="AICategorizationService.java" startBytecode="0" />
+      <Message>In method new org.openfinance.service.AICategorizationService(AIProvider, ObjectMapper, ImportSessionRepository, CategoryRepository, MessageSource, DefaultCurrencyProvider, AICategorizationProperties)</Message>
+    </Method>
+    <Field isStatic="false" classname="org.openfinance.service.AICategorizationService" signature="Lcom/fasterxml/jackson/databind/ObjectMapper;" name="objectMapper" classAnnotationNames="org.springframework.stereotype.Service" primary="true">
+      <SourceLine classname="org.openfinance.service.AICategorizationService" sourcepath="org/openfinance/service/AICategorizationService.java" sourcefile="AICategorizationService.java">
+        <Message>In AICategorizationService.java</Message>
+      </SourceLine>
+      <Message>Field org.openfinance.service.AICategorizationService.objectMapper</Message>
+    </Field>
+    <LocalVariable role="LOCAL_VARIABLE_NAMED" pc="11" name="objectMapper" register="2">
+      <Message>Local variable named objectMapper</Message>
+    </LocalVariable>
+    <SourceLine endBytecode="11" classname="org.openfinance.service.AICategorizationService" start="42" end="42" sourcepath="org/openfinance/service/AICategorizationService.java" sourcefile="AICategorizationService.java" startBytecode="11" primary="true">
+      <Message>At AICategorizationService.java:[line 42]</Message>
+    </SourceLine>
+  </BugInstance>
+  <BugInstance instanceOccurrenceNum="0" instanceHash="5665acaeacd82cf179356f3aac2f3382" cweid="374" rank="18" abbrev="EI2" category="MALICIOUS_CODE" priority="2" type="EI_EXPOSE_REP2" instanceOccurrenceMax="0">
+    <ShortMessage>May expose internal representation by incorporating reference to mutable object</ShortMessage>
+    <LongMessage>new org.openfinance.service.AICategorizationService(AIProvider, ObjectMapper, ImportSessionRepository, CategoryRepository, MessageSource, DefaultCurrencyProvider, AICategorizationProperties) may expose internal representation by storing an externally mutable object into AICategorizationService.properties</LongMessage>
+    <Class classname="org.openfinance.service.AICategorizationService" classAnnotationNames="org.springframework.stereotype.Service" primary="true">
+      <SourceLine classname="org.openfinance.service.AICategorizationService" start="42" end="526" sourcepath="org/openfinance/service/AICategorizationService.java" sourcefile="AICategorizationService.java">
+        <Message>At AICategorizationService.java:[lines 42-526]</Message>
+      </SourceLine>
+      <Message>In class org.openfinance.service.AICategorizationService</Message>
+    </Class>
+    <Method isStatic="false" classname="org.openfinance.service.AICategorizationService" signature="(Lorg/openfinance/service/ai/AIProvider;Lcom/fasterxml/jackson/databind/ObjectMapper;Lorg/openfinance/repository/ImportSessionRepository;Lorg/openfinance/repository/CategoryRepository;Lorg/springframework/context/MessageSource;Lorg/openfinance/service/DefaultCurrencyProvider;Lorg/openfinance/config/AICategorizationProperties;)V" name="&lt;init&gt;" classAnnotationNames="org.springframework.stereotype.Service" primary="true">
+      <SourceLine endBytecode="155" classname="org.openfinance.service.AICategorizationService" start="42" end="42" sourcepath="org/openfinance/service/AICategorizationService.java" sourcefile="AICategorizationService.java" startBytecode="0" />
+      <Message>In method new org.openfinance.service.AICategorizationService(AIProvider, ObjectMapper, ImportSessionRepository, CategoryRepository, MessageSource, DefaultCurrencyProvider, AICategorizationProperties)</Message>
+    </Method>
+    <Field isStatic="false" classname="org.openfinance.service.AICategorizationService" signature="Lorg/openfinance/config/AICategorizationProperties;" name="properties" classAnnotationNames="org.springframework.stereotype.Service" primary="true">
+      <SourceLine classname="org.openfinance.service.AICategorizationService" sourcepath="org/openfinance/service/AICategorizationService.java" sourcefile="AICategorizationService.java">
+        <Message>In AICategorizationService.java</Message>
+      </SourceLine>
+      <Message>Field org.openfinance.service.AICategorizationService.properties</Message>
+    </Field>
+    <LocalVariable role="LOCAL_VARIABLE_NAMED" pc="40" name="properties" register="7">
+      <Message>Local variable named properties</Message>
+    </LocalVariable>
+    <SourceLine endBytecode="40" classname="org.openfinance.service.AICategorizationService" start="42" end="42" sourcepath="org/openfinance/service/AICategorizationService.java" sourcefile="AICategorizationService.java" startBytecode="40" primary="true">
+      <Message>At AICategorizationService.java:[line 42]</Message>
+    </SourceLine>
+  </BugInstance>
+  <BugInstance instanceOccurrenceNum="0" instanceHash="a836b8acb91845a1f57133c13f96626e" cweid="374" rank="18" abbrev="EI2" category="MALICIOUS_CODE" priority="2" type="EI_EXPOSE_REP2" instanceOccurrenceMax="0">
+    <ShortMessage>May expose internal representation by incorporating reference to mutable object</ShortMessage>
+    <LongMessage>new org.openfinance.service.ImportConfirmationExecutor(ImportService, EncryptionProperties, UserEncryptionLock, MasterPasswordService, UserRepository) may expose internal representation by storing an externally mutable object into ImportConfirmationExecutor.importService</LongMessage>
+    <Class classname="org.openfinance.service.ImportConfirmationExecutor" classAnnotationNames="org.springframework.stereotype.Component" primary="true">
+      <SourceLine classname="org.openfinance.service.ImportConfirmationExecutor" start="22" end="74" sourcepath="org/openfinance/service/ImportConfirmationExecutor.java" sourcefile="ImportConfirmationExecutor.java">
+        <Message>At ImportConfirmationExecutor.java:[lines 22-74]</Message>
+      </SourceLine>
+      <Message>In class org.openfinance.service.ImportConfirmationExecutor</Message>
+    </Class>
+    <Method isStatic="false" classname="org.openfinance.service.ImportConfirmationExecutor" signature="(Lorg/openfinance/service/ImportService;Lorg/openfinance/config/EncryptionProperties;Lorg/openfinance/security/UserEncryptionLock;Lorg/openfinance/service/MasterPasswordService;Lorg/openfinance/repository/UserRepository;)V" name="&lt;init&gt;" classAnnotationNames="org.springframework.stereotype.Component" primary="true">
+      <SourceLine endBytecode="123" classname="org.openfinance.service.ImportConfirmationExecutor" start="22" end="22" sourcepath="org/openfinance/service/ImportConfirmationExecutor.java" sourcefile="ImportConfirmationExecutor.java" startBytecode="0" />
+      <Message>In method new org.openfinance.service.ImportConfirmationExecutor(ImportService, EncryptionProperties, UserEncryptionLock, MasterPasswordService, UserRepository)</Message>
+    </Method>
+    <Field isStatic="false" classname="org.openfinance.service.ImportConfirmationExecutor" signature="Lorg/openfinance/service/ImportService;" name="importService" classAnnotationNames="org.springframework.stereotype.Component" primary="true">
+      <SourceLine classname="org.openfinance.service.ImportConfirmationExecutor" sourcepath="org/openfinance/service/ImportConfirmationExecutor.java" sourcefile="ImportConfirmationExecutor.java">
+        <Message>In ImportConfirmationExecutor.java</Message>
+      </SourceLine>
+      <Message>Field org.openfinance.service.ImportConfirmationExecutor.importService</Message>
+    </Field>
+    <LocalVariable role="LOCAL_VARIABLE_NAMED" pc="6" name="importService" register="1">
+      <Message>Local variable named importService</Message>
+    </LocalVariable>
+    <SourceLine endBytecode="6" classname="org.openfinance.service.ImportConfirmationExecutor" start="22" end="22" sourcepath="org/openfinance/service/ImportConfirmationExecutor.java" sourcefile="ImportConfirmationExecutor.java" startBytecode="6" primary="true">
+      <Message>At ImportConfirmationExecutor.java:[line 22]</Message>
+    </SourceLine>
+  </BugInstance>
+  <BugInstance instanceOccurrenceNum="0" instanceHash="f09f142a960e4ac5f750897d3e0e1a88" cweid="374" rank="18" abbrev="EI2" category="MALICIOUS_CODE" priority="2" type="EI_EXPOSE_REP2" instanceOccurrenceMax="0">
+    <ShortMessage>May expose internal representation by incorporating reference to mutable object</ShortMessage>
+    <LongMessage>new org.openfinance.service.ImportService(ImportSessionRepository, BudgetAlertService, TransactionRepository, AccountRepository, CategoryRepository, UserRepository, FileStorageService, QifParser, OfxParser, CsvParser, SkroogeJsonParser, ObjectMapper, AutoCategorizationService, AccountService, ImportedOpeningBalanceService, TransactionRuleService, TransactionService, ExchangeRateService, TransactionSplitService, NetWorthRepository, AICategorizationService, MessageSource, InstitutionRepository, CurrencyRepository, PayeeRepository, DefaultCurrencyProvider, ImportProperties, AccountCurrencyService, CurrencyTypeResolver, ObjectProvider, UserSettingsRepository, OperationHistoryService, ImportProgressTracker) may expose internal representation by storing an externally mutable object into ImportService.accountService</LongMessage>
+    <Class classname="org.openfinance.service.ImportService" classAnnotationNames="org.springframework.stereotype.Service" primary="true">
+      <SourceLine classname="org.openfinance.service.ImportService" start="96" end="3403" sourcepath="org/openfinance/service/ImportService.java" sourcefile="ImportService.java">
+        <Message>At ImportService.java:[lines 96-3403]</Message>
+      </SourceLine>
+      <Message>In class org.openfinance.service.ImportService</Message>
+    </Class>
+    <Method isStatic="false" classname="org.openfinance.service.ImportService" signature="(Lorg/openfinance/repository/ImportSessionRepository;Lorg/openfinance/service/BudgetAlertService;Lorg/openfinance/repository/TransactionRepository;Lorg/openfinance/repository/AccountRepository;Lorg/openfinance/repository/CategoryRepository;Lorg/openfinance/repository/UserRepository;Lorg/openfinance/service/FileStorageService;Lorg/openfinance/service/parser/QifParser;Lorg/openfinance/service/parser/OfxParser;Lorg/openfinance/service/parser/CsvParser;Lorg/openfinance/service/parser/SkroogeJsonParser;Lcom/fasterxml/jackson/databind/ObjectMapper;Lorg/openfinance/service/AutoCategorizationService;Lorg/openfinance/service/AccountService;Lorg/openfinance/service/ImportedOpeningBalanceService;Lorg/openfinance/service/TransactionRuleService;Lorg/openfinance/service/TransactionService;Lorg/openfinance/service/ExchangeRateService;Lorg/openfinance/service/TransactionSplitService;Lorg/openfinance/repository/NetWorthRepository;Lorg/openfinance/service/AICategorizationService;Lorg/springframework/context/MessageSource;Lorg/openfinance/repository/InstitutionRepository;Lorg/openfinance/repository/CurrencyRepository;Lorg/openfinance/repository/PayeeRepository;Lorg/openfinance/service/DefaultCurrencyProvider;Lorg/openfinance/config/ImportProperties;Lorg/openfinance/service/AccountCurrencyService;Lorg/openfinance/service/CurrencyTypeResolver;Lorg/springframework/beans/factory/ObjectProvider;Lorg/openfinance/repository/UserSettingsRepository;Lorg/openfinance/service/OperationHistoryService;Lorg/openfinance/service/ImportProgressTracker;)V" name="&lt;init&gt;" classAnnotationNames="org.springframework.stereotype.Service" primary="true">
+      <SourceLine endBytecode="589" classname="org.openfinance.service.ImportService" start="96" end="96" sourcepath="org/openfinance/service/ImportService.java" sourcefile="ImportService.java" startBytecode="0" />
+      <Message>In method new org.openfinance.service.ImportService(ImportSessionRepository, BudgetAlertService, TransactionRepository, AccountRepository, CategoryRepository, UserRepository, FileStorageService, QifParser, OfxParser, CsvParser, SkroogeJsonParser, ObjectMapper, AutoCategorizationService, AccountService, ImportedOpeningBalanceService, TransactionRuleService, TransactionService, ExchangeRateService, TransactionSplitService, NetWorthRepository, AICategorizationService, MessageSource, InstitutionRepository, CurrencyRepository, PayeeRepository, DefaultCurrencyProvider, ImportProperties, AccountCurrencyService, CurrencyTypeResolver, ObjectProvider, UserSettingsRepository, OperationHistoryService, ImportProgressTracker)</Message>
+    </Method>
+    <Field isStatic="false" classname="org.openfinance.service.ImportService" signature="Lorg/openfinance/service/AccountService;" name="accountService" classAnnotationNames="org.springframework.stereotype.Service" primary="true">
+      <SourceLine classname="org.openfinance.service.ImportService" sourcepath="org/openfinance/service/ImportService.java" sourcefile="ImportService.java">
+        <Message>In ImportService.java</Message>
+      </SourceLine>
+      <Message>Field org.openfinance.service.ImportService.accountService</Message>
+    </Field>
+    <LocalVariable role="LOCAL_VARIABLE_NAMED" pc="82" name="accountService" register="14">
+      <Message>Local variable named accountService</Message>
+    </LocalVariable>
+    <SourceLine endBytecode="82" classname="org.openfinance.service.ImportService" start="96" end="96" sourcepath="org/openfinance/service/ImportService.java" sourcefile="ImportService.java" startBytecode="82" primary="true">
+      <Message>At ImportService.java:[line 96]</Message>
+    </SourceLine>
+  </BugInstance>
+  <BugInstance instanceOccurrenceNum="0" instanceHash="d3a5c22a9b2efd3401717e2ae4505aeb" cweid="374" rank="18" abbrev="EI2" category="MALICIOUS_CODE" priority="2" type="EI_EXPOSE_REP2" instanceOccurrenceMax="0">
+    <ShortMessage>May expose internal representation by incorporating reference to mutable object</ShortMessage>
+    <LongMessage>new org.openfinance.service.ImportService(ImportSessionRepository, BudgetAlertService, TransactionRepository, AccountRepository, CategoryRepository, UserRepository, FileStorageService, QifParser, OfxParser, CsvParser, SkroogeJsonParser, ObjectMapper, AutoCategorizationService, AccountService, ImportedOpeningBalanceService, TransactionRuleService, TransactionService, ExchangeRateService, TransactionSplitService, NetWorthRepository, AICategorizationService, MessageSource, InstitutionRepository, CurrencyRepository, PayeeRepository, DefaultCurrencyProvider, ImportProperties, AccountCurrencyService, CurrencyTypeResolver, ObjectProvider, UserSettingsRepository, OperationHistoryService, ImportProgressTracker) may expose internal representation by storing an externally mutable object into ImportService.aiCategorizationService</LongMessage>
+    <Class classname="org.openfinance.service.ImportService" classAnnotationNames="org.springframework.stereotype.Service" primary="true">
+      <SourceLine classname="org.openfinance.service.ImportService" start="96" end="3403" sourcepath="org/openfinance/service/ImportService.java" sourcefile="ImportService.java">
+        <Message>At ImportService.java:[lines 96-3403]</Message>
+      </SourceLine>
+      <Message>In class org.openfinance.service.ImportService</Message>
+    </Class>
+    <Method isStatic="false" classname="org.openfinance.service.ImportService" signature="(Lorg/openfinance/repository/ImportSessionRepository;Lorg/openfinance/service/BudgetAlertService;Lorg/openfinance/repository/TransactionRepository;Lorg/openfinance/repository/AccountRepository;Lorg/openfinance/repository/CategoryRepository;Lorg/openfinance/repository/UserRepository;Lorg/openfinance/service/FileStorageService;Lorg/openfinance/service/parser/QifParser;Lorg/openfinance/service/parser/OfxParser;Lorg/openfinance/service/parser/CsvParser;Lorg/openfinance/service/parser/SkroogeJsonParser;Lcom/fasterxml/jackson/databind/ObjectMapper;Lorg/openfinance/service/AutoCategorizationService;Lorg/openfinance/service/AccountService;Lorg/openfinance/service/ImportedOpeningBalanceService;Lorg/openfinance/service/TransactionRuleService;Lorg/openfinance/service/TransactionService;Lorg/openfinance/service/ExchangeRateService;Lorg/openfinance/service/TransactionSplitService;Lorg/openfinance/repository/NetWorthRepository;Lorg/openfinance/service/AICategorizationService;Lorg/springframework/context/MessageSource;Lorg/openfinance/repository/InstitutionRepository;Lorg/openfinance/repository/CurrencyRepository;Lorg/openfinance/repository/PayeeRepository;Lorg/openfinance/service/DefaultCurrencyProvider;Lorg/openfinance/config/ImportProperties;Lorg/openfinance/service/AccountCurrencyService;Lorg/openfinance/service/CurrencyTypeResolver;Lorg/springframework/beans/factory/ObjectProvider;Lorg/openfinance/repository/UserSettingsRepository;Lorg/openfinance/service/OperationHistoryService;Lorg/openfinance/service/ImportProgressTracker;)V" name="&lt;init&gt;" classAnnotationNames="org.springframework.stereotype.Service" primary="true">
+      <SourceLine endBytecode="589" classname="org.openfinance.service.ImportService" start="96" end="96" sourcepath="org/openfinance/service/ImportService.java" sourcefile="ImportService.java" startBytecode="0" />
+      <Message>In method new org.openfinance.service.ImportService(ImportSessionRepository, BudgetAlertService, TransactionRepository, AccountRepository, CategoryRepository, UserRepository, FileStorageService, QifParser, OfxParser, CsvParser, SkroogeJsonParser, ObjectMapper, AutoCategorizationService, AccountService, ImportedOpeningBalanceService, TransactionRuleService, TransactionService, ExchangeRateService, TransactionSplitService, NetWorthRepository, AICategorizationService, MessageSource, InstitutionRepository, CurrencyRepository, PayeeRepository, DefaultCurrencyProvider, ImportProperties, AccountCurrencyService, CurrencyTypeResolver, ObjectProvider, UserSettingsRepository, OperationHistoryService, ImportProgressTracker)</Message>
+    </Method>
+    <Field isStatic="false" classname="org.openfinance.service.ImportService" signature="Lorg/openfinance/service/AICategorizationService;" name="aiCategorizationService" classAnnotationNames="org.springframework.stereotype.Service" primary="true">
+      <SourceLine classname="org.openfinance.service.ImportService" sourcepath="org/openfinance/service/ImportService.java" sourcefile="ImportService.java">
+        <Message>In ImportService.java</Message>
+      </SourceLine>
+      <Message>Field org.openfinance.service.ImportService.aiCategorizationService</Message>
+    </Field>
+    <LocalVariable role="LOCAL_VARIABLE_NAMED" pc="124" name="aiCategorizationService" register="21">
+      <Message>Local variable named aiCategorizationService</Message>
+    </LocalVariable>
+    <SourceLine endBytecode="124" classname="org.openfinance.service.ImportService" start="96" end="96" sourcepath="org/openfinance/service/ImportService.java" sourcefile="ImportService.java" startBytecode="124" primary="true">
+      <Message>At ImportService.java:[line 96]</Message>
+    </SourceLine>
+  </BugInstance>
+  <BugInstance instanceOccurrenceNum="0" instanceHash="1cdc96e3405a98dbce7af30ad822d2ec" cweid="374" rank="18" abbrev="EI2" category="MALICIOUS_CODE" priority="2" type="EI_EXPOSE_REP2" instanceOccurrenceMax="0">
+    <ShortMessage>May expose internal representation by incorporating reference to mutable object</ShortMessage>
+    <LongMessage>new org.openfinance.service.ImportService(ImportSessionRepository, BudgetAlertService, TransactionRepository, AccountRepository, CategoryRepository, UserRepository, FileStorageService, QifParser, OfxParser, CsvParser, SkroogeJsonParser, ObjectMapper, AutoCategorizationService, AccountService, ImportedOpeningBalanceService, TransactionRuleService, TransactionService, ExchangeRateService, TransactionSplitService, NetWorthRepository, AICategorizationService, MessageSource, InstitutionRepository, CurrencyRepository, PayeeRepository, DefaultCurrencyProvider, ImportProperties, AccountCurrencyService, CurrencyTypeResolver, ObjectProvider, UserSettingsRepository, OperationHistoryService, ImportProgressTracker) may expose internal representation by storing an externally mutable object into ImportService.budgetAlertService</LongMessage>
+    <Class classname="org.openfinance.service.ImportService" classAnnotationNames="org.springframework.stereotype.Service" primary="true">
+      <SourceLine classname="org.openfinance.service.ImportService" start="96" end="3403" sourcepath="org/openfinance/service/ImportService.java" sourcefile="ImportService.java">
+        <Message>At ImportService.java:[lines 96-3403]</Message>
+      </SourceLine>
+      <Message>In class org.openfinance.service.ImportService</Message>
+    </Class>
+    <Method isStatic="false" classname="org.openfinance.service.ImportService" signature="(Lorg/openfinance/repository/ImportSessionRepository;Lorg/openfinance/service/BudgetAlertService;Lorg/openfinance/repository/TransactionRepository;Lorg/openfinance/repository/AccountRepository;Lorg/openfinance/repository/CategoryRepository;Lorg/openfinance/repository/UserRepository;Lorg/openfinance/service/FileStorageService;Lorg/openfinance/service/parser/QifParser;Lorg/openfinance/service/parser/OfxParser;Lorg/openfinance/service/parser/CsvParser;Lorg/openfinance/service/parser/SkroogeJsonParser;Lcom/fasterxml/jackson/databind/ObjectMapper;Lorg/openfinance/service/AutoCategorizationService;Lorg/openfinance/service/AccountService;Lorg/openfinance/service/ImportedOpeningBalanceService;Lorg/openfinance/service/TransactionRuleService;Lorg/openfinance/service/TransactionService;Lorg/openfinance/service/ExchangeRateService;Lorg/openfinance/service/TransactionSplitService;Lorg/openfinance/repository/NetWorthRepository;Lorg/openfinance/service/AICategorizationService;Lorg/springframework/context/MessageSource;Lorg/openfinance/repository/InstitutionRepository;Lorg/openfinance/repository/CurrencyRepository;Lorg/openfinance/repository/PayeeRepository;Lorg/openfinance/service/DefaultCurrencyProvider;Lorg/openfinance/config/ImportProperties;Lorg/openfinance/service/AccountCurrencyService;Lorg/openfinance/service/CurrencyTypeResolver;Lorg/springframework/beans/factory/ObjectProvider;Lorg/openfinance/repository/UserSettingsRepository;Lorg/openfinance/service/OperationHistoryService;Lorg/openfinance/service/ImportProgressTracker;)V" name="&lt;init&gt;" classAnnotationNames="org.springframework.stereotype.Service" primary="true">
+      <SourceLine endBytecode="589" classname="org.openfinance.service.ImportService" start="96" end="96" sourcepath="org/openfinance/service/ImportService.java" sourcefile="ImportService.java" startBytecode="0" />
+      <Message>In method new org.openfinance.service.ImportService(ImportSessionRepository, BudgetAlertService, TransactionRepository, AccountRepository, CategoryRepository, UserRepository, FileStorageService, QifParser, OfxParser, CsvParser, SkroogeJsonParser, ObjectMapper, AutoCategorizationService, AccountService, ImportedOpeningBalanceService, TransactionRuleService, TransactionService, ExchangeRateService, TransactionSplitService, NetWorthRepository, AICategorizationService, MessageSource, InstitutionRepository, CurrencyRepository, PayeeRepository, DefaultCurrencyProvider, ImportProperties, AccountCurrencyService, CurrencyTypeResolver, ObjectProvider, UserSettingsRepository, OperationHistoryService, ImportProgressTracker)</Message>
+    </Method>
+    <Field isStatic="false" classname="org.openfinance.service.ImportService" signature="Lorg/openfinance/service/BudgetAlertService;" name="budgetAlertService" classAnnotationNames="org.springframework.stereotype.Service" primary="true">
+      <SourceLine classname="org.openfinance.service.ImportService" sourcepath="org/openfinance/service/ImportService.java" sourcefile="ImportService.java">
+        <Message>In ImportService.java</Message>
+      </SourceLine>
+      <Message>Field org.openfinance.service.ImportService.budgetAlertService</Message>
+    </Field>
+    <LocalVariable role="LOCAL_VARIABLE_NAMED" pc="11" name="budgetAlertService" register="2">
+      <Message>Local variable named budgetAlertService</Message>
+    </LocalVariable>
+    <SourceLine endBytecode="11" classname="org.openfinance.service.ImportService" start="96" end="96" sourcepath="org/openfinance/service/ImportService.java" sourcefile="ImportService.java" startBytecode="11" primary="true">
+      <Message>At ImportService.java:[line 96]</Message>
+    </SourceLine>
+  </BugInstance>
+  <BugInstance instanceOccurrenceNum="0" instanceHash="361b63f593cce7a0d7f53f46abafd4e4" cweid="374" rank="18" abbrev="EI2" category="MALICIOUS_CODE" priority="2" type="EI_EXPOSE_REP2" instanceOccurrenceMax="0">
+    <ShortMessage>May expose internal representation by incorporating reference to mutable object</ShortMessage>
+    <LongMessage>new org.openfinance.service.ImportService(ImportSessionRepository, BudgetAlertService, TransactionRepository, AccountRepository, CategoryRepository, UserRepository, FileStorageService, QifParser, OfxParser, CsvParser, SkroogeJsonParser, ObjectMapper, AutoCategorizationService, AccountService, ImportedOpeningBalanceService, TransactionRuleService, TransactionService, ExchangeRateService, TransactionSplitService, NetWorthRepository, AICategorizationService, MessageSource, InstitutionRepository, CurrencyRepository, PayeeRepository, DefaultCurrencyProvider, ImportProperties, AccountCurrencyService, CurrencyTypeResolver, ObjectProvider, UserSettingsRepository, OperationHistoryService, ImportProgressTracker) may expose internal representation by storing an externally mutable object into ImportService.exchangeRateService</LongMessage>
+    <Class classname="org.openfinance.service.ImportService" classAnnotationNames="org.springframework.stereotype.Service" primary="true">
+      <SourceLine classname="org.openfinance.service.ImportService" start="96" end="3403" sourcepath="org/openfinance/service/ImportService.java" sourcefile="ImportService.java">
+        <Message>At ImportService.java:[lines 96-3403]</Message>
+      </SourceLine>
+      <Message>In class org.openfinance.service.ImportService</Message>
+    </Class>
+    <Method isStatic="false" classname="org.openfinance.service.ImportService" signature="(Lorg/openfinance/repository/ImportSessionRepository;Lorg/openfinance/service/BudgetAlertService;Lorg/openfinance/repository/TransactionRepository;Lorg/openfinance/repository/AccountRepository;Lorg/openfinance/repository/CategoryRepository;Lorg/openfinance/repository/UserRepository;Lorg/openfinance/service/FileStorageService;Lorg/openfinance/service/parser/QifParser;Lorg/openfinance/service/parser/OfxParser;Lorg/openfinance/service/parser/CsvParser;Lorg/openfinance/service/parser/SkroogeJsonParser;Lcom/fasterxml/jackson/databind/ObjectMapper;Lorg/openfinance/service/AutoCategorizationService;Lorg/openfinance/service/AccountService;Lorg/openfinance/service/ImportedOpeningBalanceService;Lorg/openfinance/service/TransactionRuleService;Lorg/openfinance/service/TransactionService;Lorg/openfinance/service/ExchangeRateService;Lorg/openfinance/service/TransactionSplitService;Lorg/openfinance/repository/NetWorthRepository;Lorg/openfinance/service/AICategorizationService;Lorg/springframework/context/MessageSource;Lorg/openfinance/repository/InstitutionRepository;Lorg/openfinance/repository/CurrencyRepository;Lorg/openfinance/repository/PayeeRepository;Lorg/openfinance/service/DefaultCurrencyProvider;Lorg/openfinance/config/ImportProperties;Lorg/openfinance/service/AccountCurrencyService;Lorg/openfinance/service/CurrencyTypeResolver;Lorg/springframework/beans/factory/ObjectProvider;Lorg/openfinance/repository/UserSettingsRepository;Lorg/openfinance/service/OperationHistoryService;Lorg/openfinance/service/ImportProgressTracker;)V" name="&lt;init&gt;" classAnnotationNames="org.springframework.stereotype.Service" primary="true">
+      <SourceLine endBytecode="589" classname="org.openfinance.service.ImportService" start="96" end="96" sourcepath="org/openfinance/service/ImportService.java" sourcefile="ImportService.java" startBytecode="0" />
+      <Message>In method new org.openfinance.service.ImportService(ImportSessionRepository, BudgetAlertService, TransactionRepository, AccountRepository, CategoryRepository, UserRepository, FileStorageService, QifParser, OfxParser, CsvParser, SkroogeJsonParser, ObjectMapper, AutoCategorizationService, AccountService, ImportedOpeningBalanceService, TransactionRuleService, TransactionService, ExchangeRateService, TransactionSplitService, NetWorthRepository, AICategorizationService, MessageSource, InstitutionRepository, CurrencyRepository, PayeeRepository, DefaultCurrencyProvider, ImportProperties, AccountCurrencyService, CurrencyTypeResolver, ObjectProvider, UserSettingsRepository, OperationHistoryService, ImportProgressTracker)</Message>
+    </Method>
+    <Field isStatic="false" classname="org.openfinance.service.ImportService" signature="Lorg/openfinance/service/ExchangeRateService;" name="exchangeRateService" classAnnotationNames="org.springframework.stereotype.Service" primary="true">
+      <SourceLine classname="org.openfinance.service.ImportService" sourcepath="org/openfinance/service/ImportService.java" sourcefile="ImportService.java">
+        <Message>In ImportService.java</Message>
+      </SourceLine>
+      <Message>Field org.openfinance.service.ImportService.exchangeRateService</Message>
+    </Field>
+    <LocalVariable role="LOCAL_VARIABLE_NAMED" pc="106" name="exchangeRateService" register="18">
+      <Message>Local variable named exchangeRateService</Message>
+    </LocalVariable>
+    <SourceLine endBytecode="106" classname="org.openfinance.service.ImportService" start="96" end="96" sourcepath="org/openfinance/service/ImportService.java" sourcefile="ImportService.java" startBytecode="106" primary="true">
+      <Message>At ImportService.java:[line 96]</Message>
+    </SourceLine>
+  </BugInstance>
+  <BugInstance instanceOccurrenceNum="0" instanceHash="58e5a56f08a8741b0c56185f7aa7e2d4" cweid="374" rank="18" abbrev="EI2" category="MALICIOUS_CODE" priority="2" type="EI_EXPOSE_REP2" instanceOccurrenceMax="0">
+    <ShortMessage>May expose internal representation by incorporating reference to mutable object</ShortMessage>
+    <LongMessage>new org.openfinance.service.ImportService(ImportSessionRepository, BudgetAlertService, TransactionRepository, AccountRepository, CategoryRepository, UserRepository, FileStorageService, QifParser, OfxParser, CsvParser, SkroogeJsonParser, ObjectMapper, AutoCategorizationService, AccountService, ImportedOpeningBalanceService, TransactionRuleService, TransactionService, ExchangeRateService, TransactionSplitService, NetWorthRepository, AICategorizationService, MessageSource, InstitutionRepository, CurrencyRepository, PayeeRepository, DefaultCurrencyProvider, ImportProperties, AccountCurrencyService, CurrencyTypeResolver, ObjectProvider, UserSettingsRepository, OperationHistoryService, ImportProgressTracker) may expose internal representation by storing an externally mutable object into ImportService.fileStorageService</LongMessage>
+    <Class classname="org.openfinance.service.ImportService" classAnnotationNames="org.springframework.stereotype.Service" primary="true">
+      <SourceLine classname="org.openfinance.service.ImportService" start="96" end="3403" sourcepath="org/openfinance/service/ImportService.java" sourcefile="ImportService.java">
+        <Message>At ImportService.java:[lines 96-3403]</Message>
+      </SourceLine>
+      <Message>In class org.openfinance.service.ImportService</Message>
+    </Class>
+    <Method isStatic="false" classname="org.openfinance.service.ImportService" signature="(Lorg/openfinance/repository/ImportSessionRepository;Lorg/openfinance/service/BudgetAlertService;Lorg/openfinance/repository/TransactionRepository;Lorg/openfinance/repository/AccountRepository;Lorg/openfinance/repository/CategoryRepository;Lorg/openfinance/repository/UserRepository;Lorg/openfinance/service/FileStorageService;Lorg/openfinance/service/parser/QifParser;Lorg/openfinance/service/parser/OfxParser;Lorg/openfinance/service/parser/CsvParser;Lorg/openfinance/service/parser/SkroogeJsonParser;Lcom/fasterxml/jackson/databind/ObjectMapper;Lorg/openfinance/service/AutoCategorizationService;Lorg/openfinance/service/AccountService;Lorg/openfinance/service/ImportedOpeningBalanceService;Lorg/openfinance/service/TransactionRuleService;Lorg/openfinance/service/TransactionService;Lorg/openfinance/service/ExchangeRateService;Lorg/openfinance/service/TransactionSplitService;Lorg/openfinance/repository/NetWorthRepository;Lorg/openfinance/service/AICategorizationService;Lorg/springframework/context/MessageSource;Lorg/openfinance/repository/InstitutionRepository;Lorg/openfinance/repository/CurrencyRepository;Lorg/openfinance/repository/PayeeRepository;Lorg/openfinance/service/DefaultCurrencyProvider;Lorg/openfinance/config/ImportProperties;Lorg/openfinance/service/AccountCurrencyService;Lorg/openfinance/service/CurrencyTypeResolver;Lorg/springframework/beans/factory/ObjectProvider;Lorg/openfinance/repository/UserSettingsRepository;Lorg/openfinance/service/OperationHistoryService;Lorg/openfinance/service/ImportProgressTracker;)V" name="&lt;init&gt;" classAnnotationNames="org.springframework.stereotype.Service" primary="true">
+      <SourceLine endBytecode="589" classname="org.openfinance.service.ImportService" start="96" end="96" sourcepath="org/openfinance/service/ImportService.java" sourcefile="ImportService.java" startBytecode="0" />
+      <Message>In method new org.openfinance.service.ImportService(ImportSessionRepository, BudgetAlertService, TransactionRepository, AccountRepository, CategoryRepository, UserRepository, FileStorageService, QifParser, OfxParser, CsvParser, SkroogeJsonParser, ObjectMapper, AutoCategorizationService, AccountService, ImportedOpeningBalanceService, TransactionRuleService, TransactionService, ExchangeRateService, TransactionSplitService, NetWorthRepository, AICategorizationService, MessageSource, InstitutionRepository, CurrencyRepository, PayeeRepository, DefaultCurrencyProvider, ImportProperties, AccountCurrencyService, CurrencyTypeResolver, ObjectProvider, UserSettingsRepository, OperationHistoryService, ImportProgressTracker)</Message>
+    </Method>
+    <Field isStatic="false" classname="org.openfinance.service.ImportService" signature="Lorg/openfinance/service/FileStorageService;" name="fileStorageService" classAnnotationNames="org.springframework.stereotype.Service" primary="true">
+      <SourceLine classname="org.openfinance.service.ImportService" sourcepath="org/openfinance/service/ImportService.java" sourcefile="ImportService.java">
+        <Message>In ImportService.java</Message>
+      </SourceLine>
+      <Message>Field org.openfinance.service.ImportService.fileStorageService</Message>
+    </Field>
+    <LocalVariable role="LOCAL_VARIABLE_NAMED" pc="40" name="fileStorageService" register="7">
+      <Message>Local variable named fileStorageService</Message>
+    </LocalVariable>
+    <SourceLine endBytecode="40" classname="org.openfinance.service.ImportService" start="96" end="96" sourcepath="org/openfinance/service/ImportService.java" sourcefile="ImportService.java" startBytecode="40" primary="true">
+      <Message>At ImportService.java:[line 96]</Message>
+    </SourceLine>
+  </BugInstance>
+  <BugInstance instanceOccurrenceNum="0" instanceHash="8bfa6c1680f6dee881d489ef2a74b9e1" cweid="374" rank="18" abbrev="EI2" category="MALICIOUS_CODE" priority="2" type="EI_EXPOSE_REP2" instanceOccurrenceMax="0">
+    <ShortMessage>May expose internal representation by incorporating reference to mutable object</ShortMessage>
+    <LongMessage>new org.openfinance.service.ImportService(ImportSessionRepository, BudgetAlertService, TransactionRepository, AccountRepository, CategoryRepository, UserRepository, FileStorageService, QifParser, OfxParser, CsvParser, SkroogeJsonParser, ObjectMapper, AutoCategorizationService, AccountService, ImportedOpeningBalanceService, TransactionRuleService, TransactionService, ExchangeRateService, TransactionSplitService, NetWorthRepository, AICategorizationService, MessageSource, InstitutionRepository, CurrencyRepository, PayeeRepository, DefaultCurrencyProvider, ImportProperties, AccountCurrencyService, CurrencyTypeResolver, ObjectProvider, UserSettingsRepository, OperationHistoryService, ImportProgressTracker) may expose internal representation by storing an externally mutable object into ImportService.importProperties</LongMessage>
+    <Class classname="org.openfinance.service.ImportService" classAnnotationNames="org.springframework.stereotype.Service" primary="true">
+      <SourceLine classname="org.openfinance.service.ImportService" start="96" end="3403" sourcepath="org/openfinance/service/ImportService.java" sourcefile="ImportService.java">
+        <Message>At ImportService.java:[lines 96-3403]</Message>
+      </SourceLine>
+      <Message>In class org.openfinance.service.ImportService</Message>
+    </Class>
+    <Method isStatic="false" classname="org.openfinance.service.ImportService" signature="(Lorg/openfinance/repository/ImportSessionRepository;Lorg/openfinance/service/BudgetAlertService;Lorg/openfinance/repository/TransactionRepository;Lorg/openfinance/repository/AccountRepository;Lorg/openfinance/repository/CategoryRepository;Lorg/openfinance/repository/UserRepository;Lorg/openfinance/service/FileStorageService;Lorg/openfinance/service/parser/QifParser;Lorg/openfinance/service/parser/OfxParser;Lorg/openfinance/service/parser/CsvParser;Lorg/openfinance/service/parser/SkroogeJsonParser;Lcom/fasterxml/jackson/databind/ObjectMapper;Lorg/openfinance/service/AutoCategorizationService;Lorg/openfinance/service/AccountService;Lorg/openfinance/service/ImportedOpeningBalanceService;Lorg/openfinance/service/TransactionRuleService;Lorg/openfinance/service/TransactionService;Lorg/openfinance/service/ExchangeRateService;Lorg/openfinance/service/TransactionSplitService;Lorg/openfinance/repository/NetWorthRepository;Lorg/openfinance/service/AICategorizationService;Lorg/springframework/context/MessageSource;Lorg/openfinance/repository/InstitutionRepository;Lorg/openfinance/repository/CurrencyRepository;Lorg/openfinance/repository/PayeeRepository;Lorg/openfinance/service/DefaultCurrencyProvider;Lorg/openfinance/config/ImportProperties;Lorg/openfinance/service/AccountCurrencyService;Lorg/openfinance/service/CurrencyTypeResolver;Lorg/springframework/beans/factory/ObjectProvider;Lorg/openfinance/repository/UserSettingsRepository;Lorg/openfinance/service/OperationHistoryService;Lorg/openfinance/service/ImportProgressTracker;)V" name="&lt;init&gt;" classAnnotationNames="org.springframework.stereotype.Service" primary="true">
+      <SourceLine endBytecode="589" classname="org.openfinance.service.ImportService" start="96" end="96" sourcepath="org/openfinance/service/ImportService.java" sourcefile="ImportService.java" startBytecode="0" />
+      <Message>In method new org.openfinance.service.ImportService(ImportSessionRepository, BudgetAlertService, TransactionRepository, AccountRepository, CategoryRepository, UserRepository, FileStorageService, QifParser, OfxParser, CsvParser, SkroogeJsonParser, ObjectMapper, AutoCategorizationService, AccountService, ImportedOpeningBalanceService, TransactionRuleService, TransactionService, ExchangeRateService, TransactionSplitService, NetWorthRepository, AICategorizationService, MessageSource, InstitutionRepository, CurrencyRepository, PayeeRepository, DefaultCurrencyProvider, ImportProperties, AccountCurrencyService, CurrencyTypeResolver, ObjectProvider, UserSettingsRepository, OperationHistoryService, ImportProgressTracker)</Message>
+    </Method>
+    <Field isStatic="false" classname="org.openfinance.service.ImportService" signature="Lorg/openfinance/config/ImportProperties;" name="importProperties" classAnnotationNames="org.springframework.stereotype.Service" primary="true">
+      <SourceLine classname="org.openfinance.service.ImportService" sourcepath="org/openfinance/service/ImportService.java" sourcefile="ImportService.java">
+        <Message>In ImportService.java</Message>
+      </SourceLine>
+      <Message>Field org.openfinance.service.ImportService.importProperties</Message>
+    </Field>
+    <LocalVariable role="LOCAL_VARIABLE_NAMED" pc="160" name="importProperties" register="27">
+      <Message>Local variable named importProperties</Message>
+    </LocalVariable>
+    <SourceLine endBytecode="160" classname="org.openfinance.service.ImportService" start="96" end="96" sourcepath="org/openfinance/service/ImportService.java" sourcefile="ImportService.java" startBytecode="160" primary="true">
+      <Message>At ImportService.java:[line 96]</Message>
+    </SourceLine>
+  </BugInstance>
+  <BugInstance instanceOccurrenceNum="0" instanceHash="5ea075a9044303f5e42a39cbd0660d21" cweid="374" rank="18" abbrev="EI2" category="MALICIOUS_CODE" priority="2" type="EI_EXPOSE_REP2" instanceOccurrenceMax="0">
+    <ShortMessage>May expose internal representation by incorporating reference to mutable object</ShortMessage>
+    <LongMessage>new org.openfinance.service.ImportService(ImportSessionRepository, BudgetAlertService, TransactionRepository, AccountRepository, CategoryRepository, UserRepository, FileStorageService, QifParser, OfxParser, CsvParser, SkroogeJsonParser, ObjectMapper, AutoCategorizationService, AccountService, ImportedOpeningBalanceService, TransactionRuleService, TransactionService, ExchangeRateService, TransactionSplitService, NetWorthRepository, AICategorizationService, MessageSource, InstitutionRepository, CurrencyRepository, PayeeRepository, DefaultCurrencyProvider, ImportProperties, AccountCurrencyService, CurrencyTypeResolver, ObjectProvider, UserSettingsRepository, OperationHistoryService, ImportProgressTracker) may expose internal representation by storing an externally mutable object into ImportService.importSessionRepository</LongMessage>
+    <Class classname="org.openfinance.service.ImportService" classAnnotationNames="org.springframework.stereotype.Service" primary="true">
+      <SourceLine classname="org.openfinance.service.ImportService" start="96" end="3403" sourcepath="org/openfinance/service/ImportService.java" sourcefile="ImportService.java">
+        <Message>At ImportService.java:[lines 96-3403]</Message>
+      </SourceLine>
+      <Message>In class org.openfinance.service.ImportService</Message>
+    </Class>
+    <Method isStatic="false" classname="org.openfinance.service.ImportService" signature="(Lorg/openfinance/repository/ImportSessionRepository;Lorg/openfinance/service/BudgetAlertService;Lorg/openfinance/repository/TransactionRepository;Lorg/openfinance/repository/AccountRepository;Lorg/openfinance/repository/CategoryRepository;Lorg/openfinance/repository/UserRepository;Lorg/openfinance/service/FileStorageService;Lorg/openfinance/service/parser/QifParser;Lorg/openfinance/service/parser/OfxParser;Lorg/openfinance/service/parser/CsvParser;Lorg/openfinance/service/parser/SkroogeJsonParser;Lcom/fasterxml/jackson/databind/ObjectMapper;Lorg/openfinance/service/AutoCategorizationService;Lorg/openfinance/service/AccountService;Lorg/openfinance/service/ImportedOpeningBalanceService;Lorg/openfinance/service/TransactionRuleService;Lorg/openfinance/service/TransactionService;Lorg/openfinance/service/ExchangeRateService;Lorg/openfinance/service/TransactionSplitService;Lorg/openfinance/repository/NetWorthRepository;Lorg/openfinance/service/AICategorizationService;Lorg/springframework/context/MessageSource;Lorg/openfinance/repository/InstitutionRepository;Lorg/openfinance/repository/CurrencyRepository;Lorg/openfinance/repository/PayeeRepository;Lorg/openfinance/service/DefaultCurrencyProvider;Lorg/openfinance/config/ImportProperties;Lorg/openfinance/service/AccountCurrencyService;Lorg/openfinance/service/CurrencyTypeResolver;Lorg/springframework/beans/factory/ObjectProvider;Lorg/openfinance/repository/UserSettingsRepository;Lorg/openfinance/service/OperationHistoryService;Lorg/openfinance/service/ImportProgressTracker;)V" name="&lt;init&gt;" classAnnotationNames="org.springframework.stereotype.Service" primary="true">
+      <SourceLine endBytecode="589" classname="org.openfinance.service.ImportService" start="96" end="96" sourcepath="org/openfinance/service/ImportService.java" sourcefile="ImportService.java" startBytecode="0" />
+      <Message>In method new org.openfinance.service.ImportService(ImportSessionRepository, BudgetAlertService, TransactionRepository, AccountRepository, CategoryRepository, UserRepository, FileStorageService, QifParser, OfxParser, CsvParser, SkroogeJsonParser, ObjectMapper, AutoCategorizationService, AccountService, ImportedOpeningBalanceService, TransactionRuleService, TransactionService, ExchangeRateService, TransactionSplitService, NetWorthRepository, AICategorizationService, MessageSource, InstitutionRepository, CurrencyRepository, PayeeRepository, DefaultCurrencyProvider, ImportProperties, AccountCurrencyService, CurrencyTypeResolver, ObjectProvider, UserSettingsRepository, OperationHistoryService, ImportProgressTracker)</Message>
+    </Method>
+    <Field isStatic="false" classname="org.openfinance.service.ImportService" signature="Lorg/openfinance/repository/ImportSessionRepository;" name="importSessionRepository" classAnnotationNames="org.springframework.stereotype.Service" primary="true">
+      <SourceLine classname="org.openfinance.service.ImportService" sourcepath="org/openfinance/service/ImportService.java" sourcefile="ImportService.java">
+        <Message>In ImportService.java</Message>
+      </SourceLine>
+      <Message>Field org.openfinance.service.ImportService.importSessionRepository</Message>
+    </Field>
+    <LocalVariable role="LOCAL_VARIABLE_NAMED" pc="6" name="importSessionRepository" register="1">
+      <Message>Local variable named importSessionRepository</Message>
+    </LocalVariable>
+    <SourceLine endBytecode="6" classname="org.openfinance.service.ImportService" start="96" end="96" sourcepath="org/openfinance/service/ImportService.java" sourcefile="ImportService.java" startBytecode="6" primary="true">
+      <Message>At ImportService.java:[line 96]</Message>
+    </SourceLine>
+  </BugInstance>
+  <BugInstance instanceOccurrenceNum="0" instanceHash="28cb81c266aba9232098eb9078def523" cweid="374" rank="18" abbrev="EI2" category="MALICIOUS_CODE" priority="2" type="EI_EXPOSE_REP2" instanceOccurrenceMax="0">
+    <ShortMessage>May expose internal representation by incorporating reference to mutable object</ShortMessage>
+    <LongMessage>new org.openfinance.service.ImportService(ImportSessionRepository, BudgetAlertService, TransactionRepository, AccountRepository, CategoryRepository, UserRepository, FileStorageService, QifParser, OfxParser, CsvParser, SkroogeJsonParser, ObjectMapper, AutoCategorizationService, AccountService, ImportedOpeningBalanceService, TransactionRuleService, TransactionService, ExchangeRateService, TransactionSplitService, NetWorthRepository, AICategorizationService, MessageSource, InstitutionRepository, CurrencyRepository, PayeeRepository, DefaultCurrencyProvider, ImportProperties, AccountCurrencyService, CurrencyTypeResolver, ObjectProvider, UserSettingsRepository, OperationHistoryService, ImportProgressTracker) may expose internal representation by storing an externally mutable object into ImportService.netWorthRepository</LongMessage>
+    <Class classname="org.openfinance.service.ImportService" classAnnotationNames="org.springframework.stereotype.Service" primary="true">
+      <SourceLine classname="org.openfinance.service.ImportService" start="96" end="3403" sourcepath="org/openfinance/service/ImportService.java" sourcefile="ImportService.java">
+        <Message>At ImportService.java:[lines 96-3403]</Message>
+      </SourceLine>
+      <Message>In class org.openfinance.service.ImportService</Message>
+    </Class>
+    <Method isStatic="false" classname="org.openfinance.service.ImportService" signature="(Lorg/openfinance/repository/ImportSessionRepository;Lorg/openfinance/service/BudgetAlertService;Lorg/openfinance/repository/TransactionRepository;Lorg/openfinance/repository/AccountRepository;Lorg/openfinance/repository/CategoryRepository;Lorg/openfinance/repository/UserRepository;Lorg/openfinance/service/FileStorageService;Lorg/openfinance/service/parser/QifParser;Lorg/openfinance/service/parser/OfxParser;Lorg/openfinance/service/parser/CsvParser;Lorg/openfinance/service/parser/SkroogeJsonParser;Lcom/fasterxml/jackson/databind/ObjectMapper;Lorg/openfinance/service/AutoCategorizationService;Lorg/openfinance/service/AccountService;Lorg/openfinance/service/ImportedOpeningBalanceService;Lorg/openfinance/service/TransactionRuleService;Lorg/openfinance/service/TransactionService;Lorg/openfinance/service/ExchangeRateService;Lorg/openfinance/service/TransactionSplitService;Lorg/openfinance/repository/NetWorthRepository;Lorg/openfinance/service/AICategorizationService;Lorg/springframework/context/MessageSource;Lorg/openfinance/repository/InstitutionRepository;Lorg/openfinance/repository/CurrencyRepository;Lorg/openfinance/repository/PayeeRepository;Lorg/openfinance/service/DefaultCurrencyProvider;Lorg/openfinance/config/ImportProperties;Lorg/openfinance/service/AccountCurrencyService;Lorg/openfinance/service/CurrencyTypeResolver;Lorg/springframework/beans/factory/ObjectProvider;Lorg/openfinance/repository/UserSettingsRepository;Lorg/openfinance/service/OperationHistoryService;Lorg/openfinance/service/ImportProgressTracker;)V" name="&lt;init&gt;" classAnnotationNames="org.springframework.stereotype.Service" primary="true">
+      <SourceLine endBytecode="589" classname="org.openfinance.service.ImportService" start="96" end="96" sourcepath="org/openfinance/service/ImportService.java" sourcefile="ImportService.java" startBytecode="0" />
+      <Message>In method new org.openfinance.service.ImportService(ImportSessionRepository, BudgetAlertService, TransactionRepository, AccountRepository, CategoryRepository, UserRepository, FileStorageService, QifParser, OfxParser, CsvParser, SkroogeJsonParser, ObjectMapper, AutoCategorizationService, AccountService, ImportedOpeningBalanceService, TransactionRuleService, TransactionService, ExchangeRateService, TransactionSplitService, NetWorthRepository, AICategorizationService, MessageSource, InstitutionRepository, CurrencyRepository, PayeeRepository, DefaultCurrencyProvider, ImportProperties, AccountCurrencyService, CurrencyTypeResolver, ObjectProvider, UserSettingsRepository, OperationHistoryService, ImportProgressTracker)</Message>
+    </Method>
+    <Field isStatic="false" classname="org.openfinance.service.ImportService" signature="Lorg/openfinance/repository/NetWorthRepository;" name="netWorthRepository" classAnnotationNames="org.springframework.stereotype.Service" primary="true">
+      <SourceLine classname="org.openfinance.service.ImportService" sourcepath="org/openfinance/service/ImportService.java" sourcefile="ImportService.java">
+        <Message>In ImportService.java</Message>
+      </SourceLine>
+      <Message>Field org.openfinance.service.ImportService.netWorthRepository</Message>
+    </Field>
+    <LocalVariable role="LOCAL_VARIABLE_NAMED" pc="118" name="netWorthRepository" register="20">
+      <Message>Local variable named netWorthRepository</Message>
+    </LocalVariable>
+    <SourceLine endBytecode="118" classname="org.openfinance.service.ImportService" start="96" end="96" sourcepath="org/openfinance/service/ImportService.java" sourcefile="ImportService.java" startBytecode="118" primary="true">
+      <Message>At ImportService.java:[line 96]</Message>
+    </SourceLine>
+  </BugInstance>
+  <BugInstance instanceOccurrenceNum="0" instanceHash="be220e1f301230864ae8617e70e8ce0" cweid="374" rank="18" abbrev="EI2" category="MALICIOUS_CODE" priority="2" type="EI_EXPOSE_REP2" instanceOccurrenceMax="0">
+    <ShortMessage>May expose internal representation by incorporating reference to mutable object</ShortMessage>
+    <LongMessage>new org.openfinance.service.ImportService(ImportSessionRepository, BudgetAlertService, TransactionRepository, AccountRepository, CategoryRepository, UserRepository, FileStorageService, QifParser, OfxParser, CsvParser, SkroogeJsonParser, ObjectMapper, AutoCategorizationService, AccountService, ImportedOpeningBalanceService, TransactionRuleService, TransactionService, ExchangeRateService, TransactionSplitService, NetWorthRepository, AICategorizationService, MessageSource, InstitutionRepository, CurrencyRepository, PayeeRepository, DefaultCurrencyProvider, ImportProperties, AccountCurrencyService, CurrencyTypeResolver, ObjectProvider, UserSettingsRepository, OperationHistoryService, ImportProgressTracker) may expose internal representation by storing an externally mutable object into ImportService.objectMapper</LongMessage>
+    <Class classname="org.openfinance.service.ImportService" classAnnotationNames="org.springframework.stereotype.Service" primary="true">
+      <SourceLine classname="org.openfinance.service.ImportService" start="96" end="3403" sourcepath="org/openfinance/service/ImportService.java" sourcefile="ImportService.java">
+        <Message>At ImportService.java:[lines 96-3403]</Message>
+      </SourceLine>
+      <Message>In class org.openfinance.service.ImportService</Message>
+    </Class>
+    <Method isStatic="false" classname="org.openfinance.service.ImportService" signature="(Lorg/openfinance/repository/ImportSessionRepository;Lorg/openfinance/service/BudgetAlertService;Lorg/openfinance/repository/TransactionRepository;Lorg/openfinance/repository/AccountRepository;Lorg/openfinance/repository/CategoryRepository;Lorg/openfinance/repository/UserRepository;Lorg/openfinance/service/FileStorageService;Lorg/openfinance/service/parser/QifParser;Lorg/openfinance/service/parser/OfxParser;Lorg/openfinance/service/parser/CsvParser;Lorg/openfinance/service/parser/SkroogeJsonParser;Lcom/fasterxml/jackson/databind/ObjectMapper;Lorg/openfinance/service/AutoCategorizationService;Lorg/openfinance/service/AccountService;Lorg/openfinance/service/ImportedOpeningBalanceService;Lorg/openfinance/service/TransactionRuleService;Lorg/openfinance/service/TransactionService;Lorg/openfinance/service/ExchangeRateService;Lorg/openfinance/service/TransactionSplitService;Lorg/openfinance/repository/NetWorthRepository;Lorg/openfinance/service/AICategorizationService;Lorg/springframework/context/MessageSource;Lorg/openfinance/repository/InstitutionRepository;Lorg/openfinance/repository/CurrencyRepository;Lorg/openfinance/repository/PayeeRepository;Lorg/openfinance/service/DefaultCurrencyProvider;Lorg/openfinance/config/ImportProperties;Lorg/openfinance/service/AccountCurrencyService;Lorg/openfinance/service/CurrencyTypeResolver;Lorg/springframework/beans/factory/ObjectProvider;Lorg/openfinance/repository/UserSettingsRepository;Lorg/openfinance/service/OperationHistoryService;Lorg/openfinance/service/ImportProgressTracker;)V" name="&lt;init&gt;" classAnnotationNames="org.springframework.stereotype.Service" primary="true">
+      <SourceLine endBytecode="589" classname="org.openfinance.service.ImportService" start="96" end="96" sourcepath="org/openfinance/service/ImportService.java" sourcefile="ImportService.java" startBytecode="0" />
+      <Message>In method new org.openfinance.service.ImportService(ImportSessionRepository, BudgetAlertService, TransactionRepository, AccountRepository, CategoryRepository, UserRepository, FileStorageService, QifParser, OfxParser, CsvParser, SkroogeJsonParser, ObjectMapper, AutoCategorizationService, AccountService, ImportedOpeningBalanceService, TransactionRuleService, TransactionService, ExchangeRateService, TransactionSplitService, NetWorthRepository, AICategorizationService, MessageSource, InstitutionRepository, CurrencyRepository, PayeeRepository, DefaultCurrencyProvider, ImportProperties, AccountCurrencyService, CurrencyTypeResolver, ObjectProvider, UserSettingsRepository, OperationHistoryService, ImportProgressTracker)</Message>
+    </Method>
+    <Field isStatic="false" classname="org.openfinance.service.ImportService" signature="Lcom/fasterxml/jackson/databind/ObjectMapper;" name="objectMapper" classAnnotationNames="org.springframework.stereotype.Service" primary="true">
+      <SourceLine classname="org.openfinance.service.ImportService" sourcepath="org/openfinance/service/ImportService.java" sourcefile="ImportService.java">
+        <Message>In ImportService.java</Message>
+      </SourceLine>
+      <Message>Field org.openfinance.service.ImportService.objectMapper</Message>
+    </Field>
+    <LocalVariable role="LOCAL_VARIABLE_NAMED" pc="70" name="objectMapper" register="12">
+      <Message>Local variable named objectMapper</Message>
+    </LocalVariable>
+    <SourceLine endBytecode="70" classname="org.openfinance.service.ImportService" start="96" end="96" sourcepath="org/openfinance/service/ImportService.java" sourcefile="ImportService.java" startBytecode="70" primary="true">
+      <Message>At ImportService.java:[line 96]</Message>
+    </SourceLine>
+  </BugInstance>
+  <BugInstance instanceOccurrenceNum="0" instanceHash="7a3ce7a5197796dfd8bee491c3666992" cweid="374" rank="18" abbrev="EI2" category="MALICIOUS_CODE" priority="2" type="EI_EXPOSE_REP2" instanceOccurrenceMax="0">
+    <ShortMessage>May expose internal representation by incorporating reference to mutable object</ShortMessage>
+    <LongMessage>new org.openfinance.service.ImportService(ImportSessionRepository, BudgetAlertService, TransactionRepository, AccountRepository, CategoryRepository, UserRepository, FileStorageService, QifParser, OfxParser, CsvParser, SkroogeJsonParser, ObjectMapper, AutoCategorizationService, AccountService, ImportedOpeningBalanceService, TransactionRuleService, TransactionService, ExchangeRateService, TransactionSplitService, NetWorthRepository, AICategorizationService, MessageSource, InstitutionRepository, CurrencyRepository, PayeeRepository, DefaultCurrencyProvider, ImportProperties, AccountCurrencyService, CurrencyTypeResolver, ObjectProvider, UserSettingsRepository, OperationHistoryService, ImportProgressTracker) may expose internal representation by storing an externally mutable object into ImportService.skroogeJsonParser</LongMessage>
+    <Class classname="org.openfinance.service.ImportService" classAnnotationNames="org.springframework.stereotype.Service" primary="true">
+      <SourceLine classname="org.openfinance.service.ImportService" start="96" end="3403" sourcepath="org/openfinance/service/ImportService.java" sourcefile="ImportService.java">
+        <Message>At ImportService.java:[lines 96-3403]</Message>
+      </SourceLine>
+      <Message>In class org.openfinance.service.ImportService</Message>
+    </Class>
+    <Method isStatic="false" classname="org.openfinance.service.ImportService" signature="(Lorg/openfinance/repository/ImportSessionRepository;Lorg/openfinance/service/BudgetAlertService;Lorg/openfinance/repository/TransactionRepository;Lorg/openfinance/repository/AccountRepository;Lorg/openfinance/repository/CategoryRepository;Lorg/openfinance/repository/UserRepository;Lorg/openfinance/service/FileStorageService;Lorg/openfinance/service/parser/QifParser;Lorg/openfinance/service/parser/OfxParser;Lorg/openfinance/service/parser/CsvParser;Lorg/openfinance/service/parser/SkroogeJsonParser;Lcom/fasterxml/jackson/databind/ObjectMapper;Lorg/openfinance/service/AutoCategorizationService;Lorg/openfinance/service/AccountService;Lorg/openfinance/service/ImportedOpeningBalanceService;Lorg/openfinance/service/TransactionRuleService;Lorg/openfinance/service/TransactionService;Lorg/openfinance/service/ExchangeRateService;Lorg/openfinance/service/TransactionSplitService;Lorg/openfinance/repository/NetWorthRepository;Lorg/openfinance/service/AICategorizationService;Lorg/springframework/context/MessageSource;Lorg/openfinance/repository/InstitutionRepository;Lorg/openfinance/repository/CurrencyRepository;Lorg/openfinance/repository/PayeeRepository;Lorg/openfinance/service/DefaultCurrencyProvider;Lorg/openfinance/config/ImportProperties;Lorg/openfinance/service/AccountCurrencyService;Lorg/openfinance/service/CurrencyTypeResolver;Lorg/springframework/beans/factory/ObjectProvider;Lorg/openfinance/repository/UserSettingsRepository;Lorg/openfinance/service/OperationHistoryService;Lorg/openfinance/service/ImportProgressTracker;)V" name="&lt;init&gt;" classAnnotationNames="org.springframework.stereotype.Service" primary="true">
+      <SourceLine endBytecode="589" classname="org.openfinance.service.ImportService" start="96" end="96" sourcepath="org/openfinance/service/ImportService.java" sourcefile="ImportService.java" startBytecode="0" />
+      <Message>In method new org.openfinance.service.ImportService(ImportSessionRepository, BudgetAlertService, TransactionRepository, AccountRepository, CategoryRepository, UserRepository, FileStorageService, QifParser, OfxParser, CsvParser, SkroogeJsonParser, ObjectMapper, AutoCategorizationService, AccountService, ImportedOpeningBalanceService, TransactionRuleService, TransactionService, ExchangeRateService, TransactionSplitService, NetWorthRepository, AICategorizationService, MessageSource, InstitutionRepository, CurrencyRepository, PayeeRepository, DefaultCurrencyProvider, ImportProperties, AccountCurrencyService, CurrencyTypeResolver, ObjectProvider, UserSettingsRepository, OperationHistoryService, ImportProgressTracker)</Message>
+    </Method>
+    <Field isStatic="false" classname="org.openfinance.service.ImportService" signature="Lorg/openfinance/service/parser/SkroogeJsonParser;" name="skroogeJsonParser" classAnnotationNames="org.springframework.stereotype.Service" primary="true">
+      <SourceLine classname="org.openfinance.service.ImportService" sourcepath="org/openfinance/service/ImportService.java" sourcefile="ImportService.java">
+        <Message>In ImportService.java</Message>
+      </SourceLine>
+      <Message>Field org.openfinance.service.ImportService.skroogeJsonParser</Message>
+    </Field>
+    <LocalVariable role="LOCAL_VARIABLE_NAMED" pc="64" name="skroogeJsonParser" register="11">
+      <Message>Local variable named skroogeJsonParser</Message>
+    </LocalVariable>
+    <SourceLine endBytecode="64" classname="org.openfinance.service.ImportService" start="96" end="96" sourcepath="org/openfinance/service/ImportService.java" sourcefile="ImportService.java" startBytecode="64" primary="true">
+      <Message>At ImportService.java:[line 96]</Message>
+    </SourceLine>
+  </BugInstance>
+  <BugInstance instanceOccurrenceNum="0" instanceHash="fb89a9cd8e6c226149829edd0f6ceb09" cweid="374" rank="18" abbrev="EI2" category="MALICIOUS_CODE" priority="2" type="EI_EXPOSE_REP2" instanceOccurrenceMax="0">
+    <ShortMessage>May expose internal representation by incorporating reference to mutable object</ShortMessage>
+    <LongMessage>new org.openfinance.service.ImportService(ImportSessionRepository, BudgetAlertService, TransactionRepository, AccountRepository, CategoryRepository, UserRepository, FileStorageService, QifParser, OfxParser, CsvParser, SkroogeJsonParser, ObjectMapper, AutoCategorizationService, AccountService, ImportedOpeningBalanceService, TransactionRuleService, TransactionService, ExchangeRateService, TransactionSplitService, NetWorthRepository, AICategorizationService, MessageSource, InstitutionRepository, CurrencyRepository, PayeeRepository, DefaultCurrencyProvider, ImportProperties, AccountCurrencyService, CurrencyTypeResolver, ObjectProvider, UserSettingsRepository, OperationHistoryService, ImportProgressTracker) may expose internal representation by storing an externally mutable object into ImportService.transactionRepository</LongMessage>
+    <Class classname="org.openfinance.service.ImportService" classAnnotationNames="org.springframework.stereotype.Service" primary="true">
+      <SourceLine classname="org.openfinance.service.ImportService" start="96" end="3403" sourcepath="org/openfinance/service/ImportService.java" sourcefile="ImportService.java">
+        <Message>At ImportService.java:[lines 96-3403]</Message>
+      </SourceLine>
+      <Message>In class org.openfinance.service.ImportService</Message>
+    </Class>
+    <Method isStatic="false" classname="org.openfinance.service.ImportService" signature="(Lorg/openfinance/repository/ImportSessionRepository;Lorg/openfinance/service/BudgetAlertService;Lorg/openfinance/repository/TransactionRepository;Lorg/openfinance/repository/AccountRepository;Lorg/openfinance/repository/CategoryRepository;Lorg/openfinance/repository/UserRepository;Lorg/openfinance/service/FileStorageService;Lorg/openfinance/service/parser/QifParser;Lorg/openfinance/service/parser/OfxParser;Lorg/openfinance/service/parser/CsvParser;Lorg/openfinance/service/parser/SkroogeJsonParser;Lcom/fasterxml/jackson/databind/ObjectMapper;Lorg/openfinance/service/AutoCategorizationService;Lorg/openfinance/service/AccountService;Lorg/openfinance/service/ImportedOpeningBalanceService;Lorg/openfinance/service/TransactionRuleService;Lorg/openfinance/service/TransactionService;Lorg/openfinance/service/ExchangeRateService;Lorg/openfinance/service/TransactionSplitService;Lorg/openfinance/repository/NetWorthRepository;Lorg/openfinance/service/AICategorizationService;Lorg/springframework/context/MessageSource;Lorg/openfinance/repository/InstitutionRepository;Lorg/openfinance/repository/CurrencyRepository;Lorg/openfinance/repository/PayeeRepository;Lorg/openfinance/service/DefaultCurrencyProvider;Lorg/openfinance/config/ImportProperties;Lorg/openfinance/service/AccountCurrencyService;Lorg/openfinance/service/CurrencyTypeResolver;Lorg/springframework/beans/factory/ObjectProvider;Lorg/openfinance/repository/UserSettingsRepository;Lorg/openfinance/service/OperationHistoryService;Lorg/openfinance/service/ImportProgressTracker;)V" name="&lt;init&gt;" classAnnotationNames="org.springframework.stereotype.Service" primary="true">
+      <SourceLine endBytecode="589" classname="org.openfinance.service.ImportService" start="96" end="96" sourcepath="org/openfinance/service/ImportService.java" sourcefile="ImportService.java" startBytecode="0" />
+      <Message>In method new org.openfinance.service.ImportService(ImportSessionRepository, BudgetAlertService, TransactionRepository, AccountRepository, CategoryRepository, UserRepository, FileStorageService, QifParser, OfxParser, CsvParser, SkroogeJsonParser, ObjectMapper, AutoCategorizationService, AccountService, ImportedOpeningBalanceService, TransactionRuleService, TransactionService, ExchangeRateService, TransactionSplitService, NetWorthRepository, AICategorizationService, MessageSource, InstitutionRepository, CurrencyRepository, PayeeRepository, DefaultCurrencyProvider, ImportProperties, AccountCurrencyService, CurrencyTypeResolver, ObjectProvider, UserSettingsRepository, OperationHistoryService, ImportProgressTracker)</Message>
+    </Method>
+    <Field isStatic="false" classname="org.openfinance.service.ImportService" signature="Lorg/openfinance/repository/TransactionRepository;" name="transactionRepository" classAnnotationNames="org.springframework.stereotype.Service" primary="true">
+      <SourceLine classname="org.openfinance.service.ImportService" sourcepath="org/openfinance/service/ImportService.java" sourcefile="ImportService.java">
+        <Message>In ImportService.java</Message>
+      </SourceLine>
+      <Message>Field org.openfinance.service.ImportService.transactionRepository</Message>
+    </Field>
+    <LocalVariable role="LOCAL_VARIABLE_NAMED" pc="16" name="transactionRepository" register="3">
+      <Message>Local variable named transactionRepository</Message>
+    </LocalVariable>
+    <SourceLine endBytecode="16" classname="org.openfinance.service.ImportService" start="96" end="96" sourcepath="org/openfinance/service/ImportService.java" sourcefile="ImportService.java" startBytecode="16" primary="true">
+      <Message>At ImportService.java:[line 96]</Message>
+    </SourceLine>
+  </BugInstance>
+  <BugInstance instanceOccurrenceNum="0" instanceHash="a8b3b6613ed8656ddd7eb3a03c7db80c" cweid="374" rank="18" abbrev="EI2" category="MALICIOUS_CODE" priority="2" type="EI_EXPOSE_REP2" instanceOccurrenceMax="0">
+    <ShortMessage>May expose internal representation by incorporating reference to mutable object</ShortMessage>
+    <LongMessage>new org.openfinance.service.ImportService(ImportSessionRepository, BudgetAlertService, TransactionRepository, AccountRepository, CategoryRepository, UserRepository, FileStorageService, QifParser, OfxParser, CsvParser, SkroogeJsonParser, ObjectMapper, AutoCategorizationService, AccountService, ImportedOpeningBalanceService, TransactionRuleService, TransactionService, ExchangeRateService, TransactionSplitService, NetWorthRepository, AICategorizationService, MessageSource, InstitutionRepository, CurrencyRepository, PayeeRepository, DefaultCurrencyProvider, ImportProperties, AccountCurrencyService, CurrencyTypeResolver, ObjectProvider, UserSettingsRepository, OperationHistoryService, ImportProgressTracker) may expose internal representation by storing an externally mutable object into ImportService.transactionRuleService</LongMessage>
+    <Class classname="org.openfinance.service.ImportService" classAnnotationNames="org.springframework.stereotype.Service" primary="true">
+      <SourceLine classname="org.openfinance.service.ImportService" start="96" end="3403" sourcepath="org/openfinance/service/ImportService.java" sourcefile="ImportService.java">
+        <Message>At ImportService.java:[lines 96-3403]</Message>
+      </SourceLine>
+      <Message>In class org.openfinance.service.ImportService</Message>
+    </Class>
+    <Method isStatic="false" classname="org.openfinance.service.ImportService" signature="(Lorg/openfinance/repository/ImportSessionRepository;Lorg/openfinance/service/BudgetAlertService;Lorg/openfinance/repository/TransactionRepository;Lorg/openfinance/repository/AccountRepository;Lorg/openfinance/repository/CategoryRepository;Lorg/openfinance/repository/UserRepository;Lorg/openfinance/service/FileStorageService;Lorg/openfinance/service/parser/QifParser;Lorg/openfinance/service/parser/OfxParser;Lorg/openfinance/service/parser/CsvParser;Lorg/openfinance/service/parser/SkroogeJsonParser;Lcom/fasterxml/jackson/databind/ObjectMapper;Lorg/openfinance/service/AutoCategorizationService;Lorg/openfinance/service/AccountService;Lorg/openfinance/service/ImportedOpeningBalanceService;Lorg/openfinance/service/TransactionRuleService;Lorg/openfinance/service/TransactionService;Lorg/openfinance/service/ExchangeRateService;Lorg/openfinance/service/TransactionSplitService;Lorg/openfinance/repository/NetWorthRepository;Lorg/openfinance/service/AICategorizationService;Lorg/springframework/context/MessageSource;Lorg/openfinance/repository/InstitutionRepository;Lorg/openfinance/repository/CurrencyRepository;Lorg/openfinance/repository/PayeeRepository;Lorg/openfinance/service/DefaultCurrencyProvider;Lorg/openfinance/config/ImportProperties;Lorg/openfinance/service/AccountCurrencyService;Lorg/openfinance/service/CurrencyTypeResolver;Lorg/springframework/beans/factory/ObjectProvider;Lorg/openfinance/repository/UserSettingsRepository;Lorg/openfinance/service/OperationHistoryService;Lorg/openfinance/service/ImportProgressTracker;)V" name="&lt;init&gt;" classAnnotationNames="org.springframework.stereotype.Service" primary="true">
+      <SourceLine endBytecode="589" classname="org.openfinance.service.ImportService" start="96" end="96" sourcepath="org/openfinance/service/ImportService.java" sourcefile="ImportService.java" startBytecode="0" />
+      <Message>In method new org.openfinance.service.ImportService(ImportSessionRepository, BudgetAlertService, TransactionRepository, AccountRepository, CategoryRepository, UserRepository, FileStorageService, QifParser, OfxParser, CsvParser, SkroogeJsonParser, ObjectMapper, AutoCategorizationService, AccountService, ImportedOpeningBalanceService, TransactionRuleService, TransactionService, ExchangeRateService, TransactionSplitService, NetWorthRepository, AICategorizationService, MessageSource, InstitutionRepository, CurrencyRepository, PayeeRepository, DefaultCurrencyProvider, ImportProperties, AccountCurrencyService, CurrencyTypeResolver, ObjectProvider, UserSettingsRepository, OperationHistoryService, ImportProgressTracker)</Message>
+    </Method>
+    <Field isStatic="false" classname="org.openfinance.service.ImportService" signature="Lorg/openfinance/service/TransactionRuleService;" name="transactionRuleService" classAnnotationNames="org.springframework.stereotype.Service" primary="true">
+      <SourceLine classname="org.openfinance.service.ImportService" sourcepath="org/openfinance/service/ImportService.java" sourcefile="ImportService.java">
+        <Message>In ImportService.java</Message>
+      </SourceLine>
+      <Message>Field org.openfinance.service.ImportService.transactionRuleService</Message>
+    </Field>
+    <LocalVariable role="LOCAL_VARIABLE_NAMED" pc="94" name="transactionRuleService" register="16">
+      <Message>Local variable named transactionRuleService</Message>
+    </LocalVariable>
+    <SourceLine endBytecode="94" classname="org.openfinance.service.ImportService" start="96" end="96" sourcepath="org/openfinance/service/ImportService.java" sourcefile="ImportService.java" startBytecode="94" primary="true">
+      <Message>At ImportService.java:[line 96]</Message>
+    </SourceLine>
+  </BugInstance>
+  <BugInstance instanceOccurrenceNum="0" instanceHash="fc796d434e501b0e06486239c4203e14" cweid="374" rank="18" abbrev="EI2" category="MALICIOUS_CODE" priority="2" type="EI_EXPOSE_REP2" instanceOccurrenceMax="0">
+    <ShortMessage>May expose internal representation by incorporating reference to mutable object</ShortMessage>
+    <LongMessage>new org.openfinance.service.ImportService(ImportSessionRepository, BudgetAlertService, TransactionRepository, AccountRepository, CategoryRepository, UserRepository, FileStorageService, QifParser, OfxParser, CsvParser, SkroogeJsonParser, ObjectMapper, AutoCategorizationService, AccountService, ImportedOpeningBalanceService, TransactionRuleService, TransactionService, ExchangeRateService, TransactionSplitService, NetWorthRepository, AICategorizationService, MessageSource, InstitutionRepository, CurrencyRepository, PayeeRepository, DefaultCurrencyProvider, ImportProperties, AccountCurrencyService, CurrencyTypeResolver, ObjectProvider, UserSettingsRepository, OperationHistoryService, ImportProgressTracker) may expose internal representation by storing an externally mutable object into ImportService.transactionService</LongMessage>
+    <Class classname="org.openfinance.service.ImportService" classAnnotationNames="org.springframework.stereotype.Service" primary="true">
+      <SourceLine classname="org.openfinance.service.ImportService" start="96" end="3403" sourcepath="org/openfinance/service/ImportService.java" sourcefile="ImportService.java">
+        <Message>At ImportService.java:[lines 96-3403]</Message>
+      </SourceLine>
+      <Message>In class org.openfinance.service.ImportService</Message>
+    </Class>
+    <Method isStatic="false" classname="org.openfinance.service.ImportService" signature="(Lorg/openfinance/repository/ImportSessionRepository;Lorg/openfinance/service/BudgetAlertService;Lorg/openfinance/repository/TransactionRepository;Lorg/openfinance/repository/AccountRepository;Lorg/openfinance/repository/CategoryRepository;Lorg/openfinance/repository/UserRepository;Lorg/openfinance/service/FileStorageService;Lorg/openfinance/service/parser/QifParser;Lorg/openfinance/service/parser/OfxParser;Lorg/openfinance/service/parser/CsvParser;Lorg/openfinance/service/parser/SkroogeJsonParser;Lcom/fasterxml/jackson/databind/ObjectMapper;Lorg/openfinance/service/AutoCategorizationService;Lorg/openfinance/service/AccountService;Lorg/openfinance/service/ImportedOpeningBalanceService;Lorg/openfinance/service/TransactionRuleService;Lorg/openfinance/service/TransactionService;Lorg/openfinance/service/ExchangeRateService;Lorg/openfinance/service/TransactionSplitService;Lorg/openfinance/repository/NetWorthRepository;Lorg/openfinance/service/AICategorizationService;Lorg/springframework/context/MessageSource;Lorg/openfinance/repository/InstitutionRepository;Lorg/openfinance/repository/CurrencyRepository;Lorg/openfinance/repository/PayeeRepository;Lorg/openfinance/service/DefaultCurrencyProvider;Lorg/openfinance/config/ImportProperties;Lorg/openfinance/service/AccountCurrencyService;Lorg/openfinance/service/CurrencyTypeResolver;Lorg/springframework/beans/factory/ObjectProvider;Lorg/openfinance/repository/UserSettingsRepository;Lorg/openfinance/service/OperationHistoryService;Lorg/openfinance/service/ImportProgressTracker;)V" name="&lt;init&gt;" classAnnotationNames="org.springframework.stereotype.Service" primary="true">
+      <SourceLine endBytecode="589" classname="org.openfinance.service.ImportService" start="96" end="96" sourcepath="org/openfinance/service/ImportService.java" sourcefile="ImportService.java" startBytecode="0" />
+      <Message>In method new org.openfinance.service.ImportService(ImportSessionRepository, BudgetAlertService, TransactionRepository, AccountRepository, CategoryRepository, UserRepository, FileStorageService, QifParser, OfxParser, CsvParser, SkroogeJsonParser, ObjectMapper, AutoCategorizationService, AccountService, ImportedOpeningBalanceService, TransactionRuleService, TransactionService, ExchangeRateService, TransactionSplitService, NetWorthRepository, AICategorizationService, MessageSource, InstitutionRepository, CurrencyRepository, PayeeRepository, DefaultCurrencyProvider, ImportProperties, AccountCurrencyService, CurrencyTypeResolver, ObjectProvider, UserSettingsRepository, OperationHistoryService, ImportProgressTracker)</Message>
+    </Method>
+    <Field isStatic="false" classname="org.openfinance.service.ImportService" signature="Lorg/openfinance/service/TransactionService;" name="transactionService" classAnnotationNames="org.springframework.stereotype.Service" primary="true">
+      <SourceLine classname="org.openfinance.service.ImportService" sourcepath="org/openfinance/service/ImportService.java" sourcefile="ImportService.java">
+        <Message>In ImportService.java</Message>
+      </SourceLine>
+      <Message>Field org.openfinance.service.ImportService.transactionService</Message>
+    </Field>
+    <LocalVariable role="LOCAL_VARIABLE_NAMED" pc="100" name="transactionService" register="17">
+      <Message>Local variable named transactionService</Message>
+    </LocalVariable>
+    <SourceLine endBytecode="100" classname="org.openfinance.service.ImportService" start="96" end="96" sourcepath="org/openfinance/service/ImportService.java" sourcefile="ImportService.java" startBytecode="100" primary="true">
+      <Message>At ImportService.java:[line 96]</Message>
+    </SourceLine>
+  </BugInstance>
+  <BugInstance instanceOccurrenceNum="0" instanceHash="ba5327637f07bf269efaf584a834f23b" cweid="374" rank="18" abbrev="EI2" category="MALICIOUS_CODE" priority="2" type="EI_EXPOSE_REP2" instanceOccurrenceMax="0">
+    <ShortMessage>May expose internal representation by incorporating reference to mutable object</ShortMessage>
+    <LongMessage>new org.openfinance.service.ImportService(ImportSessionRepository, BudgetAlertService, TransactionRepository, AccountRepository, CategoryRepository, UserRepository, FileStorageService, QifParser, OfxParser, CsvParser, SkroogeJsonParser, ObjectMapper, AutoCategorizationService, AccountService, ImportedOpeningBalanceService, TransactionRuleService, TransactionService, ExchangeRateService, TransactionSplitService, NetWorthRepository, AICategorizationService, MessageSource, InstitutionRepository, CurrencyRepository, PayeeRepository, DefaultCurrencyProvider, ImportProperties, AccountCurrencyService, CurrencyTypeResolver, ObjectProvider, UserSettingsRepository, OperationHistoryService, ImportProgressTracker) may expose internal representation by storing an externally mutable object into ImportService.transactionSplitService</LongMessage>
+    <Class classname="org.openfinance.service.ImportService" classAnnotationNames="org.springframework.stereotype.Service" primary="true">
+      <SourceLine classname="org.openfinance.service.ImportService" start="96" end="3403" sourcepath="org/openfinance/service/ImportService.java" sourcefile="ImportService.java">
+        <Message>At ImportService.java:[lines 96-3403]</Message>
+      </SourceLine>
+      <Message>In class org.openfinance.service.ImportService</Message>
+    </Class>
+    <Method isStatic="false" classname="org.openfinance.service.ImportService" signature="(Lorg/openfinance/repository/ImportSessionRepository;Lorg/openfinance/service/BudgetAlertService;Lorg/openfinance/repository/TransactionRepository;Lorg/openfinance/repository/AccountRepository;Lorg/openfinance/repository/CategoryRepository;Lorg/openfinance/repository/UserRepository;Lorg/openfinance/service/FileStorageService;Lorg/openfinance/service/parser/QifParser;Lorg/openfinance/service/parser/OfxParser;Lorg/openfinance/service/parser/CsvParser;Lorg/openfinance/service/parser/SkroogeJsonParser;Lcom/fasterxml/jackson/databind/ObjectMapper;Lorg/openfinance/service/AutoCategorizationService;Lorg/openfinance/service/AccountService;Lorg/openfinance/service/ImportedOpeningBalanceService;Lorg/openfinance/service/TransactionRuleService;Lorg/openfinance/service/TransactionService;Lorg/openfinance/service/ExchangeRateService;Lorg/openfinance/service/TransactionSplitService;Lorg/openfinance/repository/NetWorthRepository;Lorg/openfinance/service/AICategorizationService;Lorg/springframework/context/MessageSource;Lorg/openfinance/repository/InstitutionRepository;Lorg/openfinance/repository/CurrencyRepository;Lorg/openfinance/repository/PayeeRepository;Lorg/openfinance/service/DefaultCurrencyProvider;Lorg/openfinance/config/ImportProperties;Lorg/openfinance/service/AccountCurrencyService;Lorg/openfinance/service/CurrencyTypeResolver;Lorg/springframework/beans/factory/ObjectProvider;Lorg/openfinance/repository/UserSettingsRepository;Lorg/openfinance/service/OperationHistoryService;Lorg/openfinance/service/ImportProgressTracker;)V" name="&lt;init&gt;" classAnnotationNames="org.springframework.stereotype.Service" primary="true">
+      <SourceLine endBytecode="589" classname="org.openfinance.service.ImportService" start="96" end="96" sourcepath="org/openfinance/service/ImportService.java" sourcefile="ImportService.java" startBytecode="0" />
+      <Message>In method new org.openfinance.service.ImportService(ImportSessionRepository, BudgetAlertService, TransactionRepository, AccountRepository, CategoryRepository, UserRepository, FileStorageService, QifParser, OfxParser, CsvParser, SkroogeJsonParser, ObjectMapper, AutoCategorizationService, AccountService, ImportedOpeningBalanceService, TransactionRuleService, TransactionService, ExchangeRateService, TransactionSplitService, NetWorthRepository, AICategorizationService, MessageSource, InstitutionRepository, CurrencyRepository, PayeeRepository, DefaultCurrencyProvider, ImportProperties, AccountCurrencyService, CurrencyTypeResolver, ObjectProvider, UserSettingsRepository, OperationHistoryService, ImportProgressTracker)</Message>
+    </Method>
+    <Field isStatic="false" classname="org.openfinance.service.ImportService" signature="Lorg/openfinance/service/TransactionSplitService;" name="transactionSplitService" classAnnotationNames="org.springframework.stereotype.Service" primary="true">
+      <SourceLine classname="org.openfinance.service.ImportService" sourcepath="org/openfinance/service/ImportService.java" sourcefile="ImportService.java">
+        <Message>In ImportService.java</Message>
+      </SourceLine>
+      <Message>Field org.openfinance.service.ImportService.transactionSplitService</Message>
+    </Field>
+    <LocalVariable role="LOCAL_VARIABLE_NAMED" pc="112" name="transactionSplitService" register="19">
+      <Message>Local variable named transactionSplitService</Message>
+    </LocalVariable>
+    <SourceLine endBytecode="112" classname="org.openfinance.service.ImportService" start="96" end="96" sourcepath="org/openfinance/service/ImportService.java" sourcefile="ImportService.java" startBytecode="112" primary="true">
+      <Message>At ImportService.java:[line 96]</Message>
+    </SourceLine>
+  </BugInstance>
+  <BugInstance instanceOccurrenceNum="0" instanceHash="e9626ab845bdf386572db93b681c4b92" cweid="374" rank="18" abbrev="EI2" category="MALICIOUS_CODE" priority="2" type="EI_EXPOSE_REP2" instanceOccurrenceMax="0">
+    <ShortMessage>May expose internal representation by incorporating reference to mutable object</ShortMessage>
+    <LongMessage>new org.openfinance.service.ImportService(ImportSessionRepository, BudgetAlertService, TransactionRepository, AccountRepository, CategoryRepository, UserRepository, FileStorageService, QifParser, OfxParser, CsvParser, SkroogeJsonParser, ObjectMapper, AutoCategorizationService, AccountService, ImportedOpeningBalanceService, TransactionRuleService, TransactionService, ExchangeRateService, TransactionSplitService, NetWorthRepository, AICategorizationService, MessageSource, InstitutionRepository, CurrencyRepository, PayeeRepository, DefaultCurrencyProvider, ImportProperties, AccountCurrencyService, CurrencyTypeResolver, ObjectProvider, UserSettingsRepository, OperationHistoryService, ImportProgressTracker) may expose internal representation by storing an externally mutable object into ImportService.userSettingsRepository</LongMessage>
+    <Class classname="org.openfinance.service.ImportService" classAnnotationNames="org.springframework.stereotype.Service" primary="true">
+      <SourceLine classname="org.openfinance.service.ImportService" start="96" end="3403" sourcepath="org/openfinance/service/ImportService.java" sourcefile="ImportService.java">
+        <Message>At ImportService.java:[lines 96-3403]</Message>
+      </SourceLine>
+      <Message>In class org.openfinance.service.ImportService</Message>
+    </Class>
+    <Method isStatic="false" classname="org.openfinance.service.ImportService" signature="(Lorg/openfinance/repository/ImportSessionRepository;Lorg/openfinance/service/BudgetAlertService;Lorg/openfinance/repository/TransactionRepository;Lorg/openfinance/repository/AccountRepository;Lorg/openfinance/repository/CategoryRepository;Lorg/openfinance/repository/UserRepository;Lorg/openfinance/service/FileStorageService;Lorg/openfinance/service/parser/QifParser;Lorg/openfinance/service/parser/OfxParser;Lorg/openfinance/service/parser/CsvParser;Lorg/openfinance/service/parser/SkroogeJsonParser;Lcom/fasterxml/jackson/databind/ObjectMapper;Lorg/openfinance/service/AutoCategorizationService;Lorg/openfinance/service/AccountService;Lorg/openfinance/service/ImportedOpeningBalanceService;Lorg/openfinance/service/TransactionRuleService;Lorg/openfinance/service/TransactionService;Lorg/openfinance/service/ExchangeRateService;Lorg/openfinance/service/TransactionSplitService;Lorg/openfinance/repository/NetWorthRepository;Lorg/openfinance/service/AICategorizationService;Lorg/springframework/context/MessageSource;Lorg/openfinance/repository/InstitutionRepository;Lorg/openfinance/repository/CurrencyRepository;Lorg/openfinance/repository/PayeeRepository;Lorg/openfinance/service/DefaultCurrencyProvider;Lorg/openfinance/config/ImportProperties;Lorg/openfinance/service/AccountCurrencyService;Lorg/openfinance/service/CurrencyTypeResolver;Lorg/springframework/beans/factory/ObjectProvider;Lorg/openfinance/repository/UserSettingsRepository;Lorg/openfinance/service/OperationHistoryService;Lorg/openfinance/service/ImportProgressTracker;)V" name="&lt;init&gt;" classAnnotationNames="org.springframework.stereotype.Service" primary="true">
+      <SourceLine endBytecode="589" classname="org.openfinance.service.ImportService" start="96" end="96" sourcepath="org/openfinance/service/ImportService.java" sourcefile="ImportService.java" startBytecode="0" />
+      <Message>In method new org.openfinance.service.ImportService(ImportSessionRepository, BudgetAlertService, TransactionRepository, AccountRepository, CategoryRepository, UserRepository, FileStorageService, QifParser, OfxParser, CsvParser, SkroogeJsonParser, ObjectMapper, AutoCategorizationService, AccountService, ImportedOpeningBalanceService, TransactionRuleService, TransactionService, ExchangeRateService, TransactionSplitService, NetWorthRepository, AICategorizationService, MessageSource, InstitutionRepository, CurrencyRepository, PayeeRepository, DefaultCurrencyProvider, ImportProperties, AccountCurrencyService, CurrencyTypeResolver, ObjectProvider, UserSettingsRepository, OperationHistoryService, ImportProgressTracker)</Message>
+    </Method>
+    <Field isStatic="false" classname="org.openfinance.service.ImportService" signature="Lorg/openfinance/repository/UserSettingsRepository;" name="userSettingsRepository" classAnnotationNames="org.springframework.stereotype.Service" primary="true">
+      <SourceLine classname="org.openfinance.service.ImportService" sourcepath="org/openfinance/service/ImportService.java" sourcefile="ImportService.java">
+        <Message>In ImportService.java</Message>
+      </SourceLine>
+      <Message>Field org.openfinance.service.ImportService.userSettingsRepository</Message>
+    </Field>
+    <LocalVariable role="LOCAL_VARIABLE_NAMED" pc="184" name="userSettingsRepository" register="31">
+      <Message>Local variable named userSettingsRepository</Message>
+    </LocalVariable>
+    <SourceLine endBytecode="184" classname="org.openfinance.service.ImportService" start="96" end="96" sourcepath="org/openfinance/service/ImportService.java" sourcefile="ImportService.java" startBytecode="184" primary="true">
+      <Message>At ImportService.java:[line 96]</Message>
+    </SourceLine>
+  </BugInstance>
 </BugCollection>
