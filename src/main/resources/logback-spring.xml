@@ -20,14 +20,6 @@
         </encoder>
     </appender>
     
-    <!-- Console Appender for test (no color) -->
-    <appender name="CONSOLE_TEST" class="ch.qos.logback.core.ConsoleAppender">
-        <encoder>
-            <pattern>${LOG_PATTERN}</pattern>
-            <charset>UTF-8</charset>
-        </encoder>
-    </appender>
-
     <!-- File Appender -->
     <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
         <file>${LOG_FILE}</file>
@@ -122,6 +114,14 @@
     </springProfile>
 
     <springProfile name="test">
+        <!-- Console Appender for test (no color) — defined here so the
+             appender is only created when the test profile is active -->
+        <appender name="CONSOLE_TEST" class="ch.qos.logback.core.ConsoleAppender">
+            <encoder>
+                <pattern>${LOG_PATTERN}</pattern>
+                <charset>UTF-8</charset>
+            </encoder>
+        </appender>
         <logger name="org.openfinance" level="ERROR"/>
         <!-- Silence noisy AOP aspects that emit a stack trace per expected validation failure -->
         <logger name="org.openfinance.util.LoggingAspect" level="OFF"/>
@@ -137,11 +137,12 @@
     </springProfile>
 
     <springProfile name="prod">
-        <!-- Production: INFO only, no console output, structured log to file -->
+        <!-- Production: INFO to console (docker logs) and to file -->
         <logger name="org.openfinance" level="INFO"/>
         <logger name="org.hibernate.SQL" level="ERROR"/>
         <logger name="org.springframework.web" level="WARN"/>
         <root level="INFO">
+            <appender-ref ref="CONSOLE"/>
             <appender-ref ref="ASYNC_FILE"/>
             <appender-ref ref="ASYNC_ERROR_FILE"/>
         </root>

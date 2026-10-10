@@ -272,6 +272,15 @@
             <groupId>com.opencsv</groupId>
             <artifactId>opencsv</artifactId>
             <version>5.9</version>
+            <exclusions>
+                <!-- spring-jcl already provides the commons-logging API; the real
+                     jar only triggers spring-jcl's "remove commons-logging.jar"
+                     notice on startup -->
+                <exclusion>
+                    <groupId>commons-logging</groupId>
+                    <artifactId>commons-logging</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
 
         <!-- Development Tools -->
