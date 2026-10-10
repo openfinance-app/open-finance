@@ -26,7 +26,7 @@ cp .env.example .env
 # Generate a secure JWT signing secret (required, min 32 chars)
 JWT=$(openssl rand -hex 32) && sed -i.bak "s|^JWT_SECRET=.*|JWT_SECRET=${JWT}|" .env && rm .env.bak
 
-docker compose up -d
+docker compose up -d --pull always
 # Open http://localhost:8080
 
 # demo user: demo/demo123 or register a new account
@@ -37,7 +37,7 @@ docker compose up -d
 The AI chat/insight features need Ollama (~4.7GB image) + SearXNG, opt-in via the `ai` profile:
 
 ```bash
-docker compose --profile ai up -d
+docker compose --profile ai up -d --pull always
 # Pull the model you want (default: qwen2.5:0.5b)
 docker compose --profile ai exec ollama ollama pull qwen2.5:0.5b
 # Open http://localhost:8080
