@@ -29,6 +29,7 @@
 services:
   app:
     image: ghcr.io/openfinance-app/open-finance:${OPEN_FINANCE_TAG:-latest}
+    pull_policy: always
     container_name: open-finance-app
     restart: unless-stopped
     ports:
