@@ -6,6 +6,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Base64;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 import javax.crypto.SecretKey;
 import lombok.RequiredArgsConstructor;
@@ -1535,7 +1536,8 @@ public class TransactionService {
         boolean needsInMemoryPreFilter =
                 (criteria.getKeyword() != null && !criteria.getKeyword().trim().isEmpty())
                         || criteria.getAmountMin() != null
-                        || criteria.getAmountMax() != null;
+                        || criteria.getAmountMax() != null
+                        || (criteria.getTags() != null && !criteria.getTags().isBlank());
 
         if (needsInMemoryPreFilter) {
             // Encrypted fields (description, notes, payee, tags, amount) cannot be
@@ -1547,6 +1549,7 @@ public class TransactionService {
                             .toList();
 
             java.util.stream.Stream<Transaction> stream = allUserTransactions.stream();
+            Map<Long, List<String>> splitTags = splitTagsFor(allUserTransactions);
 
             // Keyword filter (description, notes, payee, tags)
             if (criteria.getKeyword() != null && !criteria.getKeyword().trim().isEmpty()) {
@@ -1562,7 +1565,29 @@ public class TransactionService {
                                                 || org.openfinance.util.RegexSearchUtil.matches(
                                                         t.getPayee(), keyword, keywordRegex)
                                                 || org.openfinance.util.RegexSearchUtil.matches(
-                                                        t.getTags(), keyword, keywordRegex));
+                                                        t.getTags(), keyword, keywordRegex)
+                                                || splitTags
+                                                        .getOrDefault(t.getId(), List.of())
+                                                        .stream()
+                                                        .anyMatch(
+                                                                tag ->
+                                                                        org.openfinance.util
+                                                                                .RegexSearchUtil
+                                                                                .matches(
+                                                                                        tag,
+                                                                                        keyword,
+                                                                                        keywordRegex)));
+            }
+
+            if (criteria.getTags() != null && !criteria.getTags().isBlank()) {
+                String tagFilter = criteria.getTags().trim().toLowerCase(java.util.Locale.ROOT);
+                stream =
+                        stream.filter(
+                                t ->
+                                        transactionTags(t, splitTags)
+                                                .collect(Collectors.joining(","))
+                                                .toLowerCase(java.util.Locale.ROOT)
+                                                .contains(tagFilter));
             }
 
             // Amount range filter (amount is encrypted, SQL comparison is meaningless)
@@ -2189,13 +2214,11 @@ public class TransactionService {
                         .filter(t -> !Boolean.TRUE.equals(t.getIsDeleted()))
                         .collect(Collectors.toList());
 
-        // Extract and count tags
+        Map<Long, List<String>> splitTags = splitTagsFor(transactions);
+        // Count each tag once per transaction, including tags on its parts.
         java.util.Map<String, Long> tagCounts =
                 transactions.stream()
-                        .filter(t -> t.getTags() != null && !t.getTags().isBlank())
-                        .flatMap(t -> java.util.Arrays.stream(t.getTags().split(",")))
-                        .map(String::trim)
-                        .filter(tag -> !tag.isEmpty())
+                        .flatMap(t -> transactionTags(t, splitTags).distinct())
                         .collect(Collectors.groupingBy(tag -> tag, Collectors.counting()));
 
         // Convert to TagInfo objects and sort by count (descending)
@@ -2268,13 +2291,12 @@ public class TransactionService {
                         .collect(Collectors.toList());
 
         // Filter transactions that contain the tag (case-insensitive)
+        Map<Long, List<String>> splitTags = splitTagsFor(transactions);
         List<Transaction> matchingTransactions =
                 transactions.stream()
-                        .filter(t -> t.getTags() != null && !t.getTags().isBlank())
                         .filter(
                                 t ->
-                                        java.util.Arrays.stream(t.getTags().split(","))
-                                                .map(String::trim)
+                                        transactionTags(t, splitTags)
                                                 .map(String::toLowerCase)
                                                 .anyMatch(normalizedTag::equals))
                         .collect(Collectors.toList());
@@ -2289,6 +2311,23 @@ public class TransactionService {
         return matchingTransactions.stream()
                 .map(transaction -> toResponseWithDecryption(transaction))
                 .collect(Collectors.toList());
+    }
+
+    private Map<Long, List<String>> splitTagsFor(List<Transaction> transactions) {
+        return transactionSplitService.getTagsForTransactions(
+                transactions.stream().map(Transaction::getId).toList());
+    }
+
+    private java.util.stream.Stream<String> transactionTags(
+            Transaction transaction, Map<Long, List<String>> splitTags) {
+        return java.util.stream.Stream.concat(
+                        java.util.Arrays.stream(
+                                transaction.getTags() == null
+                                        ? new String[0]
+                                        : transaction.getTags().split(",")),
+                        splitTags.getOrDefault(transaction.getId(), List.of()).stream())
+                .map(String::trim)
+                .filter(tag -> !tag.isEmpty());
     }
 
     /**

@@ -15,6 +15,7 @@ interface TagInputProps {
   placeholder?: string;
   maxTags?: number;
   disabled?: boolean;
+  'aria-label'?: string;
 }
 
 /**
@@ -42,6 +43,7 @@ export function TagInput({
   placeholder = 'Add tags (press Enter, comma, or space)',
   maxTags = 10,
   disabled = false,
+  'aria-label': ariaLabel,
 }: TagInputProps) {
   const [inputValue, setInputValue] = useState('');
   const [showSuggestions, setShowSuggestions] = useState(false);
@@ -192,6 +194,7 @@ export function TagInput({
         {!disabled && value.length < maxTags && (
           <input
             ref={inputRef}
+            aria-label={ariaLabel}
             type="text"
             value={inputValue}
             onChange={handleInputChange}

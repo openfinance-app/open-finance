@@ -189,6 +189,7 @@
     }
   },
   "splitForm": {
+    "tagsLabel": "Split {{index}} tags",
     "categoryPlaceholder": "Select category (optional)...",
     "notesPlaceholder": "Note (optional)",
     "removeDisabledTitle": "At least two splits are required",

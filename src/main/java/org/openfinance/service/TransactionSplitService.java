@@ -2,6 +2,8 @@ package org.openfinance.service;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -184,6 +186,7 @@ public class TransactionSplitService {
                             .categoryId(src.getCategoryId())
                             .amount(fixed.get(i))
                             .description(src.getDescription())
+                            .tags(src.getTags())
                             .build());
         }
         return out;
@@ -242,6 +245,7 @@ public class TransactionSplitService {
                             .transactionId(transactionId)
                             .categoryId(req.getCategoryId())
                             .amount(req.getAmount())
+                            .tags(req.getTags())
                             .build();
 
             // Description set directly — JPA converter handles encryption
@@ -322,6 +326,29 @@ public class TransactionSplitService {
     // -----------------------------------------------------------------------
 
     /**
+     * Includes split-only tags in autocomplete and filtering without promoting them to the parent.
+     */
+    @Transactional(readOnly = true)
+    public Map<Long, List<String>> getTagsForTransactions(List<Long> transactionIds) {
+        Map<Long, List<String>> tags = new HashMap<>();
+        for (int offset = 0; offset < transactionIds.size(); offset += 500) {
+            List<Long> batch =
+                    transactionIds.subList(offset, Math.min(offset + 500, transactionIds.size()));
+            for (TransactionSplit split : splitRepository.findByTransactionIdIn(batch)) {
+                if (split.getTags() != null && !split.getTags().isBlank()) {
+                    tags.computeIfAbsent(split.getTransactionId(), ignored -> new ArrayList<>())
+                            .addAll(
+                                    Arrays.stream(split.getTags().split(","))
+                                            .map(String::trim)
+                                            .filter(tag -> !tag.isEmpty())
+                                            .toList());
+                }
+            }
+        }
+        return tags;
+    }
+
+    /**
      * Converts a {@link TransactionSplit} entity to a {@link TransactionSplitResponse}, decrypting
      * the description and denormalizing category metadata.
      *
@@ -335,6 +362,14 @@ public class TransactionSplitService {
                         .id(split.getId())
                         .transactionId(split.getTransactionId())
                         .categoryId(split.getCategoryId())
+                        .tags(
+                                split.getTags() == null
+                                        ? List.of()
+                                        : Arrays.stream(split.getTags().split(","))
+                                                .map(String::trim)
+                                                .filter(tag -> !tag.isEmpty())
+                                                .distinct()
+                                                .toList())
                         .amount(split.getAmount());
 
         // Description already decrypted by JPA converter

@@ -228,6 +228,8 @@ class TransactionSplitServiceTest {
                         createSplitRequest(1L, new BigDecimal("33.33"), "a"),
                         createSplitRequest(2L, new BigDecimal("33.33"), "b"),
                         createSplitRequest(3L, new BigDecimal("33.33"), "c"));
+        splits.get(0).setTags("Holiday");
+        splits.get(1).setTags("Work");
 
         List<TransactionSplitRequest> fixed =
                 transactionSplitService.reconcileForImport(new BigDecimal("100.00"), "USD", splits);
@@ -240,6 +242,9 @@ class TransactionSplitServiceTest {
         // largest-remainder puts the extra cent on the first line; categories/descriptions
         // preserved
         assertThat(fixed.get(0).getAmount()).isEqualByComparingTo("33.34");
+        assertThat(fixed)
+                .extracting(TransactionSplitRequest::getTags)
+                .containsExactly("Holiday", "Work", null);
         assertThat(fixed.get(1).getAmount()).isEqualByComparingTo("33.33");
         assertThat(fixed.get(2).getAmount()).isEqualByComparingTo("33.33");
         assertThat(fixed)

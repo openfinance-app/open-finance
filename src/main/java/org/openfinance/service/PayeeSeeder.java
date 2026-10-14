@@ -60,7 +60,7 @@ public class PayeeSeeder {
         LOGO_PATHS.put("Zalando", "/logos/payees/zalando.png");
         LOGO_PATHS.put("ASOS", "/logos/payees/asos.png");
         LOGO_PATHS.put("Vente-Privée", "/logos/payees/vente-privee.png");
-        LOGO_PATHS.put("Rakuten", "/logos/payees/rakuten.png");
+        LOGO_PATHS.put("Rakuten", null);
 
         // Entertainment
         LOGO_PATHS.put("Netflix", "/logos/payees/netflix.png");
@@ -144,7 +144,7 @@ public class PayeeSeeder {
 
         // Insurance
         LOGO_PATHS.put("MAIF", "/logos/payees/maif.png");
-        LOGO_PATHS.put("AXA", "/logos/payees/axa.png");
+        LOGO_PATHS.put("AXA", "/logos/institutions/axa-bank.png");
         LOGO_PATHS.put("GMF", "/logos/payees/gmf.png");
         LOGO_PATHS.put("MAAF", "/logos/payees/maaf.png");
         LOGO_PATHS.put("Allianz", "/logos/payees/allianz.png");

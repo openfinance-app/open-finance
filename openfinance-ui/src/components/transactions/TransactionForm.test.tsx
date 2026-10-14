@@ -92,7 +92,20 @@ vi.mock('@/components/attachments', () => ({
 }));
 
 vi.mock('./TagInput', () => ({
-  TagInput: () => <div data-testid="tag-input" />,
+  TagInput: ({ value, onChange }: { value: string[]; onChange: (tags: string[]) => void }) => (
+    <div data-testid="tag-input">
+      {value.map(tag => (
+        <button
+          type="button"
+          key={tag}
+          aria-label={`Remove tag ${tag}`}
+          onClick={() => onChange(value.filter(candidate => candidate !== tag))}
+        >
+          {tag}
+        </button>
+      ))}
+    </div>
+  ),
 }));
 
 vi.mock('@/components/ui/LiabilitySelector', () => ({
@@ -128,19 +141,45 @@ vi.mock('@/components/ui/CurrencySelector', () => ({
 }));
 
 vi.mock('./SplitTransactionForm', () => ({
-  SplitTransactionForm: ({ onChange }: { onChange: (splits: unknown[]) => void }) => (
-    <button
-      type="button"
-      data-testid="set-splits"
-      onClick={() =>
-        onChange([
-          { categoryId: 10, amount: 60 },
-          { categoryId: 20, amount: 40 },
-        ])
-      }
-    >
-      Split Form
-    </button>
+  SplitTransactionForm: ({
+    splits,
+    onChange,
+  }: {
+    splits: import('@/types/transaction').TransactionSplitRequest[];
+    onChange: (splits: import('@/types/transaction').TransactionSplitRequest[]) => void;
+  }) => (
+    <>
+      {splits.map((split, index) =>
+        split.tags?.map(tag => (
+          <button
+            type="button"
+            key={`${index}-${tag}`}
+            aria-label={`Remove tag ${tag}`}
+            onClick={() =>
+              onChange(
+                splits.map((part, i) =>
+                  i === index ? { ...part, tags: part.tags?.filter(value => value !== tag) } : part
+                )
+              )
+            }
+          >
+            {tag}
+          </button>
+        ))
+      )}
+      <button
+        type="button"
+        data-testid="set-splits"
+        onClick={() =>
+          onChange([
+            { categoryId: 10, amount: 60 },
+            { categoryId: 20, amount: 40 },
+          ])
+        }
+      >
+        Split Form
+      </button>
+    </>
   ),
 }));
 
@@ -618,6 +657,37 @@ describe('TransactionForm', () => {
   // ── Split Transaction Mode ─────────────────────────────────────────────────────
 
   describe('Split Transaction Mode', () => {
+    it('loads split tags and submits clearing one part while retaining the other tags', async () => {
+      const { onSubmit } = renderForm({
+        transaction: {
+          id: 99,
+          userId: 1,
+          accountId: 1,
+          type: 'EXPENSE',
+          amount: 100,
+          currency: 'EUR',
+          date: '2024-06-01',
+          isReconciled: false,
+          createdAt: '2024-06-01',
+          tags: ['Receipt'],
+          hasSplits: true,
+          splits: [
+            { id: 1, transactionId: 99, categoryId: 10, amount: 70, tags: ['Holiday'] },
+            { id: 2, transactionId: 99, categoryId: 20, amount: 30, tags: ['Work'] },
+          ],
+        },
+      });
+      fireEvent.click(screen.getByRole('button', { name: 'Remove tag Holiday' }));
+      fireEvent.click(screen.getByRole('button', { name: /update transaction/i }));
+      await waitFor(() => expect(onSubmit).toHaveBeenCalledOnce());
+      expect(onSubmit.mock.calls[0][0]).toMatchObject({
+        tags: ['Receipt'],
+        splits: [
+          { categoryId: 10, amount: 70, tags: [] },
+          { categoryId: 20, amount: 30, tags: ['Work'] },
+        ],
+      });
+    });
     it('starts in single category mode for new transactions', () => {
       renderForm();
 
@@ -2021,6 +2091,31 @@ describe('TransactionForm', () => {
   // ── Form Submission ───────────────────────────────────────────────────────
 
   describe('Form Submission', () => {
+    it.each([
+      { initial: ['holiday', 'work'], expected: ['work'] },
+      { initial: ['holiday'], expected: [] },
+    ])('submits remaining tags after removal: $expected', async ({ initial, expected }) => {
+      const { onSubmit } = renderForm({
+        transaction: {
+          id: 99,
+          userId: 1,
+          accountId: 1,
+          type: 'EXPENSE',
+          amount: 50,
+          currency: 'EUR',
+          date: '2024-06-01',
+          isReconciled: false,
+          createdAt: '2024-06-01',
+          tags: initial,
+        },
+      });
+      fireEvent.click(screen.getByRole('button', { name: 'Remove tag holiday' }));
+      fireEvent.click(screen.getByRole('button', { name: /update transaction/i }));
+
+      await waitFor(() => expect(onSubmit).toHaveBeenCalledTimes(1));
+      expect(onSubmit.mock.calls[0][0].tags).toEqual(expected);
+    });
+
     it('submits form with correct data for EXPENSE transaction', async () => {
       const { onSubmit } = renderForm();
 

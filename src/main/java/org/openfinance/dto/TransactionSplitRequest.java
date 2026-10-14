@@ -1,5 +1,6 @@
 package org.openfinance.dto;
 
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Digits;
 import jakarta.validation.constraints.NotNull;
@@ -9,6 +10,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.openfinance.util.TagsDeserializer;
 
 /**
  * Data Transfer Object for creating or replacing a single split line within a transaction.
@@ -63,4 +65,9 @@ public class TransactionSplitRequest {
      */
     @Size(max = 255, message = "{transfer.description.max}")
     private String description;
+
+    /** Tags for this part; accepts an array or comma-separated string. Empty clears tags. */
+    @Size(max = 500, message = "{transaction.tags.size}")
+    @JsonDeserialize(using = TagsDeserializer.class)
+    private String tags;
 }

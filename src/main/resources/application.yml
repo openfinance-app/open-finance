@@ -146,7 +146,7 @@ application:
   rss:
     feeds:
       en:
-        - https://finance.yahoo.com/news/rssindex
+        - https://feeds.bbci.co.uk/news/business/rss.xml
         - https://feeds.a.dj.com/rss/RSSMarketsMain.xml
       fr:
         - https://www.lemonde.fr/economie/rss_full.xml

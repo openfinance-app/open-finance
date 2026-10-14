@@ -6,11 +6,11 @@
  */
 import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import { vi, describe, it, expect, beforeAll, beforeEach } from 'vitest';
-import { act } from 'react';
+import { act, useState } from 'react';
 import { setDecimalPlacesOverride } from '@/utils/currency';
 import { SplitTransactionForm } from './SplitTransactionForm';
 import * as useTransactionsModule from '@/hooks/useTransactions';
-import { renderWithProviders } from '@/test/test-utils';
+import { renderWithProviders, mockAuthentication } from '@/test/test-utils';
 import type { TransactionSplitRequest } from '@/types/transaction';
 
 // ── Polyfills ─────────────────────────────────────────────────────────────────
@@ -104,8 +104,36 @@ function renderForm({
 // ── Tests ─────────────────────────────────────────────────────────────────────
 
 describe('SplitTransactionForm', () => {
+  it('adds and clears tags on one part without changing the other part', () => {
+    function Editor() {
+      const [splits, setSplits] = useState<TransactionSplitRequest[]>([
+        { categoryId: 10, amount: 70, tags: [] },
+        { categoryId: 30, amount: 30, tags: ['Work'] },
+      ]);
+      return (
+        <SplitTransactionForm
+          totalAmount={100}
+          currency="EUR"
+          splits={splits}
+          onChange={setSplits}
+        />
+      );
+    }
+    renderWithProviders(<Editor />);
+    const input = screen.getByRole('textbox', { name: 'Split 1 tags' });
+    fireEvent.change(input, { target: { value: 'Holiday' } });
+    fireEvent.keyDown(input, { key: 'Enter' });
+    expect(screen.getByRole('button', { name: 'Remove tag Holiday' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Remove tag Work' })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Remove tag Holiday' }));
+    expect(screen.queryByText('Holiday')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Remove tag Work' })).toBeInTheDocument();
+    expect(screen.getByRole('textbox', { name: 'Split 1 amount' })).toHaveValue('70');
+  });
+
   beforeEach(() => {
     vi.clearAllMocks();
+    mockAuthentication();
 
     mockUseCategoryTree.mockReturnValue({
       data: [],
@@ -470,7 +498,7 @@ describe('SplitTransactionForm', () => {
 
       renderForm({ splits: zeroSplits });
 
-      expect(screen.getByDisplayValue('')).toBeInTheDocument(); // Zero amount shows as empty string
+      expect(screen.getByRole('textbox', { name: 'Split 1 amount' })).toHaveValue('');
       expect(screen.getByDisplayValue('50')).toBeInTheDocument();
     });
 

@@ -142,7 +142,10 @@ public class TransactionSpecification {
             }
 
             // Filter by tags (contains search)
-            if (criteria.getTags() != null && !criteria.getTags().trim().isEmpty()) {
+            // Encrypted parent/split tags are already matched by the service when IDs are provided.
+            if (matchedIds == null
+                    && criteria.getTags() != null
+                    && !criteria.getTags().trim().isEmpty()) {
                 String tags = "%" + criteria.getTags().toLowerCase() + "%";
                 predicates.add(criteriaBuilder.like(criteriaBuilder.lower(root.get("tags")), tags));
             }

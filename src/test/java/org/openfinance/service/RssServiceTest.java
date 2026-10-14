@@ -17,8 +17,12 @@ import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.openfinance.dto.RssFeedItem;
 import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestTemplate;
 
 /**
@@ -29,6 +33,28 @@ import org.springframework.web.client.RestTemplate;
  * named constant rather than an inline literal.
  */
 class RssServiceTest {
+
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(ints = {403, 404, 429, 0})
+    void unavailableFeedDoesNotDiscardHealthyProviderItems(int status) {
+        RestTemplate client = mock(RestTemplate.class);
+        RuntimeException failure =
+                status == 0
+                        ? new ResourceAccessException("Timed out")
+                        : HttpClientErrorException.create(
+                                HttpStatus.valueOf(status),
+                                "Unavailable",
+                                HttpHeaders.EMPTY,
+                                new byte[0],
+                                StandardCharsets.UTF_8);
+        when(client.exchange(
+                        anyString(), eq(HttpMethod.GET), any(HttpEntity.class), eq(byte[].class)))
+                .thenThrow(failure)
+                .thenReturn(ResponseEntity.ok(MINIMAL_RSS_XML.getBytes(StandardCharsets.UTF_8)));
+        assertThat(new RssService(client).getFinanceFeeds(Locale.ENGLISH))
+                .extracting(RssFeedItem::getTitle)
+                .containsExactly("Headline");
+    }
 
     private static final String MINIMAL_RSS_XML =
             "<?xml version=\"1.0\" encoding=\"UTF-8\"?>"

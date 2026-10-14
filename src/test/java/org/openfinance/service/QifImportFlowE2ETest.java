@@ -82,6 +82,7 @@ class QifImportFlowE2ETest {
     @Autowired private ImportService importService;
     @Autowired private AccountRepository accountRepository;
     @Autowired private TransactionRepository transactionRepository;
+    @Autowired private org.openfinance.repository.TransactionSplitRepository splitRepository;
     @Autowired private UserRepository userRepository;
     @Autowired private DatabaseCleanupService databaseCleanupService;
 
@@ -176,6 +177,16 @@ class QifImportFlowE2ETest {
         //
         //    Total = 5 rows.
         assertThat(transactionRepository.countByUserId(userId)).isEqualTo(5L);
+        assertThat(transactionRepository.findByUserId(userId))
+                .filteredOn(tx -> "Market".equals(tx.getPayee()))
+                .singleElement()
+                .satisfies(
+                        tx -> {
+                            assertThat(tx.getTags()).isEqualTo("Receipt");
+                            assertThat(splitRepository.findByTransactionIdOrderById(tx.getId()))
+                                    .extracting(org.openfinance.entity.TransactionSplit::getTags)
+                                    .containsExactly("Holiday", "Work");
+                        });
 
         // 4. Assert each account's persisted currency and balance.
         Map<String, Account> byName = new LinkedHashMap<>();
@@ -257,7 +268,11 @@ class QifImportFlowE2ETest {
                 D2024-01-10
                 T-50.00
                 PMarket
-                LGroceries
+                LGroceries/Receipt
+                SGroceries/Holiday
+                $-30.00
+                SGroceries/Work
+                $-20.00
                 ^
                 D2024-01-12
                 T-200.00

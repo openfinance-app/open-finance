@@ -98,6 +98,8 @@ public class SkroogeJsonParser {
         Map<Long, JsonNode> accountsById = indexById(root.path("account"));
         Map<Long, JsonNode> categoriesById = indexById(root.path("category"));
         Map<Long, JsonNode> payeesById = indexById(root.path("payee"));
+        // Skrooge stores trackers in the refund table, linked from each suboperation.
+        Map<Long, JsonNode> trackersById = indexById(root.path("refund"));
         Map<Long, JsonNode> unitsById = indexById(root.path("unit"));
         Map<Long, TreeMap<LocalDate, BigDecimal>> unitValuesByUnitId =
                 indexUnitValues(root.path("unitvalue"));
@@ -170,6 +172,7 @@ public class SkroogeJsonParser {
                                     accountsById,
                                     categoriesById,
                                     payeesById,
+                                    trackersById,
                                     unitsById,
                                     unitValuesByUnitId,
                                     accountBalanceDeltasByOperationId,
@@ -187,6 +190,7 @@ public class SkroogeJsonParser {
                             accountsById,
                             categoriesById,
                             payeesById,
+                            trackersById,
                             unitsById,
                             unitValuesByUnitId,
                             accountBalanceDeltasByOperationId,
@@ -650,6 +654,7 @@ public class SkroogeJsonParser {
             Map<Long, JsonNode> accountsById,
             Map<Long, JsonNode> categoriesById,
             Map<Long, JsonNode> payeesById,
+            Map<Long, JsonNode> trackersById,
             Map<Long, JsonNode> unitsById,
             Map<Long, TreeMap<LocalDate, BigDecimal>> unitValuesByUnitId,
             Map<Long, BigDecimal> accountBalanceDeltasByOperationId,
@@ -719,6 +724,8 @@ public class SkroogeJsonParser {
                         groupId,
                         fileName);
 
+        firstTransaction.setTags(resolveTrackerTags(List.of(firstSubOperation), trackersById));
+        secondTransaction.setTags(resolveTrackerTags(List.of(secondSubOperation), trackersById));
         return List.of(firstTransaction, secondTransaction);
     }
 
@@ -789,6 +796,7 @@ public class SkroogeJsonParser {
             Map<Long, JsonNode> accountsById,
             Map<Long, JsonNode> categoriesById,
             Map<Long, JsonNode> payeesById,
+            Map<Long, JsonNode> trackersById,
             Map<Long, JsonNode> unitsById,
             Map<Long, TreeMap<LocalDate, BigDecimal>> unitValuesByUnitId,
             Map<Long, BigDecimal> accountBalanceDeltasByOperationId,
@@ -852,6 +860,7 @@ public class SkroogeJsonParser {
 
         if (subOperations.size() == 1) {
             JsonNode subOperation = subOperations.get(0);
+            builder.tags(resolveTrackerTags(subOperations, trackersById));
             JsonNode category = categoriesById.get(longValue(subOperation, "r_category_id"));
             builder.category(category != null ? textValue(category, "t_fullname") : null);
             builder.sourceCategoryId(longValue(subOperation, "r_category_id"));
@@ -875,6 +884,10 @@ public class SkroogeJsonParser {
                                                         unitValuesByUnitId,
                                                         currencyRatesToPrimary);
                                         return ImportedTransaction.SplitEntry.builder()
+                                                .tags(
+                                                        resolveTrackerTags(
+                                                                List.of(subOperation),
+                                                                trackersById))
                                                 .category(
                                                         category != null
                                                                 ? textValue(category, "t_fullname")
@@ -892,6 +905,19 @@ public class SkroogeJsonParser {
         return builder.build();
     }
 
+    private List<String> resolveTrackerTags(
+            List<JsonNode> subOperations, Map<Long, JsonNode> trackersById) {
+        return subOperations.stream()
+                .map(subOperation -> positiveLongValue(subOperation, "r_refund_id"))
+                .filter(Objects::nonNull)
+                .map(trackersById::get)
+                .filter(Objects::nonNull)
+                .map(tracker -> textValue(tracker, "t_name").trim())
+                .filter(name -> !name.isBlank())
+                .distinct()
+                .collect(Collectors.toCollection(ArrayList::new));
+    }
+
     private boolean isSyntheticBalanceOperation(JsonNode operation, List<JsonNode> subOperations) {
         if (SYNTHETIC_DATE.equals(textValue(operation, "d_date"))) {
             return true;
@@ -904,7 +930,8 @@ public class SkroogeJsonParser {
             boolean noComment =
                     textValue(operation, "t_comment").isBlank()
                             && textValue(subOperation, "t_comment").isBlank();
-            return noCategory && noMode && noComment;
+            boolean noTracker = positiveLongValue(subOperation, "r_refund_id") == null;
+            return noCategory && noMode && noComment && noTracker;
         }
         return false;
     }

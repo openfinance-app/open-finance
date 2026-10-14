@@ -7,6 +7,7 @@
  */
 import { useTranslation } from 'react-i18next';
 import { ConvertedAmount } from '@/components/ui/ConvertedAmount';
+import { Badge } from '@/components/ui/Badge';
 import { translateCategoryName } from '@/utils/categoryTranslation';
 import type { TransactionSplitResponse } from '@/types/transaction';
 
@@ -85,6 +86,15 @@ export function SplitDetail({ splits, currency }: SplitDetailProps) {
               <span className="text-xs text-text-tertiary truncate mt-0.5">
                 {split.description}
               </span>
+            )}
+            {!!split.tags?.length && (
+              <div className="flex flex-wrap gap-1 mt-1">
+                {split.tags.map(tag => (
+                  <Badge key={tag} variant="secondary">
+                    {tag}
+                  </Badge>
+                ))}
+              </div>
             )}
           </div>
 

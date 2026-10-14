@@ -12,6 +12,7 @@ import { Input } from '@/components/ui/Input';
 import { NumberInput } from '@/components/ui/NumberInput';
 import { CategorySelect } from '@/components/ui/CategorySelect';
 import { ConvertedAmount } from '@/components/ui/ConvertedAmount';
+import { TagInput } from '@/components/transactions/TagInput';
 import { decimalPlaces, multiply, sum, subtract, distributeRemainder } from '@/utils/money';
 import { getMonetaryScale } from '@/utils/currency';
 import type { TransactionSplitRequest } from '@/types/transaction';
@@ -29,6 +30,7 @@ interface SplitTransactionFormProps {
   accountCurrency?: string;
   /** 1 unit of `currency` = `exchangeRate` units of `accountCurrency` (latest rate) */
   exchangeRate?: number;
+  tagSuggestions?: string[];
 }
 
 /**
@@ -44,6 +46,7 @@ export function SplitTransactionForm({
   onChange,
   accountCurrency,
   exchangeRate,
+  tagSuggestions = [],
 }: SplitTransactionFormProps) {
   const { t } = useTranslation('transactions');
   const decimals = Math.max(
@@ -155,6 +158,15 @@ export function SplitTransactionForm({
             >
               <Trash2 className="h-4 w-4" />
             </Button>
+          </div>
+          <div className="col-span-3">
+            <TagInput
+              value={split.tags ?? []}
+              onChange={tags => handleChangeField(index, 'tags', tags)}
+              suggestions={tagSuggestions}
+              placeholder={t('form.tagsPlaceholder')}
+              aria-label={t('splitForm.tagsLabel', { index: index + 1 })}
+            />
           </div>
         </div>
       ))}

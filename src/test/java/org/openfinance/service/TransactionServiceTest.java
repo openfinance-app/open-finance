@@ -1527,6 +1527,8 @@ class TransactionServiceTest {
         when(transactionMapper.toResponse(any(Transaction.class)))
                 .thenReturn(new TransactionResponse());
 
+        when(transactionRepository.findByUserId(userId)).thenReturn(transactions);
+
         // When
         org.springframework.data.domain.Page<TransactionResponse> result =
                 transactionService.searchTransactions(userId, criteria, pageable);

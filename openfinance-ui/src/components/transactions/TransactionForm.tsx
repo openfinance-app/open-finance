@@ -880,6 +880,7 @@ export function TransactionForm({
               accountCurrency={accountCurrency}
               exchangeRate={needsConversion ? effectiveRate : undefined}
               splits={splits}
+              tagSuggestions={popularTags}
               onChange={setSplits}
             />
           )}

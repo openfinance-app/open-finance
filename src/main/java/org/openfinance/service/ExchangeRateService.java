@@ -223,7 +223,9 @@ public class ExchangeRateService {
      * @return the number of exchange rates successfully updated
      * @throws MarketDataException if the Yahoo Finance API is unavailable
      */
-    @Transactional
+    // Release the currency-read snapshot before remote I/O and the repository's write transaction.
+    @Transactional(
+            propagation = org.springframework.transaction.annotation.Propagation.NOT_SUPPORTED)
     @CacheEvict(value = "exchangeRates", allEntries = true)
     public int updateExchangeRates() {
         log.info("Starting exchange rate update from Yahoo Finance");
@@ -306,7 +308,8 @@ public class ExchangeRateService {
      * @return the number of exchange rates successfully stored
      * @throws IllegalArgumentException if date is in the future
      */
-    @Transactional
+    @Transactional(
+            propagation = org.springframework.transaction.annotation.Propagation.NOT_SUPPORTED)
     public int updateExchangeRatesForDate(LocalDate date) {
         if (date.isAfter(LocalDate.now())) {
             throw new IllegalArgumentException(

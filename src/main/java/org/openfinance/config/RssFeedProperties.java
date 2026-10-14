@@ -26,7 +26,7 @@ public class RssFeedProperties {
 
         private List<String> en =
                 List.of(
-                        "https://finance.yahoo.com/news/rssindex",
+                        "https://feeds.bbci.co.uk/news/business/rss.xml",
                         "https://feeds.a.dj.com/rss/RSSMarketsMain.xml");
 
         private List<String> fr =

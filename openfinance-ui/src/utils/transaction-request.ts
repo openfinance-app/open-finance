@@ -28,6 +28,7 @@ export function reconstructInitialSplits(transaction?: Transaction): Transaction
       categoryId: s.categoryId,
       amount: s.amount,
       description: s.description,
+      tags: s.tags ?? [],
     })) ?? [];
 
   const rate = transaction?.conversionRate;
@@ -305,7 +306,8 @@ export function buildTransactionRequest(ctx: SubmitContext): TransactionRequest 
     description: data.description || '',
     notes: data.notes || '',
     payee: data.payee || undefined,
-    tags: tags.length > 0 ? tags : undefined,
+    // Keep an explicit empty array so editing can remove the last tag.
+    tags,
     paymentMethod: data.paymentMethod || undefined,
     // Requirement 3.1: Only include liabilityId for EXPENSE transactions
     liabilityId: carriesLoan ? data.liabilityId : undefined,
@@ -347,6 +349,7 @@ export function buildTransactionRequest(ctx: SubmitContext): TransactionRequest 
             categoryId: split.categoryId,
             amount: split.amount,
             description: splits[index]?.description,
+            tags: splits[index]?.tags ?? [],
           }))
         : undefined,
     };

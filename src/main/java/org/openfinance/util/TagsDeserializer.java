@@ -20,19 +20,20 @@ public class TagsDeserializer extends JsonDeserializer<String> {
         }
         if (token == JsonToken.VALUE_STRING) {
             String value = parser.getValueAsString();
-            return (value == null || value.isBlank()) ? null : value;
+            return (value == null || value.isBlank()) ? "" : value;
         }
         if (token == JsonToken.START_ARRAY) {
             List<String> tags = parser.readValueAs(new TypeReference<List<String>>() {});
             if (tags == null || tags.isEmpty()) {
-                return null;
+                // An explicit empty value clears tags; null means no update to the mapper.
+                return "";
             }
             String joined =
                     tags.stream()
                             .filter(tag -> tag != null && !tag.isBlank())
                             .map(String::trim)
                             .collect(Collectors.joining(","));
-            return joined.isBlank() ? null : joined;
+            return joined;
         }
 
         String value = parser.getValueAsString();

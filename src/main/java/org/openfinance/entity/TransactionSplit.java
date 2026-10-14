@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Digits;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import lombok.*;
@@ -41,7 +42,7 @@ import org.openfinance.converter.EncryptedStringConverter;
 @Setter
 @Builder
 @NoArgsConstructor(access = AccessLevel.PUBLIC)
-@AllArgsConstructor
+@AllArgsConstructor(access = AccessLevel.PRIVATE)
 @EqualsAndHashCode(onlyExplicitlyIncluded = true)
 public class TransactionSplit {
 
@@ -108,6 +109,12 @@ public class TransactionSplit {
     @Column(name = "description", length = 2000)
     @Convert(converter = EncryptedStringConverter.class)
     private String description;
+
+    /** Tags belonging to this part only, encrypted like transaction tags. */
+    @Size(max = 500, message = "{transaction.tags.size}")
+    @Column(name = "tags", length = 3000) // Room for UTF-8 tags plus encryption/base64 overhead.
+    @Convert(converter = EncryptedStringConverter.class)
+    private String tags;
 
     /** Timestamp when this split was created. */
     @Column(name = "created_at", nullable = false, updatable = false)

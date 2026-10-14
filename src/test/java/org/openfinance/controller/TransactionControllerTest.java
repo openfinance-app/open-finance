@@ -5,6 +5,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import org.junit.jupiter.api.BeforeEach;
@@ -67,6 +68,112 @@ class TransactionControllerTest {
     @org.junit.jupiter.api.AfterEach
     void releaseSecurityContext() {
         SecurityContextHolder.clearContext();
+    }
+
+    @Test
+    @DisplayName("Removing individual and final tags persists after reloading the transaction")
+    void shouldPersistTagRemoval() throws Exception {
+        ObjectNode request =
+                objectMapper.valueToTree(
+                        TransactionRequest.builder()
+                                .accountId(accountId1)
+                                .type(TransactionType.INCOME)
+                                .amount(new BigDecimal("3000.00"))
+                                .currency("USD")
+                                .categoryId(categoryId2)
+                                .date(LocalDate.of(2026, 1, 1))
+                                .description("Monthly salary")
+                                .payee("Employer Inc")
+                                .build());
+        request.putArray("tags").add("salary");
+        updateTags(request, "salary");
+
+        request.putArray("tags");
+        updateTags(request, "");
+    }
+
+    private void updateTags(ObjectNode request, String expectedTags) throws Exception {
+        mockMvc.perform(
+                        put("/api/v1/transactions/{id}", transactionId1)
+                                .header("Authorization", "Bearer " + token)
+                                .header("X-Encryption-Session", encKey)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.tags").value(expectedTags));
+        mockMvc.perform(
+                        get("/api/v1/transactions/{id}", transactionId1)
+                                .header("Authorization", "Bearer " + token)
+                                .header("X-Encryption-Session", encKey))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.tags").value(expectedTags));
+    }
+
+    @Test
+    @DisplayName("Transfer edits accept tag arrays and clear tags on both persisted entries")
+    void shouldPersistTransferTagRemoval() throws Exception {
+        TransactionRequest transfer =
+                TransactionRequest.builder()
+                        .accountId(accountId1)
+                        .toAccountId(accountId2)
+                        .type(TransactionType.TRANSFER)
+                        .amount(new BigDecimal("25.00"))
+                        .currency("USD")
+                        .date(LocalDate.of(2026, 1, 1))
+                        .tags("holiday,work")
+                        .build();
+        String body =
+                mockMvc.perform(
+                                post("/api/v1/transactions/transfer")
+                                        .header("Authorization", "Bearer " + token)
+                                        .header("X-Encryption-Session", encKey)
+                                        .contentType(MediaType.APPLICATION_JSON)
+                                        .content(objectMapper.writeValueAsString(transfer)))
+                        .andExpect(status().isCreated())
+                        .andReturn()
+                        .getResponse()
+                        .getContentAsString();
+        String transferId = objectMapper.readTree(body).path("transferId").asText();
+        ObjectNode request =
+                objectMapper.valueToTree(
+                        TransferUpdateRequest.builder()
+                                .fromAccountId(accountId1)
+                                .toAccountId(accountId2)
+                                .amount(new BigDecimal("25.00"))
+                                .currency("USD")
+                                .date(LocalDate.of(2026, 1, 1))
+                                .build());
+        for (String expected : new String[] {"work", ""}) {
+            request.putArray("tags");
+            if (!expected.isEmpty()) request.withArray("tags").add(expected);
+            mockMvc.perform(
+                            put("/api/v1/transactions/transfers/{id}", transferId)
+                                    .header("Authorization", "Bearer " + token)
+                                    .header("X-Encryption-Session", encKey)
+                                    .contentType(MediaType.APPLICATION_JSON)
+                                    .content(objectMapper.writeValueAsString(request)))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.tags").value(expected));
+            mockMvc.perform(
+                            get("/api/v1/transactions")
+                                    .header("Authorization", "Bearer " + token)
+                                    .header("X-Encryption-Session", encKey))
+                    .andExpect(status().isOk())
+                    .andExpect(
+                            jsonPath("$[?(@.transferId == '" + transferId + "')].tags")
+                                    .value(contains(expected, expected)));
+        }
+    }
+
+    @Test
+    @DisplayName("Missing bundled logos return 404 instead of an unexpected server error")
+    void shouldReturn404ForMissingLogo() throws Exception {
+        mockMvc.perform(
+                        get("/logos/payees/missing-logo.png")
+                                .header("Authorization", "Bearer " + token)
+                                .header("X-Encryption-Session", encKey))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.status").value(404));
     }
 
     @BeforeEach
@@ -333,7 +440,9 @@ class TransactionControllerTest {
                                 .header("Authorization", "Bearer " + token)
                                 .header("X-Encryption-Session", encKey))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.content", hasSize(0)));
+                .andExpect(jsonPath("$.content", hasSize(1)))
+                .andExpect(jsonPath("$.content[0].id").value(transactionId1))
+                .andExpect(jsonPath("$.content[0].tags").value("salary,monthly"));
     }
 
     @Test

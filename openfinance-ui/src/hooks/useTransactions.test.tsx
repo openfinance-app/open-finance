@@ -16,6 +16,7 @@ import {
   useUpdateCategory,
 } from './useTransactions';
 import apiClient from '@/services/apiClient';
+import { usePopularTags, useTransactionTags } from '@/hooks/useTransactionTags';
 
 // Mock the API client
 vi.mock('@/services/apiClient');
@@ -358,6 +359,47 @@ describe('useTransactions', () => {
   });
 
   describe('useUpdateTransaction', () => {
+    it('refreshes tag filters and suggestions after removing the last tag', async () => {
+      mockSessionStorage.getItem.mockReturnValue('test-key');
+      let tags = ['holiday'];
+      mockedApiClient.get.mockImplementation(async (url: string) => ({
+        data: url.endsWith('/popular') ? tags : tags.map(tag => ({ tag, count: 1 })),
+      }));
+      mockedApiClient.put.mockImplementation(async () => {
+        tags = [];
+        return { data: { id: 1, tags: '' } };
+      });
+      const { result } = renderHook(
+        () => ({
+          update: useUpdateTransaction(),
+          tags: useTransactionTags(),
+          popular: usePopularTags(),
+        }),
+        { wrapper }
+      );
+      await waitFor(() => {
+        expect(result.current.tags.data).toEqual([{ tag: 'holiday', count: 1 }]);
+        expect(result.current.popular.data).toEqual(['holiday']);
+      });
+
+      await result.current.update.mutateAsync({
+        id: 1,
+        data: {
+          type: 'EXPENSE',
+          accountId: 1,
+          amount: 75,
+          currency: 'USD',
+          date: '2026-01-01',
+          tags: [],
+        },
+      });
+
+      await waitFor(() => {
+        expect(result.current.tags.data).toEqual([]);
+        expect(result.current.popular.data).toEqual([]);
+      });
+    });
+
     it('calls PUT /transactions/:id', async () => {
       mockSessionStorage.getItem.mockReturnValue('test-key');
       mockedApiClient.put.mockResolvedValue({ data: { id: 1 } });

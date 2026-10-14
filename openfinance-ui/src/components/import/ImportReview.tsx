@@ -1062,6 +1062,18 @@ export function ImportReview({
                                   <span className="text-text-secondary flex-1 truncate">
                                     {split.category ? categoryDisplayName(split.category) : '—'}
                                   </span>
+                                  {!!split.tags?.length && (
+                                    <div className="flex flex-wrap gap-1">
+                                      {split.tags.map(tag => (
+                                        <span
+                                          key={tag}
+                                          className="rounded bg-primary/10 text-primary px-2 py-0.5 text-xs"
+                                        >
+                                          {tag}
+                                        </span>
+                                      ))}
+                                    </div>
+                                  )}
                                   <span className="font-mono text-text-primary whitespace-nowrap">
                                     <ConvertedAmount
                                       amount={Number(split.amount)}

@@ -1,5 +1,6 @@
 package org.openfinance.dto;
 
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Digits;
 import jakarta.validation.constraints.NotBlank;
@@ -11,6 +12,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.openfinance.util.TagsDeserializer;
 import org.openfinance.validation.ValidCurrency;
 
 /**
@@ -109,6 +111,7 @@ public class TransferUpdateRequest {
      * <p>Examples: "monthly-transfer", "investment", "savings"
      */
     @Size(max = 500, message = "{transfer.tags.max}")
+    @JsonDeserialize(using = TagsDeserializer.class)
     private String tags;
 
     /**

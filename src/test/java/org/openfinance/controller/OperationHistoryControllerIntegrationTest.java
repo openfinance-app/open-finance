@@ -10,6 +10,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -1300,8 +1301,20 @@ class OperationHistoryControllerIntegrationTest {
                         "0.9",
                         "splits",
                         java.util.List.of(
-                                Map.of("categoryId", food, "amount", "40"),
-                                Map.of("categoryId", travel, "amount", "50"))));
+                                Map.of(
+                                        "categoryId",
+                                        food,
+                                        "amount",
+                                        "40",
+                                        "tags",
+                                        List.of("Holiday")),
+                                Map.of(
+                                        "categoryId",
+                                        travel,
+                                        "amount",
+                                        "50",
+                                        "tags",
+                                        List.of("Work")))));
         JsonNode payment = call(post("/api/v1/transactions"), request);
         long created = latest("TRANSACTION").get("id").asLong();
         java.util.List<Long> splitIds =
@@ -1324,6 +1337,9 @@ class OperationHistoryControllerIntegrationTest {
         assertThat(restored.get("originalAmount").decimalValue()).isEqualByComparingTo("100");
         assertThat(restored.get("conversionRate").decimalValue()).isEqualByComparingTo("0.9");
         assertThat(restored.get("accountAmount").decimalValue()).isEqualByComparingTo("90");
+        assertThat(restored.path("splits").get(0).path("tags").get(0).asText())
+                .isEqualTo("Holiday");
+        assertThat(restored.path("splits").get(1).path("tags").get(0).asText()).isEqualTo("Work");
         assertThat(
                         jdbc.queryForList(
                                 "SELECT id FROM transaction_splits WHERE transaction_id = ? ORDER BY id",

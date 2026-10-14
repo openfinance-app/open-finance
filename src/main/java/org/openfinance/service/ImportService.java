@@ -2686,7 +2686,7 @@ public class ImportService {
                                         .name(category.getName())
                                         .parentId(parentId)
                                         .isSystem(false)
-                                        .icon("tag")
+                                        .icon("📁")
                                         .color("#6B7280")
                                         .build());
                 existingCategories.add(matchingCategory);
@@ -2830,6 +2830,10 @@ public class ImportService {
                             }
                             return TransactionSplitRequest.builder()
                                     .categoryId(categoryId)
+                                    .tags(
+                                            splitEntry.getTags() == null
+                                                    ? null
+                                                    : String.join(",", splitEntry.getTags()))
                                     .amount(normalizeAmount(splitEntry.getAmount()))
                                     .description(
                                             truncate(
@@ -3170,12 +3174,11 @@ public class ImportService {
             }
         }
 
-        // Map tags from rule engine results (REQ-TR-4.1 ΓÇö ADD_TAG action)
+        // Preserve tags from the source file and the import rule engine.
         if (importedTx.getTags() != null && !importedTx.getTags().isEmpty()) {
             String tagsStr = String.join(",", importedTx.getTags());
             builder.tags(tagsStr);
-            log.debug(
-                    "Mapped {} tag(s) from import rules: {}", importedTx.getTags().size(), tagsStr);
+            log.debug("Mapped {} tag(s) from import: {}", importedTx.getTags().size(), tagsStr);
         }
 
         return builder.build();

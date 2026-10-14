@@ -1,10 +1,13 @@
 package org.openfinance.dto;
 
 import java.math.BigDecimal;
+import java.util.List;
+import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.Singular;
 
 /**
  * Data Transfer Object returned to clients for a single split line of a transaction.
@@ -25,7 +28,7 @@ import lombok.NoArgsConstructor;
 @Data
 @Builder
 @NoArgsConstructor
-@AllArgsConstructor
+@AllArgsConstructor(access = AccessLevel.PRIVATE)
 public class TransactionSplitResponse {
 
     /** Unique identifier of this split line. */
@@ -67,4 +70,15 @@ public class TransactionSplitResponse {
      * <p>Requirement REQ-SPL-1.1: Optional description per split
      */
     private String description;
+
+    /** Tags belonging to this part only. */
+    @Singular private List<String> tags;
+
+    public List<String> getTags() {
+        return tags == null ? List.of() : List.copyOf(tags);
+    }
+
+    public void setTags(List<String> tags) {
+        this.tags = tags == null ? List.of() : List.copyOf(tags);
+    }
 }

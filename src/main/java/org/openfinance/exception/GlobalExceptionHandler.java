@@ -25,6 +25,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.context.request.WebRequest;
 import org.springframework.web.method.annotation.HandlerMethodValidationException;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 /**
  * Global exception handler for REST API endpoints.
@@ -1000,6 +1001,17 @@ public class GlobalExceptionHandler {
                                                 key, arguments, LocaleContextHolder.getLocale()))
                                 .path(getRequestPath(request))
                                 .build());
+    }
+
+    @ExceptionHandler(NoResourceFoundException.class)
+    public ResponseEntity<ErrorResponse> handleNoResourceFound(
+            NoResourceFoundException ex, WebRequest request) {
+        log.debug("Static resource not found: {}", ex.getResourcePath());
+        return error(
+                HttpStatus.NOT_FOUND,
+                "error.resource.not.found",
+                new Object[] {ex.getResourcePath()},
+                request);
     }
 
     @ExceptionHandler(Exception.class)

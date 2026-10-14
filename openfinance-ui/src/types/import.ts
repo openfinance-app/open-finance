@@ -88,6 +88,7 @@ export interface ImportSessionResponse {
  * Import split transaction
  */
 export interface ImportSplit {
+  tags?: string[];
   category: string;
   /** Preserve server decimal strings when reviewed rows are submitted again. */
   amount: string | number | null;

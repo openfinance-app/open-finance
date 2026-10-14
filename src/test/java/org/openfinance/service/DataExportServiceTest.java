@@ -122,6 +122,7 @@ class DataExportServiceTest {
                                         .categoryId(50L)
                                         .amount(new BigDecimal("100.00"))
                                         .description("Line one, \"quoted\"\nline two")
+                                        .tags("Holiday,Work")
                                         .build()));
         String csv =
                 new String(
@@ -153,6 +154,7 @@ class DataExportServiceTest {
                             .readTree(row[headers.indexOf("splits")])
                             .get(0);
             assertThat(split.path("categoryId").asLong()).isEqualTo(50L);
+            assertThat(split.path("tags").asText()).isEqualTo("Holiday,Work");
             assertThat(split.path("amount").decimalValue()).isEqualByComparingTo("100.00");
             assertThat(split.path("description").asText())
                     .isEqualTo("Line one, \"quoted\"\nline two");

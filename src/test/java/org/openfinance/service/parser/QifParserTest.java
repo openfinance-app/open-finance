@@ -1268,6 +1268,39 @@ class QifParserTest {
     // ========== Category Class Separator Tests ==========
 
     @Test
+    @DisplayName("Split classes stay on their parts and transaction classes remain separate")
+    void shouldImportSplitClassesAsTags() throws IOException {
+        List<ImportedTransaction> transactions =
+                parseQif(
+                        """
+                !Type:Bank
+                D01/15/2024
+                T-60.00
+                PTravel
+                LTravel/Holiday
+                STravel:Food/Holiday
+                $-20.00
+                STravel:Hotel/Business
+                $-40.00
+                ^
+                """);
+
+        assertThat(transactions)
+                .singleElement()
+                .satisfies(
+                        transaction -> {
+                            assertThat(transaction.getTags()).containsExactly("Holiday");
+                            assertThat(transaction.getSplits().get(0).getTags())
+                                    .containsExactly("Holiday");
+                            assertThat(transaction.getSplits().get(1).getTags())
+                                    .containsExactly("Business");
+                            assertThat(transaction.getSplits())
+                                    .extracting(ImportedTransaction.SplitEntry::getCategory)
+                                    .containsExactly("Travel:Food", "Travel:Hotel");
+                        });
+    }
+
+    @Test
     @DisplayName("Should parse category class separator and store class as tag")
     void testCategoryClassSeparator() throws IOException {
         String qif =

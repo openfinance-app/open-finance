@@ -189,6 +189,7 @@
     }
   },
   "splitForm": {
+    "tagsLabel": "Étiquettes de la partie {{index}}",
     "categoryPlaceholder": "Sélectionner une catégorie (facultatif)...",
     "notesPlaceholder": "Note (facultatif)",
     "removeDisabledTitle": "Au moins deux ventilations sont requises",

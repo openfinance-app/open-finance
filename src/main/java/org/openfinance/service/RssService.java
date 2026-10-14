@@ -22,6 +22,8 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.ResourceAccessException;
+import org.springframework.web.client.RestClientResponseException;
 import org.springframework.web.client.RestTemplate;
 
 @Service
@@ -100,6 +102,11 @@ public class RssService {
                                         .build());
                     }
                 }
+            } catch (RestClientResponseException e) {
+                // An unavailable provider is recoverable: continue with the other feeds.
+                log.warn("RSS feed unavailable: {} (HTTP {})", url, e.getStatusCode().value());
+            } catch (ResourceAccessException e) {
+                log.warn("RSS feed connection failed: {} ({})", url, e.getClass().getSimpleName());
             } catch (Exception e) {
                 log.error("Failed to fetch or parse RSS feed from URL: {}", url, e);
             }

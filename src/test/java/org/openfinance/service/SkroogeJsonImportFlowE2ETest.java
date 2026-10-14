@@ -26,6 +26,7 @@ import org.openfinance.entity.ImportSession;
 import org.openfinance.entity.ImportSession.ImportStatus;
 import org.openfinance.entity.User;
 import org.openfinance.repository.AccountRepository;
+import org.openfinance.repository.CategoryRepository;
 import org.openfinance.repository.TransactionRepository;
 import org.openfinance.repository.UserRepository;
 import org.openfinance.security.EncryptionContext;
@@ -69,7 +70,9 @@ class SkroogeJsonImportFlowE2ETest {
     @Autowired private FileStorageService fileStorageService;
     @Autowired private ImportService importService;
     @Autowired private AccountRepository accountRepository;
+    @Autowired private CategoryRepository categoryRepository;
     @Autowired private TransactionRepository transactionRepository;
+    @Autowired private org.openfinance.repository.TransactionSplitRepository splitRepository;
     @Autowired private UserRepository userRepository;
     @Autowired private DatabaseCleanupService databaseCleanupService;
 
@@ -148,6 +151,24 @@ class SkroogeJsonImportFlowE2ETest {
         //    (Synthetic opening-balance rows are not persisted as transactions.)
         assertThat(transactionRepository.countByUserId(userId)).isEqualTo(5L);
 
+        assertThat(transactionRepository.findByUserId(userId))
+                .filteredOn(tx -> "skrooge:operation:2".equals(tx.getExternalReference()))
+                .singleElement()
+                .satisfies(
+                        tx -> {
+                            assertThat(tx.getTags()).isNullOrEmpty();
+                            assertThat(splitRepository.findByTransactionIdOrderById(tx.getId()))
+                                    .extracting(org.openfinance.entity.TransactionSplit::getTags)
+                                    .containsExactly("Holiday", "Work trip");
+                        });
+        assertThat(transactionRepository.findByUserId(userId))
+                .filteredOn(tx -> tx.getTransferId() != null)
+                .extracting(org.openfinance.entity.Transaction::getTags)
+                .containsExactlyInAnyOrder("Holiday", "Work trip");
+        assertThat(categoryRepository.findByUserId(userId))
+                .isNotEmpty()
+                .allSatisfy(category -> assertThat(category.getIcon()).isEqualTo("📁"));
+
         // 4. Assert each persisted account's native currency and reconciled balance.
         Map<String, Account> byName = new LinkedHashMap<>();
         List<Account> accounts = accountRepository.findByUserId(userId);
@@ -218,6 +239,10 @@ class SkroogeJsonImportFlowE2ETest {
                     { "id": 2, "t_name": "TransferDesk" },
                     { "id": 3, "t_name": "Broker" }
                   ],
+                  "refund": [
+                    { "id": 7, "t_name": "Holiday" },
+                    { "id": 8, "t_name": "Work trip" }
+                  ],
                   "unit": [
                     { "id": 1, "t_name": "Euro (EUR)", "t_symbol": "€", "t_internet_code": "", "t_type": "1", "rd_unit_id": 0 },
                     { "id": 4, "t_name": "Franc CFA (XOF)", "t_symbol": "CFA", "t_internet_code": "XOF/EUR", "t_type": "2", "rd_unit_id": 1 },
@@ -233,9 +258,10 @@ class SkroogeJsonImportFlowE2ETest {
                   ],
                   "suboperation": [
                     { "id": 11, "rd_operation_id": 1, "r_category_id": 0, "f_value": "1000.00" },
-                    { "id": 21, "rd_operation_id": 2, "r_category_id": 100, "f_value": "-50.00" },
-                    { "id": 31, "rd_operation_id": 3, "r_category_id": 200, "f_value": "-200.00" },
-                    { "id": 41, "rd_operation_id": 4, "r_category_id": 200, "f_value": "200.00" },
+                    { "id": 21, "rd_operation_id": 2, "r_category_id": 100, "f_value": "-30.00", "r_refund_id": 7 },
+                    { "id": 22, "rd_operation_id": 2, "r_category_id": 100, "f_value": "-20.00", "r_refund_id": 8 },
+                    { "id": 31, "rd_operation_id": 3, "r_category_id": 200, "f_value": "-200.00", "r_refund_id": 7 },
+                    { "id": 41, "rd_operation_id": 4, "r_category_id": 200, "f_value": "200.00", "r_refund_id": 8 },
                     { "id": 51, "rd_operation_id": 5, "r_category_id": 101, "f_value": "10000.00" },
                     { "id": 61, "rd_operation_id": 6, "r_category_id": 102, "f_value": "0.01" }
                   ],

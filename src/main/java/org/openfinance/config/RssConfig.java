@@ -2,6 +2,7 @@ package org.openfinance.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.web.client.RestTemplate;
 
 /**
@@ -18,10 +19,13 @@ public class RssConfig {
     /**
      * RestTemplate used exclusively by {@link org.openfinance.service.RssService}.
      *
-     * @return a plain RestTemplate with default settings
+     * @return a RestTemplate with bounded timeouts so an unavailable feed cannot hang a request
      */
     @Bean
     public RestTemplate rssRestTemplate() {
-        return new RestTemplate();
+        SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
+        factory.setConnectTimeout(5000);
+        factory.setReadTimeout(10000);
+        return new RestTemplate(factory);
     }
 }

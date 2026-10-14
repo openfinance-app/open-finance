@@ -488,6 +488,7 @@ public class QifParser {
                             currentSplit = ImportedTransaction.SplitEntry.builder();
                             // Strip class suffix from split category
                             currentSplit.category(stripClassSuffix(value));
+                            currentSplit.tags(classTags(value));
                         } else {
                             log.warn(
                                     "Line {}: Split category 'S' found before transaction start 'D'",
@@ -630,7 +631,7 @@ public class QifParser {
             String value, ImportedTransaction.ImportedTransactionBuilder builder) {
         int slashPos = value.indexOf('/');
         String categoryValue = slashPos >= 0 ? value.substring(0, slashPos).trim() : value;
-        String classValue = slashPos >= 0 ? value.substring(slashPos + 1).trim() : null;
+        addClassTag(value, builder);
 
         if (categoryValue.startsWith("[") && categoryValue.endsWith("]")) {
             String accountName = categoryValue.substring(1, categoryValue.length() - 1).trim();
@@ -638,27 +639,32 @@ public class QifParser {
             builder.toAccountName(accountName);
             // QIF transfer syntax [Account] carries its semantics in the transfer flag and
             // target account — no synthetic category is invented for it.
-            if (classValue != null && !classValue.isEmpty()) {
-                ImportedTransaction peek = builder.build();
-                List<String> tags = new ArrayList<>(peek.getTags());
-                tags.add(classValue);
-                builder.tags(tags);
-            }
         } else {
             if (slashPos >= 0) {
                 String category = categoryValue;
                 builder.category(category.isEmpty() ? null : category);
-                if (classValue != null && !classValue.isEmpty()) {
-                    // Store class as a tag on the transaction
-                    ImportedTransaction peek = builder.build();
-                    List<String> tags = new ArrayList<>(peek.getTags());
-                    tags.add(classValue);
-                    builder.tags(tags);
-                }
             } else {
                 builder.category(value);
             }
         }
+    }
+
+    private static void addClassTag(
+            String value, ImportedTransaction.ImportedTransactionBuilder builder) {
+        List<String> tags = new ArrayList<>(builder.build().getTags());
+        for (String tag : classTags(value)) {
+            if (!tags.contains(tag)) tags.add(tag);
+        }
+        builder.tags(tags);
+    }
+
+    private static List<String> classTags(String value) {
+        int slashPos = value.indexOf('/');
+        if (slashPos < 0) {
+            return List.of();
+        }
+        String classValue = value.substring(slashPos + 1).trim();
+        return classValue.isEmpty() ? List.of() : List.of(classValue);
     }
 
     /** Strip class suffix from a category string (text after '/'). */

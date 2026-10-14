@@ -169,6 +169,8 @@ export function useCreateTransaction() {
       // Invalidate budget queries so spent amounts reflect new transactions
       queryClient.invalidateQueries({ queryKey: ['budgets'] });
       queryClient.invalidateQueries({ queryKey: ['categories', 'tree'] });
+      queryClient.invalidateQueries({ queryKey: ['transaction-tags'] });
+      queryClient.invalidateQueries({ queryKey: ['transaction-tags-popular'] });
     },
   });
 }
@@ -200,6 +202,8 @@ export function useCreateTransfer() {
       // Invalidate budget queries so spent amounts reflect new transactions
       queryClient.invalidateQueries({ queryKey: ['budgets'] });
       queryClient.invalidateQueries({ queryKey: ['categories', 'tree'] });
+      queryClient.invalidateQueries({ queryKey: ['transaction-tags'] });
+      queryClient.invalidateQueries({ queryKey: ['transaction-tags-popular'] });
     },
   });
 }
@@ -230,6 +234,8 @@ export function useUpdateTransaction() {
       // Invalidate budget queries so spent amounts reflect updated transactions
       queryClient.invalidateQueries({ queryKey: ['budgets'] });
       queryClient.invalidateQueries({ queryKey: ['categories', 'tree'] });
+      queryClient.invalidateQueries({ queryKey: ['transaction-tags'] });
+      queryClient.invalidateQueries({ queryKey: ['transaction-tags-popular'] });
     },
   });
 }
@@ -264,6 +270,8 @@ export function useUpdateTransfer() {
       // Invalidate budget queries so spent amounts reflect updated transactions
       queryClient.invalidateQueries({ queryKey: ['budgets'] });
       queryClient.invalidateQueries({ queryKey: ['categories', 'tree'] });
+      queryClient.invalidateQueries({ queryKey: ['transaction-tags'] });
+      queryClient.invalidateQueries({ queryKey: ['transaction-tags-popular'] });
     },
   });
 }
@@ -292,6 +300,8 @@ export function useDeleteTransaction() {
       // Invalidate budget queries so spent amounts reflect deleted transactions
       queryClient.invalidateQueries({ queryKey: ['budgets'] });
       queryClient.invalidateQueries({ queryKey: ['categories', 'tree'] });
+      queryClient.invalidateQueries({ queryKey: ['transaction-tags'] });
+      queryClient.invalidateQueries({ queryKey: ['transaction-tags-popular'] });
     },
   });
 }

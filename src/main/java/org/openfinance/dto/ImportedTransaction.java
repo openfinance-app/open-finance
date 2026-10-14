@@ -6,10 +6,12 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
+import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.Singular;
 
 /**
  * Data Transfer Object for imported transactions from QIF/OFX/CSV files.
@@ -237,8 +239,19 @@ public class ImportedTransaction {
     @Data
     @Builder(toBuilder = true)
     @NoArgsConstructor
-    @AllArgsConstructor
+    @AllArgsConstructor(access = AccessLevel.PRIVATE)
     public static class SplitEntry {
+        /** Tags assigned to this source split, independent of transaction-wide tags. */
+        @Singular private List<String> tags;
+
+        public List<String> getTags() {
+            return tags == null ? List.of() : List.copyOf(tags);
+        }
+
+        public void setTags(List<String> tags) {
+            this.tags = tags == null ? List.of() : List.copyOf(tags);
+        }
+
         /** Category for this split */
         private String category;
 

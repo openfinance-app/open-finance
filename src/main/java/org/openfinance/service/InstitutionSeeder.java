@@ -72,7 +72,7 @@ public class InstitutionSeeder implements CommandLineRunner {
         LOGO_PATHS.put("N26", "/logos/institutions/n26.png");
         LOGO_PATHS.put("Revolut", "/logos/institutions/revolut.png");
         LOGO_PATHS.put("Banque Populaire", "/logos/institutions/banque-populaire.png");
-        LOGO_PATHS.put("Caisse d'Epargne", "/logos/institutions/caisse-epargne.png");
+        LOGO_PATHS.put("Caisse d'Epargne", null);
         LOGO_PATHS.put("Crédit Mutuel", "/logos/institutions/credit-mutuel.png");
         LOGO_PATHS.put("La Banque Postale", "/logos/institutions/la-banque-postale.png");
 
@@ -138,7 +138,7 @@ public class InstitutionSeeder implements CommandLineRunner {
         // Austria
         LOGO_PATHS.put("Erste Bank", "/logos/institutions/erste-bank.png");
         LOGO_PATHS.put("Raiffeisenbank", "/logos/institutions/raiffeisenbank.png");
-        LOGO_PATHS.put("UniCredit Bank Austria", "/logos/institutions/unicredit-austria.png");
+        LOGO_PATHS.put("UniCredit Bank Austria", "/logos/institutions/unicredit.png");
         LOGO_PATHS.put("Bank Austria", null); // No logo available
         LOGO_PATHS.put("PSK Bank", null); // No logo available
         LOGO_PATHS.put("Hypo Oberösterreich", null); // No logo available

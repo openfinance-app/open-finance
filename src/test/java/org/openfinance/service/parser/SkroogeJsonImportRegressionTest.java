@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.within;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
 import java.io.InputStream;
@@ -11,9 +12,13 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -50,6 +55,65 @@ class SkroogeJsonImportRegressionTest {
     private static final BigDecimal BALANCE_TOLERANCE = new BigDecimal("0.01");
 
     private SkroogeJsonParser parser;
+
+    @Test
+    @DisplayName("Real export preserves all 177 operations linked to Skrooge trackers")
+    void shouldPreserveTrackersFromRealExport() throws IOException {
+        JsonNode root = new ObjectMapper().readTree(SAMPLE_FILE.toFile());
+        Map<Long, String> trackers = new HashMap<>();
+        root.path("refund")
+                .forEach(
+                        node ->
+                                trackers.put(
+                                        node.path("id").asLong(), node.path("t_name").asText()));
+        Map<String, Set<String>> expected = new HashMap<>();
+        Map<String, List<List<String>>> expectedParts = new HashMap<>();
+        for (JsonNode split : root.path("suboperation")) {
+            String tracker = trackers.get(split.path("r_refund_id").asLong());
+            String reference = "skrooge:operation:" + split.path("rd_operation_id").asLong();
+            expectedParts
+                    .computeIfAbsent(reference, ignored -> new ArrayList<>())
+                    .add(
+                            tracker == null || tracker.isBlank()
+                                    ? List.of()
+                                    : List.of(tracker.trim()));
+            if (tracker != null) {
+                expected.computeIfAbsent(reference, ignored -> new LinkedHashSet<>()).add(tracker);
+            }
+        }
+        assertThat(expected).hasSize(177);
+
+        try (InputStream input = Files.newInputStream(SAMPLE_FILE)) {
+            SkroogeImportParseResult result = parser.parseFile(input, "export_anonymized.json");
+            assertThat(
+                            result.getTransactions().stream()
+                                    .filter(
+                                            tx ->
+                                                    !tx.getTags().isEmpty()
+                                                            || tx.getSplits().stream()
+                                                                    .anyMatch(
+                                                                            split ->
+                                                                                    !split.getTags()
+                                                                                            .isEmpty())))
+                    .hasSize(177);
+            for (ImportedTransaction transaction : result.getTransactions()) {
+                Set<String> allTags = new LinkedHashSet<>(transaction.getTags());
+                transaction.getSplits().forEach(split -> allTags.addAll(split.getTags()));
+                assertThat(allTags)
+                        .as("trackers of %s", transaction.getReferenceNumber())
+                        .containsExactlyInAnyOrderElementsOf(
+                                expected.getOrDefault(transaction.getReferenceNumber(), Set.of()));
+                if (transaction.isSplitTransaction()) {
+                    assertThat(transaction.getTags()).isEmpty();
+                    assertThat(transaction.getSplits())
+                            .extracting(ImportedTransaction.SplitEntry::getTags)
+                            .as("individual parts of %s", transaction.getReferenceNumber())
+                            .containsExactlyElementsOf(
+                                    expectedParts.get(transaction.getReferenceNumber()));
+                }
+            }
+        }
+    }
 
     @BeforeEach
     void setUp() {

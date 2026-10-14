@@ -321,6 +321,7 @@ public class DataExportService {
         data.put("categoryId", split.getCategoryId());
         data.put("amount", split.getAmount());
         data.put("description", split.getDescription());
+        data.put("tags", split.getTags());
         return data;
     }
 

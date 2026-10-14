@@ -59,6 +59,19 @@ function renderComponent({ splits = mockSplits, currency = 'EUR' }: RenderCompon
 // ── Tests ─────────────────────────────────────────────────────────────────────
 
 describe('SplitDetail', () => {
+  it('shows each tag only beside its own split', () => {
+    renderComponent({
+      splits: [
+        { ...mockSplits[0], tags: ['Holiday'] },
+        { ...mockSplits[1], tags: ['Work'] },
+      ],
+    });
+    const rows = screen.getAllByRole('listitem');
+    expect(rows[0]).toHaveTextContent('Holiday');
+    expect(rows[0]).not.toHaveTextContent('Work');
+    expect(rows[1]).toHaveTextContent('Work');
+    expect(rows[1]).not.toHaveTextContent('Holiday');
+  });
   describe('Basic Rendering', () => {
     it('renders all split details in a list', () => {
       renderComponent();

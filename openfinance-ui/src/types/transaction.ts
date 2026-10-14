@@ -71,6 +71,8 @@ export interface CategoryTreeNode {
  * Requirement REQ-SPL-3.1, REQ-SPL-3.2
  */
 export interface TransactionSplitRequest {
+  /** Tags belonging to this part only; an empty array clears them. */
+  tags?: string[];
   /** Optional category to assign to this split */
   categoryId?: number;
   /** Amount for this split — must be > 0 */
@@ -84,6 +86,7 @@ export interface TransactionSplitRequest {
  * Requirement REQ-SPL-4.3
  */
 export interface TransactionSplitResponse {
+  tags?: string[];
   id: number;
   transactionId: number;
   categoryId?: number;
