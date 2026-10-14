@@ -277,6 +277,23 @@ describe('useDashboard hooks', () => {
 
   // ── useCashflowSankey ───────────────────────────────────────────────────
   describe('useCashflowSankey', () => {
+    it('waits until enabled before requesting a comparison range', async () => {
+      const dateRange = { from: '2026-07-01', to: '2026-07-31' };
+      mockedApiClient.get.mockResolvedValue({ data: { incomeSources: [], expenseCategories: [] } });
+      const { result, rerender } = renderHook(
+        ({ enabled }) => useCashflowSankey(31, dateRange, enabled),
+        { wrapper, initialProps: { enabled: false } }
+      );
+      expect(result.current.fetchStatus).toBe('idle');
+      expect(mockedApiClient.get).not.toHaveBeenCalled();
+      rerender({ enabled: true });
+      await waitFor(() => expect(result.current.isSuccess).toBe(true));
+      expect(mockedApiClient.get).toHaveBeenCalledWith('/dashboard/cashflow-sankey', {
+        params: { startDate: '2026-07-01', endDate: '2026-07-31' },
+        headers: { 'X-Encryption-Session': 'test-encryption-key' },
+      });
+    });
+
     it('should fetch cashflow sankey data', async () => {
       const mockSankey = { nodes: [], links: [] };
       mockedApiClient.get.mockResolvedValue({ data: mockSankey });

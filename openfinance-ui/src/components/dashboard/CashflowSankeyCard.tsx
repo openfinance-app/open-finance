@@ -1,17 +1,25 @@
 import { useDateFormatter } from '@/hooks/useDateFormatter';
-import { useId, useState, useCallback, useRef, useMemo } from 'react';
-import { ZoomIn, ZoomOut, Maximize2 } from 'lucide-react';
+import { useId, useState, useCallback, useMemo } from 'react';
+import { Eye, EyeOff } from 'lucide-react';
 import { useNavigate } from 'react-router';
 import { useTranslation } from 'react-i18next';
-import { useCashflowSankey } from '../../hooks/useDashboard';
+import { useCashflowSankey } from '@/hooks/useDashboard';
 import { useFormatCurrency } from '@/hooks/useFormatCurrency';
-import { buildTransactionsLink } from '@/utils/navigation';
+import { useIsMobile } from '@/hooks/useBreakpoint';
+import { buildTransactionsLink, periodToDateRange } from '@/utils/navigation';
 import { DEFAULT_CURRENCY } from '@/utils/currency';
 import { sum } from '@/utils/money';
-import { ConvertedAmount } from '../ui/ConvertedAmount';
-import { useVisibility } from '../../context/VisibilityContext';
-import type { ICashflowSankeyNode } from '../../types/dashboard';
-import type { DateRange } from '../ui/PeriodSelector';
+import {
+  compareFlowNodes,
+  flowVariation,
+  previousSankeyPeriod,
+  type ComparedFlowNode,
+} from '@/utils/sankey-comparison';
+import { SankeyViewport } from '@/components/dashboard/SankeyViewport';
+import { ConvertedAmount } from '@/components/ui/ConvertedAmount';
+import { useVisibility } from '@/context/VisibilityContext';
+import type { ICashflowSankeyNode } from '@/types/dashboard';
+import type { DateRange } from '@/components/ui/PeriodSelector';
 import {
   CASHFLOW_INCOME_COLORS,
   CASHFLOW_EXPENSE_COLORS,
@@ -42,6 +50,8 @@ const DEFICIT_COLOR = CASHFLOW_DEFICIT_COLOR;
 //   [EXP_X+10 .. 540]  expense labels
 //
 const SVG_W = 560;
+// Reserve room for variation labels in both states so toggling cannot rescale the diagram.
+const LABEL_MARGIN = 160;
 const BAR_W = 14; // clearly visible bars
 const BAR_H = 13; // fixed bar height
 const ROW_H = 27; // row pitch
@@ -78,7 +88,7 @@ const SURPLUS_GAP = 14;
 const SURPLUS_MAX = SVG_W - EXP_BAR_X - 4;
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
-interface FlowNodeLayout extends ICashflowSankeyNode {
+interface FlowNodeLayout extends ComparedFlowNode {
   color: string;
   barY: number; // top of fixed-height bar
   isOther?: boolean;
@@ -87,7 +97,7 @@ interface FlowNodeLayout extends ICashflowSankeyNode {
 // ─── Stack helper ─────────────────────────────────────────────────────────────
 /** Place fixed-height bars centred on centerY with ROW_H pitch. */
 function stackBars(
-  nodes: Array<ICashflowSankeyNode & { color: string }>,
+  nodes: Array<ComparedFlowNode & { color: string }>,
   centerY: number
 ): FlowNodeLayout[] {
   if (!nodes.length) return [];
@@ -122,7 +132,9 @@ function buildFan(
 
   // Proportional heights, capped at maxSliceH
   const rawH = nodes.map(node =>
-    Math.min(maxSliceH, Math.max(1, (node.amount / Math.max(total, 1)) * fill))
+    node.amount === 0
+      ? 0
+      : Math.min(maxSliceH, Math.max(1, (node.amount / Math.max(total, 1)) * fill))
   );
   const totalRaw = rawH.reduce((s, h) => s + h, 0);
   const totalHeight = totalRaw + gaps;
@@ -159,12 +171,6 @@ function ribbonPath(
   ].join(' ');
 }
 
-// ─── Zoom constants ────────────────────────────────────────────────────────────
-const ZOOM_MIN = 0.5;
-const ZOOM_MAX = 3.0;
-const ZOOM_STEP = 0.25;
-const ZOOM_DEFAULT = 1.0;
-
 // ─── Main component ────────────────────────────────────────────────────────────
 interface CashflowSankeyCardProps {
   currency?: string;
@@ -173,6 +179,7 @@ interface CashflowSankeyCardProps {
   /** Optional explicit date range — takes precedence over `period` */
   dateRange?: DateRange;
   navDateRange?: DateRange;
+  isAllTime?: boolean;
 }
 
 export default function CashflowSankeyCard({
@@ -180,10 +187,12 @@ export default function CashflowSankeyCard({
   period = 30,
   dateRange,
   navDateRange,
+  isAllTime = false,
 }: CashflowSankeyCardProps) {
-  const { t } = useTranslation('dashboard');
+  const { t, i18n } = useTranslation('dashboard');
   const { date: formatDate } = useDateFormatter();
   const { isAmountsVisible } = useVisibility();
+  const isMobile = useIsMobile();
   const { format } = useFormatCurrency();
   const navigate = useNavigate();
   const gradId = useId().replace(/:/g, '');
@@ -219,40 +228,31 @@ export default function CashflowSankeyCard({
     [navigate, navDateRange]
   );
 
-  // ── Zoom state ──────────────────────────────────────────────────────────────
-  const [zoom, setZoom] = useState<number>(ZOOM_DEFAULT);
-  const scrollContainerRef = useRef<HTMLDivElement>(null);
-
-  const clampZoom = useCallback(
-    (value: number) => Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, value)),
-    []
+  const [showVariations, setShowVariations] = useState(true);
+  const currentRange = dateRange ?? periodToDateRange(period);
+  const previousRange = previousSankeyPeriod(currentRange);
+  const { data, isLoading, error } = useCashflowSankey(
+    period,
+    isAllTime ? dateRange : currentRange
   );
-
-  const zoomIn = useCallback(() => setZoom(z => clampZoom(z + ZOOM_STEP)), [clampZoom]);
-  const zoomOut = useCallback(() => setZoom(z => clampZoom(z - ZOOM_STEP)), [clampZoom]);
-  const zoomReset = useCallback(() => setZoom(ZOOM_DEFAULT), []);
-
-  /** Mouse-wheel zoom on the SVG container */
-  const handleWheel = useCallback(
-    (e: React.WheelEvent<HTMLDivElement>) => {
-      if (!e.ctrlKey && !e.metaKey) return; // only zoom when Ctrl/Cmd is held
-      e.preventDefault();
-      const delta = e.deltaY < 0 ? ZOOM_STEP : -ZOOM_STEP;
-      setZoom(z => clampZoom(z + delta));
-    },
-    [clampZoom]
+  const comparison = useCashflowSankey(period, previousRange, showVariations && !isAllTime);
+  const previousData =
+    showVariations && !isAllTime && !comparison.error ? comparison.data : undefined;
+  const showComparison = previousData != null && isAmountsVisible;
+  const percentFormatter = useMemo(
+    () =>
+      new Intl.NumberFormat(i18n.language, { maximumFractionDigits: 1, signDisplay: 'exceptZero' }),
+    [i18n.language]
   );
-
-  const { data, isLoading, error } = useCashflowSankey(period, dateRange);
 
   // ── Layout computation ──────────────────────────────────────────────────────
   const layout = useMemo(() => {
     if (!data) return null;
 
     function collapseNodes(
-      nodes: ICashflowSankeyNode[],
+      nodes: ComparedFlowNode[],
       palette: string[]
-    ): Array<ICashflowSankeyNode & { color: string }> {
+    ): Array<ComparedFlowNode & { color: string }> {
       const sorted = [...nodes].sort((a, b) => b.amount - a.amount);
       if (sorted.length <= MAX_ROWS) {
         return sorted.map((n, i) => ({ ...n, color: n.color ?? palette[i % palette.length] }));
@@ -267,15 +267,16 @@ export default function CashflowSankeyCard({
         {
           name: otherLabel,
           amount: sum(rest.map(n => n.amount)),
+          previousAmount: previousData ? sum(rest.map(n => n.previousAmount ?? 0)) : undefined,
           color: '#6b7280',
           icon: null,
           categoryId: null,
           isOther: true,
-        } as ICashflowSankeyNode & { color: string },
+        } as ComparedFlowNode & { color: string },
       ];
     }
 
-    const translateNode = (n: ICashflowSankeyNode) => {
+    const translateNode = (n: ComparedFlowNode) => {
       let name = n.name;
       if (name === 'Uncategorized' || name === 'uncategorized')
         name = t('cashflowSankey.uncategorized');
@@ -283,8 +284,14 @@ export default function CashflowSankeyCard({
       return { ...n, name };
     };
 
-    const incNodes = collapseNodes(data.incomeSources.map(translateNode), INCOME_COLORS);
-    const expNodes = collapseNodes(data.expenseCategories.map(translateNode), EXPENSE_COLORS);
+    const incNodes = collapseNodes(
+      compareFlowNodes(data.incomeSources, previousData?.incomeSources).map(translateNode),
+      INCOME_COLORS
+    );
+    const expNodes = collapseNodes(
+      compareFlowNodes(data.expenseCategories, previousData?.expenseCategories).map(translateNode),
+      EXPENSE_COLORS
+    );
 
     // SVG height: fit the taller column + padding + optional surplus zone
     const nRows = Math.max(incNodes.length, expNodes.length, 1);
@@ -312,7 +319,7 @@ export default function CashflowSankeyCard({
     const surplusY = lastExp ? lastExp.barY + BAR_H + SURPLUS_GAP : PAD_TOP + colH + 10;
 
     return { incLayout, expLayout, incFan, expFan, svgH, midY, surplusY };
-  }, [data]);
+  }, [data, previousData, t]);
 
   // ── Loading ─────────────────────────────────────────────────────────────────
   if (isLoading) {
@@ -345,13 +352,43 @@ export default function CashflowSankeyCard({
   // Bar centre-Y
   const barCY = (n: FlowNodeLayout) => n.barY + BAR_H / 2;
 
+  const renderVariation = (node: FlowNodeLayout, type: 'INCOME' | 'EXPENSE', html = false) => {
+    if (!showComparison || node.previousAmount == null) return null;
+    const { change, percent } = flowVariation(node.amount, node.previousAmount);
+    const favorable = type === 'EXPENSE' ? change < 0 : change > 0;
+    const color = change === 0 ? '#9ca3af' : favorable ? SURPLUS_COLOR : DEFICIT_COLOR;
+    const signedAmount = `${change > 0 ? '+' : ''}${format(change, currency)}`;
+    const percentSuffix = percent == null ? '' : `/${percentFormatter.format(percent)}%`;
+    const label = ` (${signedAmount}${percentSuffix})`;
+    return html ? <span style={{ color }}>{label}</span> : <tspan fill={color}>{label}</tspan>;
+  };
+
   return (
     <div className="bg-surface rounded-lg p-4 border border-border h-full flex flex-col">
       {/* ── Header ─────────────────────────────────────────────────────────── */}
-      <div className="flex items-center justify-between mb-3 flex-shrink-0">
-        <h3 className="plate-label ">{t('cashflowSankey.title')}</h3>
+      <div className="flex items-center justify-between gap-2 flex-wrap mb-3 flex-shrink-0">
+        <div className="flex items-center gap-2">
+          <h3 className="plate-label ">{t('cashflowSankey.title')}</h3>
+          <button
+            type="button"
+            onClick={() => setShowVariations(visible => !visible)}
+            aria-pressed={showVariations && !isAllTime}
+            disabled={isAllTime}
+            title={t('cashflowSankey.toggleVariations')}
+            className="inline-flex items-center justify-center rounded-md p-1 text-text-secondary hover:text-text-primary hover:bg-surface-elevated transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            {showVariations && !isAllTime ? (
+              <Eye className="h-4 w-4" />
+            ) : (
+              <EyeOff className="h-4 w-4" />
+            )}
+            <span className="sr-only">{t('cashflowSankey.toggleVariations')}</span>
+          </button>
+        </div>
         {/* Period label — read-only, driven by global selector */}
-        {dateRange ? (
+        {isAllTime ? (
+          <span className="text-xs text-text-secondary">{t('cashflowSankey.allTime')}</span>
+        ) : dateRange ? (
           <span className="text-xs text-text-secondary bg-surface-elevated px-2 py-1 rounded border border-border">
             {formatDate(dateRange.from)} → {formatDate(dateRange.to)}
           </span>
@@ -400,342 +437,324 @@ export default function CashflowSankeyCard({
         </div>
       </div>
 
-      {/* ── SVG Sankey ─────────────────────────────────────────────────────── */}
-      {/*
-        The outer div is the scroll viewport (overflow: auto).
-        The inner wrapper grows proportionally with the zoom level so the
-        scrollbars appear when the scaled SVG exceeds the viewport.
-        The SVG itself keeps its natural aspect-ratio via viewBox — scaling
-        is applied with CSS transform on the inner wrapper.
-      */}
-      <div
-        ref={scrollContainerRef}
-        className="relative flex-1 min-h-0 overflow-auto scrollbar-thin"
-        onWheel={handleWheel}
-        title={t('cashflowSankey.zoomHint')}
-        style={{ cursor: zoom > 1 ? 'grab' : 'default' }}
-      >
-        {/* ── Zoom controls — bottom-left overlay ──────────────────────────── */}
-        <div className="absolute bottom-2 left-2 z-10 flex items-center gap-0.5 bg-surface-elevated/90 backdrop-blur-sm rounded border border-border shadow-lg">
-          <button
-            onClick={zoomOut}
-            disabled={zoom <= ZOOM_MIN}
-            className="p-1 text-text-secondary hover:text-text-primary transition-colors disabled:opacity-30 disabled:cursor-not-allowed rounded-l"
-            aria-label={t('cashflowSankey.zoomOut')}
-            title={t('cashflowSankey.zoomOut') + ' (or Ctrl+Scroll)'}
+      <div className="flex justify-end mb-2 text-xs text-text-secondary">
+        {isAllTime ? (
+          <span>{t('cashflowSankey.noComparisonPeriod')}</span>
+        ) : (
+          <span
+            role="status"
+            aria-hidden={!showVariations}
+            className={showVariations ? undefined : 'invisible'}
           >
-            <ZoomOut className="w-3.5 h-3.5" />
-          </button>
+            {comparison.error
+              ? t('cashflowSankey.comparisonUnavailable')
+              : comparison.isLoading
+                ? t('cashflowSankey.loadingComparison')
+                : t('cashflowSankey.comparedWith', {
+                    from: formatDate(previousRange.from),
+                    to: formatDate(previousRange.to),
+                  })}
+          </span>
+        )}
+      </div>
 
-          <button
-            onClick={zoomReset}
-            disabled={zoom === ZOOM_DEFAULT}
-            className="px-1.5 text-xs text-text-secondary hover:text-text-primary transition-colors disabled:opacity-30 disabled:cursor-not-allowed min-w-[2.8rem] text-center font-mono"
-            aria-label={t('cashflowSankey.resetZoom')}
-            title={t('cashflowSankey.resetZoom')}
-          >
-            {zoom !== ZOOM_DEFAULT ? (
-              `${Math.round(zoom * 100)}%`
-            ) : (
-              <Maximize2 className="w-3.5 h-3.5 mx-auto" />
-            )}
-          </button>
-
-          <button
-            onClick={zoomIn}
-            disabled={zoom >= ZOOM_MAX}
-            className="p-1 text-text-secondary hover:text-text-primary transition-colors disabled:opacity-30 disabled:cursor-not-allowed rounded-r"
-            aria-label={t('cashflowSankey.zoomIn')}
-            title={t('cashflowSankey.zoomIn') + ' (or Ctrl+Scroll)'}
-          >
-            <ZoomIn className="w-3.5 h-3.5" />
-          </button>
-        </div>
-        <div
-          style={{
-            transform: `scale(${zoom})`,
-            transformOrigin: 'top center',
-            width: '100%',
-            // Reserve height so scrollbar appears when zoomed in
-            height: zoom > 1 ? `${zoom * 100}%` : '100%',
-            transition: 'transform 0.15s ease',
-          }}
+      <SankeyViewport>
+        <svg
+          viewBox={`-${LABEL_MARGIN} 0 ${SVG_W + LABEL_MARGIN * 2} ${svgH}`}
+          width="100%"
+          height="100%"
+          preserveAspectRatio="xMidYMid meet"
+          style={{ display: 'block' }}
         >
-          <svg
-            viewBox={`0 0 ${SVG_W} ${svgH}`}
-            width="100%"
-            height="100%"
-            preserveAspectRatio="xMidYMid meet"
-            style={{ display: 'block' }}
-          >
-            <defs>
-              {/* Income ribbons: vivid at bar → fade to near-transparent at node */}
-              {incLayout.map((n, i) => (
-                <linearGradient key={`ig${i}`} id={`${gradId}ig${i}`} x1="0" y1="0" x2="1" y2="0">
-                  <stop offset="0%" stopColor={n.color} stopOpacity={1.0} />
-                  <stop offset="50%" stopColor={n.color} stopOpacity={0.55} />
-                  <stop offset="85%" stopColor={n.color} stopOpacity={0.18} />
-                  <stop offset="100%" stopColor={n.color} stopOpacity={0.05} />
-                </linearGradient>
-              ))}
-              {/* Expense ribbons: near-transparent at node → vivid at bar */}
-              {expLayout.map((n, i) => (
-                <linearGradient key={`eg${i}`} id={`${gradId}eg${i}`} x1="0" y1="0" x2="1" y2="0">
-                  <stop offset="0%" stopColor={n.color} stopOpacity={0.05} />
-                  <stop offset="15%" stopColor={n.color} stopOpacity={0.18} />
-                  <stop offset="50%" stopColor={n.color} stopOpacity={0.55} />
-                  <stop offset="100%" stopColor={n.color} stopOpacity={1.0} />
-                </linearGradient>
-              ))}
-              {/* Surplus/Deficit fill */}
-              <linearGradient id={`${gradId}sur`} x1="0" y1="0" x2="1" y2="0">
-                <stop offset="0%" stopColor={surplusColor} stopOpacity={0.4} />
-                <stop offset="100%" stopColor={surplusColor} stopOpacity={0.9} />
-              </linearGradient>
-            </defs>
-
-            {/* ── Income ribbons (bar-right+gap → NODE_L fan) ───────────────── */}
+          <defs>
+            {/* Income ribbons: vivid at bar → fade to near-transparent at node */}
             {incLayout.map((n, i) => (
-              <path
-                key={`ir${i}`}
-                d={ribbonPath(INC_RIB_L, n.barY, n.barY + BAR_H, NODE_L, incFan[i].t, incFan[i].b)}
-                fill={`url(#${gradId}ig${i})`}
+              <linearGradient key={`ig${i}`} id={`${gradId}ig${i}`} x1="0" y1="0" x2="1" y2="0">
+                <stop offset="0%" stopColor={n.color} stopOpacity={1.0} />
+                <stop offset="50%" stopColor={n.color} stopOpacity={0.55} />
+                <stop offset="85%" stopColor={n.color} stopOpacity={0.18} />
+                <stop offset="100%" stopColor={n.color} stopOpacity={0.05} />
+              </linearGradient>
+            ))}
+            {/* Expense ribbons: near-transparent at node → vivid at bar */}
+            {expLayout.map((n, i) => (
+              <linearGradient key={`eg${i}`} id={`${gradId}eg${i}`} x1="0" y1="0" x2="1" y2="0">
+                <stop offset="0%" stopColor={n.color} stopOpacity={0.05} />
+                <stop offset="15%" stopColor={n.color} stopOpacity={0.18} />
+                <stop offset="50%" stopColor={n.color} stopOpacity={0.55} />
+                <stop offset="100%" stopColor={n.color} stopOpacity={1.0} />
+              </linearGradient>
+            ))}
+            {/* Surplus/Deficit fill */}
+            <linearGradient id={`${gradId}sur`} x1="0" y1="0" x2="1" y2="0">
+              <stop offset="0%" stopColor={surplusColor} stopOpacity={0.4} />
+              <stop offset="100%" stopColor={surplusColor} stopOpacity={0.9} />
+            </linearGradient>
+          </defs>
+
+          {/* ── Income ribbons (bar-right+gap → NODE_L fan) ───────────────── */}
+          {incLayout.map((n, i) => (
+            <path
+              key={`ir${i}`}
+              d={ribbonPath(INC_RIB_L, n.barY, n.barY + BAR_H, NODE_L, incFan[i].t, incFan[i].b)}
+              fill={`url(#${gradId}ig${i})`}
+              visibility={n.amount === 0 ? 'hidden' : undefined}
+              className="cursor-pointer"
+              onClick={() => {
+                if (!n.isOther) navToFlow(n, 'INCOME');
+              }}
+            />
+          ))}
+
+          {/* ── Expense ribbons (NODE_R fan → bar-left-gap) ───────────────── */}
+          {expLayout.map((n, i) => (
+            <path
+              key={`er${i}`}
+              d={ribbonPath(NODE_R, expFan[i].t, expFan[i].b, EXP_RIB_R, n.barY, n.barY + BAR_H)}
+              fill={`url(#${gradId}eg${i})`}
+              visibility={n.amount === 0 ? 'hidden' : undefined}
+              className="cursor-pointer"
+              onClick={() => {
+                if (!n.isOther) navToFlow(n, 'EXPENSE');
+              }}
+            />
+          ))}
+
+          {/* ── Income bars (on top of ribbons, with background blocker) ─── */}
+          {incLayout.map((n, i) => {
+            const cy = barCY(n);
+            return (
+              <g
+                key={`ib${i}`}
+                role="button"
+                tabIndex={0}
                 className="cursor-pointer"
+                aria-label={n.isOther ? undefined : t('cashflowSankey.viewFlow', { name: n.name })}
                 onClick={() => {
                   if (!n.isOther) navToFlow(n, 'INCOME');
                 }}
-              />
-            ))}
+                onKeyDown={e => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    if (!n.isOther) navToFlow(n, 'INCOME');
+                  }
+                }}
+              >
+                {/* Dark background rect to block ribbon bleed */}
+                <rect
+                  x={INC_BAR_X - 2}
+                  y={n.barY - 1}
+                  width={BAR_W + 4}
+                  height={BAR_H + 2}
+                  fill="#111827"
+                  rx={3}
+                />
+                <rect x={INC_BAR_X} y={n.barY} width={BAR_W} height={BAR_H} fill={n.color} rx={2} />
+                <text
+                  x={INC_LBL_X}
+                  y={cy - 3}
+                  textAnchor="end"
+                  dominantBaseline="auto"
+                  fontSize={10}
+                  fill="#e5e7eb"
+                  fontWeight={500}
+                >
+                  <title>{n.name}</title>
+                  {n.name.length > 20 ? n.name.slice(0, 19) + '…' : n.name}
+                  {renderVariation(n, 'INCOME')}
+                </text>
+                <text
+                  x={INC_LBL_X}
+                  y={cy + 4}
+                  textAnchor="end"
+                  dominantBaseline="hanging"
+                  fontSize={9}
+                  fill="#9ca3af"
+                >
+                  {isAmountsVisible ? format(n.amount, currency) : '••••'}
+                </text>
+              </g>
+            );
+          })}
 
-            {/* ── Expense ribbons (NODE_R fan → bar-left-gap) ───────────────── */}
-            {expLayout.map((n, i) => (
-              <path
-                key={`er${i}`}
-                d={ribbonPath(NODE_R, expFan[i].t, expFan[i].b, EXP_RIB_R, n.barY, n.barY + BAR_H)}
-                fill={`url(#${gradId}eg${i})`}
+          {/* ── Expense bars (on top of ribbons, with background blocker) ── */}
+          {expLayout.map((n, i) => {
+            const cy = barCY(n);
+            return (
+              <g
+                key={`eb${i}`}
+                role="button"
+                tabIndex={0}
                 className="cursor-pointer"
+                aria-label={n.isOther ? undefined : t('cashflowSankey.viewFlow', { name: n.name })}
                 onClick={() => {
                   if (!n.isOther) navToFlow(n, 'EXPENSE');
                 }}
-              />
-            ))}
-
-            {/* ── Income bars (on top of ribbons, with background blocker) ─── */}
-            {incLayout.map((n, i) => {
-              const cy = barCY(n);
-              return (
-                <g
-                  key={`ib${i}`}
-                  role="button"
-                  tabIndex={0}
-                  className="cursor-pointer"
-                  aria-label={
-                    n.isOther ? undefined : t('cashflowSankey.viewFlow', { name: n.name })
-                  }
-                  onClick={() => {
-                    if (!n.isOther) navToFlow(n, 'INCOME');
-                  }}
-                  onKeyDown={e => {
-                    if (e.key === 'Enter' || e.key === ' ') {
-                      e.preventDefault();
-                      if (!n.isOther) navToFlow(n, 'INCOME');
-                    }
-                  }}
-                >
-                  {/* Dark background rect to block ribbon bleed */}
-                  <rect
-                    x={INC_BAR_X - 2}
-                    y={n.barY - 1}
-                    width={BAR_W + 4}
-                    height={BAR_H + 2}
-                    fill="#111827"
-                    rx={3}
-                  />
-                  <rect
-                    x={INC_BAR_X}
-                    y={n.barY}
-                    width={BAR_W}
-                    height={BAR_H}
-                    fill={n.color}
-                    rx={2}
-                  />
-                  <text
-                    x={INC_LBL_X}
-                    y={cy - 3}
-                    textAnchor="end"
-                    dominantBaseline="auto"
-                    fontSize={10}
-                    fill="#e5e7eb"
-                    fontWeight={500}
-                  >
-                    {n.name.length > 14 ? n.name.slice(0, 13) + '…' : n.name}
-                  </text>
-                  <text
-                    x={INC_LBL_X}
-                    y={cy + 4}
-                    textAnchor="end"
-                    dominantBaseline="hanging"
-                    fontSize={9}
-                    fill="#9ca3af"
-                  >
-                    {isAmountsVisible ? format(n.amount, currency) : '••••'}
-                  </text>
-                </g>
-              );
-            })}
-
-            {/* ── Expense bars (on top of ribbons, with background blocker) ── */}
-            {expLayout.map((n, i) => {
-              const cy = barCY(n);
-              return (
-                <g
-                  key={`eb${i}`}
-                  role="button"
-                  tabIndex={0}
-                  className="cursor-pointer"
-                  aria-label={
-                    n.isOther ? undefined : t('cashflowSankey.viewFlow', { name: n.name })
-                  }
-                  onClick={() => {
+                onKeyDown={e => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
                     if (!n.isOther) navToFlow(n, 'EXPENSE');
-                  }}
-                  onKeyDown={e => {
-                    if (e.key === 'Enter' || e.key === ' ') {
-                      e.preventDefault();
-                      if (!n.isOther) navToFlow(n, 'EXPENSE');
-                    }
-                  }}
+                  }
+                }}
+              >
+                {/* Dark background rect to block ribbon bleed */}
+                <rect
+                  x={EXP_BAR_X - 2}
+                  y={n.barY - 1}
+                  width={BAR_W + 4}
+                  height={BAR_H + 2}
+                  fill="#111827"
+                  rx={3}
+                />
+                <rect x={EXP_BAR_X} y={n.barY} width={BAR_W} height={BAR_H} fill={n.color} rx={2} />
+                <text
+                  x={EXP_LBL_X}
+                  y={cy - 3}
+                  textAnchor="start"
+                  dominantBaseline="auto"
+                  fontSize={10}
+                  fill="#e5e7eb"
+                  fontWeight={500}
                 >
-                  {/* Dark background rect to block ribbon bleed */}
+                  <title>{n.name}</title>
+                  {n.name.length > 20 ? n.name.slice(0, 19) + '…' : n.name}
+                  {renderVariation(n, 'EXPENSE')}
+                </text>
+                <text
+                  x={EXP_LBL_X}
+                  y={cy + 4}
+                  textAnchor="start"
+                  dominantBaseline="hanging"
+                  fontSize={9}
+                  fill="#9ca3af"
+                >
+                  {isAmountsVisible ? format(n.amount, currency) : '••••'}
+                </text>
+              </g>
+            );
+          })}
+
+          {/* ── Surplus / Deficit indicator ────────────────────────────────── */}
+          {data.surplus !== 0 &&
+            (() => {
+              const last = expLayout[expLayout.length - 1];
+              const lineX = EXP_BAR_X + BAR_W / 2;
+              return (
+                <g>
+                  {last && (
+                    <line
+                      x1={lineX}
+                      y1={last.barY + BAR_H}
+                      x2={lineX}
+                      y2={surplusY}
+                      stroke={surplusColor}
+                      strokeWidth={1}
+                      strokeDasharray="3 3"
+                      strokeOpacity={0.4}
+                    />
+                  )}
                   <rect
-                    x={EXP_BAR_X - 2}
-                    y={n.barY - 1}
-                    width={BAR_W + 4}
-                    height={BAR_H + 2}
-                    fill="#111827"
+                    x={EXP_BAR_X}
+                    y={surplusY}
+                    width={SURPLUS_MAX}
+                    height={SURPLUS_H}
+                    fill={surplusColor}
+                    fillOpacity={0.07}
                     rx={3}
                   />
                   <rect
                     x={EXP_BAR_X}
-                    y={n.barY}
-                    width={BAR_W}
-                    height={BAR_H}
-                    fill={n.color}
-                    rx={2}
+                    y={surplusY}
+                    width={surplusBarW}
+                    height={SURPLUS_H}
+                    fill={`url(#${gradId}sur)`}
+                    rx={3}
                   />
                   <text
-                    x={EXP_LBL_X}
-                    y={cy - 3}
-                    textAnchor="start"
-                    dominantBaseline="auto"
-                    fontSize={10}
-                    fill="#e5e7eb"
-                    fontWeight={500}
+                    x={EXP_BAR_X + surplusBarW / 2}
+                    y={surplusY + SURPLUS_H / 2}
+                    textAnchor="middle"
+                    dominantBaseline="middle"
+                    fontSize={8}
+                    fill="white"
+                    fontWeight={700}
+                    opacity={0.92}
                   >
-                    {n.name.length > 14 ? n.name.slice(0, 13) + '…' : n.name}
-                  </text>
-                  <text
-                    x={EXP_LBL_X}
-                    y={cy + 4}
-                    textAnchor="start"
-                    dominantBaseline="hanging"
-                    fontSize={9}
-                    fill="#9ca3af"
-                  >
-                    {isAmountsVisible ? format(n.amount, currency) : '••••'}
+                    {hasSurplus
+                      ? `▲ ${t('cashflowSankey.surplus')}`
+                      : `▼ ${t('cashflowSankey.deficit')}`}{' '}
+                    {isAmountsVisible ? format(Math.abs(data.surplus), currency) : '••••'}
                   </text>
                 </g>
               );
-            })}
+            })()}
 
-            {/* ── Surplus / Deficit indicator ────────────────────────────────── */}
-            {data.surplus !== 0 &&
-              (() => {
-                const last = expLayout[expLayout.length - 1];
-                const lineX = EXP_BAR_X + BAR_W / 2;
-                return (
-                  <g>
-                    {last && (
-                      <line
-                        x1={lineX}
-                        y1={last.barY + BAR_H}
-                        x2={lineX}
-                        y2={surplusY}
-                        stroke={surplusColor}
-                        strokeWidth={1}
-                        strokeDasharray="3 3"
-                        strokeOpacity={0.4}
-                      />
-                    )}
-                    <rect
-                      x={EXP_BAR_X}
-                      y={surplusY}
-                      width={SURPLUS_MAX}
-                      height={SURPLUS_H}
-                      fill={surplusColor}
-                      fillOpacity={0.07}
-                      rx={3}
-                    />
-                    <rect
-                      x={EXP_BAR_X}
-                      y={surplusY}
-                      width={surplusBarW}
-                      height={SURPLUS_H}
-                      fill={`url(#${gradId}sur)`}
-                      rx={3}
-                    />
-                    <text
-                      x={EXP_BAR_X + surplusBarW / 2}
-                      y={surplusY + SURPLUS_H / 2}
-                      textAnchor="middle"
-                      dominantBaseline="middle"
-                      fontSize={8}
-                      fill="white"
-                      fontWeight={700}
-                      opacity={0.92}
-                    >
-                      {hasSurplus
-                        ? `▲ ${t('cashflowSankey.surplus')}`
-                        : `▼ ${t('cashflowSankey.deficit')}`}{' '}
-                      {isAmountsVisible ? format(Math.abs(data.surplus), currency) : '••••'}
-                    </text>
-                  </g>
-                );
-              })()}
+          {/* ── Central CASH FLOW node (top layer) ─────────────────────────── */}
+          <rect
+            x={NODE_L}
+            y={midY - NODE_H / 2}
+            width={NODE_W}
+            height={NODE_H}
+            rx={6}
+            fill="#1e2d3d"
+            stroke="#4b6280"
+            strokeWidth={1.5}
+          />
+          <text
+            x={CENTER_X}
+            y={midY}
+            textAnchor="middle"
+            dominantBaseline="middle"
+            fontSize={9}
+            fill="#cbd5e1"
+            fontWeight={700}
+            letterSpacing={1.5}
+          >
+            {t('cashflowSankey.centerLabel')}
+          </text>
+        </svg>
+      </SankeyViewport>
 
-            {/* ── Central CASH FLOW node (top layer) ─────────────────────────── */}
-            <rect
-              x={NODE_L}
-              y={midY - NODE_H / 2}
-              width={NODE_W}
-              height={NODE_H}
-              rx={6}
-              fill="#1e2d3d"
-              stroke="#4b6280"
-              strokeWidth={1.5}
-            />
-            <text
-              x={CENTER_X}
-              y={midY}
-              textAnchor="middle"
-              dominantBaseline="middle"
-              fontSize={9}
-              fill="#cbd5e1"
-              fontWeight={700}
-              letterSpacing={1.5}
-            >
-              {t('cashflowSankey.centerLabel')}
-            </text>
-          </svg>
+      {isMobile && (
+        <div
+          role="list"
+          aria-label={t('cashflowSankey.categoryDetails')}
+          className="h-48 shrink-0 overflow-y-auto border-t border-border mt-2 pt-2 text-xs"
+        >
+          {(['INCOME', 'EXPENSE'] as const).map(type => (
+            <div key={type} role="listitem">
+              <p className="text-text-secondary font-semibold py-1">
+                {t(type === 'INCOME' ? 'cashflowSankey.income' : 'cashflowSankey.expenses')}
+              </p>
+              {(type === 'INCOME' ? incLayout : expLayout).map(node => (
+                <button
+                  key={node.isOther ? 'other' : (node.categoryId ?? 'uncategorized')}
+                  type="button"
+                  disabled={node.isOther}
+                  onClick={() => navToFlow(node, type)}
+                  aria-label={t('cashflowSankey.viewFlow', { name: node.name })}
+                  className="w-full flex flex-wrap items-baseline gap-x-1 py-1 text-left hover:bg-surface-elevated rounded"
+                >
+                  <span
+                    className="inline-block w-2 h-2 rounded-sm shrink-0"
+                    style={{ backgroundColor: node.color }}
+                  />
+                  <span>{node.name}</span>
+                  {renderVariation(node, type, true)}
+                  <span className="ml-auto text-text-secondary font-mono">
+                    {isAmountsVisible ? format(node.amount, currency) : '••••'}
+                  </span>
+                </button>
+              ))}
+            </div>
+          ))}
         </div>
-      </div>
+      )}
 
       {/* ── Zoom hint ──────────────────────────────────────────────────────── */}
-      {zoom === ZOOM_DEFAULT && (
-        <p className="text-center text-xs text-text-muted mt-1 flex-shrink-0 select-none">
-          {t('cashflowSankey.zoomHint')}
-        </p>
-      )}
+      <p className="text-center text-xs text-text-muted mt-1 flex-shrink-0 select-none">
+        {t('cashflowSankey.zoomHint')}
+      </p>
     </div>
   );
 }

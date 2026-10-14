@@ -288,10 +288,11 @@ export const useCashFlowHistory = (granularity: CashFlowGranularity, year: numbe
     retry: 1,
   });
 
-export const useCashflowSankey = (period: number = 30, dateRange?: DateRange) =>
+export const useCashflowSankey = (period: number = 30, dateRange?: DateRange, enabled = true) =>
   useQuery({
     queryKey: ['dashboard', 'cashflow-sankey', periodKey(period, dateRange)],
     queryFn: () => fetchCashflowSankey(period, dateRange),
+    enabled,
     staleTime: 5 * 60 * 1000,
     retry: 1,
   });

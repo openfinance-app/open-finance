@@ -368,7 +368,7 @@ describe('DashboardPage Integration Tests', () => {
 
       // Click reset layout
       await waitFor(() => {
-        const resetButton = screen.getByText(/reset/i);
+        const resetButton = screen.getByRole('button', { name: /^reset layout$/i });
         fireEvent.click(resetButton);
       });
 

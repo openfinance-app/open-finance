@@ -598,6 +598,7 @@ export default function DashboardPage() {
           <CashflowSankeyCard
             currency={summary.baseCurrency}
             period={periodDays}
+            isAllTime={selectedPeriod === 'ALL'}
             dateRange={activeDateRange}
             navDateRange={navDateRange}
           />
