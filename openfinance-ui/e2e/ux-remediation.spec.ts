@@ -429,7 +429,11 @@ test('French seeded categories, cached Sankey names and localized validation sta
   await page.evaluate(() => localStorage.setItem('openfinance_language', 'fr'));
   await page.goto('/dashboard');
   await expect(page.getByRole('heading', { name: 'Tableau de bord', exact: true })).toBeVisible();
-  await expect(page.getByText('Salaire', { exact: true }).first()).toBeVisible();
+  const salaryFlow = page
+    .getByRole('group', { name: 'Diagramme des flux de trésorerie', exact: true })
+    .getByRole('button', { name: 'Voir les transactions Salaire', exact: true });
+  await expect(salaryFlow).toBeVisible();
+  await expect(salaryFlow.locator('text').first()).toContainText('Salaire');
   const localized = await page.evaluate(async () => {
     const headers = {
       Authorization: `Bearer ${sessionStorage.getItem('auth_token') || localStorage.getItem('auth_token')}`,

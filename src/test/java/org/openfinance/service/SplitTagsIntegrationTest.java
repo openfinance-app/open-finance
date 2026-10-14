@@ -1,32 +1,24 @@
 package org.openfinance.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Value;
 
 class SplitTagsIntegrationTest extends AuditApiTestSupport {
 
+    @Value("${spring.datasource.url}")
+    private String databaseUrl;
+
     @Test
-    void splitTagsSurviveBackupRestoreAndMasterPasswordRotation() throws Exception {
-        Map<String, Object> request =
-                data(
-                        "accountId",
-                        account(owner),
-                        "type",
-                        "EXPENSE",
-                        "amount",
-                        100,
-                        "currency",
-                        "EUR",
-                        "date",
-                        START.plusDays(1).toString(),
-                        "splits",
-                        List.of(
-                                data("amount", 70, "tags", List.of("Holiday")),
-                                data("amount", 30, "tags", List.of("Work"))));
+    void splitTagsSurviveBackupRestore() throws Exception {
+        assumeTrue(
+                databaseUrl.startsWith("jdbc:sqlite:"), "Backup file operations are SQLite-only");
+        Map<String, Object> request = taggedSplitRequest();
         long originalId = json("POST", "/transactions", request, owner, 201).path("id").asLong();
         JsonNode backup =
                 json("POST", "/backup/create", data("description", "Split tags"), owner, 201);
@@ -44,15 +36,20 @@ class SplitTagsIntegrationTest extends AuditApiTestSupport {
                 200);
 
         JsonNode restored = json("GET", "/transactions", null, owner, 200).get(0);
-        long restoredId = restored.path("id").asLong();
         assertThat(restored.path("splits").get(0).path("tags").get(0).asText())
                 .isEqualTo("Holiday");
         assertThat(restored.path("splits").get(1).path("tags").get(0).asText()).isEqualTo("Work");
+    }
+
+    @Test
+    void splitTagsSurviveMasterPasswordRotation() throws Exception {
+        JsonNode created = json("POST", "/transactions", taggedSplitRequest(), owner, 201);
+        long transactionId = created.path("id").asLong();
         List<String> ciphertext =
                 jdbc.queryForList(
                         "SELECT tags FROM transaction_splits WHERE transaction_id = ? ORDER BY id",
                         String.class,
-                        restoredId);
+                        transactionId);
         JsonNode rotation =
                 json(
                         "PUT",
@@ -65,13 +62,13 @@ class SplitTagsIntegrationTest extends AuditApiTestSupport {
                         owner,
                         200);
         owner = new Auth(owner.id(), owner.token(), rotation.path("encryptionKey").asText());
-        assertThat(json("GET", "/transactions/" + restoredId, null, owner, 200).path("splits"))
-                .isEqualTo(restored.path("splits"));
+        assertThat(json("GET", "/transactions/" + transactionId, null, owner, 200).path("splits"))
+                .isEqualTo(created.path("splits"));
         assertThat(
                         jdbc.queryForList(
                                 "SELECT tags FROM transaction_splits WHERE transaction_id = ? ORDER BY id",
                                 String.class,
-                                restoredId))
+                                transactionId))
                 .doesNotContainAnyElementsOf(ciphertext)
                 .doesNotContain("Holiday", "Work");
     }
@@ -151,6 +148,24 @@ class SplitTagsIntegrationTest extends AuditApiTestSupport {
         return json("POST", "/categories", data("name", name, "type", "EXPENSE"), owner, 201)
                 .path("id")
                 .asLong();
+    }
+
+    private Map<String, Object> taggedSplitRequest() throws Exception {
+        return data(
+                "accountId",
+                account(owner),
+                "type",
+                "EXPENSE",
+                "amount",
+                100,
+                "currency",
+                "EUR",
+                "date",
+                START.plusDays(1).toString(),
+                "splits",
+                List.of(
+                        data("amount", 70, "tags", List.of("Holiday")),
+                        data("amount", 30, "tags", List.of("Work"))));
     }
 
     private void assertSplits(
