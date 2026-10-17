@@ -206,12 +206,14 @@
     "actions": "Actions"
   },
   "periodSelector": {
+    "label": "Time period",
     "presets": {
       "1D": "1D",
       "7D": "7D",
-      "1M": "1M",
+      "30D": "30D",
+      "MTD": "MTD",
       "YTD": "YTD",
-      "1Y": "1Y",
+      "365D": "365D",
       "ALL": "ALL"
     }
   },

@@ -16,10 +16,12 @@ import {
   type ComparedFlowNode,
 } from '@/utils/sankey-comparison';
 import { SankeyViewport } from '@/components/dashboard/SankeyViewport';
+import PeriodLabel from '@/components/dashboard/PeriodLabel';
 import { ConvertedAmount } from '@/components/ui/ConvertedAmount';
 import { useVisibility } from '@/context/VisibilityContext';
 import type { ICashflowSankeyNode } from '@/types/dashboard';
 import type { DateRange } from '@/components/ui/PeriodSelector';
+import { dateRangeToDays, previousEqualPeriod } from '@/utils/dashboard-period';
 import {
   CASHFLOW_INCOME_COLORS,
   CASHFLOW_EXPENSE_COLORS,
@@ -176,8 +178,12 @@ interface CashflowSankeyCardProps {
   currency?: string;
   /** Period in days — driven by the global PeriodSelector in DashboardPage */
   period?: number;
+  /** Shared compact caption from the global selector, e.g. "last 7d" or "31d". */
+  periodLabel?: string;
   /** Optional explicit date range — takes precedence over `period` */
   dateRange?: DateRange;
+  /** Resolved by the global selector, preserving calendar versus rolling semantics. */
+  comparisonDateRange?: DateRange | null;
   navDateRange?: DateRange;
   isAllTime?: boolean;
 }
@@ -185,7 +191,9 @@ interface CashflowSankeyCardProps {
 export default function CashflowSankeyCard({
   currency = DEFAULT_CURRENCY,
   period = 30,
+  periodLabel,
   dateRange,
+  comparisonDateRange,
   navDateRange,
   isAllTime = false,
 }: CashflowSankeyCardProps) {
@@ -230,7 +238,16 @@ export default function CashflowSankeyCard({
 
   const [showVariations, setShowVariations] = useState(true);
   const currentRange = dateRange ?? periodToDateRange(period);
-  const previousRange = previousSankeyPeriod(currentRange);
+  const selectedPeriodLabel =
+    periodLabel ??
+    (isAllTime
+      ? t('period.allTime')
+      : t(dateRange ? 'period.days' : 'period.lastNDays', {
+          days: dateRange ? dateRangeToDays(dateRange) : period,
+        }));
+  const previousRange =
+    comparisonDateRange ??
+    (dateRange ? previousSankeyPeriod(currentRange) : previousEqualPeriod(currentRange));
   const { data, isLoading, error } = useCashflowSankey(
     period,
     isAllTime ? dateRange : currentRange
@@ -366,7 +383,7 @@ export default function CashflowSankeyCard({
   return (
     <div className="bg-surface rounded-lg p-4 border border-border h-full flex flex-col">
       {/* ── Header ─────────────────────────────────────────────────────────── */}
-      <div className="flex items-center justify-between gap-2 flex-wrap mb-3 flex-shrink-0">
+      <div className="flex items-center justify-between gap-2 flex-wrap mb-3 pr-8 flex-shrink-0">
         <div className="flex items-center gap-2">
           <h3 className="plate-label ">{t('cashflowSankey.title')}</h3>
           <button
@@ -386,17 +403,11 @@ export default function CashflowSankeyCard({
           </button>
         </div>
         {/* Period label — read-only, driven by global selector */}
-        {isAllTime ? (
-          <span className="text-xs text-text-secondary">{t('cashflowSankey.allTime')}</span>
-        ) : dateRange ? (
-          <span className="text-xs text-text-secondary bg-surface-elevated px-2 py-1 rounded border border-border">
-            {formatDate(dateRange.from)} → {formatDate(dateRange.to)}
-          </span>
-        ) : (
-          <span className="text-xs text-text-secondary">
-            {t('cashflowSankey.lastDays', { days: period })}
-          </span>
-        )}
+        <span className="text-xs text-text-secondary">
+          <PeriodLabel range={isAllTime ? undefined : currentRange}>
+            {selectedPeriodLabel}
+          </PeriodLabel>
+        </span>
       </div>
 
       {/* ── Summary pills ──────────────────────────────────────────────────── */}

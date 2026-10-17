@@ -12,6 +12,51 @@ The Dashboard is the central view in Open-Finance. It brings together your accou
 
 ---
 
+## Time period and comparisons
+
+The default selection is **MTD** (month to date), from the first of the current month through today. Use **Custom** to select a full calendar month, year, or any other date range, including dates in the future.
+
+The selector has eight options: **1D · 7D · 30D · MTD · YTD · 365D · ALL · Custom**. All date boundaries are inclusive and use local calendar dates.
+
+For example, on **17 October 2026**:
+
+| Selection             | Selected dates                  | Previous period for cash-flow variations |
+| --------------------- | ------------------------------- | ---------------------------------------- |
+| 1D                    | 17 October                      | 16 October                               |
+| 7D                    | 11–17 October                   | 4–10 October                             |
+| 30D                   | 18 September–17 October         | 19 August–17 September                   |
+| MTD                   | 1–17 October                    | 1–17 September                           |
+| YTD                   | 1 January–17 October 2026       | 1 January–17 October 2025                |
+| 365D                  | 18 October 2025–17 October 2026 | Preceding 365 days                       |
+| Custom → July 2026    | 1–31 July                       | 1–30 June                                |
+| Custom → October 2026 | 1–31 October                    | 1–30 September                           |
+| Custom → year 2026    | 1 January–31 December 2026      | Full year 2025                           |
+| Custom → 1–17 October | 1–17 October                    | 14–30 September                          |
+| ALL                   | Available history               | No previous-period comparison            |
+| Custom → 10–20 July   | 10–20 July                      | 29 June–9 July                           |
+
+**MTD and YTD:** these presets stop at today and compare the same portion of the preceding month or year. If that date does not exist in the previous period, it is capped at the last available day (for example, 30 March compares through 28 February in a non-leap year). At the end of the month or year, the full previous period is used. Leap-day year-to-date comparisons end on 28 February in a non-leap comparison year.
+
+**Custom ranges:** full calendar months, years, or consecutive groups of whole months use the preceding calendar block, whether or not the selected period has finished. Selecting **1–31 July 2026** compares with **1–30 June**, without including 31 May. Selecting **1–31 October 2026** compares with **1–30 September**, even on 17 October. Other custom ranges compare with the immediately preceding range of equal length. For example, Custom **1–17 October** compares with **14–30 September**, while **MTD** compares with **1–17 September**.
+
+**Future dates:** Custom preserves the exact dates you select. Choosing a future end date does not forecast balances, create future net-worth snapshots, or extend the trend line with zeros or repeated balances. Net Worth Trend ends its axis at the latest available observation, hiding the unobserved tail. The line and change use available observations only, with a **Data through** date when the closing observation is earlier than the selected end. For Custom **1–31 October** on 17 October, the chart ends on **17 October** while the selection and calendar comparison remain **1–31 October** and **1–30 September**. A wholly future range shows no history and no period change. Cash-flow totals and transactions include records dated within the selected range, including any future-dated transactions already entered; they do not generate expected transactions. Estimated earned interest stops at today; its separately labelled next-year forecast is unchanged.
+
+**Card period labels:** captions use compact day counts, with the exact selected dates in a tooltip available on hover, keyboard focus or tap. On 17 October, **MTD** shows **last 17d** (for example, **vs last 17d** on Net Worth), with **1–17 October** in the tooltip. Custom **1–31 October** shows **31d**, with **1–31 October** in the tooltip; custom ranges omit “last” because they can be historical or future. **ALL** remains **all time**. The Custom picker itself continues to display the selected dates.
+
+**Rolling ranges:** 30D and 365D replace the ambiguous 1M and 1Y labels. They always compare equal numbers of days, even when the selected dates happen to match a calendar month. For example, 30D ending on 30 June compares 1–30 June with 2–31 May.
+
+Your selection is remembered within the browser session. Existing saved 1M/1Y selections migrate to 30D/365D; saved custom dates, including future dates, are preserved. Selections saved by the removed Month / Year picker migrate to **MTD** or **YTD** for the current month or year, and to equivalent **Custom** dates for past periods. Rolling and to-date boundaries are recomputed when reopening the dashboard and when the local date changes. **MTD** always follows the current month.
+
+### How the cards use the period
+
+- **Cash Flow, Cash Flow Sankey and Recent Transactions** use the selected dates and share the compact period label with exact dates in its tooltip. Income/expense drill-downs retain those dates and exclude internal transfers. The Sankey shows the exact previous comparison dates beside its variations.
+- **Net Worth Trend** uses observations within the selected range: 1D is one daily point, 7D is seven days, and 30D is thirty days when history is available. There is no automatically expanded history window; dates beyond the latest observation are hidden. A single point has no trend comparison.
+- **Net Worth** retains today's main total. Its change compares observations at the selected opening and closing dates; when the end lies in the future, it uses the latest available observation in that range and displays its date. Historical selections use their historical closing value. This differs from the Sankey's comparison of activity totals against a preceding period. A single-day selection cannot show an intraday change from daily history.
+- **Borrowing Capacity** normalizes the selected income and expenses into monthly averages, alongside current debt payments.
+- **Estimated Interest** uses the selected period for estimated earned interest; the next-year projection remains a separate annual forecast.
+- **Portfolio Performance** shows current value, cost basis and unrealized gain; period investment returns are unavailable.
+- Allocation, currency, institution and map cards show current holdings. Budget Progress follows active budgets' dates. Cash Flow History has its own calendar controls, Balance Variation uses yearly history, and AI Insights and Finance News are independent of this selector.
+
 ## Financial Summary
 
 At the top of the Dashboard you’ll find your key figures:
@@ -52,7 +97,7 @@ Breaks down your portfolio by asset type (stocks, bonds, crypto, etc.) with perc
 
 ### Portfolio Performance
 
-Shows time-weighted and money-weighted returns for your investment portfolio over a selected period.
+Shows current portfolio value, cost basis and unrealized gain. Period investment returns remain unavailable until portfolio-specific valuation and contribution history can support them.
 
 ### Net Worth Allocation
 

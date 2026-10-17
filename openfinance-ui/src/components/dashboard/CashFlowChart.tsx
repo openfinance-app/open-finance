@@ -7,11 +7,14 @@ import { DEFAULT_CURRENCY } from '@/utils/currency';
 import { buildTransactionsLink } from '@/utils/navigation';
 import { ConvertedAmount } from '@/components/ui/ConvertedAmount';
 import { HelpTooltip } from '@/components/ui/HelpTooltip';
+import PeriodLabel from '@/components/dashboard/PeriodLabel';
 import { useVisibility } from '../../context/VisibilityContext';
 
 interface CashFlowChartProps {
   cashFlow: ICashFlow;
   period?: number;
+  periodLabel?: string;
+  periodRange?: DateRange;
   currency?: string;
   navDateRange?: DateRange;
 }
@@ -43,6 +46,8 @@ const CustomTooltip = ({ active, payload, currency }: any) => {
 export default function CashFlowChart({
   cashFlow,
   period = 30,
+  periodLabel,
+  periodRange,
   currency = DEFAULT_CURRENCY,
   navDateRange,
 }: CashFlowChartProps) {
@@ -67,13 +72,15 @@ export default function CashFlowChart({
 
   return (
     <div className="bg-surface rounded-lg p-6 border border-border h-full flex flex-col">
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center justify-between mb-4 pr-6">
         <div className="flex items-center gap-1">
           <h3 className="plate-label ">{t('cashFlowChart.title')}</h3>
           <HelpTooltip text={t('cashFlowChart.tooltip')} side="right" />
         </div>
         <span className="text-xs text-text-secondary">
-          {t('cashFlowChart.lastDays', { days: period })}
+          <PeriodLabel range={periodRange}>
+            {periodLabel ?? t('cashFlowChart.lastDays', { days: period })}
+          </PeriodLabel>
         </span>
       </div>
 

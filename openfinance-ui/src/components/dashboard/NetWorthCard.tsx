@@ -8,13 +8,18 @@ import { HelpTooltip } from '@/components/ui/HelpTooltip';
 import { useUserSettings } from '@/hooks/useUserSettings';
 import { useSecondaryConversion } from '@/hooks/useSecondaryConversion';
 import { useTranslation } from 'react-i18next';
+import PeriodLabel from '@/components/dashboard/PeriodLabel';
+import type { DateRange } from '@/utils/dashboard-period';
 
 interface NetWorthCardProps {
   netWorth: INetWorthSummary;
-  /** Human-readable label for the selected period, e.g. "Last 30d", "2026-01-01 → 2026-03-03" */
+  /** Compact label for the selected period, e.g. "last 30d" or "31d". */
   periodLabel?: string;
+  periodRange?: DateRange;
   /** Override computed from the history chart's first/last data point, takes precedence over API monthlyChange fields */
   periodChange?: { amount: number; percentage: number } | null;
+  /** Last observation when the selected period has no closing balance yet. */
+  observedThrough?: string;
 }
 
 /**
@@ -25,7 +30,9 @@ interface NetWorthCardProps {
 export default function NetWorthCard({
   netWorth,
   periodLabel = 'last month',
+  periodRange,
   periodChange,
+  observedThrough,
 }: NetWorthCardProps) {
   const { t } = useTranslation('dashboard');
   const { data: settings } = useUserSettings();
@@ -97,13 +104,22 @@ export default function NetWorthCard({
             {formatPercentage(changePercentage!)})
           </PrivateAmount>
           <span className="text-text-secondary text-sm basis-full sm:basis-auto sm:ml-auto">
-            {t('metrics.vsPeriod', { period: periodLabel })}
+            <PeriodLabel range={periodRange}>
+              {t('metrics.vsPeriod', { period: periodLabel })}
+            </PeriodLabel>
           </span>
         </div>
       ) : (
         <div className="relative flex items-center gap-2 text-text-muted text-sm">
-          <span>{t('metrics.noComparisonData')}</span>
+          <span>
+            {t(periodChange === null ? 'metrics.noPeriodComparison' : 'metrics.noComparisonData')}
+          </span>
         </div>
+      )}
+      {observedThrough && (
+        <p className="relative mt-2 text-xs text-text-secondary">
+          {t('period.dataThrough', { date: formatDate(observedThrough, settings?.dateFormat) })}
+        </p>
       )}
 
       {/* Asset & Liability sub-plates */}

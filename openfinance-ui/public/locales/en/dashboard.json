@@ -23,7 +23,10 @@
     "last1y": "last 1y",
     "allTime": "all time",
     "lastNDays": "last {{days}}d",
-    "custom": "{{from}} → {{to}}"
+    "days": "{{days}}d",
+    "selectedRange": "Selected period: {{from}} → {{to}}",
+    "custom": "{{from}} → {{to}}",
+    "dataThrough": "Data through {{date}}"
   },
   "cards": {
     "netWorth": {
@@ -146,7 +149,8 @@
     "totalLiabilities": "Total Liabilities",
     "totalLiabilitiesTooltip": "Total amount you owe across all loans and credit cards",
     "vsPeriod": "vs {{period}}",
-    "noComparisonData": "New"
+    "noComparisonData": "New",
+    "noPeriodComparison": "No change available for this period."
   },
   "insightsCard": {
     "title": "AI Insights",

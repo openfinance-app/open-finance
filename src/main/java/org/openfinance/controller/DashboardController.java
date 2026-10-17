@@ -543,6 +543,13 @@ public class DashboardController {
             return ResponseEntity.badRequest().build();
         }
 
+        // A reporting window may extend into the future, but observations may not.
+        java.time.LocalDate today = java.time.LocalDate.now();
+        effectiveEnd = effectiveEnd.isAfter(today) ? today : effectiveEnd;
+        if (effectiveStart.isAfter(effectiveEnd)) {
+            return ResponseEntity.ok(List.of());
+        }
+
         log.info(
                 "Fetching net worth history for user {} from {} to {} (recalculate={})",
                 userId,
@@ -570,8 +577,6 @@ public class DashboardController {
         // trend's most recent data point reflects the latest account/transaction/asset
         // changes instead of a snapshot last written by the summary card (cached 15m)
         // or the midnight scheduler. saveNetWorthSnapshot is an idempotent upsert.
-        java.time.LocalDate today = java.time.LocalDate.now();
-        effectiveEnd = effectiveEnd.isAfter(today) ? today : effectiveEnd;
         if (!today.isBefore(effectiveStart) && !today.isAfter(effectiveEnd)) {
             netWorthService.saveNetWorthSnapshot(userId, today, userCurrency);
         }

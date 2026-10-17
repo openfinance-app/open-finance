@@ -14,6 +14,7 @@
  */
 import { test, expect } from '@playwright/test';
 import { loginAs } from './helpers/auth';
+import common from '../public/locales/en/common.json' with { type: 'json' };
 
 test.describe('Dashboard', () => {
   test.beforeEach(async ({ page }) => {
@@ -58,21 +59,17 @@ test.describe('Dashboard', () => {
   // ─── Period selector ───────────────────────────────────────────────────────
 
   test('core-052: period selector is visible and has selectable periods', async ({ page }) => {
-    // PeriodSelector renders buttons for 1D, 7D, 1M, YTD, 1Y, ALL
-    // 1M is the default period — check it exists with aria-pressed
-    const oneMBtn = page.getByRole('button', { name: /^1M$/i });
-    await expect(oneMBtn).toBeVisible({ timeout: 15_000 });
+    const selector = page.getByRole('group', { name: 'Time period' });
+    await expect(selector.getByRole('button')).toHaveCount(8);
+    await expect(
+      selector.getByRole('button', { name: common.periodSelector.presets.MTD })
+    ).toHaveAttribute('aria-pressed', 'true');
   });
 
   test('core-052b: clicking a different period does not crash the page', async ({ page }) => {
-    // Try clicking "1Y" period
-    const oneYBtn = page.getByRole('button', { name: /^1Y$/i });
-
-    if (await oneYBtn.isVisible({ timeout: 10_000 }).catch(() => false)) {
-      await oneYBtn.click();
-      // Wait for the network request to settle
-      await page.waitForLoadState('networkidle');
-    }
+    const yearButton = page.getByRole('button', { name: '365D', exact: true });
+    await yearButton.click();
+    await expect(yearButton).toHaveAttribute('aria-pressed', 'true');
 
     // Page should still be intact
     await expect(page.getByRole('main')).toBeVisible();

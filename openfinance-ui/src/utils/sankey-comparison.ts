@@ -1,21 +1,15 @@
-import { differenceInCalendarDays, parseISO, subDays } from 'date-fns';
 import type { DateRange } from '@/components/ui/PeriodSelector';
 import type { ICashflowSankeyNode } from '@/types/dashboard';
-import { toLocalISODate } from '@/utils/date';
+import { previousCustomPeriod } from '@/utils/dashboard-period';
 import { percentage, subtract } from '@/utils/money';
 
 export interface ComparedFlowNode extends ICashflowSankeyNode {
   previousAmount?: number;
 }
 
-/** Inclusive, adjacent ranges of the same length, including across DST and leap days. */
+/** Calendar-aware fallback for standalone custom-range diagrams. */
 export function previousSankeyPeriod(range: DateRange): DateRange {
-  const start = parseISO(range.from);
-  const days = differenceInCalendarDays(parseISO(range.to), start) + 1;
-  return {
-    from: toLocalISODate(subDays(start, days)),
-    to: toLocalISODate(subDays(start, 1)),
-  };
+  return previousCustomPeriod(range);
 }
 
 /** Annotate the selected period's categories without introducing flows from another period. */

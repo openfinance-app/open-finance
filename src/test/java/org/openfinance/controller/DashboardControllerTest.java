@@ -1,5 +1,6 @@
 package org.openfinance.controller;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -12,6 +13,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.openfinance.config.TestDatabaseConfig;
 import org.openfinance.dto.*;
 import org.openfinance.entity.*;
@@ -595,6 +598,53 @@ class DashboardControllerTest {
     @Nested
     @DisplayName("GET /api/v1/dashboard/networth-history")
     class NetWorthHistoryEndpointTests {
+
+        @ParameterizedTest
+        @ValueSource(booleans = {false, true})
+        @DisplayName("Future reporting ends return observations only through today")
+        void futureEndDoesNotCreateFutureBalances(boolean recalculate) throws Exception {
+            LocalDate today = LocalDate.now();
+            String response =
+                    mockMvc.perform(
+                                    get("/api/v1/dashboard/networth-history")
+                                            .param("startDate", today.minusDays(7).toString())
+                                            .param("endDate", today.plusDays(14).toString())
+                                            .param("recalculate", Boolean.toString(recalculate))
+                                            .header("Authorization", "Bearer " + token)
+                                            .header("X-Encryption-Session", encKey))
+                            .andExpect(status().isOk())
+                            .andReturn()
+                            .getResponse()
+                            .getContentAsString();
+            NetWorthSummary[] observations =
+                    objectMapper.readValue(response, NetWorthSummary[].class);
+            assertThat(observations).isNotEmpty();
+            assertThat(observations)
+                    .allSatisfy(point -> assertThat(point.getDate()).isBeforeOrEqualTo(today));
+            assertThat(observations[observations.length - 1].getNetWorth())
+                    .isEqualByComparingTo("10000");
+            assertThat(
+                            netWorthRepository.findByUserIdAndDateRange(
+                                    testUser.getId(), today.plusDays(1), today.plusDays(14)))
+                    .isEmpty();
+        }
+
+        @ParameterizedTest
+        @ValueSource(booleans = {false, true})
+        @DisplayName("Entirely future windows return empty history without writing snapshots")
+        void futureWindowHasNoHistory(boolean recalculate) throws Exception {
+            long snapshotsBefore = netWorthRepository.count();
+            mockMvc.perform(
+                            get("/api/v1/dashboard/networth-history")
+                                    .param("startDate", LocalDate.now().plusDays(1).toString())
+                                    .param("endDate", LocalDate.now().plusDays(31).toString())
+                                    .param("recalculate", Boolean.toString(recalculate))
+                                    .header("Authorization", "Bearer " + token)
+                                    .header("X-Encryption-Session", encKey))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$", hasSize(0)));
+            assertThat(netWorthRepository.count()).isEqualTo(snapshotsBefore);
+        }
 
         @Test
         @DisplayName("Should return 403 when not authenticated")

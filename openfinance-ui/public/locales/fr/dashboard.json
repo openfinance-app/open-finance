@@ -23,7 +23,10 @@
     "last1y": "1 dernière année",
     "allTime": "Toute la période",
     "lastNDays": "{{days}} derniers jours",
-    "custom": "{{from}} → {{to}}"
+    "days": "{{days}}j",
+    "selectedRange": "Période sélectionnée : {{from}} → {{to}}",
+    "custom": "{{from}} → {{to}}",
+    "dataThrough": "Données disponibles jusqu’au {{date}}"
   },
   "cards": {
     "netWorth": {
@@ -146,7 +149,8 @@
     "totalLiabilities": "Total des passifs",
     "totalLiabilitiesTooltip": "Montant total que vous devez sur tous vos prêts et cartes de crédit",
     "vsPeriod": "vs {{period}}",
-    "noComparisonData": "Nouveau"
+    "noComparisonData": "Nouveau",
+    "noPeriodComparison": "Aucune variation disponible pour cette période."
   },
   "insightsCard": {
     "title": "Insights IA",

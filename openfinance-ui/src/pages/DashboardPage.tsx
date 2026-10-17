@@ -5,6 +5,7 @@ import { Responsive, WidthProvider } from 'react-grid-layout/legacy';
 import 'react-grid-layout/css/styles.css';
 import 'react-resizable/css/styles.css';
 import { isAxiosError } from 'axios';
+import { parseISO } from 'date-fns';
 import { useTranslation } from 'react-i18next';
 import { GRID_LAYOUT_BREAKPOINTS, GRID_LAYOUT_COLS } from '@/constants/breakpoints';
 import { RESIZE_EVENT_DELAY_MS } from '@/constants/timing';
@@ -35,11 +36,13 @@ import NetWorthAllocationChart from '../components/dashboard/NetWorthAllocationC
 import CashFlowCalendar from '@/components/dashboard/CashFlowCalendar';
 import CashflowSankeyCard from '../components/dashboard/CashflowSankeyCard';
 import EstimatedInterestCard from '../components/dashboard/EstimatedInterestCard';
-import PeriodSelector, {
-  type Period,
-  type DateRange,
-  dateRangeToDays,
-} from '../components/ui/PeriodSelector';
+import PeriodSelector from '@/components/ui/PeriodSelector';
+import {
+  restoreDashboardPeriod,
+  resolveDashboardPeriod,
+  type PeriodSelection,
+} from '@/utils/dashboard-period';
+import { toLocalISODate } from '@/utils/date';
 import BudgetProgressCard from '../components/dashboard/BudgetProgressCard';
 import RssFeedCard from '../components/dashboard/RssFeedCard';
 import BalanceVariationCard from '../components/dashboard/BalanceVariationCard';
@@ -48,7 +51,6 @@ import { ConvertedAmount } from '@/components/ui/ConvertedAmount';
 import { AnimatedNumber } from '@/components/ui/AnimatedNumber';
 import { useSecondaryConversion } from '@/hooks/useSecondaryConversion';
 import { subtract, percentage } from '@/utils/money';
-import { periodToDateRange } from '@/utils/navigation';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/Button';
 import { CreateTransactionDialog } from '@/components/transactions/CreateTransactionDialog';
@@ -221,29 +223,36 @@ export default function DashboardPage() {
   const { t } = useTranslation('dashboard');
   useDocumentTitle(t('title'));
 
-  // ── Period state ────────────────────────────────────────────────────────────
-  const [periodState, setPeriodState] = useState<{
-    selectedPeriod: Period;
-    periodDays: number;
-    historyPeriod: number;
-    activeDateRange: DateRange | undefined;
-  }>(() => {
-    const saved = sessionStorage.getItem('dashboard_period');
-    if (saved) {
-      try {
-        return JSON.parse(saved);
-      } catch (e) {
-        // ignore
-      }
-    }
-    return {
-      selectedPeriod: '1M',
-      periodDays: 30,
-      historyPeriod: 90,
-      activeDateRange: undefined,
+  // Persist the choice; resolve dates again on navigation, reload and local midnight.
+  const [today, setToday] = useState(() => toLocalISODate(new Date()));
+  const [periodState, setPeriodState] = useState<PeriodSelection>(() =>
+    restoreDashboardPeriod(sessionStorage.getItem('dashboard_period'))
+  );
+  useEffect(() => {
+    // Persist migrated choices too, so a restored This month keeps following the calendar.
+    sessionStorage.setItem('dashboard_period', JSON.stringify(periodState));
+  }, [periodState]);
+  useEffect(() => {
+    const refresh = (): void => setToday(toLocalISODate(new Date()));
+    const now = new Date();
+    const midnight = new Date(now);
+    midnight.setHours(24, 0, 0, 0);
+    const timer = window.setTimeout(refresh, midnight.getTime() - now.getTime() + 50);
+    window.addEventListener('focus', refresh);
+    document.addEventListener('visibilitychange', refresh);
+    return () => {
+      window.clearTimeout(timer);
+      window.removeEventListener('focus', refresh);
+      document.removeEventListener('visibilitychange', refresh);
     };
-  });
-  const { selectedPeriod, periodDays, historyPeriod, activeDateRange } = periodState;
+  }, [today]);
+  const selectedPeriod = periodState.period;
+  const resolvedPeriod = useMemo(
+    () => resolveDashboardPeriod(periodState, parseISO(today)),
+    [periodState, today]
+  );
+  const { days: periodDays, range: navDateRange, comparisonRange } = resolvedPeriod;
+  const activeDateRange = selectedPeriod === 'ALL' ? undefined : navDateRange;
 
   // ── Layout / UI state ───────────────────────────────────────────────────────
   const [isCardMenuOpen, setIsCardMenuOpen] = useState(false);
@@ -366,85 +375,17 @@ export default function DashboardPage() {
     return defaults;
   });
 
-  // ── Period change handler ───────────────────────────────────────────────────
-  const handlePeriodChange = (period: Period, days: number | null, dateRange?: DateRange) => {
-    let newState;
-    if (period === 'CUSTOM' && dateRange) {
-      const customDays = dateRangeToDays(dateRange);
-      newState = {
-        selectedPeriod: period,
-        periodDays: customDays,
-        historyPeriod: customDays,
-        activeDateRange: dateRange,
-      };
-    } else {
-      const cashFlowDays = days ?? 36500;
-      let historyDays: number;
-      switch (period) {
-        case '1D':
-          historyDays = 7;
-          break;
-        case '7D':
-          historyDays = 30;
-          break;
-        case '1M':
-          historyDays = 90;
-          break;
-        case 'YTD':
-          historyDays = days ?? 365;
-          break;
-        case '1Y':
-          historyDays = 365;
-          break;
-        case 'ALL':
-          historyDays = 36500;
-          break;
-        default:
-          historyDays = 365;
-      }
-      newState = {
-        selectedPeriod: period,
-        periodDays: cashFlowDays,
-        historyPeriod: historyDays,
-        activeDateRange: undefined,
-      };
-    }
-
-    setPeriodState(newState);
-    sessionStorage.setItem('dashboard_period', JSON.stringify(newState));
+  const handlePeriodChange = (selection: PeriodSelection): void => {
+    setPeriodState(selection);
   };
-
-  // ── Period label ────────────────────────────────────────────────────────────
-  /** Human-readable label for the currently selected period */
-  const periodLabel = useMemo((): string => {
-    if (selectedPeriod === 'CUSTOM' && activeDateRange) {
-      return t('period.custom', {
-        from: formatDate(activeDateRange.from),
-        to: formatDate(activeDateRange.to),
-      });
-    }
-    switch (selectedPeriod) {
-      case '1D':
-        return t('period.last1d');
-      case '7D':
-        return t('period.last7d');
-      case '1M':
-        return t('period.last30d');
-      case 'YTD':
-        return t('period.ytd');
-      case '1Y':
-        return t('period.last1y');
-      case 'ALL':
-        return t('period.allTime');
-      default:
-        return t('period.lastNDays', { days: periodDays });
-    }
-  }, [selectedPeriod, activeDateRange, periodDays, t, formatDate]);
-
-  // ── Date range used for card → transactions deep links ─────────────────────
-  const navDateRange: DateRange = useMemo(
-    () => activeDateRange ?? periodToDateRange(periodDays),
-    [activeDateRange, periodDays]
+  const periodLabel = useMemo(
+    () =>
+      selectedPeriod === 'ALL'
+        ? t('period.allTime')
+        : t(selectedPeriod === 'CUSTOM' ? 'period.days' : 'period.lastNDays', {
+            days: periodDays,
+          }),
+    [selectedPeriod, periodDays, t]
   );
 
   // ── Data fetching ───────────────────────────────────────────────────────────
@@ -463,14 +404,21 @@ export default function DashboardPage() {
   } = useSecondaryConversion(summary?.baseCurrency);
   const { data: cashFlow, isLoading: cashFlowLoading } = useCashFlow(periodDays, activeDateRange);
   const {
-    data: netWorthHistory,
+    data: history,
     isLoading: historyLoading,
     error: historyError,
-  } = useNetWorthHistory(historyPeriod, activeDateRange);
-  const { data: comparisonHistory, error: comparisonError } = useNetWorthHistory(
-    periodDays,
-    navDateRange
+  } = useNetWorthHistory(periodDays, activeDateRange);
+  const netWorthHistory = useMemo(
+    () =>
+      history?.filter(
+        point =>
+          point.date <= today && point.date >= navDateRange.from && point.date <= navDateRange.to
+      ),
+    [history, today, navDateRange]
   );
+  const lastObservation = netWorthHistory?.at(-1);
+  const observedThrough =
+    lastObservation && lastObservation.date < navDateRange.to ? lastObservation.date : undefined;
   const { data: assetAllocations, isLoading: allocationLoading } = useAssetAllocation();
   const { data: portfolioPerformances, isLoading: performanceLoading } = usePortfolioPerformance(
     periodDays,
@@ -488,26 +436,19 @@ export default function DashboardPage() {
     activeDateRange
   );
 
-  // Exact comparison boundaries are independent of the chart's wider sampling window.
+  // Future reporting dates have no closing balance. Use the latest observation in
+  // the window and disclose its date; never substitute a projected closing value.
   const periodChange = useMemo(() => {
-    if (comparisonError || !comparisonHistory) return null;
-    const openingValue = comparisonHistory.find(
-      point => point.date === navDateRange.from
-    )?.netWorth;
-    const closingValue = activeDateRange
-      ? comparisonHistory.find(point => point.date === navDateRange.to)?.netWorth
-      : summary?.netWorth?.netWorth;
+    if (historyError || !netWorthHistory || !lastObservation) return null;
+    const closingDate = navDateRange.to > today ? lastObservation.date : navDateRange.to;
+    if (navDateRange.from >= closingDate) return null;
+    const openingValue = netWorthHistory.find(point => point.date === navDateRange.from)?.netWorth;
+    const closingValue = netWorthHistory.find(point => point.date === closingDate)?.netWorth;
     if (openingValue == null || openingValue === 0 || closingValue == null) return null;
     const changeAmount = subtract(closingValue, openingValue);
     const changePercent = percentage(changeAmount, Math.abs(openingValue));
     return { amount: changeAmount, percentage: changePercent };
-  }, [
-    comparisonHistory,
-    comparisonError,
-    summary?.netWorth?.netWorth,
-    navDateRange,
-    activeDateRange,
-  ]);
+  }, [netWorthHistory, historyError, today, navDateRange, lastObservation]);
 
   // ── Close card menu on outside click ───────────────────────────────────────
   useEffect(() => {
@@ -535,7 +476,9 @@ export default function DashboardPage() {
           <NetWorthCard
             netWorth={summary.netWorth}
             periodLabel={periodLabel}
+            periodRange={activeDateRange}
             periodChange={periodChange}
+            observedThrough={observedThrough}
           />
         ),
       },
@@ -583,6 +526,8 @@ export default function DashboardPage() {
           cashFlow ? (
             <CashFlowChart
               cashFlow={cashFlow}
+              periodLabel={periodLabel}
+              periodRange={activeDateRange}
               period={periodDays}
               currency={summary.baseCurrency}
               navDateRange={navDateRange}
@@ -598,8 +543,10 @@ export default function DashboardPage() {
           <CashflowSankeyCard
             currency={summary.baseCurrency}
             period={periodDays}
+            periodLabel={periodLabel}
             isAllTime={selectedPeriod === 'ALL'}
             dateRange={activeDateRange}
+            comparisonDateRange={comparisonRange}
             navDateRange={navDateRange}
           />
         ),
@@ -620,6 +567,7 @@ export default function DashboardPage() {
           <RecentTransactionsCard
             transactions={periodTransactions ?? []}
             periodLabel={periodLabel}
+            periodRange={activeDateRange}
             isLoading={transactionsLoading}
           />
         ),
@@ -628,14 +576,19 @@ export default function DashboardPage() {
         id: 'netWorthTrend',
         label: t('cards.netWorthTrend.label'),
         description: t('cards.netWorthTrend.description'),
-        isAvailable: Boolean(historyError || (netWorthHistory && netWorthHistory.length > 0)),
+        isAvailable: Boolean(historyError || netWorthHistory),
         render: () =>
           historyError ? (
             <p role="alert" className="text-red-500 p-4">
               {requestErrorMessage(historyError, t('errors.loadFailed'))}
             </p>
-          ) : netWorthHistory && netWorthHistory.length > 0 ? (
-            <NetWorthTrendChart data={netWorthHistory} currency={summary.baseCurrency} />
+          ) : netWorthHistory ? (
+            <NetWorthTrendChart
+              data={netWorthHistory}
+              currency={summary.baseCurrency}
+              periodLabel={periodLabel}
+              dateRange={activeDateRange}
+            />
           ) : null,
       },
       {
@@ -648,6 +601,7 @@ export default function DashboardPage() {
             <PortfolioPerformanceCards
               performances={portfolioPerformances}
               periodLabel={periodLabel}
+              periodRange={activeDateRange}
             />
           ) : null,
       },
@@ -693,6 +647,7 @@ export default function DashboardPage() {
               summary={estimatedInterest}
               period={selectedPeriod}
               periodLabel={periodLabel}
+              periodRange={activeDateRange}
             />
           ) : null,
       },
@@ -726,10 +681,12 @@ export default function DashboardPage() {
     selectedPeriod,
     periodLabel,
     periodChange,
+    observedThrough,
     periodTransactions,
     transactionsLoading,
     t,
     navDateRange,
+    comparisonRange,
   ]);
 
   const cardById = useMemo(
@@ -963,11 +920,7 @@ export default function DashboardPage() {
 
       {/* ── Global period selector ────────────────────────────────────────── */}
       <div className="mb-6 flex justify-center">
-        <PeriodSelector
-          selectedPeriod={selectedPeriod}
-          activeDateRange={activeDateRange}
-          onPeriodChange={handlePeriodChange}
-        />
+        <PeriodSelector selection={periodState} today={today} onPeriodChange={handlePeriodChange} />
       </div>
 
       {/* ── Cards grid ───────────────────────────────────────────────────── */}

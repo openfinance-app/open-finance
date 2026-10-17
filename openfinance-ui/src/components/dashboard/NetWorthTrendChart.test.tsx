@@ -5,16 +5,24 @@ import { renderWithProviders, mockAuthentication } from '@/test/test-utils';
 let capturedTooltipContent: any = null;
 let capturedYAxisFormatter: any = null;
 let capturedXAxisFormatter: any = null;
+let capturedDomain: unknown;
+let capturedTicks: number[] | undefined;
+let capturedChartData: Array<{ date: string; netWorth: number }> = [];
 
 vi.mock('recharts', () => ({
-  AreaChart: ({ children, data }: any) => (
-    <div data-testid="area-chart" data-chart-points={data?.length}>
-      {children}
-    </div>
-  ),
+  AreaChart: ({ children, data }: any) => {
+    capturedChartData = data;
+    return (
+      <div data-testid="area-chart" data-chart-points={data?.length}>
+        {children}
+      </div>
+    );
+  },
   Area: () => null,
-  XAxis: ({ tickFormatter }: any) => {
+  XAxis: ({ tickFormatter, domain, ticks }: any) => {
     capturedXAxisFormatter = tickFormatter;
+    capturedDomain = domain;
+    capturedTicks = ticks;
     return null;
   },
   YAxis: ({ tickFormatter }: any) => {
@@ -49,6 +57,30 @@ describe('NetWorthTrendChart', () => {
   it('renders chart with data', () => {
     renderWithProviders(<NetWorthTrendChart data={data} currency="EUR" />);
     expect(screen.getByTestId('area-chart')).toBeInTheDocument();
+  });
+
+  it('ends the axis at the last observation without inserting future balances', async () => {
+    const observations = [
+      { ...data[0], date: '2026-10-01' },
+      { ...data[1], date: '2026-10-17' },
+    ];
+    renderWithProviders(
+      <NetWorthTrendChart
+        data={observations}
+        currency="EUR"
+        dateRange={{ from: '2026-10-01', to: '2026-10-31' }}
+        periodLabel="31d"
+      />
+    );
+    expect(capturedDomain).toEqual([
+      new Date(2026, 9, 1).getTime(),
+      new Date(2026, 9, 17).getTime(),
+    ]);
+    expect(capturedTicks?.at(-1)).toBe(new Date(2026, 9, 17).getTime());
+    expect(capturedTicks?.every(tick => tick <= new Date(2026, 9, 17).getTime())).toBe(true);
+    expect(capturedChartData.map(point => point.date)).toEqual(['2026-10-01', '2026-10-17']);
+    expect(await screen.findByText('Data through 10/17/2026')).toBeInTheDocument();
+    expect(capturedXAxisFormatter(new Date(2026, 9, 17).getTime())).toBe('10/17/2026');
   });
 
   it('does not claim zero growth from a single historical snapshot', () => {

@@ -7,11 +7,14 @@ import { ConvertedAmount } from '../ui/ConvertedAmount';
 import { useSecondaryConversion } from '@/hooks/useSecondaryConversion';
 import { DEFAULT_CURRENCY } from '@/utils/currency';
 import { SimpleSelect } from '../ui/SimpleSelect';
+import PeriodLabel from '@/components/dashboard/PeriodLabel';
+import type { DateRange } from '@/utils/dashboard-period';
 
 interface EstimatedInterestCardProps {
   summary: IEstimatedInterestSummary;
   period: string;
   periodLabel?: string;
+  periodRange?: DateRange;
 }
 
 function isLiability(interest: IAccountInterest): boolean {
@@ -26,6 +29,7 @@ export default function EstimatedInterestCard({
   summary,
   period,
   periodLabel: selectedPeriodLabel,
+  periodRange,
 }: EstimatedInterestCardProps) {
   const [filterType, setFilterType] = useState<'ALL' | 'ACCOUNTS' | 'LIABILITIES'>('ALL');
   const {
@@ -75,7 +79,9 @@ export default function EstimatedInterestCard({
         <div className="flex-1">
           <h3 className="plate-label ">{t('estimatedInterest.title')}</h3>
           <p className="text-sm text-text-secondary">
-            {t('estimatedInterest.subtitle', { period: periodLabel })}
+            <PeriodLabel range={periodRange}>
+              {t('estimatedInterest.subtitle', { period: periodLabel })}
+            </PeriodLabel>
           </p>
         </div>
         <div className="flex items-center gap-3">

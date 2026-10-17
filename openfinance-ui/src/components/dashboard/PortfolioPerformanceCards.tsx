@@ -13,11 +13,14 @@ import { useSecondaryConversion } from '@/hooks/useSecondaryConversion';
 import { SPARKLINE_COLORS } from '@/constants/colors';
 import { useTranslation } from 'react-i18next';
 import { formatPercentage } from '@/utils/format';
+import PeriodLabel from '@/components/dashboard/PeriodLabel';
+import type { DateRange } from '@/utils/dashboard-period';
 
 interface PortfolioPerformanceCardsProps {
   performances: IPortfolioPerformance[];
-  /** Human-readable label for the selected period, e.g. "last 30d", "2026-01-01 → 2026-03-03" */
+  /** Compact label for the selected period, e.g. "last 30d" or "31d". */
   periodLabel?: string;
+  periodRange?: DateRange;
 }
 
 /**
@@ -136,6 +139,7 @@ function PerformanceCard({ performance, t }: { performance: IPortfolioPerformanc
 export default function PortfolioPerformanceCards({
   performances,
   periodLabel,
+  periodRange,
 }: PortfolioPerformanceCardsProps) {
   const { t } = useTranslation('dashboard');
 
@@ -159,9 +163,13 @@ export default function PortfolioPerformanceCards({
       <div>
         <h3 className="plate-label  mb-1">{t('portfolioPerformance.title')}</h3>
         <p className="text-sm text-text-secondary">
-          {periodLabel
-            ? t('portfolioPerformance.metricsForPeriod', { period: periodLabel })
-            : t('portfolioPerformance.subtitle')}
+          {periodLabel ? (
+            <PeriodLabel range={periodRange}>
+              {t('portfolioPerformance.metricsForPeriod', { period: periodLabel })}
+            </PeriodLabel>
+          ) : (
+            t('portfolioPerformance.subtitle')
+          )}
         </p>
       </div>
 

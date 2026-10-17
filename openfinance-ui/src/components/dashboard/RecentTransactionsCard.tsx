@@ -8,11 +8,14 @@ import { Badge } from '@/components/ui/Badge';
 import { ConvertedAmount } from '@/components/ui/ConvertedAmount';
 import { useActivePayees } from '@/hooks/usePayees';
 import { useUserSettings } from '@/hooks/useUserSettings';
+import PeriodLabel from '@/components/dashboard/PeriodLabel';
+import type { DateRange } from '@/utils/dashboard-period';
 
 interface RecentTransactionsCardProps {
   transactions: Transaction[];
-  /** Human-readable label for the selected period, e.g. "last 30d", "2026-01-01 → 2026-03-03" */
+  /** Compact label for the selected period, e.g. "last 30d" or "31d". */
   periodLabel?: string;
+  periodRange?: DateRange;
   /** Whether transactions are being loaded */
   isLoading?: boolean;
 }
@@ -102,6 +105,7 @@ function MiniPayeeAvatar({ payee, type }: { payee: Payee | undefined; type: Tran
 export default function RecentTransactionsCard({
   transactions,
   periodLabel,
+  periodRange,
   isLoading,
 }: RecentTransactionsCardProps) {
   const { t } = useTranslation('dashboard');
@@ -115,7 +119,11 @@ export default function RecentTransactionsCard({
     return (
       <div className="bg-surface rounded-lg p-6 border border-border h-full flex flex-col">
         <h3 className="plate-label  mb-1">{t('transactions.title')}</h3>
-        {periodLabel && <p className="text-xs text-text-secondary mb-4">{periodLabel}</p>}
+        {periodLabel && (
+          <p className="text-xs text-text-secondary mb-4">
+            <PeriodLabel range={periodRange}>{periodLabel}</PeriodLabel>
+          </p>
+        )}
         <div className="flex-1 flex items-center justify-center">
           <Loader2 className="h-6 w-6 text-text-muted animate-spin" />
         </div>
@@ -127,7 +135,11 @@ export default function RecentTransactionsCard({
     return (
       <div className="bg-surface rounded-lg p-6 border border-border h-full flex flex-col">
         <h3 className="plate-label  mb-1">{t('transactions.title')}</h3>
-        {periodLabel && <p className="text-xs text-text-secondary mb-4">{periodLabel}</p>}
+        {periodLabel && (
+          <p className="text-xs text-text-secondary mb-4">
+            <PeriodLabel range={periodRange}>{periodLabel}</PeriodLabel>
+          </p>
+        )}
         <div className="text-center py-8">
           <ArrowUpRight className="h-12 w-12 text-text-muted mx-auto mb-3" />
           <p className="text-text-secondary text-sm">{t('transactions.empty.title')}</p>
@@ -146,7 +158,11 @@ export default function RecentTransactionsCard({
       <div className="flex items-start justify-between mb-4">
         <div>
           <h3 className="plate-label  leading-tight">{t('transactions.title')}</h3>
-          {periodLabel && <p className="text-xs text-text-secondary mt-0.5">{periodLabel}</p>}
+          {periodLabel && (
+            <p className="text-xs text-text-secondary mt-0.5">
+              <PeriodLabel range={periodRange}>{periodLabel}</PeriodLabel>
+            </p>
+          )}
         </div>
         <a
           href="/transactions"

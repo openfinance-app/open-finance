@@ -298,12 +298,32 @@ describe('CashflowSankeyCard comparison and zoom', () => {
     expect(screen.getByText('(-$1,900.00/-95%)')).toHaveAttribute('fill', CASHFLOW_SURPLUS_COLOR);
   });
 
-  it('updates comparison dates when the selected period changes', () => {
-    const { rerender } = renderWithProviders(<CashflowSankeyCard dateRange={range} />);
-    rerender(<CashflowSankeyCard dateRange={{ from: '2026-09-10', to: '2026-09-16' }} />);
+  it('updates the compact caption, date tooltip and comparison when the period changes', async () => {
+    const { rerender } = renderWithProviders(
+      <CashflowSankeyCard dateRange={range} periodLabel="31d" />
+    );
+    const customCaption = screen.getByRole('button', { name: '31d', exact: true });
+    fireEvent.focus(customCaption);
+    expect(await screen.findByRole('tooltip')).toHaveTextContent(
+      'Selected period: 08/01/2026 → 08/31/2026'
+    );
+    fireEvent.blur(customCaption);
+
+    rerender(
+      <CashflowSankeyCard
+        period={7}
+        periodLabel="last 7d"
+        dateRange={{ from: '2026-10-11', to: '2026-10-17' }}
+      />
+    );
+    fireEvent.focus(screen.getByRole('button', { name: 'last 7d', exact: true }));
+    expect(await screen.findByRole('tooltip')).toHaveTextContent(
+      'Selected period: 10/11/2026 → 10/17/2026'
+    );
+    expect(screen.getByRole('status')).toHaveTextContent('Compared with 10/04/2026 → 10/10/2026');
     expect(mockUseCashflowSankey).toHaveBeenCalledWith(
-      30,
-      { from: '2026-09-03', to: '2026-09-09' },
+      7,
+      { from: '2026-10-04', to: '2026-10-10' },
       true
     );
   });

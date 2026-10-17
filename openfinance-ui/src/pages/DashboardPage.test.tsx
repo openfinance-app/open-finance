@@ -10,6 +10,7 @@ import { screen, fireEvent, waitFor, within } from '@testing-library/react';
 import { http, HttpResponse } from 'msw';
 import { renderWithProviders, mockAuthentication, clearAuthentication } from '@/test/test-utils';
 import { server } from '@/test/mocks/server';
+import i18n from '@/test/i18n-test';
 import DashboardPage from '@/pages/DashboardPage';
 import { periodToDateRange } from '@/utils/navigation';
 
@@ -53,7 +54,66 @@ describe('DashboardPage Integration Tests', () => {
   });
 
   describe('Data Fetching and Rendering', () => {
+    it('keeps the current balance and uses only observed history for a future-ended period', async () => {
+      vi.useFakeTimers({ toFake: ['Date'] });
+      vi.setSystemTime(new Date(2026, 9, 17, 12));
+      try {
+        sessionStorage.setItem(
+          'dashboard_period',
+          JSON.stringify({
+            period: 'CUSTOM',
+            range: { from: '2026-10-01', to: '2026-10-31' },
+          })
+        );
+        server.use(
+          http.get('/api/v1/dashboard/networth-history', () =>
+            HttpResponse.json([
+              { date: '2026-10-01', netWorth: 15000 },
+              { date: '2026-10-17', netWorth: 19000 },
+              { date: '2026-10-31', netWorth: 999999 },
+            ])
+          )
+        );
+        renderWithProviders(<DashboardPage />);
+        await waitFor(() => expect(screen.getAllByText(/4,000\.00/)).toHaveLength(2));
+        expect(screen.getAllByText('Data through 10/17/2026')).toHaveLength(2);
+        const periodCaption = screen.getByRole('button', { name: 'vs 31d' });
+        fireEvent.focus(periodCaption);
+        expect(await screen.findByRole('tooltip')).toHaveTextContent(
+          'Selected period: 10/01/2026 → 10/31/2026'
+        );
+        fireEvent.blur(periodCaption);
+        expect(screen.getAllByText(/20,000\.00/)[0]).toBeInTheDocument();
+        expect(screen.queryByText(/984,999/)).not.toBeInTheDocument();
+        expect(screen.getByRole('button', { name: '10/01/2026 → 10/31/2026' })).toHaveAttribute(
+          'aria-pressed',
+          'true'
+        );
+        expect(screen.getByText('Compared with 09/01/2026 → 09/30/2026')).toBeInTheDocument();
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    it('shows unavailable history for a future-only period while retaining the current balance', async () => {
+      sessionStorage.setItem(
+        'dashboard_period',
+        JSON.stringify({
+          period: 'CUSTOM',
+          range: { from: '2099-01-01', to: '2099-12-31' },
+        })
+      );
+      server.use(http.get('/api/v1/dashboard/networth-history', () => HttpResponse.json([])));
+      renderWithProviders(<DashboardPage />);
+      expect(
+        await screen.findByText('No historical data available to show trend.')
+      ).toBeInTheDocument();
+      expect(screen.getByText('No change available for this period.')).toBeInTheDocument();
+      expect(screen.getAllByText(/20,000\.00/)[0]).toBeInTheDocument();
+    });
+
     it('compares the exact 30-day boundary even when a nearby chart sample is closer', async () => {
+      sessionStorage.setItem('dashboard_period', JSON.stringify({ period: '30D' }));
       const range = periodToDateRange(30);
       const requested: string[] = [];
       server.use(
@@ -74,7 +134,7 @@ describe('DashboardPage Integration Tests', () => {
         })
       );
       renderWithProviders(<DashboardPage />);
-      await waitFor(() => expect(screen.getByText(/2,000\.00/)).toBeInTheDocument());
+      await waitFor(() => expect(screen.getAllByText(/2,000\.00/)[0]).toBeInTheDocument());
       expect(requested.some(query => query.includes(`startDate=${range.from}`))).toBe(true);
       expect(screen.queryByText(/5,000\.00.*20\.00%/)).not.toBeInTheDocument();
     });
@@ -157,6 +217,18 @@ describe('DashboardPage Integration Tests', () => {
   });
 
   describe('Net Worth Card', () => {
+    beforeEach(() => {
+      sessionStorage.setItem('dashboard_period', JSON.stringify({ period: '30D' }));
+      const range = periodToDateRange(30);
+      server.use(
+        http.get('/api/v1/dashboard/networth-history', () =>
+          HttpResponse.json([
+            { date: range.from, netWorth: 18000 },
+            { date: range.to, netWorth: 20000 },
+          ])
+        )
+      );
+    });
     it('should display net worth with currency formatting', async () => {
       renderWithProviders(<DashboardPage />);
 
@@ -229,11 +301,11 @@ describe('DashboardPage Integration Tests', () => {
       // Wait for page to load
       await screen.findAllByText(/Net Worth/i);
 
-      // Period selector buttons should be present (1D, 7D, 1M, YTD, 1Y, ALL)
-      // We can check for at least one period button
-      const periodButtons = document.querySelectorAll('button[class*="period"]');
-      // Period selector exists even if buttons don't have specific test IDs
-      expect(periodButtons.length >= 0).toBe(true);
+      const selector = screen.getByRole('group', { name: 'Time period' });
+      expect(within(selector).getAllByRole('button')).toHaveLength(8);
+      expect(
+        within(selector).getByRole('button', { name: i18n.t('common:periodSelector.presets.MTD') })
+      ).toHaveAttribute('aria-pressed', 'true');
     });
 
     it('should keep custom date range inputs mounted during refetch', async () => {
@@ -380,12 +452,151 @@ describe('DashboardPage Integration Tests', () => {
   });
 
   describe('Period Selection', () => {
-    it('should switch to 1Y period and update net worth change', async () => {
+    it('persists the migrated current-month preset so it keeps following the calendar', async () => {
+      vi.useFakeTimers({ toFake: ['Date'] });
+      vi.setSystemTime(new Date(2026, 9, 17, 12));
+      sessionStorage.setItem(
+        'dashboard_period',
+        JSON.stringify({ period: 'MONTH', month: '2026-10' })
+      );
+      try {
+        renderWithProviders(<DashboardPage />);
+        expect(
+          await screen.findByRole('button', { name: i18n.t('common:periodSelector.presets.MTD') })
+        ).toHaveAttribute('aria-pressed', 'true');
+        expect(JSON.parse(sessionStorage.getItem('dashboard_period')!)).toEqual({ period: 'MTD' });
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    it('sends the same calendar dates to cards, history and drill-downs, with a calendar comparison', async () => {
+      vi.useFakeTimers({ toFake: ['Date'] });
+      vi.setSystemTime(new Date(2026, 9, 17, 12));
+      const requests: URL[] = [];
+      const observe = ({ request }: { request: Request }): void => {
+        requests.push(new URL(request.url));
+      };
+      server.events.on('request:start', observe);
+      try {
+        renderWithProviders(<DashboardPage />);
+        const paths = [
+          'cashflow',
+          'networth-history',
+          'portfolio-performance',
+          'borrowing-capacity',
+          'estimated-interest',
+        ];
+        await waitFor(() => {
+          for (const path of paths) {
+            expect(
+              requests.some(
+                url =>
+                  url.pathname === `/api/v1/dashboard/${path}` &&
+                  url.searchParams.get('startDate') === '2026-10-01' &&
+                  url.searchParams.get('endDate') === '2026-10-17'
+              )
+            ).toBe(true);
+          }
+          expect(
+            requests.some(
+              url =>
+                url.pathname.endsWith('/cashflow-sankey') &&
+                url.searchParams.get('startDate') === '2026-09-01' &&
+                url.searchParams.get('endDate') === '2026-09-17'
+            )
+          ).toBe(true);
+        });
+
+        expect(
+          screen.getByRole('button', { name: i18n.t('common:periodSelector.presets.MTD') })
+        ).toHaveAttribute('aria-pressed', 'true');
+        const sankeyCard = screen.getByRole('group', { name: 'Cash flow diagram' }).parentElement!
+          .parentElement!;
+        const periodCaption = within(sankeyCard).getByRole('button', { name: 'last 17d' });
+        fireEvent.focus(periodCaption);
+        expect(await screen.findByRole('tooltip')).toHaveTextContent(
+          'Selected period: 10/01/2026 → 10/17/2026'
+        );
+        fireEvent.blur(periodCaption);
+        fireEvent.click(screen.getByRole('button', { name: 'Custom range' }));
+        fireEvent.change(screen.getByLabelText('From', { exact: true }), {
+          target: { value: '07/01/2026' },
+        });
+        fireEvent.change(screen.getByLabelText('To', { exact: true }), {
+          target: { value: '07/31/2026' },
+        });
+        fireEvent.click(screen.getByRole('button', { name: '07/01/2026 → 07/31/2026' }));
+        await waitFor(() => {
+          for (const path of paths) {
+            expect(
+              requests.some(
+                url =>
+                  url.pathname === `/api/v1/dashboard/${path}` &&
+                  url.searchParams.get('startDate') === '2026-07-01' &&
+                  url.searchParams.get('endDate') === '2026-07-31'
+              )
+            ).toBe(true);
+          }
+          expect(
+            requests.some(
+              url =>
+                url.pathname.endsWith('/cashflow-sankey') &&
+                url.searchParams.get('startDate') === '2026-06-01' &&
+                url.searchParams.get('endDate') === '2026-06-30'
+            )
+          ).toBe(true);
+          expect(
+            requests.some(
+              url =>
+                url.pathname.endsWith('/transactions/search') &&
+                url.searchParams.get('dateFrom') === '2026-07-01' &&
+                url.searchParams.get('dateTo') === '2026-07-31'
+            )
+          ).toBe(true);
+        });
+        expect(requests.some(url => url.searchParams.get('startDate') === '2026-05-31')).toBe(
+          false
+        );
+        expect(JSON.parse(sessionStorage.getItem('dashboard_period')!)).toEqual({
+          period: 'CUSTOM',
+          range: { from: '2026-07-01', to: '2026-07-31' },
+        });
+
+        for (const [button, from] of [
+          ['1D', '2026-10-17'],
+          ['7D', '2026-10-11'],
+          ['30D', '2026-09-18'],
+        ]) {
+          fireEvent.click(screen.getByRole('button', { name: button, exact: true }));
+          // Custom initially fetched 30D, so that exact request may already be cached.
+          await waitFor(() =>
+            expect(
+              requests.some(
+                url =>
+                  url.pathname.endsWith('/networth-history') &&
+                  url.searchParams.get('startDate') === from &&
+                  url.searchParams.get('endDate') === '2026-10-17'
+              )
+            ).toBe(true)
+          );
+          expect(screen.getByRole('button', { name: button, exact: true })).toHaveAttribute(
+            'aria-pressed',
+            'true'
+          );
+        }
+      } finally {
+        server.events.removeListener('request:start', observe);
+        vi.useRealTimers();
+      }
+    });
+
+    it('should switch to 365D period and update net worth change', async () => {
       renderWithProviders(<DashboardPage />);
       await screen.findAllByText(/Net Worth/i);
 
-      // Find and click the 1Y period button
-      const yearButton = await screen.findByRole('button', { name: /1Y|1A/i });
+      // Find and click the rolling year button
+      const yearButton = await screen.findByRole('button', { name: /365D|365j/i });
       fireEvent.click(yearButton);
 
       // Dashboard should still render after period change
@@ -396,7 +607,9 @@ describe('DashboardPage Integration Tests', () => {
       renderWithProviders(<DashboardPage />);
       await screen.findAllByText(/Net Worth/i);
 
-      const allButton = await screen.findByRole('button', { name: /^ALL$|^TOUT$/i });
+      const allButton = await screen.findByRole('button', {
+        name: i18n.t('common:periodSelector.presets.ALL'),
+      });
       fireEvent.click(allButton);
 
       expect(screen.getAllByText(/Net Worth/i).length).toBeGreaterThan(0);

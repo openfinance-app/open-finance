@@ -22,12 +22,17 @@ import { useUserSettings } from '@/hooks/useUserSettings';
 import { formatDate as globalFormatDate } from '@/utils/date';
 import { subtract, percentage } from '@/utils/money';
 import { useTranslation } from 'react-i18next';
+import { addDays, differenceInCalendarDays, parseISO } from 'date-fns';
+import type { DateRange } from '@/utils/dashboard-period';
+import PeriodLabel from '@/components/dashboard/PeriodLabel';
 
 interface NetWorthTrendChartProps {
   data: INetWorthSummary[];
   currency: string;
-  /** Human-readable label for the selected period, e.g. "last 30d", "2026-01-01 → 2026-03-03" */
+  /** Compact label for the selected period, e.g. "last 30d" or "31d". */
   periodLabel?: string;
+  /** Reporting boundaries, including any future portion with no observations. */
+  dateRange?: DateRange;
 }
 
 interface CustomTooltipProps {
@@ -111,6 +116,7 @@ export default function NetWorthTrendChart({
   data,
   currency,
   periodLabel,
+  dateRange,
 }: NetWorthTrendChartProps) {
   const { isAmountsVisible } = useVisibility();
   const { data: settings } = useUserSettings();
@@ -118,13 +124,34 @@ export default function NetWorthTrendChart({
   // Add previousNetWorth for change calculation in tooltip
   const chartData = data.map((point, index) => ({
     ...point,
+    timestamp: parseISO(point.date).getTime(),
     previousNetWorth: index > 0 ? data[index - 1].netWorth : null,
   }));
+  const lastDate = data.at(-1)?.date;
+  const observedThrough = dateRange && lastDate && lastDate < dateRange.to ? lastDate : undefined;
+  // Keep the selected dates for the caption, but omit the unobserved tail from the axis.
+  const chartRange = dateRange && { ...dateRange, to: observedThrough ?? dateRange.to };
+  const domain = chartRange
+    ? [parseISO(chartRange.from).getTime(), parseISO(chartRange.to).getTime()]
+    : ['dataMin', 'dataMax'];
+  const span = chartRange
+    ? differenceInCalendarDays(parseISO(chartRange.to), parseISO(chartRange.from))
+    : 0;
+  const ticks = chartRange
+    ? Array.from(new Set([0, 0.25, 0.5, 0.75, 1].map(fraction => Math.round(span * fraction)))).map(
+        days => addDays(parseISO(chartRange.from), days).getTime()
+      )
+    : undefined;
 
   if (data.length === 0) {
     return (
       <div className="bg-surface rounded-lg p-6 border border-border h-full flex flex-col">
         <h3 className="plate-label  mb-4">{t('netWorthTrend.title')}</h3>
+        {periodLabel && (
+          <p className="text-sm text-text-secondary">
+            <PeriodLabel range={dateRange}>{periodLabel}</PeriodLabel>
+          </p>
+        )}
         <div className="flex items-center justify-center flex-1 min-h-0 text-text-secondary">
           <p>{t('netWorthTrend.noHistory')}</p>
         </div>
@@ -163,10 +190,21 @@ export default function NetWorthTrendChart({
         <div>
           <h3 className="plate-label  mb-1">{t('netWorthTrend.title')}</h3>
           <p className="text-sm text-text-secondary">
-            {periodLabel
-              ? t('netWorthTrend.periodTrend', { period: periodLabel })
-              : t('netWorthTrend.dataPointsDays', { count: data.length, days: daysCovered })}
+            {periodLabel ? (
+              <PeriodLabel range={dateRange}>
+                {t('netWorthTrend.periodTrend', { period: periodLabel })}
+              </PeriodLabel>
+            ) : (
+              t('netWorthTrend.dataPointsDays', { count: data.length, days: daysCovered })
+            )}
           </p>
+          {observedThrough && (
+            <p className="text-xs text-text-secondary mt-1">
+              {t('period.dataThrough', {
+                date: globalFormatDate(observedThrough, settings?.dateFormat),
+              })}
+            </p>
+          )}
         </div>
 
         {/* Overall Change */}
@@ -175,7 +213,7 @@ export default function NetWorthTrendChart({
             {getTrendIcon()}
             <div className="text-right">
               <p
-                className={`text-sm font-semibold ${overallChange >= 0 ? 'text-green-500' : 'text-red-500'}`}
+                className={`whitespace-nowrap text-sm font-semibold ${overallChange >= 0 ? 'text-green-500' : 'text-red-500'}`}
               >
                 {overallChange >= 0 ? '+' : '-'}
                 <ConvertedAmount amount={Math.abs(overallChange)} currency={currency} inline />
@@ -203,8 +241,14 @@ export default function NetWorthTrendChart({
             </defs>
             <CartesianGrid strokeDasharray="3 3" stroke="#2a2a2a" vertical={false} />
             <XAxis
-              dataKey="date"
-              tickFormatter={value => globalFormatDate(value, settings?.dateFormat)}
+              dataKey="timestamp"
+              type="number"
+              scale="time"
+              domain={domain}
+              ticks={ticks}
+              allowDataOverflow
+              interval="preserveStartEnd"
+              tickFormatter={value => globalFormatDate(new Date(value), settings?.dateFormat)}
               stroke="#666"
               style={{ fontSize: '12px' }}
               tickLine={false}
@@ -225,7 +269,7 @@ export default function NetWorthTrendChart({
               stroke="#c5a254"
               strokeWidth={2}
               fill="url(#colorNetWorth)"
-              dot={false}
+              dot={data.length === 1 ? { r: 4, fill: '#c5a254' } : false}
               activeDot={{ r: 6, fill: '#c5a254' }}
             />
           </AreaChart>

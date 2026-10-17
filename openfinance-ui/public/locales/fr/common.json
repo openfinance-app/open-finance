@@ -206,12 +206,14 @@
     "actions": "Actions"
   },
   "periodSelector": {
+    "label": "Période",
     "presets": {
       "1D": "1j",
       "7D": "7j",
-      "1M": "1m",
+      "30D": "30j",
+      "MTD": "Ce mois",
       "YTD": "YTD",
-      "1Y": "1a",
+      "365D": "365j",
       "ALL": "MAX"
     }
   },

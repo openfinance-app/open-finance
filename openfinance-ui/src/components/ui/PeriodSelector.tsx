@@ -1,203 +1,117 @@
-import { useDateFormatter } from '@/hooks/useDateFormatter';
-/* eslint-disable react-refresh/only-export-components */
-/**
- * PeriodSelector Component
- *
- * Provides preset period buttons (1D, 7D, 1M, YTD, 1Y, ALL) plus a
- * "Custom" mode that reveals a compact from/to date-range picker.
- *
- * Design principles:
- *  - Single row — presets + custom toggle sit together, no wrapping on desktop
- *  - Date inputs appear inline to the right of the presets when Custom is active
- *  - Accessible: each button has aria-pressed; date inputs have visible labels
- *  - Dark-theme consistent with the rest of the dashboard
- */
 import { useState } from 'react';
-import { differenceInCalendarDays } from 'date-fns';
-import { toLocalISODate } from '@/utils/date';
-import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/Popover';
+import { parseISO } from 'date-fns';
 import { Calendar, ChevronDown } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { cn } from '@/lib/utils';
+import { useDateFormatter } from '@/hooks/useDateFormatter';
+import { toLocalISODate } from '@/utils/date';
+import {
+  dateRangeToDays,
+  resolveDashboardPeriod,
+  type DateRange,
+  type PeriodSelection,
+  type PresetPeriod,
+} from '@/utils/dashboard-period';
+import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/Popover';
 import { DateInput } from '@/components/ui/DateInput';
+import { cn } from '@/lib/utils';
 
-// ─── Types ────────────────────────────────────────────────────────────────────
+export type { DateRange } from '@/utils/dashboard-period';
 
-export type Period = '1D' | '7D' | '1M' | 'YTD' | '1Y' | 'ALL' | 'CUSTOM';
-
-export interface DateRange {
-  from: string; // ISO date string YYYY-MM-DD
-  to: string; // ISO date string YYYY-MM-DD
-}
-
-interface PeriodOption {
-  label: string;
-  value: Exclude<Period, 'CUSTOM'>;
-  days: number | null;
-}
-
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
-function getYTDDays(): number {
-  const now = new Date();
-  const startOfYear = new Date(now.getFullYear(), 0, 1);
-  return differenceInCalendarDays(now, startOfYear) + 1;
-}
-
-/** Format today / start-of-year as ISO date strings for default custom range */
-function toISODate(d: Date): string {
-  return toLocalISODate(d);
-}
-
-function defaultCustomRange(): DateRange {
-  const to = new Date();
-  const from = new Date(to.getFullYear(), to.getMonth() - 1, to.getDate());
-  return { from: toISODate(from), to: toISODate(to) };
-}
-
-/** Number of days between two ISO date strings (inclusive) */
-export function dateRangeToDays(range: DateRange): number {
-  const from = new Date(range.from).getTime();
-  const to = new Date(range.to).getTime();
-  return Math.max(1, Math.ceil((to - from) / (1000 * 60 * 60 * 24)) + 1);
-}
-
-// ─── Preset options ───────────────────────────────────────────────────────────
-
-const PRESET_OPTIONS: PeriodOption[] = [
-  { label: '1D', value: '1D', days: 1 },
-  { label: '7D', value: '7D', days: 7 },
-  { label: '1M', value: '1M', days: 30 },
-  { label: 'YTD', value: 'YTD', days: getYTDDays() },
-  { label: '1Y', value: '1Y', days: 365 },
-  { label: 'ALL', value: 'ALL', days: null },
-];
-
-// ─── Props ────────────────────────────────────────────────────────────────────
-
-export interface PeriodSelectorProps {
-  /** Currently selected period */
-  selectedPeriod: Period;
-  /** Active custom date range, used for initialization */
-  activeDateRange?: DateRange;
-  /** Callback when a preset period changes */
-  onPeriodChange: (period: Period, days: number | null, dateRange?: DateRange) => void;
-  /** Optional className for the wrapper */
+interface PeriodSelectorProps {
+  selection: PeriodSelection;
+  onPeriodChange: (selection: PeriodSelection) => void;
+  today?: string;
   className?: string;
 }
 
-// ─── Component ────────────────────────────────────────────────────────────────
+const PRESETS: PresetPeriod[] = ['1D', '7D', '30D', 'MTD', 'YTD', '365D'];
 
+function buttonClass(active: boolean): string {
+  return cn(
+    'px-3 min-h-9 rounded-md text-sm font-medium transition-colors flex items-center justify-center gap-1.5 whitespace-nowrap hover:bg-surface-elevated',
+    active
+      ? 'bg-gradient-to-b from-brass-bright to-primary text-primary-foreground font-semibold shadow-[inset_0_1px_0_0_rgb(255_255_255/0.28)]'
+      : 'text-text-secondary hover:text-text-primary'
+  );
+}
+
+/** Rolling and to-date presets plus an exact custom range. */
 export function PeriodSelector({
-  selectedPeriod,
-  activeDateRange,
+  selection,
   onPeriodChange,
+  today = toLocalISODate(new Date()),
   className,
 }: PeriodSelectorProps) {
   const { t } = useTranslation('common');
-  const [customRange, setCustomRange] = useState<DateRange>(
-    () => activeDateRange ?? defaultCustomRange()
-  );
+  const { date: formatDate } = useDateFormatter();
   const [customOpen, setCustomOpen] = useState(false);
-
-  const { date: formatCustomLabelDate } = useDateFormatter();
-
-  const isCustomActive = selectedPeriod === 'CUSTOM';
-
-  const handlePreset = (opt: PeriodOption) => {
+  const [customRange, setCustomRange] = useState<DateRange>(() =>
+    selection.period === 'CUSTOM'
+      ? selection.range
+      : resolveDashboardPeriod({ period: '30D' }, parseISO(today)).range
+  );
+  const customActive = selection.period === 'CUSTOM';
+  const customLabel = customActive
+    ? `${formatDate(selection.range.from)} → ${formatDate(selection.range.to)}`
+    : t('dateRange.custom');
+  const choosePreset = (period: PresetPeriod): void => {
     setCustomOpen(false);
-    onPeriodChange(opt.value, opt.days);
+    onPeriodChange({ period });
   };
-
-  const handleCustomToggle = (next: boolean) => {
-    setCustomOpen(next);
-    if (next && !isCustomActive) {
-      // Immediately activate custom with current range
-      const range = customRange;
-      onPeriodChange('CUSTOM', dateRangeToDays(range), range);
+  const openCustom = (open: boolean): void => {
+    setCustomOpen(open);
+    if (open) {
+      if (!customActive) onPeriodChange({ period: 'CUSTOM', range: customRange });
     }
   };
-
-  const handleFromChange = (value: string) => {
-    if (!value) return;
-    const next: DateRange = { from: value, to: customRange.to < value ? value : customRange.to };
-    setCustomRange(next);
-    onPeriodChange('CUSTOM', dateRangeToDays(next), next);
+  const updateCustom = (range: DateRange): void => {
+    setCustomRange(range);
+    onPeriodChange({ period: 'CUSTOM', range });
   };
-
-  const handleToChange = (value: string) => {
-    if (!value) return;
-    const next: DateRange = {
-      from: customRange.from > value ? value : customRange.from,
-      to: value,
-    };
-    setCustomRange(next);
-    onPeriodChange('CUSTOM', dateRangeToDays(next), next);
-  };
-
-  // Label shown on the custom button
-  const customLabel = isCustomActive
-    ? `${formatCustomLabelDate(customRange.from)} → ${formatCustomLabelDate(customRange.to)}`
-    : t('dateRange.custom');
 
   return (
     <div
+      role="group"
+      aria-label={t('periodSelector.label')}
       className={cn(
         'flex items-center gap-1 bg-surface border border-border shadow-slot rounded-lg p-1 flex-wrap',
         className
       )}
     >
-      {/* ── Preset buttons ── */}
-      {PRESET_OPTIONS.map(opt => {
-        const isActive = opt.value === selectedPeriod;
-        const translatedLabel = t(`periodSelector.presets.${opt.value}`, {
-          defaultValue: opt.label,
-        });
+      {PRESETS.map(period => (
+        <button
+          key={period}
+          type="button"
+          onClick={() => choosePreset(period)}
+          aria-pressed={selection.period === period}
+          className={buttonClass(selection.period === period)}
+        >
+          {t(`periodSelector.presets.${period}`)}
+        </button>
+      ))}
 
-        return (
-          <button
-            key={opt.value}
-            onClick={() => handlePreset(opt)}
-            aria-pressed={isActive}
-            className={cn(
-              'px-3 min-h-[36px] min-w-[2.5rem] rounded-md text-sm font-medium transition-all duration-150 flex items-center justify-center whitespace-nowrap',
-              'hover:bg-surface-elevated',
-              isActive
-                ? 'bg-gradient-to-b from-brass-bright to-primary text-primary-foreground font-semibold shadow-[inset_0_1px_0_0_rgb(255_255_255/0.28)]'
-                : 'text-text-secondary hover:text-text-primary'
-            )}
-          >
-            {translatedLabel}
-          </button>
-        );
-      })}
+      <button
+        type="button"
+        onClick={() => choosePreset('ALL')}
+        aria-pressed={selection.period === 'ALL'}
+        className={buttonClass(selection.period === 'ALL')}
+      >
+        {t('periodSelector.presets.ALL')}
+      </button>
 
-      {/* ── Divider ── */}
-      <div className="w-px h-5 bg-border mx-1 self-center" />
-
-      {/* ── Custom button + popover ── */}
-      <Popover open={customOpen} onOpenChange={handleCustomToggle}>
+      <Popover open={customOpen} onOpenChange={openCustom}>
         <PopoverTrigger asChild>
           <button
+            type="button"
             aria-label={customLabel}
-            aria-pressed={isCustomActive}
-            className={cn(
-              'px-3 min-h-[36px] rounded-md text-sm font-medium transition-all duration-150 flex items-center gap-1.5',
-              'hover:bg-surface-elevated',
-              isCustomActive
-                ? 'bg-gradient-to-b from-brass-bright to-primary text-primary-foreground font-semibold shadow-[inset_0_1px_0_0_rgb(255_255_255/0.28)]'
-                : 'text-text-secondary hover:text-text-primary'
-            )}
+            aria-pressed={customActive}
+            className={buttonClass(customActive)}
           >
             <Calendar className="h-3.5 w-3.5 shrink-0" />
-            <span className="whitespace-nowrap hidden sm:inline">{customLabel}</span>
-            <ChevronDown
-              className={cn('h-3 w-3 shrink-0 transition-transform', customOpen && 'rotate-180')}
-            />
+            <span className="hidden sm:inline">{customLabel}</span>
+            <ChevronDown className="h-3 w-3 shrink-0" />
           </button>
         </PopoverTrigger>
-
-        {/* ── Date range popover ── */}
         <PopoverContent
           align="start"
           collisionPadding={12}
@@ -208,9 +122,7 @@ export function PeriodSelector({
           <p className="text-xs font-semibold text-text-secondary uppercase tracking-wide mb-3">
             {t('dateRange.title')}
           </p>
-
           <div className="flex flex-col gap-3">
-            {/* From */}
             <div className="flex flex-col gap-1">
               <label htmlFor="period-from" className="text-xs text-text-secondary font-medium">
                 {t('dateRange.from')}
@@ -219,11 +131,12 @@ export function PeriodSelector({
                 id="period-from"
                 value={customRange.from}
                 max={customRange.to}
-                onChange={handleFromChange}
+                onChange={from => {
+                  if (from)
+                    updateCustom({ from, to: customRange.to < from ? from : customRange.to });
+                }}
               />
             </div>
-
-            {/* To */}
             <div className="flex flex-col gap-1">
               <label htmlFor="period-to" className="text-xs text-text-secondary font-medium">
                 {t('dateRange.to')}
@@ -232,17 +145,14 @@ export function PeriodSelector({
                 id="period-to"
                 value={customRange.to}
                 min={customRange.from}
-                max={toISODate(new Date())}
-                onChange={handleToChange}
+                onChange={to => {
+                  if (to) updateCustom({ from: customRange.from > to ? to : customRange.from, to });
+                }}
               />
             </div>
           </div>
-
-          {/* Range summary */}
-          <div className="mt-3 pt-3 border-t border-border text-center">
-            <span className="text-xs text-text-secondary">
-              {t('dateRange.daysSelected', { count: dateRangeToDays(customRange) })}
-            </span>
+          <div className="mt-3 pt-3 border-t border-border text-center text-xs text-text-secondary">
+            {t('dateRange.daysSelected', { count: dateRangeToDays(customRange) })}
           </div>
         </PopoverContent>
       </Popover>
