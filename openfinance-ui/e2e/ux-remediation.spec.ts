@@ -90,7 +90,9 @@ test('onboarding renders labels and saves the header language across reloads and
   await expect(page.getByRole('heading', { name: 'Tableau de bord', exact: true })).toBeVisible();
   await expect(page.locator('html')).toHaveAttribute('lang', 'fr');
   const displayedToday = today.split('-').reverse().join('/');
-  await expect(page.getByText(new RegExp(`au ${displayedToday}`))).toBeVisible();
+  await expect(
+    page.getByText(`Votre aperçu financier au ${displayedToday}`, { exact: true })
+  ).toBeVisible();
   await page.goto('/settings');
   await page.getByRole('button', { name: 'Affichage', exact: true }).click();
   await page.getByRole('combobox', { name: 'Langue', exact: true }).click();
@@ -278,7 +280,11 @@ test('minor fixes persist category icons and notification acknowledgement with a
   await dialog.getByRole('button', { name: /create|save/i }).click();
   await expect(dialog).not.toBeVisible();
   await page.reload();
-  await expect(page.getByTitle('UX fitness', { exact: true })).toBeVisible();
+  const savedCategory = page
+    .getByRole('listitem')
+    .filter({ has: page.getByText('UX fitness', { exact: true }) });
+  await expect(savedCategory).toBeVisible();
+  await expect(savedCategory.getByText('🏋️', { exact: true })).toBeVisible();
   const categories = await api(page, '/categories');
   expect(categories.find((category: { name: string }) => category.name === 'UX fitness').icon).toBe(
     '🏋️'
