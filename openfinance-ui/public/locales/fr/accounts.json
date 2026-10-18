@@ -191,5 +191,7 @@
     "taxRateMax": "Le taux d'imposition ne peut pas dépasser 100",
     "effectiveDateRequired": "La date d'effet est obligatoire",
     "duplicateName": "Un compte avec ce nom existe déjà"
-  }
+  },
+  "allAccountsTotal": "Tous les comptes · {{currency}}",
+  "totalUnavailable": "Total indisponible : certains soldes n’ont pas pu être convertis."
 }

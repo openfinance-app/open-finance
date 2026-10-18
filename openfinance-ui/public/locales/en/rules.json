@@ -71,7 +71,9 @@
       "fields": {
         "DESCRIPTION": "Description / Payee",
         "AMOUNT": "Amount",
-        "TRANSACTION_TYPE": "Transaction Type"
+        "TRANSACTION_TYPE": "Transaction Type",
+        "PAYEE": "Payee",
+        "MEMO": "Comment / memo"
       },
       "operators": {
         "CONTAINS": "Contains",

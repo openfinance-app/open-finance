@@ -125,6 +125,7 @@ class ImportServiceTest {
     @Mock private AccountService accountService;
 
     @Mock private TransactionRuleService transactionRuleService;
+    @Mock private SkroogeRuleImportService skroogeRuleImportService;
 
     @Mock private PayeeRepository payeeRepository;
 
@@ -243,6 +244,7 @@ class ImportServiceTest {
                         new ImportedOpeningBalanceServiceImpl(
                                 accountRepository, transactionRepository),
                         transactionRuleService,
+                        skroogeRuleImportService,
                         transactionService,
                         exchangeRateService,
                         transactionSplitService,

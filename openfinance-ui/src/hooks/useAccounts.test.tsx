@@ -60,6 +60,28 @@ describe('useAccounts hooks', () => {
   };
 
   // ── useAccounts ──────────────────────────────────────────────────────────
+  it('fetches every result page for account summaries', async () => {
+    mockedApiClient.get
+      .mockResolvedValueOnce({
+        data: { content: [mockAccount], totalElements: 2, totalPages: 2, number: 0, size: 1 },
+      })
+      .mockResolvedValueOnce({
+        data: {
+          content: [{ ...mockAccount, id: 2 }],
+          totalElements: 2,
+          totalPages: 2,
+          number: 1,
+          size: 1,
+        },
+      });
+    const { result } = renderHook(() => useAccountsSearch({ currency: 'USD', size: 1 }, true), {
+      wrapper,
+    });
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(result.current.data?.content.map(account => account.id)).toEqual([1, 2]);
+    expect(mockedApiClient.get.mock.calls[1][0]).toContain('page=1');
+    expect(mockedApiClient.get.mock.calls[1][0]).toContain('currency=USD');
+  });
   describe('useAccounts', () => {
     it('should fetch accounts with default active filter', async () => {
       mockedApiClient.get.mockResolvedValue({ data: [mockAccount] });

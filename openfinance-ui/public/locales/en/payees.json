@@ -66,5 +66,6 @@
     "error": "Cannot delete this payee"
   },
   "transactions_one": "{{count}} transaction",
-  "transactions_other": "{{count}} transactions"
+  "transactions_other": "{{count}} transactions",
+  "viewTransactions": "View transactions for {{name}}"
 }

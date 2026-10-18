@@ -154,6 +154,16 @@ export function TransactionFilters({ filters, onFiltersChange }: TransactionFilt
             placeholder={t('filterKeys.allCategories')}
             allowNone={true}
           />
+          {filters.categoryId && (
+            <label className="mt-2 flex items-center gap-2 text-xs text-text-secondary">
+              <input
+                type="checkbox"
+                checked={!!filters.includeSubcategories}
+                onChange={event => handleChange('includeSubcategories', event.target.checked)}
+              />
+              {t('filterKeys.includeSubcategories')}
+            </label>
+          )}
         </div>
 
         {/* Payee filter - using PayeeSelector */}

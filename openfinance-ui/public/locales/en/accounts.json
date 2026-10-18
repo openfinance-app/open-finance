@@ -191,5 +191,7 @@
     "taxRateMax": "Tax rate cannot exceed 100",
     "effectiveDateRequired": "Effective date is required",
     "duplicateName": "An account with this name already exists"
-  }
+  },
+  "allAccountsTotal": "All accounts · {{currency}}",
+  "totalUnavailable": "Total unavailable: some balances could not be converted."
 }

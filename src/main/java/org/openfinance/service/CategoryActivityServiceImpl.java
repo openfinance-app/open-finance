@@ -64,7 +64,14 @@ public class CategoryActivityServiceImpl implements CategoryActivityService {
         totals.forEach(
                 (id, value) ->
                         result.put(
-                                id, new Activity(value.income, value.expenses, value.ids.size())));
+                                id,
+                                new Activity(
+                                        value.income,
+                                        value.expenses,
+                                        value.ids.size(),
+                                        value.directIncome,
+                                        value.directExpenses,
+                                        value.directIds.size())));
         return result;
     }
 
@@ -120,13 +127,21 @@ public class CategoryActivityServiceImpl implements CategoryActivityService {
             Long categoryId,
             BigDecimal amount) {
         Set<Long> visited = new HashSet<>();
+        boolean direct = true;
         while (categoryId != null && owned.containsKey(categoryId) && visited.add(categoryId)) {
             Totals value = totals.computeIfAbsent(categoryId, ignored -> new Totals());
             value.ids.add(transaction.getId());
+            if (direct) {
+                value.directIds.add(transaction.getId());
+                if (transaction.getType() == TransactionType.INCOME)
+                    value.directIncome = value.directIncome.add(amount);
+                else value.directExpenses = value.directExpenses.add(amount);
+            }
             if (transaction.getType() == TransactionType.INCOME)
                 value.income = value.income.add(amount);
             else value.expenses = value.expenses.add(amount);
             categoryId = owned.get(categoryId).getParentId();
+            direct = false;
         }
     }
 
@@ -134,5 +149,8 @@ public class CategoryActivityServiceImpl implements CategoryActivityService {
         private BigDecimal income = BigDecimal.ZERO;
         private BigDecimal expenses = BigDecimal.ZERO;
         private final Set<Long> ids = new HashSet<>();
+        private BigDecimal directIncome = BigDecimal.ZERO;
+        private BigDecimal directExpenses = BigDecimal.ZERO;
+        private final Set<Long> directIds = new HashSet<>();
     }
 }

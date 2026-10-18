@@ -17,6 +17,7 @@ import { ROUTES } from '@/constants/routes';
 import { useTranslation } from 'react-i18next';
 import { useQueryClient } from '@tanstack/react-query';
 import { FileUpload } from '@/components/import/FileUpload';
+import { SkroogeRulesNotice } from '@/components/import/SkroogeRulesNotice';
 import { useAuthContext } from '@/context/AuthContext';
 import { useImportDraftStore, readImportRecovery } from '@/stores/importDraft';
 import { readImportReviewOptions } from '@/utils/import-review-options';
@@ -241,6 +242,7 @@ export function ImportWizard() {
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
       queryClient.invalidateQueries({ queryKey: ['categories'] });
       queryClient.invalidateQueries({ queryKey: ['budgets'] });
+      queryClient.invalidateQueries({ queryKey: ['transaction-rules'] });
       queryClient.invalidateQueries({ queryKey: ['budgetAlerts'] });
     }
     // Reset the guard if a brand-new session begins.
@@ -536,6 +538,10 @@ export function ImportWizard() {
             </p>
           </div>
         )}
+
+      {session?.status !== 'COMPLETED' && (
+        <SkroogeRulesNotice metadata={session?.metadata} completed={false} />
+      )}
 
       {/* ── Stepper header ─────────────────────────────────────────────── */}
       <div className="mb-8">

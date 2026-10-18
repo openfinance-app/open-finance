@@ -33,7 +33,9 @@ import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
 import org.openfinance.dto.TransactionRequest;
 import org.openfinance.dto.TransactionResponse;
+import org.openfinance.dto.TransactionSearchCriteria;
 import org.openfinance.dto.TransactionSplitResponse;
+import org.openfinance.dto.TransactionSummaryResponse;
 import org.openfinance.entity.Account;
 import org.openfinance.entity.AccountType;
 import org.openfinance.entity.Category;
@@ -170,6 +172,72 @@ class TransactionServiceTest {
     }
 
     // ---------- createTransaction tests ----------
+
+    @Test
+    @DisplayName("Summary uses booked and dated exchange values and separates transfers")
+    void summaryUsesBookedAndHistoricalAmounts() {
+        Transaction income = transactionEntity(1L, 1L, baseRequest());
+        income.setType(TransactionType.INCOME);
+        income.setCurrency("EUR");
+        income.setAmount(new BigDecimal("100"));
+        income.setAccountCurrency("USD");
+        income.setAccountAmount(new BigDecimal("110"));
+        Transaction expense = transactionEntity(2L, 1L, baseRequest());
+        expense.setCurrency("GBP");
+        expense.setAmount(new BigDecimal("20"));
+        expense.setDate(LocalDate.of(2026, 1, 7));
+        Transaction outgoing = transactionEntity(3L, 1L, baseRequest());
+        outgoing.setTransferId("pair");
+        Transaction incoming = transactionEntity(4L, 1L, baseRequest());
+        incoming.setTransferId("pair");
+        incoming.setType(TransactionType.INCOME);
+        when(transactionRepository.findAll(
+                        org.mockito.ArgumentMatchers
+                                .<org.springframework.data.jpa.domain.Specification<Transaction>>
+                                        any()))
+                .thenReturn(List.of(income, expense, outgoing, incoming));
+        when(exchangeRateService.getExchangeRate("GBP", "USD", expense.getDate()))
+                .thenReturn(new BigDecimal("1.25"));
+        when(exchangeRateService.convert(expense.getAmount(), "GBP", "USD", expense.getDate()))
+                .thenReturn(new BigDecimal("25"));
+
+        TransactionSummaryResponse summary =
+                transactionService.summarizeTransactions(1L, new TransactionSearchCriteria());
+
+        assertThat(summary.transactionCount()).isEqualTo(4);
+        assertThat(summary.currency()).isEqualTo("USD");
+        assertThat(summary.incomeAmount()).isEqualByComparingTo("110");
+        assertThat(summary.expenseAmount()).isEqualByComparingTo("25");
+        assertThat(summary.transferNetAmount()).isZero();
+        assertThat(summary.netAmount()).isEqualByComparingTo("85");
+        verify(exchangeRateService).convert(expense.getAmount(), "GBP", "USD", expense.getDate());
+        verify(exchangeRateService, never()).getExchangeRate(eq("EUR"), anyString(), any());
+    }
+
+    @Test
+    @DisplayName("Summary never presents mixed native currencies as a converted total")
+    void summaryOmitsAmountsWhenAnExchangeRateIsUnavailable() {
+        Transaction nativeTransaction = transactionEntity(1L, 1L, baseRequest());
+        Transaction foreignTransaction = transactionEntity(2L, 1L, baseRequest());
+        foreignTransaction.setCurrency("EUR");
+        when(transactionRepository.findAll(
+                        org.mockito.ArgumentMatchers
+                                .<org.springframework.data.jpa.domain.Specification<Transaction>>
+                                        any()))
+                .thenReturn(List.of(nativeTransaction, foreignTransaction));
+        when(exchangeRateService.getExchangeRate("EUR", "USD", foreignTransaction.getDate()))
+                .thenThrow(new IllegalStateException("Rate unavailable"));
+
+        TransactionSummaryResponse summary =
+                transactionService.summarizeTransactions(1L, new TransactionSearchCriteria());
+
+        assertThat(summary.transactionCount()).isEqualTo(2);
+        assertThat(summary.currency()).isEqualTo("USD");
+        assertThat(summary.incomeAmount()).isNull();
+        assertThat(summary.expenseAmount()).isNull();
+        assertThat(summary.transferNetAmount()).isNull();
+        assertThat(summary.netAmount()).isNull();
+    }
 
     @Test
     void preservesOriginalInstructionAndUsesDueDateWhenPreparingARebasedTransfer() {

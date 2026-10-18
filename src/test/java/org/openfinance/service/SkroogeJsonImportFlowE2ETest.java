@@ -75,6 +75,7 @@ class SkroogeJsonImportFlowE2ETest {
     @Autowired private org.openfinance.repository.TransactionSplitRepository splitRepository;
     @Autowired private UserRepository userRepository;
     @Autowired private DatabaseCleanupService databaseCleanupService;
+    @Autowired private TransactionRuleService rules;
 
     private Long userId;
 
@@ -199,6 +200,124 @@ class SkroogeJsonImportFlowE2ETest {
     }
 
     /** Waits for the async parse to reach PARSED, failing fast on FAILED or timeout. */
+    @Test
+    void persistsRulesOnlyOnConfirmationAndReimportPreservesRulesAndAccountNotes()
+            throws Exception {
+        org.openfinance.entity.Category parent =
+                categoryRepository.save(
+                        org.openfinance.entity.Category.builder()
+                                .userId(userId)
+                                .name("Maison")
+                                .isSystem(false)
+                                .build());
+        org.openfinance.entity.Category mapped =
+                categoryRepository.save(
+                        org.openfinance.entity.Category.builder()
+                                .userId(userId)
+                                .name("Ménage")
+                                .parentId(parent.getId())
+                                .isSystem(false)
+                                .build());
+        com.fasterxml.jackson.databind.ObjectMapper json =
+                new com.fasterxml.jackson.databind.ObjectMapper();
+        com.fasterxml.jackson.databind.node.ObjectNode source =
+                (com.fasterxml.jackson.databind.node.ObjectNode)
+                        json.readTree(syntheticSkroogeJson());
+        ((com.fasterxml.jackson.databind.node.ObjectNode) source.path("account").get(0))
+                .put("t_comment", "Original account notes")
+                .put("t_agency_address", "12 High Street");
+        ((com.fasterxml.jackson.databind.node.ArrayNode) source.path("category"))
+                .addObject()
+                .put("id", 999)
+                .put("rd_category_id", 0)
+                .put("t_name", "Rule only")
+                .put("t_fullname", "Rule only");
+        source.putArray("rule")
+                .addObject()
+                .put("id", 7)
+                .put("t_action_type", "U")
+                .put(
+                        "t_definition",
+                        "<element><!--OR--><element><!--AND--><element attribute=\"t_PAYEE\" operator=\"#ATT#='#V1S#'\" value=\"Coffee shop\"/></element></element>")
+                .put(
+                        "t_action_definition",
+                        "<element><!--OR--><element><!--AND--><element attribute=\"t_REALCATEGORY\" operator=\"#ATT#='#V1S#'\" value=\"Rule only\"/></element></element>");
+        for (int attempt = 0; attempt < 2; attempt++) {
+            String upload =
+                    fileStorageService.storeFile(
+                            new MockMultipartFile(
+                                    "file",
+                                    "rules.json",
+                                    "application/json",
+                                    json.writeValueAsBytes(source)),
+                            userId);
+            ImportSession session = importService.startImport(upload, userId, null, "rules.json");
+            awaitParsed(session.getId());
+            assertThat(rules.getRulesForUser(userId)).hasSize(attempt);
+            importService.confirmImport(
+                    session.getId(), userId, null, Map.of("Rule only", mapped.getId()), true);
+            assertThat(rules.getRulesForUser(userId)).hasSize(1);
+        }
+        Account checking =
+                accountRepository.findByUserId(userId).stream()
+                        .filter(a -> a.getName().equals("Checking"))
+                        .findFirst()
+                        .orElseThrow();
+        assertThat(checking.getDescription()).isEqualTo("Original account notes\n12 High Street");
+        assertThat(transactionRepository.countByUserId(userId)).isEqualTo(5);
+        org.openfinance.dto.ImportedTransaction matching =
+                org.openfinance.dto.ImportedTransaction.builder()
+                        .payee("Coffee shop")
+                        .memo("Receipt")
+                        .amount(new BigDecimal("-5"))
+                        .build();
+        org.openfinance.dto.ImportedTransaction nonmatching =
+                org.openfinance.dto.ImportedTransaction.builder()
+                        .payee("Other shop")
+                        .memo("Coffee shop")
+                        .amount(new BigDecimal("-5"))
+                        .build();
+        assertThat(rules.applyRules(List.of(matching, nonmatching), userId)).containsExactly(0);
+        assertThat(matching.getCategory()).isEqualTo("Maison:Ménage");
+        assertThat(nonmatching.getCategory()).isNull();
+    }
+
+    @Test
+    void importsRealFixtureIncludingMappedRulesAndAgencyAddresses() throws Exception {
+        byte[] source =
+                java.nio.file.Files.readAllBytes(
+                        java.nio.file.Path.of("docs/sample/json/export_anonymized.json"));
+        String upload =
+                fileStorageService.storeFile(
+                        new MockMultipartFile("file", "export.json", "application/json", source),
+                        userId);
+        ImportSession session = importService.startImport(upload, userId, null, "export.json");
+        awaitParsed(session.getId());
+        ImportSession completed =
+                importService.confirmImport(session.getId(), userId, null, Map.of(), true);
+        assertThat(completed.getStatus()).isEqualTo(ImportStatus.COMPLETED);
+        assertThat(completed.getErrorCount()).isZero();
+        assertThat(rules.getRulesForUser(userId)).hasSize(29);
+        com.fasterxml.jackson.databind.JsonNode metadata =
+                new com.fasterxml.jackson.databind.ObjectMapper()
+                        .readTree(completed.getMetadata())
+                        .path("skroogeMetadata");
+        assertThat(metadata.path("sourceRuleCount").asInt()).isEqualTo(31);
+        assertThat(metadata.path("importedRuleCount").asInt()).isEqualTo(29);
+        assertThat(metadata.path("skippedRuleCount").asInt()).isEqualTo(2);
+        com.fasterxml.jackson.databind.JsonNode root =
+                new com.fasterxml.jackson.databind.ObjectMapper().readTree(source);
+        for (com.fasterxml.jackson.databind.JsonNode account : root.path("account")) {
+            String address = account.path("t_agency_address").asText().trim();
+            if (!address.isEmpty()) {
+                assertThat(accountRepository.findByUserId(userId))
+                        .filteredOn(a -> a.getName().equals(account.path("t_name").asText()))
+                        .singleElement()
+                        .satisfies(a -> assertThat(a.getDescription()).contains(address));
+            }
+        }
+    }
+
     private void awaitParsed(Long sessionId) throws InterruptedException {
         for (int attempt = 0; attempt < 80; attempt++) {
             ImportStatus status = importService.getSession(sessionId, userId).getStatus();

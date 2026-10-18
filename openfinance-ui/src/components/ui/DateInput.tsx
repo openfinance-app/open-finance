@@ -41,21 +41,30 @@ export function DateInput({
   const { data: settings } = useUserSettings();
   const dateFormat = settings?.dateFormat ?? 'MM/DD/YYYY';
   const nativeRef = useRef<HTMLInputElement>(null);
+  const emittedValue = useRef(value);
+  const previousFormat = useRef(dateFormat);
 
   const [display, setDisplay] = useState(() =>
     value ? formatIsoToDisplay(value, dateFormat) : ''
   );
 
-  // Keep the visible text in sync when the ISO value or format changes externally.
+  // A parent's echo of our edit must not reformat the draft and move its caret.
+  // External resets and date-format changes still replace the visible text.
   useEffect(() => {
-    setDisplay(value ? formatIsoToDisplay(value, dateFormat) : '');
+    if (value !== emittedValue.current || dateFormat !== previousFormat.current) {
+      setDisplay(value ? formatIsoToDisplay(value, dateFormat) : '');
+    }
+    emittedValue.current = value;
+    previousFormat.current = dateFormat;
   }, [value, dateFormat]);
 
   const commit = (text: string) => {
     const iso = parseDisplayDate(text, dateFormat);
     if (iso && (!max || iso <= max) && (!min || iso >= min)) {
+      emittedValue.current = iso;
       onChange(iso);
     } else if (text.trim() === '') {
+      emittedValue.current = '';
       onChange('');
     }
   };
@@ -116,7 +125,12 @@ export function DateInput({
         min={min}
         max={max}
         value={value ?? ''}
-        onChange={e => onChange(e.target.value)}
+        disabled={disabled}
+        onChange={e => {
+          setDisplay(formatIsoToDisplay(e.target.value, dateFormat));
+          emittedValue.current = e.target.value;
+          onChange(e.target.value);
+        }}
         className="sr-only absolute right-2 bottom-0 h-0 w-0"
       />
       {error && <p className="mt-1 text-sm text-error">{error}</p>}

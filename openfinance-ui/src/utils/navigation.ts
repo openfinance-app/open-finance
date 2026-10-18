@@ -10,6 +10,9 @@ export type TransactionTypeFilter = 'INCOME' | 'EXPENSE' | 'TRANSFER';
 export interface TransactionsLinkParams {
   accountId?: number;
   categoryId?: number;
+  includeSubcategories?: boolean;
+  payee?: string;
+  payeeExact?: boolean;
   noCategory?: boolean;
   type?: TransactionTypeFilter;
   excludeTransfers?: boolean;
@@ -20,6 +23,9 @@ export function buildTransactionsLink(params: TransactionsLinkParams): string {
   const sp = new URLSearchParams();
   if (params.accountId != null) sp.set('accountId', String(params.accountId));
   if (params.categoryId != null) sp.set('categoryId', String(params.categoryId));
+  if (params.includeSubcategories) sp.set('includeSubcategories', 'true');
+  if (params.payee) sp.set('payee', params.payee);
+  if (params.payeeExact) sp.set('payeeExact', 'true');
   if (params.noCategory) sp.set('noCategory', '1');
   if (params.type) sp.set('type', params.type);
   if (params.excludeTransfers) sp.set('excludeTransfers', 'true');

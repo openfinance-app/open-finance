@@ -280,5 +280,26 @@
     "account": "Could not save the selected account. Please try again.",
     "reviewSave": "Could not save your review. Your edits are still here; please try again.",
     "confirm": "Could not confirm the import. Your review is preserved. Please try again."
+  },
+  "skroogeRules": {
+    "title": "Skrooge rules",
+    "preview": "{{source}} source rules: {{ready}} Open Finance rules ready, {{skipped}} source rules skipped.",
+    "stats": {
+      "source": "Source rules",
+      "imported": "Imported rules",
+      "existing": "Already present",
+      "skipped": "Skipped source rules"
+    },
+    "scope": "Rules are saved on confirmation and used for future imports. Open Finance applies the first matching rule.",
+    "details": "Mapping details",
+    "rule": "Rule {{id}}",
+    "warnings": {
+      "importScope": "The imported-status condition is covered by running these rules during imports.",
+      "unsupportedAction": "Skipped: unsupported action (for example, payment mode).",
+      "unsupportedCondition": "Skipped: a condition or logical expression cannot be mapped.",
+      "emptyCondition": "Skipped: no usable condition remains.",
+      "invalidXml": "Skipped: invalid or unsupported XML definition.",
+      "unresolvedCategory": "Skipped: the target category could not be resolved."
+    }
   }
 }

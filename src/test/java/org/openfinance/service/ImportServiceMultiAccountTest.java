@@ -79,6 +79,7 @@ class ImportServiceMultiAccountTest {
     @Mock private AutoCategorizationService autoCategorizationService;
     @Mock private AccountService accountService;
     @Mock private TransactionRuleService transactionRuleService;
+    @Mock private SkroogeRuleImportService skroogeRuleImportService;
     @Mock private TransactionService transactionService;
     @Mock private ExchangeRateService exchangeRateService;
     @Mock private TransactionSplitService transactionSplitService;
@@ -138,6 +139,7 @@ class ImportServiceMultiAccountTest {
                         new ImportedOpeningBalanceServiceImpl(
                                 accountRepository, transactionRepository),
                         transactionRuleService,
+                        skroogeRuleImportService,
                         transactionService,
                         exchangeRateService,
                         transactionSplitService,

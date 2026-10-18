@@ -22,6 +22,15 @@ public class SkroogeImportMetadata {
 
     @Builder.Default private List<SkroogeCategory> categories = new ArrayList<>();
 
+    @Builder.Default private List<TransactionRuleRequest> rules = new ArrayList<>();
+    @Builder.Default private List<RuleWarning> ruleWarnings = new ArrayList<>();
+    private int sourceRuleCount;
+    private int skippedRuleCount;
+    private int importedRuleCount;
+    private int existingRuleCount;
+
+    public record RuleWarning(Long sourceId, String code) {}
+
     @Data
     @Builder
     @NoArgsConstructor

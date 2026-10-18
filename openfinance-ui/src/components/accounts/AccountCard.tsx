@@ -182,7 +182,9 @@ export function AccountCard({
           )}
 
           {account.description && (
-            <p className="text-sm text-text-tertiary mt-2 line-clamp-2">{account.description}</p>
+            <p className="text-sm text-text-tertiary mt-2 whitespace-pre-line line-clamp-2">
+              {account.description}
+            </p>
           )}
         </div>
       </div>

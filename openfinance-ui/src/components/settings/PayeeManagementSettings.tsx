@@ -1,3 +1,5 @@
+import { Link } from 'react-router';
+import { buildTransactionsLink } from '@/utils/navigation';
 /**
  * PayeeManagementSettings component
  *
@@ -369,9 +371,13 @@ export function PayeeManagementSettings() {
                         ) : null}
 
                         <div className="mt-2 flex flex-wrap gap-2">
-                          <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-surface-elevated text-text-secondary border border-border">
+                          <Link
+                            className="text-[10px] px-1.5 py-0.5 rounded-full bg-surface-elevated text-text-secondary border border-border hover:text-primary hover:underline focus-visible:underline"
+                            to={buildTransactionsLink({ payee: payee.name, payeeExact: true })}
+                            aria-label={t('viewTransactions', { name: payee.name })}
+                          >
                             {t('transactions', { count: payee.transactionCount || 0 })}
-                          </span>
+                          </Link>
                           <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-primary/5 text-primary border border-primary/10">
                             <ConvertedAmount
                               amount={payee.totalAmount || 0}
@@ -453,9 +459,13 @@ export function PayeeManagementSettings() {
                       <p className="text-xs text-text-muted">{payee.categoryName}</p>
                     )}
                     <div className="mt-1.5 flex gap-2">
-                      <span className="text-[10px] text-text-muted">
+                      <Link
+                        className="text-[10px] text-text-muted hover:text-primary hover:underline focus-visible:underline"
+                        to={buildTransactionsLink({ payee: payee.name, payeeExact: true })}
+                        aria-label={t('viewTransactions', { name: payee.name })}
+                      >
                         {t('transactions', { count: payee.transactionCount || 0 })}
-                      </span>
+                      </Link>
                       <span className="text-[10px] text-text-muted">
                         <ConvertedAmount
                           amount={payee.totalAmount || 0}

@@ -2,7 +2,13 @@
  * Tests for RuleActionBuilder component
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { renderWithProviders, screen, fireEvent, waitFor } from '@/test/test-utils';
+import {
+  renderWithProviders,
+  screen,
+  fireEvent,
+  waitFor,
+  mockAuthentication,
+} from '@/test/test-utils';
 import { RuleActionBuilder, type ActionDraft } from './RuleActionBuilder';
 
 // ---------------------------------------------------------------------------
@@ -28,6 +34,8 @@ vi.mock('@/components/ui/CategorySelect', () => ({
       <option value="">{placeholder ?? 'Select category'}</option>
       <option value="1">Groceries</option>
       <option value="2">Transport</option>
+      <option value="4">Maison / Ménage</option>
+      <option value="6">Loisirs / Ménage</option>
     </select>
   ),
 }));
@@ -79,6 +87,10 @@ vi.mock('@/hooks/useCategories', () => ({
     data: [
       { id: 1, name: 'Groceries' },
       { id: 2, name: 'Transport' },
+      { id: 3, name: 'Maison' },
+      { id: 4, name: 'Ménage', parentId: 3 },
+      { id: 5, name: 'Loisirs' },
+      { id: 6, name: 'Ménage', parentId: 5 },
     ],
   }),
 }));
@@ -96,6 +108,37 @@ describe('RuleActionBuilder', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    mockAuthentication();
+  });
+
+  it.each(['Maison:Ménage', 'Maison > Ménage'])(
+    'selects the imported nested category for path %s',
+    actionValue => {
+      renderWithProviders(
+        <RuleActionBuilder
+          actions={[{ actionType: 'SET_CATEGORY', actionValue, sortOrder: 0 }]}
+          onChange={mockOnChange}
+        />
+      );
+      expect(screen.getByRole('combobox', { name: 'Category name' })).toHaveValue('4');
+      expect(mockOnChange).not.toHaveBeenCalled();
+      fireEvent.change(screen.getByRole('combobox', { name: 'Category name' }), {
+        target: { value: '6' },
+      });
+      expect(mockOnChange).toHaveBeenCalledWith([
+        { actionType: 'SET_CATEGORY', actionValue: 'Loisirs:Ménage', sortOrder: 0 },
+      ]);
+    }
+  );
+
+  it('does not guess which category an ambiguous bare name refers to', () => {
+    renderWithProviders(
+      <RuleActionBuilder
+        actions={[{ actionType: 'SET_CATEGORY', actionValue: 'Ménage', sortOrder: 0 }]}
+        onChange={mockOnChange}
+      />
+    );
+    expect(screen.getByRole('combobox', { name: 'Category name' })).toHaveValue('');
   });
 
   it('should render empty state when no actions', () => {

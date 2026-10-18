@@ -86,6 +86,8 @@ export function RuleConditionBuilder({ conditions, onChange }: RuleConditionBuil
 
   const FIELD_LABELS: Record<RuleConditionField, string> = {
     DESCRIPTION: t('form.conditions.fields.DESCRIPTION'),
+    PAYEE: t('form.conditions.fields.PAYEE'),
+    MEMO: t('form.conditions.fields.MEMO'),
     AMOUNT: t('form.conditions.fields.AMOUNT'),
     TRANSACTION_TYPE: t('form.conditions.fields.TRANSACTION_TYPE'),
   };
@@ -153,7 +155,7 @@ export function RuleConditionBuilder({ conditions, onChange }: RuleConditionBuil
         const availableOperators = operatorsForField(condition.field);
         const isTypeField = condition.field === 'TRANSACTION_TYPE';
         const isAmountField = condition.field === 'AMOUNT';
-        const isDescriptionField = condition.field === 'DESCRIPTION';
+        const isDescriptionField = condition.field === 'DESCRIPTION' || condition.field === 'PAYEE';
 
         return (
           <div

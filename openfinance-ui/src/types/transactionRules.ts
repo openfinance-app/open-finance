@@ -8,7 +8,7 @@
  * Fields of an imported transaction that can be evaluated by a rule condition.
  * Requirement: REQ-TR-2.1
  */
-export type RuleConditionField = 'DESCRIPTION' | 'AMOUNT' | 'TRANSACTION_TYPE';
+export type RuleConditionField = 'DESCRIPTION' | 'PAYEE' | 'MEMO' | 'AMOUNT' | 'TRANSACTION_TYPE';
 
 /**
  * Comparison operators for rule conditions.

@@ -58,6 +58,10 @@ export interface CategoryTreeNode {
   mccCode?: string;
   parentId?: number | null;
   subcategories: CategoryTreeNode[];
+  /** Retains subtree identity when search flattens the displayed rows. */
+  hasSubcategories?: boolean;
+  directAmount?: number;
+  directTransactionCount?: number;
   transactionCount?: number;
   totalAmount?: number;
   incomeAmount?: number;
@@ -221,6 +225,8 @@ export interface TransferUpdateRequest {
 }
 
 export interface TransactionFilters {
+  includeSubcategories?: boolean;
+  payeeExact?: boolean;
   excludeTransfers?: boolean;
   accountId?: number;
   type?: TransactionType;
@@ -247,4 +253,13 @@ export interface TransactionFilters {
   assetId?: number;
   /** Only transactions linked to this liability (repayments, disbursements…) */
   liabilityId?: number;
+}
+
+export interface TransactionSummary {
+  transactionCount: number;
+  currency: string;
+  incomeAmount: number | null;
+  expenseAmount: number | null;
+  transferNetAmount: number | null;
+  netAmount: number | null;
 }

@@ -660,11 +660,21 @@ public class TransactionController {
      * @param authentication Spring Security authentication object
      * @return HTTP 200 OK with Page&lt;TransactionResponse&gt;
      */
+    @GetMapping("/summary")
+    public ResponseEntity<org.openfinance.dto.TransactionSummaryResponse> summarizeTransactions(
+            @org.springframework.web.bind.annotation.ModelAttribute
+                    org.openfinance.dto.TransactionSearchCriteria criteria,
+            Authentication authentication) {
+        User user = (User) authentication.getPrincipal();
+        return ResponseEntity.ok(transactionService.summarizeTransactions(user.getId(), criteria));
+    }
+
     @GetMapping("/search")
     public ResponseEntity<Page<TransactionResponse>> searchTransactions(
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) Long accountId,
             @RequestParam(required = false) Long categoryId,
+            @RequestParam(required = false) Boolean includeSubcategories,
             @RequestParam(required = false) TransactionType type,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
                     LocalDate dateFrom,
@@ -673,10 +683,12 @@ public class TransactionController {
             @RequestParam(required = false) java.math.BigDecimal amountMin,
             @RequestParam(required = false) java.math.BigDecimal amountMax,
             @RequestParam(required = false) String tags,
+            @RequestParam(required = false) String tag,
             @RequestParam(required = false) Boolean isReconciled,
             @RequestParam(required = false) Boolean noCategory,
             @RequestParam(required = false) Boolean noPayee,
             @RequestParam(required = false) String payee,
+            @RequestParam(required = false) Boolean payeeExact,
             @RequestParam(required = false) Long realEstateId,
             @RequestParam(required = false) Long assetId,
             @RequestParam(required = false) Long liabilityId,
@@ -701,16 +713,19 @@ public class TransactionController {
                         .excludeTransfers(excludeTransfers)
                         .accountId(accountId)
                         .categoryId(categoryId)
+                        .includeSubcategories(includeSubcategories)
                         .type(type)
                         .dateFrom(dateFrom)
                         .dateTo(dateTo)
                         .amountMin(amountMin)
                         .amountMax(amountMax)
                         .tags(tags)
+                        .tag(tag)
                         .isReconciled(isReconciled)
                         .noCategory(noCategory)
                         .noPayee(noPayee)
                         .payee(payee)
+                        .payeeExact(payeeExact)
                         .realEstateId(realEstateId)
                         .assetId(assetId)
                         .liabilityId(liabilityId)

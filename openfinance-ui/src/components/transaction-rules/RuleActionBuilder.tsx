@@ -23,7 +23,7 @@ import { HelpTooltip } from '@/components/ui/HelpTooltip';
 import { Input } from '@/components/ui/Input';
 import { NumberInput } from '@/components/ui/NumberInput';
 import { CategorySelect } from '@/components/ui/CategorySelect';
-import { categoryPath } from '@/utils/category-path';
+import { categoryPath, matchingCategories } from '@/utils/category-path';
 import { PayeeSelector } from '@/components/ui/PayeeSelector';
 import { TagInput } from '@/components/transactions/TagInput';
 import { useCategories } from '@/hooks/useCategories';
@@ -75,10 +75,8 @@ function ActionParams({ action, index, onChange, t }: ActionParamsProps) {
 
   switch (action.actionType) {
     case 'SET_CATEGORY': {
-      // CategorySelect uses numeric IDs; actionValue stores category name
-      const selectedId = categories.find(
-        c => categoryPath(categories, c.id) === action.actionValue
-      )?.id;
+      const matches = matchingCategories(categories, action.actionValue ?? '');
+      const selectedId = matches.length === 1 ? matches[0].id : undefined;
       return (
         <div className="flex-1">
           <CategorySelect
@@ -149,10 +147,8 @@ function ActionParams({ action, index, onChange, t }: ActionParamsProps) {
       );
 
     case 'ADD_SPLIT': {
-      // Same name<->id resolution as SET_CATEGORY — actionValue stores the category name
-      const splitCategoryId = categories.find(
-        c => categoryPath(categories, c.id) === action.actionValue
-      )?.id;
+      const matches = matchingCategories(categories, action.actionValue ?? '');
+      const splitCategoryId = matches.length === 1 ? matches[0].id : undefined;
       return (
         <div className="flex-1 flex flex-col gap-2">
           <CategorySelect

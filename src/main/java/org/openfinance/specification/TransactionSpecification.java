@@ -103,7 +103,7 @@ public class TransactionSpecification {
             }
 
             // Filter by category
-            if (criteria.getCategoryId() != null) {
+            if (matchedIds == null && criteria.getCategoryId() != null) {
                 predicates.add(
                         criteriaBuilder.equal(root.get("categoryId"), criteria.getCategoryId()));
             }
@@ -135,7 +135,9 @@ public class TransactionSpecification {
             // are meaningless. IDs are pre-filtered and passed via matchedTransactionIds.
 
             // Filter by payee name
-            if (criteria.getPayee() != null && !criteria.getPayee().trim().isEmpty()) {
+            if (matchedIds == null
+                    && criteria.getPayee() != null
+                    && !criteria.getPayee().trim().isEmpty()) {
                 String payee = "%" + criteria.getPayee().toLowerCase() + "%";
                 predicates.add(
                         criteriaBuilder.like(criteriaBuilder.lower(root.get("payee")), payee));
@@ -163,7 +165,7 @@ public class TransactionSpecification {
             }
 
             // Filter for transactions without a payee (payee IS NULL or empty string)
-            if (Boolean.TRUE.equals(criteria.getNoPayee())) {
+            if (matchedIds == null && Boolean.TRUE.equals(criteria.getNoPayee())) {
                 predicates.add(
                         criteriaBuilder.or(
                                 criteriaBuilder.isNull(root.get("payee")),

@@ -10,6 +10,7 @@ import type {
   Transaction,
   TransactionRequest,
   TransactionFilters,
+  TransactionSummary,
   Category,
   TransferUpdateRequest,
   CategoryTreeNode,
@@ -72,6 +73,53 @@ const normalizeTransactionsResponse = (
   };
 };
 
+function transactionSearchParams(filters?: TransactionFilters, paginated = true): URLSearchParams {
+  const params = new URLSearchParams();
+  if (filters?.accountId) params.append('accountId', filters.accountId.toString());
+  if (filters?.type) params.append('type', filters.type);
+  if (filters?.excludeTransfers) params.append('excludeTransfers', 'true');
+  if (filters?.categoryId) params.append('categoryId', filters.categoryId.toString());
+  if (filters?.noCategory) params.append('noCategory', 'true');
+  if (filters?.payee) params.append('payee', filters.payee);
+  if (filters?.noPayee) params.append('noPayee', 'true');
+  if (filters?.dateFrom) params.append('dateFrom', filters.dateFrom);
+  if (filters?.dateTo) params.append('dateTo', filters.dateTo);
+  if (filters?.keyword) params.append('keyword', filters.keyword);
+  if (filters?.keyword && filters?.keywordRegex) params.append('keywordRegex', 'true');
+  if (filters?.minAmount !== undefined) params.append('amountMin', filters.minAmount.toString());
+  if (filters?.maxAmount !== undefined) params.append('amountMax', filters.maxAmount.toString());
+  if (paginated && filters?.page !== undefined) params.append('page', filters.page.toString());
+  if (paginated && filters?.size) params.append('size', filters.size.toString());
+  if (filters?.realEstateId) params.append('realEstateId', filters.realEstateId.toString());
+  if (filters?.assetId) params.append('assetId', filters.assetId.toString());
+  if (filters?.liabilityId) params.append('liabilityId', filters.liabilityId.toString());
+  // Add sorting (default to date descending for newest first)
+  if (paginated && filters?.sort) {
+    params.append('sort', filters.sort);
+  } else if (paginated) {
+    params.append('sort', 'date,desc');
+  }
+
+  if (filters?.includeSubcategories) params.append('includeSubcategories', 'true');
+  if (filters?.payeeExact) params.append('payeeExact', 'true');
+  if (filters?.tag) params.append('tag', filters.tag);
+  return params;
+}
+
+/** Summary covers the same filters as the list, independently of its current page. */
+export function useTransactionSummary(filters?: TransactionFilters) {
+  const params = transactionSearchParams(filters, false).toString();
+  return useQuery<TransactionSummary>({
+    queryKey: ['transactions', 'summary', params],
+    queryFn: async () => {
+      const response = await apiClient.get<TransactionSummary>(`/transactions/summary?${params}`, {
+        headers: buildEncryptionHeaders(),
+      });
+      return response.data;
+    },
+  });
+}
+
 /**
  * Fetch transactions with filters and pagination
  * Uses the /transactions/search endpoint for proper pagination support
@@ -80,38 +128,7 @@ export function useTransactions(filters?: TransactionFilters) {
   return useQuery<PaginatedResponse<Transaction>>({
     queryKey: ['transactions', filters],
     queryFn: async () => {
-      const params = new URLSearchParams();
-      if (filters?.accountId) params.append('accountId', filters.accountId.toString());
-      if (filters?.type) params.append('type', filters.type);
-      if (filters?.excludeTransfers) params.append('excludeTransfers', 'true');
-      if (filters?.categoryId) params.append('categoryId', filters.categoryId.toString());
-      if (filters?.noCategory) params.append('noCategory', 'true');
-      if (filters?.payee) params.append('payee', filters.payee);
-      if (filters?.noPayee) params.append('noPayee', 'true');
-      if (filters?.dateFrom) params.append('dateFrom', filters.dateFrom);
-      if (filters?.dateTo) params.append('dateTo', filters.dateTo);
-      if (filters?.keyword) params.append('keyword', filters.keyword);
-      if (filters?.keyword && filters?.keywordRegex) params.append('keywordRegex', 'true');
-      if (filters?.minAmount !== undefined)
-        params.append('amountMin', filters.minAmount.toString());
-      if (filters?.maxAmount !== undefined)
-        params.append('amountMax', filters.maxAmount.toString());
-      if (filters?.page !== undefined) params.append('page', filters.page.toString());
-      if (filters?.size) params.append('size', filters.size.toString());
-      if (filters?.realEstateId) params.append('realEstateId', filters.realEstateId.toString());
-      if (filters?.assetId) params.append('assetId', filters.assetId.toString());
-      if (filters?.liabilityId) params.append('liabilityId', filters.liabilityId.toString());
-      // Add sorting (default to date descending for newest first)
-      if (filters?.sort) {
-        params.append('sort', filters.sort);
-      } else {
-        params.append('sort', 'date,desc');
-      }
-
-      // Use tag-specific endpoint if tag filter is active
-      const endpoint = filters?.tag
-        ? `/transactions/by-tag/${encodeURIComponent(filters.tag)}?${params.toString()}`
-        : `/transactions/search?${params.toString()}`;
+      const endpoint = `/transactions/search?${transactionSearchParams(filters)}`;
 
       const response = await apiClient.get<PaginatedResponse<Transaction> | Transaction[]>(
         endpoint,

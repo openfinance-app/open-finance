@@ -66,5 +66,6 @@
     "error": "Impossible de supprimer ce bénéficiaire"
   },
   "transactions_one": "{{count}} transaction",
-  "transactions_other": "{{count}} transactions"
+  "transactions_other": "{{count}} transactions",
+  "viewTransactions": "Voir les transactions de {{name}}"
 }

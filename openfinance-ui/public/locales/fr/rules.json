@@ -71,7 +71,9 @@
       "fields": {
         "DESCRIPTION": "Description / Bénéficiaire",
         "AMOUNT": "Montant",
-        "TRANSACTION_TYPE": "Type de transaction"
+        "TRANSACTION_TYPE": "Type de transaction",
+        "PAYEE": "Bénéficiaire",
+        "MEMO": "Commentaire / mémo"
       },
       "operators": {
         "CONTAINS": "Contient",

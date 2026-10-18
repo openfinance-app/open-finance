@@ -195,6 +195,105 @@ class CategoryTransactionFlowIntegrationTest {
     // ── TASK-CAT-3.3.1 Tests ─────────────────────────────────────────────────
 
     @Test
+    void parentDirectActivityAndDrilldownsIncludeSplitAllocationsAndEncryptedPayees()
+            throws Exception {
+        Long parent = createCategory("Parent", null);
+        Long child = createCategory("Child", parent);
+        java.time.LocalDate date = java.time.LocalDate.of(2026, 10, 1);
+        for (TransactionRequest request :
+                java.util.List.of(
+                        TransactionRequest.builder()
+                                .accountId(accountId)
+                                .categoryId(parent)
+                                .type(TransactionType.INCOME)
+                                .amount(new BigDecimal("100"))
+                                .currency("EUR")
+                                .date(date)
+                                .payee("Exact Payee")
+                                .build(),
+                        TransactionRequest.builder()
+                                .accountId(accountId)
+                                .categoryId(child)
+                                .type(TransactionType.INCOME)
+                                .amount(new BigDecimal("400"))
+                                .currency("EUR")
+                                .date(date)
+                                .payee("Exact Payee Extra")
+                                .build(),
+                        TransactionRequest.builder()
+                                .accountId(accountId)
+                                .type(TransactionType.EXPENSE)
+                                .amount(new BigDecimal("100"))
+                                .currency("EUR")
+                                .date(date)
+                                .payee("Exact Payee")
+                                .splits(
+                                        java.util.List.of(
+                                                org.openfinance.dto.TransactionSplitRequest
+                                                        .builder()
+                                                        .categoryId(parent)
+                                                        .amount(new BigDecimal("40"))
+                                                        .build(),
+                                                org.openfinance.dto.TransactionSplitRequest
+                                                        .builder()
+                                                        .categoryId(child)
+                                                        .amount(new BigDecimal("60"))
+                                                        .tags("audit")
+                                                        .build()))
+                                .build())) {
+            mockMvc.perform(
+                            post("/api/v1/transactions")
+                                    .header("Authorization", "Bearer " + token)
+                                    .header("X-Encryption-Session", encKey)
+                                    .contentType(MediaType.APPLICATION_JSON)
+                                    .content(objectMapper.writeValueAsString(request)))
+                    .andExpect(status().isCreated());
+        }
+        mockMvc.perform(
+                        get("/api/v1/categories/tree")
+                                .header("Authorization", "Bearer " + token)
+                                .header("X-Encryption-Session", encKey))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].directAmount").value(60))
+                .andExpect(jsonPath("$[0].directTransactionCount").value(2))
+                .andExpect(jsonPath("$[0].totalAmount").value(400))
+                .andExpect(jsonPath("$[0].transactionCount").value(3));
+        assertSearchCount("categoryId=" + parent, 2);
+        assertSearchCount("categoryId=" + parent + "&includeSubcategories=true", 3);
+        assertSearchCount("categoryId=" + child, 2);
+        assertSearchCount("payee=Exact%20Payee&payeeExact=true", 2);
+        assertSearchCount("payee=Exact%20Payee", 3);
+        assertSearchCount("tag=audit&categoryId=" + child, 1);
+        mockMvc.perform(
+                        get("/api/v1/transactions/summary?categoryId="
+                                        + parent
+                                        + "&includeSubcategories=true&dateFrom=2026-10-01&dateTo=2026-10-01&size=1")
+                                .header("Authorization", "Bearer " + token)
+                                .header("X-Encryption-Session", encKey))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.transactionCount").value(3))
+                .andExpect(jsonPath("$.currency").value("EUR"))
+                .andExpect(jsonPath("$.incomeAmount").value(500))
+                .andExpect(jsonPath("$.expenseAmount").value(100))
+                .andExpect(jsonPath("$.netAmount").value(400));
+    }
+
+    private void assertSearchCount(String query, int expected) throws Exception {
+        mockMvc.perform(
+                        get(java.net.URI.create("/api/v1/transactions/search?size=1&" + query))
+                                .header("Authorization", "Bearer " + token)
+                                .header("X-Encryption-Session", encKey))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.totalElements").value(expected));
+        mockMvc.perform(
+                        get(java.net.URI.create("/api/v1/transactions/summary?" + query))
+                                .header("Authorization", "Bearer " + token)
+                                .header("X-Encryption-Session", encKey))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.transactionCount").value(expected));
+    }
+
+    @Test
     void sharedCategoryReconcilesPurchaseRefundSplitBudgetAndBalance() throws Exception {
         Long categoryId = createCategory("Shared groceries", null);
         java.time.LocalDate date = java.time.LocalDate.now();

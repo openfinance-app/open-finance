@@ -3,16 +3,11 @@
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { act } from 'react';
-import { render, screen, waitFor } from '@testing-library/react';
-import { MemoryRouter } from 'react-router';
-import { QueryClientProvider } from '@tanstack/react-query';
-import { I18nextProvider } from 'react-i18next';
-import i18n from '@/test/i18n-test';
+import { screen, waitFor } from '@testing-library/react';
 import {
   renderWithProviders,
   mockAuthentication,
   clearAuthentication,
-  createTestQueryClient,
   userEvent,
 } from '@/test/test-utils';
 import TransactionsPage from '@/pages/TransactionsPage';
@@ -69,6 +64,18 @@ const mockUseTransactions = vi.fn();
 const mockGetTransferSource = vi.fn();
 
 vi.mock('@/hooks/useTransactions', () => ({
+  useTransactionSummary: () => ({
+    data: {
+      transactionCount: 2,
+      currency: 'USD',
+      incomeAmount: 3000,
+      expenseAmount: 50.75,
+      transferNetAmount: 0,
+      netAmount: 2949.25,
+    },
+    isLoading: false,
+    error: null,
+  }),
   getTransferSource: (id: string) => mockGetTransferSource(id),
   useTransactions: (filters?: TransactionFilters) => mockUseTransactions(filters),
   useCreateTransaction: () => ({ mutateAsync: mockCreateMutateAsync, isPending: false }),
@@ -192,7 +199,7 @@ describe('TransactionsPage', () => {
 
   it('renders page heading', () => {
     renderWithProviders(<TransactionsPage />);
-    expect(screen.getByText('Transactions')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Transactions' })).toBeInTheDocument();
   });
 
   it('displays transactions', () => {
@@ -446,18 +453,10 @@ describe('TransactionsPage', () => {
   });
 });
 
-// Deep-link tests need URL search params, which renderWithProviders' BrowserRouter
-// cannot seed — render with MemoryRouter + explicit providers instead.
+// Deep-link tests use the same providers as the application.
 function renderPage(search = '') {
-  return render(
-    <QueryClientProvider client={createTestQueryClient()}>
-      <I18nextProvider i18n={i18n}>
-        <MemoryRouter initialEntries={[`/transactions${search}`]}>
-          <TransactionsPage />
-        </MemoryRouter>
-      </I18nextProvider>
-    </QueryClientProvider>
-  );
+  window.history.replaceState({}, '', `/transactions${search}`);
+  return renderWithProviders(<TransactionsPage />);
 }
 
 describe('TransactionsPage deep links', () => {

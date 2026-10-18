@@ -1,4 +1,4 @@
-import { screen } from '@testing-library/react';
+import { screen, within } from '@testing-library/react';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { mockAuthentication, renderWithProviders } from '@/test/test-utils';
 import { ImportProgress } from '@/components/import/ImportProgress';
@@ -68,4 +68,46 @@ describe('ImportProgress', () => {
     expect(screen.getByRole('progressbar')).not.toHaveAttribute('aria-valuenow');
     expect(screen.queryByText('50%')).not.toBeInTheDocument();
   });
+
+  it('includes rule import counts and skipped-rule details in the completion card', () => {
+    renderWithProviders(
+      <ImportProgress
+        session={{
+          ...session,
+          status: 'COMPLETED',
+          metadata: JSON.stringify({
+            skroogeMetadata: {
+              sourceRuleCount: 31,
+              rules: Array(29).fill({}),
+              importedRuleCount: 27,
+              existingRuleCount: 2,
+              skippedRuleCount: 2,
+              ruleWarnings: [{ sourceId: 5, code: 'unsupportedAction' }],
+            },
+          }),
+        }}
+      />
+    );
+    const rules = within(screen.getByRole('region', { name: 'Skrooge rules' }));
+    for (const [label, count] of [
+      ['Source rules', '31'],
+      ['Imported rules', '27'],
+      ['Already present', '2'],
+      ['Skipped source rules', '2'],
+    ]) {
+      expect(rules.getByText(label).parentElement).toHaveTextContent(count);
+    }
+    expect(rules.getByText(/Rule 5: Skipped: unsupported action/)).toBeInTheDocument();
+    expect(rules.queryByText(/Open Finance rules ready/)).not.toBeInTheDocument();
+  });
+
+  it.each(['', '{invalid', JSON.stringify({ skroogeMetadata: { sourceRuleCount: 0, rules: [] } })])(
+    'does not show rule statistics for imports without rules (%s)',
+    metadata => {
+      renderWithProviders(
+        <ImportProgress session={{ ...session, status: 'COMPLETED', metadata }} />
+      );
+      expect(screen.queryByRole('region', { name: 'Skrooge rules' })).not.toBeInTheDocument();
+    }
+  );
 });

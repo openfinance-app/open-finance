@@ -32,7 +32,8 @@
     "thisYear": "This year",
     "from": "From",
     "to": "To",
-    "excludeTransfers": "Transfers excluded"
+    "excludeTransfers": "Transfers excluded",
+    "includeSubcategories": "Include subcategories"
   },
   "loadError": "Failed to load transactions. Please try again later.",
   "empty": {
@@ -209,5 +210,16 @@
   "splitDetail": {
     "noCategory": "No category",
     "noSplitDetails": "No split details available."
+  },
+  "summary": {
+    "title": "Matching transactions",
+    "count": "Transactions",
+    "income": "Income",
+    "expenses": "Expenses",
+    "transfers": "Net transfers",
+    "net": "Net amount",
+    "unavailable": "Summary unavailable.",
+    "conversionUnavailable": "Totals unavailable: some amounts could not be converted.",
+    "scope": "All matching transactions, across every page."
   }
 }

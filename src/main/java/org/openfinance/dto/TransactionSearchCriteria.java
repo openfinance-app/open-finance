@@ -68,6 +68,8 @@ public class TransactionSearchCriteria {
      */
     private Long categoryId;
 
+    private Boolean includeSubcategories;
+
     /**
      * Filter by transaction type (INCOME, EXPENSE, TRANSFER).
      *
@@ -83,6 +85,8 @@ public class TransactionSearchCriteria {
      *
      * <p>If null, no lower date bound.
      */
+    @org.springframework.format.annotation.DateTimeFormat(
+            iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE)
     private LocalDate dateFrom;
 
     /**
@@ -90,6 +94,8 @@ public class TransactionSearchCriteria {
      *
      * <p>If null, no upper date bound.
      */
+    @org.springframework.format.annotation.DateTimeFormat(
+            iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE)
     private LocalDate dateTo;
 
     /**
@@ -115,12 +121,17 @@ public class TransactionSearchCriteria {
      */
     private String tags;
 
+    /** Exact tag selected in the list, including split tags. */
+    private String tag;
+
     /**
      * Filter by payee name (case-insensitive, exact or partial match depending on specification).
      *
      * <p>If null, includes all payees.
      */
     private String payee;
+
+    private Boolean payeeExact;
 
     /**
      * Filter by reconciliation status.
@@ -187,6 +198,7 @@ public class TransactionSearchCriteria {
                 || amountMin != null
                 || amountMax != null
                 || tags != null
+                || tag != null
                 || payee != null
                 || isReconciled != null
                 || Boolean.TRUE.equals(noCategory)

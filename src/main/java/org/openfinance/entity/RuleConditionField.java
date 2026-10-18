@@ -13,6 +13,12 @@ public enum RuleConditionField {
      */
     DESCRIPTION,
 
+    /** Payee only, without the memo appended. */
+    PAYEE,
+
+    /** Imported comment/memo only. */
+    MEMO,
+
     /** The numeric amount of the imported transaction (absolute value used for comparison). */
     AMOUNT,
 

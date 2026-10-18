@@ -4,6 +4,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import React from 'react';
 import {
   useTransactions,
+  useTransactionSummary,
   useCreateTransaction,
   useCreateTransfer,
   useUpdateTransaction,
@@ -78,6 +79,50 @@ describe('useTransactions', () => {
   describe('API Call', () => {
     beforeEach(() => {
       mockSessionStorage.getItem.mockReturnValue('test-encryption-key');
+    });
+
+    it('uses the same exact payee, category, tag and date filters for the list and full summary', async () => {
+      mockedApiClient.get.mockImplementation((url: string) =>
+        Promise.resolve({
+          data: url.includes('/summary')
+            ? { transactionCount: 25, currency: 'EUR', netAmount: 42 }
+            : { content: [], totalElements: 25, totalPages: 2, number: 1, size: 20 },
+        })
+      );
+      const filters = {
+        payee: 'A & B',
+        payeeExact: true,
+        categoryId: 7,
+        includeSubcategories: true,
+        tag: 'food',
+        dateFrom: '2026-01-01',
+        page: 1,
+        size: 20,
+      };
+      const { result } = renderHook(
+        () => ({ list: useTransactions(filters), summary: useTransactionSummary(filters) }),
+        { wrapper }
+      );
+      await waitFor(() =>
+        expect(result.current.summary.isSuccess && result.current.list.isSuccess).toBe(true)
+      );
+      const urls = mockedApiClient.get.mock.calls.map(
+        (call: [string]) => new URL(call[0], 'http://localhost')
+      );
+      const summary = urls.find((url: URL) => url.pathname.endsWith('/summary'))!;
+      const list = urls.find((url: URL) => url.pathname.endsWith('/search'))!;
+      for (const key of [
+        'payee',
+        'payeeExact',
+        'categoryId',
+        'includeSubcategories',
+        'tag',
+        'dateFrom',
+      ]) {
+        expect(summary.searchParams.get(key)).toBe(list.searchParams.get(key));
+      }
+      expect(summary.searchParams.has('page')).toBe(false);
+      expect(summary.searchParams.has('size')).toBe(false);
     });
 
     it('calls the correct endpoint without filters', async () => {

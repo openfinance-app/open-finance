@@ -174,11 +174,13 @@ for (const viewport of [
     const historyResponse = await octoberHistory;
     expect(historyResponse.status()).toBe(200);
     const points = (await historyResponse.json()) as Array<{ date: string; netWorth: number }>;
+    // Playwright freezes the browser clock, not the backend's observation date.
+    const observedEnd = [new Date().toLocaleDateString('en-CA'), '2026-10-31'].sort()[0];
     expect(points.length).toBeGreaterThan(1);
-    expect(points.every(point => point.date >= '2026-10-01' && point.date <= '2026-10-17')).toBe(
+    expect(points.every(point => point.date >= '2026-10-01' && point.date <= observedEnd)).toBe(
       true
     );
-    expect(points.at(-1)).toMatchObject({ date: '2026-10-17', netWorth: 190 });
+    expect(points.at(-1)).toMatchObject({ date: observedEnd, netWorth: 190 });
     expect((await (await september).json()).totalExpenses).toBe(20);
     await expect(page.getByRole('status').filter({ hasText: 'Compared with' })).toContainText(
       '09/30/2026'

@@ -13,11 +13,19 @@ export function matchingCategories<T extends CategoryPathNode>(categories: T[], 
       .map(part => part.trim().toLowerCase())
       .join(':');
   const requested = normalize(path);
-  return categories.filter(category =>
+  const matches = categories.filter(category =>
     (path.includes(':')
       ? [categoryPath(categories, category.id), categoryPath(categories, category.id, 'display')]
       : [category.canonicalName || category.name, category.name]
     ).some(name => normalize(name) === requested)
+  );
+  if (matches.length > 0 || !path.includes(' > ')) return matches;
+  // Earlier Skrooge imports stored display separators in rule actions. Prefer exact
+  // names above, so a literal ">" in a category name remains unambiguous.
+  return categories.filter(category =>
+    [categoryPath(categories, category.id), categoryPath(categories, category.id, 'display')].some(
+      fullPath => normalize(fullPath.replaceAll(':', ' > ')) === requested
+    )
   );
 }
 

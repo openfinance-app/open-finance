@@ -26,6 +26,8 @@ import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { ConvertedAmount } from '@/components/ui/ConvertedAmount';
 import { useCurrencyDisplay } from '@/context/CurrencyDisplayContext';
 import { add } from '@/utils/money';
+import { accountBalanceTotal } from '@/utils/account-summary';
+import { useAuthContext } from '@/context/AuthContext';
 import {
   useAccountsSearch,
   useCreateAccount,
@@ -53,6 +55,7 @@ function hasActiveFilters(filters: Filters): boolean {
 export default function AccountsPage() {
   const { t } = useTranslation('accounts');
   const { displayMode } = useCurrencyDisplay();
+  const { baseCurrency } = useAuthContext();
   useDocumentTitle(t('title'));
   const [searchParams, setSearchParams] = useSearchParams();
   const lowBalanceParam = searchParams.get('lowBalance') === '1';
@@ -109,17 +112,23 @@ export default function AccountsPage() {
 
   const { data: accountsPage, isLoading: isSearchLoading, error } = useAccountsSearch(filters);
   // Fetch all accounts (unfiltered) for global totals in the summary card
-  const { data: allAccountsPage } = useAccountsSearch({
-    page: 0,
-    size: FETCH_ALL_PAGE_SIZE,
-    sort: 'name,asc',
-  });
+  const { data: allAccountsPage } = useAccountsSearch(
+    {
+      page: 0,
+      size: FETCH_ALL_PAGE_SIZE,
+      sort: 'name,asc',
+    },
+    true
+  );
   // Fetch all filtered accounts for correct totals
-  const { data: allFilteredAccountsPage, isLoading: isFilteredLoading } = useAccountsSearch({
-    ...filters,
-    page: 0,
-    size: FETCH_ALL_PAGE_SIZE,
-  });
+  const { data: allFilteredAccountsPage, isLoading: isFilteredLoading } = useAccountsSearch(
+    {
+      ...filters,
+      page: 0,
+      size: FETCH_ALL_PAGE_SIZE,
+    },
+    true
+  );
   const createAccount = useCreateAccount();
   const updateAccount = useUpdateAccount();
   const closeAccount = useCloseAccount();
@@ -321,6 +330,14 @@ export default function AccountsPage() {
   );
 
   const isFiltered = hasActiveFilters(filters);
+  const totalBalance =
+    allAccountsPage?.totalElements === allAccounts.length
+      ? accountBalanceTotal(allAccounts, baseCurrency)
+      : null;
+  const filteredBalance =
+    allFilteredAccountsPage?.totalElements === allFilteredAccounts.length
+      ? accountBalanceTotal(allFilteredAccounts, baseCurrency)
+      : null;
 
   // Early return for error states — placed AFTER all hooks to satisfy React's Rules of Hooks
   if (error) {
@@ -425,6 +442,30 @@ export default function AccountsPage() {
         <div className="mb-6 p-6 rounded-[var(--radius-card)] bg-surface border border-border shadow-plate">
           <h3 className="plate-label mb-4">{t('totalBalance')}</h3>
           <div className="flex flex-wrap gap-x-10 gap-y-3">
+            <div className="min-w-0 border-r border-border pr-10">
+              <div className="plate-label mb-1">
+                {t('allAccountsTotal', { currency: baseCurrency })}
+              </div>
+              {totalBalance == null ? (
+                <p className="text-sm text-text-secondary">{t('totalUnavailable')}</p>
+              ) : (
+                <ConvertedAmount
+                  amount={totalBalance}
+                  currency={baseCurrency}
+                  className="text-2xl font-mono font-semibold text-text-primary"
+                />
+              )}
+              {isFiltered && (
+                <div className="mt-0.5 text-sm text-text-tertiary">
+                  {t('filtered')}{' '}
+                  {filteredBalance == null ? (
+                    t('totalUnavailable')
+                  ) : (
+                    <ConvertedAmount amount={filteredBalance} currency={baseCurrency} inline />
+                  )}
+                </div>
+              )}
+            </div>
             {Object.entries(allTotalsByCurrency).map(([currency, totals]) => (
               <div key={currency}>
                 <div className="flex items-center gap-1.5 mb-1">

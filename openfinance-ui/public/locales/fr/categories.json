@@ -29,6 +29,7 @@
   "description": "Organisez revenus et dépenses dans le même arbre de catégories",
   "addCategory": "Ajouter une catégorie",
   "summary": {
+    "label": "Résumé des catégories",
     "totalCategories": "Total des catégories",
     "rootCategories": "Catégories principales",
     "subcategories": "Sous-catégories",
@@ -36,6 +37,15 @@
   },
   "search": {
     "placeholder": "Rechercher des catégories..."
+  },
+  "list": {
+    "label": "Liste des catégories",
+    "group": "Groupe de catégories",
+    "allGroups": "Tous les groupes",
+    "expandAll": "Tout développer",
+    "collapseAll": "Tout réduire",
+    "directActivity": "Dans cette catégorie",
+    "amountHint": "Les totaux incluent les sous-catégories. « Dans cette catégorie » ne compte que les transactions du parent."
   },
   "select": {
     "noCategory": "Aucune catégorie",
@@ -56,7 +66,7 @@
     "transactionCount": "Nombre de transactions",
     "totalAmount": "Solde net",
     "txns": "Trans.",
-    "amount": "Solde net"
+    "amount": "Total net"
   },
   "badges": {
     "system": "Système",
@@ -64,8 +74,11 @@
     "collapse": "Réduire"
   },
   "aria": {
+    "categoryActions": "Actions pour {{name}}",
     "editCategory": "Modifier la catégorie",
-    "deleteCategory": "Supprimer la catégorie"
+    "deleteCategory": "Supprimer la catégorie",
+    "viewDirectTransactions": "Voir les transactions directes de {{name}}",
+    "viewSubtreeTransactions": "Voir les transactions de {{name}}, sous-catégories incluses"
   },
   "unknownCategory": "Catégorie inconnue",
   "loadError": {
@@ -102,5 +115,7 @@
     }
   },
   "transactionCount_one": "{{count}} transaction",
-  "transactionCount_other": "{{count}} transactions"
+  "transactionCount_other": "{{count}} transactions",
+  "directAmount": "Montant direct",
+  "includingSubcategories": "Sous-catégories incluses"
 }

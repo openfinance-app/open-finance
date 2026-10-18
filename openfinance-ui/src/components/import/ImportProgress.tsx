@@ -7,6 +7,7 @@
 import { CheckCircle2, XCircle, Loader2, ExternalLink, AlertTriangle } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/Button';
+import { SkroogeRulesNotice } from '@/components/import/SkroogeRulesNotice';
 import type { ImportSessionResponse, ImportProgressResponse } from '@/types/import';
 
 interface ImportProgressProps {
@@ -148,6 +149,8 @@ export function ImportProgress({
         </div>
       </div>
 
+      {isComplete && <SkroogeRulesNotice metadata={session.metadata} completed />}
+
       {/* Skipped Count (if any) */}
       {session.skippedCount > 0 && (
         <div className="bg-blue-500/5 border border-blue-500/20 rounded-lg p-4">
@@ -165,7 +168,7 @@ export function ImportProgress({
       )}
 
       {/* Actions */}
-      <div className="flex justify-center space-x-3">
+      <div className="flex flex-col justify-center gap-3 sm:flex-row">
         {isComplete && onViewTransactions && (
           <Button onClick={onViewTransactions} variant="primary">
             <ExternalLink className="h-4 w-4 mr-2" />

@@ -15,6 +15,7 @@ import { Pagination } from '@/components/ui/Pagination';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { EmptyState } from '@/components/layout/EmptyState';
 import { LoadingSkeleton } from '@/components/LoadingComponents';
+import { TransactionSummaryHeader } from '@/components/transactions/TransactionSummaryHeader';
 import { TransactionList } from '@/components/transactions/TransactionList';
 import { TransactionForm } from '@/components/transactions/TransactionForm';
 import { TransactionFilters } from '@/components/transactions/TransactionFilters';
@@ -56,6 +57,7 @@ export default function TransactionsPage() {
     : null;
   const noCategoryParam = searchParams.get('noCategory') === '1';
   const noPayeeParam = searchParams.get('noPayee') === '1';
+  const payeeParam = searchParams.get('payee') || undefined;
   const accountIdParam = searchParams.get('accountId')
     ? parseInt(searchParams.get('accountId')!)
     : null;
@@ -76,6 +78,9 @@ export default function TransactionsPage() {
     categoryId: categoryId || categoryIdParam || undefined,
     noCategory: noCategoryParam || undefined,
     noPayee: noPayeeParam || undefined,
+    payee: payeeParam,
+    payeeExact: searchParams.get('payeeExact') === 'true' || undefined,
+    includeSubcategories: searchParams.get('includeSubcategories') === 'true' || undefined,
     accountId: accountIdParam || undefined,
     type: typeFilter,
     excludeTransfers: searchParams.get('excludeTransfers') === 'true' || undefined,
@@ -86,6 +91,7 @@ export default function TransactionsPage() {
     Boolean(
       noCategoryParam ||
       noPayeeParam ||
+      payeeParam ||
       categoryIdParam ||
       accountIdParam ||
       typeFilter ||
@@ -135,6 +141,9 @@ export default function TransactionsPage() {
       'dateTo',
       'categoryId',
       'excludeTransfers',
+      'payee',
+      'payeeExact',
+      'includeSubcategories',
     ];
     if (deepLinkKeys.some(k => searchParams.get(k) !== null)) {
       const next = new URLSearchParams(searchParams);
@@ -296,6 +305,8 @@ export default function TransactionsPage() {
           <TransactionFilters filters={filters} onFiltersChange={handleFiltersChange} />
         </div>
       )}
+
+      <TransactionSummaryHeader filters={filters} />
 
       {/* Loading State */}
       {isLoading && (

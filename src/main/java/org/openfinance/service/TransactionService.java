@@ -1532,12 +1532,65 @@ public class TransactionService {
                 criteria.getDateFrom(),
                 criteria.getDateTo());
 
+        List<Long> matchedTransactionIds = findMatchingTransactionIds(userId, criteria);
+        if (matchedTransactionIds != null && matchedTransactionIds.isEmpty()) {
+            return org.springframework.data.domain.Page.empty(pageable);
+        }
+
+        // Ensure deterministic ordering: add id DESC as a secondary sort key when not
+        // already specified. This prevents non-deterministic pagination when multiple
+        // transactions share the same primary sort value (e.g. same date).
+        if (pageable.getSort().getOrderFor("id") == null) {
+            org.springframework.data.domain.Sort baseSort =
+                    pageable.getSort().isSorted()
+                            ? pageable.getSort()
+                            : org.springframework.data.domain.Sort.by(
+                                    org.springframework.data.domain.Sort.Direction.DESC, "date");
+            // Mirror the date sort direction for the id tiebreaker so the ordering
+            // is intuitive: DESC date → DESC id (newest id = most recently created first).
+            org.springframework.data.domain.Sort.Order dateOrder = baseSort.getOrderFor("date");
+            org.springframework.data.domain.Sort.Direction idDir =
+                    (dateOrder != null && dateOrder.isAscending())
+                            ? org.springframework.data.domain.Sort.Direction.ASC
+                            : org.springframework.data.domain.Sort.Direction.DESC;
+            pageable =
+                    org.springframework.data.domain.PageRequest.of(
+                            pageable.getPageNumber(),
+                            pageable.getPageSize(),
+                            baseSort.and(org.springframework.data.domain.Sort.by(idDir, "id")));
+        }
+
+        // Build dynamic specification
+        org.springframework.data.jpa.domain.Specification<Transaction> spec =
+                org.openfinance.specification.TransactionSpecification.buildSpecification(
+                        userId, criteria, matchedTransactionIds);
+
+        // Execute paginated query
+        org.springframework.data.domain.Page<Transaction> transactionPage =
+                transactionRepository.findAll(spec, pageable);
+
+        log.debug(
+                "Found {} transactions (page {}/{})",
+                transactionPage.getNumberOfElements(),
+                transactionPage.getNumber() + 1,
+                transactionPage.getTotalPages());
+
+        // Decrypt and map to responses (preserving pagination metadata)
+        return transactionPage.map(transaction -> toResponseWithDecryption(transaction));
+    }
+
+    private List<Long> findMatchingTransactionIds(
+            Long userId, org.openfinance.dto.TransactionSearchCriteria criteria) {
         List<Long> matchedTransactionIds = null;
         boolean needsInMemoryPreFilter =
                 (criteria.getKeyword() != null && !criteria.getKeyword().trim().isEmpty())
                         || criteria.getAmountMin() != null
                         || criteria.getAmountMax() != null
-                        || (criteria.getTags() != null && !criteria.getTags().isBlank());
+                        || (criteria.getTags() != null && !criteria.getTags().isBlank())
+                        || criteria.getTag() != null
+                        || criteria.getCategoryId() != null
+                        || Boolean.TRUE.equals(criteria.getNoPayee())
+                        || (criteria.getPayee() != null && !criteria.getPayee().isBlank());
 
         if (needsInMemoryPreFilter) {
             // Encrypted fields (description, notes, payee, tags, amount) cannot be
@@ -1590,6 +1643,53 @@ public class TransactionService {
                                                 .contains(tagFilter));
             }
 
+            if (criteria.getTag() != null && !criteria.getTag().isBlank()) {
+                stream =
+                        stream.filter(
+                                t ->
+                                        transactionTags(t, splitTags)
+                                                .anyMatch(
+                                                        tag ->
+                                                                tag.equalsIgnoreCase(
+                                                                        criteria.getTag().trim())));
+            }
+            if (criteria.getPayee() != null && !criteria.getPayee().isBlank()) {
+                String payee = criteria.getPayee().trim().toLowerCase(java.util.Locale.ROOT);
+                stream =
+                        stream.filter(
+                                t ->
+                                        t.getPayee() != null
+                                                && (Boolean.TRUE.equals(criteria.getPayeeExact())
+                                                        ? t.getPayee()
+                                                                .trim()
+                                                                .equalsIgnoreCase(payee)
+                                                        : t.getPayee()
+                                                                .toLowerCase(java.util.Locale.ROOT)
+                                                                .contains(payee)));
+            }
+            if (Boolean.TRUE.equals(criteria.getNoPayee())) {
+                stream = stream.filter(t -> t.getPayee() == null || t.getPayee().isBlank());
+            }
+            if (criteria.getCategoryId() != null) {
+                java.util.Set<Long> categoryIds = matchingCategoryIds(userId, criteria);
+                Map<Long, List<TransactionSplitResponse>> allocations =
+                        transactionSplitService.getSplitsForTransactions(
+                                allUserTransactions.stream().map(Transaction::getId).toList());
+                stream =
+                        stream.filter(
+                                t -> {
+                                    List<TransactionSplitResponse> lines =
+                                            allocations.getOrDefault(t.getId(), List.of());
+                                    return lines.isEmpty()
+                                            ? categoryIds.contains(t.getCategoryId())
+                                            : lines.stream()
+                                                    .anyMatch(
+                                                            line ->
+                                                                    categoryIds.contains(
+                                                                            line.getCategoryId()));
+                                });
+            }
+
             // Amount range filter (amount is encrypted, SQL comparison is meaningless)
             if (criteria.getAmountMin() != null) {
                 stream =
@@ -1608,55 +1708,76 @@ public class TransactionService {
                                                         <= 0);
             }
 
-            matchedTransactionIds =
-                    stream.map(org.openfinance.entity.Transaction::getId).limit(1000).toList();
+            matchedTransactionIds = stream.map(org.openfinance.entity.Transaction::getId).toList();
+        }
+        return matchedTransactionIds;
+    }
 
-            // If pre-filter criteria matched nothing, return empty page immediately
-            if (matchedTransactionIds.isEmpty()) {
-                return org.springframework.data.domain.Page.empty(pageable);
+    private java.util.Set<Long> matchingCategoryIds(
+            Long userId, org.openfinance.dto.TransactionSearchCriteria criteria) {
+        List<org.openfinance.entity.Category> categories = categoryRepository.findByUserId(userId);
+        java.util.Set<Long> ids = new java.util.HashSet<>();
+        if (categories.stream().noneMatch(c -> c.getId().equals(criteria.getCategoryId())))
+            return ids;
+        ids.add(criteria.getCategoryId());
+        if (Boolean.TRUE.equals(criteria.getIncludeSubcategories())) {
+            boolean changed;
+            do {
+                changed = false;
+                for (org.openfinance.entity.Category category : categories) {
+                    if (ids.contains(category.getParentId())) changed |= ids.add(category.getId());
+                }
+            } while (changed);
+        }
+        return ids;
+    }
+
+    @Transactional(readOnly = true)
+    public org.openfinance.dto.TransactionSummaryResponse summarizeTransactions(
+            Long userId, org.openfinance.dto.TransactionSearchCriteria criteria) {
+        java.util.Objects.requireNonNull(userId, "User ID is required");
+        java.util.Objects.requireNonNull(criteria, "Search criteria are required");
+        String currency = resolveBaseCurrency(userId);
+        List<Long> ids = findMatchingTransactionIds(userId, criteria);
+        List<Transaction> matching =
+                ids != null && ids.isEmpty()
+                        ? List.of()
+                        : transactionRepository.findAll(
+                                org.openfinance.specification.TransactionSpecification
+                                        .buildSpecification(userId, criteria, ids));
+        BigDecimal income = BigDecimal.ZERO;
+        BigDecimal expenses = BigDecimal.ZERO;
+        BigDecimal transfers = BigDecimal.ZERO;
+        boolean complete = true;
+        for (Transaction transaction : matching) {
+            TransactionResponse converted = new TransactionResponse();
+            populateConversionFields(converted, transaction);
+            if (!currency.equalsIgnoreCase(transaction.getCurrency())
+                    && !Boolean.TRUE.equals(converted.getIsConverted())) {
+                complete = false;
+                continue;
             }
+            BigDecimal amount =
+                    currency.equalsIgnoreCase(transaction.getCurrency())
+                            ? transaction.getAmount()
+                            : converted.getAmountInBaseCurrency();
+            if (transaction.getTransferId() != null) {
+                transfers =
+                        transfers.add(
+                                transaction.getType() == TransactionType.INCOME
+                                        ? amount
+                                        : amount.negate());
+            } else if (transaction.getType() == TransactionType.INCOME) income = income.add(amount);
+            else if (transaction.getType() == TransactionType.EXPENSE)
+                expenses = expenses.add(amount);
         }
-
-        // Ensure deterministic ordering: add id DESC as a secondary sort key when not
-        // already specified. This prevents non-deterministic pagination when multiple
-        // transactions share the same primary sort value (e.g. same date).
-        if (pageable.getSort().getOrderFor("id") == null) {
-            org.springframework.data.domain.Sort baseSort =
-                    pageable.getSort().isSorted()
-                            ? pageable.getSort()
-                            : org.springframework.data.domain.Sort.by(
-                                    org.springframework.data.domain.Sort.Direction.DESC, "date");
-            // Mirror the date sort direction for the id tiebreaker so the ordering
-            // is intuitive: DESC date → DESC id (newest id = most recently created first).
-            org.springframework.data.domain.Sort.Order dateOrder = baseSort.getOrderFor("date");
-            org.springframework.data.domain.Sort.Direction idDir =
-                    (dateOrder != null && dateOrder.isAscending())
-                            ? org.springframework.data.domain.Sort.Direction.ASC
-                            : org.springframework.data.domain.Sort.Direction.DESC;
-            pageable =
-                    org.springframework.data.domain.PageRequest.of(
-                            pageable.getPageNumber(),
-                            pageable.getPageSize(),
-                            baseSort.and(org.springframework.data.domain.Sort.by(idDir, "id")));
-        }
-
-        // Build dynamic specification
-        org.springframework.data.jpa.domain.Specification<Transaction> spec =
-                org.openfinance.specification.TransactionSpecification.buildSpecification(
-                        userId, criteria, matchedTransactionIds);
-
-        // Execute paginated query
-        org.springframework.data.domain.Page<Transaction> transactionPage =
-                transactionRepository.findAll(spec, pageable);
-
-        log.debug(
-                "Found {} transactions (page {}/{})",
-                transactionPage.getNumberOfElements(),
-                transactionPage.getNumber() + 1,
-                transactionPage.getTotalPages());
-
-        // Decrypt and map to responses (preserving pagination metadata)
-        return transactionPage.map(transaction -> toResponseWithDecryption(transaction));
+        return new org.openfinance.dto.TransactionSummaryResponse(
+                matching.size(),
+                currency,
+                complete ? income : null,
+                complete ? expenses : null,
+                complete ? transfers : null,
+                complete ? income.subtract(expenses).add(transfers) : null);
     }
 
     /**

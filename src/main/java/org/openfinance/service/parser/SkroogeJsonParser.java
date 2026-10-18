@@ -119,6 +119,23 @@ public class SkroogeJsonParser {
         Set<Long> referencedCategoryIds =
                 collectReferencedCategoryIds(
                         subOperationsByOperationId, transferOperationIds, categoriesById);
+        SkroogeRuleParser.Result importedRules = SkroogeRuleParser.parse(root.path("rule"));
+        // Rules can refer to otherwise unused categories; retain their complete paths too.
+        for (org.openfinance.dto.TransactionRuleRequest rule : importedRules.rules()) {
+            for (org.openfinance.dto.TransactionRuleRequest.ActionRequest action :
+                    rule.getActions()) {
+                if (action.getActionType() == org.openfinance.entity.RuleActionType.SET_CATEGORY) {
+                    categoriesById.forEach(
+                            (id, category) -> {
+                                if (action.getActionValue()
+                                        .equalsIgnoreCase(textValue(category, "t_fullname"))) {
+                                    addCategoryWithParents(
+                                            referencedCategoryIds, id, categoriesById);
+                                }
+                            });
+                }
+            }
+        }
 
         // Each account keeps its native Skrooge currency (e.g. XOF); transaction and opening
         // amounts are converted into that currency using Skrooge's own stored unit rates (pegs),
@@ -148,6 +165,10 @@ public class SkroogeJsonParser {
                                         accountCurrencyBySourceId,
                                         currencyRatesToPrimary))
                         .categories(buildCategories(categoriesById, referencedCategoryIds))
+                        .rules(new ArrayList<>(importedRules.rules()))
+                        .ruleWarnings(new ArrayList<>(importedRules.warnings()))
+                        .sourceRuleCount(root.path("rule").size())
+                        .skippedRuleCount(importedRules.skipped())
                         .build();
 
         List<ImportedTransaction> transactions = new ArrayList<>();
@@ -586,7 +607,10 @@ public class SkroogeJsonParser {
                             .accountNumber(resolveAccountNumber(account))
                             .currency(currency)
                             .accountType(mapAccountType(textValue(account, "t_type")))
-                            .description(textValue(account, "t_comment"))
+                            .description(
+                                    mergeAccountDescription(
+                                            textValue(account, "t_comment"),
+                                            textValue(account, "t_agency_address")))
                             .openingBalance(openingBalance)
                             .openingDate(openingDate)
                             .active(!booleanValue(account, "t_close"))
@@ -598,6 +622,18 @@ public class SkroogeJsonParser {
                         SkroogeImportMetadata.SkroogeAccount::getName,
                         String.CASE_INSENSITIVE_ORDER));
         return accounts;
+    }
+
+    public static String mergeAccountDescription(String existing, String imported) {
+        String merged =
+                java.util.stream.Stream.of(existing, imported)
+                        .filter(Objects::nonNull)
+                        .flatMap(String::lines)
+                        .map(String::trim)
+                        .filter(line -> !line.isEmpty())
+                        .distinct()
+                        .collect(Collectors.joining("\n"));
+        return merged.isBlank() ? null : merged;
     }
 
     private List<SkroogeImportMetadata.SkroogeCategory> buildCategories(

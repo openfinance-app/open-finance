@@ -29,6 +29,7 @@
   "description": "Organize income and expenses in the same category tree",
   "addCategory": "Add Category",
   "summary": {
+    "label": "Category summary",
     "totalCategories": "Total Categories",
     "rootCategories": "Root Categories",
     "subcategories": "Subcategories",
@@ -36,6 +37,15 @@
   },
   "search": {
     "placeholder": "Search categories..."
+  },
+  "list": {
+    "label": "Category list",
+    "group": "Category group",
+    "allGroups": "All groups",
+    "expandAll": "Expand all",
+    "collapseAll": "Collapse all",
+    "directActivity": "In this category",
+    "amountHint": "Parent totals include subcategories. “In this category” shows only the parent’s own transactions."
   },
   "select": {
     "noCategory": "No category",
@@ -56,7 +66,7 @@
     "transactionCount": "Transaction Count",
     "totalAmount": "Net amount",
     "txns": "Txns",
-    "amount": "Net amount"
+    "amount": "Net total"
   },
   "badges": {
     "system": "System",
@@ -64,8 +74,11 @@
     "collapse": "Collapse"
   },
   "aria": {
+    "categoryActions": "Actions for {{name}}",
     "editCategory": "Edit category",
-    "deleteCategory": "Delete category"
+    "deleteCategory": "Delete category",
+    "viewDirectTransactions": "View direct transactions for {{name}}",
+    "viewSubtreeTransactions": "View transactions including subcategories for {{name}}"
   },
   "unknownCategory": "Unknown Category",
   "loadError": {
@@ -102,5 +115,7 @@
     }
   },
   "transactionCount_one": "{{count}} transaction",
-  "transactionCount_other": "{{count}} transactions"
+  "transactionCount_other": "{{count}} transactions",
+  "directAmount": "Direct amount",
+  "includingSubcategories": "Including subcategories"
 }

@@ -50,6 +50,11 @@ public class CategoryTreeNode {
     /** Net incoming minus outgoing activity, including descendants, in currency. */
     private java.math.BigDecimal totalAmount;
 
+    /** Activity assigned directly to this category, excluding descendants. */
+    private java.math.BigDecimal directAmount;
+
+    private Long directTransactionCount;
+
     private java.math.BigDecimal incomeAmount;
     private java.math.BigDecimal expenseAmount;
     private String currency;

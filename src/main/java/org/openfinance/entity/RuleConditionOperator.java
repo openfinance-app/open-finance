@@ -53,7 +53,9 @@ public enum RuleConditionOperator {
         }
         return switch (this) {
             case EQUALS, NOT_EQUALS -> true;
-            case CONTAINS, NOT_CONTAINS -> field == RuleConditionField.DESCRIPTION;
+            case CONTAINS, NOT_CONTAINS -> field == RuleConditionField.DESCRIPTION
+                    || field == RuleConditionField.PAYEE
+                    || field == RuleConditionField.MEMO;
             case GREATER_THAN, LESS_THAN, GREATER_OR_EQUAL, LESS_OR_EQUAL -> field
                     == RuleConditionField.AMOUNT;
         };

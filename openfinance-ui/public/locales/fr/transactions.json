@@ -32,7 +32,8 @@
     "thisYear": "Cette année",
     "from": "Du",
     "to": "Au",
-    "excludeTransfers": "Virements exclus"
+    "excludeTransfers": "Virements exclus",
+    "includeSubcategories": "Inclure les sous-catégories"
   },
   "loadError": "Impossible de charger les transactions. Veuillez réessayer ultérieurement.",
   "empty": {
@@ -209,5 +210,16 @@
   "splitDetail": {
     "noCategory": "Sans catégorie",
     "noSplitDetails": "Aucun détail de ventilation disponible."
+  },
+  "summary": {
+    "title": "Transactions correspondantes",
+    "count": "Transactions",
+    "income": "Revenus",
+    "expenses": "Dépenses",
+    "transfers": "Transferts nets",
+    "net": "Montant net",
+    "unavailable": "Récapitulatif indisponible.",
+    "conversionUnavailable": "Totaux indisponibles : certains montants n’ont pas pu être convertis.",
+    "scope": "Toutes les transactions correspondantes, sur toutes les pages."
   }
 }

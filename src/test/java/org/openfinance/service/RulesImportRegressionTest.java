@@ -59,6 +59,7 @@ class RulesImportRegressionTest {
     @Autowired private UserRepository userRepository;
     @Autowired private DatabaseCleanupService cleanup;
     @Autowired private org.openfinance.repository.CurrencyRepository currencyRepository;
+    @Autowired private org.openfinance.repository.CategoryRepository categories;
     @MockBean private AICategorizationService ai;
     @MockBean private ExchangeRateService fx;
     private Long userId;
@@ -346,6 +347,40 @@ class RulesImportRegressionTest {
                 .actionValue("Groceries")
                 .actionValue2(amount)
                 .build();
+    }
+
+    @Test
+    void legacySkroogeRulePathsReuseTheExistingChildWhenImportingTransactions() throws Exception {
+        org.openfinance.entity.Category parent =
+                categories.save(
+                        org.openfinance.entity.Category.builder()
+                                .userId(userId)
+                                .name("Maison")
+                                .isSystem(false)
+                                .build());
+        org.openfinance.entity.Category child =
+                categories.save(
+                        org.openfinance.entity.Category.builder()
+                                .userId(userId)
+                                .name("Ménage")
+                                .parentId(parent.getId())
+                                .isSystem(false)
+                                .build());
+        rule(
+                "WECASA",
+                List.of(
+                        TransactionRuleRequest.ActionRequest.builder()
+                                .actionType(RuleActionType.SET_CATEGORY)
+                                .actionValue("Maison > Ménage")
+                                .build()));
+        ImportSession session = csv("-100", "WECASA", everyday);
+        assertThat(imports.reviewTransactions(session.getId(), userId).getFirst().getCategory())
+                .isEqualTo("Maison > Ménage");
+        assertThat(confirm(session).getImportedCount()).isEqualTo(1);
+        assertThat(transactions.findByAccountId(everyday))
+                .singleElement()
+                .satisfies(tx -> assertThat(tx.getCategoryId()).isEqualTo(child.getId()));
+        assertThat(categories.findByUserId(userId)).hasSize(2);
     }
 
     @Test

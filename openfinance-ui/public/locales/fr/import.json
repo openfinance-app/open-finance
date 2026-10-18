@@ -280,5 +280,26 @@
     "account": "Impossible d’enregistrer le compte sélectionné. Veuillez réessayer.",
     "reviewSave": "Impossible d’enregistrer la vérification. Vos modifications sont conservées ; veuillez réessayer.",
     "confirm": "Impossible de confirmer l’import. Votre vérification est conservée. Veuillez réessayer."
+  },
+  "skroogeRules": {
+    "title": "Règles Skrooge",
+    "preview": "{{source}} règles source : {{ready}} règles Open Finance prêtes, {{skipped}} règles source ignorées.",
+    "stats": {
+      "source": "Règles source",
+      "imported": "Règles importées",
+      "existing": "Déjà présentes",
+      "skipped": "Règles source ignorées"
+    },
+    "scope": "Les règles sont enregistrées à la confirmation et utilisées pour les prochains imports. Open Finance applique la première règle correspondante.",
+    "details": "Détails de la conversion",
+    "rule": "Règle {{id}}",
+    "warnings": {
+      "importScope": "La condition sur le statut d’import est couverte par l’exécution des règles lors des imports.",
+      "unsupportedAction": "Ignorée : action non prise en charge (par exemple, le mode de paiement).",
+      "unsupportedCondition": "Ignorée : une condition ou une expression logique ne peut pas être convertie.",
+      "emptyCondition": "Ignorée : aucune condition exploitable ne reste.",
+      "invalidXml": "Ignorée : définition XML invalide ou non prise en charge.",
+      "unresolvedCategory": "Ignorée : la catégorie cible n’a pas pu être résolue."
+    }
   }
 }

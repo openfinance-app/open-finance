@@ -489,7 +489,9 @@ export function AccountDetailModal({ accountId, onClose, onEdit }: AccountDetail
                           <dt className="text-xs text-muted-foreground uppercase tracking-wide mb-1">
                             {t('detail.description')}
                           </dt>
-                          <dd className="text-sm text-foreground">{account.description}</dd>
+                          <dd className="text-sm text-foreground whitespace-pre-line">
+                            {account.description}
+                          </dd>
                         </div>
                       )}
                     </dl>

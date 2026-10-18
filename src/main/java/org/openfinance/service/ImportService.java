@@ -125,6 +125,7 @@ public class ImportService {
     private final AccountService accountService;
     private final ImportedOpeningBalanceService openingBalanceService;
     private final TransactionRuleService transactionRuleService;
+    private final SkroogeRuleImportService skroogeRuleImportService;
     private final TransactionService transactionService;
     private final ExchangeRateService exchangeRateService;
     private final TransactionSplitService transactionSplitService;
@@ -1653,6 +1654,15 @@ public class ImportService {
                         accountSourcesWithTransactions);
         Map<Long, Long> categoryIdsBySource =
                 ensureCategories(skroogeMetadata, userId, categoryMappings);
+        // Persist rules only after confirmation; do not rerun them over reviewed transactions.
+        skroogeRuleImportService.importRules(skroogeMetadata, categoryIdsBySource, userId);
+        Map<String, Object> updatedMetadata = readMetadataMap(session.getMetadata());
+        updatedMetadata.put("skroogeMetadata", skroogeMetadata);
+        try {
+            session.setMetadata(objectMapper.writeValueAsString(updatedMetadata));
+        } catch (JsonProcessingException ex) {
+            throw new IllegalStateException("Could not save Skrooge rule import results", ex);
+        }
 
         int imported = 0;
         int saveFailed = 0;
@@ -2231,6 +2241,15 @@ public class ImportService {
         List<Account> existingAccounts = accountRepository.findByUserId(userId);
         for (SkroogeImportMetadata.SkroogeAccount account : metadata.getAccounts()) {
             Account matchingAccount = findMatchingAccount(existingAccounts, account);
+            if (matchingAccount != null) {
+                String description =
+                        SkroogeJsonParser.mergeAccountDescription(
+                                matchingAccount.getDescription(), account.getDescription());
+                if (!Objects.equals(description, matchingAccount.getDescription())) {
+                    matchingAccount.setDescription(description);
+                    accountRepository.save(matchingAccount);
+                }
+            }
             if (matchingAccount != null
                     && !accountSourcesWithTransactions.contains(account.getSourceId())) {
                 // Duplicate/skipped rows must not require reopening or change the active state
@@ -3021,6 +3040,8 @@ public class ImportService {
             if (matches.size() > 1)
                 throw new IllegalArgumentException(
                         "Ambiguous category name; choose its full path or an explicit mapping");
+            Long legacyId = resolveLegacySkroogeCategoryPath(categoryPath, userCategories);
+            if (legacyId != null) return legacyId;
         }
         Long parentId = null;
         for (String segment : categoryPath.split(":", -1)) {
@@ -3050,6 +3071,25 @@ public class ImportService {
             parentId = category.getId();
         }
         return parentId;
+    }
+
+    private Long resolveLegacySkroogeCategoryPath(String path, List<Category> categories) {
+        // Earlier rule imports saved display paths. Match existing categories only; exact names
+        // take precedence in the caller so a literal ">" in a category name is preserved.
+        if (!path.contains(" > ")) return null;
+        List<Long> matches =
+                buildCategoryPaths(categories).entrySet().stream()
+                        .filter(
+                                entry ->
+                                        entry.getValue()
+                                                .replace(":", " > ")
+                                                .equalsIgnoreCase(path.trim()))
+                        .map(Map.Entry::getKey)
+                        .toList();
+        if (matches.size() > 1)
+            throw new IllegalArgumentException(
+                    "Ambiguous category name; choose its full path or an explicit mapping");
+        return matches.isEmpty() ? null : matches.getFirst();
     }
 
     /**

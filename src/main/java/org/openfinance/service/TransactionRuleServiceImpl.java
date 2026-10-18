@@ -316,6 +316,12 @@ public class TransactionRuleServiceImpl implements TransactionRuleService {
         String conditionValue = condition.getValue();
 
         switch (field) {
+            case PAYEE -> {
+                return evaluateStringCondition(operator, tx.getPayee(), conditionValue);
+            }
+            case MEMO -> {
+                return evaluateStringCondition(operator, tx.getMemo(), conditionValue);
+            }
             case DESCRIPTION -> {
                 String description = buildDescription(tx);
                 return evaluateStringCondition(operator, description, conditionValue);

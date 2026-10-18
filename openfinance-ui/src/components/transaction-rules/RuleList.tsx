@@ -246,6 +246,8 @@ interface RuleRowProps {
 // Human-readable labels for condition fields and operators (used in tooltips)
 const FIELD_SHORT: Record<RuleConditionField, string> = {
   DESCRIPTION: 'Desc.',
+  PAYEE: 'Payee',
+  MEMO: 'Memo',
   AMOUNT: 'Amount',
   TRANSACTION_TYPE: 'Type',
 };

@@ -69,6 +69,14 @@ in its controller and background confirmation executor. These shared services,
 repositories, mapper and configuration must retain their managed identity. Only
 these reviewed identities are added; all release quality gates remain required.
 
+The October 18 import/list fixes reviewed 28 exact reference identities: 15 existing
+ImportService constructor fields whose signature changed, one new Spring rule-service
+collaborator, four existing mutable DTO constructor fields with changed signatures,
+and eight accessors/constructor fields for the import session's editable rule lists.
+These DTO lists are assembled and updated within the import workflow. The standalone
+parser result now copies its lists, and its XML catch handles only the checked parsing
+exceptions. No broad exclusion was added.
+
 ## Dependency applicability reviews
 
 `dependency-check-suppressions.xml` identifies individual CVEs and exact artifact

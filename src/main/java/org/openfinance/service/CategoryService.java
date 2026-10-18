@@ -586,6 +586,8 @@ public class CategoryService {
                 .subcategories(children)
                 .transactionCount(totals.transactionCount())
                 .totalAmount(totals.net())
+                .directAmount(totals.directNet())
+                .directTransactionCount(totals.directTransactionCount())
                 .incomeAmount(totals.income())
                 .expenseAmount(totals.expenses())
                 .currency(currency)
