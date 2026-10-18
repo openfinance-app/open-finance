@@ -14,6 +14,7 @@ import { Button } from '@/components/ui/Button';
 import { DateInput } from '@/components/ui/DateInput';
 import { NumberInput } from '@/components/ui/NumberInput';
 import { ConvertedAmount } from '@/components/ui/ConvertedAmount';
+import { HelpTooltip } from '@/components/ui/HelpTooltip';
 import { LoadingSkeleton } from '@/components/LoadingComponents';
 import {
   Dialog,
@@ -162,7 +163,8 @@ export function InterestRateVariationsSection({
       {/* Header */}
       <div className="mb-6 flex flex-col items-start justify-between gap-4 sm:flex-row">
         <div className="min-w-0 flex-1">
-          <h2 className="plate-label ">{t('interest.historyTitle')}</h2>
+          <h2 className="plate-label mr-1.5 inline">{t('interest.historyTitle')}</h2>
+          <HelpTooltip text={t('interest.estimateExplanation')} />
           <p className="text-sm text-text-secondary mb-3">{t('interest.historyDescription')}</p>
           {/* Summary pills */}
           <div className="flex items-center gap-3 flex-wrap">
@@ -205,14 +207,11 @@ export function InterestRateVariationsSection({
         </Button>
       </div>
 
-      <div className="mb-4 space-y-2">
-        <p className="text-xs text-text-secondary">{t('interest.estimateExplanation')}</p>
-        {estimateError && (
-          <p role="alert" className="text-sm text-error">
-            {t('interest.loadError')}
-          </p>
-        )}
-      </div>
+      {estimateError && (
+        <p role="alert" className="mb-4 text-sm text-error">
+          {t('interest.loadError')}
+        </p>
+      )}
 
       {orderedVariations.length > 0 ? (
         <div className="border border-border rounded-lg overflow-x-auto">

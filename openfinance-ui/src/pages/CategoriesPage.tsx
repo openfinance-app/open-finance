@@ -21,6 +21,7 @@ import {
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Badge } from '@/components/ui/Badge';
+import { HelpTooltip } from '@/components/ui/HelpTooltip';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -86,11 +87,8 @@ function CategoryTree({
 
   return (
     <div className="pb-2">
-      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 px-3 py-2 lg:px-5">
-        <p className="min-w-0 flex-1 basis-64 text-xs leading-relaxed text-text-secondary">
-          {t('list.amountHint')}
-        </p>
-        {expandableNodes.length > 0 && (
+      {expandableNodes.length > 0 && (
+        <div className="flex items-center justify-end px-3 py-2 lg:px-5">
           <Button
             variant="ghost"
             className="ml-auto h-11 shrink-0 gap-2 text-text-secondary lg:h-8"
@@ -107,16 +105,16 @@ function CategoryTree({
             )}
             {t(allExpanded ? 'list.collapseAll' : 'list.expandAll')}
           </Button>
-        )}
-      </div>
-      <div
-        aria-hidden="true"
-        className="hidden grid-cols-[minmax(0,1fr)_8rem_11rem_2.75rem] gap-x-5 border-b border-border px-5 pb-2 text-xs font-medium text-text-secondary lg:grid"
-      >
-        <span className="pl-19">{t('table.name')}</span>
-        <span className="text-right">{t('summary.totalTransactions')}</span>
-        <span className="text-right">{t('table.amount')}</span>
-        <span />
+        </div>
+      )}
+      <div className="grid grid-cols-1 gap-x-5 border-b border-border px-3 py-2 text-xs font-medium text-text-secondary lg:grid-cols-[minmax(0,1fr)_8rem_11rem_2.75rem] lg:px-5">
+        <span className="flex items-center gap-1.5 lg:pl-19">
+          {t('table.name')}
+          <HelpTooltip text={t('list.amountHint')} side="right" />
+        </span>
+        <span className="hidden text-right lg:block">{t('summary.totalTransactions')}</span>
+        <span className="hidden text-right lg:block">{t('table.amount')}</span>
+        <span className="hidden lg:block" />
       </div>
       <ul id="category-tree" className="divide-y divide-border">
         {categories.map(category => (

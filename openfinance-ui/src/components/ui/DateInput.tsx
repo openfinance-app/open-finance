@@ -116,7 +116,8 @@ export function DateInput({
       >
         <CalendarDays className="h-4 w-4" />
       </button>
-      {/* Visually hidden native picker used only for calendar selection. */}
+      {/* Keep the native picker anchored to the visible field; a clipped or zero-size input
+          makes Chromium position its calendar at the viewport origin. */}
       <input
         ref={nativeRef}
         type="date"
@@ -131,7 +132,7 @@ export function DateInput({
           emittedValue.current = e.target.value;
           onChange(e.target.value);
         }}
-        className="sr-only absolute right-2 bottom-0 h-0 w-0"
+        className="pointer-events-none absolute inset-x-0 top-0 h-10 w-full opacity-0"
       />
       {error && <p className="mt-1 text-sm text-error">{error}</p>}
     </div>
