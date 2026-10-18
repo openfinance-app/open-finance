@@ -90,6 +90,9 @@ export interface ConvertedAmountProps {
   /** Date of a historical valuation or posting; omitted for current values. */
   conversionDate?: string;
 
+  /** Recorded monetary equivalents take precedence over secondary market estimates. */
+  recordedAmounts?: ReadonlyArray<{ amount: number; currency: string }>;
+
   /** Use compact K/M notation (default: false) */
   compact?: boolean;
   /**
@@ -334,6 +337,17 @@ function buildPrimaryDisplay(
  */
 export function ConvertedAmount(props: ConvertedAmountProps) {
   const { secondaryCurrency } = useCurrencyDisplay();
+  const recorded = props.recordedAmounts?.find(value => value.currency === secondaryCurrency);
+  if (recorded && secondaryCurrency !== props.currency) {
+    return (
+      <AmountDisplay
+        {...props}
+        secondaryCurrency={recorded.currency}
+        secondaryAmount={recorded.amount}
+        secondaryExchangeRate={props.amount === 0 ? null : recorded.amount / props.amount}
+      />
+    );
+  }
   const hasCurrentSecondary =
     secondaryCurrency &&
     props.secondaryCurrency === secondaryCurrency &&

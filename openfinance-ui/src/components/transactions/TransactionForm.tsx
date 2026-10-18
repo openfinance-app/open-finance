@@ -393,9 +393,9 @@ export function TransactionForm({
   // Auto-split toggle (Task 9): on by default — the submit includes the preview legs as splits.
   const [applyRepaymentSplit, setApplyRepaymentSplit] = useState(!transaction);
 
-  // TRANSFER always keeps its current behavior (amount in the source account currency).
+  // Converted transfer instructions need the same exact source-to-account conversion.
   const needsConversion =
-    selectedType !== 'TRANSFER' &&
+    (selectedType !== 'TRANSFER' || !!transaction?.originalCurrency) &&
     !!inputCurrency &&
     !!accountCurrency &&
     inputCurrency !== accountCurrency;
@@ -621,8 +621,8 @@ export function TransactionForm({
 
       {/* Row 2: Currency & Amount (mirrors the Account form's Currency + Balance row) */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {/* Currency — hidden for TRANSFER (amount stays in the source account currency) */}
-        {selectedType !== 'TRANSFER' && (
+        {/* Keep a converted transfer's input currency visible while editing. */}
+        {(selectedType !== 'TRANSFER' || !!transaction?.originalCurrency) && (
           <div>
             <label
               htmlFor="currency"
@@ -662,7 +662,13 @@ export function TransactionForm({
         )}
 
         {/* Amount */}
-        <div className={selectedType === 'TRANSFER' ? 'md:col-span-2' : undefined}>
+        <div
+          className={
+            selectedType === 'TRANSFER' && !transaction?.originalCurrency
+              ? 'md:col-span-2'
+              : undefined
+          }
+        >
           <label htmlFor="amount" className="block text-sm font-medium text-text-primary mb-1.5">
             {t('form.amount')} <span aria-label="required">*</span>
           </label>

@@ -106,6 +106,9 @@ export interface ImportTransactionDTO {
   /** Decimal strings retain source precision; numbers support older API responses. */
   amount: string | number | null;
   currency: string;
+  originalAmount?: string | number | null;
+  originalCurrency?: string | null;
+  conversionRate?: string | number | null;
   /** Server-resolved source currency for review, including implicit account currency. */
   reviewCurrency?: string;
   memo: string | null;

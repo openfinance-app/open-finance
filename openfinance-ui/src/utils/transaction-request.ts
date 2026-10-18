@@ -331,10 +331,8 @@ export function buildTransactionRequest(ctx: SubmitContext): TransactionRequest 
     toAccountId: data.toAccountId,
     type: data.type,
     amount: submitAmount,
-    // Always submit in the account's currency (backend requires currency === account currency
-    // for INCOME/EXPENSE). For TRANSFER this normalizes any stale input-currency selection
-    // back to the source account's currency; needsConversion is false for TRANSFER so the
-    // amount is unchanged.
+    // The amount and its original-currency metadata always describe the same conversion,
+    // including when the input belongs to a transfer.
     currency: accountCurrency,
     originalAmount: conversion.originalAmount,
     originalCurrency: conversion.originalCurrency,

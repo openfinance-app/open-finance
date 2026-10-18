@@ -160,6 +160,11 @@ public class TransactionResponse {
      */
     private String transferId;
 
+    /** Recorded amount on the other transfer leg, independent of market quote changes. */
+    private BigDecimal transferAmount;
+
+    private String transferCurrency;
+
     /**
      * Optional ID of the liability this transaction is a payment for.
      *

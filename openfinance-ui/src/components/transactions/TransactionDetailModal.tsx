@@ -27,7 +27,7 @@ import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { AttachmentList, AttachmentUpload } from '@/components/attachments';
 import { AttachmentEntityType } from '@/types/attachment';
-import { ConvertedAmount } from '@/components/ui/ConvertedAmount';
+import { TransactionAmount } from '@/components/transactions/TransactionAmount';
 import { SplitDetail } from './SplitDetail';
 import { useFormatCurrency } from '@/hooks/useFormatCurrency';
 import { cn } from '@/lib/utils';
@@ -183,15 +183,7 @@ export function TransactionDetailModal({
               <p className="text-sm text-muted-foreground mb-1">{t('detail.amountLabel')}</p>
               <p className={cn('text-3xl font-bold font-mono', typeConfig.color)}>
                 {typeConfig.sign}
-                <ConvertedAmount
-                  conversionDate={transaction.date}
-                  amount={transaction.amount}
-                  currency={transaction.currency}
-                  convertedAmount={transaction.amountInBaseCurrency}
-                  baseCurrency={transaction.baseCurrency}
-                  exchangeRate={transaction.exchangeRate}
-                  isConverted={transaction.isConverted}
-                />
+                <TransactionAmount transaction={transaction} />
               </p>
             </div>
             <div className="flex gap-2 flex-wrap justify-end">

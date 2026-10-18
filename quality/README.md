@@ -83,6 +83,13 @@ constructor signature, and two repositories provide split and recurring usage ch
 These references intentionally retain their Spring-managed identity. Only those five
 identities are added; the new serializer's missing serialVersionUID is fixed in source.
 
+The Skrooge/transfer source-amount change reviews five exact constructor identities:
+three existing editable ImportedTransaction lists and two existing TransactionResponse
+lists have changed constructor signatures. Each has a prior baseline entry for the
+same field and constructor contract. Only those five identities are added. Broad
+exception catches in the touched shared import path are narrowed in source; no bug
+type or package exclusion is introduced.
+
 ## Dependency applicability reviews
 
 `dependency-check-suppressions.xml` identifies individual CVEs and exact artifact

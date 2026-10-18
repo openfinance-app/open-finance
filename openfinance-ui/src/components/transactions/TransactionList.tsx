@@ -29,7 +29,7 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
-import { ConvertedAmount } from '@/components/ui/ConvertedAmount';
+import { TransactionAmount } from '@/components/transactions/TransactionAmount';
 import { groupByDate } from '@/utils/date';
 import type { Transaction } from '@/types/transaction';
 import type { PaymentMethod } from '@/types/transaction';
@@ -498,16 +498,7 @@ function TransactionItem({
           {transaction.type === 'INCOME' && '+'}
           {transaction.type === 'EXPENSE' && '-'}
           {/* Reference REQ-9.1: Display transaction amount with base-currency conversion when available */}
-          <ConvertedAmount
-            conversionDate={transaction.date}
-            amount={transaction.amount}
-            currency={transaction.currency}
-            convertedAmount={transaction.amountInBaseCurrency}
-            baseCurrency={transaction.baseCurrency}
-            exchangeRate={transaction.exchangeRate}
-            isConverted={transaction.isConverted}
-            inline
-          />
+          <TransactionAmount transaction={transaction} inline />
         </p>
         {/* Account (logo + name) shown below amount as tertiary info */}
         {(transaction.account?.name || transaction.accountName) && (

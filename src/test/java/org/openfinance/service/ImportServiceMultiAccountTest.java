@@ -275,6 +275,84 @@ class ImportServiceMultiAccountTest {
         assertThat(result.getImportedCount()).isEqualTo(2);
     }
 
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(strings = {"QIF", "CSV", "OFX"})
+    void retainsForeignCurrencyTransferInputAcrossFormats(String format) throws Exception {
+        ImportedTransaction transferTransaction =
+                ImportedTransaction.builder()
+                        .transactionDate(LocalDate.of(2024, 1, 15))
+                        .payee("Transfer to savings")
+                        .memo("Automatic transfer")
+                        .amount(new BigDecimal("-50.00"))
+                        .accountName("Checking")
+                        .toAccountName("Savings")
+                        .transfer(true)
+                        .category("Transfer")
+                        .currency("GBP")
+                        .validationErrors(new ArrayList<>())
+                        .build();
+
+        ImportSession session = buildSession(2L, format, List.of(transferTransaction));
+        Account checkingAccount =
+                Account.builder()
+                        .id(301L)
+                        .userId(USER_ID)
+                        .name("enc-checking")
+                        .type(AccountType.CHECKING)
+                        .currency("USD")
+                        .isActive(true)
+                        .build();
+        Account savingsAccount =
+                Account.builder()
+                        .id(302L)
+                        .userId(USER_ID)
+                        .name("enc-savings")
+                        .type(AccountType.SAVINGS)
+                        .currency("USD")
+                        .isActive(true)
+                        .build();
+        List<Account> existingAccounts = new ArrayList<>();
+
+        when(importSessionRepository.findById(2L)).thenReturn(Optional.of(session));
+        when(importSessionRepository.save(any(ImportSession.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0, ImportSession.class));
+        when(accountRepository.findByUserId(USER_ID)).thenReturn(existingAccounts);
+        when(accountService.createAccount(eq(USER_ID), any(AccountRequest.class)))
+                .thenReturn(
+                        AccountResponse.builder().id(301L).build(),
+                        AccountResponse.builder().id(302L).build());
+        when(accountRepository.findById(301L)).thenReturn(Optional.of(checkingAccount));
+        when(accountRepository.findById(302L)).thenReturn(Optional.of(savingsAccount));
+
+        when(exchangeRateService.convert(
+                        new BigDecimal("50.00"), "GBP", "USD", LocalDate.of(2024, 1, 15)))
+                .thenReturn(new BigDecimal("62.50"));
+        ImportSession result = importService.confirmImport(2L, USER_ID, null, Map.of(), true);
+
+        verify(transactionService)
+                .createTransfer(
+                        eq(USER_ID),
+                        argThat(
+                                request ->
+                                        request.getAccountId().equals(301L)
+                                                && request.getToAccountId().equals(302L)
+                                                && request.getAmount()
+                                                                .compareTo(new BigDecimal("62.50"))
+                                                        == 0
+                                                && request.getCurrency().equals("USD")
+                                                && request.getOriginalAmount()
+                                                                .compareTo(new BigDecimal("50"))
+                                                        == 0
+                                                && request.getOriginalCurrency().equals("GBP")
+                                                && request.getConversionRate()
+                                                                .compareTo(new BigDecimal("1.25"))
+                                                        == 0));
+        verify(transactionRepository, never()).save(any(Transaction.class));
+        verify(accountService, times(2)).recalculateBalance(anyLong(), eq(USER_ID));
+        assertThat(result.getStatus()).isEqualTo(ImportStatus.COMPLETED);
+        assertThat(result.getImportedCount()).isEqualTo(1);
+    }
+
     @Test
     @DisplayName("Should import QIF transfers across parsed source and destination accounts")
     void shouldImportQifTransfersAcrossMultipleAccounts() throws Exception {

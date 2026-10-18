@@ -76,6 +76,7 @@ class SkroogeJsonImportFlowE2ETest {
     @Autowired private UserRepository userRepository;
     @Autowired private DatabaseCleanupService databaseCleanupService;
     @Autowired private TransactionRuleService rules;
+    @Autowired private TransactionService transactions;
 
     private Long userId;
 
@@ -197,6 +198,125 @@ class SkroogeJsonImportFlowE2ETest {
                             .as("persisted balance of %s", name)
                             .isCloseTo(new BigDecimal(exp.balance()), within(TOLERANCE));
                 });
+    }
+
+    @Test
+    void retainsSourceAmountsThroughImportAndMetadataOnlyTransferEdit() throws Exception {
+        com.fasterxml.jackson.databind.ObjectMapper json =
+                new com.fasterxml.jackson.databind.ObjectMapper();
+        com.fasterxml.jackson.databind.node.ObjectNode source =
+                (com.fasterxml.jackson.databind.node.ObjectNode)
+                        json.readTree(syntheticSkroogeJson());
+        ((com.fasterxml.jackson.databind.node.ObjectNode) source.path("operation").get(3))
+                .put("rd_account_id", 30);
+        ((com.fasterxml.jackson.databind.node.ObjectNode) source.path("suboperation").get(3))
+                .put("f_value", "-500");
+        ((com.fasterxml.jackson.databind.node.ObjectNode) source.path("suboperation").get(4))
+                .put("f_value", "500");
+        com.fasterxml.jackson.databind.node.ArrayNode operations =
+                (com.fasterxml.jackson.databind.node.ArrayNode) source.path("operation");
+        operations
+                .addObject()
+                .put("id", 7)
+                .put("rd_account_id", 30)
+                .put("d_date", "0000-00-00")
+                .put("rc_unit_id", 4);
+        operations
+                .addObject()
+                .put("id", 8)
+                .put("rd_account_id", 30)
+                .put("d_date", "2024-01-15")
+                .put("rc_unit_id", 1);
+        com.fasterxml.jackson.databind.node.ArrayNode parts =
+                (com.fasterxml.jackson.databind.node.ArrayNode) source.path("suboperation");
+        parts.addObject().put("id", 71).put("rd_operation_id", 7).put("f_value", "1");
+        parts.addObject()
+                .put("id", 81)
+                .put("rd_operation_id", 8)
+                .put("r_category_id", 101)
+                .put("f_value", "2");
+        ((com.fasterxml.jackson.databind.node.ArrayNode) source.path("unitvalue"))
+                .addObject()
+                .put("id", 4)
+                .put("rd_unit_id", 4)
+                .put("d_date", "2026-10-17")
+                .put("f_quantity", "0.001524490197");
+        String uploadId =
+                fileStorageService.storeFile(
+                        new MockMultipartFile(
+                                "file",
+                                "source_amounts.json",
+                                "application/json",
+                                json.writeValueAsBytes(source)),
+                        userId);
+        ImportSession session =
+                importService.startImport(uploadId, userId, null, "source_amounts.json");
+        awaitParsed(session.getId());
+        importService.confirmImport(session.getId(), userId, null, Map.of(), true);
+
+        List<org.openfinance.entity.Transaction> rows = transactionRepository.findByUserId(userId);
+        assertThat(rows).hasSize(6);
+        org.openfinance.entity.Transaction debit =
+                rows.stream()
+                        .filter(tx -> "skrooge:operation:3".equals(tx.getExternalReference()))
+                        .findFirst()
+                        .orElseThrow();
+        org.openfinance.entity.Transaction credit =
+                rows.stream()
+                        .filter(tx -> "skrooge:operation:4".equals(tx.getExternalReference()))
+                        .findFirst()
+                        .orElseThrow();
+        assertThat(credit.getCurrency()).isEqualTo("XOF");
+        assertThat(credit.getAmount()).isEqualByComparingTo("327978.4947019899");
+        assertThat(credit.getOriginalAmount()).isEqualByComparingTo("500");
+        assertThat(credit.getOriginalCurrency()).isEqualTo("EUR");
+        assertThat(credit.getConversionRate()).isEqualByComparingTo("655.9569894039798");
+        assertThat(rows)
+                .filteredOn(tx -> "skrooge:operation:8".equals(tx.getExternalReference()))
+                .singleElement()
+                .satisfies(
+                        tx -> {
+                            assertThat(tx.getOriginalAmount()).isEqualByComparingTo("2");
+                            assertThat(tx.getOriginalCurrency()).isEqualTo("EUR");
+                        });
+        assertThat(rows)
+                .filteredOn(tx -> "skrooge:operation:6".equals(tx.getExternalReference()))
+                .singleElement()
+                .satisfies(tx -> assertThat(tx.getOriginalAmount()).isNull());
+        // Unchanged reimports remain duplicates despite now carrying additional FX metadata.
+        ImportSession repeat =
+                importService.startImport(uploadId, userId, null, "source_amounts.json");
+        awaitParsed(repeat.getId());
+        importService.confirmImport(repeat.getId(), userId, null, Map.of(), true);
+        assertThat(transactionRepository.countByUserId(userId)).isEqualTo(6);
+        BigDecimal beforeBalance =
+                accountRepository.findById(credit.getAccountId()).orElseThrow().getBalance();
+        org.openfinance.dto.TransactionResponse response =
+                transactions.updateTransfer(
+                        debit.getTransferId(),
+                        userId,
+                        org.openfinance.dto.TransferUpdateRequest.builder()
+                                .fromAccountId(debit.getAccountId())
+                                .toAccountId(credit.getAccountId())
+                                .amount(debit.getAmount())
+                                .currency(debit.getCurrency())
+                                .date(debit.getDate())
+                                .description("Renamed imported transfer")
+                                .build());
+        assertThat(response.getTransferAmount()).isEqualByComparingTo("327978.4947019899");
+        org.openfinance.entity.Transaction saved =
+                transactionRepository.findById(credit.getId()).orElseThrow();
+        assertThat(saved.getAmount()).isEqualByComparingTo("327978.4947019899");
+        assertThat(saved.getOriginalAmount()).isEqualByComparingTo("500");
+        assertThat(accountRepository.findById(credit.getAccountId()).orElseThrow().getBalance())
+                .isEqualByComparingTo(beforeBalance);
+        assertThat(transactions.getTransactionsByAccount(userId, debit.getAccountId()))
+                .filteredOn(tx -> tx.getId().equals(debit.getId()))
+                .singleElement()
+                .satisfies(
+                        tx ->
+                                assertThat(tx.getTransferAmount())
+                                        .isEqualByComparingTo("327978.4947019899"));
     }
 
     /** Waits for the async parse to reach PARSED, failing fast on FAILED or timeout. */

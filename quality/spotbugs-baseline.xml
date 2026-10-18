@@ -25243,4 +25243,134 @@
       <Message>At CategoryService.java:[line 64]</Message>
     </SourceLine>
   </BugInstance>
+  <BugInstance instanceOccurrenceNum="0" instanceHash="2b5e2e090f67327c43605ca8274d4713" cweid="374" rank="18" abbrev="EI2" category="MALICIOUS_CODE" priority="2" type="EI_EXPOSE_REP2" instanceOccurrenceMax="0">
+    <ShortMessage>May expose internal representation by incorporating reference to mutable object</ShortMessage>
+    <LongMessage>new org.openfinance.dto.ImportedTransaction(LocalDate, String, String, BigDecimal, String, String, Double, String, String, Boolean, String, String, Long, String, Integer, List, List, boolean, String, String, String, BigDecimal, String, BigDecimal, String, BigDecimal, Long, boolean, String, String, Long, List, String, String, boolean, String) may expose internal representation by storing an externally mutable object into ImportedTransaction.splits</LongMessage>
+    <Class classname="org.openfinance.dto.ImportedTransaction" primary="true">
+      <SourceLine classname="org.openfinance.dto.ImportedTransaction" start="27" end="246" sourcepath="org/openfinance/dto/ImportedTransaction.java" sourcefile="ImportedTransaction.java">
+        <Message>At ImportedTransaction.java:[lines 27-246]</Message>
+      </SourceLine>
+      <Message>In class org.openfinance.dto.ImportedTransaction</Message>
+    </Class>
+    <Method isStatic="false" classname="org.openfinance.dto.ImportedTransaction" signature="(Ljava/time/LocalDate;Ljava/lang/String;Ljava/lang/String;Ljava/math/BigDecimal;Ljava/lang/String;Ljava/lang/String;Ljava/lang/Double;Ljava/lang/String;Ljava/lang/String;Ljava/lang/Boolean;Ljava/lang/String;Ljava/lang/String;Ljava/lang/Long;Ljava/lang/String;Ljava/lang/Integer;Ljava/util/List;Ljava/util/List;ZLjava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/math/BigDecimal;Ljava/lang/String;Ljava/math/BigDecimal;Ljava/lang/String;Ljava/math/BigDecimal;Ljava/lang/Long;ZLjava/lang/String;Ljava/lang/String;Ljava/lang/Long;Ljava/util/List;Ljava/lang/String;Ljava/lang/String;ZLjava/lang/String;)V" name="&lt;init&gt;" primary="true">
+      <SourceLine endBytecode="657" classname="org.openfinance.dto.ImportedTransaction" start="30" end="30" sourcepath="org/openfinance/dto/ImportedTransaction.java" sourcefile="ImportedTransaction.java" startBytecode="0" />
+      <Message>In method new org.openfinance.dto.ImportedTransaction(LocalDate, String, String, BigDecimal, String, String, Double, String, String, Boolean, String, String, Long, String, Integer, List, List, boolean, String, String, String, BigDecimal, String, BigDecimal, String, BigDecimal, Long, boolean, String, String, Long, List, String, String, boolean, String)</Message>
+    </Method>
+    <Field isStatic="false" classname="org.openfinance.dto.ImportedTransaction" signature="Ljava/util/List;" name="splits" primary="true">
+      <SourceLine classname="org.openfinance.dto.ImportedTransaction" sourcepath="org/openfinance/dto/ImportedTransaction.java" sourcefile="ImportedTransaction.java">
+        <Message>In ImportedTransaction.java</Message>
+      </SourceLine>
+      <Message>Field org.openfinance.dto.ImportedTransaction.splits</Message>
+    </Field>
+    <LocalVariable role="LOCAL_VARIABLE_NAMED" pc="94" name="splits" register="16">
+      <Message>Local variable named splits</Message>
+    </LocalVariable>
+    <SourceLine endBytecode="94" classname="org.openfinance.dto.ImportedTransaction" start="30" end="30" sourcepath="org/openfinance/dto/ImportedTransaction.java" sourcefile="ImportedTransaction.java" startBytecode="94" primary="true">
+      <Message>At ImportedTransaction.java:[line 30]</Message>
+    </SourceLine>
+  </BugInstance>
+  <BugInstance instanceOccurrenceNum="0" instanceHash="a4c74bc0227a42f9d3ba0e33d3a89ac3" cweid="374" rank="18" abbrev="EI2" category="MALICIOUS_CODE" priority="2" type="EI_EXPOSE_REP2" instanceOccurrenceMax="0">
+    <ShortMessage>May expose internal representation by incorporating reference to mutable object</ShortMessage>
+    <LongMessage>new org.openfinance.dto.ImportedTransaction(LocalDate, String, String, BigDecimal, String, String, Double, String, String, Boolean, String, String, Long, String, Integer, List, List, boolean, String, String, String, BigDecimal, String, BigDecimal, String, BigDecimal, Long, boolean, String, String, Long, List, String, String, boolean, String) may expose internal representation by storing an externally mutable object into ImportedTransaction.tags</LongMessage>
+    <Class classname="org.openfinance.dto.ImportedTransaction" primary="true">
+      <SourceLine classname="org.openfinance.dto.ImportedTransaction" start="27" end="246" sourcepath="org/openfinance/dto/ImportedTransaction.java" sourcefile="ImportedTransaction.java">
+        <Message>At ImportedTransaction.java:[lines 27-246]</Message>
+      </SourceLine>
+      <Message>In class org.openfinance.dto.ImportedTransaction</Message>
+    </Class>
+    <Method isStatic="false" classname="org.openfinance.dto.ImportedTransaction" signature="(Ljava/time/LocalDate;Ljava/lang/String;Ljava/lang/String;Ljava/math/BigDecimal;Ljava/lang/String;Ljava/lang/String;Ljava/lang/Double;Ljava/lang/String;Ljava/lang/String;Ljava/lang/Boolean;Ljava/lang/String;Ljava/lang/String;Ljava/lang/Long;Ljava/lang/String;Ljava/lang/Integer;Ljava/util/List;Ljava/util/List;ZLjava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/math/BigDecimal;Ljava/lang/String;Ljava/math/BigDecimal;Ljava/lang/String;Ljava/math/BigDecimal;Ljava/lang/Long;ZLjava/lang/String;Ljava/lang/String;Ljava/lang/Long;Ljava/util/List;Ljava/lang/String;Ljava/lang/String;ZLjava/lang/String;)V" name="&lt;init&gt;" primary="true">
+      <SourceLine endBytecode="657" classname="org.openfinance.dto.ImportedTransaction" start="30" end="30" sourcepath="org/openfinance/dto/ImportedTransaction.java" sourcefile="ImportedTransaction.java" startBytecode="0" />
+      <Message>In method new org.openfinance.dto.ImportedTransaction(LocalDate, String, String, BigDecimal, String, String, Double, String, String, Boolean, String, String, Long, String, Integer, List, List, boolean, String, String, String, BigDecimal, String, BigDecimal, String, BigDecimal, Long, boolean, String, String, Long, List, String, String, boolean, String)</Message>
+    </Method>
+    <Field isStatic="false" classname="org.openfinance.dto.ImportedTransaction" signature="Ljava/util/List;" name="tags" primary="true">
+      <SourceLine classname="org.openfinance.dto.ImportedTransaction" sourcepath="org/openfinance/dto/ImportedTransaction.java" sourcefile="ImportedTransaction.java">
+        <Message>In ImportedTransaction.java</Message>
+      </SourceLine>
+      <Message>Field org.openfinance.dto.ImportedTransaction.tags</Message>
+    </Field>
+    <LocalVariable role="LOCAL_VARIABLE_NAMED" pc="190" name="tags" register="32">
+      <Message>Local variable named tags</Message>
+    </LocalVariable>
+    <SourceLine endBytecode="190" classname="org.openfinance.dto.ImportedTransaction" start="30" end="30" sourcepath="org/openfinance/dto/ImportedTransaction.java" sourcefile="ImportedTransaction.java" startBytecode="190" primary="true">
+      <Message>At ImportedTransaction.java:[line 30]</Message>
+    </SourceLine>
+  </BugInstance>
+  <BugInstance instanceOccurrenceNum="0" instanceHash="e43de8ae15032ae09123c35e0c450a7e" cweid="374" rank="18" abbrev="EI2" category="MALICIOUS_CODE" priority="2" type="EI_EXPOSE_REP2" instanceOccurrenceMax="0">
+    <ShortMessage>May expose internal representation by incorporating reference to mutable object</ShortMessage>
+    <LongMessage>new org.openfinance.dto.ImportedTransaction(LocalDate, String, String, BigDecimal, String, String, Double, String, String, Boolean, String, String, Long, String, Integer, List, List, boolean, String, String, String, BigDecimal, String, BigDecimal, String, BigDecimal, Long, boolean, String, String, Long, List, String, String, boolean, String) may expose internal representation by storing an externally mutable object into ImportedTransaction.validationErrors</LongMessage>
+    <Class classname="org.openfinance.dto.ImportedTransaction" primary="true">
+      <SourceLine classname="org.openfinance.dto.ImportedTransaction" start="27" end="246" sourcepath="org/openfinance/dto/ImportedTransaction.java" sourcefile="ImportedTransaction.java">
+        <Message>At ImportedTransaction.java:[lines 27-246]</Message>
+      </SourceLine>
+      <Message>In class org.openfinance.dto.ImportedTransaction</Message>
+    </Class>
+    <Method isStatic="false" classname="org.openfinance.dto.ImportedTransaction" signature="(Ljava/time/LocalDate;Ljava/lang/String;Ljava/lang/String;Ljava/math/BigDecimal;Ljava/lang/String;Ljava/lang/String;Ljava/lang/Double;Ljava/lang/String;Ljava/lang/String;Ljava/lang/Boolean;Ljava/lang/String;Ljava/lang/String;Ljava/lang/Long;Ljava/lang/String;Ljava/lang/Integer;Ljava/util/List;Ljava/util/List;ZLjava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/math/BigDecimal;Ljava/lang/String;Ljava/math/BigDecimal;Ljava/lang/String;Ljava/math/BigDecimal;Ljava/lang/Long;ZLjava/lang/String;Ljava/lang/String;Ljava/lang/Long;Ljava/util/List;Ljava/lang/String;Ljava/lang/String;ZLjava/lang/String;)V" name="&lt;init&gt;" primary="true">
+      <SourceLine endBytecode="657" classname="org.openfinance.dto.ImportedTransaction" start="30" end="30" sourcepath="org/openfinance/dto/ImportedTransaction.java" sourcefile="ImportedTransaction.java" startBytecode="0" />
+      <Message>In method new org.openfinance.dto.ImportedTransaction(LocalDate, String, String, BigDecimal, String, String, Double, String, String, Boolean, String, String, Long, String, Integer, List, List, boolean, String, String, String, BigDecimal, String, BigDecimal, String, BigDecimal, Long, boolean, String, String, Long, List, String, String, boolean, String)</Message>
+    </Method>
+    <Field isStatic="false" classname="org.openfinance.dto.ImportedTransaction" signature="Ljava/util/List;" name="validationErrors" primary="true">
+      <SourceLine classname="org.openfinance.dto.ImportedTransaction" sourcepath="org/openfinance/dto/ImportedTransaction.java" sourcefile="ImportedTransaction.java">
+        <Message>In ImportedTransaction.java</Message>
+      </SourceLine>
+      <Message>Field org.openfinance.dto.ImportedTransaction.validationErrors</Message>
+    </Field>
+    <LocalVariable role="LOCAL_VARIABLE_NAMED" pc="100" name="validationErrors" register="17">
+      <Message>Local variable named validationErrors</Message>
+    </LocalVariable>
+    <SourceLine endBytecode="100" classname="org.openfinance.dto.ImportedTransaction" start="30" end="30" sourcepath="org/openfinance/dto/ImportedTransaction.java" sourcefile="ImportedTransaction.java" startBytecode="100" primary="true">
+      <Message>At ImportedTransaction.java:[line 30]</Message>
+    </SourceLine>
+  </BugInstance>
+  <BugInstance instanceOccurrenceNum="0" instanceHash="6225704334cc08c05ed6b4c73f7a31af" cweid="374" rank="18" abbrev="EI2" category="MALICIOUS_CODE" priority="2" type="EI_EXPOSE_REP2" instanceOccurrenceMax="0">
+    <ShortMessage>May expose internal representation by incorporating reference to mutable object</ShortMessage>
+    <LongMessage>new org.openfinance.dto.TransactionResponse(Long, Long, String, Long, String, TransactionType, BigDecimal, BigDecimal, String, String, Long, BigDecimal, String, BigDecimal, Long, String, String, String, LocalDate, String, String, String, String, Long, PaymentMethod, String, BigDecimal, String, Long, Long, Long, Long, MovementType, BigDecimal, List, Boolean, Boolean, LocalDateTime, LocalDateTime, Boolean, List, BigDecimal, String, BigDecimal, Boolean) may expose internal representation by storing an externally mutable object into TransactionResponse.principalAllocations</LongMessage>
+    <Class classname="org.openfinance.dto.TransactionResponse" primary="true">
+      <SourceLine classname="org.openfinance.dto.TransactionResponse" start="28" end="279" sourcepath="org/openfinance/dto/TransactionResponse.java" sourcefile="TransactionResponse.java">
+        <Message>At TransactionResponse.java:[lines 28-279]</Message>
+      </SourceLine>
+      <Message>In class org.openfinance.dto.TransactionResponse</Message>
+    </Class>
+    <Method isStatic="false" classname="org.openfinance.dto.TransactionResponse" signature="(Ljava/lang/Long;Ljava/lang/Long;Ljava/lang/String;Ljava/lang/Long;Ljava/lang/String;Lorg/openfinance/entity/TransactionType;Ljava/math/BigDecimal;Ljava/math/BigDecimal;Ljava/lang/String;Ljava/lang/String;Ljava/lang/Long;Ljava/math/BigDecimal;Ljava/lang/String;Ljava/math/BigDecimal;Ljava/lang/Long;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/time/LocalDate;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/Long;Lorg/openfinance/entity/PaymentMethod;Ljava/lang/String;Ljava/math/BigDecimal;Ljava/lang/String;Ljava/lang/Long;Ljava/lang/Long;Ljava/lang/Long;Ljava/lang/Long;Lorg/openfinance/entity/MovementType;Ljava/math/BigDecimal;Ljava/util/List;Ljava/lang/Boolean;Ljava/lang/Boolean;Ljava/time/LocalDateTime;Ljava/time/LocalDateTime;Ljava/lang/Boolean;Ljava/util/List;Ljava/math/BigDecimal;Ljava/lang/String;Ljava/math/BigDecimal;Ljava/lang/Boolean;)V" name="&lt;init&gt;" primary="true">
+      <SourceLine endBytecode="791" classname="org.openfinance.dto.TransactionResponse" start="31" end="31" sourcepath="org/openfinance/dto/TransactionResponse.java" sourcefile="TransactionResponse.java" startBytecode="0" />
+      <Message>In method new org.openfinance.dto.TransactionResponse(Long, Long, String, Long, String, TransactionType, BigDecimal, BigDecimal, String, String, Long, BigDecimal, String, BigDecimal, Long, String, String, String, LocalDate, String, String, String, String, Long, PaymentMethod, String, BigDecimal, String, Long, Long, Long, Long, MovementType, BigDecimal, List, Boolean, Boolean, LocalDateTime, LocalDateTime, Boolean, List, BigDecimal, String, BigDecimal, Boolean)</Message>
+    </Method>
+    <Field isStatic="false" classname="org.openfinance.dto.TransactionResponse" signature="Ljava/util/List;" name="principalAllocations" primary="true">
+      <SourceLine classname="org.openfinance.dto.TransactionResponse" sourcepath="org/openfinance/dto/TransactionResponse.java" sourcefile="TransactionResponse.java">
+        <Message>In TransactionResponse.java</Message>
+      </SourceLine>
+      <Message>Field org.openfinance.dto.TransactionResponse.principalAllocations</Message>
+    </Field>
+    <LocalVariable role="LOCAL_VARIABLE_NAMED" pc="208" name="principalAllocations" register="35">
+      <Message>Local variable named principalAllocations</Message>
+    </LocalVariable>
+    <SourceLine endBytecode="208" classname="org.openfinance.dto.TransactionResponse" start="31" end="31" sourcepath="org/openfinance/dto/TransactionResponse.java" sourcefile="TransactionResponse.java" startBytecode="208" primary="true">
+      <Message>At TransactionResponse.java:[line 31]</Message>
+    </SourceLine>
+  </BugInstance>
+  <BugInstance instanceOccurrenceNum="0" instanceHash="cc421c14deee495d3eafa55f872d6e0a" cweid="374" rank="18" abbrev="EI2" category="MALICIOUS_CODE" priority="2" type="EI_EXPOSE_REP2" instanceOccurrenceMax="0">
+    <ShortMessage>May expose internal representation by incorporating reference to mutable object</ShortMessage>
+    <LongMessage>new org.openfinance.dto.TransactionResponse(Long, Long, String, Long, String, TransactionType, BigDecimal, BigDecimal, String, String, Long, BigDecimal, String, BigDecimal, Long, String, String, String, LocalDate, String, String, String, String, Long, PaymentMethod, String, BigDecimal, String, Long, Long, Long, Long, MovementType, BigDecimal, List, Boolean, Boolean, LocalDateTime, LocalDateTime, Boolean, List, BigDecimal, String, BigDecimal, Boolean) may expose internal representation by storing an externally mutable object into TransactionResponse.splits</LongMessage>
+    <Class classname="org.openfinance.dto.TransactionResponse" primary="true">
+      <SourceLine classname="org.openfinance.dto.TransactionResponse" start="28" end="279" sourcepath="org/openfinance/dto/TransactionResponse.java" sourcefile="TransactionResponse.java">
+        <Message>At TransactionResponse.java:[lines 28-279]</Message>
+      </SourceLine>
+      <Message>In class org.openfinance.dto.TransactionResponse</Message>
+    </Class>
+    <Method isStatic="false" classname="org.openfinance.dto.TransactionResponse" signature="(Ljava/lang/Long;Ljava/lang/Long;Ljava/lang/String;Ljava/lang/Long;Ljava/lang/String;Lorg/openfinance/entity/TransactionType;Ljava/math/BigDecimal;Ljava/math/BigDecimal;Ljava/lang/String;Ljava/lang/String;Ljava/lang/Long;Ljava/math/BigDecimal;Ljava/lang/String;Ljava/math/BigDecimal;Ljava/lang/Long;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/time/LocalDate;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/Long;Lorg/openfinance/entity/PaymentMethod;Ljava/lang/String;Ljava/math/BigDecimal;Ljava/lang/String;Ljava/lang/Long;Ljava/lang/Long;Ljava/lang/Long;Ljava/lang/Long;Lorg/openfinance/entity/MovementType;Ljava/math/BigDecimal;Ljava/util/List;Ljava/lang/Boolean;Ljava/lang/Boolean;Ljava/time/LocalDateTime;Ljava/time/LocalDateTime;Ljava/lang/Boolean;Ljava/util/List;Ljava/math/BigDecimal;Ljava/lang/String;Ljava/math/BigDecimal;Ljava/lang/Boolean;)V" name="&lt;init&gt;" primary="true">
+      <SourceLine endBytecode="791" classname="org.openfinance.dto.TransactionResponse" start="31" end="31" sourcepath="org/openfinance/dto/TransactionResponse.java" sourcefile="TransactionResponse.java" startBytecode="0" />
+      <Message>In method new org.openfinance.dto.TransactionResponse(Long, Long, String, Long, String, TransactionType, BigDecimal, BigDecimal, String, String, Long, BigDecimal, String, BigDecimal, Long, String, String, String, LocalDate, String, String, String, String, Long, PaymentMethod, String, BigDecimal, String, Long, Long, Long, Long, MovementType, BigDecimal, List, Boolean, Boolean, LocalDateTime, LocalDateTime, Boolean, List, BigDecimal, String, BigDecimal, Boolean)</Message>
+    </Method>
+    <Field isStatic="false" classname="org.openfinance.dto.TransactionResponse" signature="Ljava/util/List;" name="splits" primary="true">
+      <SourceLine classname="org.openfinance.dto.TransactionResponse" sourcepath="org/openfinance/dto/TransactionResponse.java" sourcefile="TransactionResponse.java">
+        <Message>In TransactionResponse.java</Message>
+      </SourceLine>
+      <Message>Field org.openfinance.dto.TransactionResponse.splits</Message>
+    </Field>
+    <LocalVariable role="LOCAL_VARIABLE_NAMED" pc="244" name="splits" register="41">
+      <Message>Local variable named splits</Message>
+    </LocalVariable>
+    <SourceLine endBytecode="244" classname="org.openfinance.dto.TransactionResponse" start="31" end="31" sourcepath="org/openfinance/dto/TransactionResponse.java" sourcefile="TransactionResponse.java" startBytecode="244" primary="true">
+      <Message>At TransactionResponse.java:[line 31]</Message>
+    </SourceLine>
+  </BugInstance>
 </BugCollection>

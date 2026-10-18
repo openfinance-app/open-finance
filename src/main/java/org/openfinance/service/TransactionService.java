@@ -480,8 +480,13 @@ public class TransactionService {
 
         if (!sourceCurrency.equalsIgnoreCase(destCurrency)) {
             destAmount =
-                    exchangeRateService.convert(
-                            request.getAmount(), sourceCurrency, destCurrency, request.getDate());
+                    destCurrency.equalsIgnoreCase(request.getOriginalCurrency())
+                            ? request.getOriginalAmount()
+                            : exchangeRateService.convert(
+                                    request.getAmount(),
+                                    sourceCurrency,
+                                    destCurrency,
+                                    request.getDate());
         }
 
         // Create destination transaction (money entering destination account - INCOME)
@@ -493,18 +498,9 @@ public class TransactionService {
                 request.getAccountId()); // Original source becomes "toAccount"
         destinationTransaction.setType(TransactionType.INCOME);
 
-        // Round to 4 decimal places to avoid ConstraintViolationException on
-        // @Digits(integer = 15, fraction = 4)
-        BigDecimal roundedDestAmount = destAmount;
-        destinationTransaction.setAmount(roundedDestAmount);
-
+        destinationTransaction.setAmount(destAmount);
         destinationTransaction.setCurrency(destCurrency);
-        applyConversionFields(destinationTransaction, request);
-        if (request.getOriginalAmount() != null) {
-            destinationTransaction.setConversionRate(
-                    destAmount.divide(
-                            request.getOriginalAmount(), java.math.MathContext.DECIMAL128));
-        }
+        retainTransferSourceAmount(destinationTransaction, sourceTransaction);
         destinationTransaction.setTransferId(transferId);
         destinationTransaction.setCategoryId(null); // Transfers are not categorized
         resolveAndLinkPayee(destinationTransaction, userId);
@@ -715,6 +711,27 @@ public class TransactionService {
                                         new InvalidTransactionException(
                                                 "Destination transaction (INCOME) not found in transfer"));
 
+        TransactionRequest conversion =
+                TransactionRequest.builder()
+                        .amount(request.getAmount())
+                        .currency(request.getCurrency())
+                        .originalAmount(request.getOriginalAmount())
+                        .originalCurrency(request.getOriginalCurrency())
+                        .conversionRate(request.getConversionRate())
+                        .build();
+        validateConversionDetails(conversion);
+        if (sameTransferBooking(sourceTransaction, destTransaction, request)) {
+            updateTransferMetadata(sourceTransaction, userId, request);
+            updateTransferMetadata(destTransaction, userId, request);
+            transactionRepository.save(sourceTransaction);
+            transactionRepository.save(destTransaction);
+            return toResponseWithDecryption(sourceTransaction);
+        }
+        BigDecimal previousSourceAmount = sourceTransaction.getAmount();
+        BigDecimal previousDestAmount = destTransaction.getAmount();
+        String previousSourceCurrency = sourceTransaction.getCurrency();
+        String previousDestCurrency = destTransaction.getCurrency();
+
         // Store old values for balance reversal
         Long oldSourceAccountId = sourceTransaction.getAccountId();
         Long oldDestAccountId = destTransaction.getAccountId();
@@ -754,13 +771,9 @@ public class TransactionService {
         sourceTransaction.setAmount(request.getAmount());
         sourceTransaction.setCurrency(request.getCurrency());
         sourceTransaction.setDate(request.getDate());
-        sourceTransaction.setPayee(request.getPayee());
-        sourceTransaction.setTags(request.getTags());
-        sourceTransaction.setIsReconciled(request.getIsReconciled());
-        resolveAndLinkPayee(sourceTransaction, userId);
+        applyConversionFields(sourceTransaction, conversion);
+        updateTransferMetadata(sourceTransaction, userId, request);
         resolveAndLinkCurrency(sourceTransaction);
-        // Re-encrypt sensitive fields
-        encryptTransferSensitiveFields(sourceTransaction, request);
 
         // Handle multi-currency transfer
         Account newSourceAccount =
@@ -783,9 +796,26 @@ public class TransactionService {
         BigDecimal destAmount = request.getAmount();
 
         if (!sourceCurrency.equalsIgnoreCase(destCurrency)) {
+            boolean sameRateContext =
+                    request.getDate().equals(oldTransferDate)
+                            && sourceCurrency.equalsIgnoreCase(previousSourceCurrency)
+                            && destCurrency.equalsIgnoreCase(previousDestCurrency)
+                            && previousSourceAmount.signum() > 0;
             destAmount =
-                    exchangeRateService.convert(
-                            request.getAmount(), sourceCurrency, destCurrency, request.getDate());
+                    destCurrency.equalsIgnoreCase(request.getOriginalCurrency())
+                            ? request.getOriginalAmount()
+                            : sameRateContext
+                                    ? request.getAmount()
+                                            .multiply(previousDestAmount)
+                                            .divide(
+                                                    previousSourceAmount,
+                                                    18,
+                                                    RoundingMode.HALF_EVEN)
+                                    : exchangeRateService.convert(
+                                            request.getAmount(),
+                                            sourceCurrency,
+                                            destCurrency,
+                                            request.getDate());
         }
 
         // Update destination transaction (INCOME)
@@ -795,13 +825,9 @@ public class TransactionService {
         destTransaction.setAmount(destAmount);
         destTransaction.setCurrency(destCurrency);
         destTransaction.setDate(request.getDate());
-        destTransaction.setPayee(request.getPayee());
-        destTransaction.setTags(request.getTags());
-        destTransaction.setIsReconciled(request.getIsReconciled());
-        resolveAndLinkPayee(destTransaction, userId);
+        retainTransferSourceAmount(destTransaction, sourceTransaction);
+        updateTransferMetadata(destTransaction, userId, request);
         resolveAndLinkCurrency(destTransaction);
-        // Re-encrypt sensitive fields
-        encryptTransferSensitiveFields(destTransaction, request);
 
         // Save both updated transactions
         accountCurrencyService.book(sourceTransaction, userId);
@@ -840,6 +866,57 @@ public class TransactionService {
 
         // Return the source transaction response
         return toResponseWithDecryption(savedSourceTransaction);
+    }
+
+    private boolean sameTransferBooking(
+            Transaction source, Transaction destination, TransferUpdateRequest request) {
+        return java.util.Objects.equals(source.getAccountId(), request.getFromAccountId())
+                && java.util.Objects.equals(destination.getAccountId(), request.getToAccountId())
+                && source.getAmount().compareTo(request.getAmount()) == 0
+                && source.getCurrency().equalsIgnoreCase(request.getCurrency())
+                && java.util.Objects.equals(source.getDate(), request.getDate())
+                && (request.getOriginalAmount() == null
+                        || (source.getOriginalAmount() != null
+                                && source.getOriginalAmount().compareTo(request.getOriginalAmount())
+                                        == 0
+                                && request.getOriginalCurrency()
+                                        .equalsIgnoreCase(source.getOriginalCurrency())
+                                && source.getConversionRate() != null
+                                && source.getConversionRate().compareTo(request.getConversionRate())
+                                        == 0));
+    }
+
+    private void updateTransferMetadata(
+            Transaction transaction, Long userId, TransferUpdateRequest request) {
+        transaction.setPayee(request.getPayee());
+        transaction.setTags(request.getTags());
+        transaction.setIsReconciled(request.getIsReconciled());
+        resolveAndLinkPayee(transaction, userId);
+        encryptTransferSensitiveFields(transaction, request);
+    }
+
+    /** Retains the source instruction on the receiving leg, including native-currency inputs. */
+    private void retainTransferSourceAmount(Transaction destination, Transaction source) {
+        BigDecimal original = source.getOriginalAmount();
+        String currency = source.getOriginalCurrency();
+        if (original == null
+                || currency == null
+                || (currency.equalsIgnoreCase(destination.getCurrency())
+                        && original.compareTo(destination.getAmount()) != 0)) {
+            original = source.getAmount();
+            currency = source.getCurrency();
+        }
+        if (currency.equalsIgnoreCase(destination.getCurrency())
+                && source.getOriginalAmount() == null) {
+            destination.setOriginalAmount(null);
+            destination.setOriginalCurrency(null);
+            destination.setConversionRate(null);
+            return;
+        }
+        destination.setOriginalAmount(original);
+        destination.setOriginalCurrency(currency);
+        destination.setConversionRate(
+                destination.getAmount().divide(original, java.math.MathContext.DECIMAL128));
     }
 
     /**
@@ -1423,9 +1500,7 @@ public class TransactionService {
         log.debug("Found {} transactions for account {}", transactions.size(), accountId);
 
         // Decrypt and map to responses
-        return transactions.stream()
-                .map(transaction -> toResponseWithDecryption(transaction))
-                .collect(Collectors.toList());
+        return toResponsesWithDecryption(transactions, userId);
     }
 
     /**
@@ -1468,9 +1543,7 @@ public class TransactionService {
         log.debug("Found {} transactions for user {} in date range", transactions.size(), userId);
 
         // Decrypt and map to responses
-        return transactions.stream()
-                .map(transaction -> toResponseWithDecryption(transaction))
-                .collect(Collectors.toList());
+        return toResponsesWithDecryption(transactions, userId);
     }
 
     /**
@@ -1576,7 +1649,16 @@ public class TransactionService {
                 transactionPage.getTotalPages());
 
         // Decrypt and map to responses (preserving pagination metadata)
-        return transactionPage.map(transaction -> toResponseWithDecryption(transaction));
+        Map<String, List<Transaction>> transfers =
+                transferLegs(transactionPage.getContent(), userId);
+        return transactionPage.map(
+                transaction ->
+                        toResponseWithDecryption(
+                                transaction,
+                                transaction.getTransferId() == null
+                                        ? List.of()
+                                        : transfers.getOrDefault(
+                                                transaction.getTransferId(), List.of())));
     }
 
     private List<Long> findMatchingTransactionIds(
@@ -1749,8 +1831,15 @@ public class TransactionService {
         BigDecimal expenses = BigDecimal.ZERO;
         BigDecimal transfers = BigDecimal.ZERO;
         boolean complete = true;
+        Map<String, List<Transaction>> transfersById = transferLegs(matching, userId);
         for (Transaction transaction : matching) {
             TransactionResponse converted = new TransactionResponse();
+            populateTransferFields(
+                    converted,
+                    transaction,
+                    transaction.getTransferId() == null
+                            ? List.of()
+                            : transfersById.getOrDefault(transaction.getTransferId(), List.of()));
             populateConversionFields(converted, transaction);
             if (!currency.equalsIgnoreCase(transaction.getCurrency())
                     && !Boolean.TRUE.equals(converted.getIsConverted())) {
@@ -1929,6 +2018,10 @@ public class TransactionService {
             }
         }
 
+        validateConversionDetails(request);
+    }
+
+    private void validateConversionDetails(TransactionRequest request) {
         // Original-conversion fields are persisted so the edit form can restore the pre-conversion
         // amount/currency. The frontend sends all three together or none — enforce all-or-nothing.
         boolean anyOriginal =
@@ -2147,7 +2240,54 @@ public class TransactionService {
         }
     }
 
+    private Map<String, List<Transaction>> transferLegs(
+            List<Transaction> transactions, Long userId) {
+        List<String> ids =
+                transactions.stream()
+                        .map(Transaction::getTransferId)
+                        .filter(java.util.Objects::nonNull)
+                        .distinct()
+                        .toList();
+        Map<String, List<Transaction>> result = new java.util.HashMap<>();
+        for (int start = 0; start < ids.size(); start += 500) {
+            transactionRepository
+                    .findTransferLegs(userId, ids.subList(start, Math.min(start + 500, ids.size())))
+                    .forEach(
+                            leg ->
+                                    result.computeIfAbsent(
+                                                    leg.getTransferId(),
+                                                    key -> new java.util.ArrayList<>())
+                                            .add(leg));
+        }
+        return result;
+    }
+
+    private List<TransactionResponse> toResponsesWithDecryption(
+            List<Transaction> transactions, Long userId) {
+        Map<String, List<Transaction>> transfers = transferLegs(transactions, userId);
+        return transactions.stream()
+                .map(
+                        transaction ->
+                                toResponseWithDecryption(
+                                        transaction,
+                                        transaction.getTransferId() == null
+                                                ? List.of()
+                                                : transfers.getOrDefault(
+                                                        transaction.getTransferId(), List.of())))
+                .toList();
+    }
+
     public TransactionResponse toResponseWithDecryption(Transaction transaction) {
+        return toResponseWithDecryption(
+                transaction,
+                transaction == null || transaction.getTransferId() == null
+                        ? List.of()
+                        : transactionRepository.findByTransferId(transaction.getTransferId()));
+    }
+
+    private TransactionResponse toResponseWithDecryption(
+            Transaction transaction, List<Transaction> transferLegs) {
+
         if (transaction == null) {
             return null;
         }
@@ -2231,10 +2371,26 @@ public class TransactionService {
             response.setSplits(splits.isEmpty() ? null : splits);
         }
 
+        populateTransferFields(response, transaction, transferLegs);
+
         // Populate currency conversion fields (Requirement REQ-9.1)
         populateConversionFields(response, transaction);
 
         return response;
+    }
+
+    private void populateTransferFields(
+            TransactionResponse response, Transaction transaction, List<Transaction> transferLegs) {
+        transferLegs.stream()
+                .filter(leg -> java.util.Objects.equals(leg.getUserId(), transaction.getUserId()))
+                .filter(leg -> !java.util.Objects.equals(leg.getId(), transaction.getId()))
+                .filter(leg -> leg.getType() != transaction.getType())
+                .findFirst()
+                .ifPresent(
+                        leg -> {
+                            response.setTransferAmount(leg.getAmount());
+                            response.setTransferCurrency(leg.getCurrency());
+                        });
     }
 
     /** Reports booked base-currency legs exactly; other conversions use the transaction date. */
@@ -2246,6 +2402,8 @@ public class TransactionService {
                 bookedBaseAmount = transaction.getAccountAmount();
             } else if (baseCurrency.equalsIgnoreCase(transaction.getOriginalCurrency())) {
                 bookedBaseAmount = transaction.getOriginalAmount();
+            } else if (baseCurrency.equalsIgnoreCase(response.getTransferCurrency())) {
+                bookedBaseAmount = response.getTransferAmount();
             }
         }
         if (bookedBaseAmount != null) {
@@ -2429,9 +2587,7 @@ public class TransactionService {
                 userId);
 
         // Convert to responses with decryption
-        return matchingTransactions.stream()
-                .map(transaction -> toResponseWithDecryption(transaction))
-                .collect(Collectors.toList());
+        return toResponsesWithDecryption(matchingTransactions, userId);
     }
 
     private Map<Long, List<String>> splitTagsFor(List<Transaction> transactions) {
@@ -2468,9 +2624,7 @@ public class TransactionService {
         }
         log.debug("Fetching all transactions for user id={}", userId);
 
-        return transactionRepository.findByUserId(userId).stream()
-                .map(transaction -> toResponseWithDecryption(transaction))
-                .collect(Collectors.toList());
+        return toResponsesWithDecryption(transactionRepository.findByUserId(userId), userId);
     }
 
     /**

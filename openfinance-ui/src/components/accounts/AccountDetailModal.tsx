@@ -38,6 +38,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { AttachmentList, AttachmentUpload } from '@/components/attachments';
 import { AttachmentEntityType } from '@/types/attachment';
 import { ConvertedAmount } from '@/components/ui/ConvertedAmount';
+import { TransactionAmount } from '@/components/transactions/TransactionAmount';
 import { InterestRateVariationsSection } from './InterestRateVariationsSection';
 import { AccountForm } from './AccountForm';
 import { useAccount, useAccountBalanceHistory, useUpdateAccount } from '@/hooks/useAccounts';
@@ -408,16 +409,7 @@ export function AccountDetailModal({ accountId, onClose, onEdit }: AccountDetail
                               >
                                 {tx.type === 'INCOME' && '+'}
                                 {tx.type === 'EXPENSE' && '-'}
-                                <ConvertedAmount
-                                  inline
-                                  amount={tx.amount}
-                                  currency={tx.currency}
-                                  convertedAmount={tx.amountInBaseCurrency}
-                                  baseCurrency={tx.baseCurrency}
-                                  exchangeRate={tx.exchangeRate}
-                                  isConverted={tx.isConverted}
-                                  conversionDate={tx.date}
-                                />
+                                <TransactionAmount transaction={tx} inline />
                               </span>
                             </div>
                           );

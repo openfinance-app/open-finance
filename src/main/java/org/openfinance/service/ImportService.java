@@ -1971,15 +1971,42 @@ public class ImportService {
                         transferDestinationAccountId = sourceAccountId;
                     }
 
+                    // The row can be the receiving side of a transfer. Resolve its source
+                    // currency before swapping accounts, then convert into the debit currency.
+                    if (importedTx.getCurrency() == null || importedTx.getCurrency().isBlank()) {
+                        importedTx.setCurrency(
+                                resolveTransactionCurrency(importedTx, sourceAccountId));
+                    }
+                    String transferCurrency =
+                            resolveTransactionCurrency(importedTx, transferSourceAccountId);
+                    BigDecimal transferAmount =
+                            normalizeAmount(
+                                    resolveSignedAmount(
+                                            importedTx, transferSourceAccountId, transferCurrency));
+                    BigDecimal originalAmount =
+                            importedTx.getOriginalAmount() != null
+                                    ? importedTx.getOriginalAmount()
+                                    : importedTx.getAmount().abs();
+                    String originalCurrency =
+                            importedTx.getOriginalCurrency() != null
+                                    ? importedTx.getOriginalCurrency()
+                                    : importedTx.getCurrency();
+                    boolean converted = !transferCurrency.equalsIgnoreCase(originalCurrency);
                     TransactionRequest transferRequest =
                             TransactionRequest.builder()
                                     .accountId(transferSourceAccountId)
                                     .toAccountId(transferDestinationAccountId)
                                     .type(TransactionType.TRANSFER)
-                                    .amount(normalizeAmount(importedTx.getAmount()))
-                                    .currency(
-                                            resolveTransactionCurrency(
-                                                    importedTx, transferSourceAccountId))
+                                    .amount(transferAmount)
+                                    .currency(transferCurrency)
+                                    .originalAmount(converted ? originalAmount : null)
+                                    .originalCurrency(converted ? originalCurrency : null)
+                                    .conversionRate(
+                                            converted
+                                                    ? transferAmount.divide(
+                                                            originalAmount,
+                                                            java.math.MathContext.DECIMAL128)
+                                                    : null)
                                     .date(importedTx.getTransactionDate())
                                     .description(
                                             truncate(
@@ -2028,7 +2055,7 @@ public class ImportService {
                         saved, importedTx.getPayee(), importedTx.getMemo());
                 affectedAccountIds.add(sourceAccountId);
                 imported++;
-            } catch (Exception ex) {
+            } catch (RuntimeException ex) {
                 log.error(
                         "Error saving imported transaction {}: {}",
                         importedTx.getReferenceNumber(),
@@ -2044,7 +2071,7 @@ public class ImportService {
         for (Long affectedAccountId : affectedAccountIds) {
             try {
                 accountService.recalculateBalance(affectedAccountId, userId);
-            } catch (Exception ex) {
+            } catch (RuntimeException ex) {
                 log.warn(
                         "Failed to recalculate balance for account {} after multi-account import: {}",
                         affectedAccountId,
@@ -3173,7 +3200,16 @@ public class ImportService {
                         .isReconciled("reconciled".equalsIgnoreCase(importedTx.getClearedStatus()))
                         .isDeleted(false);
 
-        if (importedTx.getCurrency() != null
+        if (importedTx.getOriginalAmount() != null
+                && importedTx.getOriginalAmount().signum() > 0
+                && importedTx.getOriginalCurrency() != null) {
+            builder.originalAmount(importedTx.getOriginalAmount())
+                    .originalCurrency(importedTx.getOriginalCurrency())
+                    .conversionRate(
+                            amount.divide(
+                                    importedTx.getOriginalAmount(),
+                                    java.math.MathContext.DECIMAL128));
+        } else if (importedTx.getCurrency() != null
                 && !importedTx.getCurrency().isBlank()
                 && !importedTx.getCurrency().equalsIgnoreCase(currencyCode)
                 && importedTx.getAmount().signum() != 0) {

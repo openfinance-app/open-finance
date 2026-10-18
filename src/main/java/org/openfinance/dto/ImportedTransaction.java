@@ -109,6 +109,17 @@ public class ImportedTransaction {
      */
     private String currency;
 
+    /** Source monetary amount before a format-specific conversion into the account currency. */
+    @JsonFormat(shape = JsonFormat.Shape.STRING)
+    private BigDecimal originalAmount;
+
+    /** Currency of originalAmount; investment unit quantities are not currency amounts. */
+    private String originalCurrency;
+
+    /** Applied source-to-account ratio, not a claimed transaction-date market quote. */
+    @JsonFormat(shape = JsonFormat.Shape.STRING)
+    private BigDecimal conversionRate;
+
     /** Currency of the displayed source amount, resolved for rows without an explicit currency. */
     @com.fasterxml.jackson.annotation.JsonProperty(
             access = com.fasterxml.jackson.annotation.JsonProperty.Access.READ_ONLY)

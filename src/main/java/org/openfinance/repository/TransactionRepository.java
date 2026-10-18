@@ -245,6 +245,11 @@ public interface TransactionRepository
             "SELECT t FROM Transaction t WHERE t.transferId = :transferId AND t.isDeleted = false ORDER BY t.id ASC")
     List<Transaction> findByTransferId(@Param("transferId") String transferId);
 
+    @Query(
+            "SELECT t FROM Transaction t WHERE t.userId = :userId AND t.transferId IN :transferIds AND t.isDeleted = false")
+    List<Transaction> findTransferLegs(
+            @Param("userId") Long userId, @Param("transferIds") List<String> transferIds);
+
     /**
      * Finds all active transactions for a specific category within a date range.
      *

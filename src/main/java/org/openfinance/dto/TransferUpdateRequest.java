@@ -73,6 +73,18 @@ public class TransferUpdateRequest {
     @ValidCurrency
     private String currency;
 
+    @DecimalMin(value = "0", inclusive = false, message = "{transaction.amount.greater}")
+    @Digits(integer = 26, fraction = 18, message = "{transaction.amount.digits}")
+    private BigDecimal originalAmount;
+
+    @Size(min = 3, max = 10, message = "{transaction.currency.size}")
+    @ValidCurrency
+    private String originalCurrency;
+
+    @DecimalMin(value = "0", inclusive = false, message = "{transaction.amount.greater}")
+    @Digits(integer = 34, fraction = 48, message = "{transaction.amount.digits}")
+    private BigDecimal conversionRate;
+
     /**
      * Updated date for both transactions in the transfer.
      *

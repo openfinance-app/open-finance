@@ -2169,4 +2169,90 @@ class TransactionServiceTest {
         assertThat(request.getCategoryId()).isEqualTo(31L);
         assertThat(transaction.getCategoryId()).isEqualTo(31L);
     }
+
+    @Test
+    void originalAmountPreservesNativeAmountAndBookedDisplay() {
+        Transaction transaction = transactionEntity(3054L, 1L, baseRequest());
+        transaction.setAmount(new BigDecimal("327978.4947019899"));
+        transaction.setCurrency("XOF");
+        transaction.setAccountAmount(transaction.getAmount());
+        transaction.setAccountCurrency("XOF");
+        transaction.setOriginalAmount(new BigDecimal("500"));
+        transaction.setOriginalCurrency("EUR");
+        transaction.setConversionRate(new BigDecimal("655.9569894039798"));
+        when(defaultCurrencyProvider.resolveForUser(1L)).thenReturn("EUR");
+        when(transactionMapper.toResponse(transaction)).thenReturn(new TransactionResponse());
+        TransactionResponse response = transactionService.toResponseWithDecryption(transaction);
+        assertThat(response.getAmountInBaseCurrency()).isEqualByComparingTo("500");
+        assertThat(transaction.getBalanceAmount()).isEqualByComparingTo("327978.4947019899");
+        verify(exchangeRateService, never()).convert(any(), anyString(), anyString(), any());
+    }
+
+    @Test
+    void descriptionOnlyTransferEditMustPreserveImportedCredit() {
+        LocalDate date = LocalDate.of(2026, 10, 5);
+        Account source = accountFixture(1L, 1L, "Source", "EUR");
+        Account destination = accountFixture(22L, 1L, "Destination", "XOF");
+        destination.setBalance(new BigDecimal("327978.4947019899"));
+        Transaction debit =
+                Transaction.builder()
+                        .id(3053L)
+                        .userId(1L)
+                        .accountId(1L)
+                        .toAccountId(22L)
+                        .type(TransactionType.EXPENSE)
+                        .transferId("imported-pair")
+                        .amount(new BigDecimal("500"))
+                        .currency("EUR")
+                        .accountCurrency("EUR")
+                        .accountAmount(new BigDecimal("500"))
+                        .date(date)
+                        .build();
+        Transaction credit =
+                Transaction.builder()
+                        .id(3054L)
+                        .userId(1L)
+                        .accountId(22L)
+                        .toAccountId(1L)
+                        .type(TransactionType.INCOME)
+                        .transferId("imported-pair")
+                        .amount(new BigDecimal("327978.4947019899"))
+                        .currency("XOF")
+                        .accountAmount(new BigDecimal("327978.4947019899"))
+                        .accountCurrency("XOF")
+                        .date(date)
+                        .build();
+        when(transactionRepository.findByTransferId("imported-pair"))
+                .thenReturn(List.of(debit, credit));
+        when(accountRepository.findByIdAndUserId(1L, 1L)).thenReturn(Optional.of(source));
+        when(accountRepository.findByIdAndUserId(22L, 1L)).thenReturn(Optional.of(destination));
+        when(transactionRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+        when(transactionMapper.toResponse(any()))
+                .thenAnswer(invocation -> new TransactionResponse());
+        when(defaultCurrencyProvider.resolveForUser(1L)).thenReturn("EUR");
+        when(exchangeRateService.convert(new BigDecimal("500"), "EUR", "XOF", date))
+                .thenReturn(new BigDecimal("318289.5553359638"));
+        doAnswer(
+                        invocation -> {
+                            Transaction entry = invocation.getArgument(0);
+                            entry.setAccountAmount(entry.getAmount());
+                            entry.setAccountCurrency(entry.getCurrency());
+                            return null;
+                        })
+                .when(accountCurrencyService)
+                .book(any(), eq(1L));
+        transactionService.updateTransfer(
+                "imported-pair",
+                1L,
+                org.openfinance.dto.TransferUpdateRequest.builder()
+                        .fromAccountId(1L)
+                        .toAccountId(22L)
+                        .amount(new BigDecimal("500"))
+                        .currency("EUR")
+                        .date(date)
+                        .description("Description only edit")
+                        .build());
+        assertThat(credit.getAmount()).isEqualByComparingTo("327978.4947019899");
+        assertThat(destination.getBalance()).isEqualByComparingTo("327978.4947019899");
+    }
 }

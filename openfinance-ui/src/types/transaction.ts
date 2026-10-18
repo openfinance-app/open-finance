@@ -154,6 +154,8 @@ export interface Transaction {
   categoryIcon?: string;
   categoryColor?: string;
   transferId?: string;
+  transferAmount?: number;
+  transferCurrency?: string;
   isDeleted?: boolean;
 
   // Populated fields (for local use)
@@ -217,6 +219,9 @@ export interface TransferUpdateRequest {
   toAccountId: number;
   amount: number | string;
   currency: string;
+  originalAmount?: number | string;
+  originalCurrency?: string;
+  conversionRate?: number | string;
   date: string;
   description?: string;
   notes?: string;

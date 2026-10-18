@@ -2335,6 +2335,38 @@ describe('TransactionForm', () => {
       expect(payload.conversionRate).toBeUndefined();
     });
 
+    it('converts an edited transfer original amount using its stored rate', async () => {
+      const converted: Transaction = {
+        id: 5,
+        userId: 1,
+        accountId: 1,
+        toAccountId: 2,
+        transferId: 'converted-transfer',
+        type: 'EXPENSE',
+        amount: 90,
+        currency: 'EUR',
+        originalAmount: 100,
+        originalCurrency: 'USD',
+        conversionRate: 0.9,
+        date: '2024-06-01',
+        isReconciled: false,
+        createdAt: '2024-06-01',
+      };
+      const { onSubmit } = renderForm({ transaction: converted });
+      expect((screen.getByTestId('currency-selector') as HTMLSelectElement).value).toBe('USD');
+      fireEvent.change(screen.getByLabelText(/amount/i), { target: { value: '110' } });
+      await act(async () => {
+        screen.getByRole('button', { name: /update transaction/i }).click();
+      });
+      await waitFor(() => expect(onSubmit).toHaveBeenCalled());
+      const payload = onSubmit.mock.calls[0][0];
+      expect(Number(payload.amount)).toBe(99);
+      expect(payload.currency).toBe('EUR');
+      expect(Number(payload.originalAmount)).toBe(110);
+      expect(payload.originalCurrency).toBe('USD');
+      expect(Number(payload.conversionRate)).toBe(0.9);
+    });
+
     it('pre-fills the original amount + currency and shows the stored rate when editing', () => {
       const converted: Transaction = {
         id: 5,

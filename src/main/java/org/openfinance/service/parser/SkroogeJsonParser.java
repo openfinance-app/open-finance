@@ -787,6 +787,7 @@ public class SkroogeJsonParser {
         JsonNode category = categoriesById.get(longValue(subOperation, "r_category_id"));
 
         BigDecimal signedAmount = decimalValue(subOperation, "f_value");
+        BigDecimal originalAmount = signedAmount;
         Long unitId = longValue(operation, "rc_unit_id");
         LocalDate opDate = parseDate(operation);
         String accountCurrency =
@@ -803,27 +804,52 @@ public class SkroogeJsonParser {
                         currencyRatesToPrimary);
         String comment = textValue(operation, "t_comment");
 
-        return ImportedTransaction.builder()
-                .transactionDate(opDate)
-                .payee(resolvePayee(payee, comment, textValue(operation, "t_mode")))
-                .originalPayee(payee != null ? textValue(payee, "t_name") : null)
-                .amount(signedAmount)
-                .memo(comment)
-                .category(category != null ? textValue(category, "t_fullname") : null)
-                .sourceCategoryId(longValue(subOperation, "r_category_id"))
-                .referenceNumber(skroogeOperationReference(operation))
-                .accountName(account != null ? textValue(account, "t_name") : null)
-                .sourceAccountId(accountSourceId)
-                .accountNumber(account != null ? resolveAccountNumber(account) : null)
-                .currency(accountCurrency)
-                .sourceAccountBalanceDelta(accountBalanceDeltasByOperationId.get(operationId))
-                .transfer(true)
-                .transferGroupKey(skroogeTransferReference(groupId))
-                .toAccountName(otherAccount != null ? textValue(otherAccount, "t_name") : null)
-                .toAccountSourceId(longValue(otherOperation, "rd_account_id"))
-                .clearedStatus(resolveClearedStatus(operation))
-                .sourceFileName(fileName)
-                .build();
+        ImportedTransaction.ImportedTransactionBuilder builder =
+                ImportedTransaction.builder()
+                        .transactionDate(opDate)
+                        .payee(resolvePayee(payee, comment, textValue(operation, "t_mode")))
+                        .originalPayee(payee != null ? textValue(payee, "t_name") : null)
+                        .amount(signedAmount)
+                        .memo(comment)
+                        .category(category != null ? textValue(category, "t_fullname") : null)
+                        .sourceCategoryId(longValue(subOperation, "r_category_id"))
+                        .referenceNumber(skroogeOperationReference(operation))
+                        .accountName(account != null ? textValue(account, "t_name") : null)
+                        .sourceAccountId(accountSourceId)
+                        .accountNumber(account != null ? resolveAccountNumber(account) : null)
+                        .currency(accountCurrency)
+                        .sourceAccountBalanceDelta(
+                                accountBalanceDeltasByOperationId.get(operationId))
+                        .transfer(true)
+                        .transferGroupKey(skroogeTransferReference(groupId))
+                        .toAccountName(
+                                otherAccount != null ? textValue(otherAccount, "t_name") : null)
+                        .toAccountSourceId(longValue(otherOperation, "rd_account_id"))
+                        .clearedStatus(resolveClearedStatus(operation))
+                        .sourceFileName(fileName);
+        retainSourceAmount(
+                builder, originalAmount, signedAmount, unitId, accountCurrency, unitsById);
+        return builder.build();
+    }
+
+    private void retainSourceAmount(
+            ImportedTransaction.ImportedTransactionBuilder builder,
+            BigDecimal sourceAmount,
+            BigDecimal accountAmount,
+            Long unitId,
+            String accountCurrency,
+            Map<Long, JsonNode> unitsById) {
+        JsonNode unit = unitsById.get(unitId);
+        // A share quantity must not be described as an amount in its pricing currency.
+        if (unit == null || isInvestmentUnit(unit) || sourceAmount.signum() == 0) return;
+        String sourceCurrency = resolveCurrencyCode(unit, unitsById);
+        if (sourceCurrency == null || sourceCurrency.equalsIgnoreCase(accountCurrency)) return;
+        builder.originalAmount(sourceAmount.abs())
+                .originalCurrency(sourceCurrency)
+                .conversionRate(
+                        accountAmount
+                                .abs()
+                                .divide(sourceAmount.abs(), java.math.MathContext.DECIMAL128));
     }
 
     private ImportedTransaction buildStandardTransaction(
@@ -864,6 +890,7 @@ public class SkroogeJsonParser {
                 subOperations.stream()
                         .map(node -> decimalValue(node, "f_value"))
                         .reduce(BigDecimal.ZERO, BigDecimal::add);
+        BigDecimal originalAmount = signedAmount;
 
         // Convert the operation into the account's native currency using Skrooge's stored unit
         // rates (investment quantities via their unit price, foreign currencies via their peg).
@@ -893,6 +920,8 @@ public class SkroogeJsonParser {
                                 accountBalanceDeltasByOperationId.get(operationId))
                         .clearedStatus(resolveClearedStatus(operation))
                         .sourceFileName(fileName);
+        retainSourceAmount(
+                builder, originalAmount, signedAmount, unitId, accountCurrency, unitsById);
 
         if (subOperations.size() == 1) {
             JsonNode subOperation = subOperations.get(0);

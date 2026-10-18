@@ -5,7 +5,7 @@ import type { Transaction } from '../../types/transaction';
 import type { Payee } from '../../types/payee';
 import { formatDate } from '../../utils/date';
 import { Badge } from '@/components/ui/Badge';
-import { ConvertedAmount } from '@/components/ui/ConvertedAmount';
+import { TransactionAmount } from '@/components/transactions/TransactionAmount';
 import { useActivePayees } from '@/hooks/usePayees';
 import { useUserSettings } from '@/hooks/useUserSettings';
 import PeriodLabel from '@/components/dashboard/PeriodLabel';
@@ -271,15 +271,9 @@ export default function RecentTransactionsCard({
                   {isExpense && '-'}
                   {isIncome && '+'}
                 </span>
-                <ConvertedAmount
-                  conversionDate={transaction.date}
+                <TransactionAmount
+                  transaction={transaction}
                   inline
-                  amount={transaction.amount}
-                  currency={transaction.currency}
-                  convertedAmount={transaction.amountInBaseCurrency}
-                  baseCurrency={transaction.baseCurrency}
-                  exchangeRate={transaction.exchangeRate}
-                  isConverted={transaction.isConverted}
                   className={`text-sm font-semibold font-mono ${amountColor}`}
                 />
               </div>
