@@ -67,8 +67,8 @@ class BudgetAuditRegressionTest {
     @org.junit.jupiter.params.provider.CsvSource({"30,40,60", "130,-60,160"})
     void refundsAndIncomingSplitsReduceBudgetConsumption(
             String refund, String spent, String remaining) {
-        LocalDate start = LocalDate.of(2026, 10, 1);
-        LocalDate end = LocalDate.of(2026, 10, 31);
+        LocalDate start = LocalDate.now().minusMonths(1).withDayOfMonth(1);
+        LocalDate end = start.plusMonths(1).minusDays(1);
         Budget budget =
                 Budget.builder()
                         .id(7L)
@@ -230,7 +230,7 @@ class BudgetAuditRegressionTest {
 
     @ParameterizedTest
     @EnumSource(BudgetPeriod.class)
-    void calendarBoundariesDoNotCreateAdditionalAllowances(BudgetPeriod period) {
+    void singleAllowanceDoesNotRenewAtCalendarBoundaries(BudgetPeriod period) {
         Category category = groceries();
         LocalDate start = LocalDate.of(2026, 1, 1);
         Budget budget =
@@ -243,6 +243,7 @@ class BudgetAuditRegressionTest {
                         .period(period)
                         .startDate(start)
                         .endDate(start.plusYears(1))
+                        .recurring(false)
                         .rollover(true)
                         .build();
         when(budgets.findByIdAndUserId(7L, 9L)).thenReturn(Optional.of(budget));

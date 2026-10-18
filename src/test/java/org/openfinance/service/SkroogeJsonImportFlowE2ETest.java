@@ -77,6 +77,81 @@ class SkroogeJsonImportFlowE2ETest {
     @Autowired private DatabaseCleanupService databaseCleanupService;
     @Autowired private TransactionRuleService rules;
     @Autowired private TransactionService transactions;
+    @Autowired private org.openfinance.repository.InterestRateVariationRepository interestRates;
+
+    @Test
+    void importsInterestSettingsIdempotentlyAndReportsUnsupportedAndConflictingRows()
+            throws Exception {
+        com.fasterxml.jackson.databind.ObjectMapper json =
+                new com.fasterxml.jackson.databind.ObjectMapper();
+        com.fasterxml.jackson.databind.node.ObjectNode source =
+                (com.fasterxml.jackson.databind.node.ObjectNode)
+                        json.readTree(syntheticSkroogeJson());
+        source.set(
+                "interest",
+                json.readTree(
+                        """
+                [
+                  {"id":1,"rd_account_id":20,"d_date":"2024-01-01","f_rate":"1.123456789012345678","t_income_value_date_mode":"F","t_expenditure_value_date_mode":"2","t_base":"365"},
+                  {"id":2,"rd_account_id":20,"d_date":"2025-01-01","f_rate":0,"t_income_value_date_mode":"0","t_expenditure_value_date_mode":"0","t_base":"24"},
+                  {"id":3,"rd_account_id":20,"d_date":"2025-06-01","f_rate":3,"t_income_value_date_mode":"?","t_expenditure_value_date_mode":"0","t_base":"365"}
+                ]
+                """));
+        String upload =
+                fileStorageService.storeFile(
+                        new MockMultipartFile(
+                                "file",
+                                "interest.json",
+                                "application/json",
+                                json.writeValueAsBytes(source)),
+                        userId);
+        Long savingsId = null;
+        for (int attempt = 0; attempt < 3; attempt++) {
+            if (attempt == 2) {
+                org.openfinance.entity.InterestRateVariation existing =
+                        interestRates.findByAccountIdOrderByValidFromDesc(savingsId).get(1);
+                existing.setRate(new BigDecimal("2"));
+                interestRates.save(existing);
+            }
+            ImportSession session =
+                    importService.startImport(upload, userId, null, "interest.json");
+            awaitParsed(session.getId());
+            importService.confirmImport(session.getId(), userId, null, Map.of(), true);
+            com.fasterxml.jackson.databind.JsonNode metadata =
+                    json.readTree(importService.getSession(session.getId(), userId).getMetadata())
+                            .path("skroogeMetadata");
+            assertThat(metadata.path("sourceInterestRateCount").asInt()).isEqualTo(3);
+            assertThat(metadata.path("importedInterestRateCount").asInt())
+                    .isEqualTo(attempt == 0 ? 2 : 0);
+            assertThat(metadata.path("existingInterestRateCount").asInt())
+                    .isEqualTo(attempt == 0 ? 0 : attempt == 1 ? 2 : 1);
+            assertThat(metadata.path("skippedInterestRateCount").asInt())
+                    .isEqualTo(attempt == 2 ? 2 : 1);
+            Account savings =
+                    accountRepository.findByUserId(userId).stream()
+                            .filter(a -> "Savings".equals(a.getName()))
+                            .findFirst()
+                            .orElseThrow();
+            savingsId = savings.getId();
+            assertThat(savings.getIsInterestEnabled()).isTrue();
+            assertThat(savings.getInterestPeriod())
+                    .isEqualTo(org.openfinance.entity.InterestPeriod.ANNUAL);
+            assertThat(savings.getBalance()).isEqualByComparingTo("200");
+            List<org.openfinance.entity.InterestRateVariation> rates =
+                    interestRates.findByAccountIdOrderByValidFromDesc(savingsId);
+            assertThat(rates).hasSize(2);
+            assertThat(rates.getFirst().getRate()).isZero();
+            assertThat(rates.getFirst().getDayCountBasis())
+                    .isEqualTo(org.openfinance.entity.InterestDayCountBasis.FORTNIGHT_24);
+            assertThat(rates.get(1).getCreditValueDateMode())
+                    .isEqualTo(org.openfinance.entity.InterestValueDateMode.FORTNIGHT);
+            assertThat(rates.get(1).getDebitValueDateMode())
+                    .isEqualTo(org.openfinance.entity.InterestValueDateMode.DAYS_2);
+            assertThat(rates.get(1).getRate())
+                    .isEqualByComparingTo(attempt == 2 ? "2" : "1.123456789012345678");
+            assertThat(transactionRepository.countByUserId(userId)).isEqualTo(5);
+        }
+    }
 
     private Long userId;
 

@@ -69,8 +69,11 @@ export function BudgetCard({ budget, onEdit, onDelete, onViewDetail }: BudgetCar
   } = useSecondaryConversion(displayCurrency);
   const { t } = useTranslation('budgets');
   const { t: tc } = useTranslation('common');
-  const isOverBudget = budget.percentageSpent > 100;
-  const progressWidth = Math.max(0, Math.min(budget.percentageSpent, 100));
+  const isOverBudget = remaining < 0;
+  const progressWidth = Math.max(
+    0,
+    Math.min(budget.percentageSpent ?? (isOverBudget ? 100 : 0), 100)
+  );
 
   return (
     <Card
@@ -91,7 +94,13 @@ export function BudgetCard({ budget, onEdit, onDelete, onViewDetail }: BudgetCar
             {budget.categoryName}
           </h3>
           <p className="plate-label mt-1">
-            {t('form.periods.' + budget.period)} {t('card.budget')}
+            {budget.recurring === false
+              ? t('form.singleAllowance')
+              : t('form.periods.' + budget.period)}{' '}
+            {t('card.budget')}
+          </p>
+          <p className="mt-1 text-xs text-text-secondary">
+            {budget.startDate} – {budget.endDate}
           </p>
         </div>
 
@@ -186,12 +195,24 @@ export function BudgetCard({ budget, onEdit, onDelete, onViewDetail }: BudgetCar
         </div>
       </div>
 
+      {(budget.nativeCarryover ?? budget.carryover ?? 0) !== 0 && (
+        <p className="mb-3 flex items-center justify-between text-xs text-text-secondary">
+          <span>{t('card.includesCarry')}</span>
+          <ConvertedAmount
+            amount={budget.nativeCarryover ?? budget.carryover ?? 0}
+            currency={displayCurrency}
+            inline
+          />
+        </p>
+      )}
       {/* Progress Bar */}
       <div className="mb-4">
         <div className="flex items-center justify-between mb-2">
           <span className="text-xs text-text-secondary">{t('card.progress')}</span>
           <span className="text-xs font-medium font-mono text-text-primary">
-            {formatPercentage(budget.percentageSpent, 1)}
+            {budget.percentageSpent == null
+              ? t('card.noAllowance')
+              : formatPercentage(budget.percentageSpent, 1)}
           </span>
         </div>
         <div className="h-2 bg-background rounded-full overflow-hidden shadow-slot border border-border">

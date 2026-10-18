@@ -81,7 +81,10 @@ interface BudgetRowProps {
 }
 
 function BudgetRow({ budget, baseCurrency, onOpen }: BudgetRowProps) {
-  const pct = Math.max(0, Math.min(budget.percentageSpent, 100));
+  const pct = Math.max(
+    0,
+    Math.min(budget.percentageSpent ?? (budget.status === 'EXCEEDED' ? 100 : 0), 100)
+  );
   const {
     convert,
     secondaryCurrency: secCurrency,
@@ -107,7 +110,7 @@ function BudgetRow({ budget, baseCurrency, onOpen }: BudgetRowProps) {
         </div>
         <div className="flex items-center gap-1.5 shrink-0">
           <span className={cn('text-xs font-mono font-medium', statusTextColor(budget.status))}>
-            {formatPercentage(budget.percentageSpent, 0)}
+            {budget.percentageSpent == null ? '—' : formatPercentage(budget.percentageSpent, 0)}
           </span>
           <span className="text-xs text-text-tertiary font-mono">
             <ConvertedAmount
@@ -236,7 +239,10 @@ export default function BudgetProgressCard() {
     const order: Record<BudgetStatus, number> = { EXCEEDED: 0, WARNING: 1, ON_TRACK: 2 };
     const diff = order[a.status] - order[b.status];
     if (diff !== 0) return diff;
-    return b.percentageSpent - a.percentageSpent;
+    return (
+      (b.percentageSpent ?? Number.POSITIVE_INFINITY) -
+      (a.percentageSpent ?? Number.POSITIVE_INFINITY)
+    );
   });
   const visible = sorted.slice(0, MAX_VISIBLE);
   const hasMore = sorted.length > MAX_VISIBLE;

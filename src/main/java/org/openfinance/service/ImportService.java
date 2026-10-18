@@ -126,6 +126,7 @@ public class ImportService {
     private final ImportedOpeningBalanceService openingBalanceService;
     private final TransactionRuleService transactionRuleService;
     private final SkroogeRuleImportService skroogeRuleImportService;
+    private final SkroogeInterestImportService skroogeInterestImportService;
     private final TransactionService transactionService;
     private final ExchangeRateService exchangeRateService;
     private final TransactionSplitService transactionSplitService;
@@ -1656,6 +1657,10 @@ public class ImportService {
                 ensureCategories(skroogeMetadata, userId, categoryMappings);
         // Persist rules only after confirmation; do not rerun them over reviewed transactions.
         skroogeRuleImportService.importRules(skroogeMetadata, categoryIdsBySource, userId);
+        if (!skroogeMetadata.getInterestRates().isEmpty()) {
+            skroogeInterestImportService.importInterest(
+                    skroogeMetadata, accountIdsBySource, userId);
+        }
         Map<String, Object> updatedMetadata = readMetadataMap(session.getMetadata());
         updatedMetadata.put("skroogeMetadata", skroogeMetadata);
         try {

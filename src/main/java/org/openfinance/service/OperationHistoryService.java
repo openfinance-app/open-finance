@@ -471,6 +471,8 @@ public class OperationHistoryService {
                         "status",
                         "priority",
                         "rollover",
+                        "recurring",
+                        "rollover_overspending",
                         "period",
                         "category_id");
         Map<String, Object[]> diff = new LinkedHashMap<>();
@@ -490,7 +492,14 @@ public class OperationHistoryService {
 
     private Object displayValue(String field, String value, Long userId) {
         if (value != null
-                && Set.of("is_active", "active", "is_enabled", "is_reconciled", "rollover")
+                && Set.of(
+                                "is_active",
+                                "active",
+                                "is_enabled",
+                                "is_reconciled",
+                                "rollover",
+                                "recurring",
+                                "rollover_overspending")
                         .contains(field)) return value.equals("1") || Boolean.parseBoolean(value);
         if (value != null && field.equals("category_id")) {
             String label = states.label("categories", Long.valueOf(value), userId);

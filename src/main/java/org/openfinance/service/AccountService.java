@@ -1453,6 +1453,34 @@ public class AccountService {
                 .toList();
     }
 
+    public record CashMovement(java.time.LocalDate date, BigDecimal balanceDelta) {}
+
+    /** Exact booked cash movements for interest value dates, without exposing mutable entities. */
+    @Transactional(readOnly = true)
+    public List<CashMovement> getCashMovements(
+            Long accountId,
+            Long userId,
+            java.time.LocalDate startDate,
+            java.time.LocalDate endDate) {
+        accountRepository
+                .findByIdAndUserId(accountId, userId)
+                .orElseThrow(() -> AccountNotFoundException.byIdAndUser(accountId, userId));
+        return transactionRepository
+                .findByAccountIdAndTransactionDateBetweenOrderByTransactionDateAsc(
+                        accountId, startDate, endDate)
+                .stream()
+                .map(
+                        transaction ->
+                                new CashMovement(
+                                        transaction.getDate(),
+                                        transaction.getType()
+                                                        == org.openfinance.entity.TransactionType
+                                                                .EXPENSE
+                                                ? transaction.getBalanceAmount().negate()
+                                                : transaction.getBalanceAmount()))
+                .toList();
+    }
+
     private List<org.openfinance.dto.BalanceHistoryPoint> calculateBalanceHistory(
             Account account, java.time.LocalDate startDate, java.time.LocalDate endDate) {
         Long accountId = account.getId();

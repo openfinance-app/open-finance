@@ -8,10 +8,10 @@ import { formatDecimal } from '@/utils/format';
  * Follows the same hand-rolled overlay pattern as AssetDetailModal /
  * AccountDetailModal.
  */
-import { useEffect } from 'react';
+import { useEffect, useId, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
-import { X, TrendingUp, TrendingDown, AlertTriangle, CheckCircle, Calendar } from 'lucide-react';
+import { X, TrendingUp, TrendingDown, Calendar, ChevronDown } from 'lucide-react';
 import {
   BarChart,
   Bar,
@@ -24,6 +24,7 @@ import {
 } from 'recharts';
 import { Card } from '@/components/ui/Card';
 import { ConvertedAmount } from '@/components/ui/ConvertedAmount';
+import { HelpTooltip } from '@/components/ui/HelpTooltip';
 import { LoadingSkeleton } from '@/components/LoadingComponents';
 import { AlertSettings } from '@/components/alerts/AlertSettings';
 import { useBudget, useBudgetHistory } from '@/hooks/useBudgets';
@@ -31,42 +32,41 @@ import { useVisibility } from '@/context/VisibilityContext';
 import { useFormatCurrency } from '@/hooks/useFormatCurrency';
 import { useSecondaryConversion } from '@/hooks/useSecondaryConversion';
 import { cn } from '@/lib/utils';
-import type { BudgetHistoryEntry, BudgetStatus } from '@/types/budget';
+import { add, percentage } from '@/utils/money';
+import type { BudgetHistoryEntry } from '@/types/budget';
 
-// ─── Status helpers ───────────────────────────────────────────────────────────
-
-function StatusBadge({ status }: { status: BudgetStatus }) {
+function PeriodResult({ entry, currency }: { entry: BudgetHistoryEntry; currency: string }) {
   const { t } = useTranslation('budgets');
-  const STATUS_CONFIG: Record<
-    BudgetStatus,
-    { label: string; className: string; icon: React.ReactNode }
-  > = {
-    ON_TRACK: {
-      label: t('card.status.onTrack'),
-      className: 'text-success bg-success/10 border border-success/20',
-      icon: <CheckCircle className="h-3.5 w-3.5" />,
-    },
-    WARNING: {
-      label: t('card.status.warning'),
-      className: 'text-warning bg-warning/10 border border-warning/20',
-      icon: <AlertTriangle className="h-3.5 w-3.5" />,
-    },
-    EXCEEDED: {
-      label: t('card.status.exceeded'),
-      className: 'text-error bg-error/10 border border-error/20',
-      icon: <TrendingUp className="h-3.5 w-3.5" />,
-    },
-  };
-  const config = STATUS_CONFIG[status] ?? STATUS_CONFIG.ON_TRACK;
+  const { convert, secondaryCurrency, secondaryExchangeRate } = useSecondaryConversion(currency);
+  const amount = Math.abs(entry.remaining);
+  const exceeded = entry.remaining < 0;
+  const available = entry.available ?? add(entry.budgeted, entry.carryover ?? 0);
+  const resultLabel = exceeded
+    ? available > 0
+      ? t('detail.overBudgetPercent', {
+          percent: formatDecimal(percentage(amount, available, 1), 1),
+        })
+      : t('detail.overBudget')
+    : t('card.remaining');
   return (
     <span
       className={cn(
-        'inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium',
-        config.className
+        'inline-flex flex-col items-end gap-0.5 whitespace-nowrap',
+        exceeded ? 'text-error' : 'text-success'
       )}
     >
-      {config.icon}
-      {config.label}
+      <span className="font-mono text-sm font-semibold tabular-nums">
+        <ConvertedAmount
+          amount={amount}
+          currency={currency}
+          isConverted={false}
+          secondaryAmount={convert(amount)}
+          secondaryCurrency={secondaryCurrency}
+          secondaryExchangeRate={secondaryExchangeRate}
+          inline
+        />
+      </span>
+      <span className="max-w-32 whitespace-normal text-right text-xs">{resultLabel}</span>
     </span>
   );
 }
@@ -77,6 +77,7 @@ interface TooltipPayloadItem {
   name: string;
   value: number;
   color: string;
+  payload?: { period: BudgetHistoryEntry };
 }
 
 interface CustomTooltipProps {
@@ -87,14 +88,19 @@ interface CustomTooltipProps {
 }
 
 function CustomTooltip({ active, payload, label, currency }: CustomTooltipProps) {
+  const { t } = useTranslation('budgets');
   const {
     convert,
     secondaryCurrency: secCurrency,
     secondaryExchangeRate,
   } = useSecondaryConversion(currency);
   if (!active || !payload || payload.length === 0) return null;
+  const period = payload[0].payload?.period;
   return (
-    <div className="bg-surface-elevated border border-border rounded-lg p-3 shadow-lg text-sm">
+    <div
+      role="tooltip"
+      className="bg-surface-elevated border border-border rounded-lg p-3 shadow-lg text-sm"
+    >
       <p className="font-semibold text-text-primary mb-2">{label}</p>
       {payload.map(entry => (
         <p key={entry.name} style={{ color: entry.color }} className="mb-0.5">
@@ -110,6 +116,21 @@ function CustomTooltip({ active, payload, label, currency }: CustomTooltipProps)
           />
         </p>
       ))}
+      {period && !period.future && (
+        <>
+          {(period.carryover ?? 0) !== 0 && (
+            <p className="text-text-secondary">
+              {t('card.carryover')}:{' '}
+              <ConvertedAmount amount={period.carryover ?? 0} currency={currency} inline />
+            </p>
+          )}
+          <div className="mt-2 flex items-center justify-between gap-6 border-t border-border pt-2">
+            <span className="text-text-secondary">{t('detail.columns.result')}</span>
+            <PeriodResult entry={period} currency={currency} />
+          </div>
+        </>
+      )}
+      {period?.future && <p className="mt-2 text-text-muted">{t('detail.future')}</p>}
     </div>
   );
 }
@@ -117,27 +138,40 @@ function CustomTooltip({ active, payload, label, currency }: CustomTooltipProps)
 // ─── History table row ────────────────────────────────────────────────────────
 
 function HistoryRow({ entry, currency }: { entry: BudgetHistoryEntry; currency: string }) {
+  const { t } = useTranslation('budgets');
   const {
     convert,
     secondaryCurrency: secCurrency,
     secondaryExchangeRate,
   } = useSecondaryConversion(currency);
-  const isExceeded = entry.status === 'EXCEEDED';
-  const isWarning = entry.status === 'WARNING';
+  const isExceeded = !entry.future && entry.remaining < 0;
 
   return (
     <tr
       className={cn(
         'border-b border-border/50 last:border-0 transition-colors hover:bg-surface/50',
-        isExceeded && 'bg-error/5',
-        isWarning && 'bg-warning/5'
+        isExceeded && 'bg-error/5'
       )}
     >
-      <td className="py-3 px-4 text-sm font-medium text-text-primary whitespace-nowrap">
-        {entry.label}
+      <td className="min-w-28 px-3 py-3 text-sm font-medium text-text-primary sm:px-4">
+        <span className="whitespace-nowrap">{entry.label}</span>
+        <span className="mt-1 block text-xs font-normal text-text-secondary">
+          <time dateTime={entry.periodStart}>{entry.periodStart}</time>
+          <span className="hidden sm:inline"> – </span>
+          <time className="block sm:inline" dateTime={entry.periodEnd}>
+            {entry.periodEnd}
+          </time>
+        </span>
       </td>
-      <td className="py-3 px-4 text-sm text-text-secondary whitespace-nowrap">
-        {entry.periodStart} – {entry.periodEnd}
+      <td className="min-w-28 px-3 py-3 text-right sm:px-4">
+        {entry.future ? (
+          <span className="inline-flex flex-col gap-0.5 text-text-muted">
+            <span>—</span>
+            <span className="text-xs">{t('detail.future')}</span>
+          </span>
+        ) : (
+          <PeriodResult entry={entry} currency={currency} />
+        )}
       </td>
       <td className="py-3 px-4 text-sm text-right text-text-primary font-mono tabular-nums">
         <ConvertedAmount
@@ -151,7 +185,16 @@ function HistoryRow({ entry, currency }: { entry: BudgetHistoryEntry; currency: 
         />
       </td>
       <td className="py-3 px-4 text-sm text-right font-mono tabular-nums">
-        <span className={cn(isExceeded ? 'text-error font-semibold' : 'text-text-primary')}>
+        {entry.future ? (
+          '—'
+        ) : (
+          <ConvertedAmount amount={entry.carryover ?? 0} currency={currency} inline />
+        )}
+      </td>
+      <td className="py-3 px-4 text-sm text-right text-text-primary font-mono tabular-nums">
+        {entry.future ? (
+          '—'
+        ) : (
           <ConvertedAmount
             amount={entry.spent}
             currency={currency}
@@ -161,39 +204,7 @@ function HistoryRow({ entry, currency }: { entry: BudgetHistoryEntry; currency: 
             secondaryExchangeRate={secondaryExchangeRate}
             inline
           />
-        </span>
-      </td>
-      <td className="py-3 px-4 text-sm text-right font-mono tabular-nums">
-        <span className={cn(entry.remaining < 0 ? 'text-error font-semibold' : 'text-success')}>
-          <ConvertedAmount
-            amount={entry.remaining}
-            currency={currency}
-            isConverted={false}
-            secondaryAmount={convert(entry.remaining)}
-            secondaryCurrency={secCurrency}
-            secondaryExchangeRate={secondaryExchangeRate}
-            inline
-          />
-        </span>
-      </td>
-      <td className="py-3 px-4 text-sm text-right font-mono tabular-nums">
-        <div className="flex items-center justify-end gap-2">
-          <div className="w-20 h-1.5 rounded-full bg-surface-elevated overflow-hidden hidden sm:block">
-            <div
-              className={cn(
-                'h-full rounded-full transition-all',
-                isExceeded ? 'bg-error' : isWarning ? 'bg-warning' : 'bg-success'
-              )}
-              style={{ width: `${Math.max(0, Math.min(entry.percentageSpent, 100))}%` }}
-            />
-          </div>
-          <span className={cn(isExceeded ? 'text-error font-semibold' : 'text-text-primary')}>
-            {formatDecimal(entry.percentageSpent, 1)}%
-          </span>
-        </div>
-      </td>
-      <td className="py-3 px-4 text-sm">
-        <StatusBadge status={entry.status} />
+        )}
       </td>
     </tr>
   );
@@ -209,6 +220,8 @@ interface BudgetDetailModalProps {
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export function BudgetDetailModal({ budgetId, onClose }: BudgetDetailModalProps) {
+  const [isBreakdownExpanded, setIsBreakdownExpanded] = useState(false);
+  const breakdownId = useId();
   const { isAmountsVisible } = useVisibility();
   const { format: formatCurrency } = useFormatCurrency();
   const { t } = useTranslation('budgets');
@@ -239,15 +252,17 @@ export function BudgetDetailModal({ budgetId, onClose }: BudgetDetailModalProps)
   const chartSpentKey = t('card.spent');
   const chartData = (historyData?.history ?? []).map(entry => ({
     name: entry.label,
+    period: entry,
     [chartBudgetedKey]: entry.budgeted,
-    [chartSpentKey]: entry.spent,
+    [chartSpentKey]: entry.future ? null : entry.spent,
   }));
 
+  const totalAvailable = historyData
+    ? historyData.totalBudgeted + (historyData.initialCarryover ?? 0)
+    : 0;
   const overallPercentage =
-    historyData && historyData.totalBudgeted > 0
-      ? (historyData.totalSpent / historyData.totalBudgeted) * 100
-      : 0;
-  const isOverBudget = historyData ? historyData.totalSpent > historyData.totalBudgeted : false;
+    historyData && totalAvailable > 0 ? (historyData.totalSpent / totalAvailable) * 100 : 0;
+  const isOverBudget = historyData ? historyData.totalSpent > totalAvailable : false;
 
   return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center">
@@ -305,7 +320,7 @@ export function BudgetDetailModal({ budgetId, onClose }: BudgetDetailModalProps)
         </div>
 
         {/* ── Content ── */}
-        <div className="p-6">
+        <div className="p-4 sm:p-6">
           {isLoading ? (
             <div className="space-y-4">
               <LoadingSkeleton className="h-32 w-full" />
@@ -368,10 +383,18 @@ export function BudgetDetailModal({ budgetId, onClose }: BudgetDetailModalProps)
                     )}
                   >
                     <ConvertedAmount
-                      amount={historyData.totalBudgeted - historyData.totalSpent}
+                      amount={
+                        historyData.totalBudgeted +
+                        (historyData.initialCarryover ?? 0) -
+                        historyData.totalSpent
+                      }
                       currency={historyData.currency}
                       isConverted={false}
-                      secondaryAmount={convert(historyData.totalBudgeted - historyData.totalSpent)}
+                      secondaryAmount={convert(
+                        historyData.totalBudgeted +
+                          (historyData.initialCarryover ?? 0) -
+                          historyData.totalSpent
+                      )}
                       secondaryCurrency={secCurrency}
                       secondaryExchangeRate={secondaryExchangeRate}
                       inline
@@ -450,57 +473,83 @@ export function BudgetDetailModal({ budgetId, onClose }: BudgetDetailModalProps)
               )}
 
               {/* History table */}
-              <Card className="overflow-hidden">
-                <div className="px-4 py-3 border-b border-border">
-                  <h2 className="text-sm font-semibold text-text-primary">
-                    {t('detail.periodBreakdown', { count: historyData.history.length })}
+              <Card padding="none" className="mb-6 overflow-hidden">
+                <div className="flex items-center gap-2 px-4 py-3">
+                  <h2 className="min-w-0 flex-1 text-sm font-semibold text-text-primary">
+                    <button
+                      type="button"
+                      aria-expanded={isBreakdownExpanded}
+                      aria-controls={breakdownId}
+                      onClick={() => setIsBreakdownExpanded(expanded => !expanded)}
+                      className="flex w-full items-center gap-2 rounded-sm text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                    >
+                      <ChevronDown
+                        aria-hidden="true"
+                        className={cn(
+                          'h-4 w-4 shrink-0 transition-transform',
+                          !isBreakdownExpanded && '-rotate-90'
+                        )}
+                      />
+                      {t('detail.periodBreakdown', { count: historyData.history.length })}
+                    </button>
                   </h2>
+                  <HelpTooltip text={t('detail.allowanceExplanation')} />
                 </div>
 
-                {historyData.history.length === 0 ? (
-                  <div className="p-8 text-center text-text-muted text-sm">
-                    {t('detail.noHistory')}
-                  </div>
-                ) : (
-                  <div className="overflow-x-auto">
-                    <table className="w-full min-w-[640px]">
-                      <thead>
-                        <tr className="border-b border-border bg-surface-elevated">
-                          <th className="py-2.5 px-4 text-left text-xs font-semibold text-text-muted uppercase tracking-wide">
-                            {t('detail.columns.period')}
-                          </th>
-                          <th className="py-2.5 px-4 text-left text-xs font-semibold text-text-muted uppercase tracking-wide">
-                            {t('detail.columns.dateRange')}
-                          </th>
-                          <th className="py-2.5 px-4 text-right text-xs font-semibold text-text-muted uppercase tracking-wide">
-                            {t('card.budgeted')}
-                          </th>
-                          <th className="py-2.5 px-4 text-right text-xs font-semibold text-text-muted uppercase tracking-wide">
-                            {t('card.spent')}
-                          </th>
-                          <th className="py-2.5 px-4 text-right text-xs font-semibold text-text-muted uppercase tracking-wide">
-                            {t('card.remaining')}
-                          </th>
-                          <th className="py-2.5 px-4 text-right text-xs font-semibold text-text-muted uppercase tracking-wide">
-                            {t('detail.columns.pctUsed')}
-                          </th>
-                          <th className="py-2.5 px-4 text-left text-xs font-semibold text-text-muted uppercase tracking-wide">
-                            {t('detail.columns.status')}
-                          </th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {historyData.history.map((entry, idx) => (
-                          <HistoryRow
-                            key={`${entry.periodStart}-${idx}`}
-                            entry={entry}
-                            currency={historyData.currency}
-                          />
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
+                <div
+                  id={breakdownId}
+                  hidden={!isBreakdownExpanded}
+                  className="border-t border-border"
+                >
+                  {(historyData.initialCarryover ?? 0) !== 0 && (
+                    <p className="px-4 py-3 text-sm text-text-secondary">
+                      {t('detail.initialCarry')}{' '}
+                      <ConvertedAmount
+                        amount={historyData.initialCarryover ?? 0}
+                        currency={historyData.currency}
+                        inline
+                      />
+                    </p>
+                  )}
+                  {historyData.history.length === 0 ? (
+                    <div className="p-8 text-center text-text-muted text-sm">
+                      {t('detail.noHistory')}
+                    </div>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <table className="w-full min-w-[640px]">
+                        <thead>
+                          <tr className="border-b border-border bg-surface-elevated">
+                            <th className="py-2.5 px-3 sm:px-4 text-left text-xs font-semibold text-text-muted uppercase tracking-wide">
+                              {t('detail.columns.period')}
+                            </th>
+                            <th className="py-2.5 px-3 sm:px-4 text-right text-xs font-semibold text-text-muted uppercase tracking-wide">
+                              {t('detail.columns.result')}
+                            </th>
+                            <th className="py-2.5 px-4 text-right text-xs font-semibold text-text-muted uppercase tracking-wide">
+                              {t('card.budgeted')}
+                            </th>
+                            <th className="py-2.5 px-4 text-right text-xs font-semibold text-text-muted uppercase tracking-wide">
+                              {t('card.carryover')}
+                            </th>
+                            <th className="py-2.5 px-4 text-right text-xs font-semibold text-text-muted uppercase tracking-wide">
+                              {t('card.spent')}
+                            </th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {historyData.history.map((entry, idx) => (
+                            <HistoryRow
+                              key={`${entry.periodStart}-${idx}`}
+                              entry={entry}
+                              currency={historyData.currency}
+                            />
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
               </Card>
               <Card className="p-4 sm:p-6">
                 <AlertSettings budgetId={budgetId} />

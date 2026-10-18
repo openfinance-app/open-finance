@@ -121,7 +121,7 @@ export default function EstimatedInterestCard({
           <div className="mt-2 flex items-center justify-center text-xs text-text-secondary gap-1">
             <TrendingUp className="w-3 h-3 text-blue-400" />
             <span>
-              {t('estimatedInterest.projectedNextYear')}:{' '}
+              {t('estimatedInterest.projectedCurrentYear', { year: new Date().getFullYear() })}:{' '}
               <span className="text-text-primary font-medium">
                 <ConvertedAmount
                   amount={displayProjected}

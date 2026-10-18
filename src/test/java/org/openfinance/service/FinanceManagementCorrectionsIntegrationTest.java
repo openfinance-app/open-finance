@@ -93,7 +93,7 @@ class FinanceManagementCorrectionsIntegrationTest {
     }
 
     @Test
-    void quarterlyAccountsPersistAndUseFourCompounds() throws Exception {
+    void quarterlyAccountsPersistWhileProjectionUsesCurrentCalendarYear() throws Exception {
         Map<String, Object> body =
                 accountBody("Quarterly", "SAVINGS", "EUR", "1000", today.minusDays(2));
         body.put("isInterestEnabled", true);
@@ -106,7 +106,19 @@ class FinanceManagementCorrectionsIntegrationTest {
                         json("GET", "/accounts/" + id + "/interest-estimate", null, 200)
                                 .get("estimate")
                                 .decimalValue())
-                .isEqualByComparingTo("40.60");
+                .isEqualByComparingTo(
+                        BigDecimal.valueOf(
+                                        java.time.temporal.ChronoUnit.DAYS.between(
+                                                        today.minusDays(2)
+                                                                        .isBefore(
+                                                                                today.withDayOfYear(
+                                                                                        1))
+                                                                ? today.withDayOfYear(1)
+                                                                : today.minusDays(2),
+                                                        today.withMonth(12).withDayOfMonth(31))
+                                                + 1)
+                                .multiply(new BigDecimal("40"))
+                                .divide(new BigDecimal("365"), 2, java.math.RoundingMode.HALF_UP));
     }
 
     @Test
@@ -183,7 +195,30 @@ class FinanceManagementCorrectionsIntegrationTest {
                 201);
         transaction(card, "INCOME", "50", today.minusDays(1));
         JsonNode summary = json("GET", "/dashboard/estimated-interest?period=ALL", null, 200);
-        assertThat(summary.get("totalProjected").decimalValue()).isEqualByComparingTo("-54.09");
+        BigDecimal priorDays =
+                BigDecimal.valueOf(
+                        Math.max(
+                                0,
+                                java.time.temporal.ChronoUnit.DAYS.between(
+                                        today.minusDays(2).isBefore(today.withDayOfYear(1))
+                                                ? today.withDayOfYear(1)
+                                                : today.minusDays(2),
+                                        today.minusDays(1))));
+        BigDecimal currentDays =
+                BigDecimal.valueOf(
+                        java.time.temporal.ChronoUnit.DAYS.between(
+                                        today.minusDays(1).isBefore(today.withDayOfYear(1))
+                                                ? today.withDayOfYear(1)
+                                                : today.minusDays(1),
+                                        today.withMonth(12).withDayOfMonth(31))
+                                + 1);
+        assertThat(summary.get("totalProjected").decimalValue())
+                .isEqualByComparingTo(
+                        new BigDecimal("350.50")
+                                .multiply(priorDays)
+                                .add(new BigDecimal("300.50").multiply(currentDays))
+                                .multiply(new BigDecimal("-0.18"))
+                                .divide(new BigDecimal("365"), 2, java.math.RoundingMode.HALF_UP));
         assertThat(summary.get("totalEarned").decimalValue()).isEqualByComparingTo("-0.47");
         assertThat(
                         json("GET", "/dashboard/summary", null, 200)
@@ -193,7 +228,15 @@ class FinanceManagementCorrectionsIntegrationTest {
                 .isEqualByComparingTo("300.50");
         transaction(card, "INCOME", "400", today);
         summary = json("GET", "/dashboard/estimated-interest?period=ALL", null, 200);
-        assertThat(summary.get("totalProjected").decimalValue()).isZero();
+        BigDecimal repaidDays =
+                BigDecimal.valueOf(today.minusDays(1).isBefore(today.withDayOfYear(1)) ? 0 : 1);
+        assertThat(summary.get("totalProjected").decimalValue())
+                .isEqualByComparingTo(
+                        new BigDecimal("350.50")
+                                .multiply(priorDays)
+                                .add(new BigDecimal("300.50").multiply(repaidDays))
+                                .multiply(new BigDecimal("-0.18"))
+                                .divide(new BigDecimal("365"), 2, java.math.RoundingMode.HALF_UP));
         assertThat(summary.get("totalEarned").decimalValue()).isEqualByComparingTo("-0.32");
         assertThat(
                         interest(today.minusDays(2), today.minusDays(2))

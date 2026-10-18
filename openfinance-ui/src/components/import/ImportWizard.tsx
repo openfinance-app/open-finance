@@ -18,6 +18,7 @@ import { useTranslation } from 'react-i18next';
 import { useQueryClient } from '@tanstack/react-query';
 import { FileUpload } from '@/components/import/FileUpload';
 import { SkroogeRulesNotice } from '@/components/import/SkroogeRulesNotice';
+import { SkroogeInterestNotice } from '@/components/import/SkroogeInterestNotice';
 import { useAuthContext } from '@/context/AuthContext';
 import { useImportDraftStore, readImportRecovery } from '@/stores/importDraft';
 import { readImportReviewOptions } from '@/utils/import-review-options';
@@ -540,7 +541,10 @@ export function ImportWizard() {
         )}
 
       {session?.status !== 'COMPLETED' && (
-        <SkroogeRulesNotice metadata={session?.metadata} completed={false} />
+        <>
+          <SkroogeRulesNotice metadata={session?.metadata} completed={false} />
+          <SkroogeInterestNotice metadata={session?.metadata} completed={false} />
+        </>
       )}
 
       {/* ── Stepper header ─────────────────────────────────────────────── */}

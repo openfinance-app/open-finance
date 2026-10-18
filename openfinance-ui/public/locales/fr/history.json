@@ -100,6 +100,8 @@
     "property_type": "Type",
     "rollover": "Report du solde",
     "period": "Période du budget",
-    "category_id": "Catégorie"
+    "category_id": "Catégorie",
+    "recurring": "Renouveler le montant à chaque période",
+    "rollover_overspending": "Reporter les dépassements"
   }
 }

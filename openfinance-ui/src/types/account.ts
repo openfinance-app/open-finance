@@ -27,7 +27,31 @@ export interface AccountFilters {
   sort?: string;
 }
 
+export const INTEREST_VALUE_DATE_MODES = [
+  'TRANSACTION_DATE',
+  'FORTNIGHT',
+  'DAYS_1',
+  'DAYS_2',
+  'DAYS_3',
+  'DAYS_4',
+  'DAYS_5',
+] as const;
+export type InterestValueDateMode = (typeof INTEREST_VALUE_DATE_MODES)[number];
+export const INTEREST_DAY_COUNT_BASES = ['ACTUAL_365', 'THIRTY_360', 'FORTNIGHT_24'] as const;
+export type InterestDayCountBasis = (typeof INTEREST_DAY_COUNT_BASES)[number];
+export interface InterestEstimate {
+  /** Net interest for January–December of the current year. */
+  estimate: number;
+  /** Net interest from January 1 through today. */
+  yearToDate: number;
+  /** Net interest from account opening through today. */
+  historicalAccumulated: number;
+}
+
 export interface InterestRateVariation {
+  creditValueDateMode?: InterestValueDateMode;
+  debitValueDateMode?: InterestValueDateMode;
+  dayCountBasis?: InterestDayCountBasis;
   exactValues?: Record<string, string>;
   interestProduced?: number;
   activeDays?: number;
@@ -41,6 +65,9 @@ export interface InterestRateVariation {
 }
 
 export interface InterestRateVariationRequest {
+  creditValueDateMode?: InterestValueDateMode;
+  debitValueDateMode?: InterestValueDateMode;
+  dayCountBasis?: InterestDayCountBasis;
   rate: number | string;
   taxRate?: number | string;
   validFrom: string;

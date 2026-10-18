@@ -1,4 +1,3 @@
-import { formatDecimal } from '@/utils/format';
 /**
  * AccountCard Component
  * Task 2.2.11: Create AccountCard component with edit/delete
@@ -28,7 +27,6 @@ import { useSecondaryConversion } from '@/hooks/useSecondaryConversion';
 import type { Account, AccountType } from '@/types/account';
 import { useInterestEstimate } from '@/hooks/useAccounts';
 import { cn } from '@/lib/utils';
-import { percentage } from '@/utils/money';
 
 interface AccountCardProps {
   account: Account;
@@ -68,10 +66,7 @@ export function AccountCard({
   const { t } = useTranslation('accounts');
   const { t: tc } = useTranslation('common');
 
-  const { data: interestData } = useInterestEstimate(
-    account.isInterestEnabled ? account.id : null,
-    '1Y'
-  );
+  const { data: interestData } = useInterestEstimate(account.isInterestEnabled ? account.id : null);
 
   const handleCardClick = (e: React.MouseEvent) => {
     // Don't trigger detail view if clicking on action buttons
@@ -218,9 +213,9 @@ export function AccountCard({
         {/* Right: interest stats (only when enabled) */}
         {account.isInterestEnabled && (
           <div className="shrink-0 text-right space-y-1 pt-0.5">
-            {/* Earned so far */}
+            {/* Lifetime interest */}
             <div>
-              <p className="text-xs text-text-muted leading-none mb-0.5">{t('card.earnedSoFar')}</p>
+              <p className="text-xs text-text-muted leading-none mb-0.5">{t('card.totalEarned')}</p>
               <p className="text-sm font-mono font-medium text-text-secondary">
                 <ConvertedAmount
                   amount={interestData?.historicalAccumulated ?? 0}
@@ -249,11 +244,6 @@ export function AccountCard({
                   secondaryExchangeRate={secondaryExchangeRate}
                   inline
                 />
-                {account.balance > 0 && (interestData?.estimate ?? 0) > 0 && (
-                  <span className="text-xs font-medium text-success/70">
-                    ({formatDecimal(percentage(interestData?.estimate ?? 0, account.balance), 2)}%)
-                  </span>
-                )}
               </p>
             </div>
           </div>

@@ -1,0 +1,5 @@
+ALTER TABLE budgets ADD COLUMN recurring BOOLEAN NOT NULL DEFAULT TRUE;
+ALTER TABLE budgets ADD COLUMN rollover_overspending BOOLEAN NOT NULL DEFAULT FALSE;
+ALTER TABLE interest_rate_variations ADD COLUMN credit_value_date_mode VARCHAR(30) NOT NULL DEFAULT 'TRANSACTION_DATE';
+ALTER TABLE interest_rate_variations ADD COLUMN debit_value_date_mode VARCHAR(30) NOT NULL DEFAULT 'TRANSACTION_DATE';
+ALTER TABLE interest_rate_variations ADD COLUMN day_count_basis VARCHAR(30) NOT NULL DEFAULT 'ACTUAL_365';

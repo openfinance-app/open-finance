@@ -29,6 +29,9 @@ import org.openfinance.validation.ValidCurrency;
 @AllArgsConstructor
 public class BudgetRequest {
 
+    @NotNull @Builder.Default private Boolean recurring = true;
+    @NotNull @Builder.Default private Boolean rolloverOverspending = false;
+
     /**
      * ID of the category this budget applies to.
      *

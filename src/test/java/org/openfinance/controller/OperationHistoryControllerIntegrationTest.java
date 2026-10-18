@@ -115,6 +115,8 @@ class OperationHistoryControllerIntegrationTest {
                                 java.time.LocalDate.now().plusDays(29).toString(),
                                 "rollover",
                                 false));
+        // This currency/history fixture intentionally describes one dated allowance.
+        request.put("recurring", false);
         long budget = call(post("/api/v1/budgets"), request).get("id").asLong();
         assertThat(call(get("/api/v1/budgets/" + budget), null).get("currency").asText())
                 .isEqualTo("USDT");

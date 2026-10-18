@@ -178,7 +178,8 @@ class BudgetServiceTest {
                         .notes("Monthly grocery budget")
                         .build();
 
-        // Create test budget entity
+        // Explicit one-time fixture: recurring allowances are covered by
+        // BudgetInterestCorrectionIntegrationTest.
         testBudget =
                 Budget.builder()
                         .id(1L)
@@ -189,6 +190,7 @@ class BudgetServiceTest {
                         .period(BudgetPeriod.MONTHLY)
                         .startDate(LocalDate.of(2026, 1, 1))
                         .endDate(LocalDate.of(2026, 12, 31)) // Future end date
+                        .recurring(false)
                         .rollover(false)
                         .notes("Monthly grocery budget")
                         .createdAt(LocalDateTime.now())
@@ -915,7 +917,12 @@ class BudgetServiceTest {
         assertThat(history.getTotalBudgeted()).isEqualByComparingTo("500.00");
         verify(transactionRepository)
                 .findByCategoryIdInAndDateRange(
-                        List.of(1L), testBudget.getStartDate(), testBudget.getEndDate(), 1L);
+                        List.of(1L),
+                        testBudget.getStartDate(),
+                        testBudget.getEndDate().isAfter(LocalDate.now())
+                                ? LocalDate.now()
+                                : testBudget.getEndDate(),
+                        1L);
     }
 
     @Test

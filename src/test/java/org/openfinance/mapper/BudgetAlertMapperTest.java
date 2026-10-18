@@ -27,7 +27,18 @@ class BudgetAlertMapperTest {
                         .build();
         BudgetAlert alert =
                 BudgetAlert.builder()
-                        .budget(Budget.builder().id(1L).category(category).build())
+                        .budget(
+                                Budget.builder()
+                                        .id(1L)
+                                        .category(category)
+                                        .period(org.openfinance.entity.BudgetPeriod.MONTHLY)
+                                        .startDate(java.time.LocalDate.now().withDayOfMonth(1))
+                                        .endDate(
+                                                java.time.LocalDate.now()
+                                                        .withDayOfMonth(1)
+                                                        .plusMonths(1)
+                                                        .minusDays(1))
+                                        .build())
                         .threshold(new BigDecimal("75"))
                         .lastTriggered(LocalDateTime.now())
                         .build();

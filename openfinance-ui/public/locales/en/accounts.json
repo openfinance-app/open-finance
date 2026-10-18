@@ -118,7 +118,6 @@
   },
   "card": {
     "balance": "Balance",
-    "earnedSoFar": "Earned so far",
     "projectedNet": "Proj. 1Y Net",
     "reopen": "Reopen account",
     "inactive": "Inactive",
@@ -126,7 +125,8 @@
     "failedToLoad": "Failed to load accounts",
     "noAccountsMatch": "No accounts match your search",
     "searchAccounts": "Search accounts",
-    "none": "None"
+    "none": "None",
+    "totalEarned": "Total earned"
   },
   "detail": {
     "currentBalance": "Current Balance",
@@ -155,7 +155,7 @@
   "interest": {
     "historyTitle": "Interest Rate History",
     "historyDescription": "Manage interest rates applied to this account over time",
-    "earnedSoFar": "Earned so far",
+    "earnedSoFar": "Earned to date",
     "projectedNet": "Proj. 1Y Net",
     "totalProduced": "Total Produced",
     "addRate": "Add Rate",
@@ -176,7 +176,30 @@
       "taxRate": "Tax Rate (%)",
       "saveRate": "Save Rate"
     },
-    "deleteConfirm": "Are you sure you want to delete this interest rate variation?"
+    "deleteConfirm": "Are you sure you want to delete this interest rate variation?",
+    "editRate": "Edit rate",
+    "deleteRate": "Delete rate",
+    "estimateExplanation": "Proj. 1Y Net covers January–December of the current year, using recorded balances and all applicable rates. Earned to date covers January 1 through today; Total earned covers account opening through today. These are calculated amounts, not posted interest.",
+    "loadError": "Unable to load interest amounts.",
+    "creditValueDateMode": "Credit value date",
+    "debitValueDateMode": "Debit value date",
+    "dayCountBasis": "Calculation basis",
+    "valueDateHelp": "Offsets delay credits and advance debits. Fortnightly credits start on the next 1st or 16th; debits start on the current 1st or 16th. Only interest calculations use these dates.",
+    "valueModes": {
+      "TRANSACTION_DATE": "Transaction date",
+      "DAYS_1": "1 calendar day",
+      "DAYS_2": "2 calendar days",
+      "DAYS_3": "3 calendar days",
+      "DAYS_4": "4 calendar days",
+      "DAYS_5": "5 calendar days",
+      "FORTNIGHT": "Fortnightly (1st / 16th)"
+    },
+    "bases": {
+      "ACTUAL_365": "Actual days / 365",
+      "THIRTY_360": "30-day months / 360",
+      "FORTNIGHT_24": "24 half-months / year"
+    },
+    "totalEarned": "Total earned"
   },
   "validation": {
     "nameRequired": "Name is required",
@@ -185,7 +208,7 @@
     "descriptionTooLong": "Description is too long",
     "balanceNegative": "Balance cannot be negative for this account type",
     "balanceInvalid": "Enter a valid amount (e.g. 1234.56)",
-    "interestRatePositive": "Interest rate must be greater than 0",
+    "interestRatePositive": "Interest rate must be zero or greater",
     "interestRateMustBePositive": "Rate must be positive",
     "taxRateMustBePositive": "Tax rate must be positive",
     "taxRateMax": "Tax rate cannot exceed 100",

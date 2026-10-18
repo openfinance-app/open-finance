@@ -3,6 +3,7 @@ import { screen, fireEvent } from '@testing-library/react';
 import { renderWithProviders, mockAuthentication } from '@/test/test-utils';
 import { AccountCard } from '@/components/accounts/AccountCard';
 import type { Account } from '@/types/account';
+import { useInterestEstimate } from '@/hooks/useAccounts';
 
 // ---------------------------------------------------------------------------
 // Mock hooks
@@ -16,7 +17,7 @@ vi.mock('@/hooks/useSecondaryConversion', () => ({
 }));
 
 vi.mock('@/hooks/useAccounts', () => ({
-  useInterestEstimate: () => ({ data: null }),
+  useInterestEstimate: vi.fn(() => ({ data: null })),
 }));
 
 // ---------------------------------------------------------------------------
@@ -42,6 +43,9 @@ const mockOnViewDetail = vi.fn();
 describe('AccountCard', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(useInterestEstimate).mockReturnValue({ data: null } as unknown as ReturnType<
+      typeof useInterestEstimate
+    >);
     mockAuthentication();
     Element.prototype.scrollIntoView = vi.fn();
   });
@@ -100,6 +104,26 @@ describe('AccountCard', () => {
       // No img element for type icons (they are SVG/lucide)
       expect(screen.queryByRole('img')).not.toBeInTheDocument();
     });
+  });
+
+  it('shows lifetime earnings and the current calendar-year projection on interest accounts', () => {
+    vi.mocked(useInterestEstimate).mockReturnValue({
+      data: { estimate: 375.32, yearToDate: 294.51, historicalAccumulated: 789.66 },
+    } as ReturnType<typeof useInterestEstimate>);
+    renderWithProviders(
+      <AccountCard
+        account={{ ...baseAccount, isInterestEnabled: true }}
+        onEdit={mockOnEdit}
+        onDelete={mockOnDelete}
+      />
+    );
+    expect(useInterestEstimate).toHaveBeenCalledWith(1);
+    expect(screen.getByText('Total earned')).toBeInTheDocument();
+    expect(screen.getByText('$789.66')).toBeInTheDocument();
+    expect(screen.getByText('Proj. 1Y Net')).toBeInTheDocument();
+    expect(screen.getByText('$375.32')).toBeInTheDocument();
+    expect(screen.queryByText('Earned to date')).not.toBeInTheDocument();
+    expect(screen.queryByText('$294.51')).not.toBeInTheDocument();
   });
 
   describe('Different account types', () => {

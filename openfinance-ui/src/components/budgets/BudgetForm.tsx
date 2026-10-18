@@ -44,14 +44,16 @@ function createBudgetSchema(t: (key: string) => string) {
       startDate: z.string().min(1, t('validation.startDateRequired')),
       endDate: z.string().min(1, t('validation.endDateRequired')),
       rollover: z.boolean(),
+      recurring: z.boolean(),
+      rolloverOverspending: z.boolean(),
       notes: z.string().max(500, t('validation.notesTooLong')).optional(),
     })
     .refine(
       data => {
         const start = new Date(data.startDate);
         const end = new Date(data.endDate);
-        // end must be at least 1 day after start (same-day not allowed)
-        return end.getTime() - start.getTime() >= 86400000;
+        // Both endpoints are inclusive; a one-day allowance is valid.
+        return end.getTime() >= start.getTime();
       },
       { message: t('validation.endDateAfterStart'), path: ['endDate'] }
     );
@@ -102,6 +104,8 @@ export function BudgetForm({
           startDate: budget.startDate,
           endDate: budget.endDate,
           rollover: budget.rollover,
+          recurring: budget.recurring ?? true,
+          rolloverOverspending: budget.rolloverOverspending ?? false,
           notes: budget.notes || '',
         }
       : {
@@ -112,6 +116,8 @@ export function BudgetForm({
           startDate: format(new Date(), 'yyyy-MM-dd'),
           endDate: '',
           rollover: false,
+          recurring: true,
+          rolloverOverspending: false,
           notes: '',
         },
   });
@@ -125,6 +131,8 @@ export function BudgetForm({
       'startDate',
       'endDate',
       'rollover',
+      'recurring',
+      'rolloverOverspending',
       'notes',
     ]);
     for (const [field, message] of Object.entries(serverFieldErrors ?? {})) {
@@ -151,6 +159,8 @@ export function BudgetForm({
       startDate: data.startDate,
       endDate: data.endDate,
       rollover: data.rollover,
+      recurring: data.recurring,
+      rolloverOverspending: data.rolloverOverspending,
       notes: data.notes ?? '',
     });
   });
@@ -297,6 +307,16 @@ export function BudgetForm({
         </div>
       </div>
 
+      <div className="space-y-2">
+        <label className="flex items-center gap-2 text-sm">
+          <input type="checkbox" {...register('recurring')} className="accent-primary" />
+          {t('form.renewAllowance')}
+        </label>
+        <p className="text-xs text-text-secondary">
+          {watch('recurring') ? t('form.renewAllowanceHelp') : t('form.singleAllowanceHelp')}
+        </p>
+      </div>
+
       {/* Rollover checkbox */}
       <div className="flex items-center gap-2 pt-2">
         <input
@@ -309,6 +329,13 @@ export function BudgetForm({
           {t('form.rollover')}
         </label>
       </div>
+
+      {watch('rollover') && (
+        <label className="flex items-center gap-2 text-sm">
+          <input type="checkbox" {...register('rolloverOverspending')} className="accent-primary" />
+          {t('form.carryOverspending')}
+        </label>
+      )}
 
       {/* Notes */}
       <div>

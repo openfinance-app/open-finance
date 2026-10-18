@@ -173,10 +173,19 @@ public class BudgetAlertService {
 
         // Check if spending exceeds threshold
         BigDecimal spentPercentage = progress.getPercentageSpent();
-        if (spentPercentage.compareTo(alert.getThreshold()) < 0) {
+        if (spentPercentage == null
+                ? progress.getRemaining() == null || progress.getRemaining().signum() >= 0
+                : spentPercentage.compareTo(alert.getThreshold()) < 0) {
             return false;
         }
 
+        // A prior month's trigger cannot suppress this month's alert.
+        if (alert.getLastTriggered() != null
+                && progress.getStartDate() != null
+                && alert.getLastTriggered().toLocalDate().isBefore(progress.getStartDate())) {
+            alert.setLastTriggered(null);
+            alert.setRead(true);
+        }
         // Check cooldown period to avoid duplicate alerts
         if (alert.getLastTriggered() != null) {
             LocalDateTime cooldownExpiry = alert.getLastTriggered().plusHours(ALERT_COOLDOWN_HOURS);
@@ -411,7 +420,12 @@ public class BudgetAlertService {
             throw new IllegalArgumentException("User ID cannot be null");
         }
 
-        return alertRepository.findUnreadAlertsByUserId(userId);
+        return alertRepository.findUnreadAlertsByUserId(userId).stream()
+                .filter(
+                        alert ->
+                                BudgetSchedule.currentTrigger(
+                                        alert.getBudget(), alert.getLastTriggered()))
+                .toList();
     }
 
     /**
@@ -428,7 +442,7 @@ public class BudgetAlertService {
             throw new IllegalArgumentException("User ID cannot be null");
         }
 
-        return alertRepository.countUnreadAlertsByUserId(userId);
+        return findUnreadAlerts(userId).size();
     }
 
     /**

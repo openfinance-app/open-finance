@@ -164,6 +164,7 @@ export interface IAccountInterest {
   accountId: number;
   accountName: string;
   interestEarned: number;
+  /** Net interest for January–December of the current year. */
   projectedInterest: number;
   sourceType?: 'ACCOUNT' | 'LIABILITY';
 }
@@ -174,6 +175,7 @@ export interface IAccountInterest {
 export interface IEstimatedInterestSummary {
   accounts: IAccountInterest[];
   totalEarned: number;
+  /** Combined current calendar-year projection for accounts and liabilities. */
   totalProjected: number;
   currency: string;
 }

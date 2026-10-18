@@ -301,5 +301,23 @@
       "invalidXml": "Skipped: invalid or unsupported XML definition.",
       "unresolvedCategory": "Skipped: the target category could not be resolved."
     }
+  },
+  "skroogeInterest": {
+    "title": "Skrooge interest settings",
+    "preview": "{{source}} rates found · {{ready}} ready to import · {{skipped}} skipped",
+    "scope": "Rate history, credit/debit value dates and calculation bases are imported. Interest calculation is enabled on matching accounts. Existing rates with a different value on the same date are kept.",
+    "details": "Review interest import warnings",
+    "rate": "Rate #{{id}}",
+    "stats": {
+      "source": "Total",
+      "imported": "Imported or updated",
+      "existing": "Already present",
+      "skipped": "Skipped"
+    },
+    "warnings": {
+      "unsupported": "Unsupported or invalid interest settings; this rate was skipped.",
+      "accountMissing": "The source account could not be matched.",
+      "conflict": "A different rate already exists for this effective date; it was kept."
+    }
   }
 }

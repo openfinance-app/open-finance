@@ -32,7 +32,8 @@
     "confirmDelete": "Supprimer cette alerte de budget ?",
     "thresholdInvalid": "Le seuil doit être compris entre 1 % et 150 %.",
     "duplicate": "Une alerte à {{threshold}} % existe déjà.",
-    "saveError": "Impossible d’enregistrer l’alerte. Veuillez réessayer."
+    "saveError": "Impossible d’enregistrer l’alerte. Veuillez réessayer.",
+    "noAllowance": "Le montant disponible pour {{categoryName}} est épuisé, reports de dépassement inclus."
   },
   "empty": {
     "noBudgets": "Aucun budget pour l'instant",
@@ -60,7 +61,7 @@
     "currency": "Devise",
     "startDate": "Date de début",
     "endDate": "Date de fin",
-    "rollover": "Reporter le budget non utilisé à la période suivante",
+    "rollover": "Reporter le montant inutilisé sur la période suivante",
     "notes": "Notes (Facultatif)",
     "notesPlaceholder": "Ajoutez des notes sur ce budget...",
     "searchPlaceholder": "Rechercher des budgets...",
@@ -74,7 +75,12 @@
       "YEARLY": "Annuel",
       "UNKNOWN": "Inconnu"
     },
-    "netSpendingHelp": "Les montants reçus dans cette catégorie réduisent les dépenses du budget."
+    "netSpendingHelp": "Les montants reçus dans cette catégorie réduisent les dépenses du budget.",
+    "renewAllowance": "Renouveler le montant à chaque période",
+    "renewAllowanceHelp": "Le montant est renouvelé de la date de début à la date de fin. La dernière période est calculée au prorata des jours si elle est incomplète.",
+    "singleAllowance": "Ponctuel",
+    "singleAllowanceHelp": "Utiliser ce montant une seule fois pour toute la plage de dates.",
+    "carryOverspending": "Reporter aussi les dépassements sur la période suivante"
   },
   "card": {
     "budget": "Budget",
@@ -92,7 +98,10 @@
       "warning": "Attention",
       "exceeded": "Dépassé"
     },
-    "endsToday": "Se termine aujourd’hui"
+    "endsToday": "Se termine aujourd’hui",
+    "carryover": "Report",
+    "includesCarry": "Report inclus",
+    "noAllowance": "Montant disponible épuisé"
   },
   "detail": {
     "overallUsage": "Utilisation globale",
@@ -105,10 +114,16 @@
       "period": "Période",
       "dateRange": "Plage de dates",
       "pctUsed": "% utilisé",
-      "status": "Statut"
+      "status": "Statut",
+      "result": "Résultat"
     },
     "periodBreakdown_other": "Détail par période ({{count}} périodes)",
-    "periodBreakdown_one": "Détail par période ({{count}} période)"
+    "periodBreakdown_one": "Détail par période ({{count}} période)",
+    "future": "À venir",
+    "initialCarry": "Report du budget précédent :",
+    "allowanceExplanation": "Le montant budgété est la nouvelle enveloppe de chaque période. Le report est inclus dans le résultat, mais n’est pas ajouté à nouveau au total du plan. Le pourcentage de dépassement compare l’excédent à l’enveloppe avec report ; il n’est pas disponible si ce montant est nul ou négatif. Les périodes à venir n’ont pas encore de résultat ; les dépenses et reports futurs ne sont pas des prévisions.",
+    "overBudget": "Dépassement",
+    "overBudgetPercent": "Dépassement de {{percent}} %"
   },
   "summary": {
     "title": "Aperçu des budgets en cours",
@@ -125,7 +140,8 @@
     "budgetsCount_one": "({{count}} budget)",
     "budgetsCount_other": "({{count}} budgets)",
     "over": "dépassé",
-    "remainingLabel": "restant"
+    "remainingLabel": "restant",
+    "noActiveBudgets": "Aucun budget actif. Les totaux incluent uniquement les périodes budgétaires en cours."
   },
   "filters": {
     "label": "Filtres",
@@ -138,7 +154,7 @@
     "categoryRequired": "La catégorie est obligatoire",
     "amountPositive": "Le montant doit être supérieur à 0",
     "amountInvalid": "Saisissez un montant valide (ex. 1234,56)",
-    "endDateAfterStart": "La date de fin doit être au moins 1 jour après la date de début",
+    "endDateAfterStart": "La date de fin doit être égale ou postérieure à la date de début",
     "currencyRequired": "Sélectionnez une devise",
     "startDateRequired": "La date de début est obligatoire",
     "endDateRequired": "La date de fin est obligatoire",

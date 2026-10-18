@@ -61,4 +61,7 @@ public class BudgetHistoryResponse {
 
     /** Total budgeted across the entire budget lifetime. */
     private BigDecimal totalBudgeted;
+
+    /** Carry entering this plan, counted once and separate from new allowances. */
+    private BigDecimal initialCarryover;
 }

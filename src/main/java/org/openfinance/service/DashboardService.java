@@ -1836,8 +1836,9 @@ public class DashboardService {
                                 : interestCalculatorService.calculateHistoricalAccumulated(
                                         account.getId(), userId, startDate, endDate);
                 BigDecimal projected =
-                        interestCalculatorService.calculateInterestEstimate(
-                                account.getId(), userId, "1Y");
+                        interestCalculatorService
+                                .calculateYear(account.getId(), userId, LocalDate.now().getYear())
+                                .calendarYearEstimate();
 
                 // Interest is computed in the account's own currency; convert to base for
                 // totals.
@@ -1877,34 +1878,21 @@ public class DashboardService {
                                                 () ->
                                                         new IllegalStateException(
                                                                 "Represented account not found"));
-                BigDecimal currentBalance =
-                        representedAccount == null
-                                ? (liability.getCurrentBalance() == null
-                                                || liability.getCurrentBalance().isBlank()
-                                        ? BigDecimal.ZERO
-                                        : new BigDecimal(liability.getCurrentBalance()))
-                                : representedAccount.getBalance().negate().max(BigDecimal.ZERO);
                 String debtCurrency =
                         representedAccount == null
                                 ? liability.getCurrency()
                                 : representedAccount.getCurrency();
-                int scale = org.openfinance.util.MoneyPrecision.scale(baseCurrency);
-                BigDecimal annualInterest =
-                        convertToBase(
-                                        currentBalance.multiply(interestRate).movePointLeft(2),
-                                        debtCurrency,
-                                        baseCurrency)
-                                .setScale(scale, RoundingMode.HALF_UP);
-                BigDecimal periodInterest =
-                        historicalLiabilityInterest(
-                                        liability,
-                                        period,
-                                        startDate,
-                                        endDate,
-                                        interestRate,
-                                        baseCurrency,
-                                        debtCurrency)
-                                .negate();
+                LiabilityInterest interest =
+                        liabilityInterest(
+                                liability,
+                                period,
+                                startDate,
+                                endDate,
+                                interestRate,
+                                baseCurrency,
+                                debtCurrency);
+                BigDecimal periodInterest = interest.earned().negate();
+                BigDecimal projectedInterest = interest.projected().negate();
 
                 // Name already decrypted by JPA converter
                 String liabilityName = liability.getName();
@@ -1914,10 +1902,10 @@ public class DashboardService {
                                 liability.getId(),
                                 liabilityName,
                                 periodInterest,
-                                annualInterest.negate(),
+                                projectedInterest,
                                 AccountInterest.SourceType.LIABILITY));
                 totalEarned = totalEarned.add(periodInterest);
-                totalProjected = totalProjected.add(annualInterest.negate());
+                totalProjected = totalProjected.add(projectedInterest);
             } catch (NumberFormatException e) {
                 log.warn(
                         "Failed to process interest for liability id={}: {}",
@@ -2094,10 +2082,8 @@ public class DashboardService {
         return defaultCurrencyProvider.resolveForUser(userId);
     }
 
-    /**
-     * Estimates elapsed interest from closing principal each day, using the recorded annual rate.
-     */
-    private BigDecimal historicalLiabilityInterest(
+    /** Selected-period accrual and current calendar-year projection share one principal history. */
+    private LiabilityInterest liabilityInterest(
             Liability liability,
             String period,
             LocalDate selectedStart,
@@ -2105,55 +2091,71 @@ public class DashboardService {
             BigDecimal annualPercentage,
             String baseCurrency,
             String debtCurrency) {
-        LocalDate endDate =
-                selectedEnd == null || selectedEnd.isAfter(LocalDate.now())
-                        ? LocalDate.now()
-                        : selectedEnd;
-        LocalDate startDate =
+        LocalDate today = LocalDate.now();
+        LocalDate earnedEnd =
+                selectedEnd == null || selectedEnd.isAfter(today) ? today : selectedEnd;
+        LocalDate earnedStart =
                 selectedStart == null
                         ? org.openfinance.util.HistoricalPeriod.startDate(
-                                period == null ? "1M" : period, endDate, liability.getStartDate())
+                                period == null ? "1M" : period, earnedEnd, liability.getStartDate())
                         : selectedStart;
-        if (liability.getStartDate() != null && liability.getStartDate().isAfter(startDate)) {
-            startDate = liability.getStartDate();
+        LocalDate yearStart = today.withDayOfYear(1);
+        LocalDate yearEnd = today.withMonth(12).withDayOfMonth(31);
+        LocalDate historyStart = earnedStart.isBefore(yearStart) ? earnedStart : yearStart;
+        if (liability.getStartDate() != null && liability.getStartDate().isAfter(historyStart)) {
+            historyStart = liability.getStartDate();
         }
-        if (startDate.isAfter(endDate)) return BigDecimal.ZERO;
-        List<org.openfinance.dto.BalanceHistoryPoint> history;
+        BigDecimal earnedBalanceDays = BigDecimal.ZERO;
+        BigDecimal projectedBalanceDays = BigDecimal.ZERO;
+        for (org.openfinance.dto.BalanceHistoryPoint point :
+                liabilityPrincipalHistory(liability, historyStart, yearEnd)) {
+            boolean earned =
+                    !point.date().isBefore(earnedStart) && !point.date().isAfter(earnedEnd);
+            boolean projected = !point.date().isBefore(yearStart);
+            if (point.balance().signum() <= 0 || (!earned && !projected)) continue;
+            // Past accrual retains dated FX; the rest of this year uses today's available quote.
+            BigDecimal balance =
+                    convertToBase(
+                            point.balance(),
+                            debtCurrency,
+                            baseCurrency,
+                            point.date().isAfter(today) ? today : point.date());
+            if (earned) earnedBalanceDays = earnedBalanceDays.add(balance);
+            if (projected) projectedBalanceDays = projectedBalanceDays.add(balance);
+        }
+        return new LiabilityInterest(
+                interestForBalanceDays(earnedBalanceDays, annualPercentage, baseCurrency),
+                interestForBalanceDays(projectedBalanceDays, annualPercentage, baseCurrency));
+    }
+
+    private List<org.openfinance.dto.BalanceHistoryPoint> liabilityPrincipalHistory(
+            Liability liability, LocalDate start, LocalDate end) {
+        if (start.isAfter(end)) return List.of();
         if (liability.getRepresentedByAccountId() == null) {
-            history =
-                    netWorthService.getStandaloneLiabilityBalanceHistory(
-                            liability, startDate, endDate);
-        } else {
-            history =
-                    interestCalculatorService
-                            .getDailyCashBalances(
-                                    liability.getRepresentedByAccountId(),
-                                    liability.getUserId(),
-                                    startDate,
-                                    endDate)
-                            .entrySet()
-                            .stream()
-                            .map(
-                                    entry ->
-                                            new org.openfinance.dto.BalanceHistoryPoint(
-                                                    entry.getKey(),
-                                                    entry.getValue().negate().max(BigDecimal.ZERO)))
-                            .toList();
+            return netWorthService.getStandaloneLiabilityBalanceHistory(liability, start, end);
         }
-        BigDecimal balanceDays = BigDecimal.ZERO;
-        for (org.openfinance.dto.BalanceHistoryPoint point : history) {
-            if (point.balance().signum() > 0) {
-                balanceDays =
-                        balanceDays.add(
-                                convertToBase(
-                                        point.balance(), debtCurrency, baseCurrency, point.date()));
-            }
-        }
+        return interestCalculatorService
+                .getDailyCashBalances(
+                        liability.getRepresentedByAccountId(), liability.getUserId(), start, end)
+                .entrySet()
+                .stream()
+                .map(
+                        entry ->
+                                new org.openfinance.dto.BalanceHistoryPoint(
+                                        entry.getKey(),
+                                        entry.getValue().negate().max(BigDecimal.ZERO)))
+                .toList();
+    }
+
+    private BigDecimal interestForBalanceDays(
+            BigDecimal balanceDays, BigDecimal annualPercentage, String currency) {
         return balanceDays
                 .multiply(annualPercentage)
                 .divide(
                         DAYS_PER_YEAR.multiply(BigDecimal.valueOf(100)),
-                        org.openfinance.util.MoneyPrecision.scale(baseCurrency),
+                        org.openfinance.util.MoneyPrecision.scale(currency),
                         RoundingMode.HALF_UP);
     }
+
+    private record LiabilityInterest(BigDecimal earned, BigDecimal projected) {}
 }

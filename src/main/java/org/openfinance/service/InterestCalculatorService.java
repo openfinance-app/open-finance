@@ -4,6 +4,7 @@ import java.math.BigDecimal;
 import java.math.MathContext;
 import java.math.RoundingMode;
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -14,6 +15,7 @@ import org.openfinance.dto.AccountResponse;
 import org.openfinance.dto.BalanceHistoryPoint;
 import org.openfinance.entity.InterestPeriod;
 import org.openfinance.entity.InterestRateVariation;
+import org.openfinance.entity.InterestValueDateMode;
 import org.openfinance.repository.InterestRateVariationRepository;
 import org.openfinance.util.MathConstants;
 import org.springframework.stereotype.Service;
@@ -120,7 +122,13 @@ public class InterestCalculatorService {
                 accountService.getAccountBalanceHistory(accountId, userId, period);
         if (history.isEmpty()) return BigDecimal.ZERO;
 
-        return totalAccrued(account, accrue(variations, history, LocalDate.now()));
+        return totalAccrued(
+                account,
+                accrue(
+                        variations,
+                        eligibleHistory(
+                                accountId, userId, variations, history, LocalDate.now(), false),
+                        LocalDate.now()));
     }
 
     /** Estimates interest only within the selected inclusive range, capped at today. */
@@ -135,24 +143,145 @@ public class InterestCalculatorService {
         if (!Boolean.TRUE.equals(account.getIsInterestEnabled()) || startDate.isAfter(through)) {
             return BigDecimal.ZERO;
         }
+        List<InterestRateVariation> variations =
+                variationRepository.findByAccountIdOrderByValidFromDesc(accountId);
+        List<BalanceHistoryPoint> cash =
+                accountService.getAccountBalanceHistory(accountId, userId, startDate, through);
         return totalAccrued(
                 account,
                 accrue(
-                        variationRepository.findByAccountIdOrderByValidFromDesc(accountId),
-                        accountService.getAccountBalanceHistory(
-                                accountId, userId, startDate, through),
+                        variations,
+                        eligibleHistory(accountId, userId, variations, cash, through, false),
                         through));
     }
 
-    /** Unrounded per-rate estimates share the same daily cash ledger as the summary. */
+    /** Accrual estimates use interest value dates; ordinary account history stays booked cash. */
     @Transactional(readOnly = true)
     public Map<Long, Accrual> calculateAccrualsByVariation(Long accountId, Long userId) {
         AccountResponse account = accountService.getAccountById(accountId, userId);
         if (!Boolean.TRUE.equals(account.getIsInterestEnabled())) return Map.of();
+        List<InterestRateVariation> variations =
+                variationRepository.findByAccountIdOrderByValidFromDesc(accountId);
         return accrue(
-                variationRepository.findByAccountIdOrderByValidFromDesc(accountId),
-                accountService.getAccountBalanceHistory(accountId, userId, "ALL"),
+                variations,
+                eligibleHistory(
+                        accountId,
+                        userId,
+                        variations,
+                        accountService.getAccountBalanceHistory(accountId, userId, "ALL"),
+                        LocalDate.now(),
+                        false),
                 LocalDate.now());
+    }
+
+    public record YearEstimate(
+            int year,
+            LocalDate through,
+            BigDecimal accrued,
+            BigDecimal calendarYearEstimate,
+            Map<Long, Accrual> accruals) {
+        public YearEstimate {
+            accruals = Map.copyOf(accruals);
+        }
+    }
+
+    @Transactional(readOnly = true)
+    public YearEstimate calculateYear(Long accountId, Long userId, int year) {
+        if (year < 1900 || year > 9998) throw new IllegalArgumentException("Invalid interest year");
+        AccountResponse account = accountService.getAccountById(accountId, userId);
+        LocalDate start = LocalDate.of(year, 1, 1);
+        LocalDate end = LocalDate.of(year, 12, 31);
+        LocalDate through = end.isAfter(LocalDate.now()) ? LocalDate.now() : end;
+        if (!Boolean.TRUE.equals(account.getIsInterestEnabled())) {
+            return new YearEstimate(year, through, BigDecimal.ZERO, BigDecimal.ZERO, Map.of());
+        }
+        List<InterestRateVariation> variations =
+                variationRepository.findByAccountIdOrderByValidFromDesc(accountId);
+        Map<Long, Accrual> accrued =
+                start.isAfter(through)
+                        ? Map.of()
+                        : accrue(
+                                variations,
+                                eligibleHistory(
+                                        accountId,
+                                        userId,
+                                        variations,
+                                        accountService.getAccountBalanceHistory(
+                                                accountId, userId, start, through),
+                                        through,
+                                        false),
+                                through);
+        Map<Long, Accrual> annual =
+                accrue(
+                        variations,
+                        eligibleHistory(
+                                accountId,
+                                userId,
+                                variations,
+                                accountService.getAccountBalanceHistory(
+                                        accountId, userId, start, end),
+                                end,
+                                true),
+                        end);
+        return new YearEstimate(
+                year,
+                through,
+                totalAccrued(account, accrued),
+                totalAccrued(account, annual),
+                accrued);
+    }
+
+    private List<BalanceHistoryPoint> eligibleHistory(
+            Long accountId,
+            Long userId,
+            List<InterestRateVariation> variations,
+            List<BalanceHistoryPoint> cash,
+            LocalDate end,
+            boolean forecast) {
+        if (cash.isEmpty()
+                || variations.stream()
+                        .allMatch(
+                                v ->
+                                        v.getCreditValueDateMode()
+                                                        == InterestValueDateMode.TRANSACTION_DATE
+                                                && v.getDebitValueDateMode()
+                                                        == InterestValueDateMode
+                                                                .TRANSACTION_DATE)) {
+            return cash;
+        }
+        TreeMap<LocalDate, BigDecimal> changes = new TreeMap<>();
+        BigDecimal previous = BigDecimal.ZERO;
+        for (BalanceHistoryPoint point : cash) {
+            changes.merge(point.date(), point.balance().subtract(previous), BigDecimal::add);
+            previous = point.balance();
+        }
+        LocalDate start = cash.get(0).date();
+        LocalDate bookedThrough = end.plusMonths(1);
+        if (!forecast && bookedThrough.isAfter(LocalDate.now())) bookedThrough = LocalDate.now();
+        for (AccountService.CashMovement transaction :
+                accountService.getCashMovements(
+                        accountId, userId, start.minusMonths(1), bookedThrough)) {
+            InterestRateVariation rule = getVariationForDate(variations, transaction.date());
+            if (rule == null) continue;
+            BigDecimal signed = transaction.balanceDelta();
+            boolean credit = signed.signum() >= 0;
+            InterestValueDateMode mode =
+                    credit ? rule.getCreditValueDateMode() : rule.getDebitValueDateMode();
+            LocalDate valueDate = mode.valueDate(transaction.date(), credit);
+            if (valueDate.equals(transaction.date())) continue;
+            LocalDate booked = transaction.date().isBefore(start) ? start : transaction.date();
+            LocalDate eligible = valueDate.isBefore(start) ? start : valueDate;
+            changes.merge(booked, signed.negate(), BigDecimal::add);
+            changes.merge(eligible, signed, BigDecimal::add);
+        }
+        List<BalanceHistoryPoint> result = new ArrayList<>();
+        BigDecimal balance = BigDecimal.ZERO;
+        for (Map.Entry<LocalDate, BigDecimal> entry : changes.entrySet()) {
+            balance = balance.add(entry.getValue());
+            if (!entry.getKey().isAfter(end))
+                result.add(new BalanceHistoryPoint(entry.getKey(), balance));
+        }
+        return result;
     }
 
     public record Accrual(long activeDays, BigDecimal interestProduced) {
@@ -184,10 +313,11 @@ public class InterestCalculatorService {
             if (applicable == null) continue;
             BigDecimal annualRate = applicable.getRate().movePointLeft(2);
             BigDecimal dailyGross =
-                    entry.getValue()
-                            .max(BigDecimal.ZERO)
-                            .multiply(annualRate)
-                            .divide(new BigDecimal("365"), 18, RoundingMode.HALF_UP);
+                    applicable
+                            .getDayCountBasis()
+                            .dailyInterest(
+                                    entry.getValue().max(BigDecimal.ZERO).multiply(annualRate),
+                                    entry.getKey());
             BigDecimal taxPct =
                     applicable.getTaxRate() == null ? BigDecimal.ZERO : applicable.getTaxRate();
             BigDecimal net = dailyGross.multiply(BigDecimal.ONE.subtract(taxPct.movePointLeft(2)));

@@ -356,9 +356,10 @@ public class InsightService {
                             budgetService.calculateBudgetProgress(budget.getId(), userId);
                     BigDecimal budgetAmount = progress.getBudgeted();
                     BigDecimal spent = progress.getSpent();
+                    if (budgetAmount.signum() <= 0 || progress.getPercentageSpent() == null)
+                        continue;
                     BigDecimal percentUsed =
                             progress.getPercentageSpent().divide(MathConstants.HUNDRED);
-                    if (budgetAmount.signum() <= 0) continue;
 
                     // Generate appropriate insight based on percentage used
                     if (percentUsed.compareTo(BUDGET_EXCEEDED_THRESHOLD) > 0) {

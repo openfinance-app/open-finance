@@ -37,9 +37,13 @@ public class BudgetHistoryEntry {
     /**
      * Total budgeted amount for this sub-period.
      *
-     * <p>Equal to the parent budget's amount. Every sub-period gets the same budget ceiling.
+     * <p>New allowance only; a shortened final period is prorated by calendar days.
      */
     private BigDecimal budgeted;
+
+    private BigDecimal carryover;
+    private BigDecimal available;
+    private boolean future;
 
     /**
      * Amount actually spent in this sub-period.
@@ -48,10 +52,10 @@ public class BudgetHistoryEntry {
      */
     private BigDecimal spent;
 
-    /** Remaining amount (budgeted − spent). Can be negative if over budget. */
+    /** Remaining amount (budgeted + carryover − spent). Can be negative if over budget. */
     private BigDecimal remaining;
 
-    /** Percentage of budget spent in this sub-period. Can exceed 100. */
+    /** Percentage of available funds spent; null when a nonpositive allowance is depleted. */
     private BigDecimal percentageSpent;
 
     /**

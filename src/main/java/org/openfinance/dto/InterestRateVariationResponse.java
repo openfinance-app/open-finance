@@ -7,6 +7,8 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.openfinance.entity.InterestDayCountBasis;
+import org.openfinance.entity.InterestValueDateMode;
 
 @Data
 @Builder
@@ -19,6 +21,10 @@ public class InterestRateVariationResponse {
     private BigDecimal rate;
     private BigDecimal taxRate;
     private LocalDate validFrom;
+
+    private InterestValueDateMode creditValueDateMode;
+    private InterestValueDateMode debitValueDateMode;
+    private InterestDayCountBasis dayCountBasis;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 

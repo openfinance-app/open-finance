@@ -301,5 +301,23 @@
       "invalidXml": "Ignorée : définition XML invalide ou non prise en charge.",
       "unresolvedCategory": "Ignorée : la catégorie cible n’a pas pu être résolue."
     }
+  },
+  "skroogeInterest": {
+    "title": "Paramètres d’intérêts Skrooge",
+    "preview": "{{source}} taux trouvés · {{ready}} prêts à importer · {{skipped}} ignorés",
+    "scope": "L’historique des taux, les dates de valeur des crédits/débits et les bases de calcul sont importés. Le calcul des intérêts est activé sur les comptes correspondants. Les taux existants différents à une même date sont conservés.",
+    "details": "Voir les avertissements d’importation des intérêts",
+    "rate": "Taux n° {{id}}",
+    "stats": {
+      "source": "Total",
+      "imported": "Importés ou mis à jour",
+      "existing": "Déjà présents",
+      "skipped": "Ignorés"
+    },
+    "warnings": {
+      "unsupported": "Paramètres non pris en charge ou invalides ; ce taux a été ignoré.",
+      "accountMissing": "Le compte source n’a pas pu être associé.",
+      "conflict": "Un taux différent existe déjà à cette date ; il a été conservé."
+    }
   }
 }

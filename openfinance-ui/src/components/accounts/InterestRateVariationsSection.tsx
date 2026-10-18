@@ -1,10 +1,9 @@
-import { ExactDecimal } from '@/utils/exact-decimal';
+import { ExactDecimal, decimalField } from '@/utils/exact-decimal';
 import { isValidDecimalString } from '@/utils/money';
 import { formatDecimal } from '@/utils/format';
 import { useMemo, useState } from 'react';
-import { format, parseISO } from 'date-fns';
-import { toLocalISODate } from '@/utils/date';
-import { Plus, Trash2, TrendingUp } from 'lucide-react';
+import { formatDate, toLocalISODate } from '@/utils/date';
+import { Plus, Trash2, TrendingUp, Pencil } from 'lucide-react';
 import { Controller, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -28,22 +27,27 @@ import {
   useCreateVariation,
   useDeleteVariation,
   useInterestEstimate,
+  useUpdateVariation,
 } from '@/hooks/useAccounts';
 import { DEFAULT_CURRENCY } from '@/utils/currency';
-import { percentage, sum } from '@/utils/money';
+
+import {
+  INTEREST_VALUE_DATE_MODES,
+  INTEREST_DAY_COUNT_BASES,
+  type InterestRateVariation,
+} from '@/types/account';
 
 interface Props {
   accountId: number;
-  accountBalance?: number;
   accountCurrency?: string;
 }
 
 export function InterestRateVariationsSection({
   accountId,
-  accountBalance = 0,
   accountCurrency = DEFAULT_CURRENCY,
 }: Props) {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [editingRate, setEditingRate] = useState<InterestRateVariation | null>(null);
   const { t } = useTranslation('accounts');
 
   const variationSchema = useMemo(
@@ -52,7 +56,7 @@ export function InterestRateVariationsSection({
         rate: z
           .string()
           .refine(
-            v => isValidDecimalString(v) && new ExactDecimal(v).gte('0.01'),
+            v => isValidDecimalString(v) && new ExactDecimal(v).gte('0'),
             t('validation.interestRatePositive')
           ),
         taxRate: z
@@ -64,19 +68,28 @@ export function InterestRateVariationsSection({
           .refine(v => new ExactDecimal(v).lte(100), t('validation.taxRateMax'))
           .optional(),
         validFrom: z.string().min(1, t('validation.effectiveDateRequired')),
+        creditValueDateMode: z.enum(INTEREST_VALUE_DATE_MODES),
+        debitValueDateMode: z.enum(INTEREST_VALUE_DATE_MODES),
+        dayCountBasis: z.enum(INTEREST_DAY_COUNT_BASES),
       }),
     [t]
   );
 
   type VariationFormData = z.infer<typeof variationSchema>;
   const { data: variations, isLoading } = useInterestRateVariations(accountId);
-  const { data: interestEstimate } = useInterestEstimate(accountId, 'ALL');
+  const {
+    data: interestEstimate,
+    isLoading: estimateLoading,
+    isError: estimateError,
+  } = useInterestEstimate(accountId);
   const createVariation = useCreateVariation();
+  const updateVariation = useUpdateVariation();
   const deleteVariation = useDeleteVariation();
 
   const {
     handleSubmit,
     control,
+    register,
     reset,
     formState: { errors },
   } = useForm<VariationFormData>({
@@ -84,27 +97,39 @@ export function InterestRateVariationsSection({
     defaultValues: {
       rate: '0',
       taxRate: '0',
-      validFrom: new Date().toISOString().split('T')[0],
+      validFrom: toLocalISODate(new Date()),
+      creditValueDateMode: 'TRANSACTION_DATE',
+      debitValueDateMode: 'TRANSACTION_DATE',
+      dayCountBasis: 'ACTUAL_365',
     },
   });
 
   const onSubmit = (data: VariationFormData) => {
-    createVariation.mutate(
-      {
-        accountId,
-        data: {
-          rate: data.rate,
-          taxRate: data.taxRate,
-          validFrom: data.validFrom,
-        },
+    const callbacks = {
+      onSuccess: () => {
+        setIsAddDialogOpen(false);
+        setEditingRate(null);
+        reset();
       },
-      {
-        onSuccess: () => {
-          setIsAddDialogOpen(false);
-          reset();
-        },
-      }
-    );
+    };
+    if (editingRate) {
+      updateVariation.mutate({ accountId, variationId: editingRate.id, data }, callbacks);
+    } else {
+      createVariation.mutate({ accountId, data }, callbacks);
+    }
+  };
+
+  const openEditor = (variation: InterestRateVariation | null) => {
+    setEditingRate(variation);
+    reset({
+      rate: variation ? decimalField(variation, 'rate') : '0',
+      taxRate: variation ? decimalField(variation, 'taxRate') || '0' : '0',
+      validFrom: variation?.validFrom ?? toLocalISODate(new Date()),
+      creditValueDateMode: variation?.creditValueDateMode ?? 'TRANSACTION_DATE',
+      debitValueDateMode: variation?.debitValueDateMode ?? 'TRANSACTION_DATE',
+      dayCountBasis: variation?.dayCountBasis ?? 'ACTUAL_365',
+    });
+    setIsAddDialogOpen(true);
   };
 
   const handleDelete = (variationId: number) => {
@@ -113,19 +138,15 @@ export function InterestRateVariationsSection({
     }
   };
 
-  // Accrual comes from the same dated cash ledger as the account summary.
-  const variationsWithInterest = useMemo(
+  const orderedVariations = useMemo(
     () => [...(variations ?? [])].sort((a, b) => a.validFrom.localeCompare(b.validFrom)),
     [variations]
   );
   const today = toLocalISODate(new Date());
-
-  const earned = interestEstimate?.historicalAccumulated ?? 0;
+  const earned = interestEstimate?.yearToDate ?? 0;
   const projected = interestEstimate?.estimate ?? 0;
-  const projectedPct =
-    accountBalance > 0
-      ? formatDecimal(percentage(projected, accountBalance), 2)
-      : formatDecimal(0, 2);
+  const totalEarned = interestEstimate?.historicalAccumulated ?? 0;
+  const estimateUnavailable = estimateLoading || estimateError;
 
   if (isLoading) {
     return (
@@ -137,10 +158,10 @@ export function InterestRateVariationsSection({
   }
 
   return (
-    <Card className="p-6">
+    <Card className="min-w-0 p-4 sm:p-6">
       {/* Header */}
-      <div className="flex items-start justify-between mb-6">
-        <div className="flex-1">
+      <div className="mb-6 flex flex-col items-start justify-between gap-4 sm:flex-row">
+        <div className="min-w-0 flex-1">
           <h2 className="plate-label ">{t('interest.historyTitle')}</h2>
           <p className="text-sm text-text-secondary mb-3">{t('interest.historyDescription')}</p>
           {/* Summary pills */}
@@ -148,44 +169,53 @@ export function InterestRateVariationsSection({
             <div className="flex items-center gap-1.5 bg-surface border border-border rounded-lg px-3 py-1.5">
               <span className="text-xs text-text-muted">{t('interest.earnedSoFar')}</span>
               <span className="text-sm font-mono font-semibold text-text-primary">
-                <ConvertedAmount amount={earned} currency={accountCurrency} inline />
+                {estimateUnavailable ? (
+                  '—'
+                ) : (
+                  <ConvertedAmount amount={earned} currency={accountCurrency} inline />
+                )}
               </span>
             </div>
-            <div className="text-text-muted text-xs">|</div>
             <div className="flex items-center gap-1.5 bg-success/5 border border-success/20 rounded-lg px-3 py-1.5">
               <TrendingUp className="h-3.5 w-3.5 text-success" />
               <span className="text-xs text-text-muted">{t('interest.projectedNet')}</span>
               <span className="text-sm font-mono font-semibold text-success">
-                <ConvertedAmount amount={projected} currency={accountCurrency} inline />
+                {estimateUnavailable ? (
+                  '—'
+                ) : (
+                  <ConvertedAmount amount={projected} currency={accountCurrency} inline />
+                )}
               </span>
-              {projected > 0 && <span className="text-xs text-success/70">({projectedPct}%)</span>}
             </div>
-            {variationsWithInterest.length > 0 &&
-              (() => {
-                const totalProduced = sum(variationsWithInterest.map(v => v.interestProduced ?? 0));
-                return totalProduced > 0 ? (
-                  <>
-                    <div className="text-text-muted text-xs">|</div>
-                    <div className="flex items-center gap-1.5 bg-primary/5 border border-primary/20 rounded-lg px-3 py-1.5">
-                      <span className="text-xs text-text-muted">{t('interest.totalProduced')}</span>
-                      <span className="text-sm font-mono font-semibold text-primary">
-                        +
-                        <ConvertedAmount amount={totalProduced} currency={accountCurrency} inline />
-                      </span>
-                    </div>
-                  </>
-                ) : null;
-              })()}
+            <div className="flex items-center gap-1.5 bg-primary/5 border border-primary/20 rounded-lg px-3 py-1.5">
+              <span className="text-xs text-text-muted">{t('interest.totalEarned')}</span>
+              <span className="text-sm font-mono font-semibold text-primary">
+                {estimateUnavailable ? (
+                  '—'
+                ) : (
+                  <ConvertedAmount amount={totalEarned} currency={accountCurrency} inline />
+                )}
+              </span>
+            </div>
           </div>
         </div>
-        <Button onClick={() => setIsAddDialogOpen(true)} size="sm" className="ml-4 shrink-0">
+        <Button onClick={() => openEditor(null)} size="sm" className="shrink-0">
           <Plus className="h-4 w-4 mr-2" />
           {t('interest.addRate')}
         </Button>
       </div>
 
-      {variationsWithInterest.length > 0 ? (
-        <div className="border border-border rounded-lg overflow-hidden">
+      <div className="mb-4 space-y-2">
+        <p className="text-xs text-text-secondary">{t('interest.estimateExplanation')}</p>
+        {estimateError && (
+          <p role="alert" className="text-sm text-error">
+            {t('interest.loadError')}
+          </p>
+        )}
+      </div>
+
+      {orderedVariations.length > 0 ? (
+        <div className="border border-border rounded-lg overflow-x-auto">
           <table className="w-full text-left text-sm">
             <thead className="bg-surface-elevated text-text-secondary">
               <tr>
@@ -200,10 +230,21 @@ export function InterestRateVariationsSection({
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
-              {variationsWithInterest.map(variation => (
+              {orderedVariations.map(variation => (
                 <tr key={variation.id} className="hover:bg-surface-elevated/50 transition-colors">
                   <td className="px-4 py-3 text-text-primary">
-                    {format(parseISO(variation.validFrom), 'MMM d, yyyy')}
+                    {formatDate(variation.validFrom)}
+                    <div className="mt-1 text-xs text-text-secondary">
+                      {t(
+                        `interest.valueModes.${variation.creditValueDateMode ?? 'TRANSACTION_DATE'}`
+                      )}{' '}
+                      /{' '}
+                      {t(
+                        `interest.valueModes.${variation.debitValueDateMode ?? 'TRANSACTION_DATE'}`
+                      )}
+                      {' · '}
+                      {t(`interest.bases.${variation.dayCountBasis ?? 'ACTUAL_365'}`)}
+                    </div>
                   </td>
                   <td className="px-4 py-3 text-text-primary font-mono bg-success/5">
                     {formatDecimal(variation.rate, 2)}%
@@ -240,6 +281,16 @@ export function InterestRateVariationsSection({
                     <Button
                       variant="ghost"
                       size="sm"
+                      onClick={() => openEditor(variation)}
+                      aria-label={t('interest.editRate')}
+                      className="h-8 w-8 p-0"
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      aria-label={t('interest.deleteRate')}
                       onClick={() => handleDelete(variation.id)}
                       className="text-error hover:text-error hover:bg-error/10 h-8 w-8 p-0"
                       disabled={deleteVariation.isPending}
@@ -261,7 +312,9 @@ export function InterestRateVariationsSection({
       <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{t('interest.addDialog.title')}</DialogTitle>
+            <DialogTitle>
+              {t(editingRate ? 'interest.editRate' : 'interest.addDialog.title')}
+            </DialogTitle>
           </DialogHeader>
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 py-4">
             <div>
@@ -309,7 +362,7 @@ export function InterestRateVariationsSection({
                       onBlur={field.onBlur}
                       placeholder="0.00"
                       error={errors.rate?.message}
-                      min="0.01"
+                      min="0"
                     />
                   )}
                 />
@@ -344,11 +397,50 @@ export function InterestRateVariationsSection({
               </div>
             </div>
 
+            <div className="grid gap-3 sm:grid-cols-2">
+              {(['creditValueDateMode', 'debitValueDateMode'] as const).map(field => (
+                <label key={field} className="text-sm">
+                  {t(`interest.${field}`)}
+                  <select
+                    {...register(field)}
+                    className="mt-1 w-full rounded-md border border-border bg-surface px-3 py-2"
+                  >
+                    {INTEREST_VALUE_DATE_MODES.map(mode => (
+                      <option key={mode} value={mode}>
+                        {t(`interest.valueModes.${mode}`)}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              ))}
+              <label className="text-sm sm:col-span-2">
+                {t('interest.dayCountBasis')}
+                <select
+                  {...register('dayCountBasis')}
+                  className="mt-1 w-full rounded-md border border-border bg-surface px-3 py-2"
+                >
+                  {INTEREST_DAY_COUNT_BASES.map(basis => (
+                    <option key={basis} value={basis}>
+                      {t(`interest.bases.${basis}`)}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
+            <p className="text-xs text-text-secondary">{t('interest.valueDateHelp')}</p>
+            {(createVariation.error || updateVariation.error) && (
+              <p role="alert" className="text-sm text-error">
+                {(editingRate ? updateVariation.error : createVariation.error)?.message}
+              </p>
+            )}
             <DialogFooter className="pt-4">
               <Button type="button" variant="ghost" onClick={() => setIsAddDialogOpen(false)}>
                 {t('common:cancel')}
               </Button>
-              <Button type="submit" isLoading={createVariation.isPending}>
+              <Button
+                type="submit"
+                isLoading={createVariation.isPending || updateVariation.isPending}
+              >
                 {t('interest.addDialog.saveRate')}
               </Button>
             </DialogFooter>

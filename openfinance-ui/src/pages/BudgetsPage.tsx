@@ -286,15 +286,17 @@ export default function BudgetsPage() {
                   : t('alerts.warning', { categoryName: budget.categoryName })
               }
               message={
-                budget.status === 'EXCEEDED'
-                  ? t('alerts.exceededMessage', {
-                      pct: formatDecimal(budget.percentageSpent, 1),
-                      categoryName: budget.categoryName,
-                    })
-                  : t('alerts.warningMessage', {
-                      pct: formatDecimal(budget.percentageSpent, 1),
-                      categoryName: budget.categoryName,
-                    })
+                budget.percentageSpent == null
+                  ? t('alerts.noAllowance', { categoryName: budget.categoryName })
+                  : budget.status === 'EXCEEDED'
+                    ? t('alerts.exceededMessage', {
+                        pct: formatDecimal(budget.percentageSpent, 1),
+                        categoryName: budget.categoryName,
+                      })
+                    : t('alerts.warningMessage', {
+                        pct: formatDecimal(budget.percentageSpent, 1),
+                        categoryName: budget.categoryName,
+                      })
               }
               onDismiss={() => handleDismissAlert(budget.budgetId)}
             />
@@ -306,6 +308,7 @@ export default function BudgetsPage() {
       {!error && !summaryLoading && summary && summary.totalBudgets > 0 && currentSummary && (
         <BudgetSummaryCard
           summary={currentSummary}
+          listedBudgetCount={summary.budgets.length}
           filteredBudgets={
             hasActiveFilters
               ? currentSummary.budgets.filter(budget =>

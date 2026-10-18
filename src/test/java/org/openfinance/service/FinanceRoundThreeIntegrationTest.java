@@ -237,18 +237,24 @@ class FinanceRoundThreeIntegrationTest extends AuditApiTestSupport {
         json("POST", "/assets", asset, owner, 201);
         money(json("GET", "/accounts/" + account, null, owner, 200), "balance", "10000");
         money(
-                json(
-                        "GET",
-                        "/accounts/" + account + "/interest-estimate?period=1Y",
-                        null,
-                        owner,
-                        200),
+                json("GET", "/accounts/" + account + "/interest-estimate", null, owner, 200),
                 "estimate",
-                "50");
+                BigDecimal.valueOf(
+                                java.time.temporal.ChronoUnit.DAYS.between(
+                                                START.isBefore(LocalDate.now().withDayOfYear(1))
+                                                        ? LocalDate.now().withDayOfYear(1)
+                                                        : START,
+                                                LocalDate.now().withMonth(12).withDayOfMonth(31))
+                                        + 1)
+                        .multiply(new BigDecimal("50"))
+                        .divide(new BigDecimal("365"), 2, java.math.RoundingMode.HALF_UP)
+                        .toPlainString());
         money(
                 json("GET", "/dashboard/estimated-interest?period=1Y", null, owner, 200),
                 "totalProjected",
-                "50");
+                json("GET", "/accounts/" + account + "/interest-estimate", null, owner, 200)
+                        .path("estimate")
+                        .asText());
     }
 
     @Test

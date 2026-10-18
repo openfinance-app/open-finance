@@ -8,6 +8,7 @@ import { CheckCircle2, XCircle, Loader2, ExternalLink, AlertTriangle } from 'luc
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/Button';
 import { SkroogeRulesNotice } from '@/components/import/SkroogeRulesNotice';
+import { SkroogeInterestNotice } from '@/components/import/SkroogeInterestNotice';
 import type { ImportSessionResponse, ImportProgressResponse } from '@/types/import';
 
 interface ImportProgressProps {
@@ -150,6 +151,7 @@ export function ImportProgress({
       </div>
 
       {isComplete && <SkroogeRulesNotice metadata={session.metadata} completed />}
+      {isComplete && <SkroogeInterestNotice metadata={session.metadata} completed />}
 
       {/* Skipped Count (if any) */}
       {session.skippedCount > 0 && (

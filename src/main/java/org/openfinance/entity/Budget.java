@@ -208,6 +208,16 @@ public class Budget {
     @Builder.Default
     private Boolean rollover = false;
 
+    /** Renew the allowance each period throughout the coverage dates. */
+    @Column(name = "recurring", nullable = false)
+    @Builder.Default
+    private Boolean recurring = true;
+
+    /** Carry deficits as well as unused money when rollover is enabled. */
+    @Column(name = "rollover_overspending", nullable = false)
+    @Builder.Default
+    private Boolean rolloverOverspending = false;
+
     /**
      * Optional notes or description for the budget.
      *

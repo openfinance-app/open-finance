@@ -81,6 +81,17 @@ for (const language of ['en', 'fr'] as const) {
       payee: [{ id: 1, t_name: 'Coffee shop' }],
       unit: [{ id: 1, t_name: 'Euro (EUR)', t_symbol: '€', t_type: '1', rd_unit_id: 0 }],
       unitvalue: [{ id: 1, rd_unit_id: 1, d_date: '2020-01-01', f_quantity: 1 }],
+      interest: [
+        {
+          id: 1,
+          rd_account_id: 10,
+          d_date: '2026-01-01',
+          f_rate: 2.5,
+          t_income_value_date_mode: 'F',
+          t_expenditure_value_date_mode: 'F',
+          t_base: '365',
+        },
+      ],
       operation: [
         {
           id: 1,
@@ -145,6 +156,11 @@ for (const language of ['en', 'fr'] as const) {
     await expect(
       completionCard.getByRole('region', { name: labels.skroogeRules.title })
     ).toBeVisible();
+    const interestNotice = completionCard.getByRole('region', {
+      name: labels.skroogeInterest.title,
+    });
+    await expect(interestNotice).toBeVisible();
+    await expect(interestNotice.locator('dd')).toHaveText(['1', '1', '0', '0']);
     for (const [label, count] of [
       [labels.skroogeRules.stats.source, '2'],
       [labels.skroogeRules.stats.imported, '1'],

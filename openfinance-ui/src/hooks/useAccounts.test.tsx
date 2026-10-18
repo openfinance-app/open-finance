@@ -393,8 +393,8 @@ describe('useAccounts hooks', () => {
 
   // ── useInterestEstimate ───────────────────────────────────────────────────
   describe('useInterestEstimate', () => {
-    it('should fetch interest estimate with default period', async () => {
-      const mockEstimate = { estimate: 52.5, historicalAccumulated: 120.0 };
+    it('should fetch calendar-year, year-to-date and lifetime interest', async () => {
+      const mockEstimate = { estimate: 375.32, yearToDate: 294.51, historicalAccumulated: 789.66 };
       mockedApiClient.get.mockResolvedValue({ data: mockEstimate });
 
       const { result } = renderHook(() => useInterestEstimate(1), { wrapper });
@@ -402,7 +402,6 @@ describe('useAccounts hooks', () => {
       await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
       expect(mockedApiClient.get).toHaveBeenCalledWith('/accounts/1/interest-estimate', {
-        params: { period: '1Y' },
         headers: { 'X-Encryption-Session': 'test-encryption-key' },
       });
       expect(result.current.data).toEqual(mockEstimate);

@@ -30,6 +30,9 @@ import org.openfinance.entity.BudgetPeriod;
 @AllArgsConstructor
 public class BudgetResponse {
 
+    private Boolean recurring;
+    private Boolean rolloverOverspending;
+
     /** Unique identifier of the budget. */
     private Long id;
 

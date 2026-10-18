@@ -118,7 +118,6 @@
   },
   "card": {
     "balance": "Solde",
-    "earnedSoFar": "Gagné à ce jour",
     "projectedNet": "Proj. net 1 an",
     "reopen": "Réactiver le compte",
     "inactive": "Inactif",
@@ -126,7 +125,8 @@
     "failedToLoad": "Impossible de charger les comptes",
     "noAccountsMatch": "Aucun compte ne correspond à votre recherche",
     "searchAccounts": "Rechercher des comptes",
-    "none": "Aucun"
+    "none": "Aucun",
+    "totalEarned": "Total gagné"
   },
   "detail": {
     "currentBalance": "Solde actuel",
@@ -176,7 +176,30 @@
       "taxRate": "Taux d'imposition (%)",
       "saveRate": "Enregistrer le taux"
     },
-    "deleteConfirm": "Êtes-vous sûr(e) de vouloir supprimer cette variation de taux d'intérêt ?"
+    "deleteConfirm": "Êtes-vous sûr(e) de vouloir supprimer cette variation de taux d'intérêt ?",
+    "editRate": "Modifier le taux",
+    "deleteRate": "Supprimer le taux",
+    "estimateExplanation": "Proj. net 1 an couvre janvier à décembre de l’année en cours, avec les soldes enregistrés et tous les taux applicables. Gagné à ce jour couvre janvier à aujourd’hui ; Total gagné couvre l’ouverture du compte à aujourd’hui. Ces montants sont calculés, pas des intérêts comptabilisés.",
+    "loadError": "Impossible de charger les intérêts.",
+    "creditValueDateMode": "Date de valeur des crédits",
+    "debitValueDateMode": "Date de valeur des débits",
+    "dayCountBasis": "Base de calcul",
+    "valueDateHelp": "Les décalages retardent les crédits et avancent les débits. Par quinzaine, les crédits prennent effet le prochain 1er ou 16, les débits le 1er ou le 16 courant. Ces dates servent uniquement au calcul des intérêts.",
+    "valueModes": {
+      "TRANSACTION_DATE": "Date de transaction",
+      "DAYS_1": "1 jour calendaire",
+      "DAYS_2": "2 jours calendaires",
+      "DAYS_3": "3 jours calendaires",
+      "DAYS_4": "4 jours calendaires",
+      "DAYS_5": "5 jours calendaires",
+      "FORTNIGHT": "Par quinzaine (1er / 16)"
+    },
+    "bases": {
+      "ACTUAL_365": "Jours réels / 365",
+      "THIRTY_360": "Mois de 30 jours / 360",
+      "FORTNIGHT_24": "24 quinzaines / an"
+    },
+    "totalEarned": "Total gagné"
   },
   "validation": {
     "nameRequired": "Le nom est obligatoire",
@@ -185,7 +208,7 @@
     "descriptionTooLong": "La description est trop longue",
     "balanceNegative": "Le solde ne peut pas être négatif pour ce type de compte",
     "balanceInvalid": "Saisissez un montant valide (ex. 1234,56)",
-    "interestRatePositive": "Le taux d'intérêt doit être supérieur à 0",
+    "interestRatePositive": "Le taux doit être supérieur ou égal à zéro",
     "interestRateMustBePositive": "Le taux doit être positif",
     "taxRateMustBePositive": "Le taux d'imposition doit être positif",
     "taxRateMax": "Le taux d'imposition ne peut pas dépasser 100",

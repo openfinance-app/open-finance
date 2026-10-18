@@ -24,9 +24,12 @@ import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.openfinance.dto.ImportedTransaction;
+import org.openfinance.dto.InterestRateVariationRequest;
 import org.openfinance.dto.SkroogeImportMetadata;
 import org.openfinance.dto.SkroogeImportParseResult;
 import org.openfinance.entity.AccountType;
+import org.openfinance.entity.InterestDayCountBasis;
+import org.openfinance.entity.InterestValueDateMode;
 import org.springframework.stereotype.Component;
 
 @Slf4j
@@ -137,6 +140,11 @@ public class SkroogeJsonParser {
             }
         }
 
+        List<SkroogeImportMetadata.RuleWarning> interestWarnings = new ArrayList<>();
+        List<SkroogeImportMetadata.SkroogeInterestRate> interestRates =
+                buildInterestRates(root.path("interest"), accountsById, interestWarnings);
+        interestRates.forEach(rate -> referencedAccountIds.add(rate.sourceAccountId()));
+
         // Each account keeps its native Skrooge currency (e.g. XOF); transaction and opening
         // amounts are converted into that currency using Skrooge's own stored unit rates (pegs),
         // never live exchange rates, so imported balances match Skrooge exactly.
@@ -167,6 +175,11 @@ public class SkroogeJsonParser {
                         .categories(buildCategories(categoriesById, referencedCategoryIds))
                         .rules(new ArrayList<>(importedRules.rules()))
                         .ruleWarnings(new ArrayList<>(importedRules.warnings()))
+                        .interestRates(interestRates)
+                        .interestWarnings(interestWarnings)
+                        .sourceInterestRateCount(root.path("interest").size())
+                        .skippedInterestRateCount(
+                                root.path("interest").size() - interestRates.size())
                         .sourceRuleCount(root.path("rule").size())
                         .skippedRuleCount(importedRules.skipped())
                         .build();
@@ -622,6 +635,49 @@ public class SkroogeJsonParser {
                         SkroogeImportMetadata.SkroogeAccount::getName,
                         String.CASE_INSENSITIVE_ORDER));
         return accounts;
+    }
+
+    private List<SkroogeImportMetadata.SkroogeInterestRate> buildInterestRates(
+            JsonNode nodes,
+            Map<Long, JsonNode> accounts,
+            List<SkroogeImportMetadata.RuleWarning> warnings) {
+        List<SkroogeImportMetadata.SkroogeInterestRate> rates = new ArrayList<>();
+        for (JsonNode node : nodes) {
+            try {
+                Long account = longValue(node, "rd_account_id");
+                LocalDate date = parseDate(node);
+                BigDecimal rate = decimalValue(node, "f_rate");
+                if (!accounts.containsKey(account)
+                        || date == null
+                        || rate.signum() < 0
+                        || !node.hasNonNull("f_rate")) {
+                    throw new IllegalArgumentException("Invalid interest row");
+                }
+                InterestRateVariationRequest settings =
+                        InterestRateVariationRequest.builder()
+                                .rate(rate)
+                                .taxRate(BigDecimal.ZERO)
+                                .validFrom(date)
+                                .creditValueDateMode(
+                                        InterestValueDateMode.fromSkrooge(
+                                                textValue(node, "t_income_value_date_mode")))
+                                .debitValueDateMode(
+                                        InterestValueDateMode.fromSkrooge(
+                                                textValue(node, "t_expenditure_value_date_mode")))
+                                .dayCountBasis(
+                                        InterestDayCountBasis.fromSkrooge(
+                                                textValue(node, "t_base")))
+                                .build();
+                rates.add(
+                        new SkroogeImportMetadata.SkroogeInterestRate(
+                                longValue(node, "id"), account, settings));
+            } catch (IllegalArgumentException ex) {
+                warnings.add(
+                        new SkroogeImportMetadata.RuleWarning(
+                                longValue(node, "id"), "unsupported"));
+            }
+        }
+        return rates;
     }
 
     public static String mergeAccountDescription(String existing, String imported) {

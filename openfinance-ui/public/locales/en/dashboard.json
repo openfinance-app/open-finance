@@ -395,7 +395,6 @@
       "default": "selected period"
     },
     "totalEarned": "Total Earned",
-    "projectedNextYear": "Projected Next Year",
     "filter": {
       "all": "All",
       "accounts": "Accounts",
@@ -403,7 +402,8 @@
     },
     "noData": "No interest data available for this period.",
     "projShort": "Proj",
-    "viewDetails": "View details for {{account}}"
+    "viewDetails": "View details for {{account}}",
+    "projectedCurrentYear": "Projected for {{year}}"
   },
   "assetTypes": {
     "STOCK": "Stock",

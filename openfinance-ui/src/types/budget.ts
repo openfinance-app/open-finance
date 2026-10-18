@@ -17,6 +17,8 @@ export interface BudgetRequest {
   startDate: string; // ISO date format "YYYY-MM-DD"
   endDate: string;
   rollover: boolean;
+  recurring?: boolean;
+  rolloverOverspending?: boolean;
   notes?: string;
 }
 
@@ -32,6 +34,8 @@ export interface BudgetResponse {
   startDate: string;
   endDate: string;
   rollover: boolean;
+  recurring?: boolean;
+  rolloverOverspending?: boolean;
   notes?: string;
   createdAt: string;
   updatedAt: string;
@@ -42,12 +46,19 @@ export interface BudgetProgressResponse {
   nativeBudgeted?: number;
   nativeSpent?: number;
   nativeRemaining?: number;
+  nativeAllowance?: number;
+  nativeCarryover?: number;
+  recurring?: boolean;
   budgetId: number;
   categoryName: string;
   budgeted: number;
+  allowance?: number;
+  carryover?: number;
+  available?: number;
+  future?: boolean;
   spent: number;
   remaining: number; // Can be negative if over budget
-  percentageSpent: number;
+  percentageSpent: number | null;
   currency: string;
   period: BudgetPeriod;
   startDate: string;
@@ -77,9 +88,13 @@ export interface BudgetHistoryEntry {
   periodStart: string; // ISO date "YYYY-MM-DD"
   periodEnd: string;
   budgeted: number;
+  allowance?: number;
+  carryover?: number;
+  available?: number;
+  future?: boolean;
   spent: number;
   remaining: number;
-  percentageSpent: number;
+  percentageSpent: number | null;
   status: BudgetStatus;
 }
 
@@ -98,6 +113,7 @@ export interface BudgetHistoryResponse {
   history: BudgetHistoryEntry[];
   totalSpent: number;
   totalBudgeted: number;
+  initialCarryover?: number;
 }
 
 // ========== TASK-8.6: Auto Budget Creation (REQ-2.9.1.5) ==========

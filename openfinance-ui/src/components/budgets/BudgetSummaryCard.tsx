@@ -21,11 +21,17 @@ import { cn } from '@/lib/utils';
 interface BudgetSummaryCardProps {
   /** Current budgets for the selected period, excluding expired and future allowances. */
   summary: BudgetSummaryResponse;
+  /** Number of listed budgets, including expired and future budgets. */
+  listedBudgetCount?: number;
   /** Current budgets matching the list filters — drives secondary sub-totals. */
   filteredBudgets?: BudgetProgressResponse[];
 }
 
-export function BudgetSummaryCard({ summary, filteredBudgets }: BudgetSummaryCardProps) {
+export function BudgetSummaryCard({
+  summary,
+  listedBudgetCount = summary.totalBudgets,
+  filteredBudgets,
+}: BudgetSummaryCardProps) {
   const { t } = useTranslation('budgets');
   const displayCurrency = summary.currency;
   const {
@@ -58,6 +64,9 @@ export function BudgetSummaryCard({ summary, filteredBudgets }: BudgetSummaryCar
         <CardTitle>{t('summary.title')}</CardTitle>
       </CardHeader>
       <CardContent>
+        {summary.activeBudgets === 0 && (
+          <p className="mb-5 text-sm text-text-secondary">{t('summary.noActiveBudgets')}</p>
+        )}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {/* Total Budgeted */}
           <div className="space-y-2">
@@ -80,7 +89,7 @@ export function BudgetSummaryCard({ summary, filteredBudgets }: BudgetSummaryCar
             <p className="text-xs text-text-tertiary">
               {t('summary.activeCount', {
                 active: summary.activeBudgets,
-                total: summary.totalBudgets,
+                total: listedBudgetCount,
               })}
             </p>
             {isFiltered && filteredTotals && (

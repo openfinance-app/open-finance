@@ -395,7 +395,6 @@
       "default": "la période sélectionnée"
     },
     "totalEarned": "Total gagné",
-    "projectedNextYear": "Projection année prochaine",
     "filter": {
       "all": "Tous",
       "accounts": "Comptes",
@@ -403,7 +402,8 @@
     },
     "noData": "Aucune donnée d'intérêt disponible pour cette période.",
     "projShort": "Proj.",
-    "viewDetails": "Voir les détails de {{account}}"
+    "viewDetails": "Voir les détails de {{account}}",
+    "projectedCurrentYear": "Projection pour {{year}}"
   },
   "assetTypes": {
     "STOCK": "Action",

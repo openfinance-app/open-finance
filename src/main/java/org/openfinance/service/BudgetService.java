@@ -247,7 +247,11 @@ public class BudgetService {
                         || !request.getCategoryId().equals(budget.getCategoryId())
                         || !request.getCurrency().equals(budget.getCurrency())
                         || request.getAmount().compareTo(new BigDecimal(budget.getAmount())) != 0
-                        || !Objects.equals(request.getRollover(), budget.getRollover()))) {
+                        || !Objects.equals(request.getRollover(), budget.getRollover())
+                        || !Objects.equals(request.getRecurring(), budget.getRecurring())
+                        || !Objects.equals(
+                                request.getRolloverOverspending(),
+                                budget.getRolloverOverspending()))) {
             for (BudgetAlert alert : budgetAlertRepository.findByBudgetId(budget.getId())) {
                 alert.setLastTriggered(null);
                 alert.setRead(true);
@@ -503,55 +507,31 @@ public class BudgetService {
                         .findByIdAndUserId(budget.getCategoryId(), userId)
                         .orElseThrow(() -> new CategoryNotFoundException(budget.getCategoryId()));
 
-        // Amount already decrypted by JPA converter
-        String decryptedAmount = budget.getAmount();
-        BigDecimal budgeted = new BigDecimal(decryptedAmount).add(rolloverAmount(budget));
-
-        // Calculate spent amount
-        BigDecimal spent =
-                calculateSpentAmount(
-                        category,
-                        budget.getStartDate(),
-                        budget.getEndDate(),
-                        userId,
-                        budget.getCurrency());
-
-        // Calculate remaining
-        BigDecimal remaining = budgeted.subtract(spent);
-
-        // Calculate percentage spent
-        BigDecimal percentageSpent = BigDecimal.ZERO;
-        if (budgeted.compareTo(BigDecimal.ZERO) > 0) {
-            percentageSpent =
-                    spent.divide(budgeted, 4, RoundingMode.HALF_UP)
-                            .multiply(BigDecimal.valueOf(100))
-                            .setScale(2, RoundingMode.HALF_UP);
-        }
-
-        // Calculate days remaining
+        List<BudgetHistoryEntry> entries = budgetEntries(budget, category, rolloverAmount(budget));
         LocalDate today = LocalDate.now();
-        int daysRemaining = (int) ChronoUnit.DAYS.between(today, budget.getEndDate());
-
-        // Determine status
-        String status = determineStatus(percentageSpent);
-
-        log.debug(
-                "Budget progress calculated: budgeted={}, spent={}, remaining={}, percentage={}%, status={}",
-                budgeted, spent, remaining, percentageSpent, status);
-
+        BudgetHistoryEntry selected = entries.get(entries.size() - 1);
+        for (BudgetHistoryEntry entry : entries) {
+            if (!today.isAfter(entry.getPeriodEnd())) {
+                selected = entry;
+                break;
+            }
+        }
         return BudgetProgressResponse.builder()
                 .budgetId(budget.getId())
                 .categoryName(getDecryptedCategoryName(category))
-                .budgeted(budgeted)
-                .spent(spent)
-                .remaining(remaining)
-                .percentageSpent(percentageSpent)
+                .budgeted(selected.getAvailable())
+                .allowance(selected.getBudgeted())
+                .carryover(selected.getCarryover())
+                .recurring(budget.getRecurring())
+                .spent(selected.getSpent())
+                .remaining(selected.getRemaining())
+                .percentageSpent(selected.getPercentageSpent())
                 .currency(budget.getCurrency())
                 .period(budget.getPeriod())
-                .startDate(budget.getStartDate())
-                .endDate(budget.getEndDate())
-                .daysRemaining(daysRemaining)
-                .status(status)
+                .startDate(selected.getPeriodStart())
+                .endDate(selected.getPeriodEnd())
+                .daysRemaining((int) ChronoUnit.DAYS.between(today, selected.getPeriodEnd()))
+                .status(selected.getStatus())
                 .build();
     }
 
@@ -667,9 +647,18 @@ public class BudgetService {
             BigDecimal sumPct =
                     progressList.stream()
                             .map(BudgetProgressResponse::getPercentageSpent)
+                            .filter(Objects::nonNull)
                             .reduce(BigDecimal.ZERO, BigDecimal::add);
             averageSpentPercentage =
-                    sumPct.divide(BigDecimal.valueOf(progressList.size()), 2, RoundingMode.HALF_UP);
+                    sumPct.divide(
+                            BigDecimal.valueOf(
+                                    Math.max(
+                                            1,
+                                            progressList.stream()
+                                                    .filter(p -> p.getPercentageSpent() != null)
+                                                    .count())),
+                            2,
+                            RoundingMode.HALF_UP);
         }
         LocalDate today = LocalDate.now();
         int activeBudgets =
@@ -700,41 +689,92 @@ public class BudgetService {
                 .build();
     }
 
-    /** A dated budget owns one allowance for its complete inclusive interval. */
+    /** New allowances and incoming carry are separate; carry is never counted twice. */
     @Transactional(readOnly = true)
     public BudgetHistoryResponse getBudgetHistory(Long budgetId, Long userId) {
-        BudgetProgressResponse progress = calculateBudgetProgress(budgetId, userId);
+        if (budgetId == null) throw new IllegalArgumentException("Budget ID cannot be null");
+        if (userId == null) throw new IllegalArgumentException("User ID cannot be null");
         Budget budget =
                 budgetRepository
                         .findByIdAndUserId(budgetId, userId)
                         .orElseThrow(() -> BudgetNotFoundException.byIdAndUser(budgetId, userId));
-        BudgetHistoryEntry entry =
-                BudgetHistoryEntry.builder()
-                        .label(
-                                formatPeriodLabel(
-                                        budget.getPeriod(),
-                                        budget.getStartDate(),
-                                        budget.getEndDate()))
-                        .periodStart(budget.getStartDate())
-                        .periodEnd(budget.getEndDate())
-                        .budgeted(progress.getBudgeted())
-                        .spent(progress.getSpent())
-                        .remaining(progress.getRemaining())
-                        .percentageSpent(progress.getPercentageSpent())
-                        .status(progress.getStatus())
-                        .build();
+        Category category = validateCategory(budget.getCategoryId(), userId);
+        BigDecimal initialCarry = rolloverAmount(budget);
+        List<BudgetHistoryEntry> entries = budgetEntries(budget, category, initialCarry);
         return BudgetHistoryResponse.builder()
                 .budgetId(budget.getId())
-                .categoryName(progress.getCategoryName())
+                .categoryName(getDecryptedCategoryName(category))
                 .amount(new BigDecimal(budget.getAmount()))
                 .currency(budget.getCurrency())
                 .period(budget.getPeriod())
                 .startDate(budget.getStartDate())
                 .endDate(budget.getEndDate())
-                .history(List.of(entry))
-                .totalSpent(progress.getSpent())
-                .totalBudgeted(progress.getBudgeted())
+                .history(entries)
+                .initialCarryover(initialCarry)
+                .totalSpent(
+                        entries.stream()
+                                .map(BudgetHistoryEntry::getSpent)
+                                .reduce(BigDecimal.ZERO, BigDecimal::add))
+                .totalBudgeted(
+                        entries.stream()
+                                .map(BudgetHistoryEntry::getBudgeted)
+                                .reduce(BigDecimal.ZERO, BigDecimal::add))
                 .build();
+    }
+
+    private List<BudgetHistoryEntry> budgetEntries(
+            Budget budget, Category category, BigDecimal initialCarry) {
+        List<BudgetHistoryEntry> entries = new ArrayList<>();
+        BigDecimal carry = initialCarry;
+        LocalDate today = LocalDate.now();
+        for (BudgetSchedule.Window window : BudgetSchedule.windows(budget)) {
+            boolean future = window.start().isAfter(today);
+            if (future) carry = BigDecimal.ZERO;
+            BigDecimal spent =
+                    future
+                            ? BigDecimal.ZERO
+                            : calculateSpentAmount(
+                                    category,
+                                    window.start(),
+                                    window.end().isAfter(today) ? today : window.end(),
+                                    budget.getUserId(),
+                                    budget.getCurrency());
+            BigDecimal available = window.allowance().add(carry);
+            BigDecimal remaining = available.subtract(spent);
+            BigDecimal percentage = budgetPercentage(available, spent, remaining);
+            entries.add(
+                    BudgetHistoryEntry.builder()
+                            .label(
+                                    formatPeriodLabel(
+                                            budget.getPeriod(), window.start(), window.end()))
+                            .periodStart(window.start())
+                            .periodEnd(window.end())
+                            .budgeted(window.allowance())
+                            .carryover(carry)
+                            .available(available)
+                            .spent(spent)
+                            .remaining(remaining)
+                            .percentageSpent(percentage)
+                            .status(
+                                    remaining.signum() < 0
+                                            ? "EXCEEDED"
+                                            : determineStatus(percentage))
+                            .future(future)
+                            .build());
+            carry = BudgetSchedule.carry(budget, remaining);
+        }
+        return entries;
+    }
+
+    private BigDecimal budgetPercentage(
+            BigDecimal available, BigDecimal spent, BigDecimal remaining) {
+        if (available.signum() <= 0) {
+            // A percentage is undefined when there is no positive allowance.
+            return remaining.signum() < 0 ? null : BigDecimal.ZERO;
+        }
+        return spent.divide(available, 4, RoundingMode.HALF_UP)
+                .multiply(BigDecimal.valueOf(100))
+                .setScale(2, RoundingMode.HALF_UP);
     }
 
     /**
@@ -1210,20 +1250,8 @@ public class BudgetService {
                     categoryRepository
                             .findByIdAndUserId(period.getCategoryId(), current.getUserId())
                             .orElseThrow();
-            BigDecimal spent =
-                    calculateSpentAmount(
-                            category,
-                            period.getStartDate(),
-                            period.getEndDate(),
-                            current.getUserId(),
-                            period.getCurrency());
-            carry =
-                    Boolean.TRUE.equals(period.getRollover())
-                            ? new BigDecimal(period.getAmount())
-                                    .add(carry)
-                                    .subtract(spent)
-                                    .max(BigDecimal.ZERO)
-                            : BigDecimal.ZERO;
+            List<BudgetHistoryEntry> entries = budgetEntries(period, category, carry);
+            carry = BudgetSchedule.carry(period, entries.get(entries.size() - 1).getRemaining());
             previous = period;
         }
         if (previous == null || !previous.getEndDate().plusDays(1).equals(current.getStartDate()))
@@ -1253,6 +1281,8 @@ public class BudgetService {
                                 .startDate(budget.getStartDate())
                                 .endDate(budget.getEndDate())
                                 .rollover(budget.getRollover())
+                                .recurring(budget.getRecurring())
+                                .rolloverOverspending(budget.getRolloverOverspending())
                                 .notes(budget.getNotes())
                                 .build());
         List<BudgetAlert> priorAlerts = budgetAlertRepository.findByBudgetId(budget.getId());
@@ -1482,6 +1512,8 @@ public class BudgetService {
         progress.setNativeBudgeted(progress.getBudgeted());
         progress.setNativeSpent(progress.getSpent());
         progress.setNativeRemaining(progress.getRemaining());
+        progress.setNativeAllowance(progress.getAllowance());
+        progress.setNativeCarryover(progress.getCarryover());
         String currency = defaultCurrencyProvider.resolveForUser(userId);
         if (!currency.equalsIgnoreCase(progress.getCurrency())) {
             LocalDate date = LocalDate.now();
@@ -1491,6 +1523,14 @@ public class BudgetService {
             BigDecimal spent =
                     exchangeRateService.convert(
                             progress.getSpent(), progress.getCurrency(), currency, date);
+            if (progress.getAllowance() != null)
+                progress.setAllowance(
+                        exchangeRateService.convert(
+                                progress.getAllowance(), progress.getCurrency(), currency, date));
+            if (progress.getCarryover() != null)
+                progress.setCarryover(
+                        exchangeRateService.convert(
+                                progress.getCarryover(), progress.getCurrency(), currency, date));
             progress.setBudgeted(budgeted);
             progress.setSpent(spent);
             progress.setRemaining(budgeted.subtract(spent));

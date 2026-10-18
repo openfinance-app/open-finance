@@ -22,7 +22,10 @@ public class EstimatedInterestSummary {
     /** The total actual net interest earned over the selected period across all accounts. */
     private BigDecimal totalEarned;
 
-    /** The total projected 1-year net interest across all accounts. */
+    /**
+     * The total projected net interest for the current calendar year across accounts and
+     * liabilities.
+     */
     private BigDecimal totalProjected;
 
     /** The currency used for the totals. */

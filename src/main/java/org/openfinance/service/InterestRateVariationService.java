@@ -1,6 +1,9 @@
 package org.openfinance.service;
 
+import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -35,6 +38,7 @@ public class InterestRateVariationService {
         // Verify account ownership
         accountService.getAccountById(accountId, userId);
 
+        validateEffectiveDate(accountId, request.getValidFrom(), null);
         InterestRateVariation variation =
                 InterestRateVariation.builder()
                         .accountId(accountId)
@@ -42,12 +46,45 @@ public class InterestRateVariationService {
                         .taxRate(
                                 request.getTaxRate() != null
                                         ? request.getTaxRate()
-                                        : java.math.BigDecimal.ZERO)
+                                        : BigDecimal.ZERO)
                         .validFrom(request.getValidFrom())
+                        .creditValueDateMode(request.getCreditValueDateMode())
+                        .debitValueDateMode(request.getDebitValueDateMode())
+                        .dayCountBasis(request.getDayCountBasis())
                         .build();
 
         variation = variationRepository.save(variation);
         return toResponse(variation);
+    }
+
+    @Transactional
+    public InterestRateVariationResponse updateVariation(
+            Long accountId, Long variationId, Long userId, InterestRateVariationRequest request) {
+        accountService.getAccountById(accountId, userId);
+        InterestRateVariation variation =
+                variationRepository
+                        .findById(variationId)
+                        .filter(v -> v.getAccountId().equals(accountId))
+                        .orElseThrow(() -> new IllegalArgumentException("Variation not found"));
+        validateEffectiveDate(accountId, request.getValidFrom(), variationId);
+        variation.setRate(request.getRate());
+        variation.setTaxRate(request.getTaxRate() == null ? BigDecimal.ZERO : request.getTaxRate());
+        variation.setValidFrom(request.getValidFrom());
+        variation.setCreditValueDateMode(request.getCreditValueDateMode());
+        variation.setDebitValueDateMode(request.getDebitValueDateMode());
+        variation.setDayCountBasis(request.getDayCountBasis());
+        return toResponse(variationRepository.save(variation));
+    }
+
+    private void validateEffectiveDate(Long accountId, LocalDate date, Long excludedId) {
+        if (variationRepository.findByAccountIdOrderByValidFromDesc(accountId).stream()
+                .anyMatch(
+                        v ->
+                                v.getValidFrom().equals(date)
+                                        && !Objects.equals(v.getId(), excludedId))) {
+            throw new IllegalArgumentException(
+                    "An interest rate already exists for this effective date");
+        }
     }
 
     @Transactional
@@ -74,6 +111,9 @@ public class InterestRateVariationService {
                 .rate(entity.getRate())
                 .taxRate(entity.getTaxRate())
                 .validFrom(entity.getValidFrom())
+                .creditValueDateMode(entity.getCreditValueDateMode())
+                .debitValueDateMode(entity.getDebitValueDateMode())
+                .dayCountBasis(entity.getDayCountBasis())
                 .createdAt(entity.getCreatedAt())
                 .updatedAt(entity.getUpdatedAt())
                 .build();

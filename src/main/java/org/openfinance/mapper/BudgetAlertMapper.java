@@ -8,6 +8,7 @@ import org.openfinance.dto.BudgetAlertResponse;
 import org.openfinance.entity.Budget;
 import org.openfinance.entity.BudgetAlert;
 import org.openfinance.entity.Category;
+import org.openfinance.service.BudgetSchedule;
 import org.springframework.context.MessageSource;
 import org.springframework.stereotype.Component;
 
@@ -51,6 +52,8 @@ public class BudgetAlertMapper {
         Budget budget = alert.getBudget();
         Category category = (budget != null) ? budget.getCategory() : null;
         String categoryName = localizedCategoryName(category, locale);
+        boolean current =
+                budget == null || BudgetSchedule.currentTrigger(budget, alert.getLastTriggered());
 
         return BudgetAlertResponse.builder()
                 .id(alert.getId())
@@ -63,8 +66,8 @@ public class BudgetAlertMapper {
                 .categoryName(categoryName)
                 .threshold(alert.getThreshold())
                 .isEnabled(alert.isEnabled())
-                .lastTriggered(alert.getLastTriggered())
-                .isRead(alert.isRead())
+                .lastTriggered(current ? alert.getLastTriggered() : null)
+                .isRead(!current || alert.isRead())
                 .createdAt(alert.getCreatedAt())
                 .updatedAt(alert.getUpdatedAt())
                 .build();
@@ -83,11 +86,20 @@ public class BudgetAlertMapper {
             BudgetAlert alert, BigDecimal currentSpentPercentage, Locale locale) {
         BudgetAlertResponse response = toResponse(alert, locale);
 
+        if (response != null
+                && currentSpentPercentage == null
+                && response.getLastTriggered() != null) {
+            response.setMessage(
+                    messageSource.getMessage(
+                            "budget.alert.no.allowance",
+                            new Object[] {response.getCategoryName()},
+                            locale));
+        }
         if (response != null && currentSpentPercentage != null) {
             response.setCurrentSpentPercentage(currentSpentPercentage);
 
             // Generate message if alert has been triggered
-            if (alert.getLastTriggered() != null && response.getCategoryName() != null) {
+            if (response.getLastTriggered() != null && response.getCategoryName() != null) {
                 response.setMessage(
                         generateAlertMessage(
                                 response.getCategoryName(),

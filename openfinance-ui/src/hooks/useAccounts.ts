@@ -11,6 +11,7 @@ import type {
   AccountRequest,
   InterestRateVariation,
   InterestRateVariationRequest,
+  InterestEstimate,
   AccountFilters,
 } from '@/types/account';
 import { buildEncryptionHeaders } from '@/utils/encryption';
@@ -375,25 +376,41 @@ export function useDeleteVariation() {
   });
 }
 
-/**
- * Fetch interest estimate — returns both a 1-year projection and the
- * historically accumulated interest since account creation.
- */
-export function useInterestEstimate(accountId: number | null, period: string = '1Y') {
-  return useQuery<{ estimate: number; historicalAccumulated: number }>({
-    queryKey: ['accounts', accountId, 'interest-estimate', period],
+/** Fetch the current calendar-year projection, year-to-date and lifetime net interest. */
+export function useInterestEstimate(accountId: number | null) {
+  return useQuery<InterestEstimate>({
+    queryKey: ['accounts', accountId, 'interest-estimate'],
     queryFn: async () => {
       if (!accountId) throw new Error('Account ID is required');
 
-      const response = await apiClient.get<{ estimate: number; historicalAccumulated: number }>(
+      const response = await apiClient.get<InterestEstimate>(
         `/accounts/${accountId}/interest-estimate`,
-        {
-          params: { period },
-          headers: buildEncryptionHeaders(),
-        }
+        { headers: buildEncryptionHeaders() }
       );
       return response.data;
     },
     enabled: !!accountId,
+  });
+}
+
+export function useUpdateVariation() {
+  const queryClient = useQueryClient();
+  return useMutation<
+    InterestRateVariation,
+    Error,
+    { accountId: number; variationId: number; data: InterestRateVariationRequest }
+  >({
+    mutationFn: async ({ accountId, variationId, data }) => {
+      const response = await apiClient.put<InterestRateVariation>(
+        `/accounts/${accountId}/interest-variations/${variationId}`,
+        data,
+        { headers: buildEncryptionHeaders() }
+      );
+      return response.data;
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['dashboard', 'estimated-interest'] });
+      queryClient.invalidateQueries({ queryKey: ['accounts', variables.accountId] });
+    },
   });
 }

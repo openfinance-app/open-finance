@@ -115,11 +115,19 @@ class FinancialDashboardCalculationsTest {
     }
 
     @Test
-    void newlyOpenedDebtAccruesOnlyTodayWhileProjectionRemainsAnnual() {
+    void newlyOpenedDebtProjectsOnlyItsDaysWithinTheCurrentCalendarYear() {
         loan(today, "1000", "12");
         EstimatedInterestSummary result = dashboardService.getEstimatedInterestSummary(1L, "1Y");
         assertThat(result.getTotalEarned()).isEqualByComparingTo("-0.33");
-        assertThat(result.getTotalProjected()).isEqualByComparingTo("-120");
+        assertThat(result.getTotalProjected())
+                .isEqualByComparingTo(
+                        new BigDecimal("-120")
+                                .multiply(
+                                        BigDecimal.valueOf(
+                                                daysThisYear(
+                                                        today,
+                                                        today.withMonth(12).withDayOfMonth(31))))
+                                .divide(new BigDecimal("365"), 2, java.math.RoundingMode.HALF_UP));
     }
 
     @Test
@@ -139,7 +147,19 @@ class FinancialDashboardCalculationsTest {
 
         // Four days at 1000 and four at 500; charges never change principal.
         assertThat(result.getTotalEarned()).isEqualByComparingTo("-6");
-        assertThat(result.getTotalProjected()).isEqualByComparingTo("-182.50");
+        assertThat(result.getTotalProjected())
+                .isEqualByComparingTo(
+                        BigDecimal.valueOf(daysThisYear(today.minusDays(7), today.minusDays(4)))
+                                .add(
+                                        new BigDecimal("0.5")
+                                                .multiply(
+                                                        BigDecimal.valueOf(
+                                                                daysThisYear(
+                                                                        today.minusDays(3),
+                                                                        today.withMonth(12)
+                                                                                .withDayOfMonth(
+                                                                                        31)))))
+                                .negate());
     }
 
     @Test
@@ -157,11 +177,14 @@ class FinancialDashboardCalculationsTest {
         EstimatedInterestSummary result = dashboardService.getEstimatedInterestSummary(1L, "1Y");
 
         assertThat(result.getTotalEarned()).isEqualByComparingTo("-4");
-        assertThat(result.getTotalProjected()).isZero();
+        assertThat(result.getTotalProjected())
+                .isEqualByComparingTo(
+                        BigDecimal.valueOf(daysThisYear(today.minusDays(7), today.minusDays(4)))
+                                .negate());
     }
 
     @Test
-    void repaidDebtRetainsPastInterestWithZeroProjection() {
+    void repaidDebtRetainsThisYearsInterestInTheCalendarYearProjection() {
         loan(today.minusDays(2), "0", "36.5");
         Transaction repayment = transaction(TransactionType.EXPENSE, new BigDecimal("1002"));
         repayment.setPrincipalAmount(new BigDecimal("1000"));
@@ -172,7 +195,10 @@ class FinancialDashboardCalculationsTest {
         EstimatedInterestSummary result = dashboardService.getEstimatedInterestSummary(1L, "ALL");
 
         assertThat(result.getTotalEarned()).isEqualByComparingTo("-2");
-        assertThat(result.getTotalProjected()).isZero();
+        assertThat(result.getTotalProjected())
+                .isEqualByComparingTo(
+                        BigDecimal.valueOf(daysThisYear(today.minusDays(2), today.minusDays(1)))
+                                .negate());
     }
 
     @ParameterizedTest
@@ -197,16 +223,21 @@ class FinancialDashboardCalculationsTest {
     @Test
     void futureDebtHasNoHistoricalInterest() {
         loan(today.plusDays(1), "1000", "36.5");
-        assertThat(dashboardService.getEstimatedInterestSummary(1L, "1Y").getTotalEarned())
-                .isZero();
+        EstimatedInterestSummary result = dashboardService.getEstimatedInterestSummary(1L, "1Y");
+        assertThat(result.getTotalEarned()).isZero();
+        assertThat(result.getTotalProjected())
+                .isEqualByComparingTo(
+                        BigDecimal.valueOf(
+                                        daysThisYear(
+                                                today.plusDays(1),
+                                                today.withMonth(12).withDayOfMonth(31)))
+                                .negate());
     }
 
     @Test
     void missingHistoricalExchangeRateCannotHideALoanFromTheTotal() {
         Liability loan = loan(today, "1000", "36.5");
         loan.setCurrency("USD");
-        when(exchangeRateService.convert(new BigDecimal("365.000"), "USD", "EUR"))
-                .thenReturn(new BigDecimal("292"));
         when(exchangeRateService.convert(any(BigDecimal.class), eq("USD"), eq("EUR"), eq(today)))
                 .thenThrow(new IllegalStateException("Rate unavailable"));
 
@@ -218,8 +249,6 @@ class FinancialDashboardCalculationsTest {
     void historicalDebtUsesEachDaysExchangeRateAndLoadsTheLedgerOnce() {
         Liability loan = loan(today.minusDays(1), "1000", "36.5");
         loan.setCurrency("USD");
-        when(exchangeRateService.convert(new BigDecimal("365.000"), "USD", "EUR"))
-                .thenReturn(new BigDecimal("292"));
         when(exchangeRateService.convert(new BigDecimal("1000"), "USD", "EUR", today.minusDays(1)))
                 .thenReturn(new BigDecimal("900"));
         when(exchangeRateService.convert(new BigDecimal("1000"), "USD", "EUR", today))
@@ -228,9 +257,30 @@ class FinancialDashboardCalculationsTest {
         EstimatedInterestSummary result = dashboardService.getEstimatedInterestSummary(1L, "1Y");
 
         assertThat(result.getTotalEarned()).isEqualByComparingTo("-1.70");
-        assertThat(result.getTotalProjected()).isEqualByComparingTo("-292");
+        assertThat(result.getTotalProjected())
+                .isEqualByComparingTo(
+                        new BigDecimal("0.9")
+                                .multiply(
+                                        BigDecimal.valueOf(
+                                                daysThisYear(
+                                                        today.minusDays(1), today.minusDays(1))))
+                                .add(
+                                        new BigDecimal("0.8")
+                                                .multiply(
+                                                        BigDecimal.valueOf(
+                                                                daysThisYear(
+                                                                        today,
+                                                                        today.withMonth(12)
+                                                                                .withDayOfMonth(
+                                                                                        31)))))
+                                .negate());
         verify(transactionRepository).findByLiabilityIdAndUserId(10L, 1L);
         verify(liabilityTrancheRepository).findByLiabilityIdAndUserId(10L, 1L);
+    }
+
+    private long daysThisYear(LocalDate start, LocalDate end) {
+        LocalDate first = start.isBefore(today.withDayOfYear(1)) ? today.withDayOfYear(1) : start;
+        return Math.max(0, ChronoUnit.DAYS.between(first, end) + 1);
     }
 
     private Liability loan(LocalDate start, String balance, String rate) {

@@ -40,7 +40,7 @@ vi.mock('react-router', async importOriginal => {
 
 const baseSummary: IEstimatedInterestSummary = {
   totalEarned: 1250.5,
-  totalProjected: 3000,
+  totalProjected: 1500,
   currency: 'EUR',
   accounts: [
     {
@@ -83,6 +83,28 @@ describe('EstimatedInterestCard', () => {
     // Total earned should show as converted amount
     const amounts = screen.getAllByTestId('converted-amount');
     expect(amounts.length).toBeGreaterThanOrEqual(1);
+  });
+
+  it('labels the projection as the current calendar year independently of the selected period', () => {
+    const { rerender } = renderWithProviders(
+      <EstimatedInterestCard summary={baseSummary} period="YTD" />
+    );
+    const label = `Projected for ${new Date().getFullYear()}`;
+    expect(screen.getByText(`${label}:`)).toBeInTheDocument();
+    expect(screen.queryByText(/Projected Next Year/)).not.toBeInTheDocument();
+    rerender(<EstimatedInterestCard summary={baseSummary} period="1M" />);
+    expect(screen.getByText(`${label}:`)).toBeInTheDocument();
+  });
+
+  it('keeps the calendar-year projection consistent when filtering accounts and liabilities', async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<EstimatedInterestCard summary={baseSummary} period="YTD" />);
+    const projection = screen.getByText(`Projected for ${new Date().getFullYear()}:`);
+    expect(projection).toHaveTextContent('1500 EUR');
+    await user.selectOptions(screen.getByRole('combobox'), 'ACCOUNTS');
+    expect(projection).toHaveTextContent('2000 EUR');
+    await user.selectOptions(screen.getByRole('combobox'), 'LIABILITIES');
+    expect(projection).toHaveTextContent('-500 EUR');
   });
 
   it('renders account breakdown', () => {

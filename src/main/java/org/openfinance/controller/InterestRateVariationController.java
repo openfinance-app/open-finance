@@ -2,6 +2,7 @@ package org.openfinance.controller;
 
 import jakarta.validation.Valid;
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
@@ -18,6 +19,7 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -59,6 +61,26 @@ public class InterestRateVariationController {
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
+    @PutMapping("/interest-variations/{variationId}")
+    public ResponseEntity<InterestRateVariationResponse> updateVariation(
+            @PathVariable("accountId") Long accountId,
+            @PathVariable("variationId") Long variationId,
+            @Valid @RequestBody InterestRateVariationRequest request,
+            Authentication authentication) {
+        User user = (User) authentication.getPrincipal();
+        return ResponseEntity.ok(
+                variationService.updateVariation(accountId, variationId, user.getId(), request));
+    }
+
+    @GetMapping("/interest-year")
+    public ResponseEntity<InterestCalculatorService.YearEstimate> getInterestYear(
+            @PathVariable("accountId") Long accountId,
+            @RequestParam("year") int year,
+            Authentication authentication) {
+        User user = (User) authentication.getPrincipal();
+        return ResponseEntity.ok(calculatorService.calculateYear(accountId, user.getId(), year));
+    }
+
     @DeleteMapping("/interest-variations/{variationId}")
     public ResponseEntity<Void> deleteVariation(
             @PathVariable("accountId") Long accountId,
@@ -71,18 +93,18 @@ public class InterestRateVariationController {
 
     @GetMapping("/interest-estimate")
     public ResponseEntity<InterestEstimateResponse> getInterestEstimate(
-            @PathVariable("accountId") Long accountId,
-            @RequestParam(value = "period", required = false, defaultValue = "1Y") String period,
-            Authentication authentication) {
+            @PathVariable("accountId") Long accountId, Authentication authentication) {
         User user = (User) authentication.getPrincipal();
-        BigDecimal projected =
-                calculatorService.calculateInterestEstimate(accountId, user.getId(), period);
+        InterestCalculatorService.YearEstimate currentYear =
+                calculatorService.calculateYear(accountId, user.getId(), LocalDate.now().getYear());
         BigDecimal historical =
-                calculatorService.calculateHistoricalAccumulated(accountId, user.getId(), period);
-        return ResponseEntity.ok(new InterestEstimateResponse(projected, historical));
+                calculatorService.calculateHistoricalAccumulated(accountId, user.getId(), "ALL");
+        return ResponseEntity.ok(
+                new InterestEstimateResponse(
+                        currentYear.calendarYearEstimate(), currentYear.accrued(), historical));
     }
 
     /** DTO returned by the interest-estimate endpoint. */
     public static record InterestEstimateResponse(
-            BigDecimal estimate, BigDecimal historicalAccumulated) {}
+            BigDecimal estimate, BigDecimal yearToDate, BigDecimal historicalAccumulated) {}
 }

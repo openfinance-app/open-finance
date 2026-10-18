@@ -3,6 +3,8 @@ package org.openfinance.entity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -62,6 +64,21 @@ public class InterestRateVariation {
     @NotNull(message = "{interestRateVariation.validFrom.notnull}")
     @Column(name = "valid_from", nullable = false)
     private LocalDate validFrom;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "credit_value_date_mode", nullable = false)
+    @Builder.Default
+    private InterestValueDateMode creditValueDateMode = InterestValueDateMode.TRANSACTION_DATE;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "debit_value_date_mode", nullable = false)
+    @Builder.Default
+    private InterestValueDateMode debitValueDateMode = InterestValueDateMode.TRANSACTION_DATE;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "day_count_basis", nullable = false)
+    @Builder.Default
+    private InterestDayCountBasis dayCountBasis = InterestDayCountBasis.ACTUAL_365;
 
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)

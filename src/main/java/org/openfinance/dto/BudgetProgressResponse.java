@@ -47,6 +47,9 @@ public class BudgetProgressResponse {
      */
     private BigDecimal budgeted;
 
+    private BigDecimal allowance;
+    private BigDecimal carryover;
+
     /**
      * Amount spent so far in the current period.
      *
@@ -92,6 +95,10 @@ public class BudgetProgressResponse {
     private BigDecimal nativeBudgeted;
     private BigDecimal nativeSpent;
     private BigDecimal nativeRemaining;
+
+    private BigDecimal nativeAllowance;
+    private BigDecimal nativeCarryover;
+    private Boolean recurring;
 
     /** Budget period type. */
     private BudgetPeriod period;

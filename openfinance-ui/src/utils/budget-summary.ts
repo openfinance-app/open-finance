@@ -8,6 +8,7 @@ export function activeBudgetSummary(
   today = format(new Date(), 'yyyy-MM-dd')
 ): BudgetSummaryResponse {
   const budgets = summary.budgets.filter(b => b.startDate <= today && b.endDate >= today);
+  const measured = budgets.filter(b => b.percentageSpent != null);
   const totalBudgeted = budgets.reduce((total, b) => add(total, b.budgeted), 0);
   const totalSpent = budgets.reduce((total, b) => add(total, b.spent), 0);
   return {
@@ -18,10 +19,10 @@ export function activeBudgetSummary(
     totalBudgeted,
     totalSpent,
     totalRemaining: subtract(totalBudgeted, totalSpent),
-    averageSpentPercentage: budgets.length
+    averageSpentPercentage: measured.length
       ? divide(
-          budgets.reduce((total, b) => add(total, b.percentageSpent), 0),
-          budgets.length
+          measured.reduce((total, b) => add(total, b.percentageSpent ?? 0), 0),
+          measured.length
         )
       : 0,
   };

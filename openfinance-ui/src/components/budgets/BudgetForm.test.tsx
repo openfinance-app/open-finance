@@ -135,7 +135,7 @@ describe('BudgetForm', () => {
     it('should render rollover checkbox', () => {
       renderWithProviders(<BudgetForm onSubmit={mockOnSubmit} onCancel={mockOnCancel} />);
 
-      expect(screen.getByLabelText(/Rollover unused budget/i)).toBeInTheDocument();
+      expect(screen.getByLabelText(/Carry unused funds/i)).toBeInTheDocument();
     });
 
     it('should render notes field', () => {
@@ -167,7 +167,7 @@ describe('BudgetForm', () => {
 
       await waitFor(() => {
         expect(
-          screen.getByText(/End date must be at least 1 day after start date/i)
+          screen.getByText(/End date must be on or after the start date/i)
         ).toBeInTheDocument();
       });
     });
@@ -210,6 +210,35 @@ describe('BudgetForm', () => {
   });
 
   describe('Edit mode', () => {
+    it('saves renewal and signed carry choices without changing coverage dates', async () => {
+      const user = userEvent.setup();
+      renderWithProviders(
+        <BudgetForm budget={mockBudget} onSubmit={mockOnSubmit} onCancel={mockOnCancel} />
+      );
+      expect(
+        screen.getByRole('checkbox', { name: 'Renew the allowance every period' })
+      ).toBeChecked();
+      await user.click(
+        screen.getByRole('checkbox', { name: 'Carry unused funds into the next period' })
+      );
+      await user.click(
+        screen.getByRole('checkbox', { name: 'Also carry overspending into the next period' })
+      );
+      await user.click(screen.getByRole('button', { name: /update budget/i }));
+      await waitFor(() =>
+        expect(mockOnSubmit).toHaveBeenCalledWith(
+          expect.objectContaining({
+            recurring: true,
+            rollover: true,
+            rolloverOverspending: true,
+            startDate: '2026-01-01',
+            endDate: '2026-12-31',
+            amount: '500',
+          })
+        )
+      );
+    });
+
     it('retains the exact amount when saving a budget', async () => {
       const budget = {
         ...mockBudget,

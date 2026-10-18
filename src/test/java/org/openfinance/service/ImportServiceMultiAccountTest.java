@@ -140,6 +140,7 @@ class ImportServiceMultiAccountTest {
                                 accountRepository, transactionRepository),
                         transactionRuleService,
                         skroogeRuleImportService,
+                        org.mockito.Mockito.mock(SkroogeInterestImportService.class),
                         transactionService,
                         exchangeRateService,
                         transactionSplitService,

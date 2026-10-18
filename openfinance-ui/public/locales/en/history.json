@@ -100,6 +100,8 @@
     "property_type": "Type",
     "rollover": "Rollover",
     "period": "Budget period",
-    "category_id": "Category"
+    "category_id": "Category",
+    "recurring": "Renew allowance every period",
+    "rollover_overspending": "Carry overspending"
   }
 }

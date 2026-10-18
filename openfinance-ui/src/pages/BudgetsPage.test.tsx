@@ -57,13 +57,18 @@ vi.mock('@/components/budgets/BudgetCard', () => ({
 vi.mock('@/components/budgets/BudgetSummaryCard', () => ({
   BudgetSummaryCard: ({
     summary,
+    listedBudgetCount,
     filteredBudgets,
   }: {
     summary: BudgetSummaryResponse;
+    listedBudgetCount: number;
     filteredBudgets?: BudgetProgressResponse[];
   }) => (
     <div data-testid="budget-summary-card">
       <span>Summary: {summary.totalBudgets} budgets</span>
+      <span>
+        {summary.activeBudgets} of {listedBudgetCount} active
+      </span>
       <output aria-label="Current allowance">{summary.totalBudgeted}</output>
       <output aria-label="Current spending">{summary.totalSpent}</output>
       <output aria-label="Current remaining">{summary.totalRemaining}</output>
@@ -492,6 +497,7 @@ describe('BudgetsPage', () => {
       expect(screen.getByLabelText('Current allowance')).toHaveTextContent('439.37');
       expect(screen.getByLabelText('Current spending')).toHaveTextContent('244.38');
       expect(screen.getByLabelText('Current remaining')).toHaveTextContent('194.99');
+      expect(screen.getByText('3 of 5 active')).toBeInTheDocument();
       expect(screen.getAllByText('Food', { exact: true })).toHaveLength(2);
       expect(screen.getByText('Future travel', { exact: true })).toBeInTheDocument();
       expect(screen.getAllByTestId('alert-banner')).toHaveLength(1);
@@ -515,6 +521,7 @@ describe('BudgetsPage', () => {
       } as ReturnType<typeof useBudgetSummary>);
       renderWithProviders(<BudgetsPage />, { queryClient });
       expect(screen.getByLabelText('Current remaining')).toHaveTextContent(/^0$/);
+      expect(screen.getByText('0 of 2 active')).toBeInTheDocument();
       expect(screen.queryByTestId('alert-banner')).not.toBeInTheDocument();
       expect(screen.getByText('Food', { exact: true })).toBeInTheDocument();
       expect(screen.getByText('Future travel', { exact: true })).toBeInTheDocument();
