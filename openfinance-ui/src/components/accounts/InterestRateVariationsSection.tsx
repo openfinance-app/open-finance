@@ -1,3 +1,5 @@
+import { ExactDecimal } from '@/utils/exact-decimal';
+import { isValidDecimalString } from '@/utils/money';
 import { formatDecimal } from '@/utils/format';
 import { useMemo, useState } from 'react';
 import { format, parseISO } from 'date-fns';
@@ -47,11 +49,19 @@ export function InterestRateVariationsSection({
   const variationSchema = useMemo(
     () =>
       z.object({
-        rate: z.number().min(0.01, t('validation.interestRatePositive')),
+        rate: z
+          .string()
+          .refine(
+            v => isValidDecimalString(v) && new ExactDecimal(v).gte('0.01'),
+            t('validation.interestRatePositive')
+          ),
         taxRate: z
-          .number()
-          .min(0, t('validation.taxRateMustBePositive'))
-          .max(100, t('validation.taxRateMax'))
+          .string()
+          .refine(
+            v => isValidDecimalString(v) && new ExactDecimal(v).gte(0),
+            t('validation.taxRateMustBePositive')
+          )
+          .refine(v => new ExactDecimal(v).lte(100), t('validation.taxRateMax'))
           .optional(),
         validFrom: z.string().min(1, t('validation.effectiveDateRequired')),
       }),
@@ -72,8 +82,8 @@ export function InterestRateVariationsSection({
   } = useForm<VariationFormData>({
     resolver: zodResolver(variationSchema),
     defaultValues: {
-      rate: 0,
-      taxRate: 0,
+      rate: '0',
+      taxRate: '0',
       validFrom: new Date().toISOString().split('T')[0],
     },
   });
@@ -295,7 +305,7 @@ export function InterestRateVariationsSection({
                           ? String(field.value)
                           : ''
                       }
-                      onChange={val => field.onChange(val === '' ? 0 : Number(val))}
+                      onChange={val => field.onChange(val || '0')}
                       onBlur={field.onBlur}
                       placeholder="0.00"
                       error={errors.rate?.message}
@@ -322,7 +332,7 @@ export function InterestRateVariationsSection({
                           ? String(field.value)
                           : ''
                       }
-                      onChange={val => field.onChange(val === '' ? 0 : Number(val))}
+                      onChange={val => field.onChange(val || '0')}
                       onBlur={field.onBlur}
                       placeholder="0.00"
                       error={errors.taxRate?.message}

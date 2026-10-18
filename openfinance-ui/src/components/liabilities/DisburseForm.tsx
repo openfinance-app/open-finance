@@ -17,6 +17,7 @@ import { useDisburseLiability } from '@/hooks/useLiabilities';
 import { useAccounts } from '@/hooks/useAccounts';
 import { getToday } from '@/utils/date';
 import { isValidDecimalString } from '@/utils/money';
+import { decimalField } from '@/utils/exact-decimal';
 import type { Liability, LiabilityTranche } from '@/types/liability';
 
 type DisburseRoute = 'account' | 'property';
@@ -36,7 +37,7 @@ export function DisburseForm({ liability, tranche, onDone }: DisburseFormProps) 
   const linkedPropertyId = tranche?.realEstateId ?? liability.linkedPropertyId ?? null;
   // Amount prefilled with the remaining planned amount of the tranche.
   const [amount, setAmount] = useState(
-    tranche ? String(tranche.remaining ?? tranche.plannedAmount) : ''
+    tranche ? decimalField(tranche, tranche.remaining == null ? 'plannedAmount' : 'remaining') : ''
   );
   const [date, setDate] = useState(getToday());
   const [route, setRoute] = useState<DisburseRoute>('account');

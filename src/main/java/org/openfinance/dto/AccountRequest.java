@@ -69,6 +69,9 @@ public class AccountRequest {
     @Digits(integer = 26, fraction = 18, message = "{account.balance.digits}")
     private BigDecimal initialBalance;
 
+    /** False for metadata-only edits. Null retains the legacy API's balance-update behavior. */
+    private Boolean adjustBalance;
+
     /**
      * Units of the requested current balance; defaults to the existing account's currency on edits.
      */

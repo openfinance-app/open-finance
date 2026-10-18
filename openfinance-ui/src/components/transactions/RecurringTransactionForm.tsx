@@ -1,3 +1,4 @@
+import { decimalField } from '@/utils/exact-decimal';
 import { CURRENCY_CODE_PATTERN } from '@/utils/currency-code';
 /**
  * RecurringTransactionForm Component
@@ -158,7 +159,7 @@ export function RecurringTransactionForm({
           accountId: recurringTransaction.accountId,
           toAccountId: recurringTransaction.toAccountId || undefined,
           type: recurringTransaction.type,
-          amount: String(recurringTransaction.amount),
+          amount: decimalField(recurringTransaction, 'amount'),
           currency: recurringTransaction.currency,
           categoryId: recurringTransaction.categoryId || undefined,
           payee: recurringTransaction.payee || undefined,

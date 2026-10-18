@@ -45,6 +45,16 @@ public class InvalidCategoryException extends RuntimeException implements Locali
         this.messageArgs = new Object[] {message};
     }
 
+    public static InvalidCategoryException referencedBy(String reference, long count) {
+        return new InvalidCategoryException(reference, count);
+    }
+
+    private InvalidCategoryException(String reference, long count) {
+        super("Cannot delete category used by " + count + " " + reference);
+        this.messageKey = "error.category.inUse." + reference;
+        this.messageArgs = new Object[] {count};
+    }
+
     @Override
     public String getMessageKey() {
         return messageKey;

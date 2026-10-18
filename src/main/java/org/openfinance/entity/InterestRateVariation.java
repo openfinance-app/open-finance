@@ -1,6 +1,7 @@
 package org.openfinance.entity;
 
 import jakarta.persistence.Column;
+import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
@@ -22,6 +23,7 @@ import lombok.NoArgsConstructor;
 import lombok.ToString;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
+import org.openfinance.converter.ExactDecimalConverter;
 
 /** Entity representing a historical interest rate variation for an account. */
 @Entity
@@ -48,10 +50,12 @@ public class InterestRateVariation {
     private Account account;
 
     @NotNull(message = "{interestRateVariation.rate.notnull}")
-    @Column(name = "rate", nullable = false, precision = 10, scale = 4)
+    @Column(name = "rate", nullable = false, length = 512)
+    @Convert(converter = ExactDecimalConverter.class)
     private BigDecimal rate;
 
-    @Column(name = "tax_rate", precision = 10, scale = 4)
+    @Column(name = "tax_rate", length = 512)
+    @Convert(converter = ExactDecimalConverter.class)
     @Builder.Default
     private BigDecimal taxRate = BigDecimal.ZERO;
 

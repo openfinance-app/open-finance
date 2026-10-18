@@ -1,3 +1,4 @@
+import type { RecurringTransaction } from '@/types/recurringTransaction';
 /**
  * RecurringTransactionForm Validation Tests
  * TASK-13.2.3: Form validation tests for RecurringTransactionForm component
@@ -350,6 +351,37 @@ describe('RecurringTransactionForm', () => {
   });
 
   describe('Edit mode', () => {
+    it('retains the exact recurring amount during a metadata edit', async () => {
+      renderWithProviders(
+        <RecurringTransactionForm
+          recurringTransaction={
+            {
+              id: 1,
+              accountId: 1,
+              type: 'EXPENSE',
+              amount: 10006858.91125675,
+              exactValues: { amount: '10006858.9112567483' },
+              currency: 'USD',
+              description: 'Recurring expense',
+              frequency: 'MONTHLY',
+              nextOccurrence: '2026-04-01',
+              isActive: true,
+            } as RecurringTransaction
+          }
+          accounts={mockAccounts}
+          categories={mockCategories}
+          onSubmit={mockOnSubmit}
+          onCancel={mockOnCancel}
+        />
+      );
+      await userEvent.setup().click(screen.getByRole('button', { name: /update/i }));
+      await waitFor(() =>
+        expect(mockOnSubmit).toHaveBeenCalledWith(
+          expect.objectContaining({ amount: '10006858.9112567483' })
+        )
+      );
+    });
+
     it('should show "Update" button when editing', () => {
       renderWithProviders(
         <RecurringTransactionForm

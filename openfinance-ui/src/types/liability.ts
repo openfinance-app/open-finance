@@ -13,6 +13,7 @@ export type LiabilityType =
   | 'OTHER';
 
 export interface Liability {
+  exactValues?: Record<string, string>;
   id: number;
   name: string;
   type: LiabilityType;
@@ -176,6 +177,7 @@ export type TrancheStatus = 'PLANNED' | 'DRAWN' | 'CANCELLED';
  * Returned by GET /api/v1/liabilities/{id}/tranches.
  */
 export interface LiabilityTranche {
+  exactValues?: Record<string, string>;
   id: number;
   liabilityId: number;
   /** 1-based position of the tranche in the drawdown plan (T1, T2, …) */

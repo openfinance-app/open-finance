@@ -21,6 +21,7 @@ export interface Currency {
  * Exchange rate information
  */
 export interface ExchangeRate {
+  exactValues?: Record<string, string>;
   baseCurrency: string;
   targetCurrency: string;
   rate: number;

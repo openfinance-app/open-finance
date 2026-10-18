@@ -72,6 +72,15 @@ class CategoryServiceTest {
 
     @Mock private EncryptionProperties encryptionProperties;
 
+    @Mock private org.openfinance.repository.TransactionSplitRepository transactionSplitRepository;
+
+    @Mock
+    private org.openfinance.repository.RecurringTransactionRepository
+            recurringTransactionRepository;
+
+    @Mock private org.openfinance.repository.PayeeRepository payeeRepository;
+    @Mock private org.openfinance.repository.BudgetRepository budgetRepository;
+
     @InjectMocks private CategoryService categoryService;
 
     private static final Long USER_ID = 1L;
@@ -1105,5 +1114,65 @@ class CategoryServiceTest {
                 .getMessage(eq("category.shopping"), any(), eq("Shopping"), eq(Locale.FRENCH));
         verify(messageSource)
                 .getMessage(eq("category.groceries"), any(), eq("Groceries"), eq(Locale.FRENCH));
+    }
+
+    @Test
+    void rejectsSplitOnlyCategoryBeforeDeletingAnyData() {
+        Category category = userCategoryFixture(CATEGORY_ID, USER_ID, "Split", null);
+        when(categoryRepository.findByIdAndUserId(CATEGORY_ID, USER_ID))
+                .thenReturn(Optional.of(category));
+        when(transactionSplitRepository.countByCategoryId(CATEGORY_ID)).thenReturn(2L);
+        assertThatThrownBy(() -> categoryService.deleteCategory(USER_ID, CATEGORY_ID))
+                .isInstanceOf(InvalidCategoryException.class)
+                .hasMessageContaining("2 splits");
+        verify(categoryRepository, never()).delete(any());
+    }
+
+    @Test
+    void rejectsCategoriesUsedByRecurringTemplatesIncludingPausedOnes() {
+        Category category = userCategoryFixture(CATEGORY_ID, USER_ID, "Recurring", null);
+        when(categoryRepository.findByIdAndUserId(CATEGORY_ID, USER_ID))
+                .thenReturn(Optional.of(category));
+        when(recurringTransactionRepository.countByCategoryId(CATEGORY_ID)).thenReturn(1L);
+        assertThatThrownBy(() -> categoryService.deleteCategory(USER_ID, CATEGORY_ID))
+                .isInstanceOf(InvalidCategoryException.class)
+                .hasMessageContaining("1 recurring");
+        verify(categoryRepository, never()).delete(any());
+    }
+
+    @Test
+    void rejectsPayeeDefaultsWithALocalizableErrorInsteadOfAForeignKeyFailure() {
+        Category category = userCategoryFixture(CATEGORY_ID, USER_ID, "Payee", null);
+        when(categoryRepository.findByIdAndUserId(CATEGORY_ID, USER_ID))
+                .thenReturn(Optional.of(category));
+        when(payeeRepository.countByDefaultCategoryId(CATEGORY_ID)).thenReturn(3L);
+        InvalidCategoryException error =
+                assertThrows(
+                        InvalidCategoryException.class,
+                        () -> categoryService.deleteCategory(USER_ID, CATEGORY_ID));
+        assertThat(error.getMessageKey()).isEqualTo("error.category.inUse.payees");
+        assertThat(error.getMessageArgs()).containsExactly(3L);
+        verify(categoryRepository, never()).delete(any());
+    }
+
+    @Test
+    void reportsAllBudgetsWithoutBlockingTheirCategoryDeletion() {
+        Category category = userCategoryFixture(CATEGORY_ID, USER_ID, "Budget", null);
+        when(categoryRepository.findByIdAndUserId(CATEGORY_ID, USER_ID))
+                .thenReturn(Optional.of(category));
+        when(budgetRepository.countByCategoryId(CATEGORY_ID)).thenReturn(4L);
+        org.openfinance.dto.CategoryDeletionImpact impact =
+                categoryService.getDeletionImpact(USER_ID, CATEGORY_ID);
+        assertThat(impact.budgetCount()).isEqualTo(4);
+        assertThat(impact.isDeletable()).isTrue();
+        categoryService.deleteCategory(USER_ID, CATEGORY_ID);
+        verify(categoryRepository).delete(category);
+    }
+
+    @Test
+    void deletionImpactDoesNotExposeAnotherUsersCategory() {
+        assertThatThrownBy(() -> categoryService.getDeletionImpact(USER_ID, 999L))
+                .isInstanceOf(CategoryNotFoundException.class);
+        verify(budgetRepository, never()).countByCategoryId(anyLong());
     }
 }

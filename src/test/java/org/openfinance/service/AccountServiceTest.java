@@ -87,6 +87,11 @@ class AccountServiceTest {
     private org.openfinance.config.BusinessRulesProperties businessRules =
             new org.openfinance.config.BusinessRulesProperties();
 
+    @Mock
+    private org.springframework.beans.factory.ObjectProvider<TransactionService> transactionService;
+
+    @Mock private TransactionService transactionWriter;
+    @Mock private org.springframework.context.MessageSource messageSource;
     @InjectMocks private AccountService accountService;
 
     @BeforeEach
@@ -1312,5 +1317,68 @@ class AccountServiceTest {
         assertThat(result.getIsConverted()).isTrue();
         assertThat(result.getBalanceInBaseCurrency())
                 .isEqualByComparingTo(new BigDecimal("110.00"));
+    }
+
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(
+            strings = {"10006858.91125675", "1", "10006858.9112567483"})
+    void metadataEditsNeverAdjustRoundedOrStaleBalances(String submittedBalance) {
+        Account account = precisionAccount();
+        AccountRequest request =
+                AccountRequest.builder()
+                        .name("Interest enabled")
+                        .type(AccountType.SAVINGS)
+                        .currency("EUR")
+                        .initialBalance(new BigDecimal(submittedBalance))
+                        .adjustBalance(false)
+                        .isInterestEnabled(true)
+                        .build();
+        accountService.updateAccount(69L, 1L, request);
+        assertThat(account.getBalance()).isEqualByComparingTo("10006858.9112567483");
+        verify(transactionService, org.mockito.Mockito.never()).getObject();
+        verify(accountRepository).save(account);
+    }
+
+    @Test
+    void explicitBalanceEditsStillCreateAnExactAdjustment() {
+        precisionAccount();
+        when(transactionService.getObject()).thenReturn(transactionWriter);
+        AccountRequest request =
+                AccountRequest.builder()
+                        .name("Savings")
+                        .type(AccountType.SAVINGS)
+                        .currency("EUR")
+                        .initialBalance(new BigDecimal("10006859.9112567483"))
+                        .adjustBalance(true)
+                        .build();
+        accountService.updateAccount(69L, 1L, request);
+        org.mockito.ArgumentCaptor<org.openfinance.dto.TransactionRequest> capture =
+                org.mockito.ArgumentCaptor.forClass(org.openfinance.dto.TransactionRequest.class);
+        verify(transactionWriter).createTransaction(eq(1L), capture.capture());
+        assertThat(capture.getValue().getAmount()).isEqualByComparingTo("1");
+    }
+
+    private Account precisionAccount() {
+        Account account =
+                Account.builder()
+                        .id(69L)
+                        .userId(1L)
+                        .name("Savings")
+                        .type(AccountType.SAVINGS)
+                        .currency("EUR")
+                        .isActive(true)
+                        .balance(new BigDecimal("10006858.9112567483"))
+                        .build();
+        when(accountRepository.findByIdAndUserId(69L, 1L)).thenReturn(Optional.of(account));
+        when(accountRepository.save(account)).thenReturn(account);
+        when(accountMapper.toResponse(account))
+                .thenAnswer(
+                        invocation ->
+                                AccountResponse.builder()
+                                        .id(69L)
+                                        .currency("EUR")
+                                        .balance(account.getBalance())
+                                        .build());
+        return account;
     }
 }

@@ -1,3 +1,10 @@
+import {
+  decimalField,
+  decimalValue,
+  exactSum,
+  equalDecimals,
+  ExactDecimal,
+} from '@/utils/exact-decimal';
 import { formatDecimal } from '@/utils/format';
 import { CURRENCY_CODE_PATTERN } from '@/utils/currency-code';
 /**
@@ -44,7 +51,7 @@ import { DEFAULT_CURRENCY, getMonetaryScale, getCurrencyDecimals } from '@/utils
 import { CurrencySelector } from '@/components/ui/CurrencySelector';
 import { ExchangeRateInline } from '@/components/ui/ExchangeRateDisplay';
 import { useExchangeRate } from '@/hooks/useCurrency';
-import { multiply, roundToDecimals, sum } from '@/utils/money';
+import { multiply, isValidDecimalString } from '@/utils/money';
 import {
   buildTransactionRequest,
   reconstructInitialSplits,
@@ -83,7 +90,12 @@ const transactionSchema = (tValidation: (key: string) => string) =>
         val => (typeof val === 'string' ? val.toUpperCase() : val),
         z.enum(['INCOME', 'EXPENSE', 'TRANSFER'])
       ),
-      amount: z.coerce.number().positive(tValidation('form.validation.amountPositive')),
+      amount: z
+        .string()
+        .refine(
+          v => isValidDecimalString(v) && new ExactDecimal(v).gt(0),
+          tValidation('form.validation.amountPositive')
+        ),
       currency: z
         .string()
         .regex(CURRENCY_CODE_PATTERN, tValidation('form.validation.currencyCode')),
@@ -128,8 +140,11 @@ const transactionSchema = (tValidation: (key: string) => string) =>
         .optional(),
       trancheId: optionalNumber,
       principalAmount: z.preprocess(
-        v => (v === '' || v == null ? undefined : Number(v)),
-        z.number().nonnegative().optional()
+        v => (v === '' || v == null ? undefined : String(v)),
+        z
+          .string()
+          .refine(v => isValidDecimalString(v) && new ExactDecimal(v).gte(0))
+          .optional()
       ),
       realEstateId: optionalNumber,
       assetId: optionalNumber,
@@ -253,9 +268,12 @@ export function TransactionForm({
           accountId: transaction.accountId,
           toAccountId: transaction.toAccountId,
           type: transaction.transferId ? 'TRANSFER' : transaction.type,
-          amount: transaction.originalCurrency
-            ? (transaction.originalAmount ?? transaction.amount)
-            : transaction.amount,
+          amount: decimalField(
+            transaction,
+            transaction.originalCurrency && transaction.originalAmount != null
+              ? 'originalAmount'
+              : 'amount'
+          ),
           currency: transaction.originalCurrency ?? transaction.currency,
           categoryId: transaction.categoryId,
           date: formatDateForInput(transaction.date),
@@ -267,7 +285,10 @@ export function TransactionForm({
           liabilityId: transaction.liabilityId,
           movementType: transaction.movementType ?? undefined,
           trancheId: transaction.trancheId,
-          principalAmount: transaction.principalAmount,
+          principalAmount:
+            transaction.principalAmount == null
+              ? undefined
+              : decimalField(transaction, 'principalAmount'),
           realEstateId: transaction.realEstateId,
           assetId: transaction.assetId,
         }
@@ -275,7 +296,7 @@ export function TransactionForm({
           accountId: undefined as any,
           toAccountId: undefined,
           type: 'EXPENSE',
-          amount: 0,
+          amount: '0',
           currency: DEFAULT_CURRENCY,
           categoryId: undefined,
           date: getToday(),
@@ -321,10 +342,10 @@ export function TransactionForm({
     linkedLiability && !!liabilityCurrency && accountCurrency !== liabilityCurrency;
 
   // Debounce the watched amount so rapid keystrokes fire a single preview request.
-  const [debouncedAmount, setDebouncedAmount] = useState(0);
+  const [debouncedAmount, setDebouncedAmount] = useState('0');
   useEffect(() => {
     const timer = setTimeout(() => {
-      setDebouncedAmount(Number(amountValue) > 0 ? Number(amountValue) : 0);
+      setDebouncedAmount(Number(amountValue) > 0 ? String(amountValue) : '0');
     }, 400);
     return () => clearTimeout(timer);
   }, [amountValue]);
@@ -348,19 +369,23 @@ export function TransactionForm({
   const liabilityInputSupported =
     !liabilityCurrency || inputCurrency === liabilityCurrency || inputCurrency === accountCurrency;
   const liabilityPreviewTotal =
-    !liabilityInputSupported || debouncedAmount <= 0
+    !liabilityInputSupported || Number(debouncedAmount) <= 0
       ? undefined
       : needsLiabilityFx && inputCurrency === accountCurrency
         ? accountToLiabilityRate
-          ? roundToDecimals(
-              multiply(debouncedAmount, accountToLiabilityRate),
-              getMonetaryScale(liabilityCurrency!)
-            )
+          ? new ExactDecimal(debouncedAmount)
+              .times(
+                liabilityRateData ? decimalField(liabilityRateData, 'rate') : accountToLiabilityRate
+              )
+              .toDecimalPlaces(getMonetaryScale(liabilityCurrency!))
+              .toFixed()
           : undefined
         : debouncedAmount;
 
   const { data: repaymentPreview, error: repaymentPreviewError } = useRepaymentPreview(
-    liabilityPreviewTotal != null && liabilityPreviewTotal > 0 ? liabilityIdValue : undefined,
+    liabilityPreviewTotal != null && Number(liabilityPreviewTotal) > 0
+      ? liabilityIdValue
+      : undefined,
     liabilityPreviewTotal ?? 0,
     watch('date')
   );
@@ -398,7 +423,10 @@ export function TransactionForm({
   const effectiveRate = useStoredRate ? storedConversionRate : liveExchangeRate?.rate;
 
   const convertedPreview =
-    needsConversion && effectiveRate != null && Number.isFinite(amountValue) && amountValue > 0
+    needsConversion &&
+    effectiveRate != null &&
+    Number.isFinite(Number(amountValue)) &&
+    Number(amountValue) > 0
       ? multiply(amountValue, effectiveRate)
       : undefined;
 
@@ -464,16 +492,25 @@ export function TransactionForm({
   const handleFormSubmit = (data: TransactionFormData) => {
     if (
       splitMode &&
-      (splits.length < 2 || sum(splits.map(split => split.amount)) !== Number(data.amount))
+      (splits.length < 2 ||
+        !equalDecimals(exactSum(splits.map(split => split.amount)), data.amount))
     ) {
       setError('amount', { type: 'manual', message: t('form.validation.splitTotalMismatch') });
       return;
     }
     // The backend requires transaction.currency === account.currency for INCOME/EXPENSE, so
     // convert the entered amount (and any split amounts) into the account currency first.
-    const rate = needsConversion ? effectiveRate : undefined;
+    const rate = needsConversion
+      ? useStoredRate && transaction
+        ? decimalValue(transaction, 'conversionRate')
+        : liveExchangeRate
+          ? decimalValue(liveExchangeRate, 'rate')
+          : undefined
+      : undefined;
     const liabilityRate =
-      needsLiabilityFx && inputCurrency === accountCurrency ? accountToLiabilityRate : undefined;
+      needsLiabilityFx && inputCurrency === accountCurrency && liabilityRateData
+        ? decimalValue(liabilityRateData, 'rate')
+        : undefined;
 
     const guardKey = submitGuardError({
       linkedLiability,
@@ -638,7 +675,7 @@ export function TransactionForm({
                 value={
                   field.value !== undefined && !Number.isNaN(field.value) ? String(field.value) : ''
                 }
-                onChange={val => field.onChange(val === '' ? 0 : Number(val))}
+                onChange={val => field.onChange(val)}
                 onBlur={field.onBlur}
                 placeholder="0.00"
                 error={errors.amount?.message}

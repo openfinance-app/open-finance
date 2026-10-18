@@ -65,12 +65,12 @@ const mockUseCategoryTree = vi.mocked(useTransactionsModule.useCategoryTree);
 const mockSplits: TransactionSplitRequest[] = [
   {
     categoryId: 10,
-    amount: 50,
+    amount: '50',
     description: 'Groceries',
   },
   {
     categoryId: 30,
-    amount: 25,
+    amount: '25',
     description: 'Entertainment',
   },
 ];
@@ -107,8 +107,8 @@ describe('SplitTransactionForm', () => {
   it('adds and clears tags on one part without changing the other part', () => {
     function Editor() {
       const [splits, setSplits] = useState<TransactionSplitRequest[]>([
-        { categoryId: 10, amount: 70, tags: [] },
-        { categoryId: 30, amount: 30, tags: ['Work'] },
+        { categoryId: 10, amount: '70', tags: [] },
+        { categoryId: 30, amount: '30', tags: ['Work'] },
       ]);
       return (
         <SplitTransactionForm
@@ -147,10 +147,10 @@ describe('SplitTransactionForm', () => {
     const { onChange } = renderForm({
       totalAmount: 12.34,
       currency: 'USD',
-      splits: [{ amount: 6.1 }, { amount: 6.1 }],
+      splits: [{ amount: '6.1' }, { amount: '6.1' }],
     });
     fireEvent.click(screen.getByRole('button', { name: /distribute remainder/i }));
-    expect(onChange).toHaveBeenCalledWith([{ amount: 6.24 }, { amount: 6.1 }]);
+    expect(onChange).toHaveBeenCalledWith([{ amount: '6.24' }, { amount: '6.1' }]);
     setDecimalPlacesOverride(null);
   });
 
@@ -159,7 +159,7 @@ describe('SplitTransactionForm', () => {
     renderForm({
       totalAmount: 0.000001,
       currency: 'BTC',
-      splits: [{ amount: 0.00000033 }, { amount: 0.00000033 }, { amount: 0.00000033 }],
+      splits: [{ amount: '0.00000033' }, { amount: '0.00000033' }, { amount: '0.00000033' }],
       onChange,
     });
 
@@ -168,9 +168,9 @@ describe('SplitTransactionForm', () => {
     fireEvent.click(screen.getByRole('button', { name: /distribute remainder/i }));
 
     expect(onChange).toHaveBeenCalledWith([
-      { amount: 0.00000034 },
-      { amount: 0.00000033 },
-      { amount: 0.00000033 },
+      { amount: '0.00000034' },
+      { amount: '0.00000033' },
+      { amount: '0.00000033' },
     ]);
   });
 
@@ -178,7 +178,7 @@ describe('SplitTransactionForm', () => {
     renderForm({
       totalAmount: 0.00000003,
       currency: 'BTC',
-      splits: [{ amount: 0.00000001 }, { amount: 0.00000002 }],
+      splits: [{ amount: '0.00000001' }, { amount: '0.00000002' }],
     });
     expect(screen.getByText('Balanced')).toBeInTheDocument();
     expect(screen.getByLabelText('Split 1 amount')).toHaveAttribute('min', '0');
@@ -225,9 +225,9 @@ describe('SplitTransactionForm', () => {
   describe('Split Entry Management', () => {
     it('renders the correct number of split entries', () => {
       const customSplits: TransactionSplitRequest[] = [
-        { categoryId: 10, amount: 30, description: 'Test 1' },
-        { categoryId: 20, amount: 40, description: 'Test 2' },
-        { categoryId: 30, amount: 30, description: 'Test 3' },
+        { categoryId: 10, amount: '30', description: 'Test 1' },
+        { categoryId: 20, amount: '40', description: 'Test 2' },
+        { categoryId: 30, amount: '30', description: 'Test 3' },
       ];
 
       renderForm({ splits: customSplits });
@@ -250,7 +250,7 @@ describe('SplitTransactionForm', () => {
     it('enables remove button when there are more than 2 splits', () => {
       const threeSplits = [
         ...mockSplits,
-        { categoryId: undefined, amount: 25, description: 'Third split' },
+        { categoryId: undefined, amount: '25', description: 'Third split' },
       ];
 
       renderForm({ splits: threeSplits });
@@ -272,7 +272,7 @@ describe('SplitTransactionForm', () => {
         ...mockSplits,
         {
           categoryId: undefined,
-          amount: 25, // remaining amount
+          amount: '25', // remaining amount
           description: undefined,
         },
       ]);
@@ -281,7 +281,7 @@ describe('SplitTransactionForm', () => {
     it('calls onChange when removing a split', () => {
       const threeSplits = [
         ...mockSplits,
-        { categoryId: undefined, amount: 25, description: 'Third split' },
+        { categoryId: undefined, amount: '25', description: 'Third split' },
       ];
       const { onChange } = renderForm({ splits: threeSplits });
 
@@ -294,17 +294,17 @@ describe('SplitTransactionForm', () => {
     it('pre-populates new split with remaining amount when adding', () => {
       const { onChange } = renderForm({
         totalAmount: 100,
-        splits: [{ categoryId: 10, amount: 30 }],
+        splits: [{ categoryId: 10, amount: '30' }],
       });
 
       const addButton = screen.getByRole('button', { name: /add split/i });
       addButton.click();
 
       expect(onChange).toHaveBeenCalledWith([
-        { categoryId: 10, amount: 30 },
+        { categoryId: 10, amount: '30' },
         {
           categoryId: undefined,
-          amount: 70, // remaining amount rounded to 2 decimals
+          amount: '70', // remaining amount rounded to 2 decimals
           description: undefined,
         },
       ]);
@@ -314,17 +314,17 @@ describe('SplitTransactionForm', () => {
       // Existing imported values can carry more precision than a currency minor unit.
       const { onChange } = renderForm({
         totalAmount: 1.005,
-        splits: [{ categoryId: 10, amount: 0 }],
+        splits: [{ categoryId: 10, amount: '0' }],
       });
 
       const addButton = screen.getByRole('button', { name: /add split/i });
       addButton.click();
 
       expect(onChange).toHaveBeenCalledWith([
-        { categoryId: 10, amount: 0 },
+        { categoryId: 10, amount: '0' },
         {
           categoryId: undefined,
-          amount: 1.005,
+          amount: '1.005',
           description: undefined,
         },
       ]);
@@ -333,17 +333,17 @@ describe('SplitTransactionForm', () => {
     it('pre-populates new split with 0 when total is exceeded', () => {
       const { onChange } = renderForm({
         totalAmount: 50,
-        splits: [{ categoryId: 10, amount: 60 }],
+        splits: [{ categoryId: 10, amount: '60' }],
       });
 
       const addButton = screen.getByRole('button', { name: /add split/i });
       addButton.click();
 
       expect(onChange).toHaveBeenCalledWith([
-        { categoryId: 10, amount: 60 },
+        { categoryId: 10, amount: '60' },
         {
           categoryId: undefined,
-          amount: 0,
+          amount: '0',
           description: undefined,
         },
       ]);
@@ -372,7 +372,7 @@ describe('SplitTransactionForm', () => {
 
       fireEvent.change(amountInput, { target: { value: '75' } });
 
-      expect(onChange).toHaveBeenCalledWith([{ ...mockSplits[0], amount: 75 }, mockSplits[1]]);
+      expect(onChange).toHaveBeenCalledWith([{ ...mockSplits[0], amount: '75' }, mockSplits[1]]);
     });
 
     it('calls onChange when description is updated', () => {
@@ -395,7 +395,7 @@ describe('SplitTransactionForm', () => {
 
       fireEvent.change(amountInput, { target: { value: '' } });
 
-      expect(onChange).toHaveBeenCalledWith([{ ...mockSplits[0], amount: 0 }, mockSplits[1]]);
+      expect(onChange).toHaveBeenCalledWith([{ ...mockSplits[0], amount: '0' }, mockSplits[1]]);
     });
 
     it('converts undefined description to undefined', () => {
@@ -492,8 +492,8 @@ describe('SplitTransactionForm', () => {
 
     it('handles splits with zero amounts', () => {
       const zeroSplits: TransactionSplitRequest[] = [
-        { categoryId: 10, amount: 0, description: 'Zero amount' },
-        { categoryId: 20, amount: 50, description: 'Normal amount' },
+        { categoryId: 10, amount: '0', description: 'Zero amount' },
+        { categoryId: 20, amount: '50', description: 'Normal amount' },
       ];
 
       renderForm({ splits: zeroSplits });
@@ -504,7 +504,7 @@ describe('SplitTransactionForm', () => {
 
     it('handles splits without category', () => {
       const noCategorySplits: TransactionSplitRequest[] = [
-        { amount: 50, description: 'No category' },
+        { amount: '50', description: 'No category' },
       ];
 
       renderForm({ splits: noCategorySplits });
@@ -514,7 +514,7 @@ describe('SplitTransactionForm', () => {
     });
 
     it('handles splits without description', () => {
-      const noDescriptionSplits: TransactionSplitRequest[] = [{ categoryId: 10, amount: 50 }];
+      const noDescriptionSplits: TransactionSplitRequest[] = [{ categoryId: 10, amount: '50' }];
 
       renderForm({ splits: noDescriptionSplits });
 
@@ -524,8 +524,8 @@ describe('SplitTransactionForm', () => {
 
     it('handles very small decimal amounts', () => {
       const smallDecimalSplits: TransactionSplitRequest[] = [
-        { categoryId: 10, amount: 0.01, description: 'Penny' },
-        { categoryId: 20, amount: 0.02, description: 'Two cents' },
+        { categoryId: 10, amount: '0.01', description: 'Penny' },
+        { categoryId: 20, amount: '0.02', description: 'Two cents' },
       ];
 
       renderForm({ totalAmount: 0.03, splits: smallDecimalSplits });
@@ -535,8 +535,8 @@ describe('SplitTransactionForm', () => {
 
     it('treats float-safe exact sums as balanced (0.1 + 0.2 === 0.3)', () => {
       const floatingPointSplits: TransactionSplitRequest[] = [
-        { categoryId: 10, amount: 0.1 },
-        { categoryId: 20, amount: 0.2 },
+        { categoryId: 10, amount: '0.1' },
+        { categoryId: 20, amount: '0.2' },
       ];
 
       renderForm({ totalAmount: 0.3, splits: floatingPointSplits });
@@ -547,9 +547,9 @@ describe('SplitTransactionForm', () => {
 
     it('is NOT balanced when a 3-way split leaves a 0.01 remainder (no tolerance)', () => {
       const splits: TransactionSplitRequest[] = [
-        { categoryId: 10, amount: 33.33 },
-        { categoryId: 20, amount: 33.33 },
-        { categoryId: 30, amount: 33.33 },
+        { categoryId: 10, amount: '33.33' },
+        { categoryId: 20, amount: '33.33' },
+        { categoryId: 30, amount: '33.33' },
       ];
 
       renderForm({ totalAmount: 100, splits });
@@ -565,9 +565,9 @@ describe('SplitTransactionForm', () => {
           totalAmount={100}
           currency="USD"
           splits={[
-            { categoryId: 10, amount: 33.33 },
-            { categoryId: 20, amount: 33.33 },
-            { categoryId: 30, amount: 33.33 },
+            { categoryId: 10, amount: '33.33' },
+            { categoryId: 20, amount: '33.33' },
+            { categoryId: 30, amount: '33.33' },
           ]}
           onChange={onChange}
         />
@@ -576,15 +576,15 @@ describe('SplitTransactionForm', () => {
       fireEvent.click(screen.getByRole('button', { name: /distribute remainder/i }));
 
       expect(onChange).toHaveBeenCalledWith([
-        { categoryId: 10, amount: 33.34 },
-        { categoryId: 20, amount: 33.33 },
-        { categoryId: 30, amount: 33.33 },
+        { categoryId: 10, amount: '33.34' },
+        { categoryId: 20, amount: '33.33' },
+        { categoryId: 30, amount: '33.33' },
       ]);
     });
 
     it('shows error when splits exceed the total', () => {
       const overAllocatedSplits: TransactionSplitRequest[] = [
-        { categoryId: 10, amount: 50.02 }, // 50.02 vs total 50.00 -> not balanced
+        { categoryId: 10, amount: '50.02' }, // 50.02 vs total 50.00 -> not balanced
       ];
 
       renderForm({ totalAmount: 50, splits: overAllocatedSplits });
@@ -603,8 +603,8 @@ describe('SplitTransactionForm', () => {
           accountCurrency="EUR"
           exchangeRate={0.9}
           splits={[
-            { categoryId: 10, amount: 60 },
-            { categoryId: 20, amount: 40 },
+            { categoryId: 10, amount: '60' },
+            { categoryId: 20, amount: '40' },
           ]}
           onChange={vi.fn()}
         />
@@ -623,8 +623,8 @@ describe('SplitTransactionForm', () => {
           accountCurrency="EUR"
           exchangeRate={undefined}
           splits={[
-            { categoryId: 10, amount: 60 },
-            { categoryId: 20, amount: 40 },
+            { categoryId: 10, amount: '60' },
+            { categoryId: 20, amount: '40' },
           ]}
           onChange={vi.fn()}
         />

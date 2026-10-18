@@ -532,11 +532,9 @@ class AssetRepositoryTest {
     }
 
     @Test
-    @DisplayName("Should retain 8-decimal precision for a sub-cent crypto current price")
+    @DisplayName("Should retain 18-decimal precision for a sub-cent crypto current price")
     void shouldRetainHighPrecisionCurrentPrice() {
-        // A sub-cent crypto price (e.g. SHIB) needing 8 decimals. At the old DECIMAL(19,4) this
-        // rounds to 0.0001 and loses precision; at DECIMAL(19,8) it is stored exactly.
-        BigDecimal preciseCryptoPrice = new BigDecimal("0.00012345");
+        BigDecimal preciseCryptoPrice = new BigDecimal("0.000123456789012345");
         Asset cryptoAsset =
                 Asset.builder()
                         .userId(testUser.getId())
@@ -552,10 +550,10 @@ class AssetRepositoryTest {
 
         Asset saved = assetRepository.saveAndFlush(cryptoAsset);
 
-        // Read the raw DECIMAL column directly so the assertion reflects the stored DB precision
+        // Read the raw text column directly so the assertion reflects the stored DB precision
         // (independent of the in-memory BigDecimal, entity caching, and field encryption).
-        BigDecimal stored =
-                (BigDecimal)
+        String stored =
+                (String)
                         entityManager
                                 .getEntityManager()
                                 .createNativeQuery(
@@ -563,7 +561,7 @@ class AssetRepositoryTest {
                                 .setParameter("id", saved.getId())
                                 .getSingleResult();
 
-        assertThat(stored).isEqualByComparingTo(preciseCryptoPrice);
+        assertThat(new BigDecimal(stored)).isEqualByComparingTo(preciseCryptoPrice);
     }
 
     @Test

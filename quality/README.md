@@ -77,6 +77,12 @@ These DTO lists are assembled and updated within the import workflow. The standa
 parser result now copies its lists, and its XML catch handles only the checked parsing
 exceptions. No broad exclusion was added.
 
+The precision/category-deletion correction reviews five exact CategoryService constructor
+identities: three existing encryption/configuration/transaction collaborators have a new
+constructor signature, and two repositories provide split and recurring usage checks.
+These references intentionally retain their Spring-managed identity. Only those five
+identities are added; the new serializer's missing serialVersionUID is fixed in source.
+
 ## Dependency applicability reviews
 
 `dependency-check-suppressions.xml` identifies individual CVEs and exact artifact

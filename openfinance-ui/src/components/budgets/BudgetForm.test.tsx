@@ -210,6 +210,23 @@ describe('BudgetForm', () => {
   });
 
   describe('Edit mode', () => {
+    it('retains the exact amount when saving a budget', async () => {
+      const budget = {
+        ...mockBudget,
+        amount: 10006858.91125675,
+        exactValues: { amount: '10006858.9112567483' },
+      };
+      renderWithProviders(
+        <BudgetForm budget={budget} onSubmit={mockOnSubmit} onCancel={mockOnCancel} />
+      );
+      await userEvent.setup().click(screen.getByRole('button', { name: /update|save/i }));
+      await waitFor(() =>
+        expect(mockOnSubmit).toHaveBeenCalledWith(
+          expect.objectContaining({ amount: '10006858.9112567483' })
+        )
+      );
+    });
+
     it('should pre-populate form fields when editing', () => {
       renderWithProviders(
         <BudgetForm budget={mockBudget} onSubmit={mockOnSubmit} onCancel={mockOnCancel} />

@@ -304,6 +304,33 @@ describe('AssetForm', () => {
   });
 
   describe('Submission', () => {
+    it('retains exact quantity and prices when saving an existing asset', async () => {
+      const asset = {
+        id: 1,
+        userId: 1,
+        name: 'Precise asset',
+        type: 'VEHICLE',
+        acquisitionType: 'PURCHASE',
+        quantity: 2,
+        purchasePrice: 10006858.91125675,
+        currentPrice: 10006858.91125675,
+        currency: 'EUR',
+        purchaseDate: '2026-01-01',
+        exactValues: {
+          quantity: '2.000000000000000001',
+          purchasePrice: '10006858.9112567483',
+          currentPrice: '10006858.9112567484',
+        },
+      } as Asset;
+      renderWithProviders(
+        <AssetForm asset={asset} onSubmit={mockOnSubmit} onCancel={mockOnCancel} />
+      );
+      await userEvent.setup().click(screen.getByRole('button', { name: /update asset/i }));
+      await waitFor(() =>
+        expect(mockOnSubmit).toHaveBeenCalledWith(expect.objectContaining(asset.exactValues))
+      );
+    });
+
     it('sends explicit null after clearing an existing linked account', async () => {
       const asset: Asset = {
         id: 1,

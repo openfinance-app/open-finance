@@ -43,6 +43,7 @@ export interface AssetFilters {
 }
 
 export interface Asset {
+  exactValues?: Record<string, string>;
   /** False for the retained backing asset of an inactive property. */
   isActive?: boolean;
   id: number;

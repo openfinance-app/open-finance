@@ -1,3 +1,4 @@
+import { decimalField, ExactDecimal } from '@/utils/exact-decimal';
 import { CURRENCY_CODE_PATTERN } from '@/utils/currency-code';
 /**
  * LiabilityForm Component
@@ -157,14 +158,14 @@ export function LiabilityForm({ liability, onSubmit, onCancel, isLoading }: Liab
       ? {
           name: liability.name,
           type: liability.type,
-          principal: String(liability.principal),
-          currentBalance: String(liability.currentBalance),
+          principal: decimalField(liability, 'principal'),
+          currentBalance: decimalField(liability, 'currentBalance'),
           interestRate: liability.interestRate || 0,
           startDate: liability.startDate,
           endDate: liability.endDate || '',
           minimumPayment:
             liability.minimumPayment !== undefined && liability.minimumPayment !== null
-              ? String(liability.minimumPayment)
+              ? decimalField(liability, 'minimumPayment')
               : '',
           currency: liability.currency,
           notes: liability.notes || '',
@@ -172,10 +173,10 @@ export function LiabilityForm({ liability, onSubmit, onCancel, isLoading }: Liab
           insurancePercentage: liability.insurancePercentage || 0,
           additionalFees:
             liability.additionalFees !== undefined && liability.additionalFees !== null
-              ? String(liability.additionalFees)
+              ? decimalField(liability, 'additionalFees')
               : '',
           realEstateId: liability.linkedPropertyId ?? undefined,
-          creditLimit: liability.creditLimit == null ? '' : String(liability.creditLimit),
+          creditLimit: liability.creditLimit == null ? '' : decimalField(liability, 'creditLimit'),
           previouslyFunded: liability.fundingStatus !== 'UNDRAWN',
           representedByAccountId: liability.representedByAccountId?.toString() ?? '',
         }
@@ -305,7 +306,12 @@ export function LiabilityForm({ liability, onSubmit, onCancel, isLoading }: Liab
                   setValue('currency', account.currency);
                   setValue(
                     'currentBalance',
-                    String(Math.max(-(account.ownBalance ?? account.balance), 0))
+                    ExactDecimal.max(
+                      new ExactDecimal(
+                        decimalField(account, account.ownBalance == null ? 'balance' : 'ownBalance')
+                      ).negated(),
+                      0
+                    ).toFixed()
                   );
                 }
               }}

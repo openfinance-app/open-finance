@@ -4,6 +4,7 @@ import jakarta.validation.Valid;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.openfinance.dto.CategoryDeletionImpact;
 import org.openfinance.dto.CategoryRequest;
 import org.openfinance.dto.CategoryResponse;
 import org.openfinance.dto.CategoryTreeNode;
@@ -62,6 +63,13 @@ import org.springframework.web.bind.annotation.*;
 @Slf4j
 public class CategoryController {
     private final CategoryService categoryService;
+
+    @GetMapping("/{id}/deletion-impact")
+    public ResponseEntity<CategoryDeletionImpact> getDeletionImpact(
+            @PathVariable Long id, Authentication authentication) {
+        User user = (User) authentication.getPrincipal();
+        return ResponseEntity.ok(categoryService.getDeletionImpact(user.getId(), id));
+    }
 
     /**
      * Creates a new category for the authenticated user.

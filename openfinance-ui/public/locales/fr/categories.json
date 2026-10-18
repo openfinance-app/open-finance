@@ -110,8 +110,25 @@
   "dialogs": {
     "delete": {
       "title": "Supprimer la catégorie",
-      "description": "Êtes-vous sûr(e) de vouloir supprimer « {{name}} » ? Cette action est irréversible.",
-      "confirmText": "Supprimer"
+      "description": "Supprimer « {{name}} » ?",
+      "confirmText": "Supprimer",
+      "checking": "Vérification des données liées…",
+      "checkFailed": "Impossible de vérifier les données liées. Réessayez avant de supprimer.",
+      "retry": "Réessayer",
+      "failed": "Impossible de supprimer cette catégorie.",
+      "budgets_one": "Le budget lié et ses alertes seront également supprimés.",
+      "budgets_other": "Les {{count}} budgets liés et leurs alertes seront également supprimés.",
+      "blocked": "Cette catégorie est encore utilisée. Réaffectez ou supprimez ces liens avant de la supprimer.",
+      "system": "Les catégories système ne peuvent pas être supprimées.",
+      "children": "Sous-catégories",
+      "transactions_one": "{{count}} transaction",
+      "transactions_other": "{{count}} transactions",
+      "splits_one": "{{count}} ventilation de transaction",
+      "splits_other": "{{count}} ventilations de transactions",
+      "recurring_one": "{{count}} modèle récurrent (y compris les modèles en pause)",
+      "recurring_other": "{{count}} modèles récurrents (y compris les modèles en pause)",
+      "payees_one": "{{count}} bénéficiaire utilise cette catégorie par défaut",
+      "payees_other": "{{count}} bénéficiaires utilisent cette catégorie par défaut"
     }
   },
   "transactionCount_one": "{{count}} transaction",

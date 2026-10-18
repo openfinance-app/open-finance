@@ -1,3 +1,4 @@
+import { decimalField } from '@/utils/exact-decimal';
 import { CURRENCY_CODE_PATTERN } from '@/utils/currency-code';
 /**
  * RealEstateForm Component
@@ -133,15 +134,15 @@ export function RealEstateForm({ property, onSubmit, onCancel, isLoading }: Real
           name: property.name,
           address: property.address,
           propertyType: property.propertyType,
-          purchasePrice: String(property.purchasePrice),
+          purchasePrice: decimalField(property, 'purchasePrice'),
           acquisitionType: property.acquisitionType ?? 'PURCHASE',
           purchaseDate: property.purchaseDate,
-          currentValue: String(property.currentValue),
+          currentValue: decimalField(property, 'currentValue'),
           currency: property.currency,
           mortgageId: property.mortgageId || undefined,
           rentalIncome:
             property.rentalIncome !== undefined && property.rentalIncome !== null
-              ? String(property.rentalIncome)
+              ? decimalField(property, 'rentalIncome')
               : '',
           notes: property.notes || '',
           latitude: property.latitude || undefined,

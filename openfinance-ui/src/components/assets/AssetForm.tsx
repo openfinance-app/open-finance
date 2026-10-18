@@ -1,3 +1,4 @@
+import { decimalField } from '@/utils/exact-decimal';
 import Decimal from 'decimal.js';
 import { CURRENCY_CODE_PATTERN } from '@/utils/currency-code';
 /**
@@ -155,10 +156,10 @@ export function AssetForm({ asset, onSubmit, onCancel, isLoading }: AssetFormPro
             name: asset.name,
             type: asset.type as any, // Cast to avoid type mismatch if asset is REAL_ESTATE
             symbol: asset.symbol || '',
-            quantity: String(asset.quantity),
-            purchasePrice: String(asset.purchasePrice),
+            quantity: decimalField(asset, 'quantity'),
+            purchasePrice: decimalField(asset, 'purchasePrice'),
             acquisitionType: asset.acquisitionType ?? 'PURCHASE',
-            currentPrice: String(asset.currentPrice),
+            currentPrice: decimalField(asset, 'currentPrice'),
             currency: asset.currency,
             purchaseDate: asset.purchaseDate,
             notes: asset.notes || '',

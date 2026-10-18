@@ -1,3 +1,4 @@
+import { ExactDecimal, exactSum, distributeExact } from '@/utils/exact-decimal';
 /**
  * SplitTransactionForm Component
  * Task 12 (REQ-SPL-3.2, REQ-SPL-3.3, REQ-SPL-3.4, REQ-SPL-3.5, REQ-SPL-3.7, REQ-SPL-3.8)
@@ -13,13 +14,13 @@ import { NumberInput } from '@/components/ui/NumberInput';
 import { CategorySelect } from '@/components/ui/CategorySelect';
 import { ConvertedAmount } from '@/components/ui/ConvertedAmount';
 import { TagInput } from '@/components/transactions/TagInput';
-import { decimalPlaces, multiply, sum, subtract, distributeRemainder } from '@/utils/money';
+import { decimalPlaces, multiply } from '@/utils/money';
 import { getMonetaryScale } from '@/utils/currency';
 import type { TransactionSplitRequest } from '@/types/transaction';
 
 interface SplitTransactionFormProps {
   /** The parent transaction total amount */
-  totalAmount: number;
+  totalAmount: number | string;
   /** ISO 4217 currency code, e.g. "EUR" */
   currency: string;
   /** Current list of split lines managed by the parent form */
@@ -51,18 +52,19 @@ export function SplitTransactionForm({
   const { t } = useTranslation('transactions');
   const decimals = Math.max(
     getMonetaryScale(currency),
-    decimalPlaces(totalAmount),
+    decimalPlaces(totalAmount || 0),
     ...splits.map(split => decimalPlaces(split.amount))
   );
-  const splitTotal = sum(splits.map(split => Number(split.amount) || 0));
-  const remaining = subtract(totalAmount, splitTotal);
-  const isValid = splitTotal === Number(totalAmount);
+  const splitTotal = exactSum(splits.map(split => split.amount));
+  const exactRemaining = new ExactDecimal(totalAmount || 0).minus(splitTotal);
+  const remaining = exactRemaining.toNumber();
+  const isValid = exactRemaining.isZero();
 
   // REQ-SPL-1.2: allocate the leftover across lines so the splits sum exactly to the total.
   const handleDistribute = () => {
-    const amounts = distributeRemainder(
-      totalAmount,
-      splits.map(s => Number(s.amount) || 0),
+    const amounts = distributeExact(
+      totalAmount || 0,
+      splits.map(s => s.amount || 0),
       decimals
     );
     onChange(splits.map((s, i) => ({ ...s, amount: amounts[i] })));
@@ -80,7 +82,7 @@ export function SplitTransactionForm({
       {
         categoryId: undefined,
         // Keep the currency's precision, including satoshis for crypto.
-        amount: remaining > 0 ? remaining : 0,
+        amount: exactRemaining.gt(0) ? exactRemaining.toFixed() : '0',
         description: undefined,
       },
     ]);
@@ -122,8 +124,8 @@ export function SplitTransactionForm({
           {/* Amount input */}
           <div>
             <NumberInput
-              value={split.amount === 0 ? '' : String(split.amount)}
-              onChange={val => handleChangeField(index, 'amount', val ? Number(val) : 0)}
+              value={split.amount === 0 || split.amount === '0' ? '' : String(split.amount)}
+              onChange={val => handleChangeField(index, 'amount', val || '0')}
               placeholder="0.00"
               aria-label={`Split ${index + 1} amount`}
               className="font-mono"
@@ -200,13 +202,13 @@ export function SplitTransactionForm({
         <div className="flex justify-between text-text-secondary">
           <span>{t('splitForm.transactionTotal')}</span>
           <span className="font-mono">
-            <ConvertedAmount amount={totalAmount} currency={currency} inline />
+            <ConvertedAmount amount={Number(totalAmount)} currency={currency} inline />
           </span>
         </div>
         <div className="flex justify-between text-text-secondary mt-1">
           <span>{t('splitForm.splitTotal')}</span>
           <span className="font-mono">
-            <ConvertedAmount amount={splitTotal} currency={currency} inline />
+            <ConvertedAmount amount={Number(splitTotal)} currency={currency} inline />
           </span>
         </div>
         <div
@@ -254,7 +256,7 @@ export function SplitTransactionForm({
               i18nKey={remaining > 0 ? 'splitForm.validation.short' : 'splitForm.validation.over'}
               components={{
                 bold: <strong />,
-                total: <ConvertedAmount amount={totalAmount} currency={currency} inline />,
+                total: <ConvertedAmount amount={Number(totalAmount)} currency={currency} inline />,
                 amount: <ConvertedAmount amount={Math.abs(remaining)} currency={currency} inline />,
               }}
             />

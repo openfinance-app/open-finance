@@ -10,8 +10,8 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Badge } from '@/components/ui/Badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/Dialog';
-import { ConfirmationDialog } from '@/components/ConfirmationDialog';
-import { useCategories, useCreateCategory, useDeleteCategory } from '@/hooks/useTransactions';
+import { CategoryDeleteDialog } from '@/components/transactions/CategoryDeleteDialog';
+import { useCategories, useCreateCategory } from '@/hooks/useTransactions';
 import type { Category } from '@/types/transaction';
 
 interface CategoryManagerProps {
@@ -25,7 +25,6 @@ export function CategoryManager({ open, onOpenChange }: CategoryManagerProps) {
 
   const { data: allCategories = [] } = useCategories();
   const createCategory = useCreateCategory();
-  const deleteCategory = useDeleteCategory();
 
   const filteredCategories = allCategories;
 
@@ -39,17 +38,6 @@ export function CategoryManager({ open, onOpenChange }: CategoryManagerProps) {
       setNewCategoryName('');
     } catch (error) {
       console.error('Failed to create category:', error);
-    }
-  };
-
-  const handleDeleteCategory = async () => {
-    if (!deletingCategory) return;
-
-    try {
-      await deleteCategory.mutateAsync(deletingCategory.id);
-      setDeletingCategory(null);
-    } catch (error) {
-      console.error('Failed to delete category:', error);
     }
   };
 
@@ -131,16 +119,7 @@ export function CategoryManager({ open, onOpenChange }: CategoryManagerProps) {
       </Dialog>
 
       {/* Delete Confirmation */}
-      <ConfirmationDialog
-        open={!!deletingCategory}
-        onOpenChange={open => !open && setDeletingCategory(null)}
-        onConfirm={handleDeleteCategory}
-        title="Delete Category"
-        description={`Are you sure you want to delete "${deletingCategory?.name}"? This may affect existing transactions.`}
-        confirmText="Delete"
-        variant="danger"
-        loading={deleteCategory.isPending}
-      />
+      <CategoryDeleteDialog category={deletingCategory} onClose={() => setDeletingCategory(null)} />
     </>
   );
 }

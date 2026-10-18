@@ -271,6 +271,32 @@ describe('LiabilityForm', () => {
   });
 
   describe('Form Submission', () => {
+    it('preserves exact loan money fields when only metadata is saved', async () => {
+      const exactValues = {
+        principal: '10006858.9112567483',
+        currentBalance: '10006858.9112567482',
+        minimumPayment: '20.000000000000000001',
+        additionalFees: '1.000000000000000001',
+        creditLimit: '10006858.9112567484',
+      };
+      const liability = {
+        ...mockLiability,
+        principal: 10006858.91125675,
+        currentBalance: 10006858.91125675,
+        minimumPayment: 20,
+        additionalFees: 1,
+        creditLimit: 10006858.91125675,
+        exactValues,
+      };
+      renderWithProviders(
+        <LiabilityForm liability={liability} onSubmit={mockOnSubmit} onCancel={mockOnCancel} />
+      );
+      fireEvent.click(screen.getByRole('button', { name: /update/i }));
+      await waitFor(() =>
+        expect(mockOnSubmit).toHaveBeenCalledWith(expect.objectContaining(exactValues))
+      );
+    });
+
     it('submits correct data for new liability including new fields', async () => {
       renderWithProviders(
         <LiabilityForm onSubmit={mockOnSubmit} onCancel={mockOnCancel} isLoading={false} />

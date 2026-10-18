@@ -26,6 +26,7 @@ interface ConfirmationDialogProps {
   cancelText?: string;
   variant?: 'danger' | 'warning' | 'info';
   loading?: boolean;
+  confirmDisabled?: boolean;
   children?: import('react').ReactNode;
 }
 
@@ -39,6 +40,7 @@ export function ConfirmationDialog({
   cancelText,
   variant = 'danger',
   loading = false,
+  confirmDisabled = false,
   children,
 }: ConfirmationDialogProps) {
   const { t } = useTranslation('common');
@@ -75,7 +77,7 @@ export function ConfirmationDialog({
           <Button
             variant={variant === 'danger' ? 'danger' : 'primary'}
             onClick={handleConfirm}
-            disabled={loading}
+            disabled={loading || confirmDisabled}
           >
             {loading ? t('loading') : confirmText}
           </Button>

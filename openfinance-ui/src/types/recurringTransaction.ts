@@ -25,6 +25,7 @@ export type RecurringFrequency = (typeof RECURRING_FREQUENCIES)[keyof typeof REC
  * Recurring transaction entity from backend
  */
 export interface RecurringTransaction {
+  exactValues?: Record<string, string>;
   id: number;
   accountId: number;
   accountName: string;

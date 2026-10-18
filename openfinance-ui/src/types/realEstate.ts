@@ -26,6 +26,7 @@ export type PropertyType = (typeof PropertyType)[keyof typeof PropertyType];
  * Matches: org.openfinance.dto.RealEstatePropertyResponse
  */
 export interface RealEstateProperty {
+  exactValues?: Record<string, string>;
   assetId?: number;
   allocatedDebt: number;
   mortgageOriginalBalance?: number;

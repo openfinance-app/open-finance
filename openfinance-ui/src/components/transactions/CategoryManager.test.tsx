@@ -7,6 +7,21 @@ const mockCreateMutateAsync = vi.fn().mockResolvedValue({});
 const mockDeleteMutateAsync = vi.fn().mockResolvedValue({});
 
 vi.mock('@/hooks/useTransactions', () => ({
+  useCategoryDeletionImpact: () => ({
+    data: {
+      system: false,
+      hasChildren: false,
+      transactionCount: 0,
+      splitCount: 0,
+      recurringCount: 0,
+      payeeCount: 0,
+      budgetCount: 0,
+      deletable: true,
+    },
+    isFetching: false,
+    isError: false,
+    refetch: vi.fn(),
+  }),
   useCategories: vi.fn(() => ({
     data: [
       { id: 1, name: 'Salary', icon: '💰', color: '#00ff00' },

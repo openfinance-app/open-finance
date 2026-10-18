@@ -1,4 +1,5 @@
 import { CURRENCY_CODE_PATTERN } from '@/utils/currency-code';
+import { decimalField, equalDecimals } from '@/utils/exact-decimal';
 import { formatDecimal } from '@/utils/format';
 /**
  * AccountForm Component
@@ -71,8 +72,8 @@ type AccountFormData = {
   institutionId?: string;
   isInterestEnabled?: boolean;
   interestPeriod?: InterestPeriod;
-  interestRate?: number;
-  taxRate?: number;
+  interestRate?: string;
+  taxRate?: string;
 };
 
 interface AccountFormProps {
@@ -135,14 +136,20 @@ export function AccountForm({
           interestPeriod: z
             .enum(['ANNUAL', 'HALF_YEARLY', 'QUARTERLY', 'MONTHLY', 'DAILY'])
             .optional(),
-          interestRate: z.coerce
-            .number()
-            .min(0, t('validation.interestRateMustBePositive'))
+          interestRate: z
+            .string()
+            .refine(
+              v => isValidDecimalString(v) && Number(v) >= 0,
+              t('validation.interestRateMustBePositive')
+            )
             .optional(),
-          taxRate: z.coerce
-            .number()
-            .min(0, t('validation.taxRateMustBePositive'))
-            .max(100, t('validation.taxRateMax'))
+          taxRate: z
+            .string()
+            .refine(
+              v => isValidDecimalString(v) && Number(v) >= 0,
+              t('validation.taxRateMustBePositive')
+            )
+            .refine(v => Number(v) <= 100, t('validation.taxRateMax'))
             .optional(),
         })
         .superRefine((data, ctx) => {
@@ -170,7 +177,7 @@ export function AccountForm({
     handleSubmit,
     control,
     watch,
-    formState: { errors },
+    formState: { errors, dirtyFields },
   } = useForm<AccountFormData>({
     resolver: zodResolver(accountSchema) as any,
     mode: 'onChange',
@@ -180,14 +187,17 @@ export function AccountForm({
           accountNumber: account.accountNumber || '',
           type: account.type,
           currency: account.currency,
-          initialBalance: String(account.ownBalance ?? account.balance),
+          initialBalance: decimalField(
+            account,
+            account.ownBalance == null ? 'balance' : 'ownBalance'
+          ),
           description: account.description || '',
           openingDate: account.openingDate || getToday(),
           institutionId: account.institution?.id?.toString() || '',
           isInterestEnabled: account.isInterestEnabled || false,
           interestPeriod: account.interestPeriod || 'ANNUAL',
-          interestRate: 0,
-          taxRate: 0,
+          interestRate: '0',
+          taxRate: '0',
         }
       : {
           name: '',
@@ -200,8 +210,8 @@ export function AccountForm({
           institutionId: '',
           isInterestEnabled: false,
           interestPeriod: 'ANNUAL',
-          interestRate: 0,
-          taxRate: 0,
+          interestRate: '0',
+          taxRate: '0',
         },
   });
 
@@ -209,8 +219,8 @@ export function AccountForm({
   const balanceCurrency = account?.currency ?? selectedCurrency;
   const initialBalance = watch('initialBalance');
   const isInterestEnabled = watch('isInterestEnabled');
-  const interestRate = watch('interestRate') ?? 0;
-  const taxRate = watch('taxRate') ?? 0;
+  const interestRate = Number(watch('interestRate') ?? 0);
+  const taxRate = Number(watch('taxRate') ?? 0);
   const interestPeriod = watch('interestPeriod') ?? 'ANNUAL';
 
   const { data: exchangeRate } = useLatestExchangeRate(
@@ -240,6 +250,14 @@ export function AccountForm({
       type: data.type,
       currency: data.currency,
       initialBalance: data.initialBalance.trim(),
+      ...(account && {
+        adjustBalance:
+          !!dirtyFields.initialBalance &&
+          !equalDecimals(
+            data.initialBalance,
+            decimalField(account, account.ownBalance == null ? 'balance' : 'ownBalance')
+          ),
+      }),
       balanceCurrency: account?.currency ?? data.currency,
       description: data.description || undefined,
       openingDate: data.openingDate || undefined,
@@ -497,7 +515,7 @@ export function AccountForm({
                           ? String(field.value)
                           : ''
                       }
-                      onChange={val => field.onChange(val === '' ? 0 : Number(val))}
+                      onChange={val => field.onChange(val || '0')}
                       onBlur={field.onBlur}
                       placeholder="0.00"
                       error={errors.interestRate?.message}
@@ -527,7 +545,7 @@ export function AccountForm({
                           ? String(field.value)
                           : ''
                       }
-                      onChange={val => field.onChange(val === '' ? 0 : Number(val))}
+                      onChange={val => field.onChange(val || '0')}
                       onBlur={field.onBlur}
                       placeholder="0.00"
                       error={errors.taxRate?.message}

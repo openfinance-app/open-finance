@@ -389,6 +389,36 @@ export function useDeleteCategory() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['categories'] });
+      queryClient.invalidateQueries({ queryKey: ['budgets'] });
+      queryClient.invalidateQueries({ queryKey: ['budgetAlerts'] });
+      queryClient.invalidateQueries({ queryKey: ['history'] });
+      queryClient.invalidateQueries({ queryKey: ['session-history-exists'] });
+    },
+  });
+}
+
+export interface CategoryDeletionImpact {
+  system: boolean;
+  hasChildren: boolean;
+  transactionCount: number;
+  splitCount: number;
+  recurringCount: number;
+  payeeCount: number;
+  budgetCount: number;
+  deletable: boolean;
+}
+
+export function useCategoryDeletionImpact(categoryId?: number) {
+  return useQuery<CategoryDeletionImpact>({
+    queryKey: ['categories', 'deletion-impact', categoryId],
+    enabled: categoryId != null,
+    staleTime: 0,
+    queryFn: async () => {
+      const response = await apiClient.get<CategoryDeletionImpact>(
+        `/categories/${categoryId}/deletion-impact`,
+        { headers: buildEncryptionHeaders() }
+      );
+      return response.data;
     },
   });
 }

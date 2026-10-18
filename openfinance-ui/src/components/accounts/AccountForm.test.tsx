@@ -219,6 +219,49 @@ describe('AccountForm', () => {
   });
 
   describe('Edit mode', () => {
+    it('preserves the exact API balance when enabling interest without requesting an adjustment', async () => {
+      const user = userEvent.setup();
+      const account = {
+        ...mockAccount,
+        ownBalance: 10006858.91125675,
+        exactValues: { ownBalance: '10006858.9112567483' },
+      };
+      renderWithProviders(
+        <AccountForm account={account} onSubmit={mockOnSubmit} onCancel={mockOnCancel} />
+      );
+      expect(screen.getByLabelText(/Current Balance/i)).toHaveValue('10,006,858.9112567483');
+      await user.click(screen.getByRole('switch'));
+      await user.click(screen.getByRole('button', { name: /update account/i }));
+      await waitFor(() =>
+        expect(mockOnSubmit).toHaveBeenCalledWith(
+          expect.objectContaining({
+            initialBalance: '10006858.9112567483',
+            adjustBalance: false,
+            isInterestEnabled: true,
+          })
+        )
+      );
+    });
+
+    it('requests a balance adjustment only for an explicit decimal change', async () => {
+      const user = userEvent.setup();
+      renderWithProviders(
+        <AccountForm account={mockAccount} onSubmit={mockOnSubmit} onCancel={mockOnCancel} />
+      );
+      const balance = screen.getByLabelText(/Current Balance/i);
+      await user.clear(balance);
+      await user.type(balance, '10006858.9112567483');
+      await user.click(screen.getByRole('button', { name: /update account/i }));
+      await waitFor(() =>
+        expect(mockOnSubmit).toHaveBeenCalledWith(
+          expect.objectContaining({
+            initialBalance: '10006858.9112567483',
+            adjustBalance: true,
+          })
+        )
+      );
+    });
+
     it('keeps the entered balance in its original currency when changing account denomination', async () => {
       const user = userEvent.setup();
       renderWithProviders(

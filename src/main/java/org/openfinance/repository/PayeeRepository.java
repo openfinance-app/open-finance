@@ -17,6 +17,8 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface PayeeRepository extends JpaRepository<Payee, Long> {
 
+    long countByDefaultCategoryId(Long categoryId);
+
     @Query("SELECT p FROM Payee p WHERE p.id = :id AND (p.isSystem = true OR p.userId = :userId)")
     Optional<Payee> findVisibleById(@Param("id") Long id, @Param("userId") Long userId);
 

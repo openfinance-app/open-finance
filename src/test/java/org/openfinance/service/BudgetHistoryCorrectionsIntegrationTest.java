@@ -107,8 +107,13 @@ class BudgetHistoryCorrectionsIntegrationTest extends AuditApiTestSupport {
         money(json("GET", progressPath, null, owner, 200), "budgeted", "100");
         JsonNode triggered = unreadAlerts();
         assertThat(triggered).hasSize(3);
-        assertThat(triggered.findValues("threshold"))
-                .extracting(value -> value.decimalValue().stripTrailingZeros().toPlainString())
+        assertThat(triggered)
+                .extracting(
+                        value ->
+                                value.path("threshold")
+                                        .decimalValue()
+                                        .stripTrailingZeros()
+                                        .toPlainString())
                 .containsExactlyInAnyOrder("75", "90", "100");
 
         String reversalPath = "/history/" + deletion.path("id").asLong();

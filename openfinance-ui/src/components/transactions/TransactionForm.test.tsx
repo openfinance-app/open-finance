@@ -902,7 +902,7 @@ describe('TransactionForm', () => {
             type: 'TRANSFER',
             accountId: 1,
             toAccountId: 2,
-            amount: 450,
+            amount: '450',
             currency: 'EUR',
           })
         )
@@ -1063,7 +1063,7 @@ describe('TransactionForm', () => {
       fireEvent.click(screen.getByRole('button', { name: /create transaction/i }));
       await waitFor(() => expect(onSubmit).toHaveBeenCalled());
       expect(onSubmit.mock.calls[0][0].splits).toEqual(
-        expect.arrayContaining([expect.objectContaining({ amount: 981.25, categoryId: 10 })])
+        expect.arrayContaining([expect.objectContaining({ amount: '981.25', categoryId: 10 })])
       );
     });
 
@@ -1200,7 +1200,7 @@ describe('TransactionForm', () => {
         });
 
         // After the debounce window the hook receives the settled amount
-        expect(mockUseRepaymentPreview).toHaveBeenCalledWith(1, 1200, expect.anything());
+        expect(mockUseRepaymentPreview).toHaveBeenCalledWith(1, '1200', expect.anything());
       } finally {
         vi.useRealTimers();
       }
@@ -1279,7 +1279,7 @@ describe('TransactionForm', () => {
 
       // The preview total passed to the hook is the liability-currency equivalent
       await waitFor(() => {
-        expect(mockUseRepaymentPreview).toHaveBeenCalledWith(1, 1310.04, '2024-06-15');
+        expect(mockUseRepaymentPreview).toHaveBeenCalledWith(1, '1310.04', '2024-06-15');
       });
       await waitFor(() => {
         expect(screen.getByTestId('repayment-preview')).toBeInTheDocument();
@@ -1292,9 +1292,9 @@ describe('TransactionForm', () => {
       await waitFor(() => expect(onSubmit).toHaveBeenCalled());
       const payload = onSubmit.mock.calls[0][0];
       // Account leg stays account-native; conversion fields carry the liability view
-      expect(payload.amount).toBe(1200);
+      expect(payload.amount).toBe('1200');
       expect(payload.currency).toBe('EUR');
-      expect(payload.originalAmount).toBe(1310.04);
+      expect(payload.originalAmount).toBe('1310.04');
       expect(payload.originalCurrency).toBe('USD');
       expect(payload.conversionRate).toBeCloseTo(1 / 1.0917, 6);
     });
@@ -1337,7 +1337,7 @@ describe('TransactionForm', () => {
 
       // Input == liability: the preview total is the entered amount as-is
       await waitFor(() => {
-        expect(mockUseRepaymentPreview).toHaveBeenCalledWith(1, 1200, '2024-06-15');
+        expect(mockUseRepaymentPreview).toHaveBeenCalledWith(1, '1200', '2024-06-15');
       });
 
       await act(async () => {
@@ -1346,9 +1346,9 @@ describe('TransactionForm', () => {
 
       await waitFor(() => expect(onSubmit).toHaveBeenCalled());
       const payload = onSubmit.mock.calls[0][0];
-      expect(payload.amount).toBe(1080); // 1200 USD × 0.9 in the EUR account
+      expect(payload.amount).toBe('1080'); // 1200 USD × 0.9 in the EUR account
       expect(payload.currency).toBe('EUR');
-      expect(payload.originalAmount).toBe(1200);
+      expect(payload.originalAmount).toBe('1200');
       expect(payload.originalCurrency).toBe('USD');
       expect(payload.conversionRate).toBe(0.9);
     });
@@ -1383,8 +1383,8 @@ describe('TransactionForm', () => {
       await waitFor(() => expect(onSubmit).toHaveBeenCalled());
       const payload = onSubmit.mock.calls[0][0];
       expect(payload.splits).toEqual([
-        { amount: 981.25, categoryId: undefined, description: undefined },
-        { amount: 218.75, categoryId: 77, description: undefined },
+        { amount: '981.25', categoryId: undefined, description: undefined },
+        { amount: '218.75', categoryId: 77, description: undefined },
       ]);
     });
 
@@ -1471,7 +1471,10 @@ describe('TransactionForm', () => {
       const principal = payload.splits.find((s: any) => s.categoryId == null)?.amount;
       expect(interest).toBeCloseTo(200.38, 2);
       expect(principal).toBeCloseTo(999.62, 2);
-      expect(payload.splits.reduce((a: number, s: any) => a + s.amount, 0)).toBeCloseTo(1200, 6);
+      expect(payload.splits.reduce((a: number, s: any) => a + Number(s.amount), 0)).toBeCloseTo(
+        1200,
+        6
+      );
     });
 
     it('submits a plain transaction with no splits when the interest-only preview yields a single categorized leg', async () => {
@@ -1515,7 +1518,7 @@ describe('TransactionForm', () => {
       // A single categorized row must be submitted as a plain transaction (no splits[]), with
       // the interest category applied at the parent level.
       expect(payload.splits).toBeUndefined();
-      expect(payload.amount).toBe(400);
+      expect(payload.amount).toBe('400');
       expect(payload.categoryId).toBe(77);
     });
 
@@ -1559,7 +1562,7 @@ describe('TransactionForm', () => {
       // Underpayment leaves a single interest row after the principal is skipped → the
       // no-splits path kicks in so the backend never rejects a split-sum mismatch.
       expect(payload.splits).toBeUndefined();
-      expect(payload.amount).toBe(300);
+      expect(payload.amount).toBe('300');
     });
 
     it('clamps the largest categorized leg so splits sum exactly to the submitted amount on underpayment', async () => {
@@ -1607,7 +1610,10 @@ describe('TransactionForm', () => {
       const insurance = payload.splits.find((s: any) => s.categoryId === 88)?.amount;
       expect(interest).toBeCloseTo(279.17, 2);
       expect(insurance).toBeCloseTo(20.83, 2);
-      expect(payload.splits.reduce((a: number, s: any) => a + s.amount, 0)).toBeCloseTo(300, 6);
+      expect(payload.splits.reduce((a: number, s: any) => a + Number(s.amount), 0)).toBeCloseTo(
+        300,
+        6
+      );
     });
 
     it('still renders and submits when the preview query fails', async () => {
@@ -1950,7 +1956,7 @@ describe('TransactionForm', () => {
       });
 
       const submitted = onSubmit.mock.calls[0][0];
-      expect(submitted.amount).toBe(90);
+      expect(submitted.amount).toBe('90');
       expect(submitted.currency).toBe('EUR');
       expect(mockUseExchangeRate).toHaveBeenCalledWith('USD', 'EUR', '2024-06-15', true);
     });
@@ -1990,10 +1996,10 @@ describe('TransactionForm', () => {
       const submitted = onSubmit.mock.calls[0][0];
       // 60 USD → 54 EUR, 40 USD → 36 EUR, parent = 90 EUR
       expect(submitted.currency).toBe('EUR');
-      expect(submitted.amount).toBe(90);
+      expect(submitted.amount).toBe('90');
       expect(submitted.splits).toEqual([
-        { categoryId: 10, amount: 54 },
-        { categoryId: 20, amount: 36 },
+        { categoryId: 10, amount: '54' },
+        { categoryId: 20, amount: '36' },
       ]);
     });
 
@@ -2032,11 +2038,11 @@ describe('TransactionForm', () => {
       const submitted = onSubmit.mock.calls[0][0];
       expect(submitted.currency).toBe('EUR');
       expect(submitted.splits).toEqual([
-        { categoryId: 10, amount: 0.09 },
-        { categoryId: 20, amount: 0.05 },
+        { categoryId: 10, amount: '0.09' },
+        { categoryId: 20, amount: '0.05' },
       ]);
       // Parent and split sum both retain the converted total.
-      expect(submitted.amount).toBe(0.14);
+      expect(submitted.amount).toBe('0.14');
     });
 
     it('blocks submit and shows an error when a conversion is needed but no rate is available', async () => {
@@ -2147,7 +2153,7 @@ describe('TransactionForm', () => {
 
       const submittedData = onSubmit.mock.calls[0][0];
       expect(submittedData.type).toBe('EXPENSE');
-      expect(submittedData.amount).toBe(42.5);
+      expect(submittedData.amount).toBe('42.50');
       expect(submittedData.date).toBe('2024-06-15');
       expect(submittedData.accountId).toBe(1);
     });
@@ -2303,8 +2309,8 @@ describe('TransactionForm', () => {
       expect(onSubmit).toHaveBeenCalledWith(
         expect.objectContaining({
           currency: 'EUR',
-          amount: 90,
-          originalAmount: 100,
+          amount: '90',
+          originalAmount: '100',
           originalCurrency: 'USD',
           conversionRate: 0.9,
         })

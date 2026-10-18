@@ -35,6 +35,45 @@ describe('Zero-value properties', () => {
     mockAuthentication();
   });
 
+  it('preserves exact property values when only the name changes', async () => {
+    const exact = '10006858.9112567483';
+    const property: RealEstateProperty = {
+      id: 1,
+      userId: 1,
+      name: 'Home',
+      address: '1 Current Street',
+      propertyType: 'RESIDENTIAL',
+      purchasePrice: Number(exact),
+      currentValue: Number(exact),
+      rentalIncome: Number(exact),
+      exactValues: { purchasePrice: exact, currentValue: exact, rentalIncome: exact },
+      allocatedDebt: 0,
+      currency: 'EUR',
+      acquisitionType: 'PURCHASE',
+      purchaseDate: '2020-01-01',
+      isActive: true,
+      createdAt: '',
+      updatedAt: '',
+    };
+    const submit = vi.fn().mockResolvedValue(undefined);
+    const user = userEvent.setup();
+    renderWithProviders(
+      <RealEstateForm property={property} onSubmit={submit} onCancel={vi.fn()} isLoading={false} />
+    );
+    await user.type(screen.getByLabelText(/property name/i), ' renamed');
+    await user.click(screen.getByRole('button', { name: /update property/i }));
+    await waitFor(() =>
+      expect(submit).toHaveBeenCalledWith(
+        expect.objectContaining({
+          name: 'Home renamed',
+          purchasePrice: exact,
+          currentValue: exact,
+          rentalIncome: exact,
+        })
+      )
+    );
+  });
+
   it('renders a planned property whose appreciation percentage is undefined', () => {
     const property: RealEstateProperty = {
       id: 1,

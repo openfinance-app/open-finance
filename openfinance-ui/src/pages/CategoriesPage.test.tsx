@@ -48,6 +48,16 @@ let mockError: Error | null = null;
 const mockCreateMutateAsync = vi.fn();
 const mockUpdateMutateAsync = vi.fn();
 const mockDeleteMutateAsync = vi.fn();
+const mockImpact = {
+  system: false,
+  hasChildren: false,
+  transactionCount: 0,
+  splitCount: 0,
+  recurringCount: 0,
+  payeeCount: 0,
+  budgetCount: 0,
+  deletable: true,
+};
 
 vi.mock('@/hooks/useTransactions', () => ({
   useCategoryTree: () => ({
@@ -58,6 +68,12 @@ vi.mock('@/hooks/useTransactions', () => ({
   useCreateCategory: () => ({ mutateAsync: mockCreateMutateAsync, isPending: false }),
   useUpdateCategory: () => ({ mutateAsync: mockUpdateMutateAsync, isPending: false }),
   useDeleteCategory: () => ({ mutateAsync: mockDeleteMutateAsync, isPending: false }),
+  useCategoryDeletionImpact: () => ({
+    data: mockImpact,
+    isFetching: false,
+    isError: false,
+    refetch: vi.fn(),
+  }),
 }));
 
 vi.mock('@/hooks/useSecondaryConversion', () => ({

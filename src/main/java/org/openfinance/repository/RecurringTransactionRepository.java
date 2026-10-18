@@ -35,6 +35,8 @@ import org.springframework.transaction.annotation.Transactional;
 @Repository
 public interface RecurringTransactionRepository extends JpaRepository<RecurringTransaction, Long> {
 
+    long countByCategoryId(Long categoryId);
+
     /**
      * Finds all recurring transactions for a specific user.
      *

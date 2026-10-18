@@ -21,6 +21,7 @@ export interface BudgetRequest {
 }
 
 export interface BudgetResponse {
+  exactValues?: Record<string, string>;
   id: number;
   categoryId: number;
   categoryName: string;

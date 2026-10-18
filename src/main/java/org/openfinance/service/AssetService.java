@@ -172,7 +172,7 @@ public class AssetService {
         if (asset.getAcquisitionType() == null)
             asset.setAcquisitionType(org.openfinance.entity.AcquisitionType.PURCHASE);
         asset.setUserId(userId);
-        asset.updateTotalValue(asset.getTotalValue());
+        asset.setValuationRemainder(BigDecimal.ZERO);
         asset.setCurrencyId(resolveCurrencyId(asset.getCurrency()));
 
         // Default usefulLifeYears for depreciating physical assets
@@ -346,7 +346,9 @@ public class AssetService {
         }
         if (asset.getCurrentPrice().compareTo(oldPrice) != 0
                 || asset.getQuantity().compareTo(oldQuantity) != 0) {
-            asset.updateTotalValue(asset.getQuantity().multiply(asset.getCurrentPrice()));
+            // An explicit unit price already defines the total exactly; do not round it by
+            // redistributing that total at the scale used for derived valuations.
+            asset.setValuationRemainder(BigDecimal.ZERO);
         }
         asset.setCurrencyId(resolveCurrencyId(asset.getCurrency()));
 
@@ -894,6 +896,7 @@ public class AssetService {
                     "name",
                     "quantity",
                     "purchasePrice",
+                    "currentPrice",
                     "totalValue",
                     "valueInBaseCurrency",
                     "unrealizedGain",
@@ -919,6 +922,12 @@ public class AssetService {
         for (Sort.Order order : sort) {
             Comparator<AssetResponse> next;
             switch (order.getProperty()) {
+                case "currentPrice":
+                    next =
+                            Comparator.comparing(
+                                    AssetResponse::getCurrentPrice,
+                                    Comparator.nullsLast(Comparator.naturalOrder()));
+                    break;
                 case "totalValue":
                 case "valueInBaseCurrency":
                     next =

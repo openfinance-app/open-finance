@@ -25112,4 +25112,135 @@
       <Message>At SkroogeRuleImportServiceImpl.java:[line 21]</Message>
     </SourceLine>
   </BugInstance>
+  <!-- 2026-10-18: five reviewed Spring collaborator identities; see quality/README.md. -->
+  <BugInstance instanceOccurrenceNum="0" instanceHash="695a4e84dd708f6ee54f7c151799824d" cweid="374" rank="18" abbrev="EI2" category="MALICIOUS_CODE" priority="2" type="EI_EXPOSE_REP2" instanceOccurrenceMax="0">
+    <ShortMessage>May expose internal representation by incorporating reference to mutable object</ShortMessage>
+    <LongMessage>new org.openfinance.service.CategoryService(CategoryRepository, CategoryActivityService, DefaultCurrencyProvider, TransactionRepository, TransactionSplitRepository, RecurringTransactionRepository, PayeeRepository, BudgetRepository, CategoryMapper, EncryptionService, MessageSource, OperationHistoryService, EncryptionProperties) may expose internal representation by storing an externally mutable object into CategoryService.encryptionProperties</LongMessage>
+    <Class classname="org.openfinance.service.CategoryService" classAnnotationNames="org.springframework.stereotype.Service,org.springframework.transaction.annotation.Transactional" primary="true">
+      <SourceLine classname="org.openfinance.service.CategoryService" start="64" end="766" sourcepath="org/openfinance/service/CategoryService.java" sourcefile="CategoryService.java">
+        <Message>At CategoryService.java:[lines 64-766]</Message>
+      </SourceLine>
+      <Message>In class org.openfinance.service.CategoryService</Message>
+    </Class>
+    <Method isStatic="false" classname="org.openfinance.service.CategoryService" signature="(Lorg/openfinance/repository/CategoryRepository;Lorg/openfinance/service/CategoryActivityService;Lorg/openfinance/service/DefaultCurrencyProvider;Lorg/openfinance/repository/TransactionRepository;Lorg/openfinance/repository/TransactionSplitRepository;Lorg/openfinance/repository/RecurringTransactionRepository;Lorg/openfinance/repository/PayeeRepository;Lorg/openfinance/repository/BudgetRepository;Lorg/openfinance/mapper/CategoryMapper;Lorg/openfinance/security/EncryptionService;Lorg/springframework/context/MessageSource;Lorg/openfinance/service/OperationHistoryService;Lorg/openfinance/config/EncryptionProperties;)V" name="&lt;init&gt;" classAnnotationNames="org.springframework.stereotype.Service,org.springframework.transaction.annotation.Transactional" primary="true">
+      <SourceLine endBytecode="251" classname="org.openfinance.service.CategoryService" start="64" end="64" sourcepath="org/openfinance/service/CategoryService.java" sourcefile="CategoryService.java" startBytecode="0" />
+      <Message>In method new org.openfinance.service.CategoryService(CategoryRepository, CategoryActivityService, DefaultCurrencyProvider, TransactionRepository, TransactionSplitRepository, RecurringTransactionRepository, PayeeRepository, BudgetRepository, CategoryMapper, EncryptionService, MessageSource, OperationHistoryService, EncryptionProperties)</Message>
+    </Method>
+    <Field isStatic="false" classname="org.openfinance.service.CategoryService" signature="Lorg/openfinance/config/EncryptionProperties;" name="encryptionProperties" classAnnotationNames="org.springframework.stereotype.Service,org.springframework.transaction.annotation.Transactional" primary="true">
+      <SourceLine classname="org.openfinance.service.CategoryService" sourcepath="org/openfinance/service/CategoryService.java" sourcefile="CategoryService.java">
+        <Message>In CategoryService.java</Message>
+      </SourceLine>
+      <Message>Field org.openfinance.service.CategoryService.encryptionProperties</Message>
+    </Field>
+    <LocalVariable role="LOCAL_VARIABLE_NAMED" pc="76" name="encryptionProperties" register="13">
+      <Message>Local variable named encryptionProperties</Message>
+    </LocalVariable>
+    <SourceLine endBytecode="76" classname="org.openfinance.service.CategoryService" start="64" end="64" sourcepath="org/openfinance/service/CategoryService.java" sourcefile="CategoryService.java" startBytecode="76" primary="true">
+      <Message>At CategoryService.java:[line 64]</Message>
+    </SourceLine>
+  </BugInstance>
+  <BugInstance instanceOccurrenceNum="0" instanceHash="3ba5fc6f0f1b7304dfc762fb8f9f24e7" cweid="374" rank="18" abbrev="EI2" category="MALICIOUS_CODE" priority="2" type="EI_EXPOSE_REP2" instanceOccurrenceMax="0">
+    <ShortMessage>May expose internal representation by incorporating reference to mutable object</ShortMessage>
+    <LongMessage>new org.openfinance.service.CategoryService(CategoryRepository, CategoryActivityService, DefaultCurrencyProvider, TransactionRepository, TransactionSplitRepository, RecurringTransactionRepository, PayeeRepository, BudgetRepository, CategoryMapper, EncryptionService, MessageSource, OperationHistoryService, EncryptionProperties) may expose internal representation by storing an externally mutable object into CategoryService.encryptionService</LongMessage>
+    <Class classname="org.openfinance.service.CategoryService" classAnnotationNames="org.springframework.stereotype.Service,org.springframework.transaction.annotation.Transactional" primary="true">
+      <SourceLine classname="org.openfinance.service.CategoryService" start="64" end="766" sourcepath="org/openfinance/service/CategoryService.java" sourcefile="CategoryService.java">
+        <Message>At CategoryService.java:[lines 64-766]</Message>
+      </SourceLine>
+      <Message>In class org.openfinance.service.CategoryService</Message>
+    </Class>
+    <Method isStatic="false" classname="org.openfinance.service.CategoryService" signature="(Lorg/openfinance/repository/CategoryRepository;Lorg/openfinance/service/CategoryActivityService;Lorg/openfinance/service/DefaultCurrencyProvider;Lorg/openfinance/repository/TransactionRepository;Lorg/openfinance/repository/TransactionSplitRepository;Lorg/openfinance/repository/RecurringTransactionRepository;Lorg/openfinance/repository/PayeeRepository;Lorg/openfinance/repository/BudgetRepository;Lorg/openfinance/mapper/CategoryMapper;Lorg/openfinance/security/EncryptionService;Lorg/springframework/context/MessageSource;Lorg/openfinance/service/OperationHistoryService;Lorg/openfinance/config/EncryptionProperties;)V" name="&lt;init&gt;" classAnnotationNames="org.springframework.stereotype.Service,org.springframework.transaction.annotation.Transactional" primary="true">
+      <SourceLine endBytecode="251" classname="org.openfinance.service.CategoryService" start="64" end="64" sourcepath="org/openfinance/service/CategoryService.java" sourcefile="CategoryService.java" startBytecode="0" />
+      <Message>In method new org.openfinance.service.CategoryService(CategoryRepository, CategoryActivityService, DefaultCurrencyProvider, TransactionRepository, TransactionSplitRepository, RecurringTransactionRepository, PayeeRepository, BudgetRepository, CategoryMapper, EncryptionService, MessageSource, OperationHistoryService, EncryptionProperties)</Message>
+    </Method>
+    <Field isStatic="false" classname="org.openfinance.service.CategoryService" signature="Lorg/openfinance/security/EncryptionService;" name="encryptionService" classAnnotationNames="org.springframework.stereotype.Service,org.springframework.transaction.annotation.Transactional" primary="true">
+      <SourceLine classname="org.openfinance.service.CategoryService" sourcepath="org/openfinance/service/CategoryService.java" sourcefile="CategoryService.java">
+        <Message>In CategoryService.java</Message>
+      </SourceLine>
+      <Message>Field org.openfinance.service.CategoryService.encryptionService</Message>
+    </Field>
+    <LocalVariable role="LOCAL_VARIABLE_NAMED" pc="58" name="encryptionService" register="10">
+      <Message>Local variable named encryptionService</Message>
+    </LocalVariable>
+    <SourceLine endBytecode="58" classname="org.openfinance.service.CategoryService" start="64" end="64" sourcepath="org/openfinance/service/CategoryService.java" sourcefile="CategoryService.java" startBytecode="58" primary="true">
+      <Message>At CategoryService.java:[line 64]</Message>
+    </SourceLine>
+  </BugInstance>
+  <BugInstance instanceOccurrenceNum="0" instanceHash="7c4f0738b218580aa74943873dbd4bd7" cweid="374" rank="18" abbrev="EI2" category="MALICIOUS_CODE" priority="2" type="EI_EXPOSE_REP2" instanceOccurrenceMax="0">
+    <ShortMessage>May expose internal representation by incorporating reference to mutable object</ShortMessage>
+    <LongMessage>new org.openfinance.service.CategoryService(CategoryRepository, CategoryActivityService, DefaultCurrencyProvider, TransactionRepository, TransactionSplitRepository, RecurringTransactionRepository, PayeeRepository, BudgetRepository, CategoryMapper, EncryptionService, MessageSource, OperationHistoryService, EncryptionProperties) may expose internal representation by storing an externally mutable object into CategoryService.recurringTransactionRepository</LongMessage>
+    <Class classname="org.openfinance.service.CategoryService" classAnnotationNames="org.springframework.stereotype.Service,org.springframework.transaction.annotation.Transactional" primary="true">
+      <SourceLine classname="org.openfinance.service.CategoryService" start="64" end="766" sourcepath="org/openfinance/service/CategoryService.java" sourcefile="CategoryService.java">
+        <Message>At CategoryService.java:[lines 64-766]</Message>
+      </SourceLine>
+      <Message>In class org.openfinance.service.CategoryService</Message>
+    </Class>
+    <Method isStatic="false" classname="org.openfinance.service.CategoryService" signature="(Lorg/openfinance/repository/CategoryRepository;Lorg/openfinance/service/CategoryActivityService;Lorg/openfinance/service/DefaultCurrencyProvider;Lorg/openfinance/repository/TransactionRepository;Lorg/openfinance/repository/TransactionSplitRepository;Lorg/openfinance/repository/RecurringTransactionRepository;Lorg/openfinance/repository/PayeeRepository;Lorg/openfinance/repository/BudgetRepository;Lorg/openfinance/mapper/CategoryMapper;Lorg/openfinance/security/EncryptionService;Lorg/springframework/context/MessageSource;Lorg/openfinance/service/OperationHistoryService;Lorg/openfinance/config/EncryptionProperties;)V" name="&lt;init&gt;" classAnnotationNames="org.springframework.stereotype.Service,org.springframework.transaction.annotation.Transactional" primary="true">
+      <SourceLine endBytecode="251" classname="org.openfinance.service.CategoryService" start="64" end="64" sourcepath="org/openfinance/service/CategoryService.java" sourcefile="CategoryService.java" startBytecode="0" />
+      <Message>In method new org.openfinance.service.CategoryService(CategoryRepository, CategoryActivityService, DefaultCurrencyProvider, TransactionRepository, TransactionSplitRepository, RecurringTransactionRepository, PayeeRepository, BudgetRepository, CategoryMapper, EncryptionService, MessageSource, OperationHistoryService, EncryptionProperties)</Message>
+    </Method>
+    <Field isStatic="false" classname="org.openfinance.service.CategoryService" signature="Lorg/openfinance/repository/RecurringTransactionRepository;" name="recurringTransactionRepository" classAnnotationNames="org.springframework.stereotype.Service,org.springframework.transaction.annotation.Transactional" primary="true">
+      <SourceLine classname="org.openfinance.service.CategoryService" sourcepath="org/openfinance/service/CategoryService.java" sourcefile="CategoryService.java">
+        <Message>In CategoryService.java</Message>
+      </SourceLine>
+      <Message>Field org.openfinance.service.CategoryService.recurringTransactionRepository</Message>
+    </Field>
+    <LocalVariable role="LOCAL_VARIABLE_NAMED" pc="34" name="recurringTransactionRepository" register="6">
+      <Message>Local variable named recurringTransactionRepository</Message>
+    </LocalVariable>
+    <SourceLine endBytecode="34" classname="org.openfinance.service.CategoryService" start="64" end="64" sourcepath="org/openfinance/service/CategoryService.java" sourcefile="CategoryService.java" startBytecode="34" primary="true">
+      <Message>At CategoryService.java:[line 64]</Message>
+    </SourceLine>
+  </BugInstance>
+  <BugInstance instanceOccurrenceNum="0" instanceHash="e74cb6be584db5b2ff7df50a4756c4b3" cweid="374" rank="18" abbrev="EI2" category="MALICIOUS_CODE" priority="2" type="EI_EXPOSE_REP2" instanceOccurrenceMax="0">
+    <ShortMessage>May expose internal representation by incorporating reference to mutable object</ShortMessage>
+    <LongMessage>new org.openfinance.service.CategoryService(CategoryRepository, CategoryActivityService, DefaultCurrencyProvider, TransactionRepository, TransactionSplitRepository, RecurringTransactionRepository, PayeeRepository, BudgetRepository, CategoryMapper, EncryptionService, MessageSource, OperationHistoryService, EncryptionProperties) may expose internal representation by storing an externally mutable object into CategoryService.transactionRepository</LongMessage>
+    <Class classname="org.openfinance.service.CategoryService" classAnnotationNames="org.springframework.stereotype.Service,org.springframework.transaction.annotation.Transactional" primary="true">
+      <SourceLine classname="org.openfinance.service.CategoryService" start="64" end="766" sourcepath="org/openfinance/service/CategoryService.java" sourcefile="CategoryService.java">
+        <Message>At CategoryService.java:[lines 64-766]</Message>
+      </SourceLine>
+      <Message>In class org.openfinance.service.CategoryService</Message>
+    </Class>
+    <Method isStatic="false" classname="org.openfinance.service.CategoryService" signature="(Lorg/openfinance/repository/CategoryRepository;Lorg/openfinance/service/CategoryActivityService;Lorg/openfinance/service/DefaultCurrencyProvider;Lorg/openfinance/repository/TransactionRepository;Lorg/openfinance/repository/TransactionSplitRepository;Lorg/openfinance/repository/RecurringTransactionRepository;Lorg/openfinance/repository/PayeeRepository;Lorg/openfinance/repository/BudgetRepository;Lorg/openfinance/mapper/CategoryMapper;Lorg/openfinance/security/EncryptionService;Lorg/springframework/context/MessageSource;Lorg/openfinance/service/OperationHistoryService;Lorg/openfinance/config/EncryptionProperties;)V" name="&lt;init&gt;" classAnnotationNames="org.springframework.stereotype.Service,org.springframework.transaction.annotation.Transactional" primary="true">
+      <SourceLine endBytecode="251" classname="org.openfinance.service.CategoryService" start="64" end="64" sourcepath="org/openfinance/service/CategoryService.java" sourcefile="CategoryService.java" startBytecode="0" />
+      <Message>In method new org.openfinance.service.CategoryService(CategoryRepository, CategoryActivityService, DefaultCurrencyProvider, TransactionRepository, TransactionSplitRepository, RecurringTransactionRepository, PayeeRepository, BudgetRepository, CategoryMapper, EncryptionService, MessageSource, OperationHistoryService, EncryptionProperties)</Message>
+    </Method>
+    <Field isStatic="false" classname="org.openfinance.service.CategoryService" signature="Lorg/openfinance/repository/TransactionRepository;" name="transactionRepository" classAnnotationNames="org.springframework.stereotype.Service,org.springframework.transaction.annotation.Transactional" primary="true">
+      <SourceLine classname="org.openfinance.service.CategoryService" sourcepath="org/openfinance/service/CategoryService.java" sourcefile="CategoryService.java">
+        <Message>In CategoryService.java</Message>
+      </SourceLine>
+      <Message>Field org.openfinance.service.CategoryService.transactionRepository</Message>
+    </Field>
+    <LocalVariable role="LOCAL_VARIABLE_NAMED" pc="22" name="transactionRepository" register="4">
+      <Message>Local variable named transactionRepository</Message>
+    </LocalVariable>
+    <SourceLine endBytecode="22" classname="org.openfinance.service.CategoryService" start="64" end="64" sourcepath="org/openfinance/service/CategoryService.java" sourcefile="CategoryService.java" startBytecode="22" primary="true">
+      <Message>At CategoryService.java:[line 64]</Message>
+    </SourceLine>
+  </BugInstance>
+  <BugInstance instanceOccurrenceNum="0" instanceHash="baf05948cf702c8751ec2f7a9d16b73" cweid="374" rank="18" abbrev="EI2" category="MALICIOUS_CODE" priority="2" type="EI_EXPOSE_REP2" instanceOccurrenceMax="0">
+    <ShortMessage>May expose internal representation by incorporating reference to mutable object</ShortMessage>
+    <LongMessage>new org.openfinance.service.CategoryService(CategoryRepository, CategoryActivityService, DefaultCurrencyProvider, TransactionRepository, TransactionSplitRepository, RecurringTransactionRepository, PayeeRepository, BudgetRepository, CategoryMapper, EncryptionService, MessageSource, OperationHistoryService, EncryptionProperties) may expose internal representation by storing an externally mutable object into CategoryService.transactionSplitRepository</LongMessage>
+    <Class classname="org.openfinance.service.CategoryService" classAnnotationNames="org.springframework.stereotype.Service,org.springframework.transaction.annotation.Transactional" primary="true">
+      <SourceLine classname="org.openfinance.service.CategoryService" start="64" end="766" sourcepath="org/openfinance/service/CategoryService.java" sourcefile="CategoryService.java">
+        <Message>At CategoryService.java:[lines 64-766]</Message>
+      </SourceLine>
+      <Message>In class org.openfinance.service.CategoryService</Message>
+    </Class>
+    <Method isStatic="false" classname="org.openfinance.service.CategoryService" signature="(Lorg/openfinance/repository/CategoryRepository;Lorg/openfinance/service/CategoryActivityService;Lorg/openfinance/service/DefaultCurrencyProvider;Lorg/openfinance/repository/TransactionRepository;Lorg/openfinance/repository/TransactionSplitRepository;Lorg/openfinance/repository/RecurringTransactionRepository;Lorg/openfinance/repository/PayeeRepository;Lorg/openfinance/repository/BudgetRepository;Lorg/openfinance/mapper/CategoryMapper;Lorg/openfinance/security/EncryptionService;Lorg/springframework/context/MessageSource;Lorg/openfinance/service/OperationHistoryService;Lorg/openfinance/config/EncryptionProperties;)V" name="&lt;init&gt;" classAnnotationNames="org.springframework.stereotype.Service,org.springframework.transaction.annotation.Transactional" primary="true">
+      <SourceLine endBytecode="251" classname="org.openfinance.service.CategoryService" start="64" end="64" sourcepath="org/openfinance/service/CategoryService.java" sourcefile="CategoryService.java" startBytecode="0" />
+      <Message>In method new org.openfinance.service.CategoryService(CategoryRepository, CategoryActivityService, DefaultCurrencyProvider, TransactionRepository, TransactionSplitRepository, RecurringTransactionRepository, PayeeRepository, BudgetRepository, CategoryMapper, EncryptionService, MessageSource, OperationHistoryService, EncryptionProperties)</Message>
+    </Method>
+    <Field isStatic="false" classname="org.openfinance.service.CategoryService" signature="Lorg/openfinance/repository/TransactionSplitRepository;" name="transactionSplitRepository" classAnnotationNames="org.springframework.stereotype.Service,org.springframework.transaction.annotation.Transactional" primary="true">
+      <SourceLine classname="org.openfinance.service.CategoryService" sourcepath="org/openfinance/service/CategoryService.java" sourcefile="CategoryService.java">
+        <Message>In CategoryService.java</Message>
+      </SourceLine>
+      <Message>Field org.openfinance.service.CategoryService.transactionSplitRepository</Message>
+    </Field>
+    <LocalVariable role="LOCAL_VARIABLE_NAMED" pc="28" name="transactionSplitRepository" register="5">
+      <Message>Local variable named transactionSplitRepository</Message>
+    </LocalVariable>
+    <SourceLine endBytecode="28" classname="org.openfinance.service.CategoryService" start="64" end="64" sourcepath="org/openfinance/service/CategoryService.java" sourcefile="CategoryService.java" startBytecode="28" primary="true">
+      <Message>At CategoryService.java:[line 64]</Message>
+    </SourceLine>
+  </BugInstance>
 </BugCollection>

@@ -36,6 +36,8 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface BudgetRepository extends JpaRepository<Budget, Long> {
 
+    long countByCategoryId(Long categoryId);
+
     /**
      * Finds all budgets for a specific user.
      *

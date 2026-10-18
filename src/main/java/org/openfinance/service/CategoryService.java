@@ -8,6 +8,7 @@ import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.openfinance.config.EncryptionProperties;
+import org.openfinance.dto.CategoryDeletionImpact;
 import org.openfinance.dto.CategoryRequest;
 import org.openfinance.dto.CategoryResponse;
 import org.openfinance.dto.CategoryTreeNode;
@@ -17,8 +18,12 @@ import org.openfinance.entity.OperationType;
 import org.openfinance.exception.CategoryNotFoundException;
 import org.openfinance.exception.InvalidCategoryException;
 import org.openfinance.mapper.CategoryMapper;
+import org.openfinance.repository.BudgetRepository;
 import org.openfinance.repository.CategoryRepository;
+import org.openfinance.repository.PayeeRepository;
+import org.openfinance.repository.RecurringTransactionRepository;
 import org.openfinance.repository.TransactionRepository;
+import org.openfinance.repository.TransactionSplitRepository;
 import org.openfinance.security.EncryptionContext;
 import org.openfinance.security.EncryptionService;
 import org.openfinance.service.history.ReversibleOperation;
@@ -64,6 +69,10 @@ public class CategoryService {
     private final CategoryActivityService categoryActivityService;
     private final DefaultCurrencyProvider defaultCurrencyProvider;
     private final TransactionRepository transactionRepository;
+    private final TransactionSplitRepository transactionSplitRepository;
+    private final RecurringTransactionRepository recurringTransactionRepository;
+    private final PayeeRepository payeeRepository;
+    private final BudgetRepository budgetRepository;
     private final CategoryMapper categoryMapper;
     private final EncryptionService encryptionService;
     private final MessageSource messageSource;
@@ -282,6 +291,8 @@ public class CategoryService {
                             + " transaction(s). Reassign or delete the transactions first.");
         }
 
+        validateDeletionReferences(categoryId);
+
         // Capture snapshot before delete for history (only if key provided)
         CategoryResponse beforeDeleteSnapshot = null;
         String decryptedName = null;
@@ -307,6 +318,31 @@ public class CategoryService {
                 OperationType.DELETE,
                 beforeDeleteSnapshot,
                 null);
+    }
+
+    @Transactional(readOnly = true)
+    public CategoryDeletionImpact getDeletionImpact(Long userId, Long categoryId) {
+        Category category =
+                categoryRepository
+                        .findByIdAndUserId(categoryId, userId)
+                        .orElseThrow(() -> new CategoryNotFoundException(categoryId));
+        return new CategoryDeletionImpact(
+                Boolean.TRUE.equals(category.getIsSystem()),
+                categoryRepository.hasSubcategories(categoryId),
+                transactionRepository.countByCategoryId(categoryId),
+                transactionSplitRepository.countByCategoryId(categoryId),
+                recurringTransactionRepository.countByCategoryId(categoryId),
+                payeeRepository.countByDefaultCategoryId(categoryId),
+                budgetRepository.countByCategoryId(categoryId));
+    }
+
+    private void validateDeletionReferences(Long categoryId) {
+        long splits = transactionSplitRepository.countByCategoryId(categoryId);
+        if (splits > 0) throw InvalidCategoryException.referencedBy("splits", splits);
+        long recurring = recurringTransactionRepository.countByCategoryId(categoryId);
+        if (recurring > 0) throw InvalidCategoryException.referencedBy("recurring", recurring);
+        long payees = payeeRepository.countByDefaultCategoryId(categoryId);
+        if (payees > 0) throw InvalidCategoryException.referencedBy("payees", payees);
     }
 
     /**

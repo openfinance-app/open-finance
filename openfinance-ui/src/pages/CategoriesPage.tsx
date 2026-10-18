@@ -32,15 +32,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { PageHeader } from '@/components/layout/PageHeader';
 import { EmptyState } from '@/components/layout/EmptyState';
 import { LoadingSkeleton } from '@/components/LoadingComponents';
-import { ConfirmationDialog } from '@/components/ConfirmationDialog';
+import { CategoryDeleteDialog } from '@/components/transactions/CategoryDeleteDialog';
 import { CategorySelect } from '@/components/ui/CategorySelect';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
-import {
-  useCategoryTree,
-  useCreateCategory,
-  useUpdateCategory,
-  useDeleteCategory,
-} from '@/hooks/useTransactions';
+import { useCategoryTree, useCreateCategory, useUpdateCategory } from '@/hooks/useTransactions';
 import {
   CategoryAmount,
   CategoryTransactionCount,
@@ -502,7 +497,6 @@ export default function CategoriesPage() {
   const { data: categories = [], isLoading, error } = useCategoryTree();
   const createCategory = useCreateCategory();
   const updateCategory = useUpdateCategory();
-  const deleteCategory = useDeleteCategory();
 
   const compareNodes = (a: CategoryTreeNode, b: CategoryTreeNode): number => {
     switch (sortBy) {
@@ -605,17 +599,6 @@ export default function CategoriesPage() {
       const axiosErr = err as { response?: { data?: { message?: string } } };
       const message = axiosErr?.response?.data?.message ?? t('form.saveError');
       setFormError(message);
-    }
-  };
-
-  const handleDeleteConfirm = async () => {
-    if (!deletingCategory) return;
-
-    try {
-      await deleteCategory.mutateAsync(deletingCategory.id);
-      setDeletingCategory(null);
-    } catch (error) {
-      console.error('Failed to delete category:', error);
     }
   };
 
@@ -789,15 +772,7 @@ export default function CategoriesPage() {
       />
 
       {/* Delete Confirmation */}
-      <ConfirmationDialog
-        open={!!deletingCategory}
-        onOpenChange={open => !open && setDeletingCategory(null)}
-        title={t('dialogs.delete.title')}
-        description={t('dialogs.delete.description', { name: deletingCategory?.name })}
-        confirmText={t('dialogs.delete.confirmText')}
-        onConfirm={handleDeleteConfirm}
-        variant="danger"
-      />
+      <CategoryDeleteDialog category={deletingCategory} onClose={() => setDeletingCategory(null)} />
     </div>
   );
 }

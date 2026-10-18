@@ -28,6 +28,7 @@ export interface AccountFilters {
 }
 
 export interface InterestRateVariation {
+  exactValues?: Record<string, string>;
   interestProduced?: number;
   activeDays?: number;
   id: number;
@@ -40,8 +41,8 @@ export interface InterestRateVariation {
 }
 
 export interface InterestRateVariationRequest {
-  rate: number;
-  taxRate?: number;
+  rate: number | string;
+  taxRate?: number | string;
   validFrom: string;
 }
 
@@ -57,6 +58,7 @@ export interface InstitutionInfo {
 }
 
 export interface Account {
+  exactValues?: Record<string, string>;
   id: number;
   userId: number;
   name: string;
@@ -93,6 +95,7 @@ export interface AccountRequest {
   currency: string;
   /** Exact decimal string as entered by the user (e.g. "6322.1899") — never a JS number. */
   initialBalance: string;
+  adjustBalance?: boolean;
   balanceCurrency?: string;
   description?: string;
   /** ISO date (yyyy-MM-dd) when the account was opened. */
@@ -100,6 +103,6 @@ export interface AccountRequest {
   institutionId?: number;
   isInterestEnabled?: boolean;
   interestPeriod?: InterestPeriod;
-  interestRate?: number;
-  taxRate?: number;
+  interestRate?: number | string;
+  taxRate?: number | string;
 }

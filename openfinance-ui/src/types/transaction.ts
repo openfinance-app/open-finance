@@ -80,7 +80,7 @@ export interface TransactionSplitRequest {
   /** Optional category to assign to this split */
   categoryId?: number;
   /** Amount for this split — must be > 0 */
-  amount: number;
+  amount: number | string;
   /** Optional description for this split (max 255 chars) */
   description?: string;
 }
@@ -90,6 +90,7 @@ export interface TransactionSplitRequest {
  * Requirement REQ-SPL-4.3
  */
 export interface TransactionSplitResponse {
+  exactValues?: Record<string, string>;
   tags?: string[];
   id: number;
   transactionId: number;
@@ -105,6 +106,7 @@ export interface TransactionSplitResponse {
 }
 
 export interface Transaction {
+  exactValues?: Record<string, string>;
   id: number;
   userId: number;
   accountId: number;
@@ -180,7 +182,7 @@ export interface TransactionRequest {
   accountId: number;
   toAccountId?: number;
   type: TransactionType;
-  amount: number;
+  amount: number | string;
   currency: string;
   categoryId?: number;
   date: string;
@@ -197,11 +199,11 @@ export interface TransactionRequest {
   realEstateId?: number;
   assetId?: number;
   movementType?: MovementType;
-  principalAmount?: number;
+  principalAmount?: number | string;
   // Original (pre-conversion) values, submitted together when a conversion was applied.
-  originalAmount?: number;
+  originalAmount?: number | string;
   originalCurrency?: string;
-  conversionRate?: number;
+  conversionRate?: number | string;
   // Requirement REQ-SPL-2.1, REQ-SPL-2.2: Split lines for INCOME/EXPENSE transactions
   splits?: TransactionSplitRequest[];
 }
@@ -213,7 +215,7 @@ export interface TransactionRequest {
 export interface TransferUpdateRequest {
   fromAccountId: number;
   toAccountId: number;
-  amount: number;
+  amount: number | string;
   currency: string;
   date: string;
   description?: string;

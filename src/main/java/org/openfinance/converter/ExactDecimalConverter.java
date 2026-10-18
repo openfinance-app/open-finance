@@ -4,7 +4,7 @@ import jakarta.persistence.AttributeConverter;
 import jakarta.persistence.Converter;
 import java.math.BigDecimal;
 
-/** Preserves public FX decimals without SQLite REAL coercion or a fixed database scale. */
+/** Preserves public decimals without SQLite REAL coercion or a fixed database scale. */
 @Converter
 public class ExactDecimalConverter implements AttributeConverter<BigDecimal, String> {
     @Override

@@ -110,8 +110,8 @@ describe('InterestRateVariationsSection', () => {
       {
         accountId: 12,
         data: {
-          rate: 4.5,
-          taxRate: 10,
+          rate: '4.5',
+          taxRate: '10',
           validFrom: '2026-05-01',
         },
       },

@@ -344,6 +344,7 @@ export function useLiabilityTransactions(liabilityId: number | null) {
  * Repayment breakdown preview returned by the backend repayment-preview endpoint.
  */
 export interface RepaymentPreview {
+  exactValues?: Record<string, string>;
   total: number;
   principal: number;
   interest: number;
@@ -358,7 +359,7 @@ export interface RepaymentPreview {
  */
 export function useRepaymentPreview(
   liabilityId: number | undefined,
-  total: number,
+  total: number | string,
   date: string | undefined
 ) {
   return useQuery<RepaymentPreview>({
@@ -375,7 +376,7 @@ export function useRepaymentPreview(
       );
       return response.data;
     },
-    enabled: liabilityId != null && total > 0 && !!date,
+    enabled: liabilityId != null && Number(total) > 0 && !!date,
     // Keep the previous breakdown while a new amount settles, so the preview
     // does not flicker (unmount) between keystrokes.
     placeholderData: keepPreviousData,

@@ -1,3 +1,4 @@
+import { decimalField } from '@/utils/exact-decimal';
 /**
  * BudgetForm Component
  * TASK-8.2.8: Create BudgetForm component with validation
@@ -95,7 +96,7 @@ export function BudgetForm({
     values: budget
       ? {
           categoryId: budget.categoryId,
-          amount: String(budget.amount),
+          amount: decimalField(budget, 'amount'),
           currency: budget.currency,
           period: budget.period,
           startDate: budget.startDate,

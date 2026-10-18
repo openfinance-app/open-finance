@@ -25,6 +25,8 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface TransactionSplitRepository extends JpaRepository<TransactionSplit, Long> {
 
+    long countByCategoryId(Long categoryId);
+
     /**
      * Returns all splits belonging to a specific transaction, ordered by id.
      *

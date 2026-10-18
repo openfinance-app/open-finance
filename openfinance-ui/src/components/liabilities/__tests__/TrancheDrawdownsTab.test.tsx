@@ -8,7 +8,7 @@
  */
 import { screen, act, fireEvent, waitFor } from '@testing-library/react';
 import { vi, describe, it, expect, beforeEach } from 'vitest';
-import { renderWithProviders } from '@/test/test-utils';
+import { mockAuthentication, renderWithProviders } from '@/test/test-utils';
 import { TrancheDrawdownsTab } from '../TrancheDrawdownsTab';
 import * as useTranchesModule from '@/hooks/useTranches';
 import * as useLiabilitiesModule from '@/hooks/useLiabilities';
@@ -103,6 +103,7 @@ const mockAccounts = [
 describe('TrancheDrawdownsTab', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockAuthentication();
     mockUseTranches.mockReturnValue({
       data: mockTranches,
       isLoading: false,
@@ -284,6 +285,31 @@ describe('TrancheDrawdownsTab', () => {
   });
 
   // ── Draw action (tranche drawdown) ────────────────────────────────────────
+
+  it('preserves the exact remaining amount when drawing a tranche', async () => {
+    const exact = '10006858.9112567483';
+    mockUseTranches.mockReturnValue({
+      data: [{ ...mockTranches[1], remaining: Number(exact), exactValues: { remaining: exact } }],
+      isLoading: false,
+      error: null,
+    } as unknown as ReturnType<typeof useTranchesModule.useTranches>);
+    const mutateAsync = vi.fn().mockResolvedValue({});
+    mockUseDisburseLiability.mockReturnValue({
+      mutateAsync,
+      isPending: false,
+      isError: false,
+    } as unknown as ReturnType<typeof useLiabilitiesModule.useDisburseLiability>);
+    renderWithProviders(<TrancheDrawdownsTab liability={mockLiability} />);
+    fireEvent.click(screen.getByRole('button', { name: /^draw$/i }));
+    fireEvent.change(screen.getByLabelText(/account/i), { target: { value: '3' } });
+    fireEvent.click(screen.getByRole('button', { name: /confirm disbursement/i }));
+    await waitFor(() =>
+      expect(mutateAsync).toHaveBeenCalledWith({
+        liabilityId: 5,
+        request: expect.objectContaining({ amount: exact, trancheId: 2, toAccountId: 3 }),
+      })
+    );
+  });
 
   it('shows a Draw action on PLANNED tranches only', () => {
     renderWithProviders(<TrancheDrawdownsTab liability={mockLiability} />);

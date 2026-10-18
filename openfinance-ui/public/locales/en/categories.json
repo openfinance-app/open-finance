@@ -110,8 +110,25 @@
   "dialogs": {
     "delete": {
       "title": "Delete Category",
-      "description": "Are you sure you want to delete \"{{name}}\"? This action cannot be undone.",
-      "confirmText": "Delete"
+      "description": "Delete \"{{name}}\"?",
+      "confirmText": "Delete",
+      "checking": "Checking linked records…",
+      "checkFailed": "Could not check linked records. Try again before deleting.",
+      "retry": "Retry",
+      "failed": "Could not delete this category.",
+      "budgets_one": "The linked budget and its alerts will also be deleted.",
+      "budgets_other": "All {{count}} linked budgets and their alerts will also be deleted.",
+      "blocked": "This category is still in use. Reassign or remove these links before deleting it.",
+      "system": "System categories cannot be deleted.",
+      "children": "Subcategories",
+      "transactions_one": "{{count}} transaction",
+      "transactions_other": "{{count}} transactions",
+      "splits_one": "{{count}} transaction split",
+      "splits_other": "{{count}} transaction splits",
+      "recurring_one": "{{count}} recurring template (including paused templates)",
+      "recurring_other": "{{count}} recurring templates (including paused templates)",
+      "payees_one": "{{count}} payee uses this as its default category",
+      "payees_other": "{{count}} payees use this as their default category"
     }
   },
   "transactionCount_one": "{{count}} transaction",

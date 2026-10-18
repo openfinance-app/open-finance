@@ -324,7 +324,8 @@ public class AccountService {
                         ? previousCurrency
                         : request.getBalanceCurrency();
         java.math.BigDecimal desiredBalance = request.getInitialBalance();
-        if (!balanceCurrency.equalsIgnoreCase(account.getCurrency())) {
+        if (!Boolean.FALSE.equals(request.getAdjustBalance())
+                && !balanceCurrency.equalsIgnoreCase(account.getCurrency())) {
             desiredBalance =
                     desiredBalance
                             .multiply(
@@ -334,7 +335,10 @@ public class AccountService {
                                             java.time.LocalDate.now()))
                             .setScale(18, java.math.RoundingMode.HALF_UP);
         }
-        java.math.BigDecimal adjustment = desiredBalance.subtract(account.getBalance());
+        java.math.BigDecimal adjustment =
+                Boolean.FALSE.equals(request.getAdjustBalance())
+                        ? java.math.BigDecimal.ZERO
+                        : desiredBalance.subtract(account.getBalance());
 
         // Handle institution update (REQ-2.6.1.3)
         if (request.getInstitutionId() != null) {

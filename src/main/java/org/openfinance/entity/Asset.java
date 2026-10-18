@@ -12,6 +12,7 @@ import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 import org.openfinance.converter.EncryptedBigDecimalConverter;
 import org.openfinance.converter.EncryptedStringConverter;
+import org.openfinance.converter.ExactDecimalConverter;
 
 /**
  * Entity representing a financial asset (stock, ETF, crypto, etc.) in the Open-Finance system.
@@ -155,7 +156,8 @@ public class Asset {
      */
     @NotNull(message = "{asset.currentPrice.notnull}")
     @DecimalMin(value = "0.00", message = "{asset.currentPrice.decimalMin}")
-    @Column(name = "current_price", nullable = false, precision = 19, scale = 8)
+    @Column(name = "current_price", nullable = false, length = 512)
+    @Convert(converter = ExactDecimalConverter.class)
     private BigDecimal currentPrice;
 
     /**

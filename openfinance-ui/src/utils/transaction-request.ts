@@ -1,3 +1,11 @@
+import {
+  decimalValue,
+  decimalField,
+  equalDecimals,
+  ExactDecimal,
+  exactSum,
+  distributeExact,
+} from '@/utils/exact-decimal';
 import type {
   Transaction,
   TransactionRequest,
@@ -8,13 +16,6 @@ import type {
 import type { RepaymentPreview } from '@/hooks/useLiabilities';
 import { formatDateForInput } from '@/utils/date';
 import { getMonetaryScale } from '@/utils/currency';
-import {
-  divide,
-  distributeRemainder,
-  multiply,
-  roundToDecimals,
-  sumToDecimals,
-} from '@/utils/money';
 
 /**
  * Builds the initial split rows for the form. For a converted transaction (originalCurrency set),
@@ -26,31 +27,43 @@ export function reconstructInitialSplits(transaction?: Transaction): Transaction
   const rows: TransactionSplitRequest[] =
     transaction?.splits?.map(s => ({
       categoryId: s.categoryId,
-      amount: s.amount,
+      amount: decimalValue(s, 'amount') ?? 0,
       description: s.description,
       tags: s.tags ?? [],
     })) ?? [];
 
-  const rate = transaction?.conversionRate;
+  const rate = transaction && decimalValue(transaction, 'conversionRate');
   const originalCurrency = transaction?.originalCurrency;
-  const originalAmount = transaction?.originalAmount;
-  if (!rate || rate <= 0 || !originalCurrency || originalAmount == null || rows.length === 0) {
+  const originalAmount = transaction && decimalValue(transaction, 'originalAmount');
+  if (
+    !rate ||
+    Number(rate) <= 0 ||
+    !originalCurrency ||
+    originalAmount == null ||
+    rows.length === 0
+  ) {
     return rows;
   }
 
   const decimals = getMonetaryScale(originalCurrency);
   const reconstructed = rows.map((s, i) =>
     i < rows.length - 1
-      ? { ...s, amount: roundToDecimals(divide(s.amount, rate), decimals) }
+      ? {
+          ...s,
+          amount: moneyResult(
+            new ExactDecimal(s.amount).div(rate).toDecimalPlaces(decimals),
+            originalAmount
+          ),
+        }
       : { ...s }
   );
-  const sumOthers = sumToDecimals(
-    reconstructed.slice(0, -1).map(s => s.amount),
-    decimals
-  );
+  const sumOthers = exactSum(reconstructed.slice(0, -1).map(s => s.amount));
   reconstructed[reconstructed.length - 1] = {
     ...reconstructed[reconstructed.length - 1],
-    amount: roundToDecimals(originalAmount - sumOthers, decimals),
+    amount: moneyResult(
+      new ExactDecimal(originalAmount).minus(sumOthers).toDecimalPlaces(decimals),
+      originalAmount
+    ),
   };
   return reconstructed;
 }
@@ -74,9 +87,9 @@ function findRepaymentCategoryId(
 
 /** Stored conversion fields carried by the submit payload (undefined when no conversion). */
 interface ConversionTriple {
-  originalAmount?: number;
+  originalAmount?: number | string;
   originalCurrency?: string;
-  conversionRate?: number;
+  conversionRate?: number | string;
 }
 
 /** Result of the repayment auto-split payload construction. */
@@ -92,16 +105,31 @@ interface RepaymentAutoSplit {
  * parent-level category (no splits[]).
  */
 function buildRepaymentAutoSplit(
-  preview: Pick<RepaymentPreview, 'interest' | 'insurance' | 'principal'>,
-  submitAmount: number,
-  liabToAccount: number,
+  preview: Pick<RepaymentPreview, 'interest' | 'insurance' | 'principal' | 'exactValues'>,
+  submitAmount: number | string,
+  liabToAccount: number | string,
   categories: Category[],
   decimals: number,
   principalCategoryId?: number
 ): RepaymentAutoSplit {
-  const interestLeg = roundToDecimals(multiply(preview.interest ?? 0, liabToAccount), decimals);
-  const insuranceLeg = roundToDecimals(multiply(preview.insurance ?? 0, liabToAccount), decimals);
-  const principalLeg = roundToDecimals(multiply(preview.principal ?? 0, liabToAccount), decimals);
+  const interestLeg = moneyResult(
+    new ExactDecimal(decimalField(preview, 'interest', '0'))
+      .times(liabToAccount)
+      .toDecimalPlaces(decimals),
+    submitAmount
+  );
+  const insuranceLeg = moneyResult(
+    new ExactDecimal(decimalField(preview, 'insurance', '0'))
+      .times(liabToAccount)
+      .toDecimalPlaces(decimals),
+    submitAmount
+  );
+  const principalLeg = moneyResult(
+    new ExactDecimal(decimalField(preview, 'principal', '0'))
+      .times(liabToAccount)
+      .toDecimalPlaces(decimals),
+    submitAmount
+  );
   const interestCategoryId = findRepaymentCategoryId(categories, 'category.interest.expense', [
     'interest',
     'intérêts',
@@ -113,7 +141,7 @@ function buildRepaymentAutoSplit(
   ]);
   const rows: TransactionSplitRequest[] = [];
   let principalRow: TransactionSplitRequest | undefined;
-  if (principalLeg > 0) {
+  if (new ExactDecimal(principalLeg).gt(0)) {
     principalRow = {
       amount: principalLeg,
       categoryId: principalCategoryId,
@@ -121,10 +149,10 @@ function buildRepaymentAutoSplit(
     };
     rows.push(principalRow);
   }
-  if (interestLeg > 0) {
+  if (new ExactDecimal(interestLeg).gt(0)) {
     rows.push({ amount: interestLeg, categoryId: interestCategoryId, description: undefined });
   }
-  if (insuranceLeg > 0) {
+  if (new ExactDecimal(insuranceLeg).gt(0)) {
     rows.push({
       amount: insuranceLeg,
       categoryId: insuranceCategoryId,
@@ -135,22 +163,25 @@ function buildRepaymentAutoSplit(
   if (rows.length >= 2 && rows.some(r => r.categoryId != null)) {
     // Clamp so Σsplits == submitAmount exactly: the principal leg absorbs the remainder when
     // present, otherwise the largest categorized leg does (underpayment with principal 0).
-    const sumRows = roundToDecimals(
-      rows.reduce((acc, r) => acc + r.amount, 0),
-      decimals
-    );
-    const remainder = roundToDecimals(submitAmount - sumRows, decimals);
-    if (remainder !== 0) {
+    const sumRows = exactSum(rows.map(r => r.amount));
+    const remainder = new ExactDecimal(submitAmount).minus(sumRows).toDecimalPlaces(decimals);
+    if (!remainder.isZero()) {
       let absorbIndex = principalRow ? rows.indexOf(principalRow) : -1;
       if (absorbIndex < 0) {
         absorbIndex = rows.reduce(
-          (maxIdx, r, i) => (r.amount > rows[maxIdx].amount ? i : maxIdx),
+          (maxIdx, r, i) => (new ExactDecimal(r.amount).gt(rows[maxIdx].amount) ? i : maxIdx),
           0
         );
       }
       rows[absorbIndex] = {
         ...rows[absorbIndex],
-        amount: roundToDecimals(Math.max(rows[absorbIndex].amount + remainder, 0), decimals),
+        amount: moneyResult(
+          ExactDecimal.max(
+            new ExactDecimal(rows[absorbIndex].amount).plus(remainder),
+            0
+          ).toDecimalPlaces(decimals),
+          submitAmount
+        ),
       };
     }
     return { splits: rows };
@@ -169,17 +200,22 @@ function buildRepaymentAutoSplit(
  * holds that view.
  */
 function withLiabilityFxOverride(
-  submitAmount: number,
+  submitAmount: number | string,
   liabilityCurrency: string,
-  liabilityRate: number
+  liabilityRate: number | string
 ): ConversionTriple {
   return {
-    originalAmount: roundToDecimals(
-      multiply(submitAmount, liabilityRate),
-      getMonetaryScale(liabilityCurrency)
+    originalAmount: moneyResult(
+      new ExactDecimal(submitAmount)
+        .times(liabilityRate)
+        .toDecimalPlaces(getMonetaryScale(liabilityCurrency)),
+      submitAmount
     ),
     originalCurrency: liabilityCurrency,
-    conversionRate: divide(1, liabilityRate),
+    conversionRate: moneyResult(
+      new ExactDecimal(1).div(liabilityRate).toDecimalPlaces(18),
+      submitAmount
+    ),
   };
 }
 
@@ -189,9 +225,9 @@ interface SubmitGuardParams {
   inputCurrency: string;
   accountCurrency: string;
   needsConversion: boolean;
-  rate: number | undefined;
+  rate: number | string | undefined;
   needsLiabilityFx: boolean;
-  liabilityRate: number | undefined;
+  liabilityRate: number | string | undefined;
 }
 
 /** Inputs needed to build the submit payload from the live form state. */
@@ -205,10 +241,10 @@ interface SubmitContext {
   inputCurrency: string;
   accountCurrency: string;
   needsConversion: boolean;
-  rate?: number;
+  rate?: number | string;
   needsLiabilityFx: boolean;
   liabilityCurrency?: string;
-  liabilityRate?: number;
+  liabilityRate?: number | string;
   applyRepaymentSplit: boolean;
   repaymentPreview?: RepaymentPreview;
   linkedLiability: boolean;
@@ -239,15 +275,19 @@ export function buildTransactionRequest(ctx: SubmitContext): TransactionRequest 
     linkedLiability,
   } = ctx;
   const decimals = getMonetaryScale(accountCurrency);
-  const convert = (value: number): number =>
-    needsConversion && rate ? roundToDecimals(multiply(value, rate), decimals) : Number(value);
+  const convert = (value: number | string): number | string =>
+    needsConversion && rate
+      ? moneyResult(new ExactDecimal(value).times(rate).toDecimalPlaces(decimals), value)
+      : value;
 
   const inSplit = splitMode && splits.length > 0;
   const submitAmount = convert(data.amount);
   const convertedAmounts = inSplit ? splits.map(split => convert(split.amount)) : [];
   const allocatedAmounts =
     needsConversion && inSplit
-      ? distributeRemainder(submitAmount, convertedAmounts, decimals)
+      ? distributeExact(submitAmount, convertedAmounts, decimals).map(value =>
+          moneyResult(new ExactDecimal(value), data.amount)
+        )
       : convertedAmounts;
   const submitSplits = inSplit
     ? splits.map((split, index) => ({ ...split, amount: allocatedAmounts[index] }))
@@ -256,7 +296,7 @@ export function buildTransactionRequest(ctx: SubmitContext): TransactionRequest 
   let conversion: ConversionTriple =
     needsConversion && rate
       ? {
-          originalAmount: Number(data.amount),
+          originalAmount: data.amount,
           originalCurrency: inputCurrency,
           conversionRate: rate,
         }
@@ -317,7 +357,7 @@ export function buildTransactionRequest(ctx: SubmitContext): TransactionRequest 
         ? inSplit
           ? undefined
           : applyRepaymentSplit && repaymentPreview
-            ? repaymentPreview.principal
+            ? decimalValue(repaymentPreview, 'principal')
             : data.principalAmount
         : undefined,
     // Manual movement entry: only include the instrument links for EXPENSE
@@ -338,16 +378,16 @@ export function buildTransactionRequest(ctx: SubmitContext): TransactionRequest 
     const stored = ctx.transaction;
     return {
       ...request,
-      amount: stored.amount,
+      amount: decimalValue(stored, 'amount') ?? 0,
       currency: stored.currency,
-      originalAmount: stored.originalAmount,
+      originalAmount: decimalValue(stored, 'originalAmount'),
       originalCurrency: stored.originalCurrency,
-      conversionRate: stored.conversionRate,
-      principalAmount: stored.principalAmount,
+      conversionRate: decimalValue(stored, 'conversionRate'),
+      principalAmount: decimalValue(stored, 'principalAmount'),
       splits: stored.hasSplits
         ? stored.splits?.map((split, index) => ({
             categoryId: split.categoryId,
-            amount: split.amount,
+            amount: decimalValue(split, 'amount') ?? 0,
             description: splits[index]?.description,
             tags: splits[index]?.tags ?? [],
           }))
@@ -365,7 +405,6 @@ function hasUnchangedBooking(ctx: SubmitContext, transaction: Transaction): bool
     'categoryId',
     'liabilityId',
     'trancheId',
-    'principalAmount',
     'realEstateId',
     'assetId',
     'movementType',
@@ -377,13 +416,19 @@ function hasUnchangedBooking(ctx: SubmitContext, transaction: Transaction): bool
     data.type === (transaction.transferId ? 'TRANSFER' : transaction.type) &&
     data.date === formatDateForInput(transaction.date) &&
     data.currency === (transaction.originalCurrency ?? transaction.currency) &&
-    Number(data.amount) === (transaction.originalAmount ?? transaction.amount) &&
+    equalDecimals(
+      data.amount,
+      decimalField(transaction, transaction.originalAmount == null ? 'amount' : 'originalAmount')
+    ) &&
+    (data.principalAmount == null || transaction.principalAmount == null
+      ? (data.principalAmount ?? null) === (transaction.principalAmount ?? null)
+      : equalDecimals(data.principalAmount, decimalField(transaction, 'principalAmount'))) &&
     splitMode === Boolean(transaction.hasSplits && initialSplits.length) &&
     (!splitMode ||
       (splits.length === initialSplits.length &&
         splits.every(
           (split, index) =>
-            Number(split.amount) === initialSplits[index].amount &&
+            equalDecimals(split.amount, initialSplits[index].amount) &&
             (split.categoryId ?? null) === (initialSplits[index].categoryId ?? null)
         )))
   );
@@ -419,4 +464,11 @@ export function submitGuardError({
     return 'form.validation.rateUnavailable';
   }
   return undefined;
+}
+
+function moneyResult(
+  value: InstanceType<typeof ExactDecimal>,
+  source: number | string
+): number | string {
+  return typeof source === 'number' ? value.toNumber() : value.toFixed();
 }
