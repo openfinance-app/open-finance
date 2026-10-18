@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import java.math.BigDecimal;
+import java.math.MathContext;
 import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.Map;
@@ -18,14 +19,17 @@ import org.springframework.cache.CacheManager;
 class TransferConversionIntegrationTest extends AuditApiTestSupport {
     @Autowired private ExchangeRateRepository rates;
     @Autowired private CacheManager caches;
-    private final Map<LocalDate, BigDecimal> previousRates = new HashMap<>();
+    private final Map<RateKey, BigDecimal> previousRates = new HashMap<>();
+
+    private record RateKey(String base, String target, LocalDate date) {}
 
     @AfterEach
     void restoreRates() {
         previousRates.forEach(
-                (date, previous) -> {
+                (key, previous) -> {
                     ExchangeRate row =
-                            rates.findByBaseCurrencyAndTargetCurrencyAndRateDate("USD", "EUR", date)
+                            rates.findByBaseCurrencyAndTargetCurrencyAndRateDate(
+                                            key.base(), key.target(), key.date())
                                     .orElseThrow();
                     if (previous == null) rates.delete(row);
                     else {
@@ -200,24 +204,35 @@ class TransferConversionIntegrationTest extends AuditApiTestSupport {
     }
 
     private void setRate(LocalDate date, String value) {
-        if (!previousRates.containsKey(date)) {
+        BigDecimal rate = new BigDecimal(value);
+        // Direct quotes take precedence over inverse quotes left by other integration tests.
+        setRate(new RateKey("USD", "EUR", date), rate);
+        setRate(
+                new RateKey("EUR", "USD", date),
+                BigDecimal.ONE.divide(rate, MathContext.DECIMAL128));
+        caches.getCache("exchangeRates").clear();
+    }
+
+    private void setRate(RateKey key, BigDecimal value) {
+        if (!previousRates.containsKey(key)) {
             previousRates.put(
-                    date,
-                    rates.findByBaseCurrencyAndTargetCurrencyAndRateDate("USD", "EUR", date)
+                    key,
+                    rates.findByBaseCurrencyAndTargetCurrencyAndRateDate(
+                                    key.base(), key.target(), key.date())
                             .map(ExchangeRate::getRate)
                             .orElse(null));
         }
         ExchangeRate rate =
-                rates.findByBaseCurrencyAndTargetCurrencyAndRateDate("USD", "EUR", date)
+                rates.findByBaseCurrencyAndTargetCurrencyAndRateDate(
+                                key.base(), key.target(), key.date())
                         .orElse(
                                 ExchangeRate.builder()
-                                        .baseCurrency("USD")
-                                        .targetCurrency("EUR")
-                                        .rateDate(date)
+                                        .baseCurrency(key.base())
+                                        .targetCurrency(key.target())
+                                        .rateDate(key.date())
                                         .source("transfer-regression")
                                         .build());
-        rate.setRate(new BigDecimal(value));
+        rate.setRate(value);
         rates.saveAndFlush(rate);
-        caches.getCache("exchangeRates").clear();
     }
 }
