@@ -133,11 +133,13 @@ describe('ImportWizard cancellation', () => {
         skipDuplicates: false,
       })
     );
-    expect(JSON.parse(sessionStorage.getItem('import_recovery')!)).toEqual({
-      userId: 1,
-      sessionId: 42,
-      selectedStep: 'progress',
-    });
+    await waitFor(() =>
+      expect(JSON.parse(sessionStorage.getItem('import_recovery')!)).toEqual({
+        userId: 1,
+        sessionId: 42,
+        selectedStep: 'progress',
+      })
+    );
   });
 
   it('starts AI review only after Next applies the selected account', async () => {
