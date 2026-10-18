@@ -53,6 +53,8 @@
     }
   },
   "form": {
+    "interestCredit": "Interest credited by the bank",
+    "interestCreditHint": "This payment replaces estimated reinvested interest in the account projection. Leave unchecked for ordinary deposits.",
     "type": "Type",
     "amount": "Amount",
     "currency": "Currency",

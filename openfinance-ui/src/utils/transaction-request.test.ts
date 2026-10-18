@@ -27,6 +27,40 @@ function context(transaction?: Transaction): Parameters<typeof buildTransactionR
 }
 
 describe('transaction decimal precision', () => {
+  it.each([undefined, 'INTEREST'] as const)(
+    'retains the exact FX booking when toggling interest credit from %s',
+    movementType => {
+      const stored = {
+        id: 1,
+        accountId: 1,
+        type: 'INCOME',
+        currency: 'XOF',
+        date: '2026-01-01',
+        amount: 10006858.91125675,
+        exactValues: { amount: '10006858.9112567483' },
+        originalAmount: 500,
+        originalCurrency: 'EUR',
+        conversionRate: 20013.7178,
+        movementType,
+      } as Transaction;
+      const edit = context(stored);
+      edit.data.type = 'INCOME';
+      edit.data.amount = '500';
+      edit.data.currency = 'EUR';
+      edit.data.movementType = movementType == null ? 'INTEREST' : undefined;
+      edit.inputCurrency = 'EUR';
+      edit.needsConversion = true;
+      edit.rate = '20013.7178';
+      expect(buildTransactionRequest(edit)).toMatchObject({
+        amount: '10006858.9112567483',
+        originalAmount: 500,
+        originalCurrency: 'EUR',
+        conversionRate: 20013.7178,
+        movementType: edit.data.movementType,
+      });
+    }
+  );
+
   it('preserves the exact amount on create and metadata edits after JSON parsing', () => {
     const stored = JSON.parse(
       '{"id":1,"accountId":1,"type":"EXPENSE","amount":10006858.9112567483,"exactValues":{"amount":"10006858.9112567483"},"currency":"XOF","date":"2026-01-01"}'

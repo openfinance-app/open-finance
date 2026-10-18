@@ -14,6 +14,7 @@ import {
   clearAuthentication,
   userEvent,
 } from '@/test/test-utils';
+import apiClient from '@/services/apiClient';
 import { AccountForm } from '@/components/accounts/AccountForm';
 import type { Account } from '@/types/account';
 
@@ -302,6 +303,42 @@ describe('AccountForm', () => {
   });
 
   describe('Interest Calculation', () => {
+    it('uses the server calendar-year preview and sends the exact entered balance', async () => {
+      const post = vi.spyOn(apiClient, 'post').mockResolvedValue({
+        data: {
+          year: new Date().getFullYear(),
+          startDate: `${new Date().getFullYear()}-01-01`,
+          endDate: `${new Date().getFullYear()}-12-31`,
+          grossInterest: 123.45,
+          taxAmount: 23.45,
+          netInterest: 100,
+        },
+      });
+      const user = userEvent.setup();
+      renderWithProviders(<AccountForm onSubmit={mockOnSubmit} onCancel={mockOnCancel} />);
+      await user.click(screen.getByRole('switch'));
+      const balance = screen.getByLabelText(/Initial Balance/i);
+      await user.clear(balance);
+      await user.type(balance, '10006858.9112567483');
+      await user.type(screen.getByRole('textbox', { name: /Interest Rate/i }), '4');
+      await user.selectOptions(screen.getByLabelText(/Compounding/i), 'QUARTERLY');
+      await waitFor(() =>
+        expect(post).toHaveBeenLastCalledWith(
+          '/accounts/interest-preview',
+          expect.objectContaining({
+            balance: '10006858.9112567483',
+            interestPeriod: 'QUARTERLY',
+            rate: '04',
+            taxRate: '0',
+          }),
+          expect.any(Object)
+        )
+      );
+      await waitFor(() => expect(screen.getByText(/123[.,]45/)).toBeInTheDocument());
+      expect(mockOnSubmit).not.toHaveBeenCalled();
+      post.mockRestore();
+    });
+
     it('should show interest rate fields when interest toggle is enabled', async () => {
       const user = userEvent.setup();
       renderWithProviders(<AccountForm onSubmit={mockOnSubmit} onCancel={mockOnCancel} />);

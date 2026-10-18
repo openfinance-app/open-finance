@@ -16,17 +16,15 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.openfinance.dto.AccountResponse;
+import org.openfinance.dto.BalanceHistoryPoint;
+import org.openfinance.entity.InterestDayCountBasis;
 import org.openfinance.entity.InterestPeriod;
 import org.openfinance.entity.InterestRateVariation;
 import org.openfinance.repository.InterestRateVariationRepository;
 
 /**
- * Unit tests for {@link InterestCalculatorService#calculateInterestEstimate}.
- *
- * <p>The expected values are hand-computed from the compound-interest formula {@code A = P × (1 +
- * r/n)^(n·t) − P} with {@code t = 1} year, so the test is independent of the internal arithmetic
- * type (double vs BigDecimal). It pins the observable 2-decimal result while the implementation is
- * migrated from {@code double} to {@code BigDecimal}.
+ * Exercises the calendar-year engine used by the account and dashboard endpoints. Nominal compound
+ * formula cases use 30/360, so every complete month has equal weight.
  */
 @ExtendWith(MockitoExtension.class)
 class InterestCalculatorServiceTest {
@@ -68,6 +66,20 @@ class InterestCalculatorServiceTest {
                         .interestPeriod(period)
                         .build();
         when(accountService.getAccountById(ACCOUNT_ID, USER_ID)).thenReturn(account);
+        lenient()
+                .when(
+                        accountService.getAccountBalanceHistory(
+                                org.mockito.ArgumentMatchers.eq(ACCOUNT_ID),
+                                        org.mockito.ArgumentMatchers.eq(USER_ID),
+                                any(LocalDate.class), any(LocalDate.class)))
+                .thenAnswer(
+                        invocation ->
+                                List.of(
+                                        new BalanceHistoryPoint(
+                                                invocation.getArgument(2),
+                                                account.getOwnBalance() == null
+                                                        ? BigDecimal.ZERO
+                                                        : account.getOwnBalance())));
     }
 
     private void givenAccount(BigDecimal balance, InterestPeriod period, String currency) {
@@ -80,15 +92,31 @@ class InterestCalculatorServiceTest {
                         .currency(currency)
                         .build();
         when(accountService.getAccountById(ACCOUNT_ID, USER_ID)).thenReturn(account);
+        lenient()
+                .when(
+                        accountService.getAccountBalanceHistory(
+                                org.mockito.ArgumentMatchers.eq(ACCOUNT_ID),
+                                        org.mockito.ArgumentMatchers.eq(USER_ID),
+                                any(LocalDate.class), any(LocalDate.class)))
+                .thenAnswer(
+                        invocation ->
+                                List.of(
+                                        new BalanceHistoryPoint(
+                                                invocation.getArgument(2),
+                                                account.getOwnBalance() == null
+                                                        ? BigDecimal.ZERO
+                                                        : account.getOwnBalance())));
     }
 
     private void givenRate(String ratePct, String taxPct) {
         InterestRateVariation variation =
                 InterestRateVariation.builder()
                         .accountId(ACCOUNT_ID)
+                        .id(1L)
+                        .dayCountBasis(InterestDayCountBasis.THIRTY_360)
                         .rate(new BigDecimal(ratePct))
                         .taxRate(new BigDecimal(taxPct))
-                        .validFrom(LocalDate.now().minusYears(1))
+                        .validFrom(LocalDate.of(2026, 1, 1))
                         .build();
         when(variationRepository.findByAccountIdOrderByValidFromDesc(ACCOUNT_ID))
                 .thenReturn(List.of(variation));
@@ -100,7 +128,7 @@ class InterestCalculatorServiceTest {
         givenAccount(new BigDecimal("10000"), InterestPeriod.ANNUAL);
         givenRate("5", "0");
 
-        assertThat(service.calculateInterestEstimate(ACCOUNT_ID, USER_ID, "1Y"))
+        assertThat(service.calculateYear(ACCOUNT_ID, USER_ID, 2026).calendarYearEstimate())
                 .isEqualByComparingTo("500.00");
     }
 
@@ -111,7 +139,7 @@ class InterestCalculatorServiceTest {
         givenRate("12", "0");
 
         // (1 + 0.12/12)^12 − 1 = 1.01^12 − 1 = 0.12682503... × 10000 = 1268.2503 → 1268.25
-        assertThat(service.calculateInterestEstimate(ACCOUNT_ID, USER_ID, "1Y"))
+        assertThat(service.calculateYear(ACCOUNT_ID, USER_ID, 2026).calendarYearEstimate())
                 .isEqualByComparingTo("1268.25");
     }
 
@@ -121,7 +149,7 @@ class InterestCalculatorServiceTest {
         givenAccount(new BigDecimal("10000"), InterestPeriod.ANNUAL);
         givenRate("5", "30");
 
-        assertThat(service.calculateInterestEstimate(ACCOUNT_ID, USER_ID, "1Y"))
+        assertThat(service.calculateYear(ACCOUNT_ID, USER_ID, 2026).calendarYearEstimate())
                 .isEqualByComparingTo("350.00");
     }
 
@@ -130,7 +158,7 @@ class InterestCalculatorServiceTest {
     void zeroBalance() {
         givenAccount(BigDecimal.ZERO, InterestPeriod.ANNUAL);
 
-        assertThat(service.calculateInterestEstimate(ACCOUNT_ID, USER_ID, "1Y"))
+        assertThat(service.calculateYear(ACCOUNT_ID, USER_ID, 2026).calendarYearEstimate())
                 .isEqualByComparingTo("0");
     }
 
@@ -144,8 +172,22 @@ class InterestCalculatorServiceTest {
                         .interestPeriod(InterestPeriod.ANNUAL)
                         .build();
         when(accountService.getAccountById(ACCOUNT_ID, USER_ID)).thenReturn(account);
+        lenient()
+                .when(
+                        accountService.getAccountBalanceHistory(
+                                org.mockito.ArgumentMatchers.eq(ACCOUNT_ID),
+                                        org.mockito.ArgumentMatchers.eq(USER_ID),
+                                any(LocalDate.class), any(LocalDate.class)))
+                .thenAnswer(
+                        invocation ->
+                                List.of(
+                                        new BalanceHistoryPoint(
+                                                invocation.getArgument(2),
+                                                account.getOwnBalance() == null
+                                                        ? BigDecimal.ZERO
+                                                        : account.getOwnBalance())));
 
-        assertThat(service.calculateInterestEstimate(ACCOUNT_ID, USER_ID, "1Y"))
+        assertThat(service.calculateYear(ACCOUNT_ID, USER_ID, 2026).calendarYearEstimate())
                 .isEqualByComparingTo("0");
     }
 
@@ -157,7 +199,7 @@ class InterestCalculatorServiceTest {
 
         // 1 × ((1 + 0.12/12)^12 − 1) = 0.126825030... BTC
         // At 2 decimals this would clamp to 0.13, destroying value; 8 decimals keeps it.
-        BigDecimal result = service.calculateInterestEstimate(ACCOUNT_ID, USER_ID, "1Y");
+        BigDecimal result = service.calculateYear(ACCOUNT_ID, USER_ID, 2026).calendarYearEstimate();
         assertThat(result.scale()).isEqualTo(8);
         assertThat(result).isEqualByComparingTo("0.12682503");
     }
@@ -169,7 +211,7 @@ class InterestCalculatorServiceTest {
         givenRate("12", "0");
 
         // 10000 × 0.12682503... = 1268.2503 → 1268 at 0 decimals
-        BigDecimal result = service.calculateInterestEstimate(ACCOUNT_ID, USER_ID, "1Y");
+        BigDecimal result = service.calculateYear(ACCOUNT_ID, USER_ID, 2026).calendarYearEstimate();
         assertThat(result.scale()).isEqualTo(0);
         assertThat(result).isEqualByComparingTo("1268");
     }
@@ -178,22 +220,23 @@ class InterestCalculatorServiceTest {
     void quarterlyProjectionUsesFourCompoundingPeriods() {
         givenAccount(new BigDecimal("1000"), InterestPeriod.QUARTERLY);
         givenRate("4", "0");
-        assertThat(service.calculateInterestEstimate(ACCOUNT_ID, USER_ID, "1Y"))
+        assertThat(service.calculateYear(ACCOUNT_ID, USER_ID, 2026).calendarYearEstimate())
                 .isEqualByComparingTo("40.60");
     }
 
     @Test
-    void futureOnlyRateDoesNotApplyBeforeItsEffectiveDate() {
+    void scheduledRateAppliesOnlyAfterItsEffectiveDate() {
         givenAccount(new BigDecimal("1000"), InterestPeriod.ANNUAL);
         when(variationRepository.findByAccountIdOrderByValidFromDesc(ACCOUNT_ID))
                 .thenReturn(
                         List.of(
                                 InterestRateVariation.builder()
                                         .id(1L)
-                                        .validFrom(LocalDate.now().plusDays(1))
+                                        .validFrom(LocalDate.of(2026, 7, 1))
                                         .rate(new BigDecimal("4"))
                                         .build()));
-        assertThat(service.calculateInterestEstimate(ACCOUNT_ID, USER_ID, "1Y")).isZero();
+        assertThat(service.calculateYear(ACCOUNT_ID, USER_ID, 2026).calendarYearEstimate())
+                .isEqualByComparingTo("20.16");
     }
 
     @Test

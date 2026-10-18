@@ -478,6 +478,18 @@ export function TransactionForm({
 
   // Default the input currency to the selected account's currency, but only when the account
   // actually changes — so a manual currency choice is not clobbered on unrelated re-renders.
+  const previousType = useRef(selectedType);
+  useEffect(() => {
+    if (
+      previousType.current === 'INCOME' &&
+      selectedType !== 'INCOME' &&
+      watch('movementType') === 'INTEREST'
+    ) {
+      setValue('movementType', undefined);
+    }
+    previousType.current = selectedType;
+  }, [selectedType, setValue, watch]);
+
   const prevAccountIdRef = useRef<number | undefined>(selectedAccountId);
   useEffect(() => {
     if (selectedAccountId && selectedAccountId !== prevAccountIdRef.current) {
@@ -929,6 +941,26 @@ export function TransactionForm({
           )}
         </div>
       )}
+
+      {selectedType === 'INCOME' &&
+        (selectedAccount?.isInterestEnabled || watch('movementType') === 'INTEREST') && (
+          <div className="flex items-center gap-2">
+            <input
+              id="interestCredit"
+              type="checkbox"
+              checked={watch('movementType') === 'INTEREST'}
+              onChange={event =>
+                setValue('movementType', event.target.checked ? 'INTEREST' : undefined, {
+                  shouldDirty: true,
+                })
+              }
+            />
+            <label htmlFor="interestCredit" className="text-sm text-text-secondary">
+              {t('form.interestCredit')}
+            </label>
+            <HelpTooltip text={t('form.interestCreditHint')} />
+          </div>
+        )}
 
       {/* Liability Selector - only for EXPENSE transactions (Requirement 3.1) */}
       {selectedType === 'EXPENSE' && liabilities.length > 0 && (

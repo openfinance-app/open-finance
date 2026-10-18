@@ -364,7 +364,7 @@ export function buildTransactionRequest(ctx: SubmitContext): TransactionRequest 
     movementType:
       carriesLoan && data.liabilityId
         ? (data.movementType ?? (data.type === 'INCOME' ? 'DISBURSEMENT' : 'REPAYMENT'))
-        : data.type === 'EXPENSE'
+        : data.type === 'EXPENSE' || (data.type === 'INCOME' && data.movementType === 'INTEREST')
           ? data.movementType
           : undefined,
     // REQ-SPL-2.1, REQ-SPL-2.2: include splits when split mode is active
@@ -405,12 +405,26 @@ function hasUnchangedBooking(ctx: SubmitContext, transaction: Transaction): bool
     'trancheId',
     'realEstateId',
     'assetId',
-    'movementType',
   ] as const;
+  // Marking an account's income as bank interest changes classification only. Preserve its
+  // exact booked amount, including imported FX amounts whose stored rate was rounded.
+  const savingsClassificationOnly =
+    data.type === 'INCOME' &&
+    transaction.type === 'INCOME' &&
+    !data.liabilityId &&
+    !transaction.liabilityId &&
+    !data.assetId &&
+    !transaction.assetId &&
+    !data.realEstateId &&
+    !transaction.realEstateId &&
+    (data.movementType == null || data.movementType === 'INTEREST') &&
+    (transaction.movementType == null || transaction.movementType === 'INTEREST');
   const initialSplits = reconstructInitialSplits(transaction);
   return (
     !ctx.applyRepaymentSplit &&
     fields.every(field => (data[field] ?? null) === (transaction[field] ?? null)) &&
+    (savingsClassificationOnly ||
+      (data.movementType ?? null) === (transaction.movementType ?? null)) &&
     data.type === (transaction.transferId ? 'TRANSFER' : transaction.type) &&
     data.date === formatDateForInput(transaction.date) &&
     data.currency === (transaction.originalCurrency ?? transaction.currency) &&

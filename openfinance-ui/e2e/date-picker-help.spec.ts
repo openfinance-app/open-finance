@@ -51,6 +51,10 @@ async function checkHelp(page: Page, text: string, screenshotPath: string): Prom
   await page.getByRole('button', { name: text, exact: true }).focus();
   await expect(page.getByRole('tooltip')).toHaveText(text);
   await expect(page.getByRole('tooltip').locator('..')).toHaveCSS('opacity', '1');
+  const bounds = await page.getByRole('tooltip').locator('..').boundingBox();
+  expect(bounds).not.toBeNull();
+  expect(bounds!.x).toBeGreaterThanOrEqual(0);
+  expect(bounds!.x + bounds!.width).toBeLessThanOrEqual(page.viewportSize()!.width);
   await page.screenshot({ path: screenshotPath, animations: 'disabled' });
   await page.keyboard.press('Tab');
   await expect(page.getByRole('tooltip')).not.toBeVisible();
@@ -130,6 +134,9 @@ for (const language of ['en', 'fr'] as const) {
     );
 
     await page.goto('/categories');
+    await expect(
+      page.getByRole('button', { name: categories.list.amountHint, exact: true }).locator('..')
+    ).toContainText(categories.table.name);
     await checkHelp(
       page,
       categories.list.amountHint,

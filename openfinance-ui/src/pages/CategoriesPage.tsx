@@ -52,65 +52,29 @@ interface CategorySearchNode extends CategoryTreeNode {
 
 interface CategoryTreeProps {
   categories: CategorySearchNode[];
+  expandedNodes: ReadonlyMap<number, boolean>;
   expandAllByDefault?: boolean;
+  onToggle: (id: number, expanded: boolean) => void;
   onEdit: (category: CategoryTreeNode) => void;
   onDelete: (category: CategoryTreeNode) => void;
 }
 
 function CategoryTree({
   categories,
+  expandedNodes,
   expandAllByDefault = false,
+  onToggle,
   onEdit,
   onDelete,
 }: CategoryTreeProps) {
   const { t } = useTranslation('categories');
-  const [expandedNodes, setExpandedNodes] = useState<Map<number, boolean>>(() => new Map());
-  const expandableNodes = useMemo(() => {
-    const result: { id: number; depth: number }[] = [];
-    const visit = (nodes: CategoryTreeNode[], depth: number): void => {
-      for (const node of nodes) {
-        if (node.subcategories?.length) {
-          result.push({ id: node.id, depth });
-          visit(node.subcategories, depth + 1);
-        }
-      }
-    };
-    visit(categories, 0);
-    return result;
-  }, [categories]);
-  const allExpanded = expandableNodes.every(
-    node => expandedNodes.get(node.id) ?? expandAllByDefault
-  );
-  const toggleNode = (id: number, expanded: boolean): void => {
-    setExpandedNodes(current => new Map(current).set(id, expanded));
-  };
 
   return (
     <div className="pb-2">
-      {expandableNodes.length > 0 && (
-        <div className="flex items-center justify-end px-3 py-2 lg:px-5">
-          <Button
-            variant="ghost"
-            className="ml-auto h-11 shrink-0 gap-2 text-text-secondary lg:h-8"
-            aria-expanded={allExpanded}
-            aria-controls="category-tree"
-            onClick={() =>
-              setExpandedNodes(new Map(expandableNodes.map(node => [node.id, !allExpanded])))
-            }
-          >
-            {allExpanded ? (
-              <ChevronsDownUp size={16} aria-hidden="true" />
-            ) : (
-              <ChevronsUpDown size={16} aria-hidden="true" />
-            )}
-            {t(allExpanded ? 'list.collapseAll' : 'list.expandAll')}
-          </Button>
-        </div>
-      )}
       <div className="grid grid-cols-1 gap-x-5 border-b border-border px-3 py-2 text-xs font-medium text-text-secondary lg:grid-cols-[minmax(0,1fr)_8rem_11rem_2.75rem] lg:px-5">
         <span className="flex items-center gap-1.5 lg:pl-19">
           {t('table.name')}
-          <HelpTooltip text={t('list.amountHint')} side="right" />
+          <HelpTooltip text={t('list.amountHint')} />
         </span>
         <span className="hidden text-right lg:block">{t('summary.totalTransactions')}</span>
         <span className="hidden text-right lg:block">{t('table.amount')}</span>
@@ -124,7 +88,7 @@ function CategoryTree({
             parentName={category.parentName}
             expandedNodes={expandedNodes}
             expandAllByDefault={expandAllByDefault}
-            onToggle={toggleNode}
+            onToggle={onToggle}
             onEdit={onEdit}
             onDelete={onDelete}
           />
@@ -491,6 +455,7 @@ export default function CategoriesPage() {
   const [sortBy, setSortBy] = useState<SortOption>('name');
   const [formError, setFormError] = useState<string | null>(null);
   const [selectedRoot, setSelectedRoot] = useState<number | 'all'>('all');
+  const [expandedNodes, setExpandedNodes] = useState<Map<number, boolean>>(() => new Map());
 
   const { data: categories = [], isLoading, error } = useCategoryTree();
   const createCategory = useCreateCategory();
@@ -549,6 +514,7 @@ export default function CategoriesPage() {
   useEffect(() => {
     if (selectedRoot !== 'all' && !sortedTree.some(c => c.id === selectedRoot)) {
       setSelectedRoot('all');
+      setExpandedNodes(new Map());
     }
   }, [sortedTree, selectedRoot]);
 
@@ -621,8 +587,24 @@ export default function CategoriesPage() {
   ];
 
   const isSearching = searchTrimmed.length > 0;
-  // A new search reveals all matching descendants, even after manually folding a prior result.
-  const boardListKey = `${selectedRoot}-${searchRegex}-${searchTrimmed}`;
+  const visibleCategories = useMemo(
+    () => (isSearching ? searchResults : selectedNode ? [selectedNode] : sortedTree),
+    [isSearching, searchResults, selectedNode, sortedTree]
+  );
+  const expandableIds = useMemo(() => {
+    const result: number[] = [];
+    const visit = (nodes: CategoryTreeNode[]): void => {
+      for (const node of nodes) {
+        if (node.subcategories?.length) {
+          result.push(node.id);
+          visit(node.subcategories);
+        }
+      }
+    };
+    visit(visibleCategories);
+    return result;
+  }, [visibleCategories]);
+  const allExpanded = expandableIds.every(id => expandedNodes.get(id) ?? isSearching);
 
   return (
     <div className="space-y-5">
@@ -662,7 +644,7 @@ export default function CategoriesPage() {
         aria-label={t('list.label')}
         className="min-w-0 rounded-xl border border-border bg-surface shadow-plate"
       >
-        <div className="grid gap-3 border-b border-border p-3 lg:grid-cols-[minmax(0,1fr)_minmax(10rem,14rem)_11rem] lg:items-end lg:p-4">
+        <div className="grid gap-3 border-b border-border p-3 lg:grid-cols-[minmax(0,1fr)_10.5rem_9rem_auto] lg:items-end lg:p-4 xl:grid-cols-[minmax(0,1fr)_12rem_9rem_auto]">
           <div className="relative">
             <label htmlFor="category-search" className="sr-only">
               {t('search.placeholder')}
@@ -672,7 +654,11 @@ export default function CategoriesPage() {
               type="text"
               placeholder={t('search.placeholder')}
               value={searchQuery}
-              onChange={e => setSearchQuery(e.target.value)}
+              onChange={e => {
+                setSearchQuery(e.target.value);
+                // Each new search reveals matches, even after folding a previous result.
+                if (e.target.value.trim() !== searchTrimmed) setExpandedNodes(new Map());
+              }}
               className="h-11 pl-10 pr-10"
             />
             <Search
@@ -681,7 +667,10 @@ export default function CategoriesPage() {
             />
             <RegexToggle
               enabled={searchRegex}
-              onChange={setSearchRegex}
+              onChange={enabled => {
+                setSearchRegex(enabled);
+                setExpandedNodes(new Map());
+              }}
               className="absolute right-2 top-1/2 -translate-y-1/2"
             />
           </div>
@@ -690,9 +679,10 @@ export default function CategoriesPage() {
               <span className="mb-1.5 block">{t('list.group')}</span>
               <select
                 value={selectedRoot}
-                onChange={e =>
-                  setSelectedRoot(e.target.value === 'all' ? 'all' : Number(e.target.value))
-                }
+                onChange={e => {
+                  setSelectedRoot(e.target.value === 'all' ? 'all' : Number(e.target.value));
+                  setExpandedNodes(new Map());
+                }}
                 className="h-11 w-full min-w-0 rounded-lg border border-border bg-background px-2 text-sm text-text-primary focus-visible:outline-2 focus-visible:outline-primary lg:px-3"
               >
                 <option value="all">{t('list.allGroups')}</option>
@@ -718,6 +708,22 @@ export default function CategoriesPage() {
               </select>
             </label>
           </div>
+          {!isLoading && !error && expandableIds.length > 0 && (
+            <Button
+              variant="ghost"
+              className="h-11 shrink-0 justify-self-end gap-2 text-sm text-text-secondary md:h-11"
+              aria-expanded={allExpanded}
+              aria-controls="category-tree"
+              onClick={() => setExpandedNodes(new Map(expandableIds.map(id => [id, !allExpanded])))}
+            >
+              {allExpanded ? (
+                <ChevronsDownUp size={16} aria-hidden="true" />
+              ) : (
+                <ChevronsUpDown size={16} aria-hidden="true" />
+              )}
+              {t(allExpanded ? 'list.collapseAll' : 'list.expandAll')}
+            </Button>
+          )}
         </div>
 
         {isLoading ? (
@@ -747,9 +753,12 @@ export default function CategoriesPage() {
           />
         ) : (
           <CategoryTree
-            key={boardListKey}
-            categories={isSearching ? searchResults : selectedNode ? [selectedNode] : sortedTree}
+            categories={visibleCategories}
+            expandedNodes={expandedNodes}
             expandAllByDefault={isSearching}
+            onToggle={(id, expanded) =>
+              setExpandedNodes(current => new Map(current).set(id, expanded))
+            }
             onEdit={handleEdit}
             onDelete={handleDelete}
           />

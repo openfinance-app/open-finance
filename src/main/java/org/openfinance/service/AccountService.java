@@ -1453,7 +1453,12 @@ public class AccountService {
                 .toList();
     }
 
-    public record CashMovement(java.time.LocalDate date, BigDecimal balanceDelta) {}
+    public record CashMovement(
+            java.time.LocalDate date, BigDecimal balanceDelta, boolean interestCredit) {
+        public CashMovement(java.time.LocalDate date, BigDecimal balanceDelta) {
+            this(date, balanceDelta, false);
+        }
+    }
 
     /** Exact booked cash movements for interest value dates, without exposing mutable entities. */
     @Transactional(readOnly = true)
@@ -1477,7 +1482,13 @@ public class AccountService {
                                                         == org.openfinance.entity.TransactionType
                                                                 .EXPENSE
                                                 ? transaction.getBalanceAmount().negate()
-                                                : transaction.getBalanceAmount()))
+                                                : transaction.getBalanceAmount(),
+                                        transaction.getType()
+                                                        == org.openfinance.entity.TransactionType
+                                                                .INCOME
+                                                && transaction.getMovementType()
+                                                        == org.openfinance.entity.MovementType
+                                                                .INTEREST))
                 .toList();
     }
 

@@ -131,19 +131,28 @@ for (const language of ['en', 'fr'] as const) {
     });
     await page.getByRole('button', { name: common.buttons.upload, exact: true }).click();
     const notice = page.getByRole('region', { name: labels.skroogeRules.title });
+    const interestPreview = page.getByRole('region', { name: labels.skroogeInterest.title });
+    const next = page.getByRole('button', { name: common.buttons.next, exact: true });
+    await expect(next).toBeEnabled();
+    await expect(notice).toHaveCount(0);
+    await expect(interestPreview).toHaveCount(0);
+    await next.click();
     await expect(notice).toContainText(
       labels.skroogeRules.preview
         .replace('{{source}}', '2')
         .replace('{{ready}}', '1')
         .replace('{{skipped}}', '1')
     );
+    await expect(interestPreview).toBeVisible();
     await notice.getByText(labels.skroogeRules.details, { exact: true }).click();
     await expect(notice).toContainText(labels.skroogeRules.warnings.unsupportedAction);
     expect(await api<unknown[]>(page, '/transaction-rules')).toHaveLength(0);
-    const next = common.buttons.next;
-    await page.getByRole('button', { name: next, exact: true }).click();
-    await page.getByRole('button', { name: next, exact: true }).click();
-    await page.getByRole('button', { name: labels.summary.confirm, exact: true }).click();
+    await next.click();
+    const confirm = page.getByRole('button', { name: labels.summary.confirm, exact: true });
+    await expect(confirm).toBeVisible();
+    await expect(notice).toHaveCount(0);
+    await expect(interestPreview).toHaveCount(0);
+    await confirm.click();
     await expect(page.getByRole('status').filter({ hasText: labels.progress.success })).toBeVisible(
       { timeout: 90_000 }
     );

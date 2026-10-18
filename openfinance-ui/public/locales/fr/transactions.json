@@ -53,6 +53,8 @@
     }
   },
   "form": {
+    "interestCredit": "Intérêts versés par la banque",
+    "interestCreditHint": "Ce versement remplace les intérêts réinvestis estimés dans la projection du compte. Ne cochez pas cette case pour un dépôt ordinaire.",
     "type": "Type",
     "amount": "Montant",
     "currency": "Devise",

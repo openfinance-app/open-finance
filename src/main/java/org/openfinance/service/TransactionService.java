@@ -1914,7 +1914,7 @@ public class TransactionService {
                         "Invalid liability movement direction or classification");
             }
         } else if (request.getPrincipalAmount() != null
-                || isLiabilityCharge(request.getMovementType())
+                || (isLiabilityCharge(request.getMovementType()) && !isSavingsInterest(request))
                 || request.getMovementType() == MovementType.REPAYMENT) {
             throw new InvalidTransactionException(
                     "A principal or charge movement requires a liability");
@@ -2928,6 +2928,14 @@ public class TransactionService {
         return type == MovementType.INTEREST
                 || type == MovementType.INSURANCE
                 || type == MovementType.FEE;
+    }
+
+    private boolean isSavingsInterest(TransactionRequest request) {
+        return request.getMovementType() == MovementType.INTEREST
+                && request.getType() == TransactionType.INCOME
+                && request.getAssetId() == null
+                && request.getRealEstateId() == null
+                && request.getTrancheId() == null;
     }
 
     /**

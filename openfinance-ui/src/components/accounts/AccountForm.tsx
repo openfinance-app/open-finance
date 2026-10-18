@@ -30,17 +30,10 @@ import { ExchangeRateInline } from '@/components/ui/ExchangeRateDisplay';
 import { ConvertedAmount } from '@/components/ui/ConvertedAmount';
 import { useAuthContext } from '@/context/AuthContext';
 import { useLatestExchangeRate } from '@/hooks/useCurrency';
+import { useInterestPreview } from '@/hooks/useInterestPreview';
 import { DEFAULT_CURRENCY } from '@/utils/currency';
 import { getToday } from '@/utils/date';
-import {
-  add,
-  divide,
-  isValidDecimalString,
-  multiply,
-  percentage,
-  pow,
-  subtract,
-} from '@/utils/money';
+import { isValidDecimalString, multiply, percentage } from '@/utils/money';
 import type { Account, AccountRequest, AccountType, InterestPeriod } from '@/types/account';
 
 const ACCOUNT_TYPES: AccountType[] = [
@@ -51,12 +44,12 @@ const ACCOUNT_TYPES: AccountType[] = [
   'CASH',
   'OTHER',
 ];
-const INTEREST_PERIODS: { value: InterestPeriod; compoundsPerYear: number }[] = [
-  { value: 'DAILY', compoundsPerYear: 365 },
-  { value: 'MONTHLY', compoundsPerYear: 12 },
-  { value: 'QUARTERLY', compoundsPerYear: 4 },
-  { value: 'HALF_YEARLY', compoundsPerYear: 2 },
-  { value: 'ANNUAL', compoundsPerYear: 1 },
+const INTEREST_PERIODS: InterestPeriod[] = [
+  'DAILY',
+  'MONTHLY',
+  'QUARTERLY',
+  'HALF_YEARLY',
+  'ANNUAL',
 ];
 
 type AccountFormData = {
@@ -82,25 +75,6 @@ interface AccountFormProps {
   onCancel: () => void;
   isLoading?: boolean;
   existingAccountNames?: string[];
-}
-
-/** Calculate projected annual net interest earnings using compound interest formula */
-function calcInterestPreview(
-  balance: number,
-  annualRatePercent: number,
-  taxRatePercent: number,
-  compoundsPerYear: number
-): { grossInterest: number; taxAmount: number; netInterest: number } {
-  if (!balance || balance <= 0 || !annualRatePercent || annualRatePercent <= 0) {
-    return { grossInterest: 0, taxAmount: 0, netInterest: 0 };
-  }
-  const r = divide(annualRatePercent, 100);
-  const n = compoundsPerYear;
-  const factor = pow(add(1, divide(r, n)), n);
-  const grossInterest = multiply(balance, subtract(factor, 1));
-  const taxAmount = multiply(grossInterest, divide(taxRatePercent, 100));
-  const netInterest = subtract(grossInterest, taxAmount);
-  return { grossInterest, taxAmount, netInterest };
 }
 
 export function AccountForm({
@@ -219,8 +193,9 @@ export function AccountForm({
   const balanceCurrency = account?.currency ?? selectedCurrency;
   const initialBalance = watch('initialBalance');
   const isInterestEnabled = watch('isInterestEnabled');
-  const interestRate = Number(watch('interestRate') ?? 0);
-  const taxRate = Number(watch('taxRate') ?? 0);
+  const interestRate = watch('interestRate') ?? '0';
+  const taxRate = watch('taxRate') ?? '0';
+  const openingDate = watch('openingDate') || getToday();
   const interestPeriod = watch('interestPeriod') ?? 'ANNUAL';
 
   const { data: exchangeRate } = useLatestExchangeRate(
@@ -236,12 +211,27 @@ export function AccountForm({
       ? multiply(initialBalanceNumeric, exchangeRate.rate)
       : undefined;
 
-  // Live interest preview computation
-  const interestPreview = useMemo(() => {
-    const periodInfo = INTEREST_PERIODS.find(p => p.value === interestPeriod);
-    const n = periodInfo?.compoundsPerYear ?? 1;
-    return calcInterestPreview(initialBalanceNumeric, interestRate, taxRate, n);
-  }, [initialBalanceNumeric, interestRate, taxRate, interestPeriod]);
+  const previewEnabled =
+    !!isInterestEnabled &&
+    !isEditing &&
+    isValidDecimalString(initialBalance) &&
+    Number(initialBalance) > 0 &&
+    isValidDecimalString(interestRate) &&
+    Number(interestRate) > 0 &&
+    isValidDecimalString(taxRate) &&
+    Number(taxRate) >= 0 &&
+    Number(taxRate) <= 100;
+  const { data: interestPreview, isError: previewError } = useInterestPreview(
+    {
+      balance: initialBalance,
+      rate: interestRate,
+      taxRate,
+      openingDate,
+      interestPeriod,
+      currency: balanceCurrency,
+    },
+    previewEnabled
+  );
 
   const handleFormSubmit = handleSubmit((data: AccountFormData) => {
     onSubmit({
@@ -486,8 +476,8 @@ export function AccountForm({
                   className="w-full h-9 px-2 rounded-lg bg-surface border border-border text-text-primary text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
                 >
                   {INTEREST_PERIODS.map(period => (
-                    <option key={period.value} value={period.value}>
-                      {t(`form.periods.${period.value}`)}
+                    <option key={period} value={period}>
+                      {t(`form.periods.${period}`)}
                     </option>
                   ))}
                 </select>
@@ -559,11 +549,12 @@ export function AccountForm({
             </div>
 
             {/* Live Calculation Preview */}
-            {interestRate > 0 && initialBalanceNumeric > 0 ? (
+            {previewEnabled && interestPreview ? (
               <div className="rounded-lg bg-primary/5 border border-primary/20 p-3">
                 <p className="text-xs font-semibold text-primary mb-2 flex items-center gap-1">
                   <TrendingUp className="h-3.5 w-3.5" />
-                  {t('form.interestPreviewTitle')}
+                  {t('form.interestPreviewTitle', { year: new Date().getFullYear() })}
+                  <HelpTooltip text={t('form.interestPreviewScope')} side="right" />
                 </p>
                 <div className="grid grid-cols-3 gap-2 text-center">
                   <div className="bg-surface rounded-lg p-2">
@@ -610,22 +601,19 @@ export function AccountForm({
                     )}
                   </div>
                 </div>
-                <p className="text-xs text-text-muted mt-2 text-center">
-                  Based on{' '}
-                  <ConvertedAmount
-                    amount={initialBalanceNumeric}
-                    currency={balanceCurrency}
-                    inline
-                  />{' '}
-                  balance · {interestRate}% {t(`form.periods.${interestPeriod}`)} compounding
-                  {taxRate > 0 ? ` · ${taxRate}% tax` : ''}
-                </p>
               </div>
             ) : (
               <div className="rounded-lg bg-surface border border-border border-dashed p-3 text-center">
                 <div className="flex items-center justify-center gap-1 text-xs text-text-muted">
-                  <span>{t('form.interestPreviewTitle')}</span>
+                  <span>{t('form.interestPreviewTitle', { year: new Date().getFullYear() })}</span>
                   <HelpTooltip text={t('form.interestPreviewHint')} side="right" />
+                  {previewEnabled && (
+                    <span role={previewError ? 'alert' : 'status'}>
+                      {t(
+                        previewError ? 'form.interestPreviewError' : 'form.interestPreviewLoading'
+                      )}
+                    </span>
+                  )}
                 </div>
               </div>
             )}

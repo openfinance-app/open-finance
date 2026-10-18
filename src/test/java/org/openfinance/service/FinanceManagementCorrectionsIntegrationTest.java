@@ -93,32 +93,25 @@ class FinanceManagementCorrectionsIntegrationTest {
     }
 
     @Test
-    void quarterlyAccountsPersistWhileProjectionUsesCurrentCalendarYear() throws Exception {
+    void quarterlyAccountsPersistAndCompoundWithinCurrentCalendarYear() throws Exception {
         Map<String, Object> body =
-                accountBody("Quarterly", "SAVINGS", "EUR", "1000", today.minusDays(2));
+                accountBody("Quarterly", "SAVINGS", "EUR", "1000", today.withDayOfYear(1));
         body.put("isInterestEnabled", true);
         body.put("interestPeriod", "QUARTERLY");
         long id = json("POST", "/accounts", body, 201).get("id").asLong();
-        rate(id, "4", "0", today.minusDays(2));
+        rate(id, "4", "0", today.withDayOfYear(1));
         assertThat(json("GET", "/accounts/" + id, null, 200).get("interestPeriod").asText())
                 .isEqualTo("QUARTERLY");
         assertThat(
                         json("GET", "/accounts/" + id + "/interest-estimate", null, 200)
                                 .get("estimate")
                                 .decimalValue())
-                .isEqualByComparingTo(
-                        BigDecimal.valueOf(
-                                        java.time.temporal.ChronoUnit.DAYS.between(
-                                                        today.minusDays(2)
-                                                                        .isBefore(
-                                                                                today.withDayOfYear(
-                                                                                        1))
-                                                                ? today.withDayOfYear(1)
-                                                                : today.minusDays(2),
-                                                        today.withMonth(12).withDayOfMonth(31))
-                                                + 1)
-                                .multiply(new BigDecimal("40"))
-                                .divide(new BigDecimal("365"), 2, java.math.RoundingMode.HALF_UP));
+                .isEqualByComparingTo(today.isLeapYear() ? "40.72" : "40.60");
+        assertThat(
+                        json("GET", "/dashboard/estimated-interest?period=YTD", null, 200)
+                                .get("totalProjected")
+                                .decimalValue())
+                .isEqualByComparingTo(today.isLeapYear() ? "40.72" : "40.60");
     }
 
     @Test

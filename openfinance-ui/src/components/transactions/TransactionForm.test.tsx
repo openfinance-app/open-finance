@@ -399,6 +399,35 @@ describe('TransactionForm', () => {
       expect(screen.getByLabelText(/^Date/i)).toBeInTheDocument();
     });
 
+    it('preserves a marked interest credit and can change it back to an ordinary deposit', async () => {
+      const { onSubmit } = renderForm({
+        transaction: {
+          id: 99,
+          userId: 1,
+          accountId: 1,
+          type: 'INCOME',
+          amount: 10,
+          currency: 'EUR',
+          date: '2026-04-01',
+          isReconciled: false,
+          createdAt: '2026-04-01',
+          movementType: 'INTEREST',
+        },
+      });
+      const credit = screen.getByRole('checkbox', { name: /Interest credited by the bank/i });
+      expect(credit).toBeChecked();
+      fireEvent.click(screen.getByRole('button', { name: /update transaction/i }));
+      await waitFor(() =>
+        expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({ movementType: 'INTEREST' }))
+      );
+      fireEvent.click(credit);
+      fireEvent.click(screen.getByRole('button', { name: /update transaction/i }));
+      await waitFor(() =>
+        expect(onSubmit).toHaveBeenLastCalledWith(
+          expect.objectContaining({ movementType: undefined })
+        )
+      );
+    });
     it('shows "Create Transaction" button for a new transaction', () => {
       renderForm();
 

@@ -1,7 +1,6 @@
 package org.openfinance.service;
 
 import java.math.BigDecimal;
-import java.math.MathContext;
 import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -13,20 +12,15 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.openfinance.dto.AccountResponse;
 import org.openfinance.dto.BalanceHistoryPoint;
-import org.openfinance.entity.InterestPeriod;
+import org.openfinance.dto.InterestPreviewRequest;
 import org.openfinance.entity.InterestRateVariation;
 import org.openfinance.entity.InterestValueDateMode;
 import org.openfinance.repository.InterestRateVariationRepository;
-import org.openfinance.util.MathConstants;
+import org.openfinance.util.CalendarInterestProjection;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-/**
- * Service for calculating interest for accounts.
- *
- * <p>Two calculation modes: 1. calculateInterestEstimate – forward-looking 1-year compound interest
- * projection 2. calculateHistoricalAccumulated – actual net interest earned across elapsed days
- */
+/** Recorded-cash accruals and calendar-year projections with scheduled net capitalization. */
 @Service
 @RequiredArgsConstructor
 @Slf4j
@@ -35,73 +29,6 @@ public class InterestCalculatorService {
     private final InterestRateVariationRepository variationRepository;
     private final AccountService accountService;
     private final CurrencyTypeResolver currencyTypeResolver;
-
-    // -------------------------------------------------------------------------
-    // Forward-looking projection (compound interest formula)
-    // -------------------------------------------------------------------------
-
-    /**
-     * Projects net interest earnings over 1 year using the compound interest formula: A = P × (1 +
-     * r/n)^(n×t) − P, applied to the current balance and the most recently applicable rate
-     * variation.
-     */
-    @Transactional(readOnly = true)
-    public BigDecimal calculateInterestEstimate(Long accountId, Long userId, String period) {
-        log.debug(
-                "Calculating interest projection for account {} over period {}", accountId, period);
-
-        AccountResponse account = accountService.getAccountById(accountId, userId);
-        if (!Boolean.TRUE.equals(account.getIsInterestEnabled())) return BigDecimal.ZERO;
-
-        InterestPeriod interestPeriodType = account.getInterestPeriod();
-        if (interestPeriodType == null) return BigDecimal.ZERO;
-
-        List<InterestRateVariation> variations =
-                variationRepository.findByAccountIdOrderByValidFromDesc(accountId);
-        if (variations.isEmpty()) return BigDecimal.ZERO;
-
-        BigDecimal balance = account.getOwnBalance();
-        if (balance == null || balance.compareTo(BigDecimal.ZERO) <= 0) return BigDecimal.ZERO;
-
-        InterestRateVariation variation = getVariationForDate(variations, LocalDate.now());
-        if (variation == null) return BigDecimal.ZERO;
-
-        BigDecimal ratePct = variation.getRate();
-        BigDecimal taxPct =
-                variation.getTaxRate() != null ? variation.getTaxRate() : BigDecimal.ZERO;
-
-        int n =
-                switch (interestPeriodType) {
-                    case DAILY -> 365;
-                    case MONTHLY -> 12;
-                    case QUARTERLY -> 4;
-                    case HALF_YEARLY -> 2;
-                    case ANNUAL -> 1;
-                };
-
-        // Compound interest computed entirely in BigDecimal (never double). The exponent n is an
-        // integer number of compounding periods, so BigDecimal.pow(int, MathContext) is exact.
-        MathContext mc = new MathContext(20, RoundingMode.HALF_UP);
-
-        BigDecimal r = ratePct.divide(MathConstants.HUNDRED, mc); // annual rate as a fraction
-        BigDecimal perPeriodRate = r.divide(BigDecimal.valueOf(n), mc);
-        BigDecimal compoundFactor = BigDecimal.ONE.add(perPeriodRate).pow(n, mc);
-        BigDecimal grossInterest = balance.multiply(compoundFactor.subtract(BigDecimal.ONE));
-
-        BigDecimal taxFraction = taxPct.divide(MathConstants.HUNDRED, mc);
-        BigDecimal netInterest = grossInterest.multiply(BigDecimal.ONE.subtract(taxFraction));
-
-        log.debug(
-                "Projection: balance={}, rate={}%, n={}, gross={}, tax={}%, net={}",
-                balance, ratePct, n, grossInterest, taxPct, netInterest);
-
-        return netInterest.setScale(
-                currencyTypeResolver.decimalsFor(account.getCurrency()), RoundingMode.HALF_UP);
-    }
-
-    // -------------------------------------------------------------------------
-    // Historical accumulation (actual elapsed days)
-    // -------------------------------------------------------------------------
 
     /**
      * Sums the actual net interest earned day-by-day since account creation, using the rate that
@@ -211,24 +138,88 @@ public class InterestCalculatorService {
                                         through,
                                         false),
                                 through);
-        Map<Long, Accrual> annual =
-                accrue(
+        List<BalanceHistoryPoint> annualHistory =
+                eligibleHistory(
+                        accountId,
+                        userId,
                         variations,
-                        eligibleHistory(
-                                accountId,
-                                userId,
-                                variations,
-                                accountService.getAccountBalanceHistory(
-                                        accountId, userId, start, end),
-                                end,
-                                true),
-                        end);
+                        accountService.getAccountBalanceHistory(accountId, userId, start, end),
+                        end,
+                        true);
+        CalendarInterestProjection.Result annual =
+                CalendarInterestProjection.calculate(
+                        expandToDailyBalances(annualHistory, end),
+                        variations,
+                        account.getInterestPeriod(),
+                        postedInterest(accountId, userId, variations, start, end));
         return new YearEstimate(
                 year,
                 through,
                 totalAccrued(account, accrued),
-                totalAccrued(account, annual),
+                round(annual.netInterest(), account.getCurrency()),
                 accrued);
+    }
+
+    public record Preview(
+            int year,
+            LocalDate startDate,
+            LocalDate endDate,
+            BigDecimal grossInterest,
+            BigDecimal taxAmount,
+            BigDecimal netInterest) {}
+
+    /** No account, balance adjustment or transaction is created by a form preview. */
+    @Transactional(readOnly = true)
+    public Preview preview(InterestPreviewRequest request) {
+        LocalDate start = LocalDate.now().withDayOfYear(1);
+        LocalDate end = start.withMonth(12).withDayOfMonth(31);
+        if (request.openingDate().isAfter(start)) start = request.openingDate();
+        InterestRateVariation rate =
+                InterestRateVariation.builder()
+                        .rate(request.rate())
+                        .taxRate(request.taxRate())
+                        .validFrom(request.openingDate())
+                        .build();
+        CalendarInterestProjection.Result result =
+                CalendarInterestProjection.calculate(
+                        expandToDailyBalances(
+                                List.of(new BalanceHistoryPoint(start, request.balance())), end),
+                        List.of(rate),
+                        request.interestPeriod(),
+                        Map.of());
+        return new Preview(
+                end.getYear(),
+                start,
+                end,
+                round(result.grossInterest(), request.currency()),
+                round(result.taxAmount(), request.currency()),
+                round(result.netInterest(), request.currency()));
+    }
+
+    private BigDecimal round(BigDecimal amount, String currency) {
+        return amount.setScale(currencyTypeResolver.decimalsFor(currency), RoundingMode.HALF_UP);
+    }
+
+    private Map<LocalDate, BigDecimal> postedInterest(
+            Long accountId,
+            Long userId,
+            List<InterestRateVariation> variations,
+            LocalDate start,
+            LocalDate end) {
+        Map<LocalDate, BigDecimal> credits = new TreeMap<>();
+        for (AccountService.CashMovement movement :
+                accountService.getCashMovements(
+                        accountId, userId, start.minusMonths(1), end.plusMonths(1))) {
+            if (!movement.interestCredit()) continue;
+            InterestRateVariation rate = getVariationForDate(variations, movement.date());
+            LocalDate date =
+                    rate == null
+                            ? movement.date()
+                            : rate.getCreditValueDateMode().valueDate(movement.date(), true);
+            if (!date.isBefore(start) && !date.isAfter(end))
+                credits.merge(date, movement.balanceDelta(), BigDecimal::add);
+        }
+        return credits;
     }
 
     private List<BalanceHistoryPoint> eligibleHistory(

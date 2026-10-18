@@ -540,13 +540,6 @@ export function ImportWizard() {
           </div>
         )}
 
-      {session?.status !== 'COMPLETED' && (
-        <>
-          <SkroogeRulesNotice metadata={session?.metadata} completed={false} />
-          <SkroogeInterestNotice metadata={session?.metadata} completed={false} />
-        </>
-      )}
-
       {/* ── Stepper header ─────────────────────────────────────────────── */}
       <div className="mb-8">
         <div className="flex items-center justify-between mb-6">
@@ -919,6 +912,12 @@ export function ImportWizard() {
             onViewTransactions={handleViewTransactions}
             onClose={handleCancel}
           />
+        )}
+        {currentStep === 'review' && session?.status !== 'COMPLETED' && (
+          <div className="mt-6 empty:hidden [&>section:last-child]:mb-0">
+            <SkroogeRulesNotice metadata={session?.metadata} completed={false} />
+            <SkroogeInterestNotice metadata={session?.metadata} completed={false} />
+          </div>
         )}
       </div>
 
