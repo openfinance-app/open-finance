@@ -77,6 +77,11 @@ class SkroogeJsonImportFlowE2ETest {
     @Autowired private DatabaseCleanupService databaseCleanupService;
     @Autowired private TransactionRuleService rules;
     @Autowired private TransactionService transactions;
+    @Autowired private org.openfinance.repository.AssetRepository assets;
+    @Autowired private AccountService accountsService;
+    @Autowired private NetWorthService netWorth;
+    @Autowired private DashboardService dashboard;
+    @Autowired private AssetService assetService;
     @Autowired private org.openfinance.repository.InterestRateVariationRepository interestRates;
 
     @Test
@@ -257,7 +262,8 @@ class SkroogeJsonImportFlowE2ETest {
         expected.put("Checking", new ExpectedAccount("750.00", "EUR")); // 1000 opening − 50 − 200
         expected.put("Savings", new ExpectedAccount("200.00", "EUR")); // +200 transfer in
         expected.put("CFA Wallet", new ExpectedAccount("10000.00", "XOF")); // native XOF income
-        expected.put("Crypto", new ExpectedAccount("500.00", "EUR")); // 0.01 share × 50000 EUR
+        expected.put(
+                "Crypto", new ExpectedAccount("0.00", "EUR")); // holdings are separate from cash
 
         assertThat(byName.keySet())
                 .as("persisted account names")
@@ -273,6 +279,18 @@ class SkroogeJsonImportFlowE2ETest {
                             .as("persisted balance of %s", name)
                             .isCloseTo(new BigDecimal(exp.balance()), within(TOLERANCE));
                 });
+        assertThat(assets.findByUserId(userId))
+                .singleElement()
+                .satisfies(
+                        asset -> {
+                            assertThat(asset.getQuantity()).isEqualByComparingTo("0.01");
+                            assertThat(asset.getCurrentPrice()).isEqualByComparingTo("50000");
+                            assertThat(
+                                            accountsService
+                                                    .getAccountById(asset.getAccountId(), userId)
+                                                    .getBalance())
+                                    .isEqualByComparingTo("500");
+                        });
     }
 
     @Test
@@ -511,6 +529,315 @@ class SkroogeJsonImportFlowE2ETest {
                         .satisfies(a -> assertThat(a.getDescription()).contains(address));
             }
         }
+    }
+
+    @Test
+    void importsLatestSnapshotHoldingsWithoutRevaluingTransactions() throws Exception {
+        java.nio.file.Path fixture = java.nio.file.Path.of("samples/latest_3.json");
+        org.junit.jupiter.api.Assumptions.assumeTrue(java.nio.file.Files.exists(fixture));
+        byte[] data = java.nio.file.Files.readAllBytes(fixture);
+        Map<String, String> expected =
+                Map.of(
+                        "BTC",
+                        "121.69",
+                        "Crypto ADA",
+                        "0.00",
+                        "Crypto BCH",
+                        "0.00",
+                        "Crypto DOGE",
+                        "1.09",
+                        "Crypto SOL",
+                        "0.00");
+        Map<String, String> historical =
+                Map.of(
+                        "BTC",
+                        "321.90",
+                        "Crypto ADA",
+                        "1.03",
+                        "Crypto BCH",
+                        "-28.88",
+                        "Crypto DOGE",
+                        "60.78",
+                        "Crypto SOL",
+                        "58.04");
+        for (int attempt = 0; attempt < 2; attempt++) {
+            ImportSession completed = importData("latest_3.json", data);
+            assertThat(completed.getErrorCount()).isZero();
+            if (attempt == 1) assertThat(completed.getImportedCount()).isZero();
+            for (Account account : accountRepository.findByUserId(userId)) {
+                if (!expected.containsKey(account.getName())) continue;
+                assertThat(
+                                accountsService
+                                        .getAccountById(account.getId(), userId)
+                                        .getBalance()
+                                        .setScale(2, RoundingMode.HALF_UP))
+                        .as("cash plus holdings for %s", account.getName())
+                        .isEqualByComparingTo(expected.get(account.getName()));
+                BigDecimal total =
+                        transactionRepository.findActiveByAccountId(account.getId()).stream()
+                                .map(
+                                        tx ->
+                                                tx.getType()
+                                                                == org.openfinance.entity
+                                                                        .TransactionType.INCOME
+                                                        ? tx.getAmount()
+                                                        : tx.getAmount().negate())
+                                .reduce(BigDecimal.ZERO, BigDecimal::add);
+                assertThat(total.setScale(2, RoundingMode.HALF_UP))
+                        .as("unchanged historical values for %s", account.getName())
+                        .isEqualByComparingTo(historical.get(account.getName()));
+                assertThat(assets.findByAccountId(account.getId())).hasSize(1);
+                assertThat(transactionRepository.findActiveByAccountId(account.getId()))
+                        .filteredOn(tx -> tx.getInvestmentQuantity() != null)
+                        .allSatisfy(
+                                tx -> {
+                                    assertThat(tx.getAssetId()).isNotNull();
+                                    assertThat(tx.getBalanceAmount()).isZero();
+                                });
+            }
+        }
+    }
+
+    @Test
+    void keepsOpeningUnitsAndSoldPositionsSeparateFromCash() throws Exception {
+        String source =
+                """
+                {"account":[{"id":1,"t_name":"Holdings","t_type":"A","t_close":false}],
+                 "unit":[{"id":1,"t_name":"Euro (EUR)","t_symbol":"EUR","t_type":"1"},
+                         {"id":2,"t_name":"Coin","t_symbol":"COIN","t_type":"C","rd_unit_id":1}],
+                 "unitvalue":[{"rd_unit_id":2,"d_date":"2024-01-01","f_quantity":10},
+                              {"rd_unit_id":2,"d_date":"2024-02-01","f_quantity":12},
+                              {"rd_unit_id":2,"d_date":"2024-03-01","f_quantity":30}],
+                 "operation":[{"id":1,"rd_account_id":1,"d_date":"0000-00-00","rc_unit_id":2},
+                              {"id":2,"rd_account_id":1,"d_date":"0000-00-00","rc_unit_id":1},
+                              {"id":3,"rd_account_id":1,"d_date":"2024-01-01","rc_unit_id":2,"t_comment":"Buy"},
+                              {"id":4,"rd_account_id":1,"d_date":"2024-02-01","rc_unit_id":2,"t_comment":"Sell"}],
+                 "suboperation":[{"id":1,"rd_operation_id":1,"f_value":1},
+                                 {"id":2,"rd_operation_id":2,"f_value":5},
+                                 {"id":3,"rd_operation_id":3,"f_value":2},
+                                 {"id":4,"rd_operation_id":4,"f_value":-3}]}
+                """;
+        for (int i = 0; i < 2; i++) {
+            assertThat(
+                            importData("holdings.json", source.getBytes(StandardCharsets.UTF_8))
+                                    .getErrorCount())
+                    .isZero();
+            org.openfinance.entity.Asset asset = assets.findByUserId(userId).getFirst();
+            assertThat(asset.getQuantity()).isZero();
+            assertThat(asset.getTotalCost()).isZero();
+            assertThat(accountsService.getAccountById(asset.getAccountId(), userId).getBalance())
+                    .isEqualByComparingTo("5");
+            List<org.openfinance.entity.Transaction> ledger =
+                    transactionRepository.findByUserId(userId);
+            assertThat(ledger).hasSize(2);
+            assertThat(
+                            org.openfinance.util.InvestmentHoldings.at(
+                                            asset, ledger, java.time.LocalDate.of(2024, 1, 15))
+                                    .quantity())
+                    .isEqualByComparingTo("3");
+            assertThat(
+                            org.openfinance.util.InvestmentHoldings.at(
+                                            asset, ledger, java.time.LocalDate.of(2024, 1, 15))
+                                    .cost())
+                    // Currency-style C units retain the parser's existing monetary conversion.
+                    .isEqualByComparingTo("90");
+        }
+        org.openfinance.entity.Transaction sale =
+                transactionRepository.findByUserId(userId).stream()
+                        .filter(tx -> tx.getInvestmentQuantity().signum() < 0)
+                        .findFirst()
+                        .orElseThrow();
+        transactions.deleteTransaction(sale.getId(), userId);
+        assertThat(assets.findByUserId(userId).getFirst().getQuantity()).isEqualByComparingTo("3");
+        assertThat(accountsService.getAccountById(sale.getAccountId(), userId).getBalance())
+                .isEqualByComparingTo("95");
+    }
+
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(strings = {"qif", "ofx"})
+    void importsTradeCashAndUnitsInQifAndOfx(String format) throws Exception {
+        String source =
+                format.equals("qif")
+                        ? """
+                !Account
+                NBroker
+                TInvst
+                ^
+                !Type:Invst
+                D01/01/2024
+                NXIn
+                PDeposit
+                T1000
+                ^
+                D01/02/2024
+                NBuy
+                YFUND
+                Q2
+                I100
+                T201
+                ^
+                D01/03/2024
+                NSell
+                YFUND
+                Q1
+                I120
+                T120
+                ^
+                D01/04/2024
+                NReinvDiv
+                YFUND
+                Q0.5
+                I100
+                T50
+                ^
+                """
+                        : """
+                <OFX><INVSTMTMSGSRSV1><INVSTMTTRNRS><INVSTMTRS>
+                <CURDEF>EUR</CURDEF><INVACCTFROM><ACCTID>Broker</ACCTID></INVACCTFROM><INVTRANLIST>
+                <INVBANKTRAN><STMTTRN><DTPOSTED>20240101</DTPOSTED><TRNAMT>1000</TRNAMT><FITID>deposit</FITID><NAME>Deposit</NAME></STMTTRN></INVBANKTRAN>
+                <BUYSTOCK><INVBUY><INVTRAN><DTTRADE>20240102</DTTRADE><FITID>buy</FITID></INVTRAN>
+                <SECID><UNIQUEID>FUND</UNIQUEID><UNIQUEIDTYPE>TICKER</UNIQUEIDTYPE></SECID><UNITS>2</UNITS><UNITPRICE>100</UNITPRICE><TOTAL>-201</TOTAL></INVBUY></BUYSTOCK>
+                <SELLSTOCK><INVSELL><INVTRAN><DTTRADE>20240103</DTTRADE><FITID>sell</FITID></INVTRAN>
+                <SECID><UNIQUEID>FUND</UNIQUEID><UNIQUEIDTYPE>TICKER</UNIQUEIDTYPE></SECID><UNITS>-1</UNITS><UNITPRICE>120</UNITPRICE><TOTAL>120</TOTAL></INVSELL></SELLSTOCK>
+                <REINVEST><INVTRAN><DTTRADE>20240104</DTTRADE><FITID>reinvest</FITID></INVTRAN>
+                <SECID><UNIQUEID>FUND</UNIQUEID><UNIQUEIDTYPE>TICKER</UNIQUEIDTYPE></SECID><UNITS>0.5</UNITS><UNITPRICE>100</UNITPRICE><TOTAL>-50</TOTAL></REINVEST>
+                </INVTRANLIST></INVSTMTRS></INVSTMTTRNRS></INVSTMTMSGSRSV1></OFX>
+                """;
+        for (int i = 0; i < 2; i++) {
+            ImportSession completed =
+                    importData("trades." + format, source.getBytes(StandardCharsets.UTF_8));
+            assertThat(completed.getErrorCount()).isZero();
+            assertThat(transactionRepository.findByUserId(userId)).hasSize(4);
+            assertThat(assets.findByUserId(userId))
+                    .singleElement()
+                    .satisfies(
+                            asset -> {
+                                assertThat(asset.getQuantity()).isEqualByComparingTo("1.5");
+                                assertThat(asset.getCurrentPrice()).isEqualByComparingTo("100");
+                                assertThat(
+                                                accountRepository
+                                                        .findById(asset.getAccountId())
+                                                        .orElseThrow()
+                                                        .getBalance())
+                                        .isEqualByComparingTo("919");
+                                assertThat(
+                                                accountsService
+                                                        .getAccountById(
+                                                                asset.getAccountId(), userId)
+                                                        .getBalance())
+                                        .isEqualByComparingTo("1069");
+                            });
+        }
+        assertThat(netWorth.calculateNetWorth(userId, java.time.LocalDate.now(), "EUR"))
+                .isEqualByComparingTo("1069");
+        Long holdingId = assets.findByUserId(userId).getFirst().getId();
+        org.assertj.core.api.Assertions.assertThatThrownBy(
+                        () -> assetService.deleteAsset(holdingId, userId))
+                .isInstanceOf(org.openfinance.exception.InvalidTransactionException.class);
+        org.assertj.core.api.Assertions.assertThatThrownBy(
+                        () ->
+                                assetService.updateAsset(
+                                        holdingId,
+                                        userId,
+                                        org.openfinance.dto.AssetRequest.builder()
+                                                .quantity(new BigDecimal("42"))
+                                                .build()))
+                .isInstanceOf(org.openfinance.exception.InvalidTransactionException.class);
+        assertThat(
+                        dashboard
+                                .getCashFlow(
+                                        userId,
+                                        java.time.LocalDate.of(2024, 1, 1),
+                                        java.time.LocalDate.of(2024, 1, 31))
+                                .get("netCashFlow"))
+                .isEqualByComparingTo("919");
+        org.openfinance.entity.Transaction purchase =
+                transactionRepository.findByUserId(userId).stream()
+                        .filter(
+                                tx ->
+                                        tx.getInvestmentQuantity() != null
+                                                && tx.getInvestmentQuantity()
+                                                                .compareTo(new BigDecimal("2"))
+                                                        == 0)
+                        .findFirst()
+                        .orElseThrow();
+        org.openfinance.dto.TransactionRequest edit =
+                org.openfinance.dto.TransactionRequest.builder()
+                        .accountId(purchase.getAccountId())
+                        .type(purchase.getType())
+                        .date(purchase.getDate())
+                        .amount(purchase.getAmount())
+                        .currency(purchase.getCurrency())
+                        .notes("Reviewed purchase")
+                        .build();
+        transactions.updateTransaction(purchase.getId(), userId, edit);
+        assertThat(transactionRepository.findById(purchase.getId()).orElseThrow().getAssetId())
+                .isEqualTo(purchase.getAssetId());
+        edit.setAmount(purchase.getAmount().add(BigDecimal.ONE));
+        org.assertj.core.api.Assertions.assertThatThrownBy(
+                        () -> transactions.updateTransaction(purchase.getId(), userId, edit))
+                .isInstanceOf(org.openfinance.exception.InvalidTransactionException.class);
+    }
+
+    @Test
+    void doesNotCreateHoldingsForInvestmentRowsExcludedDuringReview() throws Exception {
+        String upload =
+                fileStorageService.storeFile(
+                        new MockMultipartFile(
+                                "file",
+                                "selection.json",
+                                "application/json",
+                                syntheticSkroogeJson().getBytes(StandardCharsets.UTF_8)),
+                        userId);
+        ImportSession session = importService.startImport(upload, userId, null, "selection.json");
+        awaitParsed(session.getId());
+        List<org.openfinance.dto.ImportedTransaction> selected =
+                importService.reviewTransactions(session.getId(), userId).stream()
+                        .filter(tx -> tx.getInvestmentQuantity() == null)
+                        .toList();
+        importService.updateParsedTransactions(session.getId(), selected, userId);
+        assertThat(
+                        importService
+                                .confirmImport(session.getId(), userId, null, Map.of(), true)
+                                .getErrorCount())
+                .isZero();
+        assertThat(assets.findByUserId(userId)).isEmpty();
+    }
+
+    @Test
+    void refusesIncompleteInvestmentHistoryWithoutCommittingCashOrHoldings() {
+        String source =
+                """
+                !Account
+                NIncomplete broker
+                TInvst
+                ^
+                !Type:Invst
+                D01/02/2024
+                NSell
+                YFUND
+                Q2
+                I100
+                T200
+                ^
+                """;
+        org.assertj.core.api.Assertions.assertThatThrownBy(
+                        () -> importData("incomplete.qif", source.getBytes(StandardCharsets.UTF_8)))
+                .isInstanceOf(RuntimeException.class);
+        assertThat(assets.findByUserId(userId)).isEmpty();
+        assertThat(transactionRepository.findByUserId(userId)).isEmpty();
+    }
+
+    private ImportSession importData(String name, byte[] data) throws Exception {
+        String upload =
+                fileStorageService.storeFile(
+                        new MockMultipartFile("file", name, "application/octet-stream", data),
+                        userId);
+        ImportSession session = importService.startImport(upload, userId, null, name);
+        awaitParsed(session.getId());
+        importService.updateParsedTransactions(
+                session.getId(), importService.reviewTransactions(session.getId(), userId), userId);
+        return importService.confirmImport(session.getId(), userId, null, Map.of(), true);
     }
 
     private void awaitParsed(Long sessionId) throws InterruptedException {

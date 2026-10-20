@@ -151,6 +151,7 @@ class ImportServiceSkroogeJsonTest {
                         transactionRuleService,
                         skroogeRuleImportService,
                         org.mockito.Mockito.mock(SkroogeInterestImportService.class),
+                        org.mockito.Mockito.mock(ImportedInvestmentService.class),
                         transactionService,
                         exchangeRateService,
                         transactionSplitService,

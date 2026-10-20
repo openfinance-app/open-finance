@@ -184,6 +184,9 @@ public class TransactionResponse {
     /** Optional ID of the asset this transaction is associated with. */
     private Long assetId;
 
+    /** Signed units of an imported holding; amount retains its historical monetary value. */
+    private BigDecimal investmentQuantity;
+
     /** Classification of the financial movement (e.g. DISBURSEMENT, REPAYMENT). */
     private MovementType movementType;
 

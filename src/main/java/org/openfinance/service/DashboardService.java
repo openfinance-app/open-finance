@@ -462,6 +462,7 @@ public class DashboardService {
                                 t ->
                                         t.getType() == TransactionType.INCOME
                                                 && !t.getIsDeleted()
+                                                && t.isCashMovement()
                                                 && t.getTransferId() == null)
                         .map(
                                 t ->
@@ -478,6 +479,7 @@ public class DashboardService {
                                 t ->
                                         t.getType() == TransactionType.EXPENSE
                                                 && !t.getIsDeleted()
+                                                && t.isCashMovement()
                                                 && t.getTransferId() == null)
                         .map(
                                 t ->
@@ -538,6 +540,7 @@ public class DashboardService {
                                 t ->
                                         t.getType() == TransactionType.INCOME
                                                 && !t.getIsDeleted()
+                                                && t.isCashMovement()
                                                 && t.getTransferId() == null)
                         .map(
                                 t ->
@@ -554,6 +557,7 @@ public class DashboardService {
                                 t ->
                                         t.getType() == TransactionType.EXPENSE
                                                 && !t.getIsDeleted()
+                                                && t.isCashMovement()
                                                 && t.getTransferId() == null)
                         .map(
                                 t ->
@@ -650,6 +654,7 @@ public class DashboardService {
         for (Transaction transaction :
                 transactionRepository.findByUserIdAndDateBetween(userId, start, end)) {
             if (Boolean.TRUE.equals(transaction.getIsDeleted())
+                    || !transaction.isCashMovement()
                     || transaction.getTransferId() != null
                     || (transaction.getType() != TransactionType.INCOME
                             && transaction.getType() != TransactionType.EXPENSE)) {
@@ -722,6 +727,7 @@ public class DashboardService {
                                 t ->
                                         t.getType() == TransactionType.EXPENSE
                                                 && !t.getIsDeleted()
+                                                && t.isCashMovement()
                                                 && t.getTransferId() == null)
                         .collect(Collectors.toList());
 
@@ -776,6 +782,7 @@ public class DashboardService {
                                 t ->
                                         t.getType() == TransactionType.EXPENSE
                                                 && !t.getIsDeleted()
+                                                && t.isCashMovement()
                                                 && t.getTransferId() == null)
                         .collect(Collectors.toList());
 
@@ -1360,6 +1367,7 @@ public class DashboardService {
                                                         != org.openfinance.entity.MovementType
                                                                 .DISBURSEMENT
                                                 && !t.getIsDeleted()
+                                                && t.isCashMovement()
                                                 && t.getTransferId() == null)
                         .map(
                                 t ->
@@ -1376,6 +1384,7 @@ public class DashboardService {
                                 t ->
                                         t.getType() == TransactionType.EXPENSE
                                                 && !t.getIsDeleted()
+                                                && t.isCashMovement()
                                                 && t.getTransferId() == null)
                         .map(
                                 t ->
@@ -1706,6 +1715,7 @@ public class DashboardService {
                         .filter(
                                 t ->
                                         !Boolean.TRUE.equals(t.getIsDeleted())
+                                                && t.isCashMovement()
                                                 && t.getTransferId() == null)
                         .toList();
         Map<Long, List<org.openfinance.entity.TransactionSplit>> splits = new HashMap<>();

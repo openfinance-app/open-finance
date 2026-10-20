@@ -136,6 +136,7 @@ export interface Transaction {
   realEstateId?: number;
   // Optional ID of the asset this movement is linked to
   assetId?: number;
+  investmentQuantity?: number | null;
   // Original (pre-conversion) values — set only when the transaction was entered in a currency
   // different from its account currency. Used by the edit form to restore what the user typed.
   /** Pre-conversion amount in originalCurrency (e.g. 100) */

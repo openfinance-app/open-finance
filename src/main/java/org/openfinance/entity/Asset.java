@@ -71,6 +71,18 @@ public class Asset {
     @Column(name = "account_id")
     private Long accountId;
 
+    /** Stable importer identity, scoped to this user's account. */
+    @Column(name = "import_source", length = 100)
+    private String importSource;
+
+    @Column(name = "import_opening_quantity", length = 512)
+    @Convert(converter = EncryptedBigDecimalConverter.class)
+    private BigDecimal importOpeningQuantity;
+
+    @Column(name = "import_opening_cost", length = 512)
+    @Convert(converter = EncryptedBigDecimalConverter.class)
+    private BigDecimal importOpeningCost;
+
     /** Relationship to the Account entity. Lazy-loaded to optimize performance. */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "account_id", insertable = false, updatable = false)
@@ -130,7 +142,7 @@ public class Asset {
      * Requirement REQ-2.6.2: Track quantity of assets
      */
     @NotNull(message = "{asset.quantity.notnull}")
-    @DecimalMin(value = "0.00000001", message = "{asset.quantity.decimalMin}")
+    @DecimalMin(value = "0", message = "{asset.quantity.decimalMin}")
     @Column(name = "quantity", nullable = false, length = 512)
     @Convert(converter = EncryptedBigDecimalConverter.class)
     private BigDecimal quantity;

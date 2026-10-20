@@ -109,6 +109,13 @@ export interface ImportTransactionDTO {
   originalAmount?: string | number | null;
   originalCurrency?: string | null;
   conversionRate?: string | number | null;
+  investmentUnitId?: number | null;
+  investmentQuantity?: string | number | null;
+  investmentSecurity?: string | null;
+  investmentName?: string | null;
+  investmentType?: string | null;
+  investmentPrice?: string | number | null;
+  investmentCash?: boolean;
   /** Server-resolved source currency for review, including implicit account currency. */
   reviewCurrency?: string;
   memo: string | null;

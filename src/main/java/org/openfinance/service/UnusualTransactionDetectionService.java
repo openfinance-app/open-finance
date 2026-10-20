@@ -110,6 +110,7 @@ public class UnusualTransactionDetectionService {
         for (Transaction tx : recentTransactions) {
             // Only analyse expense and income movements; skip internal transfers
             if (tx.getType() == TransactionType.TRANSFER
+                    || !tx.isCashMovement()
                     || tx.getTransferId() != null
                     || Boolean.TRUE.equals(tx.getIsDeleted())) {
                 continue;
@@ -201,7 +202,11 @@ public class UnusualTransactionDetectionService {
 
     private List<BigDecimal> historicalAmounts(List<Transaction> history, Transaction current) {
         return history.stream()
-                .filter(t -> t.getType() == current.getType() && t.getTransferId() == null)
+                .filter(
+                        t ->
+                                t.getType() == current.getType()
+                                        && t.isCashMovement()
+                                        && t.getTransferId() == null)
                 .map(
                         t ->
                                 exchangeRateService.convert(

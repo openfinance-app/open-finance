@@ -85,6 +85,11 @@ public class AccountCurrencyServiceImpl implements AccountCurrencyService {
     public void book(Transaction transaction, Long userId) {
         Account account =
                 accounts.findByIdAndUserId(transaction.getAccountId(), userId).orElseThrow();
+        if (transaction.getInvestmentQuantity() != null && !transaction.isInvestmentCash()) {
+            transaction.setAccountAmount(BigDecimal.ZERO);
+            transaction.setAccountCurrency(account.getCurrency());
+            return;
+        }
         List<AccountCurrencyChange> later = after(account, transaction.getDate(), userId);
         String currencyAtDate =
                 later.isEmpty() ? account.getCurrency() : later.getFirst().getFromCurrency();

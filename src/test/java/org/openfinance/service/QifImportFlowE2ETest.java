@@ -82,6 +82,8 @@ class QifImportFlowE2ETest {
     @Autowired private ImportService importService;
     @Autowired private AccountRepository accountRepository;
     @Autowired private TransactionRepository transactionRepository;
+    @Autowired private org.openfinance.repository.AssetRepository assets;
+    @Autowired private AccountService accountsService;
     @Autowired private org.openfinance.repository.TransactionSplitRepository splitRepository;
     @Autowired private UserRepository userRepository;
     @Autowired private DatabaseCleanupService databaseCleanupService;
@@ -173,7 +175,7 @@ class QifImportFlowE2ETest {
         //                 the Checking→Savings createTransfer call; the Savings-side
         //                 QIF leg is deduplicated and skipped)                         = 1 row
         //      Brokerage: Q0/Inan opening → validation error → excluded
-        //                 + Q0.01×50000=500.00 buy (INCOME)                             = 1 row
+        //                 + Q0.01×50000=500.00 buy (cash debit plus holdings)            = 1 row
         //
         //    Total = 5 rows.
         assertThat(transactionRepository.countByUserId(userId)).isEqualTo(5L);
@@ -202,7 +204,7 @@ class QifImportFlowE2ETest {
         // Receives the +200 transfer created by Checking's leg; Savings' own QIF leg is skipped.
         expected.put("Savings", new ExpectedAccount("200.00", "EUR"));
         // Q×I: 0.01 shares × 50000 EUR/share = 500.00 EUR (spec-conformant !Type:Invst).
-        expected.put("Brokerage", new ExpectedAccount("500.00", "EUR"));
+        expected.put("Brokerage", new ExpectedAccount("-500.00", "EUR"));
 
         assertThat(byName.keySet())
                 .as("persisted account names")
@@ -218,6 +220,18 @@ class QifImportFlowE2ETest {
                             .as("balance of %s", name)
                             .isCloseTo(new BigDecimal(exp.balance()), within(TOLERANCE));
                 });
+        assertThat(assets.findByUserId(userId))
+                .singleElement()
+                .satisfies(
+                        asset -> {
+                            assertThat(asset.getQuantity()).isEqualByComparingTo("0.01");
+                            assertThat(asset.getTotalValue()).isEqualByComparingTo("500");
+                            assertThat(
+                                            accountsService
+                                                    .getAccountById(asset.getAccountId(), userId)
+                                                    .getBalance())
+                                    .isZero();
+                        });
     }
 
     /** Waits for the async parse to reach PARSED, failing fast on FAILED or timeout. */

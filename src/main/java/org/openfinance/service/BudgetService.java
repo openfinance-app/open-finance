@@ -1112,6 +1112,7 @@ public class BudgetService {
 
     private boolean isBudgetActivity(Transaction transaction) {
         return !Boolean.TRUE.equals(transaction.getIsDeleted())
+                && transaction.isCashMovement()
                 && transaction.getTransferId() == null
                 && (transaction.getType() == TransactionType.INCOME
                         || transaction.getType() == TransactionType.EXPENSE);

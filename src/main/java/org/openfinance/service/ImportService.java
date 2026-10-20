@@ -127,6 +127,7 @@ public class ImportService {
     private final TransactionRuleService transactionRuleService;
     private final SkroogeRuleImportService skroogeRuleImportService;
     private final SkroogeInterestImportService skroogeInterestImportService;
+    private final ImportedInvestmentService investmentImportService;
     private final TransactionService transactionService;
     private final ExchangeRateService exchangeRateService;
     private final TransactionSplitService transactionSplitService;
@@ -968,6 +969,7 @@ public class ImportService {
                             prepareImportedSplits(
                                     transaction, importedTx, userId, categoryMappings, Map.of());
                     accountCurrencyService.book(transaction, userId);
+                    investmentImportService.prepare(transaction, importedTx);
                     Transaction saved = transactionRepository.save(transaction);
                     if (importedTx.isSplitTransaction()) {
                         transactionSplitService.saveSplits(saved.getId(), splits);
@@ -987,14 +989,7 @@ public class ImportService {
             progress.update(Phase.FINALIZING, processed, transactions.size());
 
             // REQ-2.2.5: Recalculate account balance after successful import
-            try {
-                accountService.recalculateBalance(targetAccountId, userId);
-            } catch (Exception e) {
-                log.error(
-                        "Failed to recalculate balance for account {} after import: {}",
-                        targetAccountId,
-                        e.getMessage());
-            }
+            accountService.recalculateBalance(targetAccountId, userId);
 
             // Ensure opening_date <= earliest imported transaction date so backfill works
             try {
@@ -1727,6 +1722,7 @@ public class ImportService {
                                 categoryMappings,
                                 categoryIdsBySource);
                 accountCurrencyService.book(transaction, userId);
+                investmentImportService.prepare(transaction, importedTx);
                 Transaction saved = transactionRepository.save(transaction);
                 if (importedTx.isSplitTransaction()) {
                     transactionSplitService.saveSplits(saved.getId(), splits);
@@ -1747,15 +1743,11 @@ public class ImportService {
         }
         progress.update(Phase.FINALIZING, processed, transactions.size());
 
+        investmentImportService.importHoldings(
+                skroogeMetadata, validTxs, accountIdsBySource, userId);
+
         for (Long affectedAccountId : affectedAccountIds) {
-            try {
-                accountService.recalculateBalance(affectedAccountId, userId);
-            } catch (Exception ex) {
-                log.warn(
-                        "Failed to recalculate balance for account {} after Skrooge import: {}",
-                        affectedAccountId,
-                        ex.getMessage());
-            }
+            accountService.recalculateBalance(affectedAccountId, userId);
         }
 
         int duplicatesSkipped = skipDuplicates ? duplicateTxs.size() : 0;
@@ -2052,6 +2044,7 @@ public class ImportService {
                         prepareImportedSplits(
                                 transaction, importedTx, userId, categoryMappings, Map.of());
                 accountCurrencyService.book(transaction, userId);
+                investmentImportService.prepare(transaction, importedTx);
                 Transaction saved = transactionRepository.save(transaction);
                 if (importedTx.isSplitTransaction()) {
                     transactionSplitService.saveSplits(saved.getId(), splits);
@@ -2074,14 +2067,7 @@ public class ImportService {
         progress.update(Phase.FINALIZING, processed, transactions.size());
 
         for (Long affectedAccountId : affectedAccountIds) {
-            try {
-                accountService.recalculateBalance(affectedAccountId, userId);
-            } catch (RuntimeException ex) {
-                log.warn(
-                        "Failed to recalculate balance for account {} after multi-account import: {}",
-                        affectedAccountId,
-                        ex.getMessage());
-            }
+            accountService.recalculateBalance(affectedAccountId, userId);
         }
 
         int duplicatesSkipped = skipDuplicates ? duplicateTxs.size() : 0;
@@ -3189,6 +3175,8 @@ public class ImportService {
                         .accountId(accountId)
                         .date(importedTx.getTransactionDate())
                         .amount(amount)
+                        .investmentQuantity(importedTx.getInvestmentQuantity())
+                        .investmentCash(importedTx.isInvestmentCash())
                         .currency(currencyCode)
                         .currencyId(currencyId)
                         .description(

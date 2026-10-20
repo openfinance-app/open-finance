@@ -163,6 +163,12 @@ public class Transaction {
         return accountAmount == null ? amount : accountAmount;
     }
 
+    /** Holdings-only entries retain their historical value but are not income or spending. */
+    @com.fasterxml.jackson.annotation.JsonIgnore
+    public boolean isCashMovement() {
+        return investmentQuantity == null || investmentCash;
+    }
+
     /**
      * Currency code in ISO 4217 format (e.g., "USD", "EUR", "GBP").
      *
@@ -360,6 +366,15 @@ public class Transaction {
     /** Optional link to an asset this transaction is associated with. */
     @Column(name = "asset_id")
     private Long assetId;
+
+    /** Signed investment units. The monetary amount remains the historical transaction value. */
+    @Column(name = "investment_quantity", length = 512)
+    @Convert(converter = EncryptedBigDecimalConverter.class)
+    private BigDecimal investmentQuantity;
+
+    @Column(name = "investment_cash", nullable = false)
+    @Builder.Default
+    private boolean investmentCash = false;
 
     /** Classification of the financial movement (e.g. DISBURSEMENT, REPAYMENT). */
     @Enumerated(EnumType.STRING)

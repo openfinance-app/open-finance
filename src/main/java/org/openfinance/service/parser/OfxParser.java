@@ -523,9 +523,25 @@ public class OfxParser {
                         parseInvestmentTransaction(
                                 el, typeName, fileName, ++index, accountId, locale);
                 if (txn != null) {
+                    txn.setQifAccountType("Invst");
+                    if (txn.getCurrency() == null)
+                        txn.setCurrency(extractStatementCurrency(invStmtRs));
                     transactions.add(txn);
                 }
             }
+        }
+        NodeList cashRows = invStmtRs.getElementsByTagName("STMTTRN");
+        for (int i = 0; i < cashRows.getLength(); i++) {
+            ImportedTransaction cash =
+                    parseTransaction(
+                            (Element) cashRows.item(i),
+                            fileName,
+                            ++index,
+                            accountId,
+                            extractStatementCurrency(invStmtRs),
+                            locale);
+            cash.setQifAccountType("Invst");
+            transactions.add(cash);
         }
         return index;
     }
@@ -620,9 +636,22 @@ public class OfxParser {
             builder.currency(currency);
         }
 
+        InvestmentParseSupport.ofx(
+                builder,
+                typeName,
+                optionalInvestmentDecimal(invEl, "UNITS"),
+                optionalInvestmentDecimal(invEl, "UNITPRICE"),
+                secId,
+                getElementText(invEl, "UNIQUEIDTYPE"),
+                locale);
         ImportedTransaction transaction = builder.build();
         validateTransaction(transaction, locale);
         return transaction;
+    }
+
+    private BigDecimal optionalInvestmentDecimal(Element element, String tag) {
+        String value = getElementText(element, tag);
+        return value == null || value.isBlank() ? null : parseAmount(value);
     }
 
     // -------------------------------------------------------------------------

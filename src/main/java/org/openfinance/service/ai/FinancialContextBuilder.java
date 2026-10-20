@@ -335,6 +335,7 @@ public class FinancialContextBuilder {
         BigDecimal amount = BigDecimal.ZERO;
         for (Transaction transaction : transactions) {
             if (Boolean.TRUE.equals(transaction.getIsDeleted())
+                    || !transaction.isCashMovement()
                     || transaction.getTransferId() != null
                     || transaction.getType() != type) continue;
             List<TransactionSplit> lines =
@@ -519,7 +520,7 @@ public class FinancialContextBuilder {
             List<Transaction> transactions, TransactionType type, String currency) {
         return transactions.stream()
                 .filter(t -> !Boolean.TRUE.equals(t.getIsDeleted()))
-                .filter(t -> t.getTransferId() == null && t.getType() == type)
+                .filter(t -> t.isCashMovement() && t.getTransferId() == null && t.getType() == type)
                 .map(
                         t ->
                                 exchangeRateService.convert(

@@ -27,20 +27,10 @@ import org.openfinance.dto.SkroogeImportMetadata;
 import org.openfinance.dto.SkroogeImportParseResult;
 
 /**
- * End-to-end regression test that parses the real anonymized Skrooge export shipped under {@code
- * docs/sample/json/export_anonymized.json} and asserts that:
- *
- * <ul>
- *   <li>the total number of imported (non-synthetic) transactions matches Skrooge, and
- *   <li>each imported account reconciles to the expected native-currency balance (opening balance +
- *       the signed sum of its transactions), including the intentional native currency (XOF vs
- *       EUR).
- * </ul>
- *
- * <p>The expected balances were verified against Skrooge's own {@code v_account_amount} view: every
- * plain-cash and foreign-currency account reconciles exactly, while the five share/crypto accounts
- * (Account_010/011/012/013/028) carry the intentional historical-cost residual described in the
- * import notes (their balance is a running sum of realized cash flows rather than mark-to-market).
+ * Checks source row coverage and historical monetary values in the anonymized Skrooge fixture.
+ * Investment amounts deliberately retain their transaction-date prices. Their signed sums are
+ * historical monetary totals, not current account balances; holdings and cash are verified
+ * separately by SkroogeJsonImportFlowE2ETest.
  */
 @DisplayName("Skrooge JSON import regression (real sample file)")
 class SkroogeJsonImportRegressionTest {
@@ -121,7 +111,7 @@ class SkroogeJsonImportRegressionTest {
     }
 
     @Test
-    @DisplayName("Should import expected transaction count and per-account native balances")
+    @DisplayName("Should preserve transaction count and original monetary totals")
     void shouldReconcileAccountsAndTransactions() throws IOException {
         assumeTrue(
                 Files.exists(SAMPLE_FILE),
@@ -135,8 +125,8 @@ class SkroogeJsonImportRegressionTest {
         // 1. Transaction count matches Skrooge (34 synthetic opening-balance rows are excluded).
         assertThat(result.getTransactions()).hasSize(EXPECTED_TRANSACTION_COUNT);
 
-        // 2. Build each account's native currency and computed balance:
-        //    balance = openingBalance + signed sum of the account's transactions.
+        // 2. Build each account's native currency and historical monetary total:
+        //    total = cash opening balance + historical transaction values.
         Map<Long, SkroogeImportMetadata.SkroogeAccount> accountsBySource = new HashMap<>();
         Map<String, BigDecimal> balanceByName = new HashMap<>();
         Map<String, String> currencyByName = new HashMap<>();
@@ -149,6 +139,16 @@ class SkroogeJsonImportRegressionTest {
                             ? account.getOpeningBalance()
                             : BigDecimal.ZERO);
             currencyByName.put(account.getName(), account.getCurrency());
+        }
+
+        // The old monetary totals included opening investments at the last source quote.
+        // Include that value only in this comparison: it now belongs to holdings, not cash.
+        for (SkroogeImportMetadata.SkroogeHolding holding :
+                result.getSkroogeMetadata().getHoldings()) {
+            balanceByName.merge(
+                    accountsBySource.get(holding.sourceAccountId()).getName(),
+                    holding.openingQuantity().multiply(holding.currentPrice()),
+                    BigDecimal::add);
         }
 
         for (ImportedTransaction tx : result.getTransactions()) {
@@ -180,11 +180,7 @@ class SkroogeJsonImportRegressionTest {
         }
     }
 
-    /**
-     * Expected native-currency balance and currency per account, verified against Skrooge's {@code
-     * v_account_amount} view (foreign-currency accounts reconcile exactly at Skrooge's peg; the
-     * five crypto accounts carry the documented historical-cost residual).
-     */
+    /** Original historical monetary totals, retained independently of the holdings valuation. */
     private Map<String, ExpectedAccount> expectedAccounts() {
         Map<String, ExpectedAccount> expected = new LinkedHashMap<>();
         expected.put("Account_001", eur("6322.19"));
@@ -196,13 +192,13 @@ class SkroogeJsonImportRegressionTest {
         expected.put("Account_007", eur("130.00"));
         expected.put("Account_008", eur("116.62"));
         expected.put("Account_009", eur("321.26"));
-        // Crypto (Dogecoin) — intentional historical-cost residual.
+        // Crypto (Dogecoin) — preserved historical monetary total.
         expected.put("Account_010", eur("60.78"));
-        // Crypto (Bitcoin Cash) — intentional historical-cost residual.
+        // Crypto (Bitcoin Cash) — preserved historical monetary total.
         expected.put("Account_011", eur("-28.88"));
-        // Crypto (Cardano) — intentional historical-cost residual.
+        // Crypto (Cardano) — preserved historical monetary total.
         expected.put("Account_012", eur("1.03"));
-        // Crypto (Solana) — intentional historical-cost residual.
+        // Crypto (Solana) — preserved historical monetary total.
         expected.put("Account_013", eur("58.04"));
         expected.put("Account_014", eur("0.00"));
         expected.put("Account_015", eur("23445.16"));
@@ -218,7 +214,7 @@ class SkroogeJsonImportRegressionTest {
         expected.put("Account_025", eur("1655.38"));
         expected.put("Account_026", eur("6.73"));
         expected.put("Account_027", eur("12564.25"));
-        // Crypto (Bitcoin) — intentional historical-cost residual.
+        // Crypto (Bitcoin) — preserved historical monetary total.
         expected.put("Account_028", eur("321.90"));
         expected.put("Account_029", xof("10006858.91"));
         expected.put("Account_030", eur("2146.75"));

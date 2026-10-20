@@ -1100,6 +1100,7 @@ class QifParserTest {
         assertThat(tx.getAmount()).isEqualByComparingTo(new BigDecimal("-5000.00"));
         assertThat(tx.getReferenceNumber()).isEqualTo("Buy");
         assertThat(tx.getPayee()).isEqualTo("ACME Corp");
+        assertThat(tx.hasErrors()).as("missing shares must not become a cash-only buy").isTrue();
     }
 
     @Test
@@ -1123,11 +1124,13 @@ class QifParserTest {
         assertThat(tx.getAmount()).isNotNull();
         assertThat(tx.hasErrors()).isFalse();
         // 100.6 * 0.1653551854 ≈ 16.631...
-        assertThat(tx.getAmount().doubleValue()).isCloseTo(16.63, within(0.01));
+        assertThat(tx.getAmount().doubleValue()).isCloseTo(-16.63, within(0.01));
+        assertThat(tx.getInvestmentQuantity()).isEqualByComparingTo("100.6");
+        assertThat(tx.isInvestmentCash()).isTrue();
     }
 
     @Test
-    @DisplayName("Should negate inferred investment amount for Sell actions")
+    @DisplayName("Should credit cash and remove units for Sell actions")
     void shouldNegateInferredInvestmentAmountForSellActions() throws IOException {
         String qif =
                 """
@@ -1146,7 +1149,8 @@ class QifParserTest {
 
         assertThat(transactions).hasSize(1);
         ImportedTransaction tx = transactions.get(0);
-        assertThat(tx.getAmount()).isEqualByComparingTo(new BigDecimal("-303.99975000"));
+        assertThat(tx.getAmount()).isEqualByComparingTo(new BigDecimal("303.99975000"));
+        assertThat(tx.getInvestmentQuantity()).isEqualByComparingTo("-0.00135111");
         assertThat(tx.hasErrors()).isFalse();
     }
 

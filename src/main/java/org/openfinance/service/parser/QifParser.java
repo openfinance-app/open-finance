@@ -237,7 +237,12 @@ public class QifParser {
                         case 'D':
                             if (currentTransaction != null) {
                                 applyComputedAmountIfNeeded(
-                                        currentTransaction, uAmount, invQuantity, invPrice, true);
+                                        currentTransaction,
+                                        uAmount,
+                                        invQuantity,
+                                        invPrice,
+                                        true,
+                                        context.locale());
                                 finalizeSplits(currentTransaction, currentSplits);
                                 transactions.add(
                                         buildTransaction(
@@ -303,7 +308,7 @@ public class QifParser {
                             break;
                         case 'Y': // security name → payee
                             if (currentTransaction != null) {
-                                currentTransaction.payee(value);
+                                currentTransaction.payee(value).investmentName(value);
                             }
                             break;
                         case 'M': // memo
@@ -343,7 +348,12 @@ public class QifParser {
                         case '^':
                             if (currentTransaction != null) {
                                 applyComputedAmountIfNeeded(
-                                        currentTransaction, uAmount, invQuantity, invPrice, true);
+                                        currentTransaction,
+                                        uAmount,
+                                        invQuantity,
+                                        invPrice,
+                                        true,
+                                        context.locale());
                                 finalizeSplits(currentTransaction, currentSplits);
                                 transactions.add(
                                         buildTransaction(
@@ -370,7 +380,12 @@ public class QifParser {
                     case 'D': // Date — starts a new transaction
                         if (currentTransaction != null) {
                             applyComputedAmountIfNeeded(
-                                    currentTransaction, uAmount, invQuantity, invPrice, false);
+                                    currentTransaction,
+                                    uAmount,
+                                    invQuantity,
+                                    invPrice,
+                                    false,
+                                    context.locale());
                             finalizeSplits(currentTransaction, currentSplits);
                             transactions.add(
                                     buildTransaction(
@@ -535,7 +550,12 @@ public class QifParser {
                                 currentSplit = null;
                             }
                             applyComputedAmountIfNeeded(
-                                    currentTransaction, uAmount, invQuantity, invPrice, false);
+                                    currentTransaction,
+                                    uAmount,
+                                    invQuantity,
+                                    invPrice,
+                                    false,
+                                    context.locale());
                             finalizeSplits(currentTransaction, currentSplits);
                             transactions.add(
                                     buildTransaction(
@@ -563,7 +583,12 @@ public class QifParser {
             // Add last transaction if file doesn't end with '^'
             if (currentTransaction != null) {
                 applyComputedAmountIfNeeded(
-                        currentTransaction, uAmount, invQuantity, invPrice, isInvestmentType);
+                        currentTransaction,
+                        uAmount,
+                        invQuantity,
+                        invPrice,
+                        isInvestmentType,
+                        context.locale());
                 finalizeSplits(currentTransaction, currentSplits);
                 transactions.add(
                         buildTransaction(
@@ -591,36 +616,16 @@ public class QifParser {
             BigDecimal uAmount,
             BigDecimal invQuantity,
             BigDecimal invPrice,
-            boolean investmentTransaction) {
+            boolean investmentTransaction,
+            Locale locale) {
         ImportedTransaction peek = builder.build();
-        if (peek.getAmount() != null) {
-            return; // T was set
+        if (peek.getAmount() == null) {
+            if (uAmount != null) builder.amount(uAmount);
+            else if (investmentTransaction && invQuantity != null && invPrice != null)
+                builder.amount(invQuantity.multiply(invPrice));
         }
-        if (uAmount != null) {
-            builder.amount(uAmount);
-            return;
-        }
-        // Q × I amount derivation is only valid for investment transactions (!Type:Invst) per
-        // the QIF specification. Standard Bank/Cash/CCard records must carry T or U.
-        if (investmentTransaction && invQuantity != null && invPrice != null) {
-            try {
-                BigDecimal computed = invQuantity.multiply(invPrice);
-                if (isSellAction(peek.getReferenceNumber())) {
-                    computed = computed.abs().negate();
-                }
-                builder.amount(computed);
-            } catch (ArithmeticException e) {
-                log.debug("Could not compute investment amount from Q × I: {}", e.getMessage());
-            }
-        }
-    }
-
-    /**
-     * QIF investment actions are English keywords per the format specification (Buy, Sell, ShrsIn,
-     * ShrsOut, …), so an English "sell" check is spec-based, not locale-based.
-     */
-    private boolean isSellAction(String action) {
-        return action != null && action.trim().toLowerCase(Locale.ROOT).startsWith("sell");
+        if (investmentTransaction)
+            InvestmentParseSupport.qif(builder, invQuantity, invPrice, locale);
     }
 
     /**

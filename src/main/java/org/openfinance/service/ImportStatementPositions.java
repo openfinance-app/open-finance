@@ -18,11 +18,15 @@ final class ImportStatementPositions {
         for (ImportedTransaction tx : transactions) {
             String key =
                     Objects.toString(accountKey(tx.getAccountName(), tx.getAccountNumber()), "");
-            if (tx.getAmount() == null) {
+            if (tx.getAmount() == null || tx.hasErrors()) {
                 amounts.put(
                         key, null); // An incomplete statement cannot establish an opening balance.
             } else if (!amounts.containsKey(key) || amounts.get(key) != null) {
-                amounts.merge(key, tx.getAmount(), BigDecimal::add);
+                BigDecimal cash =
+                        tx.getInvestmentQuantity() != null && !tx.isInvestmentCash()
+                                ? BigDecimal.ZERO
+                                : tx.getAmount();
+                amounts.merge(key, cash, BigDecimal::add);
             }
         }
         return amounts;

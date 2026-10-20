@@ -882,6 +882,12 @@ public class NetWorthService {
                         continue;
                     }
                     BigDecimal costBasis = asset.getPurchasePrice().multiply(asset.getQuantity());
+                    if (asset.getImportSource() != null) {
+                        costBasis =
+                                org.openfinance.util.InvestmentHoldings.at(
+                                                asset, allTransactions, targetDate)
+                                        .cost();
+                    }
                     // Capitalized movements carry their instrument-currency amount and date.
                     // Reversals/edits are reflected by the active ledger, never by today's unit
                     // price.

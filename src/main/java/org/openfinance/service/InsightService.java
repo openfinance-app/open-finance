@@ -557,6 +557,7 @@ public class InsightService {
                         t ->
                                 t.getType() == TransactionType.EXPENSE
                                         && !Boolean.TRUE.equals(t.getIsDeleted())
+                                        && t.isCashMovement()
                                         && t.getTransferId() == null)
                 .map(
                         t ->
@@ -1175,7 +1176,7 @@ public class InsightService {
                     || t.getDate().isAfter(to)) {
                 continue;
             }
-            if (t.getTransferId() != null) continue;
+            if (!t.isCashMovement() || t.getTransferId() != null) continue;
             BigDecimal amount =
                     exchangeRateService.convert(
                             t.getAmount(), t.getCurrency(), baseCurrency, t.getDate());

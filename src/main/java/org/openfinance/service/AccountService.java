@@ -1183,6 +1183,11 @@ public class AccountService {
         // Calculate balance from transactions in Java (SQL SUM cannot operate on
         // encrypted amounts)
         List<Transaction> transactions = transactionRepository.findActiveByAccountId(accountId);
+        for (org.openfinance.entity.Asset asset : assetRepository.findByAccountId(accountId)) {
+            if (asset.getImportSource() == null) continue;
+            org.openfinance.util.InvestmentHoldings.update(asset, transactions);
+            assetRepository.save(asset);
+        }
         java.math.BigDecimal transactionsBalance =
                 transactions.stream()
                         .map(

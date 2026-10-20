@@ -276,6 +276,24 @@ public class AssetService {
         return updateAssetInternal(assetId, userId, request, true);
     }
 
+    private void validateImportedHoldingEdit(Asset asset, AssetRequest request) {
+        if (asset.getImportSource() == null) return;
+        if ((request.getCurrency() != null
+                        && !request.getCurrency().equalsIgnoreCase(asset.getCurrency()))
+                || (request.getQuantity() != null
+                        && request.getQuantity().compareTo(asset.getQuantity()) != 0)
+                || (request.getPurchasePrice() != null
+                        && request.getPurchasePrice().compareTo(asset.getPurchasePrice()) != 0)
+                || (request.getPurchaseDate() != null
+                        && !request.getPurchaseDate().equals(asset.getPurchaseDate()))
+                || ((request.isAccountIdPresent() || request.getAccountId() != null)
+                        && !java.util.Objects.equals(
+                                request.getAccountId(), asset.getAccountId()))) {
+            throw new InvalidTransactionException(
+                    "Imported holding quantities and costs are derived from their investment movements");
+        }
+    }
+
     private AssetResponse updateAssetInternal(
             Long assetId, Long userId, AssetRequest request, boolean propertyWrite) {
         log.debug("Updating asset {}: userId={}", assetId, userId);
@@ -307,6 +325,7 @@ public class AssetService {
             throw new InvalidTransactionException(
                     "Reverse asset cost movements before correcting its currency");
         }
+        validateImportedHoldingEdit(asset, request);
         if (request.getPurchaseDate() != null
                 && transactionRepository.findByAssetIdAndUserId(assetId, userId).stream()
                         .anyMatch(tx -> tx.getDate().isBefore(request.getPurchaseDate()))) {
@@ -644,6 +663,18 @@ public class AssetService {
         if (!propertyWrite && (asset.getType() == AssetType.REAL_ESTATE)) {
             throw new org.openfinance.exception.InvalidTransactionException(
                     "Manage real estate through its property record");
+        }
+
+        if (asset.getImportSource() != null
+                && (asset.getImportOpeningQuantity().signum() != 0
+                        || transactionRepository.findByAssetIdAndUserId(assetId, userId).stream()
+                                .anyMatch(
+                                        tx ->
+                                                tx.getInvestmentQuantity() != null
+                                                        && !Boolean.TRUE.equals(
+                                                                tx.getIsDeleted())))) {
+            throw new InvalidTransactionException(
+                    "Remove the imported investment movements before deleting their holding");
         }
 
         // Capture snapshot before delete for history (only if key provided)

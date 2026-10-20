@@ -127,6 +127,7 @@ public class TransactionService {
     private final LiabilityTrancheService liabilityTrancheService;
     private final RealEstateService realEstateService;
     private final AssetService assetService;
+    private final ImportedInvestmentService investmentImportService;
     private final AssetRepository assetRepository;
     private final RealEstateRepository realEstateRepository;
 
@@ -728,6 +729,11 @@ public class TransactionService {
             return toResponseWithDecryption(sourceTransaction);
         }
         BigDecimal previousSourceAmount = sourceTransaction.getAmount();
+        if (sourceTransaction.getInvestmentQuantity() != null
+                || destTransaction.getInvestmentQuantity() != null) {
+            throw new InvalidTransactionException(
+                    "Investment transfers retain their imported units and monetary values");
+        }
         BigDecimal previousDestAmount = destTransaction.getAmount();
         String previousSourceCurrency = sourceTransaction.getCurrency();
         String previousDestCurrency = destTransaction.getCurrency();
@@ -866,6 +872,21 @@ public class TransactionService {
 
         // Return the source transaction response
         return toResponseWithDecryption(savedSourceTransaction);
+    }
+
+    private void validateInvestmentEdit(Transaction transaction, TransactionRequest request) {
+        if (transaction.getInvestmentQuantity() == null) return;
+        if (!transaction.getAccountId().equals(request.getAccountId())
+                || transaction.getAmount().compareTo(request.getAmount()) != 0
+                || !transaction.getCurrency().equals(request.getCurrency())
+                || !transaction.getDate().equals(request.getDate())
+                || transaction.getType() != request.getType()
+                || (request.getAssetId() != null
+                        && !request.getAssetId().equals(transaction.getAssetId()))
+                || request.getMovementType() != null) {
+            throw new InvalidTransactionException(
+                    "Investment movements retain their imported units and monetary values; delete and reimport to change them");
+        }
     }
 
     private boolean sameTransferBooking(
@@ -1067,6 +1088,7 @@ public class TransactionService {
         }
 
         // Store old values for balance adjustment
+        validateInvestmentEdit(transaction, request);
         BigDecimal oldAmount = transaction.getBalanceAmount();
         TransactionType oldType = transaction.getType();
         Long oldAccountId = transaction.getAccountId();
@@ -1094,7 +1116,8 @@ public class TransactionService {
         transaction.setLiabilityId(request.getLiabilityId());
         transaction.setTrancheId(request.getTrancheId());
         transaction.setRealEstateId(request.getRealEstateId());
-        transaction.setAssetId(request.getAssetId());
+        transaction.setAssetId(
+                transaction.getInvestmentQuantity() == null ? request.getAssetId() : oldAssetId);
         transaction.setMovementType(request.getMovementType());
         transaction.setPrincipalAmount(null);
 
@@ -1332,6 +1355,9 @@ public class TransactionService {
                 accountRepository.save(account);
             }
 
+            linkedTransactions.stream()
+                    .filter(t -> t.getInvestmentQuantity() != null)
+                    .forEach(t -> investmentImportService.recalculate(t.getAssetId(), userId));
             log.info(
                     "Transfer soft-deleted: transferId={}, deleted {} transactions, balances reversed",
                     transaction.getTransferId(),
@@ -1341,6 +1367,9 @@ public class TransactionService {
             // Soft delete
             transaction.setIsDeleted(true);
             transactionRepository.save(transaction);
+            if (transaction.getInvestmentQuantity() != null) {
+                investmentImportService.recalculate(transaction.getAssetId(), userId);
+            }
 
             // Remove from FTS index
             removeTransactionFromFts(transaction.getId());

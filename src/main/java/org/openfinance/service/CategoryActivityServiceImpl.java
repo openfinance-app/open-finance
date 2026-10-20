@@ -35,7 +35,10 @@ public class CategoryActivityServiceImpl implements CategoryActivityService {
         List<Transaction> eligible =
                 transactions.findByUserId(userId).stream()
                         .filter(transaction -> !Boolean.TRUE.equals(transaction.getIsDeleted()))
-                        .filter(transaction -> transaction.getTransferId() == null)
+                        .filter(
+                                transaction ->
+                                        transaction.isCashMovement()
+                                                && transaction.getTransferId() == null)
                         .filter(
                                 transaction ->
                                         transaction.getType() == TransactionType.INCOME

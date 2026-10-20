@@ -10,6 +10,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.Singular;
 import org.openfinance.entity.AccountType;
+import org.openfinance.entity.AssetType;
 import org.openfinance.entity.InterestDayCountBasis;
 import org.openfinance.entity.InterestValueDateMode;
 
@@ -23,6 +24,8 @@ public class SkroogeImportMetadata {
     @Builder.Default private List<SkroogeAccount> accounts = new ArrayList<>();
 
     @Builder.Default private List<SkroogeCategory> categories = new ArrayList<>();
+
+    @Singular private List<SkroogeHolding> holdings;
 
     @Builder.Default private List<TransactionRuleRequest> rules = new ArrayList<>();
     @Builder.Default private List<RuleWarning> ruleWarnings = new ArrayList<>();
@@ -42,6 +45,7 @@ public class SkroogeImportMetadata {
             List<SkroogeInstitution> institutions,
             List<SkroogeAccount> accounts,
             List<SkroogeCategory> categories,
+            List<SkroogeHolding> holdings,
             List<TransactionRuleRequest> rules,
             List<RuleWarning> ruleWarnings,
             int sourceRuleCount,
@@ -57,6 +61,7 @@ public class SkroogeImportMetadata {
         this.institutions = institutions;
         this.accounts = accounts;
         this.categories = categories;
+        setHoldings(holdings);
         this.rules = rules;
         this.ruleWarnings = ruleWarnings;
         this.sourceRuleCount = sourceRuleCount;
@@ -69,6 +74,14 @@ public class SkroogeImportMetadata {
         this.importedInterestRateCount = importedInterestRateCount;
         this.existingInterestRateCount = existingInterestRateCount;
         this.skippedInterestRateCount = skippedInterestRateCount;
+    }
+
+    public List<SkroogeHolding> getHoldings() {
+        return holdings == null ? List.of() : List.copyOf(holdings);
+    }
+
+    public void setHoldings(List<SkroogeHolding> holdings) {
+        this.holdings = holdings == null ? List.of() : List.copyOf(holdings);
     }
 
     public List<SkroogeInterestRate> getInterestRates() {
@@ -113,6 +126,19 @@ public class SkroogeImportMetadata {
             InterestDayCountBasis dayCountBasis) {}
 
     public record RuleWarning(Long sourceId, String code) {}
+
+    public record SkroogeHolding(
+            Long sourceAccountId,
+            Long sourceUnitId,
+            String name,
+            String symbol,
+            AssetType type,
+            String currency,
+            BigDecimal openingQuantity,
+            BigDecimal openingPrice,
+            LocalDate openingDate,
+            BigDecimal currentPrice,
+            LocalDate priceDate) {}
 
     @Data
     @Builder

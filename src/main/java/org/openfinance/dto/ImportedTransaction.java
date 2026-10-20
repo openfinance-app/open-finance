@@ -120,6 +120,24 @@ public class ImportedTransaction {
     @JsonFormat(shape = JsonFormat.Shape.STRING)
     private BigDecimal conversionRate;
 
+    /** Source investment units, separate from the historical monetary amount. */
+    private Long investmentUnitId;
+
+    @JsonFormat(shape = JsonFormat.Shape.STRING)
+    private BigDecimal investmentQuantity;
+
+    /** Stable security identity for QIF/OFX; kept separate from the editable payee. */
+    private String investmentSecurity;
+
+    private String investmentName;
+    private org.openfinance.entity.AssetType investmentType;
+
+    @JsonFormat(shape = JsonFormat.Shape.STRING)
+    private BigDecimal investmentPrice;
+
+    /** True for trades that also move cash; false for holdings-only movements. */
+    @Builder.Default private boolean investmentCash = false;
+
     /** Currency of the displayed source amount, resolved for rows without an explicit currency. */
     @com.fasterxml.jackson.annotation.JsonProperty(
             access = com.fasterxml.jackson.annotation.JsonProperty.Access.READ_ONLY)

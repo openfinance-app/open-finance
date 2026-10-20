@@ -184,6 +184,15 @@ public class SkroogeJsonParser {
                         .skippedRuleCount(importedRules.skipped())
                         .build();
 
+        metadata.setHoldings(
+                buildHoldings(
+                        metadata.getAccounts(),
+                        root.path("operation"),
+                        subOperationsByOperationId,
+                        unitsById,
+                        unitValuesByUnitId,
+                        currencyRatesToPrimary));
+
         List<ImportedTransaction> transactions = new ArrayList<>();
         Set<Long> processedTransferGroups = new HashSet<>();
 
@@ -896,6 +905,10 @@ public class SkroogeJsonParser {
             String accountCurrency,
             Map<Long, JsonNode> unitsById) {
         JsonNode unit = unitsById.get(unitId);
+        if (isInvestmentUnit(unit)) {
+            builder.investmentUnitId(unitId).investmentQuantity(sourceAmount);
+            return;
+        }
         // A share quantity must not be described as an amount in its pricing currency.
         if (unit == null || isInvestmentUnit(unit) || sourceAmount.signum() == 0) return;
         String sourceCurrency = resolveCurrencyCode(unit, unitsById);
@@ -1064,6 +1077,7 @@ public class SkroogeJsonParser {
             Map<Long, TreeMap<LocalDate, BigDecimal>> unitValuesByUnitId,
             String accountCurrency,
             Map<String, BigDecimal> currencyRatesToPrimary) {
+        BigDecimal total = BigDecimal.ZERO;
         for (JsonNode operation : operations) {
             if (!SYNTHETIC_DATE.equals(textValue(operation, "d_date"))) {
                 continue;
@@ -1071,19 +1085,25 @@ public class SkroogeJsonParser {
             List<JsonNode> subOperations =
                     subOperationsByOperationId.getOrDefault(longValue(operation, "id"), List.of());
             if (!subOperations.isEmpty()) {
-                BigDecimal rawValue = decimalValue(subOperations.get(0), "f_value");
                 Long unitId = longValue(operation, "rc_unit_id");
-                return convertToCurrency(
-                        rawValue,
-                        unitId,
-                        null,
-                        accountCurrency,
-                        unitsById,
-                        unitValuesByUnitId,
-                        currencyRatesToPrimary);
+                if (isInvestmentUnit(unitsById.get(unitId))) continue;
+                BigDecimal rawValue =
+                        subOperations.stream()
+                                .map(part -> decimalValue(part, "f_value"))
+                                .reduce(BigDecimal.ZERO, BigDecimal::add);
+                total =
+                        total.add(
+                                convertToCurrency(
+                                        rawValue,
+                                        unitId,
+                                        null,
+                                        accountCurrency,
+                                        unitsById,
+                                        unitValuesByUnitId,
+                                        currencyRatesToPrimary));
             }
         }
-        return BigDecimal.ZERO;
+        return total;
     }
 
     private LocalDate deriveOpeningDate(List<JsonNode> operations) {
@@ -1362,9 +1382,10 @@ public class SkroogeJsonParser {
         if (!visitedUnitIds.add(unitId)) {
             return value; // guard against cyclic parent references
         }
-        // Investment units (shares/crypto) are valued at the transaction-date price to preserve
-        // historical per-transaction amounts; currency units use the latest exchange rate.
-        LocalDate priceDate = isInvestmentUnit(unit) ? date : null;
+        // Preserve the existing monetary conversion independently of holdings classification:
+        // shares/objects use transaction-date quotes; currency-style units keep currency rates.
+        LocalDate priceDate =
+                isInvestmentUnit(unit) && !"C".equals(textValue(unit, "t_type")) ? date : null;
         BigDecimal price = resolveUnitPrice(unitId, priceDate, unitValuesByUnitId);
         if (price == null) {
             log.warn(
@@ -1382,13 +1403,99 @@ public class SkroogeJsonParser {
         return parentValue;
     }
 
-    /** Returns true if the unit is a share (S) or object/crypto (O) type. */
+    /** Shares, explicit cryptocurrencies and non-currency objects represent holdings. */
     private boolean isInvestmentUnit(JsonNode unitNode) {
         if (unitNode == null || unitNode.isMissingNode()) {
             return false;
         }
         String unitType = textValue(unitNode, "t_type");
-        return "S".equals(unitType) || ("O".equals(unitType) && !isDirectCurrencyUnit(unitNode));
+        return "S".equals(unitType)
+                || "C".equals(unitType)
+                || ("O".equals(unitType) && !isDirectCurrencyUnit(unitNode));
+    }
+
+    private List<SkroogeImportMetadata.SkroogeHolding> buildHoldings(
+            List<SkroogeImportMetadata.SkroogeAccount> accounts,
+            JsonNode operations,
+            Map<Long, List<JsonNode>> parts,
+            Map<Long, JsonNode> units,
+            Map<Long, TreeMap<LocalDate, BigDecimal>> prices,
+            Map<String, BigDecimal> rates) {
+        List<SkroogeImportMetadata.SkroogeHolding> holdings = new ArrayList<>();
+        Map<Long, List<JsonNode>> byAccount = groupByLong(operations, "rd_account_id");
+        for (SkroogeImportMetadata.SkroogeAccount account : accounts) {
+            Map<Long, List<JsonNode>> byUnit =
+                    byAccount.getOrDefault(account.getSourceId(), List.of()).stream()
+                            .filter(op -> isInvestmentUnit(units.get(longValue(op, "rc_unit_id"))))
+                            .collect(Collectors.groupingBy(op -> longValue(op, "rc_unit_id")));
+            byUnit.forEach(
+                    (unitId, movements) ->
+                            holdings.add(
+                                    buildHolding(
+                                            account, unitId, movements, parts, units, prices,
+                                            rates)));
+        }
+        return holdings;
+    }
+
+    private SkroogeImportMetadata.SkroogeHolding buildHolding(
+            SkroogeImportMetadata.SkroogeAccount account,
+            Long unitId,
+            List<JsonNode> movements,
+            Map<Long, List<JsonNode>> parts,
+            Map<Long, JsonNode> units,
+            Map<Long, TreeMap<LocalDate, BigDecimal>> prices,
+            Map<String, BigDecimal> rates) {
+        JsonNode unit = units.get(unitId);
+        BigDecimal opening =
+                movements.stream()
+                        .filter(op -> SYNTHETIC_DATE.equals(textValue(op, "d_date")))
+                        .flatMap(op -> parts.getOrDefault(longValue(op, "id"), List.of()).stream())
+                        .map(part -> decimalValue(part, "f_value"))
+                        .reduce(BigDecimal.ZERO, BigDecimal::add);
+        TreeMap<LocalDate, BigDecimal> quotes = prices.getOrDefault(unitId, new TreeMap<>());
+        Map.Entry<LocalDate, BigDecimal> latest = quotes.floorEntry(LocalDate.now());
+        BigDecimal price =
+                latest == null
+                        ? null
+                        : convertToCurrency(
+                                BigDecimal.ONE,
+                                unitId,
+                                latest.getKey(),
+                                account.getCurrency(),
+                                units,
+                                prices,
+                                rates);
+        BigDecimal openingPrice =
+                latest == null
+                        ? null
+                        : convertToCurrency(
+                                BigDecimal.ONE,
+                                unitId,
+                                account.getOpeningDate(),
+                                account.getCurrency(),
+                                units,
+                                prices,
+                                rates);
+        boolean crypto =
+                "C".equals(textValue(unit, "t_type"))
+                        || textValue(unit, "t_source").toLowerCase(Locale.ROOT).contains("coin");
+        String symbol = textValue(unit, "t_internet_code");
+        if (symbol.isBlank()) symbol = textValue(unit, "t_symbol");
+        return new SkroogeImportMetadata.SkroogeHolding(
+                account.getSourceId(),
+                unitId,
+                textValue(unit, "t_name"),
+                symbol,
+                crypto
+                        ? org.openfinance.entity.AssetType.CRYPTO
+                        : org.openfinance.entity.AssetType.STOCK,
+                account.getCurrency(),
+                opening,
+                openingPrice,
+                account.getOpeningDate(),
+                price,
+                latest == null ? null : latest.getKey());
     }
 
     /**

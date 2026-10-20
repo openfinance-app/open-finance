@@ -1557,6 +1557,8 @@ class OfxParserTest {
         // The investment aggregate type must not be invented as a category
         assertThat(tx.getCategory()).isNull();
         assertThat(tx.getAmount()).isEqualByComparingTo(new BigDecimal("-5000.00"));
+        assertThat(tx.getInvestmentQuantity()).isEqualByComparingTo("100");
+        assertThat(tx.isInvestmentCash()).isTrue();
     }
 
     @Test
@@ -1736,6 +1738,7 @@ class OfxParserTest {
         List<ImportedTransaction> transactions = parseOfx(ofx);
 
         assertThat(transactions).hasSize(2);
+        assertThat(transactions).allSatisfy(tx -> assertThat(tx.hasErrors()).isTrue());
         assertThat(transactions.get(0).getReferenceNumber()).isEqualTo("ROC001");
         assertThat(transactions.get(0).getAmount()).isEqualByComparingTo(new BigDecimal("250.00"));
         assertThat(transactions.get(1).getReferenceNumber()).isEqualTo("SPL001");
