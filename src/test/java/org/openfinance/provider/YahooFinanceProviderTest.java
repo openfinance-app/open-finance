@@ -12,6 +12,11 @@ import org.openfinance.dto.HistoricalPrice;
 import org.openfinance.dto.MarketQuote;
 import org.openfinance.dto.SymbolSearchResult;
 import org.openfinance.exception.MarketDataException;
+import org.springframework.http.HttpStatus;
+import org.springframework.test.util.ReflectionTestUtils;
+import org.springframework.web.reactive.function.client.ClientResponse;
+import org.springframework.web.reactive.function.client.WebClient;
+import reactor.core.publisher.Mono;
 
 /**
  * Unit tests for YahooFinanceProvider.
@@ -26,6 +31,40 @@ class YahooFinanceProviderTest {
     @BeforeEach
     void setUp() {
         provider = new YahooFinanceProvider(new ObjectMapper());
+    }
+
+    @Test
+    void historicalPricesRetainTheirQuoteCurrency() {
+        String response =
+                """
+                {"chart":{"result":[{
+                  "meta":{"currency":"USD"},
+                  "timestamp":[1792368000],
+                  "indicators":{"quote":[{
+                    "open":[81000],"high":[83000],"low":[80000],
+                    "close":[81875.92],"volume":[123]
+                  }]}
+                }]}}
+                """;
+        WebClient client =
+                WebClient.builder()
+                        .exchangeFunction(
+                                request ->
+                                        Mono.just(
+                                                ClientResponse.create(HttpStatus.OK)
+                                                        .header("Content-Type", "application/json")
+                                                        .body(response)
+                                                        .build()))
+                        .build();
+        ReflectionTestUtils.setField(provider, "webClient", client);
+
+        List<HistoricalPrice> prices =
+                provider.getHistoricalPrices(
+                        "BTC-USD", LocalDate.of(2026, 10, 18), LocalDate.of(2026, 10, 19));
+
+        assertThat(prices).hasSize(1);
+        assertThat(prices.getFirst().getClose()).isEqualByComparingTo("81875.92");
+        assertThat(prices.getFirst().getCurrency()).isEqualTo("USD");
     }
 
     @Test

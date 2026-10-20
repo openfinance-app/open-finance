@@ -8,8 +8,14 @@ import com.fasterxml.jackson.databind.JsonNode;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import org.junit.jupiter.api.Test;
+import org.openfinance.dto.HistoricalPrice;
 import org.openfinance.dto.MarketQuote;
+import org.openfinance.entity.ExchangeRate;
 import org.openfinance.provider.MarketDataProvider;
+import org.openfinance.repository.ExchangeRateRepository;
+import org.openfinance.scheduler.MarketDataScheduler;
+import org.openfinance.security.EncryptionContext;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.boot.test.mock.mockito.SpyBean;
 
@@ -17,6 +23,114 @@ import org.springframework.boot.test.mock.mockito.SpyBean;
 class AuditMarketValuationIntegrationTest extends AuditApiTestSupport {
     @MockBean MarketDataProvider provider;
     @SpyBean ExchangeRateService rates;
+    @Autowired MarketDataScheduler scheduler;
+    @Autowired ExchangeRateRepository rateRepository;
+    @Autowired org.springframework.cache.CacheManager cacheManager;
+
+    @Test
+    void scheduledRefreshUsesTheOwnersCachedKeyWithoutARequest() throws Exception {
+        long asset = stock("BTC-USD", "PURCHASE", "EUR", 50000);
+        when(provider.getQuotes(java.util.List.of("BTC-USD")))
+                .thenReturn(
+                        java.util.List.of(
+                                MarketQuote.builder()
+                                        .symbol("BTC-USD")
+                                        .currency("USD")
+                                        .price(new BigDecimal("81875.92"))
+                                        .build()));
+        org.mockito.Mockito.doReturn(new BigDecimal("73112.80"))
+                .when(rates)
+                .convert(new BigDecimal("81875.92"), "USD", "EUR");
+        EncryptionContext.clear();
+        org.springframework.security.core.context.SecurityContextHolder.clearContext();
+
+        scheduler.triggerManualUpdate();
+
+        assertThat(EncryptionContext.getKey()).isNull();
+        money(json("GET", "/assets/" + asset, null, owner, 200), "currentPrice", "73112.80");
+    }
+
+    @Test
+    void historicalQuotePricesUseTheirOwnCurrencyAndEachDatesExchangeRate() throws Exception {
+        LocalDate first = LocalDate.now().minusDays(1);
+        LocalDate second = LocalDate.now();
+        HistoricalPrice price =
+                HistoricalPrice.builder()
+                        .symbol("BTC-USD")
+                        .currency("USD")
+                        .date(first)
+                        .open(new BigDecimal("80000"))
+                        .high(new BigDecimal("83000"))
+                        .low(new BigDecimal("79000"))
+                        .close(new BigDecimal("81875.92"))
+                        .volume(123L)
+                        .build();
+        when(provider.getHistoricalPrices("BTC-USD", first, second))
+                .thenReturn(java.util.List.of(price, price.toBuilder().date(second).build()));
+        storeRate(first, "0.9");
+        storeRate(second, "0.8");
+        cacheManager.getCache("exchangeRates").clear();
+        String path = "/market/history?symbol=BTC-USD&startDate=" + first + "&endDate=" + second;
+
+        JsonNode converted = json("GET", path + "&currency=EUR", null, owner, 200);
+
+        assertThat(converted.get(0).path("currency").asText()).isEqualTo("EUR");
+        money(converted.get(0), "close", "73688.328");
+        money(converted.get(0), "open", "72000");
+        money(converted.get(0), "high", "74700");
+        money(converted.get(0), "low", "71100");
+        money(converted.get(1), "close", "65500.736");
+        assertThat(converted.get(0).path("volume").asLong()).isEqualTo(123L);
+        assertThat(converted.get(0).path("adjustedClose").isNull()).isTrue();
+        JsonNode original = json("GET", path, null, owner, 200);
+        assertThat(original.get(0).path("currency").asText()).isEqualTo("USD");
+        money(original.get(0), "close", "81875.92");
+
+        cacheManager.getCache("exchangeRates").clear();
+        doThrow(new IllegalStateException("Historical FX unavailable"))
+                .when(rates)
+                .getExchangeRateQuote("USD", "EUR", first);
+        json("GET", path + "&currency=EUR", null, owner, 503);
+    }
+
+    private void storeRate(LocalDate date, String rate) {
+        ExchangeRate stored =
+                rateRepository
+                        .findByBaseCurrencyAndTargetCurrencyAndRateDate("USD", "EUR", date)
+                        .orElseGet(
+                                () ->
+                                        ExchangeRate.builder()
+                                                .baseCurrency("USD")
+                                                .targetCurrency("EUR")
+                                                .rateDate(date)
+                                                .source("asset-history-regression")
+                                                .build());
+        stored.setRate(new BigDecimal(rate));
+        rateRepository.save(stored);
+    }
+
+    @Test
+    void historyRejectsUnknownCurrencyInsteadOfRelabelingThePrice() throws Exception {
+        LocalDate today = LocalDate.now();
+        when(provider.getHistoricalPrices("BTC-USD", today, today))
+                .thenReturn(
+                        java.util.List.of(
+                                HistoricalPrice.builder()
+                                        .symbol("BTC-USD")
+                                        .date(today)
+                                        .close(new BigDecimal("81875.92"))
+                                        .build()));
+        json(
+                "GET",
+                "/market/history?symbol=BTC-USD&startDate="
+                        + today
+                        + "&endDate="
+                        + today
+                        + "&currency=EUR",
+                null,
+                owner,
+                503);
+    }
 
     @Test
     void auditMissingFxPreservesLastKnownAssetPrice() throws Exception {

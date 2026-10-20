@@ -519,7 +519,7 @@ export default function AssetsPage() {
       {/* Asset Detail Modal */}
       {viewingAsset && (
         <AssetDetailModal
-          asset={viewingAsset}
+          asset={allAssetsList?.find(asset => asset.id === viewingAsset.id) ?? viewingAsset}
           onClose={() => setViewingAsset(null)}
           onEdit={handleEdit}
           onDelete={handleDelete}

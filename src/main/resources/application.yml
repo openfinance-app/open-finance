@@ -175,7 +175,7 @@ application:
       open-hour: 9
       close-hour: 16
     market-data:
-      mode: DEFAULT
+      mode: EVERY_HOUR        # Crypto trades around the clock; DEFAULT limits updates to market hours.
       interval-hours: 6       # used only when mode is STARTUP_AND_EVERY_X_HOURS
     exchange-rates:
       mode: DEFAULT

@@ -18,6 +18,7 @@ export interface MarketQuote {
 }
 
 export interface HistoricalPrice {
+  currency: string | null;
   date: string;
   open: number;
   high: number;

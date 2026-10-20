@@ -16,13 +16,16 @@ import lombok.NoArgsConstructor;
  * @since 2024-01-20
  */
 @Data
-@Builder
+@Builder(toBuilder = true)
 @NoArgsConstructor
 @AllArgsConstructor
 public class HistoricalPrice {
 
     /** Trading symbol (e.g., "AAPL", "MSFT", "BTC-USD"). */
     private String symbol;
+
+    /** Currency of all price fields, supplied by the provider or explicit conversion. */
+    private String currency;
 
     /** Date of the price data. */
     private LocalDate date;

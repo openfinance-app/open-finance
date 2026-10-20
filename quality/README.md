@@ -32,6 +32,13 @@ Run `mvn compile spotbugs:check`. A new identity fails the check. Review it agai
 source and fix real defects; do not regenerate this file from current output just
 to make CI pass.
 
+The asset-price refresh correction reviewed two exact `MarketDataScheduler` constructor
+identities. One is the already-baselined scheduler configuration under its new constructor
+signature; the other is the encryption configuration shared with the request filters and
+other schedulers. Both intentionally retain Spring-managed configuration by reference.
+Only these two `EI_EXPOSE_REP2` identities were added; the existing baseline and every
+quality gate remain in place.
+
 The fourth finance correction round reviewed 24 exact reference identities: 16
 existing Spring fields whose constructor signatures changed, four intentionally
 shared collaborators in the atomic purchase service, and four accessors for the

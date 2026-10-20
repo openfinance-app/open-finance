@@ -40,6 +40,30 @@ class MarketDataServiceTest {
 
     @InjectMocks private MarketDataService marketDataService;
 
+    @Test
+    void refreshesZeroQuantityImportedHoldingsWithoutInterruptingOtherPrices() {
+        Asset closed = createMockAsset(1L, 10L, "BTC", new BigDecimal("50000"));
+        closed.setType(AssetType.CRYPTO);
+        closed.setQuantity(BigDecimal.ZERO);
+        closed.setValuationRemainder(new BigDecimal("0.001"));
+        Asset open = createMockAsset(2L, 10L, "BTC-USD", new BigDecimal("50000"));
+        when(assetRepository.findByUserId(10L)).thenReturn(List.of(closed, open));
+        when(marketDataProvider.getQuotes(List.of("BTC-USD")))
+                .thenReturn(
+                        List.of(
+                                MarketQuote.builder()
+                                        .symbol("BTC-USD")
+                                        .currency("USD")
+                                        .price(new BigDecimal("81875.920000001"))
+                                        .build()));
+
+        assertThat(marketDataService.updateAssetPrices(10L)).isEqualTo(2);
+        assertThat(closed.getTotalValue()).isEqualByComparingTo(BigDecimal.ZERO);
+        assertThat(closed.getCurrentPrice()).isEqualByComparingTo("81875.920000001");
+        assertThat(open.getCurrentPrice()).isEqualByComparingTo("81875.920000001");
+        assertThat(closed.getSymbol()).isEqualTo("BTC-USD");
+    }
+
     @BeforeEach
     void setUp() {
         // Common setup can go here if needed

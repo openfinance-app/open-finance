@@ -264,6 +264,7 @@ public class YahooFinanceProvider implements MarketDataProvider {
             }
 
             JsonNode result = chart.get(0);
+            String currency = result.path("meta").path("currency").asText(null);
             JsonNode timestamps = result.path("timestamp");
             JsonNode indicators = result.path("indicators").path("quote").get(0);
             JsonNode adjClose = result.path("indicators").path("adjclose");
@@ -293,6 +294,7 @@ public class YahooFinanceProvider implements MarketDataProvider {
                 HistoricalPrice price =
                         HistoricalPrice.builder()
                                 .symbol(symbol)
+                                .currency(currency)
                                 .date(date)
                                 .open(getBigDecimal(opens.get(i)))
                                 .high(getBigDecimal(highs.get(i)))

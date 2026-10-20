@@ -1,8 +1,10 @@
 package org.openfinance.controller;
 
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Locale;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.openfinance.dto.HistoricalPrice;
@@ -246,6 +248,7 @@ public class MarketDataController {
      * @param symbol the trading symbol (required, not blank)
      * @param startDate the start date (required, ISO format: yyyy-MM-dd)
      * @param endDate the end date (required, ISO format: yyyy-MM-dd)
+     * @param currency optional display currency; uses each historical date's exchange rate
      * @param authentication the authenticated user
      * @return list of historical prices ordered by date
      * @throws IllegalArgumentException if parameters are invalid or endDate < startDate
@@ -256,6 +259,7 @@ public class MarketDataController {
             @RequestParam @NotBlank(message = "Symbol is required") String symbol,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
+            @RequestParam(required = false) @Pattern(regexp = "[A-Za-z0-9]{3,10}") String currency,
             Authentication authentication) {
 
         log.info(
@@ -272,7 +276,8 @@ public class MarketDataController {
 
         try {
             List<HistoricalPrice> prices =
-                    marketDataService.getHistoricalPrices(symbol.toUpperCase(), startDate, endDate);
+                    marketDataService.getHistoricalPrices(
+                            symbol.toUpperCase(Locale.ROOT), startDate, endDate, currency);
             log.debug("Successfully fetched {} historical prices for {}", prices.size(), symbol);
             return ResponseEntity.ok(prices);
 
@@ -318,7 +323,7 @@ public class MarketDataController {
      *   <li>Updates currentPrice and lastUpdated fields
      *   <li>Requires asset to have a symbol
      *   <li>Invalidates cached quote
-     *   <li>Automatic updates run hourly during market hours
+     *   <li>Automatic updates follow the configured market-data schedule
      * </ul>
      *
      * @param assetId the ID of the asset to update

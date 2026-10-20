@@ -53,9 +53,14 @@ export function useSymbolSearch(query: string) {
 /**
  * Fetch historical prices for a symbol
  */
-export function useHistoricalPrices(symbol: string | null, startDate: string, endDate: string) {
+export function useHistoricalPrices(
+  symbol: string | null,
+  startDate: string,
+  endDate: string,
+  currency?: string
+) {
   return useQuery<HistoricalPrice[]>({
-    queryKey: ['market', 'history', symbol, startDate, endDate],
+    queryKey: ['market', 'history', symbol, startDate, endDate, currency],
     queryFn: async () => {
       if (!symbol) throw new Error('Symbol is required');
 
@@ -64,6 +69,7 @@ export function useHistoricalPrices(symbol: string | null, startDate: string, en
         startDate,
         endDate,
       });
+      if (currency) params.set('currency', currency);
 
       const response = await apiClient.get<HistoricalPrice[]>(
         `/market/history?${params.toString()}`
@@ -71,7 +77,7 @@ export function useHistoricalPrices(symbol: string | null, startDate: string, en
       return response.data;
     },
     enabled: !!symbol && !!startDate && !!endDate,
-    staleTime: 60 * 60 * 1000, // 1 hour (historical data doesn't change)
+    staleTime: 5 * 60 * 1000, // Today's daily candle can change until the market closes.
   });
 }
 
@@ -91,6 +97,7 @@ export function useUpdateAssetPrice() {
     onSuccess: () => {
       // Invalidate assets query to refetch with updated prices
       queryClient.invalidateQueries({ queryKey: ['assets'] });
+      queryClient.invalidateQueries({ queryKey: ['market', 'history'] });
       // Refresh dashboard cards (Net Worth, Total Assets) which cache with a long staleTime
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
     },
@@ -114,6 +121,7 @@ export function useUpdateAllAssetPrices() {
     onSuccess: () => {
       // Invalidate assets query to refetch with updated prices
       queryClient.invalidateQueries({ queryKey: ['assets'] });
+      queryClient.invalidateQueries({ queryKey: ['market', 'history'] });
       // Refresh dashboard cards (Net Worth, Total Assets) which cache with a long staleTime
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
     },

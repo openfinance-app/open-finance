@@ -3,10 +3,16 @@ package org.openfinance.scheduler;
 import java.time.DayOfWeek;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.util.Optional;
+import javax.crypto.SecretKey;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.openfinance.config.EncryptionProperties;
 import org.openfinance.config.SchedulerProperties;
 import org.openfinance.repository.UserRepository;
+import org.openfinance.security.EncryptionContext;
+import org.openfinance.security.EncryptionKeyCache;
+import org.openfinance.security.UserEncryptionLock;
 import org.openfinance.service.MarketDataService;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
@@ -16,11 +22,11 @@ import org.springframework.stereotype.Component;
 /**
  * Scheduled job for automatically updating asset prices from market data.
  *
- * <p>This scheduler runs hourly during market hours to keep asset prices current. Updates are only
- * performed during regular trading hours (9 AM - 4 PM ET, Monday-Friday) to avoid unnecessary API
- * calls when markets are closed.
+ * <p>The shipped configuration uses {@code EVERY_HOUR}, including nights and weekends for crypto.
+ * Selecting {@code DEFAULT} restricts updates to the market-hours window below. Encrypted
+ * deployments update only users with a cached encryption key, acquired at login.
  *
- * <p><strong>Default Schedule:</strong>
+ * <p><strong>DEFAULT-mode Schedule:</strong>
  *
  * <ul>
  *   <li>Frequency: Every hour (0 minutes past the hour)
@@ -74,6 +80,9 @@ public class MarketDataScheduler implements ApplicationRunner {
     private final MarketDataService marketDataService;
     private final UserRepository userRepository;
     private final SchedulerProperties schedulerProperties;
+    private final EncryptionKeyCache encryptionKeyCache;
+    private final EncryptionProperties encryptionProperties;
+    private final UserEncryptionLock userEncryptionLock;
 
     // -----------------------------------------------------------------
     // Startup execution
@@ -152,7 +161,7 @@ public class MarketDataScheduler implements ApplicationRunner {
 
             for (Long userId : userIds) {
                 try {
-                    int assetsUpdated = marketDataService.updateAssetPrices(userId);
+                    int assetsUpdated = updateUserAssetPrices(userId);
                     if (assetsUpdated > 0) {
                         successfulUsers++;
                         totalAssetsUpdated += assetsUpdated;
@@ -200,7 +209,7 @@ public class MarketDataScheduler implements ApplicationRunner {
             int totalAssetsUpdated = 0;
             for (Long userId : userIds) {
                 try {
-                    totalAssetsUpdated += marketDataService.updateAssetPrices(userId);
+                    totalAssetsUpdated += updateUserAssetPrices(userId);
                 } catch (Exception e) {
                     log.error("Failed to update assets for user {}: {}", userId, e.getMessage());
                 }
@@ -222,6 +231,26 @@ public class MarketDataScheduler implements ApplicationRunner {
     // -----------------------------------------------------------------
     // Helpers
     // -----------------------------------------------------------------
+
+    private int updateUserAssetPrices(Long userId) {
+        try (UserEncryptionLock.Scope ignored = userEncryptionLock.acquire(userId, false)) {
+            Optional<SecretKey> key = encryptionKeyCache.getKey(userId);
+            if (encryptionProperties.isEnabled() && key.isEmpty()) {
+                log.debug(
+                        "Skipping asset price update for user {} - no cached encryption key",
+                        userId);
+                return 0;
+            }
+            SecretKey previousKey = EncryptionContext.getKey();
+            try {
+                EncryptionContext.setKey(key.orElse(null));
+                return marketDataService.updateAssetPrices(userId);
+            } finally {
+                if (previousKey == null) EncryptionContext.clear();
+                else EncryptionContext.setKey(previousKey);
+            }
+        }
+    }
 
     /**
      * Returns {@code true} if {@code time} falls on a weekday within the configured market-hours

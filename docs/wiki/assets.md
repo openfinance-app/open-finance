@@ -53,8 +53,8 @@ For physical assets (vehicles, jewellery, collectibles), you can record the item
 | Type           | Choose from the asset types above              |
 | Quantity       | Number of units or shares                      |
 | Purchase Price | Cost per unit when you bought it               |
-| Current Price  | Updated automatically from live market data    |
-| Currency       | The currency the asset is denominated in       |
+| Current Price  | Current price per unit; refreshed for assets with a symbol |
+| Currency       | Currency of both prices (e.g. EUR for a BTC purchase priced in euros) |
 | Purchase Date  | Used to calculate gain/loss and holding period |
 | Notes          | Optional free-text notes                       |
 
@@ -62,7 +62,9 @@ For physical assets (vehicles, jewellery, collectibles), you can record the item
 
 ## Live Price Updates
 
-For assets with a ticker symbol, Open-Finance fetches current market prices daily. You can also trigger an immediate price refresh from the asset detail page using the **Refresh Price** button.
+For assets with a ticker symbol, the shipped configuration refreshes current market prices hourly, including weekends. You can also trigger an immediate refresh using **Refresh Prices** on the Assets page. The administrator can change the schedule; encrypted accounts require a cached encryption key from a recent login.
+
+The detail chart shows daily prices per unit in its displayed currency, converted with the exchange rate for each date. A historical closing price can differ from the latest quote, and today's daily candle can still change. Missing market data or exchange rates are shown as unavailable.
 
 See [Market Data](market-data.md) for details on supported symbols and price sources.
 

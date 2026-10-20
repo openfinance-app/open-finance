@@ -99,6 +99,9 @@
       "edit": "Modifier"
     },
     "noHistoricalData": "Aucune donnée historique disponible pour cette période",
+    "historyHint": "Cours de clôture quotidien par unité en {{currency}}, avec le taux de change de chaque date. Le cours du jour peut encore évoluer.",
+    "historyError": "Impossible de charger l'historique des prix en {{currency}}. Les cours ou les taux de change peuvent être indisponibles.",
+    "closingPrice": "Cours de clôture",
     "addSymbolForHistory": "Ajoutez un symbole pour voir l'historique des prix",
     "deleteConfirm": {
       "title": "Supprimer l'actif",

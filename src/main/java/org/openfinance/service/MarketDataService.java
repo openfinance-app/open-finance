@@ -1,9 +1,11 @@
 package org.openfinance.service;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Locale;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.openfinance.dto.HistoricalPrice;
@@ -179,7 +181,7 @@ public class MarketDataService {
                                             "Asset not found: " + assetId);
                                 });
 
-        String symbol = asset.getSymbol();
+        String symbol = normalizeSymbol(asset);
         if (asset.getAcquisitionType() == AcquisitionType.PLANNED) {
             return false;
         }
@@ -199,7 +201,9 @@ public class MarketDataService {
 
             BigDecimal oldPrice = asset.getCurrentPrice();
             BigDecimal priceInAssetCcy = priceInAssetCurrency(quote, asset);
-            asset.updateTotalValue(priceInAssetCcy.multiply(asset.getQuantity()));
+            asset.setCurrentPrice(priceInAssetCcy);
+            asset.setValuationRemainder(BigDecimal.ZERO);
+            asset.setSymbol(symbol);
             asset.setLastUpdated(LocalDateTime.now());
             assetRepository.save(asset);
 
@@ -309,7 +313,8 @@ public class MarketDataService {
                                 ex.getMessage());
                         continue;
                     }
-                    asset.updateTotalValue(convertedPrice.multiply(asset.getQuantity()));
+                    asset.setCurrentPrice(convertedPrice);
+                    asset.setValuationRemainder(BigDecimal.ZERO);
                     asset.setLastUpdated(now);
                     // Persist the normalized symbol so future lookups work correctly
                     if (!normalizedSymbol.equals(asset.getSymbol())) {
@@ -360,11 +365,61 @@ public class MarketDataService {
      */
     public List<HistoricalPrice> getHistoricalPrices(
             String symbol, LocalDate startDate, LocalDate endDate) {
+        return getHistoricalPrices(symbol, startDate, endDate, null);
+    }
+
+    /** Returns daily prices in the requested currency using each point's dated FX rate. */
+    public List<HistoricalPrice> getHistoricalPrices(
+            String symbol, LocalDate startDate, LocalDate endDate, String currency) {
         log.debug("Fetching historical prices for {} from {} to {}", symbol, startDate, endDate);
         List<HistoricalPrice> prices =
                 marketDataProvider.getHistoricalPrices(symbol, startDate, endDate);
+        if (currency != null) {
+            String targetCurrency = currency.toUpperCase(Locale.ROOT);
+            prices =
+                    prices.stream()
+                            .map(price -> convertHistoricalPrice(price, targetCurrency))
+                            .toList();
+        }
         log.info("Successfully fetched {} historical prices for {}", prices.size(), symbol);
         return prices;
+    }
+
+    private HistoricalPrice convertHistoricalPrice(HistoricalPrice price, String currency) {
+        if (price.getCurrency() == null || price.getCurrency().isBlank()) {
+            throw new MarketDataException(
+                    "Historical quote currency is unavailable", price.getSymbol(), 503);
+        }
+        if (currency.equalsIgnoreCase(price.getCurrency())) {
+            return price.toBuilder().currency(currency).build();
+        }
+        try {
+            if (price.getDate() == null)
+                throw new IllegalStateException("Historical quote date is unavailable");
+            BigDecimal rate =
+                    exchangeRateService.getExchangeRate(
+                            price.getCurrency(), currency, price.getDate());
+            if (rate == null || rate.signum() <= 0)
+                throw new IllegalStateException("Exchange rate must be positive");
+            return price.toBuilder()
+                    .currency(currency)
+                    .open(convertHistoricalAmount(price.getOpen(), rate))
+                    .high(convertHistoricalAmount(price.getHigh(), rate))
+                    .low(convertHistoricalAmount(price.getLow(), rate))
+                    .close(convertHistoricalAmount(price.getClose(), rate))
+                    .adjustedClose(convertHistoricalAmount(price.getAdjustedClose(), rate))
+                    .build();
+        } catch (Exception e) {
+            throw new MarketDataException(
+                    "Historical quote currency conversion is unavailable",
+                    price.getSymbol(),
+                    503,
+                    e);
+        }
+    }
+
+    private BigDecimal convertHistoricalAmount(BigDecimal amount, BigDecimal rate) {
+        return amount == null ? null : amount.multiply(rate).setScale(18, RoundingMode.HALF_UP);
     }
 
     /**

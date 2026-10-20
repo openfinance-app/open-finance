@@ -24,6 +24,7 @@ interface PaginatedResponse<T> {
  */
 export function useAssets(filters?: AssetFilters) {
   return useQuery<Asset[]>({
+    refetchInterval: 60 * 1000,
     queryKey: ['assets', filters],
     queryFn: async () => {
       const params = new URLSearchParams();
@@ -47,6 +48,7 @@ export function useAssets(filters?: AssetFilters) {
  */
 export function useAssetsSearch(filters?: AssetFilters) {
   return useQuery<PaginatedResponse<Asset>>({
+    refetchInterval: 60 * 1000,
     queryKey: ['assets', 'search', filters],
     queryFn: async () => {
       const params = new URLSearchParams();

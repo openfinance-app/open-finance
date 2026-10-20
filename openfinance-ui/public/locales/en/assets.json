@@ -99,6 +99,9 @@
       "edit": "Edit"
     },
     "noHistoricalData": "No historical data available for this time range",
+    "historyHint": "Daily closing price per unit in {{currency}}, using exchange rates for each date. Today's price may still change.",
+    "historyError": "Price history could not be loaded in {{currency}}. Market data or exchange rates may be unavailable.",
+    "closingPrice": "Closing price",
     "addSymbolForHistory": "Add a symbol to view price history",
     "deleteConfirm": {
       "title": "Delete Asset",

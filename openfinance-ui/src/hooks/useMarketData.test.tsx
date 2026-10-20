@@ -82,6 +82,22 @@ describe('useMarketData hooks', () => {
 
   // ── useHistoricalPrices ─────────────────────────────────────────────────
   describe('useHistoricalPrices', () => {
+    it('requests the display currency and separates currency histories in the cache', async () => {
+      mockedApiClient.get.mockImplementation(async (url: string) => ({
+        data: [{ date: '2026-10-19', close: url.includes('currency=EUR') ? 73112.8 : 81875.92 }],
+      }));
+      const { result, rerender } = renderHook(
+        ({ currency }) => useHistoricalPrices('BTC-USD', '2026-10-18', '2026-10-19', currency),
+        { wrapper, initialProps: { currency: 'EUR' } }
+      );
+      await waitFor(() => expect(result.current.data?.[0].close).toBe(73112.8));
+      expect(mockedApiClient.get).toHaveBeenCalledWith(
+        '/market/history?symbol=BTC-USD&startDate=2026-10-18&endDate=2026-10-19&currency=EUR'
+      );
+      rerender({ currency: 'USD' });
+      await waitFor(() => expect(result.current.data?.[0].close).toBe(81875.92));
+    });
+
     it('should fetch historical prices for a symbol', async () => {
       const mockPrices = [
         {

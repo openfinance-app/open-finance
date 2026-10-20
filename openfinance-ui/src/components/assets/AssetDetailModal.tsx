@@ -103,11 +103,18 @@ export function AssetDetailModal({ asset, onClose, onEdit, onDelete }: AssetDeta
   };
 
   const { startDate, endDate } = getDateRange();
-  const { data: historicalData, isLoading: isLoadingHistory } = useHistoricalPrices(
-    asset.symbol || null,
-    startDate,
-    endDate
-  );
+  const isConverted = asset.isConverted && !!asset.baseCurrency && !!asset.exchangeRate;
+  const chartCurrency = isConverted && asset.baseCurrency ? asset.baseCurrency : asset.currency;
+  const symbol = asset.symbol?.trim();
+  const historySymbol =
+    asset.type === 'CRYPTO' && symbol && !symbol.includes('-')
+      ? `${symbol.toUpperCase()}-USD`
+      : symbol;
+  const {
+    data: historicalData,
+    isLoading: isLoadingHistory,
+    isError: isHistoryError,
+  } = useHistoricalPrices(historySymbol || null, startDate, endDate, chartCurrency);
 
   // Close modal on Escape key
   useEffect(() => {
@@ -133,19 +140,17 @@ export function AssetDetailModal({ asset, onClose, onEdit, onDelete }: AssetDeta
     onClose();
   };
 
-  // Determine if we should display chart in base currency
-  const isConverted = asset.isConverted && !!asset.baseCurrency && !!asset.exchangeRate;
-  const chartCurrency = isConverted && asset.baseCurrency ? asset.baseCurrency : asset.currency;
-
-  // Transform historical data for chart
+  // The API converts the quote currency using the exchange rate for each historical date.
+  // Never apply the holding's current FX rate to this series or relabel unknown currencies.
+  const historyCurrencyMismatch = historicalData?.some(item => item.currency !== chartCurrency);
+  const historyUnavailable = isHistoryError || historyCurrencyMismatch;
   const chartData =
     historicalData?.map(item => ({
       date: formatDate(item.date),
-      price:
-        isConverted && asset.exchangeRate ? multiply(item.close, asset.exchangeRate) : item.close,
+      price: item.close,
     })) || [];
 
-  const hasHistoricalData = asset.symbol && historicalData && historicalData.length > 0;
+  const hasHistoricalData = !historyUnavailable && chartData.length > 0;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
@@ -364,7 +369,17 @@ export function AssetDetailModal({ asset, onClose, onEdit, onDelete }: AssetDeta
                         </div>
                       </div>
 
+                      <p className="text-xs text-muted-foreground mb-4">
+                        {t('detail.historyHint', { currency: chartCurrency })}
+                      </p>
+
                       {isLoadingHistory && <LoadingSkeleton className="h-64" />}
+
+                      {!isLoadingHistory && historyUnavailable && (
+                        <p role="alert" className="text-sm text-error py-8">
+                          {t('detail.historyError', { currency: chartCurrency })}
+                        </p>
+                      )}
 
                       {!isLoadingHistory && hasHistoricalData && (
                         <ResponsiveContainer width="100%" height={300} minWidth={0}>
@@ -391,7 +406,7 @@ export function AssetDetailModal({ asset, onClose, onEdit, onDelete }: AssetDeta
                               }}
                               formatter={(value: number | undefined) => [
                                 value != null ? formatCurrency(value, chartCurrency) : 'N/A',
-                                'Price',
+                                t('detail.closingPrice'),
                               ]}
                             />
                             <Line
@@ -406,7 +421,7 @@ export function AssetDetailModal({ asset, onClose, onEdit, onDelete }: AssetDeta
                         </ResponsiveContainer>
                       )}
 
-                      {!isLoadingHistory && !hasHistoricalData && (
+                      {!isLoadingHistory && !historyUnavailable && !hasHistoricalData && (
                         <div className="flex items-center justify-center h-64 text-muted-foreground">
                           <p className="text-sm">
                             {asset.symbol

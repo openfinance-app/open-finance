@@ -2,12 +2,22 @@ package org.openfinance.scheduler;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import java.time.LocalDate;
+import java.util.List;
+import javax.crypto.spec.SecretKeySpec;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.openfinance.config.EncryptionProperties;
 import org.openfinance.config.SchedulerProperties;
+import org.openfinance.entity.User;
 import org.openfinance.repository.UserRepository;
+import org.openfinance.security.EncryptionContext;
+import org.openfinance.security.EncryptionKeyCache;
+import org.openfinance.security.UserEncryptionLock;
 import org.openfinance.service.MarketDataService;
 
 /**
@@ -28,7 +38,12 @@ class MarketDataSchedulerTest {
         props.getMarketHours().setOpenHour(openHour);
         props.getMarketHours().setCloseHour(closeHour);
         return new MarketDataScheduler(
-                mock(MarketDataService.class), mock(UserRepository.class), props);
+                mock(MarketDataService.class),
+                mock(UserRepository.class),
+                props,
+                new EncryptionKeyCache(),
+                new EncryptionProperties(),
+                new UserEncryptionLock());
     }
 
     @Test
@@ -66,7 +81,12 @@ class MarketDataSchedulerTest {
         SchedulerProperties props = new SchedulerProperties();
         MarketDataScheduler scheduler =
                 new MarketDataScheduler(
-                        mock(MarketDataService.class), mock(UserRepository.class), props);
+                        mock(MarketDataService.class),
+                        mock(UserRepository.class),
+                        props,
+                        new EncryptionKeyCache(),
+                        new EncryptionProperties(),
+                        new UserEncryptionLock());
 
         assertThat(props.getMarketHours().getZone()).isEqualTo("America/New_York");
         assertThat(props.getMarketHours().getOpenHour()).isEqualTo(9);
@@ -75,5 +95,71 @@ class MarketDataSchedulerTest {
         assertThat(scheduler.isMarketHours(WEDNESDAY.atTime(16, 0))).isTrue();
         assertThat(scheduler.isMarketHours(WEDNESDAY.atTime(8, 0))).isFalse();
         assertThat(scheduler.isMarketHours(WEDNESDAY.atTime(17, 0))).isFalse();
+    }
+
+    @Test
+    void scheduledUpdatesIsolateUserKeysAndSkipLockedUsersEvenAfterFailure() {
+        MarketDataService service = mock(MarketDataService.class);
+        UserRepository users = mock(UserRepository.class);
+        SchedulerProperties props = new SchedulerProperties();
+        props.getMarketData().setMode(SchedulerProperties.SchedulingMode.EVERY_HOUR);
+        EncryptionKeyCache keys = new EncryptionKeyCache();
+        SecretKeySpec firstKey = new SecretKeySpec(new byte[32], "AES");
+        SecretKeySpec secondKey = new SecretKeySpec(new byte[16], "AES");
+        keys.cacheKey(1L, firstKey);
+        keys.cacheKey(2L, secondKey);
+        when(users.findAll())
+                .thenReturn(
+                        List.of(
+                                User.builder().id(1L).build(),
+                                User.builder().id(2L).build(),
+                                User.builder().id(3L).build()));
+        when(service.updateAssetPrices(1L))
+                .thenAnswer(
+                        invocation -> {
+                            assertThat(EncryptionContext.getKey()).isSameAs(firstKey);
+                            throw new IllegalStateException("Provider unavailable");
+                        });
+        when(service.updateAssetPrices(2L))
+                .thenAnswer(
+                        invocation -> {
+                            assertThat(EncryptionContext.getKey()).isSameAs(secondKey);
+                            return 1;
+                        });
+
+        new MarketDataScheduler(
+                        service,
+                        users,
+                        props,
+                        keys,
+                        new EncryptionProperties(),
+                        new UserEncryptionLock())
+                .updateAssetPrices();
+
+        verify(service).updateAssetPrices(1L);
+        verify(service).updateAssetPrices(2L);
+        verify(service, never()).updateAssetPrices(3L);
+        assertThat(EncryptionContext.getKey()).isNull();
+    }
+
+    @Test
+    void plaintextDeploymentsDoNotRequireCachedKeys() {
+        MarketDataService service = mock(MarketDataService.class);
+        UserRepository users = mock(UserRepository.class);
+        EncryptionProperties encryption = new EncryptionProperties();
+        encryption.setEnabled(false);
+        when(users.findAll()).thenReturn(List.of(User.builder().id(1L).build()));
+
+        new MarketDataScheduler(
+                        service,
+                        users,
+                        new SchedulerProperties(),
+                        new EncryptionKeyCache(),
+                        encryption,
+                        new UserEncryptionLock())
+                .triggerManualUpdate();
+
+        verify(service).updateAssetPrices(1L);
+        assertThat(EncryptionContext.getKey()).isNull();
     }
 }

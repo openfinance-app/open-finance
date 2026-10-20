@@ -6,7 +6,7 @@
 
 ## Overview
 
-Open-Finance integrates with Yahoo Finance to fetch real-time and historical price data for your investment assets. Exchange rates for multi-currency support are sourced from the European Central Bank (ECB).
+Open-Finance integrates with Yahoo Finance to fetch real-time and historical price data for your investment assets. Currency conversion uses stored exchange rates and can fetch missing pairs from Yahoo Finance.
 
 There is no dedicated Market Data page: prices, charts, and symbol search live on the [Assets](assets.md) pages, and updates run via a background scheduler.
 
@@ -27,30 +27,30 @@ There is no dedicated Market Data page: prices, charts, and symbol search live o
 
 ## Automatic Price Updates
 
-Prices are fetched automatically once a day at market close. Open-Finance updates the current price for every asset in your portfolio that has a ticker symbol, then converts prices to your base currency using the latest exchange rates.
+The shipped schedule is hourly, including nights and weekends, so crypto prices can refresh around the clock. Quotes are converted into the asset's price currency; portfolio totals can then be displayed in your base currency. Planned acquisitions and assets without a symbol are skipped.
+
+Administrators can configure `application.scheduled.market-data.mode`. `EVERY_HOUR` runs at the top of every hour; `DEFAULT` restricts updates to weekday market hours (9 AM–4 PM America/New_York unless configured otherwise). Encrypted deployments require each user's cached encryption key from a recent login. Users without a cached key are skipped until they log in again.
 
 ---
 
 ## Manual Price Refresh
 
-To get an immediate price update without waiting for the next scheduled run, open any asset’s detail page and click **Refresh Price**.
+To get an immediate price update without waiting for the next scheduled run, click **Refresh Prices** on the Assets page.
 
 ---
 
 ## Historical Price Charts
 
-The asset detail page shows a price history chart. You can select different time ranges:
+The asset detail page shows daily prices per unit in the chart's displayed currency. The API retains the provider's quote currency and converts each point with its dated exchange rate. Closing prices can differ from the latest quote, and today's candle can still change. If currency metadata or exchange rates are unavailable, the chart shows an error instead of labeling unconverted prices with a different currency.
+
+You can select different time ranges:
 
 | Range | Description      |
 | ----- | ---------------- |
-| 1D    | Last trading day |
-| 5D    | Last 5 days      |
 | 1M    | Last month       |
 | 3M    | Last 3 months    |
 | 6M    | Last 6 months    |
 | 1Y    | Last 12 months   |
-| 2Y    | Last 2 years     |
-| 5Y    | Last 5 years     |
 
 ---
 
@@ -62,9 +62,7 @@ When adding a new asset, use the symbol search field to find and verify the corr
 
 ## Exchange Rates
 
-Currency conversion uses daily rates published by the European Central Bank. Rates are refreshed once a day in the late afternoon (ECB publication time). All dashboard totals and portfolio values are converted to your base currency using these rates.
-
-Approximately 30 major currencies are supported.
+Historical conversions use the latest available exchange rate on or before the requested date. Current valuations use the latest available rate. The exchange-rate refresh schedule is configured independently through `application.scheduled.exchange-rates`.
 
 ---
 
