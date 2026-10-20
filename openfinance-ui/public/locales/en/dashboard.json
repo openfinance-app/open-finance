@@ -263,6 +263,7 @@
     "account_plural": "accounts",
     "percentOfTotal": "{{percent}}% of total",
     "converting": "Converting...",
+    "valuationUnavailable": "Valuation unavailable: an exchange rate is missing.",
     "footer": "Foreign currency values converted at current exchange rates",
     "loadError": "Failed to load currency breakdown",
     "rate": "Rate: {{rate}}",

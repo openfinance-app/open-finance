@@ -263,6 +263,7 @@
     "account_plural": "comptes",
     "percentOfTotal": "{{percent}} % du total",
     "converting": "Conversion...",
+    "valuationUnavailable": "Valorisation indisponible : un taux de change est manquant.",
     "footer": "Valeurs en devises étrangères converties aux taux de change actuels",
     "loadError": "Échec du chargement de la répartition par devise",
     "rate": "Taux : {{rate}}",

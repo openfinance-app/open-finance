@@ -29,8 +29,9 @@ vi.mock('@/hooks/useAssets', () => ({
 }));
 
 vi.mock('@/hooks/useCurrency', () => ({
-  useLatestExchangeRates: (currencies: string[]) =>
-    currencies.map(() => ({ data: { rate: 1.1 }, isLoading: false })),
+  useLatestExchangeRates: vi.fn((currencies: string[]) =>
+    currencies.map(() => ({ data: { rate: 1.1 }, isLoading: false }))
+  ),
 }));
 
 vi.mock('@/hooks/useSecondaryConversion', () => ({
@@ -52,6 +53,7 @@ vi.mock('@/components/ui/PrivateAmount', () => ({
 import CurrencyBreakdown from './CurrencyBreakdown';
 import { useAccounts } from '@/hooks/useAccounts';
 import { useAssets } from '@/hooks/useAssets';
+import { useLatestExchangeRates } from '@/hooks/useCurrency';
 
 describe('CurrencyBreakdown', () => {
   beforeEach(() => {
@@ -111,7 +113,16 @@ describe('CurrencyBreakdown', () => {
 
 describe('CurrencyBreakdown underlying positions', () => {
   beforeEach(() => {
+    vi.clearAllMocks();
     mockAuthentication();
+    vi.mocked(useLatestExchangeRates).mockImplementation(currencies =>
+      currencies.map(
+        () =>
+          ({ data: { rate: 1.1 }, isLoading: false }) as ReturnType<
+            typeof useLatestExchangeRates
+          >[number]
+      )
+    );
     vi.mocked(useAccounts).mockReturnValue({
       data: [],
       isLoading: false,
@@ -182,5 +193,135 @@ describe('CurrencyBreakdown underlying positions', () => {
     expect(screen.queryByRole('button', { name: 'View assets in USD' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'View assets in GBP' })).not.toBeInTheDocument();
     expect(screen.queryByText('No assets yet')).not.toBeInTheDocument();
+  });
+
+  it.each(['BTC-USD', 'BTC-EUR', 'btc'])(
+    'shows BTC units with their recorded EUR valuation for symbol %s',
+    symbol => {
+      vi.mocked(useAssets).mockReturnValue({
+        data: [
+          {
+            id: 1,
+            name: 'Bitcoin',
+            type: 'CRYPTO',
+            symbol,
+            quantity: 1,
+            currency: 'EUR',
+            totalValue: 73284.26,
+          },
+        ],
+        isLoading: false,
+        error: null,
+      } as ReturnType<typeof useAssets>);
+
+      renderWithProviders(<CurrencyBreakdown baseCurrency="EUR" />);
+
+      const row = screen.getByRole('button', { name: 'View assets in BTC' });
+      expect(within(row).getByText('1 BTC')).toBeInTheDocument();
+      expect(within(row).getByText('73284.26')).toBeInTheDocument();
+      expect(within(row).getByText('100.0% of total')).toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: 'View assets in EUR' })).not.toBeInTheDocument();
+      expect(useLatestExchangeRates).toHaveBeenLastCalledWith(['EUR'], 'EUR', 0);
+    }
+  );
+
+  it('combines BTC quantities across valuation currencies while keeping EUR cash separate', async () => {
+    vi.mocked(useAccounts).mockReturnValue({
+      data: [{ id: 1, currency: 'EUR', balance: 70100, ownBalance: 100 }],
+      isLoading: false,
+      error: null,
+    } as ReturnType<typeof useAccounts>);
+    vi.mocked(useAssets).mockReturnValue({
+      data: [
+        {
+          id: 1,
+          accountId: 1,
+          type: 'CRYPTO',
+          symbol: 'BTC-USD',
+          quantity: 1,
+          currency: 'EUR',
+          totalValue: 70000,
+        },
+        {
+          id: 2,
+          type: 'CRYPTO',
+          symbol: 'BTC-EUR',
+          quantity: 0.5,
+          currency: 'USD',
+          totalValue: 40000,
+        },
+      ],
+      isLoading: false,
+      error: null,
+    } as ReturnType<typeof useAssets>);
+    vi.mocked(useLatestExchangeRates).mockImplementation(currencies =>
+      currencies.map(
+        () =>
+          ({ data: { rate: 0.9 }, isLoading: false }) as ReturnType<
+            typeof useLatestExchangeRates
+          >[number]
+      )
+    );
+
+    renderWithProviders(<CurrencyBreakdown baseCurrency="EUR" />);
+
+    const bitcoin = screen.getByRole('button', { name: 'View assets in BTC' });
+    expect(within(bitcoin).getByText('1.5 BTC')).toBeInTheDocument();
+    expect(within(bitcoin).getByText('106000')).toBeInTheDocument();
+    expect(
+      within(screen.getByRole('button', { name: 'View assets in EUR' })).getByText('100')
+    ).toBeInTheDocument();
+    expect(screen.getByText('106100')).toBeInTheDocument();
+
+    await userEvent.setup().click(bitcoin);
+    expect(mockNavigate).toHaveBeenCalledWith('/assets?type=CRYPTO&symbol=BTC');
+  });
+
+  it('keeps a crypto holding without a symbol out of the EUR cash group', () => {
+    vi.mocked(useAssets).mockReturnValue({
+      data: [
+        { id: 1, name: 'Bitcoin', type: 'CRYPTO', quantity: 1, currency: 'EUR', totalValue: 70000 },
+      ],
+      isLoading: false,
+      error: null,
+    } as ReturnType<typeof useAssets>);
+
+    renderWithProviders(<CurrencyBreakdown baseCurrency="EUR" />);
+
+    const row = screen.getByRole('button', { name: 'View assets in Bitcoin' });
+    expect(within(row).getByText('70000')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'View assets in EUR' })).not.toBeInTheDocument();
+  });
+
+  it.each([true, false])('never treats a missing FX rate as one while loading is %s', isLoading => {
+    vi.mocked(useAssets).mockReturnValue({
+      data: [
+        {
+          id: 1,
+          type: 'CRYPTO',
+          symbol: 'BTC-USD',
+          quantity: 1,
+          currency: 'USD',
+          totalValue: 80000,
+        },
+      ],
+      isLoading: false,
+      error: null,
+    } as ReturnType<typeof useAssets>);
+    vi.mocked(useLatestExchangeRates).mockImplementation(currencies =>
+      currencies.map(
+        () => ({ data: undefined, isLoading }) as ReturnType<typeof useLatestExchangeRates>[number]
+      )
+    );
+
+    renderWithProviders(<CurrencyBreakdown baseCurrency="EUR" />);
+
+    const row = screen.getByRole('button', { name: 'View assets in BTC' });
+    expect(within(row).getByText('1 BTC')).toBeInTheDocument();
+    expect(screen.queryByText('80000')).not.toBeInTheDocument();
+    expect(screen.queryByText('100.0% of total')).not.toBeInTheDocument();
+    expect(screen.getByRole(isLoading ? 'status' : 'alert')).toHaveTextContent(
+      isLoading ? 'Converting...' : 'Valuation unavailable'
+    );
   });
 });

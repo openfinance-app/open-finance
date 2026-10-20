@@ -76,9 +76,10 @@ export default function AssetsPage() {
     ? parseInt(searchParams.get('highlight')!)
     : null;
 
-  // Deep-link support: seed currency/type filters from URL params (validated)
+  // Deep-link support: seed currency/type/symbol filters from URL params (validated)
   const currencyParam = searchParams.get('currency');
   const typeParam = searchParams.get('type');
+  const symbolParam = searchParams.get('symbol');
   const validType =
     typeParam && (ASSET_TYPE_VALUES as readonly string[]).includes(typeParam)
       ? (typeParam as Filters['type'])
@@ -86,6 +87,10 @@ export default function AssetsPage() {
   const validCurrency =
     currencyParam && /^[A-Za-z]{3,4}$/.test(currencyParam)
       ? currencyParam.toUpperCase()
+      : undefined;
+  const validSymbol =
+    symbolParam && /^[A-Za-z0-9.-]{1,20}$/.test(symbolParam)
+      ? symbolParam.toUpperCase()
       : undefined;
 
   const { baseCurrency } = useAuthContext();
@@ -96,8 +101,11 @@ export default function AssetsPage() {
     sort: 'name,asc',
     currency: validCurrency,
     type: validType,
+    symbol: validSymbol,
   });
-  const [showFilters, setShowFilters] = useState(Boolean(validCurrency || validType));
+  const [showFilters, setShowFilters] = useState(
+    Boolean(validCurrency || validType || validSymbol)
+  );
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingAsset, setEditingAsset] = useState<Asset | null>(null);
   const [viewingAsset, setViewingAsset] = useState<Asset | null>(null);
@@ -116,10 +124,15 @@ export default function AssetsPage() {
 
   // Consume deep-link params after mount so a refresh doesn't re-impose filters
   useEffect(() => {
-    if (searchParams.get('currency') !== null || searchParams.get('type') !== null) {
+    if (
+      searchParams.get('currency') !== null ||
+      searchParams.get('type') !== null ||
+      searchParams.get('symbol') !== null
+    ) {
       const next = new URLSearchParams(searchParams);
       next.delete('currency');
       next.delete('type');
+      next.delete('symbol');
       setSearchParams(next, { replace: true });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps -- consume once on mount

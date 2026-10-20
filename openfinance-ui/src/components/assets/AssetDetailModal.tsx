@@ -501,7 +501,9 @@ export function AssetDetailModal({ asset, onClose, onEdit, onDelete }: AssetDeta
 
                   {/* Asset Costs (Task 8): capitalized improvements vs maintenance */}
                   <AssetCostsSection asset={asset} />
-                  <AssetFinancingSection assetId={asset.id} />
+                  {(asset.isPhysical || asset.type === 'REAL_ESTATE') && (
+                    <AssetFinancingSection assetId={asset.id} />
+                  )}
                 </>
               )}
 

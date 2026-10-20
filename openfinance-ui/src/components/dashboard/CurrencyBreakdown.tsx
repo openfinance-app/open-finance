@@ -1,10 +1,10 @@
-import { formatDecimal } from '@/utils/format';
+import { formatDecimal, formatExactNumber } from '@/utils/format';
 /**
  * CurrencyBreakdown - Shows asset distribution across multiple currencies
  * Sprint 6 - Task 6.2.16: Multi-currency dashboard summary
  *
  * Features:
- * - Groups accounts by currency
+ * - Groups cash and crypto units by the currency held
  * - Shows balance in each currency
  * - Converts foreign currencies to base currency using live exchange rates
  * - Displays percentage of total for each currency
@@ -19,18 +19,35 @@ import { useNavigate } from 'react-router';
 import { useAccounts } from '@/hooks/useAccounts';
 import { useAssets } from '@/hooks/useAssets';
 import { useLatestExchangeRates } from '@/hooks/useCurrency';
-import { DEFAULT_CURRENCY, formatExchangeRate } from '@/utils/currency';
+import { DEFAULT_CURRENCY, formatExchangeRate, isCryptoCurrency } from '@/utils/currency';
 import { add, multiply, sum, percentage } from '@/utils/money';
 import { ConvertedAmount } from '@/components/ui/ConvertedAmount';
 import { useSecondaryConversion } from '@/hooks/useSecondaryConversion';
+import { PrivateAmount } from '@/components/ui/PrivateAmount';
+import { getCryptoCurrency } from '@/utils/asset-symbol';
+
+interface CurrencyPosition {
+  key: string;
+  currency: string;
+  balance: number;
+  valuationCurrency: string;
+  value: number;
+  isCrypto: boolean;
+  href: string;
+}
 
 interface CurrencyBalance {
+  key: string;
   currency: string;
   balance: number;
   balanceInBase: number;
   accountCount: number;
-  percentage: number;
+  percentage?: number;
   rate?: number;
+  isCrypto: boolean;
+  href: string;
+  isLoading: boolean;
+  isUnavailable: boolean;
 }
 
 interface CurrencyBreakdownProps {
@@ -40,8 +57,8 @@ interface CurrencyBreakdownProps {
 /**
  * CurrencyBreakdown Component
  *
- * Displays a breakdown of account balances grouped by currency,
- * with conversion to base currency and percentage visualization.
+ * Displays cash and investment holdings by currency, keeping crypto quantities
+ * separate from their price currency and converting valuations to the base currency.
  */
 export default function CurrencyBreakdown({
   baseCurrency = DEFAULT_CURRENCY,
@@ -100,56 +117,45 @@ export default function CurrencyBreakdown({
     );
   }
 
-  // Group accounts by currency and calculate balances
-  const currencyGroups = (accounts ?? []).reduce(
-    (acc, account) => {
-      // Only include positive balances (assets) — negative balances are liabilities and
-      // should not inflate the currency breakdown total (matches Net Worth Card totalAssets)
-      const cash = account.ownBalance ?? account.balance;
-      if (account.isActive === false || cash <= 0) return acc;
-      if (!acc[account.currency]) {
-        acc[account.currency] = { balance: 0, accountCount: 0 };
-      }
-      acc[account.currency].balance = add(acc[account.currency].balance, cash);
-      acc[account.currency].accountCount += 1;
-      return acc;
-    },
-    {} as Record<string, { balance: number; accountCount: number }>
-  );
-
-  // Every holding retains its native currency, independent of its account's cash currency.
-  ownedAssets.forEach(asset => {
-    if (!currencyGroups[asset.currency]) {
-      currencyGroups[asset.currency] = { balance: 0, accountCount: 0 };
-    }
-    currencyGroups[asset.currency].balance = add(
-      currencyGroups[asset.currency].balance,
-      asset.totalValue
-    );
-    currencyGroups[asset.currency].accountCount += 1;
+  const positions: CurrencyPosition[] = [];
+  (accounts ?? []).forEach(account => {
+    // Account totals can include linked investments; count only their own positive cash.
+    const cash = account.ownBalance ?? account.balance;
+    if (account.isActive === false || cash <= 0) return;
+    positions.push({
+      key: account.currency,
+      currency: account.currency,
+      balance: cash,
+      valuationCurrency: account.currency,
+      value: cash,
+      isCrypto: isCryptoCurrency(account.currency),
+      href: `/assets?currency=${encodeURIComponent(account.currency)}`,
+    });
   });
 
-  // Convert to CurrencyBalance array with exchange rates
-  const currencyBalances: CurrencyBalance[] = Object.entries(currencyGroups).map(
-    ([currency, data]) => {
-      // Only fetch exchange rate if currency is different from base
-      const isForeignCurrency = currency !== baseCurrency;
-
-      return {
-        currency,
-        balance: data.balance,
-        balanceInBase: data.balance, // Will be updated below if foreign currency
-        accountCount: data.accountCount,
-        percentage: 0, // Will be calculated after totals
-        rate: undefined,
-        isForeignCurrency,
-      };
-    }
-  );
+  // Crypto units belong to the held coin, while their recorded value keeps its price currency.
+  ownedAssets.forEach(asset => {
+    const coin = getCryptoCurrency(asset);
+    const isCrypto = asset.type === 'CRYPTO';
+    const currency = isCrypto ? coin || asset.name : asset.currency;
+    positions.push({
+      key: isCrypto && !coin ? `asset:${asset.id}` : currency,
+      currency,
+      balance: isCrypto ? asset.quantity : asset.totalValue,
+      valuationCurrency: asset.currency,
+      value: asset.totalValue,
+      isCrypto,
+      href: isCrypto
+        ? coin
+          ? `/assets?type=CRYPTO&symbol=${encodeURIComponent(coin)}`
+          : `/assets?highlight=${asset.id}`
+        : `/assets?currency=${encodeURIComponent(currency)}`,
+    });
+  });
 
   return (
     <CurrencyBreakdownContent
-      currencyBalances={currencyBalances}
+      positions={positions}
       baseCurrency={baseCurrency}
       refreshKey={refreshKey}
     />
@@ -157,7 +163,7 @@ export default function CurrencyBreakdown({
 }
 
 interface CurrencyBreakdownContentProps {
-  currencyBalances: CurrencyBalance[];
+  positions: CurrencyPosition[];
   baseCurrency: string;
   refreshKey: number;
 }
@@ -166,7 +172,7 @@ interface CurrencyBreakdownContentProps {
  * Content component that handles exchange rate fetching for each currency
  */
 function CurrencyBreakdownContent({
-  currencyBalances,
+  positions,
   baseCurrency,
   refreshKey,
 }: CurrencyBreakdownContentProps) {
@@ -177,34 +183,51 @@ function CurrencyBreakdownContent({
     secondaryExchangeRate,
   } = useSecondaryConversion(baseCurrency);
   const navigate = useNavigate();
-  // Fetch exchange rates for all foreign currencies
-  const rates = useLatestExchangeRates(
-    currencyBalances.map(balance => balance.currency),
-    baseCurrency,
-    refreshKey
-  );
-  const balancesWithRates = currencyBalances.map((currencyBalance, index) => {
-    const isForeignCurrency = currencyBalance.currency !== baseCurrency;
-
-    const { data: exchangeRate, isLoading } = rates[index];
-
-    const rate = isForeignCurrency && exchangeRate ? exchangeRate.rate : 1;
-    const balanceInBase = multiply(currencyBalance.balance, rate);
-
-    return {
-      ...currencyBalance,
-      rate: isForeignCurrency ? rate : undefined,
-      balanceInBase,
-      isLoading,
+  // Convert recorded valuations before grouping: BTC holdings may be priced in EUR and USD.
+  const valuationCurrencies = [...new Set(positions.map(position => position.valuationCurrency))];
+  const rates = useLatestExchangeRates(valuationCurrencies, baseCurrency, refreshKey);
+  const groups = new Map<string, CurrencyBalance>();
+  positions.forEach(position => {
+    const isForeignValuation = position.valuationCurrency !== baseCurrency;
+    const quote = rates[valuationCurrencies.indexOf(position.valuationCurrency)];
+    const rate = isForeignValuation ? quote?.data?.rate : 1;
+    const hasRate = rate != null && Number.isFinite(rate) && rate > 0;
+    const isLoading = !hasRate && !!quote?.isLoading;
+    const group = groups.get(position.key) ?? {
+      key: position.key,
+      currency: position.currency,
+      balance: 0,
+      balanceInBase: 0,
+      accountCount: 0,
+      isCrypto: position.isCrypto,
+      href: position.href,
+      isLoading: false,
+      isUnavailable: false,
     };
+    group.balance = add(group.balance, position.balance);
+    group.balanceInBase = add(group.balanceInBase, hasRate ? multiply(position.value, rate) : 0);
+    group.accountCount += 1;
+    group.isCrypto ||= position.isCrypto;
+    group.isLoading ||= isLoading;
+    group.isUnavailable ||= !hasRate && !isLoading;
+    if (!position.isCrypto && isForeignValuation && hasRate) group.rate = rate;
+    if (position.isCrypto) group.href = position.href;
+    groups.set(position.key, group);
   });
 
-  // Calculate grand total
+  const balancesWithRates = [...groups.values()];
+  const isLoadingRates = balancesWithRates.some(balance => balance.isLoading);
+  const missingRates = balancesWithRates.some(balance => balance.isUnavailable);
+  const totalsReady = !isLoadingRates && !missingRates;
   const grandTotal = sum(balancesWithRates.map(cb => cb.balanceInBase));
 
   // Calculate percentages
   const balancesWithPercentages = balancesWithRates.map(cb => {
-    const pct = grandTotal > 0 ? percentage(cb.balanceInBase, grandTotal) : 0;
+    const pct = totalsReady
+      ? grandTotal > 0
+        ? percentage(cb.balanceInBase, grandTotal)
+        : 0
+      : undefined;
     return { ...cb, percentage: pct };
   });
 
@@ -225,15 +248,25 @@ function CurrencyBreakdownContent({
       <div className="mb-6">
         <div className="text-xs text-text-secondary mb-1">{t('currencyBreakdown.total')}</div>
         <div className="text-3xl font-bold text-primary font-mono">
-          <ConvertedAmount
-            amount={grandTotal}
-            currency={baseCurrency}
-            isConverted={false}
-            secondaryAmount={convert(grandTotal)}
-            secondaryCurrency={secCurrency}
-            secondaryExchangeRate={secondaryExchangeRate}
-            inline
-          />
+          {totalsReady ? (
+            <ConvertedAmount
+              amount={grandTotal}
+              currency={baseCurrency}
+              isConverted={false}
+              secondaryAmount={convert(grandTotal)}
+              secondaryCurrency={secCurrency}
+              secondaryExchangeRate={secondaryExchangeRate}
+              inline
+            />
+          ) : (
+            <span className="text-sm" role={missingRates ? 'alert' : 'status'}>
+              {t(
+                missingRates
+                  ? 'currencyBreakdown.valuationUnavailable'
+                  : 'currencyBreakdown.converting'
+              )}
+            </span>
+          )}
         </div>
       </div>
 
@@ -241,18 +274,16 @@ function CurrencyBreakdownContent({
       <div className="space-y-3 flex-1 overflow-y-auto scrollbar-thin pr-2 min-h-0">
         {sortedBalances.map(currencyBalance => (
           <CurrencyBalanceRow
-            key={currencyBalance.currency}
+            key={currencyBalance.key}
             currencyBalance={currencyBalance}
             baseCurrency={baseCurrency}
-            onOpen={() =>
-              navigate(`/assets?currency=${encodeURIComponent(currencyBalance.currency)}`)
-            }
+            onOpen={() => navigate(currencyBalance.href)}
           />
         ))}
       </div>
 
       {/* Footer Note */}
-      {sortedBalances.some(cb => cb.rate !== undefined) && (
+      {valuationCurrencies.some(currency => currency !== baseCurrency) && (
         <div className="mt-4 pt-4 border-t border-border">
           <p className="text-xs text-text-secondary">{t('currencyBreakdown.footer')}</p>
         </div>
@@ -262,7 +293,7 @@ function CurrencyBreakdownContent({
 }
 
 interface CurrencyBalanceRowProps {
-  currencyBalance: CurrencyBalance & { isLoading?: boolean };
+  currencyBalance: CurrencyBalance;
   baseCurrency: string;
   onOpen: () => void;
 }
@@ -299,12 +330,16 @@ function CurrencyBalanceRow({ currencyBalance, baseCurrency, onOpen }: CurrencyB
           </span>
         </div>
         <div className="text-right">
-          {isForeignCurrency ? (
+          {isForeignCurrency || currencyBalance.isCrypto ? (
             <>
               {/* REQ-8.2: Show base-currency total as primary; native amount as secondary */}
-              {isLoading ? (
+              {isLoading || currencyBalance.isUnavailable ? (
                 <div className="text-sm font-mono text-text-secondary">
-                  {t('currencyBreakdown.converting')}
+                  {t(
+                    currencyBalance.isUnavailable
+                      ? 'currencyBreakdown.valuationUnavailable'
+                      : 'currencyBreakdown.converting'
+                  )}
                 </div>
               ) : (
                 <div className="text-sm font-mono text-text-primary">
@@ -320,11 +355,17 @@ function CurrencyBalanceRow({ currencyBalance, baseCurrency, onOpen }: CurrencyB
                 </div>
               )}
               <div className="text-xs text-text-secondary">
-                <ConvertedAmount
-                  amount={currencyBalance.balance}
-                  currency={currencyBalance.currency}
-                  inline
-                />
+                {currencyBalance.isCrypto ? (
+                  <PrivateAmount inline>
+                    {formatExactNumber(currencyBalance.balance)} {currencyBalance.currency}
+                  </PrivateAmount>
+                ) : (
+                  <ConvertedAmount
+                    amount={currencyBalance.balance}
+                    currency={currencyBalance.currency}
+                    inline
+                  />
+                )}
               </div>
             </>
           ) : (
@@ -347,18 +388,20 @@ function CurrencyBalanceRow({ currencyBalance, baseCurrency, onOpen }: CurrencyB
       <div className="w-full bg-surface-elevated rounded-full h-2 overflow-hidden">
         <div
           className="bg-primary h-full rounded-full transition-all duration-300"
-          style={{ width: `${currencyBalance.percentage}%` }}
+          style={{ width: `${currencyBalance.percentage ?? 0}%` }}
         />
       </div>
 
       {/* Percentage */}
       <div className="flex items-center justify-between mt-1">
         <span className="text-xs text-text-secondary">
-          {t('currencyBreakdown.percentOfTotal', {
-            percent: formatDecimal(currencyBalance.percentage, 1),
-          })}
+          {currencyBalance.percentage == null
+            ? '—'
+            : t('currencyBreakdown.percentOfTotal', {
+                percent: formatDecimal(currencyBalance.percentage, 1),
+              })}
         </span>
-        {isForeignCurrency && currencyBalance.rate && (
+        {isForeignCurrency && !currencyBalance.isCrypto && currencyBalance.rate && (
           <span className="text-xs text-text-muted">
             {t('currencyBreakdown.rate', { rate: formatExchangeRate(currencyBalance.rate) })}
           </span>

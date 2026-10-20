@@ -296,6 +296,22 @@ describe('AssetsPage', () => {
       expect(captured?.type).toBeUndefined();
     });
 
+    it('opens the BTC holdings filter without restricting the valuation currency', () => {
+      renderPage('?type=CRYPTO&symbol=btc');
+
+      const captured = vi.mocked(useAssetsSearch).mock.calls[0]?.[0];
+      expect(captured?.type).toBe('CRYPTO');
+      expect(captured?.symbol).toBe('BTC');
+      expect(captured?.currency).toBeUndefined();
+    });
+
+    it('ignores invalid symbol params', () => {
+      renderPage('?symbol=%25');
+
+      const captured = vi.mocked(useAssetsSearch).mock.calls[0]?.[0];
+      expect(captured?.symbol).toBeUndefined();
+    });
+
     it('ignores invalid currency param', () => {
       renderPage('?currency=US');
 
