@@ -9,6 +9,7 @@
 [![Backend Test PostGre](https://github.com/openfinance-app/open-finance/actions/workflows/backend-postgres.yml/badge.svg)](https://github.com/openfinance-app/open-finance/actions/workflows/backend-postgres.yml)
 [![Frontend Test](https://github.com/openfinance-app/open-finance/actions/workflows/frontend-ci.yml/badge.svg)](https://github.com/openfinance-app/open-finance/actions/workflows/frontend-ci.yml)
 [![Release](https://img.shields.io/github/v/release/albilu/open-finance)](https://github.com/openfinance-app/open-finance/releases/latest)
+[![GHCR Pulls](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fghcr-badge.elias.eu.org%2Fapi%2Fopenfinance-app%2Fopen-finance%2Fopen-finance&query=%24.downloadCountRaw&label=docker%20pulls&color=blue)](https://github.com/openfinance-app/open-finance/pkgs/container/open-finance)
 [![License: ELv2](https://img.shields.io/badge/License-Elastic_v2-blue.svg)](LICENSE)
 
 ---
