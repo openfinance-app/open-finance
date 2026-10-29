@@ -316,8 +316,8 @@ export function AssetList({ assets, onEdit, onDelete, onView, highlightedId }: A
                                     <Button
                                       variant="ghost"
                                       size="sm"
-                                      disabled
-                                      aria-label={tc('aria.editAsset')}
+                                      onClick={() => onView?.(asset)}
+                                      aria-label={t('table.manageProperty')}
                                     >
                                       <Pencil className="h-4 w-4" />
                                     </Button>
@@ -470,7 +470,12 @@ export function AssetList({ assets, onEdit, onDelete, onView, highlightedId }: A
                         <Tooltip>
                           <TooltipTrigger asChild>
                             <span className="flex-1 inline-flex" onClick={e => e.stopPropagation()}>
-                              <Button variant="ghost" size="sm" disabled className="flex-1">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => onView?.(asset)}
+                                className="flex-1"
+                              >
                                 <Pencil className="h-4 w-4 mr-2" />
                                 {tc('edit')}
                               </Button>

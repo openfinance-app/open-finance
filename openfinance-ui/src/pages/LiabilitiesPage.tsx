@@ -100,7 +100,8 @@ export default function LiabilitiesPage() {
       if (editingLiability) {
         await updateLiability.mutateAsync({ id: editingLiability.id, data });
       } else {
-        await createLiability.mutateAsync(data);
+        const created = await createLiability.mutateAsync(data);
+        setViewingDetailLiability(created);
       }
       setIsFormOpen(false);
       setEditingLiability(null);
@@ -132,7 +133,7 @@ export default function LiabilitiesPage() {
 
   if (error) {
     return (
-      <div className="p-8">
+      <div className="p-4 sm:p-8">
         <PageHeader title={t('title')} />
         <div className="mt-6 p-4 bg-error/10 border border-error/20 rounded-lg text-error">
           {t('loadError')}
@@ -142,7 +143,7 @@ export default function LiabilitiesPage() {
   }
 
   return (
-    <div className="p-8">
+    <div className="p-4 sm:p-8">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <PageHeader title={t('title')} description={t('description')} />
@@ -268,7 +269,11 @@ export default function LiabilitiesPage() {
 
       {/* Requirement 2.1: Unified Liability Details Dialog (Overview / Amortization / Linked Payments) */}
       <LiabilityDetailDialog
-        liability={viewingDetailLiability}
+        key={viewingDetailLiability?.id ?? 'closed'}
+        liability={
+          allLiabilities?.content.find(item => item.id === viewingDetailLiability?.id) ??
+          viewingDetailLiability
+        }
         onClose={() => setViewingDetailLiability(null)}
       />
     </div>

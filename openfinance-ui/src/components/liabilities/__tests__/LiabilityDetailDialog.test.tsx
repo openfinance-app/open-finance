@@ -543,7 +543,9 @@ describe('LiabilityDetailDialog', () => {
 
       expect(screen.getByText('No transactions linked to this liability yet.')).toBeInTheDocument();
       expect(
-        screen.getByText('Link expense transactions to track payments against this liability.')
+        screen.getByRole('button', {
+          name: 'Link expense transactions to track payments against this liability.',
+        })
       ).toBeInTheDocument();
     });
 

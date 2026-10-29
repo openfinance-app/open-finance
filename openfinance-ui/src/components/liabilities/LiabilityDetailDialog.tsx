@@ -19,6 +19,7 @@ import { useDateFormatter } from '@/hooks/useDateFormatter';
 import { CreditCard, RefreshCcw, AlertCircle, Banknote } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/Dialog';
 import { Button } from '@/components/ui/Button';
+import { HelpTooltip } from '@/components/ui/HelpTooltip';
 import { ConvertedAmount } from '@/components/ui/ConvertedAmount';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/Tooltip';
 import { cn } from '@/lib/utils';
@@ -38,7 +39,7 @@ import {
 import { useTranches, getTrancheLabel } from '@/hooks/useTranches';
 import type { Liability } from '@/types/liability';
 
-type DetailTab = 'overview' | 'schedule' | 'payments' | 'drawdowns' | 'attachments';
+type DetailTab = 'overview' | 'assets' | 'schedule' | 'payments' | 'drawdowns' | 'attachments';
 
 interface LiabilityDetailDialogProps {
   /** The liability to show details for, or null to close the dialog */
@@ -311,8 +312,10 @@ function LinkedPaymentsTab({ liability }: { liability: Liability }) {
     return (
       <div className="text-center py-12">
         <CreditCard className="h-10 w-10 text-text-tertiary mx-auto mb-3" />
-        <p className="text-text-secondary text-sm">{t('detail.noPayments')}</p>
-        <p className="text-text-tertiary text-xs mt-1">{t('detail.paymentsHint')}</p>
+        <div className="flex items-center justify-center gap-2">
+          <p className="text-text-secondary text-sm">{t('detail.noPayments')}</p>
+          <HelpTooltip text={t('detail.paymentsHint')} />
+        </div>
       </div>
     );
   }
@@ -488,75 +491,47 @@ export function LiabilityDetailDialog({
         </DialogHeader>
 
         <div className="w-full">
-          {/* Tabs */}
-          <div className="border-b border-border mb-4">
-            <div className="flex flex-wrap gap-2 text-sm">
+          <nav
+            aria-label={t('detail.sections')}
+            className="mb-4 flex gap-1 overflow-x-auto border-b border-border"
+          >
+            {(
+              [
+                'overview',
+                'assets',
+                'payments',
+                ...(hasSchedule ? (['schedule'] as const) : []),
+                'drawdowns',
+                'attachments',
+              ] as const
+            ).map(tab => (
               <button
-                onClick={() => setActiveTab('overview')}
+                key={tab}
+                type="button"
+                aria-pressed={activeTab === tab}
+                onClick={() => setActiveTab(tab)}
                 className={cn(
-                  'px-4 py-2 font-medium border-b-2 transition-colors',
-                  activeTab === 'overview'
+                  'whitespace-nowrap border-b-2 px-3 py-3 text-sm font-medium',
+                  activeTab === tab
                     ? 'border-primary text-primary'
                     : 'border-transparent text-text-secondary hover:text-text-primary'
                 )}
               >
-                {t('detail.overview')}
+                {t(tab === 'drawdowns' ? 'drawdowns.tab' : `detail.${tab}`)}
               </button>
-              {hasSchedule && (
-                <button
-                  onClick={() => setActiveTab('schedule')}
-                  className={cn(
-                    'px-4 py-2 font-medium border-b-2 transition-colors',
-                    activeTab === 'schedule'
-                      ? 'border-primary text-primary'
-                      : 'border-transparent text-text-secondary hover:text-text-primary'
-                  )}
-                >
-                  {t('detail.schedule')}
-                </button>
-              )}
-              <button
-                onClick={() => setActiveTab('payments')}
-                className={cn(
-                  'px-4 py-2 font-medium border-b-2 transition-colors',
-                  activeTab === 'payments'
-                    ? 'border-primary text-primary'
-                    : 'border-transparent text-text-secondary hover:text-text-primary'
-                )}
-              >
-                {t('detail.payments')}
-              </button>
-              <button
-                onClick={() => setActiveTab('drawdowns')}
-                className={cn(
-                  'px-4 py-2 font-medium border-b-2 transition-colors',
-                  activeTab === 'drawdowns'
-                    ? 'border-primary text-primary'
-                    : 'border-transparent text-text-secondary hover:text-text-primary'
-                )}
-              >
-                {t('drawdowns.tab')}
-              </button>
-              <button
-                onClick={() => setActiveTab('attachments')}
-                className={cn(
-                  'px-4 py-2 font-medium border-b-2 transition-colors',
-                  activeTab === 'attachments'
-                    ? 'border-primary text-primary'
-                    : 'border-transparent text-text-secondary hover:text-text-primary'
-                )}
-              >
-                {t('detail.attachments')}
-              </button>
-            </div>
-          </div>
+            ))}
+          </nav>
 
           <div className="py-2 space-y-4">
+            {activeTab === 'assets' && <AssetFinancingSection liabilityId={liability.id} />}
             {/* Tab 1: Overview */}
             {activeTab === 'overview' && (
               <div>
                 {liability.representedByAccountId != null ? (
-                  <p className="text-sm text-text-secondary">{t('form.accountSourceHint')}</p>
+                  <div className="flex items-center gap-2 text-sm text-text-secondary">
+                    <span>{t('form.accountSource')}</span>
+                    <HelpTooltip text={t('form.accountSourceHint')} />
+                  </div>
                 ) : (
                   <>
                     <TotalCostHero liability={liability} />
@@ -600,7 +575,10 @@ export function LiabilityDetailDialog({
             {activeTab === 'payments' && (
               <div>
                 {liability.representedByAccountId != null ? (
-                  <p className="text-sm text-text-secondary">{t('form.accountSourceHint')}</p>
+                  <div className="flex items-center gap-2 text-sm text-text-secondary">
+                    <span>{t('form.accountSource')}</span>
+                    <HelpTooltip text={t('form.accountSourceHint')} />
+                  </div>
                 ) : (
                   <LinkedPaymentsTab liability={liability} />
                 )}
@@ -611,11 +589,13 @@ export function LiabilityDetailDialog({
             {activeTab === 'drawdowns' && (
               <div>
                 {liability.representedByAccountId != null ? (
-                  <p className="text-sm text-text-secondary">{t('form.accountSourceHint')}</p>
+                  <div className="flex items-center gap-2 text-sm text-text-secondary">
+                    <span>{t('form.accountSource')}</span>
+                    <HelpTooltip text={t('form.accountSourceHint')} />
+                  </div>
                 ) : (
                   <TrancheDrawdownsTab liability={liability} />
                 )}
-                <AssetFinancingSection liabilityId={liability.id} />
               </div>
             )}
 

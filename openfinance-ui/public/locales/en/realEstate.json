@@ -143,7 +143,12 @@
       "PLANNED": "Planned acquisition"
     },
     "acquisitionHint": "Plans have zero owned value. Enter the actual price and acquisition date when completing the purchase; gifts may have zero cost.",
-    "plannedValue": "A planned acquisition must have zero owned value."
+    "plannedValue": "A planned acquisition must have zero owned value.",
+    "simpleIntro": "Enter the property and its value. Saving this record does not create a purchase payment.",
+    "financingAndRent": "Mortgage & rental income (optional)",
+    "financingAndRentHint": "Link an existing mortgage or enter the monthly rent. You can also manage loans after saving.",
+    "moreDetails": "Location, notes & status (optional)",
+    "moreDetailsHint": "Map coordinates and additional information."
   },
   "card": {
     "purchased": "Purchased",
@@ -164,7 +169,9 @@
       "equity": "Equity",
       "roi": "ROI Analysis",
       "attachments": "Attachments",
-      "gallery": "Gallery"
+      "gallery": "Gallery",
+      "costs": "Costs & payments",
+      "financing": "Linked debt"
     },
     "propertyAgeLabel": "Property Age",
     "propertyAge": "{{years}} years",
@@ -201,7 +208,8 @@
     "gallery": {
       "empty": "No images yet. Upload images in the Attachments tab.",
       "hint": "Manage images in the Attachments tab."
-    }
+    },
+    "sections": "Property sections"
   },
   "propertySelector": {
     "selectProperty": "Select an existing property...",
@@ -687,7 +695,8 @@
     "fundingCurrency": "Choose a funding account and mortgage in {{currency}}.",
     "fundingMismatch": "The loan and your contribution must add up to the purchase price.",
     "purchasePaymentDescription": "Purchase payment for {{name}}",
-    "accountPayment": "Payment from account"
+    "accountPayment": "Payment from account",
+    "downPaymentCalculated": "Suggested from the purchase price minus the loan. Adjust if needed; the total must equal the purchase price."
   },
   "movementPaging": {
     "label": "Movement history pages",
@@ -768,5 +777,16 @@
     "notFound": "Simulation not found.",
     "renameFailed": "Could not rename the simulation.",
     "limit": "The limit of {{count}} saved simulations has been reached."
-  }
+  },
+  "createChoice": {
+    "intro": "How would you like to add this property?",
+    "owned": "Record a property I already own",
+    "ownedHint": "Add its value and an existing mortgage. No money moves between accounts.",
+    "buy": "Buy a property and record the payment",
+    "buyHint": "Set up the property, mortgage and purchase payment together, then review before saving.",
+    "planned": "Plan a future property",
+    "plannedHint": "Track a project without including it in your current net worth.",
+    "back": "Back to choices"
+  },
+  "saveError": "Unable to save this property. Your entries have been kept. Please try again."
 }

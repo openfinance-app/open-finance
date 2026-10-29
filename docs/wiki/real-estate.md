@@ -12,6 +12,18 @@ The Real Estate module goes beyond generic asset tracking to provide property-sp
 
 ---
 
+## Adding and managing a property
+
+Choose **Add Property**, then select the appropriate workflow:
+
+- **Record a property I already own** creates an ownership record without moving money. Mortgage, rent, map coordinates and notes are optional.
+- **Buy a property and record the payment** guides you through the property, funding and review. It suggests the purchase price as the initial value and calculates the cash contribution from the loan amount. Confirming saves the purchase and its funding together.
+- **Plan a future property** records the project without adding it to current net worth.
+
+Use the property's edit action to update its details. Open the property to record expenses under **Costs & payments** or manage loans under **Linked debt**. Transactions in **Costs & payments** open their transaction details. A shared loan can finance several assets; its allocation across all of them remains visible when editing links. Equity and ROI analysis have separate sections.
+
+---
+
 ## Property Types
 
 | Type        | Description                                     |

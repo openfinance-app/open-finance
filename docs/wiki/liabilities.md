@@ -12,6 +12,14 @@ The Liability module tracks money you owe — mortgages, personal loans, student
 
 ---
 
+## Managing a loan
+
+Start with the loan name, original amount, current balance, currency and start date. Expand **Repayment terms & fees** for interest, insurance, monthly payments and dates, or **Lender & notes** for additional details.
+
+After saving, the loan’s detail view opens. **Linked assets** shows what the loan finances and lets you manage its allocation. The same links can be edited from an asset or property under **Linked debt**. Linking an item does not create a payment or change the loan balance. Payments, the repayment schedule and drawdowns remain in their own sections.
+
+---
+
 ## Liability Types
 
 | Type          | Description               |

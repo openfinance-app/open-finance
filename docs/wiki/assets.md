@@ -12,6 +12,21 @@ The Asset module tracks your investment portfolio — stocks, ETFs, mutual funds
 
 ---
 
+## Managing belongings and investments
+
+Use **All assets**, **Physical assets**, or **Investments** to choose what you want to manage. Filtering applies before pagination, and the summary follows the selected group. Use the sidebar to open Real Estate or Liabilities.
+
+**Add Asset** starts with a choice of physical item, investment, or property. Physical items start with a quantity of one. Enter the purchase price and estimated current value; brand, condition, warranty, account, and notes are optional. Saving an asset record does not create an account payment. Planned items have a current value of zero until acquired.
+
+Open an item and choose:
+
+- **Costs → Add cost** to record maintenance or an improvement. The item and currency are already selected. Choose the paying account and enter the amount and date. Click an existing cost to open its transaction. Info icons explain the available options. Maintenance leaves cost basis and value unchanged. Improvements increase cost basis and tracked value; you can update the estimated value separately after the work. If a payment already exists in Transactions, edit that transaction to link it instead of recording it again.
+- **Linked debt → Link a loan** to select an existing loan or create one. The current item is preselected and receives the unallocated share. Other assets financed by the same loan stay visible, and the total cannot exceed 100%. “Security only” records collateral without allocating debt.
+
+Properties shown in the asset list open their property record for management.
+
+---
+
 ## Asset Types
 
 | Type        | Examples                            |

@@ -37,6 +37,7 @@ import { useFormatCurrency } from '@/hooks/useFormatCurrency';
 import { useSecondaryConversion } from '@/hooks/useSecondaryConversion';
 import { LastUpdatedIndicator } from './LastUpdatedIndicator';
 import { Button } from '@/components/ui/Button';
+import { HelpTooltip } from '@/components/ui/HelpTooltip';
 import {
   Tooltip as UITooltip,
   TooltipContent,
@@ -73,7 +74,9 @@ export function AssetDetailModal({ asset, onClose, onEdit, onDelete }: AssetDeta
   const { date: formatDate } = useDateFormatter();
   const { t } = useTranslation('assets');
   const [timeRange, setTimeRange] = useState<'1M' | '3M' | '6M' | '1Y'>('3M');
-  const [activeTab, setActiveTab] = useState<'overview' | 'gallery' | 'attachments'>('overview');
+  const [activeTab, setActiveTab] = useState<
+    'overview' | 'costs' | 'financing' | 'gallery' | 'attachments'
+  >('overview');
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   // Calculate date range based on selection
@@ -158,7 +161,12 @@ export function AssetDetailModal({ asset, onClose, onEdit, onDelete }: AssetDeta
       <div className="absolute inset-0 bg-background/80 backdrop-blur-sm" onClick={onClose} />
 
       {/* Modal */}
-      <div className="relative bg-surface border border-border rounded-lg shadow-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto m-4">
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label={asset.name}
+        className="relative bg-surface border border-border rounded-lg shadow-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto m-4"
+      >
         {/* Header */}
         <div className="sticky top-0 z-10 bg-surface px-6 py-4 flex items-center justify-between">
           <div>
@@ -182,44 +190,27 @@ export function AssetDetailModal({ asset, onClose, onEdit, onDelete }: AssetDeta
         {/* Content */}
         <div className="p-6">
           <div className="w-full">
-            {/* Tabs */}
-            <div className="border-b border-border mb-6">
-              <div className="flex gap-4">
+            <nav
+              aria-label={t('detail.navigation')}
+              className="mb-4 flex gap-1 overflow-x-auto border-b border-border"
+            >
+              {(['overview', 'costs', 'financing', 'gallery', 'attachments'] as const).map(tab => (
                 <button
-                  onClick={() => setActiveTab('overview')}
+                  key={tab}
+                  type="button"
+                  aria-pressed={activeTab === tab}
+                  onClick={() => setActiveTab(tab)}
                   className={cn(
-                    'px-4 py-2 text-sm font-medium border-b-2 transition-colors',
-                    activeTab === 'overview'
+                    'whitespace-nowrap border-b-2 px-3 py-3 text-sm font-medium',
+                    activeTab === tab
                       ? 'border-primary text-primary'
-                      : 'border-transparent text-muted-foreground hover:text-foreground'
+                      : 'border-transparent text-text-secondary hover:text-text-primary'
                   )}
                 >
-                  {t('detail.tabs.overview')}
+                  {t(`detail.tabs.${tab}`)}
                 </button>
-                <button
-                  onClick={() => setActiveTab('gallery')}
-                  className={cn(
-                    'px-4 py-2 text-sm font-medium border-b-2 transition-colors',
-                    activeTab === 'gallery'
-                      ? 'border-primary text-primary'
-                      : 'border-transparent text-muted-foreground hover:text-foreground'
-                  )}
-                >
-                  {t('detail.tabs.gallery')}
-                </button>
-                <button
-                  onClick={() => setActiveTab('attachments')}
-                  className={cn(
-                    'px-4 py-2 text-sm font-medium border-b-2 transition-colors',
-                    activeTab === 'attachments'
-                      ? 'border-primary text-primary'
-                      : 'border-transparent text-muted-foreground hover:text-foreground'
-                  )}
-                >
-                  {t('detail.tabs.attachments')}
-                </button>
-              </div>
-            </div>
+              ))}
+            </nav>
 
             {/* Tab Content */}
             <div className="py-4 space-y-6">
@@ -349,8 +340,11 @@ export function AssetDetailModal({ asset, onClose, onEdit, onDelete }: AssetDeta
                   {asset.symbol && (
                     <div className="bg-background border border-border rounded-lg p-6">
                       <div className="flex items-center justify-between mb-4">
-                        <h3 className="text-lg font-semibold text-foreground">
+                        <h3 className="flex items-center gap-2 text-lg font-semibold text-foreground">
                           {t('detail.sections.priceHistory')}
+                          <HelpTooltip
+                            text={t('detail.historyHint', { currency: chartCurrency })}
+                          />
                         </h3>
                         <div className="flex gap-2">
                           {(['1M', '3M', '6M', '1Y'] as const).map(range => (
@@ -368,10 +362,6 @@ export function AssetDetailModal({ asset, onClose, onEdit, onDelete }: AssetDeta
                           ))}
                         </div>
                       </div>
-
-                      <p className="text-xs text-muted-foreground mb-4">
-                        {t('detail.historyHint', { currency: chartCurrency })}
-                      </p>
 
                       {isLoadingHistory && <LoadingSkeleton className="h-64" />}
 
@@ -498,15 +488,11 @@ export function AssetDetailModal({ asset, onClose, onEdit, onDelete }: AssetDeta
                       </div>
                     )}
                   </div>
-
-                  {/* Asset Costs (Task 8): capitalized improvements vs maintenance */}
-                  <AssetCostsSection asset={asset} />
-                  {(asset.isPhysical || asset.type === 'REAL_ESTATE') && (
-                    <AssetFinancingSection assetId={asset.id} />
-                  )}
                 </>
               )}
 
+              {activeTab === 'costs' && <AssetCostsSection asset={asset} />}
+              {activeTab === 'financing' && <AssetFinancingSection assetId={asset.id} />}
               {/* Gallery Tab (display only — upload/delete in Attachments tab) */}
               {activeTab === 'gallery' && <AssetGallery assetId={asset.id} />}
 

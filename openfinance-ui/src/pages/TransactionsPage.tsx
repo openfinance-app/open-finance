@@ -25,6 +25,7 @@ import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import {
   getTransferSource,
   useTransactions,
+  useTransaction,
   useCreateTransaction,
   useCreateTransfer,
   useUpdateTransaction,
@@ -48,9 +49,11 @@ export default function TransactionsPage() {
   const location = useLocation();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const highlightId = searchParams.get('highlight')
-    ? parseInt(searchParams.get('highlight')!)
-    : null;
+  const requestedHighlightId = Number(searchParams.get('highlight'));
+  const highlightId =
+    Number.isSafeInteger(requestedHighlightId) && requestedHighlightId > 0
+      ? requestedHighlightId
+      : null;
   const categoryId = searchParams.get('category') ? parseInt(searchParams.get('category')!) : null;
   const categoryIdParam = searchParams.get('categoryId')
     ? parseInt(searchParams.get('categoryId')!)
@@ -114,6 +117,10 @@ export default function TransactionsPage() {
   const deleteTransaction = useDeleteTransaction();
 
   const transactions = transactionsPage?.content || [];
+  const listedHighlight = transactions.find(transaction => transaction.id === highlightId);
+  const { data: fetchedHighlight, error: highlightError } = useTransaction(
+    listedHighlight ? null : highlightId
+  );
 
   useEffect(() => {
     if ((location.state as { openForm?: boolean } | null)?.openForm) {
@@ -153,20 +160,23 @@ export default function TransactionsPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps -- consume once on mount
   }, []);
 
-  // Auto-open detail modal for ?highlight=<id> once the transaction page loads
+  // Resolve linked transactions independently of the current list's filters and page.
   const highlightOpenedRef = useRef<number | null>(null);
   useEffect(() => {
-    if (!highlightId || transactions.length === 0) return;
+    if (!highlightId) {
+      highlightOpenedRef.current = null;
+      return;
+    }
     if (highlightOpenedRef.current === highlightId) return;
-    const tx = transactions.find(t => t.id === highlightId);
-    if (tx) {
+    const tx = listedHighlight ?? fetchedHighlight;
+    if (tx?.id === highlightId) {
       setDetailTransaction(tx);
       highlightOpenedRef.current = highlightId;
       const next = new URLSearchParams(searchParams);
       next.delete('highlight');
       setSearchParams(next, { replace: true });
     }
-  }, [highlightId, transactions, searchParams, setSearchParams]);
+  }, [highlightId, listedHighlight, fetchedHighlight, searchParams, setSearchParams]);
 
   const handleCreate = () => {
     setEditingTransaction(null);
@@ -296,7 +306,7 @@ export default function TransactionsPage() {
         </div>
       </div>
 
-      {editError && (
+      {(editError || highlightError) && (
         <p role="alert" className="mb-4 text-error">
           {t('loadError')}
         </p>

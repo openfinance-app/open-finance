@@ -1,6 +1,9 @@
+import { Link } from 'react-router';
+import { RecordCostForm } from '@/components/assets/RecordCostForm';
 import { useDateFormatter } from '@/hooks/useDateFormatter';
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/Button';
+import { HelpTooltip } from '@/components/ui/HelpTooltip';
 /**
  * AssetCostsSection Component (Task 8)
  *
@@ -21,19 +24,25 @@ const MOVEMENTS_PAGE_SIZE = 200;
 function CostRow({ tx, label, currency }: { tx: Transaction; label: string; currency: string }) {
   const { date: formatDate } = useDateFormatter();
   return (
-    <div className="flex items-center justify-between px-4 py-3 bg-background hover:bg-surface transition-colors">
-      <div className="flex items-center gap-3 min-w-0">
+    <div className="group relative flex items-center justify-between px-4 py-3 bg-background hover:bg-surface transition-colors">
+      <Link
+        to={`/transactions?highlight=${tx.id}`}
+        className="flex flex-1 items-center gap-3 min-w-0 rounded-sm hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+      >
+        <span className="absolute inset-0" aria-hidden="true" />
         <div className="min-w-0">
-          <div className="text-sm text-foreground truncate flex items-center gap-2">
-            <span className="truncate">{tx.description || `Transaction #${tx.id}`}</span>
-            <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-surface text-muted-foreground border border-border text-xs font-medium flex-shrink-0">
+          <div className="flex min-w-0 flex-col items-start gap-1 text-sm text-foreground sm:flex-row sm:items-center sm:gap-2">
+            <span className="max-w-full truncate group-hover:underline">
+              {tx.description || `Transaction #${tx.id}`}
+            </span>
+            <span className="inline-flex max-w-full items-center px-2 py-0.5 rounded-md bg-surface text-muted-foreground border border-border text-xs font-medium flex-shrink-0">
               {label}
             </span>
           </div>
           <div className="text-xs text-muted-foreground">{formatDate(tx.date)}</div>
         </div>
-      </div>
-      <div className="text-sm font-mono font-semibold text-foreground ml-4 flex-shrink-0">
+      </Link>
+      <div className="relative text-sm font-mono font-semibold text-foreground ml-4 flex-shrink-0">
         <ConvertedAmount amount={tx.amount} currency={tx.currency || currency} inline />
       </div>
     </div>
@@ -43,6 +52,12 @@ function CostRow({ tx, label, currency }: { tx: Transaction; label: string; curr
 export function AssetCostsSection({ asset }: { asset: Asset }) {
   const { t } = useTranslation('assets');
   const [page, setPage] = useState(0);
+  const [addingCost, setAddingCost] = useState(false);
+  const supportsUpkeep =
+    asset.isPhysical ||
+    ['VEHICLE', 'JEWELRY', 'COLLECTIBLE', 'ELECTRONICS', 'FURNITURE', 'REAL_ESTATE'].includes(
+      asset.type
+    );
   useEffect(() => setPage(0), [asset.id]);
   const {
     data: costsPage,
@@ -85,7 +100,37 @@ export function AssetCostsSection({ asset }: { asset: Asset }) {
 
   return (
     <div className="bg-background border border-border rounded-lg p-6">
-      <h3 className="text-lg font-semibold text-foreground mb-4">{t('costs.title')}</h3>
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-2">
+          <h3 className="text-lg font-semibold text-foreground">{t('costs.title')}</h3>
+          <HelpTooltip
+            text={t(supportsUpkeep ? 'costEntry.sectionHint' : 'costEntry.investmentHint')}
+          />
+        </div>
+        {supportsUpkeep && (
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => setAddingCost(true)}
+            disabled={addingCost}
+          >
+            {t('costEntry.add')}
+          </Button>
+        )}
+        {!supportsUpkeep && (
+          <Link to="/transactions" className="text-sm text-primary underline">
+            {t('costEntry.transactions')}
+          </Link>
+        )}
+      </div>
+      {addingCost && (
+        <div className="mb-4">
+          <RecordCostForm
+            target={{ id: asset.id, name: asset.name, currency: asset.currency, kind: 'asset' }}
+            onClose={() => setAddingCost(false)}
+          />
+        </div>
+      )}
       {isLoading ? (
         <div className="space-y-2 animate-pulse">
           {[...Array(2)].map((_, i) => (

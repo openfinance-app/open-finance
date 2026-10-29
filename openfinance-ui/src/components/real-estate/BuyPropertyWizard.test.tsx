@@ -186,6 +186,16 @@ describe('BuyPropertyWizard', () => {
     expect(submit.mock.calls[1][0]).toEqual(submit.mock.calls[0][0]);
   });
 
+  it('calculates the cash contribution when the loan amount changes', async () => {
+    renderWizard();
+    await fillPropertyStep();
+    fireEvent.change(screen.getByLabelText(/loan amount/i), { target: { value: '240000' } });
+    expect(screen.getByLabelText(/down payment amount/i)).toHaveValue('60,000');
+    fireEvent.change(screen.getByLabelText(/funding source/i), { target: { value: 'none' } });
+    expect(screen.getByLabelText(/down payment amount/i)).toHaveValue('300,000');
+    expect(screen.queryByLabelText(/disbursement route/i)).not.toBeInTheDocument();
+  });
+
   it('requires an account for an account-funded purchase', async () => {
     renderWizard();
     await fillPropertyStep();

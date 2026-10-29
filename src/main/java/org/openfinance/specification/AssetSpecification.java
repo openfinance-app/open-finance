@@ -2,9 +2,12 @@ package org.openfinance.specification;
 
 import jakarta.persistence.criteria.Predicate;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import org.openfinance.dto.AssetGroup;
 import org.openfinance.dto.AssetSearchCriteria;
 import org.openfinance.entity.Asset;
+import org.openfinance.entity.AssetType;
 import org.springframework.data.jpa.domain.Specification;
 
 /**
@@ -72,6 +75,19 @@ public class AssetSpecification {
             // Filter by asset type
             if (criteria.getType() != null) {
                 predicates.add(criteriaBuilder.equal(root.get("type"), criteria.getType()));
+            }
+
+            if (criteria.getGroup() != null) {
+                List<AssetType> types =
+                        Arrays.stream(AssetType.values())
+                                .filter(
+                                        type ->
+                                                criteria.getGroup() == AssetGroup.PHYSICAL
+                                                        ? type.isPhysical()
+                                                        : !type.isPhysical()
+                                                                && type != AssetType.REAL_ESTATE)
+                                .toList();
+                predicates.add(root.get("type").in(types));
             }
 
             // Filter by account ID

@@ -25,6 +25,7 @@ export type AssetCondition = 'NEW' | 'EXCELLENT' | 'GOOD' | 'FAIR' | 'POOR';
  * Asset filters for search
  */
 export interface AssetFilters {
+  group?: 'PHYSICAL' | 'FINANCIAL';
   keyword?: string;
   /** When true, `keyword` is treated as a regular expression instead of a plain substring. */
   keywordRegex?: boolean;

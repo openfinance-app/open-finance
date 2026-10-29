@@ -1,9 +1,12 @@
+import { RecordCostForm } from '@/components/assets/RecordCostForm';
 import { useDateFormatter } from '@/hooks/useDateFormatter';
 import { useQuery } from '@tanstack/react-query';
 import apiClient from '@/services/apiClient';
 import type { LiabilityTranche } from '@/types/liability';
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/Button';
+import { HelpTooltip } from '@/components/ui/HelpTooltip';
+import { Link } from 'react-router';
 /**
  * PropertyMovementsSection Component (Task 8)
  *
@@ -38,19 +41,25 @@ function MovementRow({
 }) {
   const { date: formatDate } = useDateFormatter();
   return (
-    <div className="flex items-center justify-between px-4 py-3 bg-surface hover:bg-surface-elevated transition-colors">
-      <div className="flex items-center gap-3 min-w-0">
+    <div className="group relative flex items-center justify-between px-4 py-3 bg-surface hover:bg-surface-elevated transition-colors">
+      <Link
+        to={`/transactions?highlight=${tx.id}`}
+        className="flex flex-1 items-center gap-3 min-w-0 rounded-sm hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+      >
+        <span className="absolute inset-0" aria-hidden="true" />
         <div className="min-w-0">
-          <div className="text-sm text-text-primary truncate flex items-center gap-2">
-            <span className="truncate">{tx.description || `Transaction #${tx.id}`}</span>
-            <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-surface-elevated text-text-secondary border border-border text-xs font-medium flex-shrink-0">
+          <div className="flex min-w-0 flex-col items-start gap-1 text-sm text-text-primary sm:flex-row sm:items-center sm:gap-2">
+            <span className="max-w-full truncate group-hover:underline">
+              {tx.description || `Transaction #${tx.id}`}
+            </span>
+            <span className="inline-flex max-w-full items-center px-2 py-0.5 rounded-md bg-surface-elevated text-text-secondary border border-border text-xs font-medium flex-shrink-0">
               {label}
             </span>
           </div>
           <div className="text-xs text-text-tertiary">{formatDate(tx.date)}</div>
         </div>
-      </div>
-      <div className="text-sm font-mono font-semibold text-text-primary ml-4 flex-shrink-0">
+      </Link>
+      <div className="relative text-sm font-mono font-semibold text-text-primary ml-4 flex-shrink-0">
         <ConvertedAmount amount={tx.amount} currency={tx.currency || currency} inline />
       </div>
     </div>
@@ -94,6 +103,7 @@ function MovementList({
 export function PropertyMovementsSection({ property }: { property: RealEstateProperty }) {
   const { t } = useTranslation('realEstate');
   const [page, setPage] = useState(0);
+  const [addingCost, setAddingCost] = useState(false);
   useEffect(() => setPage(0), [property.id]);
   const {
     data: costsPage,
@@ -143,7 +153,31 @@ export function PropertyMovementsSection({ property }: { property: RealEstatePro
 
   return (
     <div className="space-y-4">
-      <h3 className="plate-label ">{t('movements.costsTitle')}</h3>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-2">
+          <h3 className="plate-label">{t('movements.costsTitle')}</h3>
+          <HelpTooltip text={t('assets:costEntry.sectionHint')} />
+        </div>
+        <Button
+          type="button"
+          variant="outline"
+          onClick={() => setAddingCost(true)}
+          disabled={addingCost}
+        >
+          {t('assets:costEntry.add')}
+        </Button>
+      </div>
+      {addingCost && (
+        <RecordCostForm
+          target={{
+            id: property.id,
+            name: property.name,
+            currency: property.currency,
+            kind: 'property',
+          }}
+          onClose={() => setAddingCost(false)}
+        />
+      )}
       {isLoading ? (
         <div className="space-y-2 animate-pulse">
           {[...Array(2)].map((_, i) => (

@@ -1,3 +1,5 @@
+import { OptionalDetails } from '@/components/ui/OptionalDetails';
+import { HelpTooltip } from '@/components/ui/HelpTooltip';
 import { decimalField, ExactDecimal } from '@/utils/exact-decimal';
 import { CURRENCY_CODE_PATTERN } from '@/utils/currency-code';
 /**
@@ -130,12 +132,23 @@ type LiabilityFormData = z.infer<ReturnType<typeof liabilitySchema>>;
 
 interface LiabilityFormProps {
   liability?: Liability;
+  initialType?: LiabilityType;
+  initialCurrency?: string;
+  showPropertyLink?: boolean;
   onSubmit: (data: LiabilityRequest) => void;
   onCancel: () => void;
   isLoading: boolean;
 }
 
-export function LiabilityForm({ liability, onSubmit, onCancel, isLoading }: LiabilityFormProps) {
+export function LiabilityForm({
+  liability,
+  initialType = 'LOAN',
+  initialCurrency,
+  showPropertyLink = true,
+  onSubmit,
+  onCancel,
+  isLoading,
+}: LiabilityFormProps) {
   const isEditing = !!liability;
   const today = new Date().toISOString().split('T')[0];
   const { t } = useTranslation('liabilities');
@@ -182,14 +195,14 @@ export function LiabilityForm({ liability, onSubmit, onCancel, isLoading }: Liab
         }
       : {
           name: '',
-          type: 'OTHER',
+          type: initialType,
           principal: '0',
           currentBalance: '0',
           interestRate: 0,
           startDate: today,
           endDate: '',
           minimumPayment: '',
-          currency: baseCurrency || DEFAULT_CURRENCY,
+          currency: initialCurrency || baseCurrency || DEFAULT_CURRENCY,
           notes: '',
           institutionId: '',
           insurancePercentage: 0,
@@ -229,17 +242,21 @@ export function LiabilityForm({ liability, onSubmit, onCancel, isLoading }: Liab
         data.additionalFees && data.additionalFees !== '' && Number(data.additionalFees) > 0
           ? data.additionalFees.trim()
           : undefined,
-      realEstateId: data.realEstateId ?? null,
-      creditLimit: data.creditLimit || undefined,
+      realEstateId: data.type === 'MORTGAGE' ? (data.realEstateId ?? null) : null,
+      creditLimit:
+        data.type === 'CREDIT_CARD' || liability?.type === data.type
+          ? data.creditLimit || undefined
+          : undefined,
       previouslyFunded: data.previouslyFunded,
-      representedByAccountId: data.representedByAccountId
-        ? Number(data.representedByAccountId)
-        : undefined,
+      representedByAccountId:
+        data.type === 'CREDIT_CARD' && data.representedByAccountId
+          ? Number(data.representedByAccountId)
+          : undefined,
     });
   });
 
   return (
-    <form onSubmit={handleFormSubmit} className="space-y-4">
+    <form onSubmit={handleFormSubmit} noValidate className="space-y-4">
       {Object.keys(errors).length > 0 && (
         <p role="alert" className="text-sm text-error">
           {t('form.validation.reviewFields')}
@@ -262,9 +279,12 @@ export function LiabilityForm({ liability, onSubmit, onCancel, isLoading }: Liab
 
         {/* Liability Type */}
         <div>
-          <label htmlFor="type" className="block text-sm font-medium text-text-primary mb-1.5">
-            {t('form.type')} *
-          </label>
+          <div className="mb-1.5 flex items-center gap-2">
+            <label htmlFor="type" className="text-sm font-medium text-text-primary">
+              {t('form.type')} *
+            </label>
+            <HelpTooltip text={t('form.intro')} />
+          </div>
           <select
             id="type"
             {...register('type')}
@@ -294,7 +314,10 @@ export function LiabilityForm({ liability, onSubmit, onCancel, isLoading }: Liab
             />
           </div>
           <div>
-            <label htmlFor="representedByAccountId">{t('form.accountSource')}</label>
+            <div className="mb-1.5 flex items-center gap-2">
+              <label htmlFor="representedByAccountId">{t('form.accountSource')}</label>
+              <HelpTooltip text={t('form.accountSourceHint')} />
+            </div>
             <select
               id="representedByAccountId"
               {...register('representedByAccountId')}
@@ -326,7 +349,6 @@ export function LiabilityForm({ liability, onSubmit, onCancel, isLoading }: Liab
                   </option>
                 ))}
             </select>
-            <p className="text-xs text-text-secondary">{t('form.accountSourceHint')}</p>
           </div>
         </div>
       )}
@@ -364,12 +386,14 @@ export function LiabilityForm({ liability, onSubmit, onCancel, isLoading }: Liab
 
         {/* Current Balance */}
         <div>
-          <label
-            htmlFor="currentBalance"
-            className="block text-sm font-medium text-text-primary mb-1.5"
-          >
-            {t('form.currentBalance')} *
-          </label>
+          <div className="mb-1.5 flex items-center gap-2">
+            <label htmlFor="currentBalance" className="text-sm font-medium text-text-primary">
+              {t('form.currentBalance')} *
+            </label>
+            <HelpTooltip
+              text={t(liability?.balanceLocked ? 'form.balanceLocked' : 'form.currentBalanceHint')}
+            />
+          </div>
           <Controller
             name="currentBalance"
             control={control}
@@ -386,9 +410,6 @@ export function LiabilityForm({ liability, onSubmit, onCancel, isLoading }: Liab
               />
             )}
           />
-          <p className="mt-1 text-xs text-text-secondary">
-            {t(liability?.balanceLocked ? 'form.balanceLocked' : 'form.currentBalanceHint')}
-          </p>
         </div>
 
         {/* Currency */}
@@ -419,207 +440,228 @@ export function LiabilityForm({ liability, onSubmit, onCancel, isLoading }: Liab
         </div>
       </div>
 
-      {/* Rates Row */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {/* Interest Rate */}
-        <div>
-          <label
-            htmlFor="interestRate"
-            className="block text-sm font-medium text-text-primary mb-1.5"
-          >
-            {t('form.interestRate')}
-          </label>
-          <Controller
-            name="interestRate"
-            control={control}
-            render={({ field }) => (
-              <NumberInput
-                id="interestRate"
-                value={
-                  field.value !== undefined && !Number.isNaN(field.value) ? String(field.value) : ''
-                }
-                onChange={val => field.onChange(val === '' ? 0 : Number(val))}
-                onBlur={field.onBlur}
-                placeholder="0.00"
-                error={errors.interestRate?.message}
-                min="0"
-                max="100"
-              />
-            )}
-          />
-        </div>
-
-        {/* Insurance Percentage */}
-        <div>
-          <label
-            htmlFor="insurancePercentage"
-            className="block text-sm font-medium text-text-primary mb-1.5"
-          >
-            {t('form.insurancePercentage')}
-          </label>
-          <Controller
-            name="insurancePercentage"
-            control={control}
-            render={({ field }) => (
-              <NumberInput
-                id="insurancePercentage"
-                value={
-                  field.value !== undefined && !Number.isNaN(field.value) ? String(field.value) : ''
-                }
-                onChange={val => field.onChange(val === '' ? 0 : Number(val))}
-                onBlur={field.onBlur}
-                placeholder="0.00"
-                error={errors.insurancePercentage?.message}
-                min="0"
-                max="100"
-              />
-            )}
-          />
-        </div>
-
-        {/* Minimum Payment */}
-        <div>
-          <label
-            htmlFor="minimumPayment"
-            className="block text-sm font-medium text-text-primary mb-1.5"
-          >
-            {t('form.minimumPayment')}
-          </label>
-          <Controller
-            name="minimumPayment"
-            control={control}
-            render={({ field }) => (
-              <NumberInput
-                id="minimumPayment"
-                value={field.value}
-                onChange={field.onChange}
-                onBlur={field.onBlur}
-                placeholder="0.00"
-                error={errors.minimumPayment?.message}
-                min="0"
-              />
-            )}
-          />
-        </div>
+      {/* Start Date */}
+      <div>
+        <label htmlFor="startDate" className="block text-sm font-medium text-text-primary mb-1.5">
+          {t('form.startDate')} *
+        </label>
+        <Controller
+          name="startDate"
+          control={control}
+          render={({ field }) => (
+            <DateInput
+              id="startDate"
+              value={field.value}
+              onChange={field.onChange}
+              onBlur={field.onBlur}
+              max={today}
+              error={errors.startDate?.message}
+            />
+          )}
+        />
       </div>
 
-      {/* Dates and Fees Row */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {/* One-time Fee */}
-        <div>
-          <label
-            htmlFor="additionalFees"
-            className="block text-sm font-medium text-text-primary mb-1.5"
-          >
-            {t('form.additionalFees')}
-          </label>
-          <Controller
-            name="additionalFees"
-            control={control}
-            render={({ field }) => (
-              <NumberInput
-                id="additionalFees"
-                value={field.value}
-                onChange={field.onChange}
-                onBlur={field.onBlur}
-                placeholder="0.00"
-                error={errors.additionalFees?.message}
-                min="0"
-              />
-            )}
-          />
+      <OptionalDetails
+        title={t('form.repaymentDetails')}
+        description={t('form.repaymentDetailsHint')}
+        hasErrors={
+          !!(
+            errors.interestRate ||
+            errors.insurancePercentage ||
+            errors.minimumPayment ||
+            errors.additionalFees ||
+            errors.endDate
+          )
+        }
+      >
+        {/* Rates Row */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {/* Interest Rate */}
+          <div>
+            <label
+              htmlFor="interestRate"
+              className="block text-sm font-medium text-text-primary mb-1.5"
+            >
+              {t('form.interestRate')}
+            </label>
+            <Controller
+              name="interestRate"
+              control={control}
+              render={({ field }) => (
+                <NumberInput
+                  id="interestRate"
+                  value={
+                    field.value !== undefined && !Number.isNaN(field.value)
+                      ? String(field.value)
+                      : ''
+                  }
+                  onChange={val => field.onChange(val === '' ? 0 : Number(val))}
+                  onBlur={field.onBlur}
+                  placeholder="0.00"
+                  error={errors.interestRate?.message}
+                  min="0"
+                  max="100"
+                />
+              )}
+            />
+          </div>
+
+          {/* Insurance Percentage */}
+          <div>
+            <label
+              htmlFor="insurancePercentage"
+              className="block text-sm font-medium text-text-primary mb-1.5"
+            >
+              {t('form.insurancePercentage')}
+            </label>
+            <Controller
+              name="insurancePercentage"
+              control={control}
+              render={({ field }) => (
+                <NumberInput
+                  id="insurancePercentage"
+                  value={
+                    field.value !== undefined && !Number.isNaN(field.value)
+                      ? String(field.value)
+                      : ''
+                  }
+                  onChange={val => field.onChange(val === '' ? 0 : Number(val))}
+                  onBlur={field.onBlur}
+                  placeholder="0.00"
+                  error={errors.insurancePercentage?.message}
+                  min="0"
+                  max="100"
+                />
+              )}
+            />
+          </div>
+
+          {/* Minimum Payment */}
+          <div>
+            <label
+              htmlFor="minimumPayment"
+              className="block text-sm font-medium text-text-primary mb-1.5"
+            >
+              {t('form.minimumPayment')}
+            </label>
+            <Controller
+              name="minimumPayment"
+              control={control}
+              render={({ field }) => (
+                <NumberInput
+                  id="minimumPayment"
+                  value={field.value}
+                  onChange={field.onChange}
+                  onBlur={field.onBlur}
+                  placeholder="0.00"
+                  error={errors.minimumPayment?.message}
+                  min="0"
+                />
+              )}
+            />
+          </div>
         </div>
 
-        {/* Start Date */}
-        <div>
-          <label htmlFor="startDate" className="block text-sm font-medium text-text-primary mb-1.5">
-            {t('form.startDate')} *
-          </label>
-          <Controller
-            name="startDate"
-            control={control}
-            render={({ field }) => (
-              <DateInput
-                id="startDate"
-                value={field.value}
-                onChange={field.onChange}
-                onBlur={field.onBlur}
-                max={today}
-                error={errors.startDate?.message}
-              />
-            )}
-          />
-        </div>
+        {/* Dates and Fees Row */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {/* One-time Fee */}
+          <div>
+            <label
+              htmlFor="additionalFees"
+              className="block text-sm font-medium text-text-primary mb-1.5"
+            >
+              {t('form.additionalFees')}
+            </label>
+            <Controller
+              name="additionalFees"
+              control={control}
+              render={({ field }) => (
+                <NumberInput
+                  id="additionalFees"
+                  value={field.value}
+                  onChange={field.onChange}
+                  onBlur={field.onBlur}
+                  placeholder="0.00"
+                  error={errors.additionalFees?.message}
+                  min="0"
+                />
+              )}
+            />
+          </div>
 
-        {/* End Date */}
-        <div>
-          <label htmlFor="endDate" className="block text-sm font-medium text-text-primary mb-1.5">
-            {t('form.endDate')}
-          </label>
-          <Controller
-            name="endDate"
-            control={control}
-            render={({ field }) => (
-              <DateInput
-                id="endDate"
-                value={field.value}
-                onChange={field.onChange}
-                onBlur={field.onBlur}
-                error={errors.endDate?.message}
-              />
-            )}
-          />
+          {/* End Date */}
+          <div>
+            <label htmlFor="endDate" className="block text-sm font-medium text-text-primary mb-1.5">
+              {t('form.endDate')}
+            </label>
+            <Controller
+              name="endDate"
+              control={control}
+              render={({ field }) => (
+                <DateInput
+                  id="endDate"
+                  value={field.value}
+                  onChange={field.onChange}
+                  onBlur={field.onBlur}
+                  error={errors.endDate?.message}
+                />
+              )}
+            />
+          </div>
         </div>
-      </div>
+      </OptionalDetails>
+      <OptionalDetails
+        title={t('form.lenderDetails')}
+        hasErrors={!!(errors.notes || errors.institutionId)}
+      >
+        {/* Notes and Institution */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 border-t border-border pt-4">
+          <div>
+            <label
+              htmlFor="institutionId"
+              className="block text-sm font-medium text-text-primary mb-1.5"
+            >
+              {t('form.institution')}
+            </label>
+            <Controller
+              name="institutionId"
+              control={control}
+              render={({ field }) => (
+                <InstitutionSelector
+                  value={field.value}
+                  onValueChange={field.onChange}
+                  placeholder={t('form.institutionPlaceholder')}
+                  className="w-full"
+                />
+              )}
+            />
+          </div>
 
-      {/* Notes and Institution */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 border-t border-border pt-4">
-        <div>
-          <label
-            htmlFor="institutionId"
-            className="block text-sm font-medium text-text-primary mb-1.5"
-          >
-            {t('form.institution')}
-          </label>
-          <Controller
-            name="institutionId"
-            control={control}
-            render={({ field }) => (
-              <InstitutionSelector
-                value={field.value}
-                onValueChange={field.onChange}
-                placeholder={t('form.institutionPlaceholder')}
-                className="w-full"
-              />
-            )}
-          />
+          <div>
+            <label htmlFor="notes" className="block text-sm font-medium text-text-primary mb-1.5">
+              {t('form.notes')}
+            </label>
+            <textarea
+              id="notes"
+              {...register('notes')}
+              rows={2}
+              placeholder={t('form.notesPlaceholder')}
+              className="w-full px-3 py-2 rounded-lg bg-surface border border-border text-text-primary placeholder:text-text-muted text-sm placeholder:text-text-muted hover:border-border/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50 transition-colors duration-150 resize-none"
+            />
+            {errors.notes && <p className="mt-1 text-sm text-error">{errors.notes.message}</p>}
+          </div>
         </div>
-
-        <div>
-          <label htmlFor="notes" className="block text-sm font-medium text-text-primary mb-1.5">
-            {t('form.notes')}
-          </label>
-          <textarea
-            id="notes"
-            {...register('notes')}
-            rows={2}
-            placeholder={t('form.notesPlaceholder')}
-            className="w-full px-3 py-2 rounded-lg bg-surface border border-border text-text-primary placeholder:text-text-muted text-sm placeholder:text-text-muted hover:border-border/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50 transition-colors duration-150 resize-none"
-          />
-          {errors.notes && <p className="mt-1 text-sm text-error">{errors.notes.message}</p>}
-        </div>
-      </div>
-
+      </OptionalDetails>
       {/* Link to Real Estate property (only shown for MORTGAGE type, creation only) */}
-      {selectedType === 'MORTGAGE' && !isEditing && (
+      {showPropertyLink && selectedType === 'MORTGAGE' && !isEditing && (
         <div className="border-t border-border pt-4">
-          <label
-            htmlFor="realEstateId"
-            className="block text-sm font-medium text-text-primary mb-1.5"
-          >
-            {t('form.linkToProperty')}{' '}
-            <span className="text-text-muted font-normal">({t('form.optional')})</span>
-          </label>
+          <div className="mb-1.5 flex items-center gap-2">
+            <label htmlFor="realEstateId" className="text-sm font-medium text-text-primary">
+              {t('form.linkToProperty')}{' '}
+              <span className="text-text-muted font-normal">({t('form.optional')})</span>
+            </label>
+            <HelpTooltip text={t('form.linkToPropertyHint')} />
+          </div>
           <Controller
             name="realEstateId"
             control={control}
@@ -630,7 +672,7 @@ export function LiabilityForm({ liability, onSubmit, onCancel, isLoading }: Liab
                 onChange={e => field.onChange(e.target.value ? Number(e.target.value) : undefined)}
                 className="w-full h-10 px-3 pr-8 rounded-lg bg-surface border border-border text-text-primary text-sm placeholder:text-text-muted hover:border-border/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50 transition-colors duration-150"
               >
-                <option value="">— None —</option>
+                <option value="">{t('form.noProperty')}</option>
                 {(properties ?? []).map(p => (
                   <option key={p.id} value={p.id}>
                     {p.name}
@@ -639,9 +681,6 @@ export function LiabilityForm({ liability, onSubmit, onCancel, isLoading }: Liab
               </select>
             )}
           />
-          <p className="mt-1 text-xs text-text-muted">
-            Selecting a property will automatically link this mortgage to it.
-          </p>
         </div>
       )}
 

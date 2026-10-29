@@ -59,6 +59,9 @@ public class AssetSearchCriteria {
      */
     private AssetType type;
 
+    /** Optional workspace group, applied before sorting and pagination. */
+    private AssetGroup group;
+
     /**
      * Filter by account ID.
      *
@@ -119,6 +122,7 @@ public class AssetSearchCriteria {
      */
     public boolean hasAnyCriteria() {
         return keyword != null
+                || group != null
                 || type != null
                 || accountId != null
                 || currency != null

@@ -9,7 +9,8 @@ import { usePurchaseProperty, type PropertyPurchaseRequest } from '@/hooks/useRe
 import { useAuthContext } from '@/context/AuthContext';
 import { DEFAULT_CURRENCY } from '@/utils/currency';
 import { getToday } from '@/utils/date';
-import { add } from '@/utils/money';
+import { isValidDecimalString } from '@/utils/money';
+import { ExactDecimal } from '@/utils/exact-decimal';
 import { PropertyStep } from './wizard/PropertyStep';
 import { FundingStep } from './wizard/FundingStep';
 import { ReviewStep } from './wizard/ReviewStep';
@@ -30,6 +31,7 @@ export function BuyPropertyWizard({
   const { baseCurrency } = useAuthContext();
   const today = getToday();
   const [step, setStep] = useState(0);
+  const [valueEdited, setValueEdited] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -58,10 +60,39 @@ export function BuyPropertyWizard({
   const { data: liabilities = [] } = useLiabilities();
   const purchase = usePurchaseProperty();
 
-  const updateProperty = (patch: Partial<PropertyStepState>) =>
-    setProperty(prev => ({ ...prev, ...patch }));
+  const remainingPayment = (price: string, loan: string): string =>
+    isValidDecimalString(price) && isValidDecimalString(loan || '0')
+      ? ExactDecimal.max(new ExactDecimal(price).minus(loan || '0'), 0).toFixed()
+      : '';
+  const updateProperty = (patch: Partial<PropertyStepState>) => {
+    if (patch.currentValue !== undefined) setValueEdited(true);
+    setProperty(prev => ({
+      ...prev,
+      ...patch,
+      ...(!valueEdited && patch.purchasePrice !== undefined
+        ? { currentValue: patch.purchasePrice || '0' }
+        : {}),
+    }));
+    if (patch.purchasePrice !== undefined)
+      setFunding(prev => ({
+        ...prev,
+        downPaymentAmount: remainingPayment(
+          patch.purchasePrice!,
+          prev.source === 'none' ? '0' : prev.loanAmount
+        ),
+      }));
+  };
   const updateFunding = (patch: Partial<FundingStepState>) =>
-    setFunding(prev => ({ ...prev, ...patch }));
+    setFunding(prev => {
+      const next = { ...prev, ...patch };
+      if (patch.source !== undefined || patch.loanAmount !== undefined) {
+        next.downPaymentAmount = remainingPayment(
+          property.purchasePrice,
+          next.source === 'none' ? '0' : next.loanAmount
+        );
+      }
+      return next;
+    });
 
   const price = Number(property.purchasePrice);
   const loan = funding.source === 'none' ? 0 : Number(funding.loanAmount);
@@ -72,7 +103,12 @@ export function BuyPropertyWizard({
     Number.isFinite(down) &&
     loan >= 0 &&
     down >= 0 &&
-    add(loan, down) === price;
+    isValidDecimalString(property.purchasePrice) &&
+    isValidDecimalString(funding.downPaymentAmount || '0') &&
+    (funding.source === 'none' || isValidDecimalString(funding.loanAmount)) &&
+    new ExactDecimal(funding.source === 'none' ? '0' : funding.loanAmount)
+      .plus(funding.downPaymentAmount || '0')
+      .eq(property.purchasePrice);
 
   // The 'account' disbursement route sends the funds to a checking account — one must be
   // selected, otherwise the request would go out with an undefined toAccountId.
@@ -97,7 +133,10 @@ export function BuyPropertyWizard({
       ? property.name.trim() !== '' &&
         property.address.trim() !== '' &&
         price > 0 &&
-        Number(property.currentValue) >= 0
+        isValidDecimalString(property.currentValue) &&
+        Number(property.currentValue) >= 0 &&
+        !!property.purchaseDate &&
+        property.purchaseDate <= today
       : step === 1
         ? fundingStepValid &&
           fundingAmountsValid &&
@@ -167,13 +206,14 @@ export function BuyPropertyWizard({
   return (
     <div className="space-y-6" data-testid="buy-property-wizard">
       {/* Stepper */}
-      <ol className="flex items-center gap-2 text-sm">
+      <ol className="flex flex-wrap items-center gap-2 text-sm">
         {['property', 'funding', 'review'].map((key, i) => {
           const Icon = STEP_ICONS[i];
           const active = step === i;
           return (
             <li
               key={key}
+              aria-current={active ? 'step' : undefined}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md border ${
                 active
                   ? 'border-primary text-primary bg-primary/10'

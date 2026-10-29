@@ -163,6 +163,20 @@ describe('AssetsPage', () => {
     mockError = null;
   });
 
+  it('requests physical items and their totals using the same server-side group', async () => {
+    renderWithProviders(<AssetsPage />);
+    await userEvent.click(screen.getByRole('button', { name: 'Physical assets' }));
+    expect(useAssetsSearch).toHaveBeenCalledWith(
+      expect.objectContaining({ group: 'PHYSICAL', page: 0 })
+    );
+    expect(screen.queryByRole('button', { name: /Refresh prices/i })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Physical assets' })).toHaveAttribute(
+      'aria-pressed',
+      'true'
+    );
+    window.history.replaceState({}, '', '/assets');
+  });
+
   describe('Data display', () => {
     it('should render the page heading', () => {
       renderWithProviders(<AssetsPage />);

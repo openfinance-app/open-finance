@@ -73,7 +73,13 @@
     "previouslyFunded": "This loan was previously drawn and is now fully paid",
     "accountSource": "Debt already tracked in an account",
     "separateBalance": "Track balance with this liability",
-    "accountSourceHint": "Choose the matching credit-card account to count this debt once. Record payments as transfers to that account."
+    "accountSourceHint": "Choose the matching credit-card account to count this debt once. Record payments as transfers to that account.",
+    "intro": "Start with the original loan amount and what you still owe. Repayment terms and lender details are optional.",
+    "repaymentDetails": "Repayment terms & fees (optional)",
+    "repaymentDetailsHint": "Interest, monthly payment, insurance, fees and end date.",
+    "lenderDetails": "Lender & notes (optional)",
+    "noProperty": "No property linked",
+    "linkToPropertyHint": "This links the mortgage to the property without recording a payment."
   },
   "summary": {
     "totalLiabilities": "Total Liabilities",
@@ -286,7 +292,9 @@
     "linkedCount_other": "{{count}} transactions linked",
     "total": "total",
     "transaction": "Transaction #{{id}}",
-    "title": "{{name}} — Details"
+    "title": "{{name}} — Details",
+    "sections": "Loan sections",
+    "assets": "Linked assets"
   },
   "saveError": "The liability could not be saved. Please try again.",
   "deleteError": "The liability could not be deleted. Please try again."

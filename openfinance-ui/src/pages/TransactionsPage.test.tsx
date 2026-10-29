@@ -61,7 +61,12 @@ const mockUpdateMutateAsync = vi.fn();
 const mockUpdateTransferMutateAsync = vi.fn();
 const mockDeleteMutateAsync = vi.fn();
 const mockUseTransactions = vi.fn();
+const mockUseTransaction = vi.fn<(id: number | null) => { data: unknown; error: Error | null }>();
 const mockGetTransferSource = vi.fn();
+
+beforeEach(() => {
+  mockUseTransaction.mockReset().mockReturnValue({ data: undefined, error: null });
+});
 
 vi.mock('@/hooks/useTransactions', () => ({
   useTransactionSummary: () => ({
@@ -78,6 +83,7 @@ vi.mock('@/hooks/useTransactions', () => ({
   }),
   getTransferSource: (id: string) => mockGetTransferSource(id),
   useTransactions: (filters?: TransactionFilters) => mockUseTransactions(filters),
+  useTransaction: (id: number | null) => mockUseTransaction(id),
   useCreateTransaction: () => ({ mutateAsync: mockCreateMutateAsync, isPending: false }),
   useCreateTransfer: () => ({ mutateAsync: mockCreateTransferMutateAsync, isPending: false }),
   useUpdateTransaction: () => ({ mutateAsync: mockUpdateMutateAsync, isPending: false }),
@@ -152,7 +158,7 @@ vi.mock('@/components/transactions/TransactionFilters', () => ({
 
 vi.mock('@/components/transactions/TransactionDetailModal', () => ({
   TransactionDetailModal: ({ transaction, onClose, onEdit }: any) => (
-    <div data-testid="detail-modal">
+    <div role="dialog" aria-label="Transaction details" data-testid="detail-modal">
       <span>{transaction.description} Detail</span>
       <button onClick={onClose}>Close Detail</button>
       <button onClick={() => onEdit(transaction)}>Edit from Detail</button>
@@ -504,6 +510,28 @@ describe('TransactionsPage deep links', () => {
     };
     renderPage('?highlight=42');
     expect(await screen.findByTestId('detail-modal')).toHaveTextContent('Highlight target Detail');
+  });
+
+  it('opens a linked cost even when it is outside the current transaction page', async () => {
+    mockUseTransaction.mockReturnValue({
+      data: { ...mockTransaction, id: 99, description: 'Older car repair' },
+      error: null,
+    });
+    renderPage('?highlight=99');
+
+    expect(await screen.findByRole('dialog', { name: 'Transaction details' })).toHaveTextContent(
+      'Older car repair'
+    );
+    expect(mockUseTransaction).toHaveBeenCalledWith(99);
+    expect(window.location.search).not.toContain('highlight');
+  });
+
+  it('shows a load error when a linked transaction cannot be retrieved', async () => {
+    mockUseTransaction.mockReturnValue({ data: undefined, error: new Error('Unavailable') });
+    renderPage('?highlight=99');
+
+    expect(await screen.findByRole('alert')).toBeVisible();
+    expect(screen.queryByRole('dialog', { name: 'Transaction details' })).not.toBeInTheDocument();
   });
 
   it('updates filters in place when the list fires onFilterByCategory', () => {

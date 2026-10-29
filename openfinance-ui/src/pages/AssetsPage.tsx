@@ -6,8 +6,12 @@ import { formatDecimal } from '@/utils/format';
  * Main page for managing user investment assets with filters and pagination
  */
 import React, { useState, useMemo, useEffect } from 'react';
-import { useSearchParams } from 'react-router';
+import { useNavigate, useSearchParams } from 'react-router';
+import { isAxiosError } from 'axios';
 import {
+  Boxes,
+  Building2,
+  ChevronLeft,
   Plus,
   Filter,
   DollarSign,
@@ -49,7 +53,7 @@ import {
   getGainLossColor,
 } from '@/utils/portfolio';
 import { computeAssetSummary } from '@/utils/asset-summary';
-import type { Asset, AssetRequest, AssetFilters as Filters } from '@/types/asset';
+import type { Asset, AssetRequest, AssetType, AssetFilters as Filters } from '@/types/asset';
 import { DEFAULT_PAGE_SIZE, FETCH_ALL_PAGE_SIZE } from '@/constants/pagination';
 
 const ASSET_TYPE_VALUES = [
@@ -70,6 +74,7 @@ const ASSET_TYPE_VALUES = [
 
 export default function AssetsPage() {
   const { t } = useTranslation('assets');
+  const navigate = useNavigate();
   useDocumentTitle(t('title'));
   const [searchParams, setSearchParams] = useSearchParams();
   const highlightId = searchParams.get('highlight')
@@ -79,6 +84,7 @@ export default function AssetsPage() {
   // Deep-link support: seed currency/type/symbol filters from URL params (validated)
   const currencyParam = searchParams.get('currency');
   const typeParam = searchParams.get('type');
+  const groupParam = searchParams.get('group');
   const symbolParam = searchParams.get('symbol');
   const validType =
     typeParam && (ASSET_TYPE_VALUES as readonly string[]).includes(typeParam)
@@ -101,12 +107,21 @@ export default function AssetsPage() {
     sort: 'name,asc',
     currency: validCurrency,
     type: validType,
+    group: groupParam === 'PHYSICAL' || groupParam === 'FINANCIAL' ? groupParam : undefined,
     symbol: validSymbol,
   });
+  useEffect(() => {
+    const group = groupParam === 'PHYSICAL' || groupParam === 'FINANCIAL' ? groupParam : undefined;
+    setFilters(prev =>
+      prev.group === group ? prev : { ...prev, group, type: undefined, page: 0 }
+    );
+  }, [groupParam]);
   const [showFilters, setShowFilters] = useState(
     Boolean(validCurrency || validType || validSymbol)
   );
   const [isFormOpen, setIsFormOpen] = useState(false);
+  const [creationType, setCreationType] = useState<AssetType | null>(null);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const [editingAsset, setEditingAsset] = useState<Asset | null>(null);
   const [viewingAsset, setViewingAsset] = useState<Asset | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -143,6 +158,7 @@ export default function AssetsPage() {
   const { data: allAssetsPage } = useAssetsSearch({
     page: 0,
     size: FETCH_ALL_PAGE_SIZE,
+    group: filters.group,
     sort: 'name,asc',
   });
   // Also use the flat assets list for portfolio metrics
@@ -188,15 +204,15 @@ export default function AssetsPage() {
 
   // Portfolio metrics from the flat all-assets list
   const metrics = useMemo(
-    () => (allAssetsList ? calculatePortfolioMetrics(allAssetsList) : null),
-    [allAssetsList]
+    () => (allAssets.length ? calculatePortfolioMetrics(allAssets) : null),
+    [allAssets]
   );
 
   // Best performer — use filtered assets when filters are active, otherwise global
   const { best } = useMemo(() => {
-    const sourceList = isFiltered ? assets : (allAssetsList ?? []);
+    const sourceList = isFiltered ? assets : allAssets;
     return sourceList.length > 0 ? getTopPerformers(sourceList) : { best: [] };
-  }, [isFiltered, assets, allAssetsList]);
+  }, [isFiltered, assets, allAssets]);
 
   const handleRefreshPrices = async () => {
     if (assetsWithSymbols.length === 0) return;
@@ -225,17 +241,40 @@ export default function AssetsPage() {
 
   const handleCreate = () => {
     setEditingAsset(null);
+    setCreationType(
+      filters.group === 'PHYSICAL' ? 'VEHICLE' : filters.group === 'FINANCIAL' ? 'STOCK' : null
+    );
+    setSaveError(null);
     setIsFormOpen(true);
   };
 
   const handleEdit = (asset: Asset) => {
+    if (asset.type === 'REAL_ESTATE') {
+      navigate(`/real-estate?asset=${asset.id}`);
+      return;
+    }
+    setSaveError(null);
     setEditingAsset(asset);
     setIsFormOpen(true);
   };
 
   const handleView = (asset: Asset) => {
-    setViewingAsset(asset);
+    if (asset.type === 'REAL_ESTATE') navigate(`/real-estate?asset=${asset.id}`);
+    else setViewingAsset(asset);
   };
+
+  useEffect(() => {
+    if (!highlightId || !allAssetsList) return;
+    const asset = allAssetsList.find(item => item.id === highlightId);
+    if (!asset) return;
+    if (asset.type === 'REAL_ESTATE') navigate(`/real-estate?asset=${asset.id}`, { replace: true });
+    else {
+      setViewingAsset(asset);
+      const next = new URLSearchParams(searchParams);
+      next.delete('highlight');
+      setSearchParams(next, { replace: true });
+    }
+  }, [highlightId, allAssetsList, navigate, searchParams, setSearchParams]);
 
   const handleDelete = async (assetId: number) => {
     try {
@@ -246,16 +285,22 @@ export default function AssetsPage() {
   };
 
   const handleFormSubmit = async (data: AssetRequest) => {
+    setSaveError(null);
     try {
       if (editingAsset) {
         await updateAsset.mutateAsync({ id: editingAsset.id, data });
       } else {
-        await createAsset.mutateAsync(data);
+        const created = await createAsset.mutateAsync(data);
+        setViewingAsset(created);
       }
       setIsFormOpen(false);
       setEditingAsset(null);
     } catch (error) {
-      console.error('Failed to save asset:', error);
+      setSaveError(
+        isAxiosError<{ message?: string }>(error) && error.response?.data.message
+          ? error.response.data.message
+          : t('saveError')
+      );
     }
   };
 
@@ -266,7 +311,7 @@ export default function AssetsPage() {
 
   if (error) {
     return (
-      <div className="p-8">
+      <div className="p-4 sm:p-8">
         <PageHeader title={t('title')} />
         <div className="mt-6 p-4 bg-error/10 border border-error/20 rounded-lg text-error">
           {t('loadError')}
@@ -276,21 +321,28 @@ export default function AssetsPage() {
   }
 
   return (
-    <div className="p-8">
+    <div className="p-4 sm:p-8">
       {/* Header */}
       <div className="flex flex-col gap-4 mb-6">
-        <div className="flex items-center justify-between">
-          <PageHeader title={t('title')} description={t('description')} />
-          <div className="flex items-center gap-3">
-            {/* Refresh Prices button */}
-            <Button
-              variant="secondary"
-              onClick={handleRefreshPrices}
-              disabled={isRefreshing || assetsWithSymbols.length === 0}
-            >
-              <RefreshCw className={`h-4 w-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
-              {isRefreshing ? t('refreshing') : t('refreshPrices')}
-            </Button>
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <PageHeader
+            title={t(filters.group === 'PHYSICAL' ? 'groups.PHYSICAL' : 'title')}
+            description={t(filters.group === 'PHYSICAL' ? 'physicalDescription' : 'description')}
+          />
+          <div className="flex flex-wrap items-center gap-3">
+            {filters.group !== 'PHYSICAL' && (
+              <>
+                {/* Refresh Prices button */}
+                <Button
+                  variant="secondary"
+                  onClick={handleRefreshPrices}
+                  disabled={isRefreshing || assetsWithSymbols.length === 0}
+                >
+                  <RefreshCw className={`h-4 w-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
+                  {isRefreshing ? t('refreshing') : t('refreshPrices')}
+                </Button>
+              </>
+            )}
             {/* Filter Toggle Button */}
             <Button
               variant={showFilters ? 'primary' : 'outline'}
@@ -307,11 +359,35 @@ export default function AssetsPage() {
         </div>
 
         {/* Stale price indicator */}
-        {allAssetsList && allAssetsList.length > 0 && (
+        {filters.group !== 'PHYSICAL' && allAssetsList && allAssetsList.length > 0 && (
           <BatchUpdateIndicator assets={allAssetsList} size="md" />
         )}
       </div>
 
+      <div className="mb-6 flex flex-wrap gap-2" role="group" aria-label={t('groups.label')}>
+        {(['ALL', 'PHYSICAL', 'FINANCIAL'] as const).map(group => (
+          <Button
+            key={group}
+            size="sm"
+            variant={(filters.group ?? 'ALL') === group ? 'primary' : 'outline'}
+            aria-pressed={(filters.group ?? 'ALL') === group}
+            onClick={() => {
+              setFilters(prev => ({
+                ...prev,
+                group: group === 'ALL' ? undefined : group,
+                type: undefined,
+                page: 0,
+              }));
+              const next = new URLSearchParams(searchParams);
+              if (group === 'ALL') next.delete('group');
+              else next.set('group', group);
+              setSearchParams(next, { replace: true });
+            }}
+          >
+            {t(`groups.${group}`)}
+          </Button>
+        ))}
+      </div>
       {/* Filters Panel */}
       {showFilters && (
         <div className="mb-6">
@@ -332,7 +408,9 @@ export default function AssetsPage() {
       )}
       {/* Summary Cards — Portfolio-style */}
       {!isLoading && allAssets.length > 0 && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        <div
+          className={`grid grid-cols-1 md:grid-cols-2 ${filters.group === 'PHYSICAL' ? 'lg:grid-cols-3' : 'lg:grid-cols-4'} gap-4 mb-6`}
+        >
           {/* Total Portfolio Value */}
           <div
             className="bg-surface border border-border rounded-[var(--radius-card)] shadow-plate p-6 stagger-item"
@@ -340,7 +418,11 @@ export default function AssetsPage() {
           >
             <div className="flex items-center justify-between mb-2">
               <span className="text-sm text-muted-foreground">
-                {t('summary.totalPortfolioValue')}
+                {t(
+                  filters.group === 'PHYSICAL'
+                    ? 'summary.physicalValue'
+                    : 'summary.totalPortfolioValue'
+                )}
               </span>
               <span
                 className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10"
@@ -423,7 +505,9 @@ export default function AssetsPage() {
             style={{ '--stagger-index': 2 } as React.CSSProperties}
           >
             <div className="flex items-center justify-between mb-2">
-              <span className="text-sm text-muted-foreground">{t('summary.overallReturn')}</span>
+              <span className="text-sm text-muted-foreground">
+                {t(filters.group === 'PHYSICAL' ? 'summary.valueChange' : 'summary.overallReturn')}
+              </span>
               <span
                 className="flex h-8 w-8 items-center justify-center rounded-lg bg-surface-elevated"
                 aria-hidden="true"
@@ -455,31 +539,39 @@ export default function AssetsPage() {
             )}
           </div>
 
-          {/* Best Performer */}
-          <div
-            className="bg-surface border border-border rounded-[var(--radius-card)] shadow-plate p-6 stagger-item"
-            style={{ '--stagger-index': 3 } as React.CSSProperties}
-          >
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-sm text-muted-foreground">{t('summary.bestPerformer')}</span>
-              <span
-                className="flex h-8 w-8 items-center justify-center rounded-lg bg-success/10"
-                aria-hidden="true"
+          {filters.group !== 'PHYSICAL' && (
+            <>
+              {/* Best Performer */}
+              <div
+                className="bg-surface border border-border rounded-[var(--radius-card)] shadow-plate p-6 stagger-item"
+                style={{ '--stagger-index': 3 } as React.CSSProperties}
               >
-                <TrendingUp className="h-4 w-4 text-success" />
-              </span>
-            </div>
-            {best.length > 0 ? (
-              <>
-                <p className="text-lg font-bold text-foreground truncate">{best[0].asset.name}</p>
-                <PrivateAmount inline className="text-sm text-green-500">
-                  {formatPercentage(best[0].gainPercentage * 100)}
-                </PrivateAmount>
-              </>
-            ) : (
-              <p className="text-sm text-muted-foreground">{t('summary.noGainsYet')}</p>
-            )}
-          </div>
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm text-muted-foreground">
+                    {t('summary.bestPerformer')}
+                  </span>
+                  <span
+                    className="flex h-8 w-8 items-center justify-center rounded-lg bg-success/10"
+                    aria-hidden="true"
+                  >
+                    <TrendingUp className="h-4 w-4 text-success" />
+                  </span>
+                </div>
+                {best.length > 0 ? (
+                  <>
+                    <p className="text-lg font-bold text-foreground truncate">
+                      {best[0].asset.name}
+                    </p>
+                    <PrivateAmount inline className="text-sm text-green-500">
+                      {formatPercentage(best[0].gainPercentage * 100)}
+                    </PrivateAmount>
+                  </>
+                ) : (
+                  <p className="text-sm text-muted-foreground">{t('summary.noGainsYet')}</p>
+                )}
+              </div>
+            </>
+          )}
         </div>
       )}
 
@@ -532,6 +624,7 @@ export default function AssetsPage() {
       {/* Asset Detail Modal */}
       {viewingAsset && (
         <AssetDetailModal
+          key={viewingAsset.id}
           asset={allAssetsList?.find(asset => asset.id === viewingAsset.id) ?? viewingAsset}
           onClose={() => setViewingAsset(null)}
           onEdit={handleEdit}
@@ -547,12 +640,67 @@ export default function AssetsPage() {
               {editingAsset ? t('dialogs.editTitle') : t('dialogs.createTitle')}
             </DialogTitle>
           </DialogHeader>
-          <AssetForm
-            asset={editingAsset || undefined}
-            onSubmit={handleFormSubmit}
-            onCancel={handleFormCancel}
-            isLoading={createAsset.isPending || updateAsset.isPending}
-          />
+          {!editingAsset && !creationType ? (
+            <div className="space-y-3">
+              <p className="text-sm text-text-secondary">{t('createChoice.intro')}</p>
+              {(
+                [
+                  { key: 'physical', icon: Boxes, select: () => setCreationType('VEHICLE') },
+                  { key: 'investment', icon: TrendingUp, select: () => setCreationType('STOCK') },
+                  {
+                    key: 'property',
+                    icon: Building2,
+                    select: () => navigate('/real-estate?create=1'),
+                  },
+                ] as const
+              ).map(({ key, icon: Icon, select }) => (
+                <button
+                  key={key}
+                  type="button"
+                  onClick={select}
+                  className="flex w-full items-center gap-4 rounded-xl border border-border bg-surface p-4 text-left hover:border-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                >
+                  <Icon className="h-6 w-6 shrink-0 text-primary" aria-hidden="true" />
+                  <span>
+                    <span className="block font-semibold">{t(`createChoice.${key}`)}</span>
+                    <span className="mt-1 block text-sm text-text-secondary">
+                      {t(`createChoice.${key}Hint`)}
+                    </span>
+                  </span>
+                </button>
+              ))}
+            </div>
+          ) : (
+            <>
+              {!editingAsset && (
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  className="justify-self-start"
+                  onClick={() => setCreationType(null)}
+                >
+                  <ChevronLeft className="mr-2 h-4 w-4" aria-hidden="true" />
+                  {t('createChoice.back')}
+                </Button>
+              )}
+              <AssetForm
+                kind={
+                  editingAsset ? undefined : creationType === 'VEHICLE' ? 'physical' : 'financial'
+                }
+                initialType={creationType ?? undefined}
+                asset={editingAsset || undefined}
+                onSubmit={handleFormSubmit}
+                onCancel={handleFormCancel}
+                isLoading={createAsset.isPending || updateAsset.isPending}
+              />
+            </>
+          )}
+          {saveError && (
+            <p role="alert" className="text-sm text-error">
+              {saveError}
+            </p>
+          )}
         </DialogContent>
       </Dialog>
     </div>

@@ -87,6 +87,53 @@ describe('AssetForm', () => {
     }
   );
 
+  it('starts a physical item with one unit and keeps optional inventory details collapsed', async () => {
+    renderWithProviders(
+      <AssetForm
+        initialType="VEHICLE"
+        kind="physical"
+        onSubmit={mockOnSubmit}
+        onCancel={mockOnCancel}
+      />
+    );
+    expect(screen.getByLabelText(/Quantity/i)).toHaveValue('1');
+    expect(screen.queryByRole('option', { name: 'Stock' })).not.toBeInTheDocument();
+    expect(screen.getByLabelText(/^Brand$/i).closest('details')).not.toHaveAttribute('open');
+    fireEvent.change(screen.getByLabelText(/Asset Name/i), { target: { value: 'Family car' } });
+    fireEvent.change(screen.getByLabelText(/Purchase price per item/i), {
+      target: { value: '123.000000000000000001' },
+    });
+    await userEvent.click(screen.getByRole('button', { name: /Create Asset/i }));
+    await waitFor(() =>
+      expect(mockOnSubmit).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: 'VEHICLE',
+          quantity: '1',
+          purchasePrice: '123.000000000000000001',
+          currentPrice: '123.000000000000000001',
+        })
+      )
+    );
+  });
+
+  it('keeps a planned physical item out of current value without requiring users to zero it manually', async () => {
+    renderWithProviders(
+      <AssetForm initialType="VEHICLE" onSubmit={mockOnSubmit} onCancel={mockOnCancel} />
+    );
+    fireEvent.change(screen.getByLabelText(/Asset Name/i), { target: { value: 'Next car' } });
+    fireEvent.change(screen.getByLabelText(/Purchase price per item/i), {
+      target: { value: '25000' },
+    });
+    await userEvent.selectOptions(screen.getByLabelText(/acquisition/i), 'PLANNED');
+    expect(screen.getByLabelText(/Estimated value per item/i)).toBeDisabled();
+    await userEvent.click(screen.getByRole('button', { name: /Create Asset/i }));
+    await waitFor(() =>
+      expect(mockOnSubmit).toHaveBeenCalledWith(
+        expect.objectContaining({ acquisitionType: 'PLANNED', currentPrice: '0' })
+      )
+    );
+  });
+
   describe('Rendering', () => {
     it('should render all required form fields', () => {
       renderWithProviders(<AssetForm onSubmit={mockOnSubmit} onCancel={mockOnCancel} />);
@@ -394,9 +441,9 @@ describe('AssetForm', () => {
       fireEvent.change(typeSelect, { target: { value: 'VEHICLE' } });
 
       await waitFor(() => {
-        expect(screen.getByLabelText(/Condition/i)).toBeInTheDocument();
-        expect(screen.getByLabelText(/Brand/i)).toBeInTheDocument();
-        expect(screen.getByLabelText(/Model/i)).toBeInTheDocument();
+        expect(screen.getByLabelText(/Condition/i, { selector: 'select' })).toBeInTheDocument();
+        expect(screen.getByLabelText(/Brand/i, { selector: 'input' })).toBeInTheDocument();
+        expect(screen.getByLabelText(/Model/i, { selector: 'input' })).toBeInTheDocument();
       });
     });
 

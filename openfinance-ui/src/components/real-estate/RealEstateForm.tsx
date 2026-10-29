@@ -1,3 +1,6 @@
+import { useEffect } from 'react';
+import { OptionalDetails } from '@/components/ui/OptionalDetails';
+import { HelpTooltip } from '@/components/ui/HelpTooltip';
 import { decimalField } from '@/utils/exact-decimal';
 import { CURRENCY_CODE_PATTERN } from '@/utils/currency-code';
 /**
@@ -110,12 +113,19 @@ type PropertyFormData = z.infer<ReturnType<typeof propertySchema>>;
 
 interface RealEstateFormProps {
   property?: RealEstateProperty;
+  initialAcquisitionType?: 'PURCHASE' | 'GIFT' | 'PLANNED';
   onSubmit: (data: RealEstatePropertyRequest) => Promise<void>;
   onCancel: () => void;
   isLoading: boolean;
 }
 
-export function RealEstateForm({ property, onSubmit, onCancel, isLoading }: RealEstateFormProps) {
+export function RealEstateForm({
+  property,
+  initialAcquisitionType = 'PURCHASE',
+  onSubmit,
+  onCancel,
+  isLoading,
+}: RealEstateFormProps) {
   const isEditing = !!property;
   const today = new Date().toISOString().split('T')[0];
   const { baseCurrency } = useAuthContext();
@@ -126,6 +136,8 @@ export function RealEstateForm({ property, onSubmit, onCancel, isLoading }: Real
     handleSubmit,
     control,
     watch,
+    setValue,
+    getFieldState,
     formState: { errors },
   } = useForm<PropertyFormData>({
     resolver: zodResolver(propertySchema(t)),
@@ -145,8 +157,8 @@ export function RealEstateForm({ property, onSubmit, onCancel, isLoading }: Real
               ? decimalField(property, 'rentalIncome')
               : '',
           notes: property.notes || '',
-          latitude: property.latitude || undefined,
-          longitude: property.longitude || undefined,
+          latitude: property.latitude ?? undefined,
+          longitude: property.longitude ?? undefined,
           isActive: property.isActive,
         }
       : {
@@ -154,7 +166,7 @@ export function RealEstateForm({ property, onSubmit, onCancel, isLoading }: Real
           address: '',
           propertyType: PropertyType.RESIDENTIAL,
           purchasePrice: '0',
-          acquisitionType: 'PURCHASE',
+          acquisitionType: initialAcquisitionType,
           purchaseDate: today,
           currentValue: '0',
           currency: baseCurrency || DEFAULT_CURRENCY,
@@ -169,6 +181,9 @@ export function RealEstateForm({ property, onSubmit, onCancel, isLoading }: Real
 
   const selectedCurrency = watch('currency');
   const acquisitionType = watch('acquisitionType');
+  useEffect(() => {
+    if (acquisitionType === 'PLANNED') setValue('currentValue', '0');
+  }, [acquisitionType, setValue]);
 
   const handleFormSubmit = handleSubmit(async (data: PropertyFormData) => {
     const request: RealEstatePropertyRequest = {
@@ -186,9 +201,9 @@ export function RealEstateForm({ property, onSubmit, onCancel, isLoading }: Real
           ? data.rentalIncome.trim()
           : null,
       notes: data.notes && data.notes !== '' ? data.notes : null,
-      documents: null,
-      latitude: data.latitude || null,
-      longitude: data.longitude || null,
+      documents: property?.documents ?? null,
+      latitude: data.latitude ?? null,
+      longitude: data.longitude ?? null,
       isActive: data.isActive !== undefined ? data.isActive : true,
     };
 
@@ -200,9 +215,12 @@ export function RealEstateForm({ property, onSubmit, onCancel, isLoading }: Real
   });
 
   return (
-    <form onSubmit={handleFormSubmit} className="space-y-4">
+    <form onSubmit={handleFormSubmit} noValidate className="space-y-4">
       <div>
-        <label htmlFor="acquisitionType">{t('form.acquisitionType')}</label>
+        <div className="mb-1.5 flex items-center gap-2">
+          <label htmlFor="acquisitionType">{t('form.acquisitionType')}</label>
+          <HelpTooltip text={`${t('form.simpleIntro')} ${t('form.acquisitionHint')}`} />
+        </div>
         <select
           id="acquisitionType"
           {...register('acquisitionType')}
@@ -214,7 +232,6 @@ export function RealEstateForm({ property, onSubmit, onCancel, isLoading }: Real
             </option>
           ))}
         </select>
-        <p className="text-xs text-text-secondary">{t('form.acquisitionHint')}</p>
       </div>
       {/* Top Row: Property Name & Type */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -287,7 +304,15 @@ export function RealEstateForm({ property, onSubmit, onCancel, isLoading }: Real
               <NumberInput
                 id="purchasePrice"
                 value={field.value}
-                onChange={field.onChange}
+                onChange={value => {
+                  field.onChange(value);
+                  if (
+                    !isEditing &&
+                    acquisitionType !== 'PLANNED' &&
+                    !getFieldState('currentValue').isDirty
+                  )
+                    setValue('currentValue', value);
+                }}
                 onBlur={field.onBlur}
                 placeholder="0.00"
                 error={errors.purchasePrice?.message}
@@ -335,6 +360,7 @@ export function RealEstateForm({ property, onSubmit, onCancel, isLoading }: Real
             render={({ field }) => (
               <NumberInput
                 id="currentValue"
+                disabled={acquisitionType === 'PLANNED'}
                 value={field.value}
                 onChange={field.onChange}
                 onBlur={field.onBlur}
@@ -347,167 +373,187 @@ export function RealEstateForm({ property, onSubmit, onCancel, isLoading }: Real
         </div>
       </div>
 
-      {/* Currency, Mortgage, and Rental Income Row */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {/* Currency */}
-        <div>
-          <label htmlFor="currency" className="block text-sm font-medium text-text-primary mb-1.5">
-            {t('form.currency')} *
-          </label>
-          <Controller
-            name="currency"
-            control={control}
-            render={({ field }) => (
-              <CurrencySelector
-                value={field.value}
-                onValueChange={field.onChange}
-                placeholder={t('form.selectCurrency')}
-                className="w-full"
-              />
-            )}
-          />
-          {errors.currency && <p className="mt-1 text-sm text-error">{errors.currency.message}</p>}
-          {selectedCurrency && selectedCurrency !== baseCurrency && (
-            <div className="mt-2">
-              <ExchangeRateInline from={selectedCurrency} to={baseCurrency || DEFAULT_CURRENCY} />
-            </div>
-          )}
-        </div>
-
-        {/* Mortgage */}
-        <div>
-          <label
-            htmlFor="mortgageId"
-            className="block text-sm font-medium text-text-primary mb-1.5"
-          >
-            {t('form.linkedMortgage')}
-          </label>
-          <Controller
-            name="mortgageId"
-            control={control}
-            render={({ field }) => (
-              <LiabilitySelector
-                value={field.value}
-                onValueChange={field.onChange}
-                placeholder={t('form.selectMortgage')}
-                liabilityFilter={l => l.type === 'MORTGAGE'}
-              />
-            )}
-          />
-          {errors.mortgageId && (
-            <p className="mt-1 text-sm text-error">{errors.mortgageId.message}</p>
-          )}
-        </div>
-
-        {/* Monthly Rental Income */}
-        <div>
-          <label
-            htmlFor="rentalIncome"
-            className="block text-sm font-medium text-text-primary mb-1.5"
-          >
-            {t('form.monthlyRentalIncome')}
-          </label>
-          <Controller
-            name="rentalIncome"
-            control={control}
-            render={({ field }) => (
-              <NumberInput
-                id="rentalIncome"
-                value={field.value}
-                onChange={field.onChange}
-                onBlur={field.onBlur}
-                placeholder="0.00"
-                error={errors.rentalIncome?.message}
-                min="0"
-              />
-            )}
-          />
-        </div>
-      </div>
-
-      {/* Location Coordinates */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {/* Latitude */}
-        <div>
-          <label htmlFor="latitude" className="block text-sm font-medium text-text-primary mb-1.5">
-            {t('form.latitude')}
-          </label>
-          <Controller
-            name="latitude"
-            control={control}
-            render={({ field }) => (
-              <NumberInput
-                id="latitude"
-                value={
-                  field.value !== undefined && !Number.isNaN(field.value) ? String(field.value) : ''
-                }
-                onChange={val => field.onChange(val === '' ? undefined : Number(val))}
-                onBlur={field.onBlur}
-                placeholder={t('form.latitudePlaceholder')}
-                error={errors.latitude?.message}
-                min="-90"
-                max="90"
-              />
-            )}
-          />
-        </div>
-
-        {/* Longitude */}
-        <div>
-          <label htmlFor="longitude" className="block text-sm font-medium text-text-primary mb-1.5">
-            {t('form.longitude')}
-          </label>
-          <Controller
-            name="longitude"
-            control={control}
-            render={({ field }) => (
-              <NumberInput
-                id="longitude"
-                value={
-                  field.value !== undefined && !Number.isNaN(field.value) ? String(field.value) : ''
-                }
-                onChange={val => field.onChange(val === '' ? undefined : Number(val))}
-                onBlur={field.onBlur}
-                placeholder={t('form.longitudePlaceholder')}
-                error={errors.longitude?.message}
-                min="-180"
-                max="180"
-              />
-            )}
-          />
-        </div>
-      </div>
-
-      {/* Notes */}
+      {/* Currency */}
       <div>
-        <label htmlFor="notes" className="block text-sm font-medium text-text-primary mb-1.5">
-          {t('form.notes')}
+        <label htmlFor="currency" className="block text-sm font-medium text-text-primary mb-1.5">
+          {t('form.currency')} *
         </label>
-        <textarea
-          id="notes"
-          {...register('notes')}
-          rows={3}
-          placeholder={t('form.notesPlaceholder')}
-          className="w-full px-3 py-2 rounded-lg bg-surface border border-border text-text-primary placeholder:text-text-muted text-sm placeholder:text-text-muted hover:border-border/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50 transition-colors duration-150 resize-none"
+        <Controller
+          name="currency"
+          control={control}
+          render={({ field }) => (
+            <CurrencySelector
+              value={field.value}
+              onValueChange={field.onChange}
+              placeholder={t('form.selectCurrency')}
+              className="w-full"
+            />
+          )}
         />
-        {errors.notes && <p className="mt-1 text-sm text-error">{errors.notes.message}</p>}
+        {errors.currency && <p className="mt-1 text-sm text-error">{errors.currency.message}</p>}
+        {selectedCurrency && selectedCurrency !== baseCurrency && (
+          <div className="mt-2">
+            <ExchangeRateInline from={selectedCurrency} to={baseCurrency || DEFAULT_CURRENCY} />
+          </div>
+        )}
       </div>
 
-      {/* Is Active Checkbox */}
-      {isEditing && (
-        <div className="flex items-center gap-2">
-          <input
-            id="isActive"
-            type="checkbox"
-            {...register('isActive')}
-            className="h-4 w-4 rounded border-border bg-surface text-primary focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background"
-          />
-          <label htmlFor="isActive" className="text-sm text-text-primary">
-            {t('form.propertyIsActive')}
-          </label>
-        </div>
-      )}
+      <OptionalDetails
+        title={t('form.financingAndRent')}
+        description={t('form.financingAndRentHint')}
+        hasErrors={!!(errors.mortgageId || errors.rentalIncome)}
+      >
+        {/* Currency, Mortgage, and Rental Income Row */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {/* Mortgage */}
+          <div>
+            <label
+              htmlFor="mortgageId"
+              className="block text-sm font-medium text-text-primary mb-1.5"
+            >
+              {t('form.linkedMortgage')}
+            </label>
+            <Controller
+              name="mortgageId"
+              control={control}
+              render={({ field }) => (
+                <LiabilitySelector
+                  value={field.value}
+                  onValueChange={field.onChange}
+                  placeholder={t('form.selectMortgage')}
+                  liabilityFilter={l => l.type === 'MORTGAGE'}
+                />
+              )}
+            />
+            {errors.mortgageId && (
+              <p className="mt-1 text-sm text-error">{errors.mortgageId.message}</p>
+            )}
+          </div>
 
+          {/* Monthly Rental Income */}
+          <div>
+            <label
+              htmlFor="rentalIncome"
+              className="block text-sm font-medium text-text-primary mb-1.5"
+            >
+              {t('form.monthlyRentalIncome')}
+            </label>
+            <Controller
+              name="rentalIncome"
+              control={control}
+              render={({ field }) => (
+                <NumberInput
+                  id="rentalIncome"
+                  value={field.value}
+                  onChange={field.onChange}
+                  onBlur={field.onBlur}
+                  placeholder="0.00"
+                  error={errors.rentalIncome?.message}
+                  min="0"
+                />
+              )}
+            />
+          </div>
+        </div>
+      </OptionalDetails>
+      <OptionalDetails
+        title={t('form.moreDetails')}
+        description={t('form.moreDetailsHint')}
+        hasErrors={!!(errors.latitude || errors.longitude || errors.notes)}
+      >
+        {/* Location Coordinates */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Latitude */}
+          <div>
+            <label
+              htmlFor="latitude"
+              className="block text-sm font-medium text-text-primary mb-1.5"
+            >
+              {t('form.latitude')}
+            </label>
+            <Controller
+              name="latitude"
+              control={control}
+              render={({ field }) => (
+                <NumberInput
+                  id="latitude"
+                  value={
+                    field.value !== undefined && !Number.isNaN(field.value)
+                      ? String(field.value)
+                      : ''
+                  }
+                  onChange={val => field.onChange(val === '' ? undefined : Number(val))}
+                  onBlur={field.onBlur}
+                  placeholder={t('form.latitudePlaceholder')}
+                  error={errors.latitude?.message}
+                  min="-90"
+                  max="90"
+                />
+              )}
+            />
+          </div>
+
+          {/* Longitude */}
+          <div>
+            <label
+              htmlFor="longitude"
+              className="block text-sm font-medium text-text-primary mb-1.5"
+            >
+              {t('form.longitude')}
+            </label>
+            <Controller
+              name="longitude"
+              control={control}
+              render={({ field }) => (
+                <NumberInput
+                  id="longitude"
+                  value={
+                    field.value !== undefined && !Number.isNaN(field.value)
+                      ? String(field.value)
+                      : ''
+                  }
+                  onChange={val => field.onChange(val === '' ? undefined : Number(val))}
+                  onBlur={field.onBlur}
+                  placeholder={t('form.longitudePlaceholder')}
+                  error={errors.longitude?.message}
+                  min="-180"
+                  max="180"
+                />
+              )}
+            />
+          </div>
+        </div>
+
+        {/* Notes */}
+        <div>
+          <label htmlFor="notes" className="block text-sm font-medium text-text-primary mb-1.5">
+            {t('form.notes')}
+          </label>
+          <textarea
+            id="notes"
+            {...register('notes')}
+            rows={3}
+            placeholder={t('form.notesPlaceholder')}
+            className="w-full px-3 py-2 rounded-lg bg-surface border border-border text-text-primary placeholder:text-text-muted text-sm placeholder:text-text-muted hover:border-border/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50 transition-colors duration-150 resize-none"
+          />
+          {errors.notes && <p className="mt-1 text-sm text-error">{errors.notes.message}</p>}
+        </div>
+
+        {/* Is Active Checkbox */}
+        {isEditing && (
+          <div className="flex items-center gap-2">
+            <input
+              id="isActive"
+              type="checkbox"
+              {...register('isActive')}
+              className="h-4 w-4 rounded border-border bg-surface text-primary focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background"
+            />
+            <label htmlFor="isActive" className="text-sm text-text-primary">
+              {t('form.propertyIsActive')}
+            </label>
+          </div>
+        )}
+      </OptionalDetails>
       {/* Actions */}
       <div className="sticky bottom-[-25px] -mx-6 mt-2 flex justify-end gap-3 border-t border-border bg-surface px-6 py-4">
         <Button variant="ghost" type="button" onClick={onCancel} disabled={isLoading}>

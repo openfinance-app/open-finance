@@ -143,7 +143,12 @@
       "PLANNED": "Projet d’acquisition"
     },
     "acquisitionHint": "Un projet a une valeur détenue nulle. Renseignez le prix et la date réels lors de l’achat ; un don peut avoir un coût nul.",
-    "plannedValue": "Un projet doit avoir une valeur détenue nulle."
+    "plannedValue": "Un projet doit avoir une valeur détenue nulle.",
+    "simpleIntro": "Renseignez le bien et sa valeur. Cette fiche ne crée pas de paiement d’achat.",
+    "financingAndRent": "Emprunt et loyer (facultatif)",
+    "financingAndRentHint": "Liez un emprunt existant ou indiquez le loyer mensuel. Les emprunts peuvent aussi être gérés après l’enregistrement.",
+    "moreDetails": "Localisation, notes et statut (facultatif)",
+    "moreDetailsHint": "Coordonnées sur la carte et informations complémentaires."
   },
   "card": {
     "purchased": "Acquis le",
@@ -164,7 +169,9 @@
       "equity": "Capitaux propres",
       "roi": "Analyse du ROI",
       "attachments": "Pièces jointes",
-      "gallery": "Galerie"
+      "gallery": "Galerie",
+      "costs": "Frais et paiements",
+      "financing": "Dettes liées"
     },
     "propertyAgeLabel": "Âge du bien",
     "propertyAge": "{{years}} ans",
@@ -201,7 +208,8 @@
     "gallery": {
       "empty": "Aucune image pour le moment. Téléversez des images dans l’onglet Pièces jointes.",
       "hint": "Gérez les images dans l’onglet Pièces jointes."
-    }
+    },
+    "sections": "Rubriques du bien"
   },
   "propertySelector": {
     "selectProperty": "Sélectionner un bien existant...",
@@ -687,7 +695,8 @@
     "fundingCurrency": "Choisissez un compte de financement et un prêt en {{currency}}.",
     "fundingMismatch": "Le prêt et votre apport doivent couvrir exactement le prix d’achat.",
     "purchasePaymentDescription": "Paiement de l’achat de {{name}}",
-    "accountPayment": "Paiement depuis le compte"
+    "accountPayment": "Paiement depuis le compte",
+    "downPaymentCalculated": "Calculé à partir du prix d’achat moins l’emprunt. Ajustez si besoin ; le total doit correspondre au prix d’achat."
   },
   "movementPaging": {
     "label": "Pages des mouvements",
@@ -768,5 +777,16 @@
     "notFound": "Simulation introuvable.",
     "renameFailed": "Impossible de renommer la simulation.",
     "limit": "Limite de {{count}} simulations atteinte."
-  }
+  },
+  "createChoice": {
+    "intro": "Comment souhaitez-vous ajouter ce bien ?",
+    "owned": "Enregistrer un bien que je possède",
+    "ownedHint": "Ajoutez sa valeur et un emprunt existant. Aucun mouvement sur vos comptes.",
+    "buy": "Acheter un bien et enregistrer le paiement",
+    "buyHint": "Renseignez le bien, l’emprunt et le paiement, puis vérifiez avant de valider.",
+    "planned": "Préparer un futur achat",
+    "plannedHint": "Suivez un projet sans l’inclure dans votre patrimoine actuel.",
+    "back": "Retour aux choix"
+  },
+  "saveError": "Impossible d’enregistrer ce bien. Vos saisies ont été conservées. Réessayez."
 }

@@ -56,6 +56,7 @@ export function AssetFilters({ filters, onFiltersChange }: AssetFiltersProps) {
 
   const clearFilters = () => {
     onFiltersChange({
+      group: filters.group,
       sort: 'name,asc',
       page: 0,
     });
@@ -66,7 +67,8 @@ export function AssetFilters({ filters, onFiltersChange }: AssetFiltersProps) {
       filters[key as keyof AssetFilters] !== undefined &&
       key !== 'page' &&
       key !== 'size' &&
-      key !== 'sort'
+      key !== 'sort' &&
+      key !== 'group'
   );
 
   return (
@@ -109,11 +111,29 @@ export function AssetFilters({ filters, onFiltersChange }: AssetFiltersProps) {
             onChange={e => handleChange('type', e.target.value || undefined)}
             className="w-full h-10 px-3 pr-8 rounded-lg bg-background border border-border text-text-primary text-sm placeholder:text-text-muted hover:border-border/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50 transition-colors duration-150"
           >
-            {assetTypes.map(type => (
-              <option key={type.value} value={type.value}>
-                {t(type.labelKey)}
-              </option>
-            ))}
+            {assetTypes
+              .filter(
+                type =>
+                  !type.value ||
+                  !filters.group ||
+                  (filters.group === 'PHYSICAL'
+                    ? ['VEHICLE', 'JEWELRY', 'COLLECTIBLE', 'ELECTRONICS', 'FURNITURE'].includes(
+                        type.value
+                      )
+                    : ![
+                        'VEHICLE',
+                        'JEWELRY',
+                        'COLLECTIBLE',
+                        'ELECTRONICS',
+                        'FURNITURE',
+                        'REAL_ESTATE',
+                      ].includes(type.value))
+              )
+              .map(type => (
+                <option key={type.value} value={type.value}>
+                  {t(type.labelKey)}
+                </option>
+              ))}
           </select>
         </div>
 

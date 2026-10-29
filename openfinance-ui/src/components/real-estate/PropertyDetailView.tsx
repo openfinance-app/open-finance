@@ -60,7 +60,7 @@ function getPropertyTypeIcon(type: string): React.ReactNode {
   return icons[type] || <MapPin className="h-6 w-6" />;
 }
 
-type TabType = 'overview' | 'equity' | 'roi' | 'gallery' | 'attachments';
+type TabType = 'overview' | 'costs' | 'financing' | 'equity' | 'roi' | 'gallery' | 'attachments';
 
 export function PropertyDetailView({ propertyId, onClose }: PropertyDetailViewProps) {
   const { t } = useTranslation('realEstate');
@@ -96,7 +96,7 @@ export function PropertyDetailView({ propertyId, onClose }: PropertyDetailViewPr
   return (
     <>
       <Dialog open={true} onOpenChange={onClose}>
-        <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="grid-cols-1 sm:max-w-4xl max-h-[90vh] overflow-y-auto">
           {loadingProperty ? (
             <div className="space-y-4">
               <DialogHeader>
@@ -136,69 +136,44 @@ export function PropertyDetailView({ propertyId, onClose }: PropertyDetailViewPr
                 </div>
               </DialogHeader>
 
-              {/* Tabs */}
-              <div className="border-b border-border">
-                <div className="flex gap-4">
+              <nav
+                aria-label={t('propertyDetail.sections')}
+                className="flex gap-1 overflow-x-auto border-b border-border"
+              >
+                {(
+                  [
+                    'overview',
+                    'costs',
+                    'financing',
+                    'equity',
+                    'roi',
+                    'gallery',
+                    'attachments',
+                  ] as const
+                ).map(tab => (
                   <button
-                    onClick={() => setActiveTab('overview')}
+                    key={tab}
+                    type="button"
+                    aria-pressed={activeTab === tab}
+                    onClick={() => setActiveTab(tab)}
                     className={cn(
-                      'px-4 py-2 text-sm font-medium border-b-2 transition-colors',
-                      activeTab === 'overview'
+                      'whitespace-nowrap border-b-2 px-3 py-3 text-sm font-medium',
+                      activeTab === tab
                         ? 'border-primary text-primary'
                         : 'border-transparent text-text-secondary hover:text-text-primary'
                     )}
                   >
-                    {t('propertyDetail.tab.overview')}
+                    {t(`propertyDetail.tab.${tab}`)}
                   </button>
-                  <button
-                    onClick={() => setActiveTab('equity')}
-                    className={cn(
-                      'px-4 py-2 text-sm font-medium border-b-2 transition-colors',
-                      activeTab === 'equity'
-                        ? 'border-primary text-primary'
-                        : 'border-transparent text-text-secondary hover:text-text-primary'
-                    )}
-                  >
-                    {t('propertyDetail.tab.equity')}
-                  </button>
-                  <button
-                    onClick={() => setActiveTab('roi')}
-                    className={cn(
-                      'px-4 py-2 text-sm font-medium border-b-2 transition-colors',
-                      activeTab === 'roi'
-                        ? 'border-primary text-primary'
-                        : 'border-transparent text-text-secondary hover:text-text-primary'
-                    )}
-                  >
-                    {t('propertyDetail.tab.roi')}
-                  </button>
-                  <button
-                    onClick={() => setActiveTab('gallery')}
-                    className={cn(
-                      'px-4 py-2 text-sm font-medium border-b-2 transition-colors',
-                      activeTab === 'gallery'
-                        ? 'border-primary text-primary'
-                        : 'border-transparent text-text-secondary hover:text-text-primary'
-                    )}
-                  >
-                    {t('propertyDetail.tab.gallery')}
-                  </button>
-                  <button
-                    onClick={() => setActiveTab('attachments')}
-                    className={cn(
-                      'px-4 py-2 text-sm font-medium border-b-2 transition-colors',
-                      activeTab === 'attachments'
-                        ? 'border-primary text-primary'
-                        : 'border-transparent text-text-secondary hover:text-text-primary'
-                    )}
-                  >
-                    {t('propertyDetail.tab.attachments')}
-                  </button>
-                </div>
-              </div>
+                ))}
+              </nav>
 
               {/* Tab Content */}
               <div className="py-4">
+                {activeTab === 'costs' && <PropertyMovementsSection property={property} />}
+                {activeTab === 'financing' && property.assetId && (
+                  <AssetFinancingSection assetId={property.assetId} />
+                )}
                 {/* Overview Tab */}
                 {activeTab === 'overview' && (
                   <div className="space-y-6">
@@ -400,8 +375,6 @@ export function PropertyDetailView({ propertyId, onClose }: PropertyDetailViewPr
                     )}
 
                     {/* Costs + Loan movements (Task 8) */}
-                    <PropertyMovementsSection property={property} />
-                    <AssetFinancingSection assetId={property.assetId} />
                   </div>
                 )}
 

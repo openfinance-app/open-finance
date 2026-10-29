@@ -4,9 +4,20 @@
  *
  * Main page for managing real estate properties and physical assets with filters and pagination
  */
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
+import { isAxiosError } from 'axios';
 import { useTranslation } from 'react-i18next';
-import { Plus, Building2, Calculator, Filter, Search, X, AlertTriangle, Home } from 'lucide-react';
+import {
+  Plus,
+  Building2,
+  Calculator,
+  ChevronLeft,
+  Filter,
+  Search,
+  X,
+  AlertTriangle,
+  Home,
+} from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router';
 import { ROUTES } from '@/constants/routes';
 import { DEFAULT_PAGE_SIZE, FETCH_ALL_PAGE_SIZE } from '@/constants/pagination';
@@ -42,7 +53,7 @@ export default function RealEstatePage() {
   const { t } = useTranslation('realEstate');
   useDocumentTitle(t('title'));
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const highlightId = searchParams.get('highlight')
     ? parseInt(searchParams.get('highlight')!)
     : null;
@@ -53,7 +64,9 @@ export default function RealEstatePage() {
     secondaryExchangeRate,
   } = useSecondaryConversion(baseCurrency);
 
-  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [isFormOpen, setIsFormOpen] = useState(searchParams.get('create') === '1');
+  const [creationMode, setCreationMode] = useState<'PURCHASE' | 'PLANNED' | null>(null);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const [isBuyWizardOpen, setIsBuyWizardOpen] = useState(false);
   const [editingProperty, setEditingProperty] = useState<RealEstateProperty | null>(null);
   const [viewingPropertyId, setViewingPropertyId] = useState<number | null>(null);
@@ -85,6 +98,27 @@ export default function RealEstatePage() {
 
   const properties = propertiesPage?.content || [];
   const allProperties = allPropertiesPage?.content || [];
+
+  useEffect(() => {
+    const assetId = Number(searchParams.get('asset'));
+    const property = allProperties.find(
+      item => item.id === highlightId || (assetId > 0 && item.assetId === assetId)
+    );
+    if (property) {
+      setViewingPropertyId(property.id);
+      const next = new URLSearchParams(searchParams);
+      next.delete('highlight');
+      next.delete('asset');
+      setSearchParams(next, { replace: true });
+    }
+  }, [allPropertiesPage, highlightId, searchParams, setSearchParams]);
+  useEffect(() => {
+    if (searchParams.get('create') !== '1') return;
+    setIsFormOpen(true);
+    const next = new URLSearchParams(searchParams);
+    next.delete('create');
+    setSearchParams(next, { replace: true });
+  }, [searchParams, setSearchParams]);
 
   /** Compute summary statistics for a set of properties.
    *
@@ -200,11 +234,15 @@ export default function RealEstatePage() {
 
   const handleCreate = () => {
     setEditingProperty(null);
+    setCreationMode(null);
+    setSaveError(null);
     setIsFormOpen(true);
   };
 
   const handleEdit = (property: RealEstateProperty) => {
+    setSaveError(null);
     setEditingProperty(property);
+    setViewingPropertyId(null);
     setIsFormOpen(true);
   };
 
@@ -216,15 +254,21 @@ export default function RealEstatePage() {
   const updateMutation = useUpdateProperty();
 
   const handleFormSubmit = async (data: RealEstatePropertyRequest) => {
+    setSaveError(null);
     try {
       if (editingProperty) {
         await updateMutation.mutateAsync({ id: editingProperty.id, data });
       } else {
-        await createMutation.mutateAsync(data);
+        const created = await createMutation.mutateAsync(data);
+        setViewingPropertyId(created.id);
       }
       handleFormClose();
     } catch (error) {
-      console.error('Failed to save property:', error);
+      setSaveError(
+        isAxiosError<{ message?: string }>(error) && error.response?.data.message
+          ? error.response.data.message
+          : t('saveError')
+      );
     }
   };
 
@@ -256,7 +300,7 @@ export default function RealEstatePage() {
 
   if (error) {
     return (
-      <div className="p-8">
+      <div className="p-4 sm:p-8">
         <PageHeader title={t('title')} />
         <div className="mt-6 p-4 bg-error/10 border border-error/20 rounded-lg text-error">
           {t('loadError')}
@@ -266,7 +310,7 @@ export default function RealEstatePage() {
   }
 
   return (
-    <div className="p-8">
+    <div className="p-4 sm:p-8">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <PageHeader title={t('title')} description={t('description')} />
@@ -281,10 +325,6 @@ export default function RealEstatePage() {
           <Button variant="outline" onClick={() => navigate(ROUTES.REAL_ESTATE_TOOLS)}>
             <Calculator className="h-4 w-4 mr-2" />
             {t('tools')}
-          </Button>
-          <Button variant="outline" onClick={() => setIsBuyWizardOpen(true)}>
-            <Home className="h-4 w-4 mr-2" />
-            {t('wizard.buyProperty')}
           </Button>
           <Button variant="primary" onClick={handleCreate}>
             <Plus className="h-4 w-4 mr-2" />
@@ -646,6 +686,7 @@ export default function RealEstatePage() {
       {/* Property Detail Modal */}
       {viewingPropertyId && (
         <PropertyDetailView
+          key={viewingPropertyId}
           propertyId={viewingPropertyId}
           onClose={() => setViewingPropertyId(null)}
         />
@@ -659,12 +700,67 @@ export default function RealEstatePage() {
               {editingProperty ? t('dialogs.editTitle') : t('dialogs.createTitle')}
             </DialogTitle>
           </DialogHeader>
-          <RealEstateForm
-            property={editingProperty || undefined}
-            onSubmit={handleFormSubmit}
-            onCancel={handleFormClose}
-            isLoading={createMutation.isPending || updateMutation.isPending}
-          />
+          {!editingProperty && !creationMode ? (
+            <div className="space-y-3">
+              <p className="text-sm text-text-secondary">{t('createChoice.intro')}</p>
+              {(
+                [
+                  { key: 'owned', icon: Building2, select: () => setCreationMode('PURCHASE') },
+                  {
+                    key: 'buy',
+                    icon: Home,
+                    select: () => {
+                      setIsFormOpen(false);
+                      setIsBuyWizardOpen(true);
+                    },
+                  },
+                  { key: 'planned', icon: Calculator, select: () => setCreationMode('PLANNED') },
+                ] as const
+              ).map(({ key, icon: Icon, select }) => (
+                <button
+                  key={key}
+                  type="button"
+                  onClick={select}
+                  className="flex w-full items-center gap-4 rounded-xl border border-border bg-surface p-4 text-left hover:border-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                >
+                  <Icon className="h-6 w-6 shrink-0 text-primary" aria-hidden="true" />
+                  <span>
+                    <span className="block font-semibold">{t(`createChoice.${key}`)}</span>
+                    <span className="mt-1 block text-sm text-text-secondary">
+                      {t(`createChoice.${key}Hint`)}
+                    </span>
+                  </span>
+                </button>
+              ))}
+            </div>
+          ) : (
+            <>
+              {!editingProperty && (
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  className="justify-self-start"
+                  onClick={() => setCreationMode(null)}
+                >
+                  <ChevronLeft className="mr-2 h-4 w-4" aria-hidden="true" />
+                  {t('createChoice.back')}
+                </Button>
+              )}
+              <RealEstateForm
+                initialAcquisitionType={creationMode ?? undefined}
+                property={editingProperty || undefined}
+                onSubmit={handleFormSubmit}
+                onCancel={handleFormClose}
+                isLoading={createMutation.isPending || updateMutation.isPending}
+              />
+            </>
+          )}
+          {saveError && (
+            <p role="alert" className="text-sm text-error">
+              {saveError}
+            </p>
+          )}
         </DialogContent>
       </Dialog>
 

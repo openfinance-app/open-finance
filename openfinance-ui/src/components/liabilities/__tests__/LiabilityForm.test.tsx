@@ -119,7 +119,7 @@ describe('LiabilityForm', () => {
       expect(screen.getByLabelText(/insurance rate/i)).toBeInTheDocument();
       expect(screen.getByLabelText(/one-time fee/i)).toBeInTheDocument();
       expect(screen.getByLabelText(/start date/i)).toBeInTheDocument();
-      expect(screen.getByLabelText(/end date/i)).toBeInTheDocument();
+      expect(screen.getByLabelText(/end date/i, { selector: 'input' })).toBeInTheDocument();
       expect(screen.getByLabelText(/minimum monthly payment/i)).toBeInTheDocument();
       expect(screen.getByTestId('currency-selector')).toBeInTheDocument();
       expect(screen.getByLabelText(/notes/i)).toBeInTheDocument();
@@ -165,7 +165,7 @@ describe('LiabilityForm', () => {
       );
 
       expect(
-        screen.getByText(/edited directly only when no linked movements/i)
+        screen.getByRole('button', { name: /edited directly only when no linked movements/i })
       ).toBeInTheDocument();
     });
   });
@@ -252,7 +252,9 @@ describe('LiabilityForm', () => {
       });
       fireEvent.change(screen.getByLabelText(/current balance/i), { target: { value: '1000' } });
       fireEvent.change(screen.getByLabelText(/start date/i), { target: { value: '2024-01-01' } });
-      fireEvent.change(screen.getByLabelText(/end date/i), { target: { value: '2023-01-01' } });
+      fireEvent.change(screen.getByLabelText(/end date/i, { selector: 'input' }), {
+        target: { value: '2023-01-01' },
+      });
 
       const submitButton = screen.getByRole('button', { name: /create liability/i });
       fireEvent.click(submitButton);
@@ -324,7 +326,7 @@ describe('LiabilityForm', () => {
       await waitFor(() => {
         expect(mockOnSubmit).toHaveBeenCalledWith({
           name: 'Test Mortgage',
-          type: 'OTHER',
+          type: 'LOAN',
           interestRate: 0,
           principal: '300000',
           currentBalance: '250000',

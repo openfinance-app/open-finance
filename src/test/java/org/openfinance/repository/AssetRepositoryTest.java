@@ -10,16 +10,22 @@ import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.openfinance.dto.AssetGroup;
+import org.openfinance.dto.AssetSearchCriteria;
 import org.openfinance.entity.Account;
 import org.openfinance.entity.AccountType;
 import org.openfinance.entity.Asset;
 import org.openfinance.entity.AssetCondition;
 import org.openfinance.entity.AssetType;
 import org.openfinance.entity.User;
+import org.openfinance.specification.AssetSpecification;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.boot.test.autoconfigure.orm.jpa.TestEntityManager;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.test.context.ActiveProfiles;
 
 /**
@@ -108,6 +114,53 @@ class AssetRepositoryTest {
     }
 
     // === CRUD Operation Tests ===
+
+    @Test
+    @DisplayName("Workspace groups filter before pagination and keep other users isolated")
+    void shouldFilterWorkspaceGroupsBeforePagination() {
+        for (AssetType type :
+                List.of(
+                        AssetType.STOCK,
+                        AssetType.VEHICLE,
+                        AssetType.JEWELRY,
+                        AssetType.REAL_ESTATE)) {
+            assetRepository.save(workspaceAsset(testUser.getId(), type));
+        }
+        assetRepository.save(workspaceAsset(otherUser.getId(), AssetType.VEHICLE));
+        entityManager.flush();
+
+        Page<Asset> physical =
+                assetRepository.findAll(
+                        AssetSpecification.buildSpecification(
+                                testUser.getId(),
+                                AssetSearchCriteria.builder().group(AssetGroup.PHYSICAL).build()),
+                        PageRequest.of(1, 1, Sort.by("id")));
+
+        assertThat(physical.getTotalElements()).isEqualTo(2);
+        assertThat(physical.getTotalPages()).isEqualTo(2);
+        assertThat(physical.getContent())
+                .extracting(Asset::getType)
+                .containsExactly(AssetType.JEWELRY);
+        List<Asset> investments =
+                assetRepository.findAll(
+                        AssetSpecification.buildSpecification(
+                                testUser.getId(),
+                                AssetSearchCriteria.builder().group(AssetGroup.FINANCIAL).build()));
+        assertThat(investments).extracting(Asset::getType).containsExactly(AssetType.STOCK);
+    }
+
+    private Asset workspaceAsset(Long userId, AssetType type) {
+        return Asset.builder()
+                .userId(userId)
+                .name(type.name())
+                .type(type)
+                .quantity(BigDecimal.ONE)
+                .purchasePrice(BigDecimal.TEN)
+                .currentPrice(BigDecimal.TEN)
+                .currency("USD")
+                .purchaseDate(LocalDate.of(2024, 1, 15))
+                .build();
+    }
 
     @Test
     @DisplayName("Should save asset and generate ID")

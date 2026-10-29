@@ -6,7 +6,7 @@
  */
 import { screen } from '@testing-library/react';
 import { vi, describe, it, expect, beforeEach } from 'vitest';
-import { renderWithProviders } from '@/test/test-utils';
+import { mockAuthentication, renderWithProviders } from '@/test/test-utils';
 import { AssetCostsSection } from '../AssetCostsSection';
 import * as useTransactionsModule from '@/hooks/useTransactions';
 import type { Asset } from '@/types/asset';
@@ -77,6 +77,7 @@ const tiresTx: Transaction = {
 
 describe('AssetCostsSection', () => {
   beforeEach(() => {
+    mockAuthentication();
     vi.clearAllMocks();
     mockUseTransactions.mockReturnValue({
       data: {
@@ -96,6 +97,10 @@ describe('AssetCostsSection', () => {
 
     expect(screen.getByText('Costs')).toBeInTheDocument();
     expect(screen.getByText('Engine restoration')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /Engine restoration/ })).toHaveAttribute(
+      'href',
+      '/transactions?highlight=201'
+    );
     expect(screen.getByText('$8,000.00')).toBeInTheDocument();
   });
 
@@ -103,7 +108,22 @@ describe('AssetCostsSection', () => {
     renderWithProviders(<AssetCostsSection asset={mockAsset} />);
 
     expect(screen.getByText('New tires')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /New tires/ })).toHaveAttribute(
+      'href',
+      '/transactions?highlight=202'
+    );
     expect(screen.getByText('$600.00')).toBeInTheDocument();
+  });
+
+  it('directs investment costs to transactions instead of offering maintenance', () => {
+    renderWithProviders(
+      <AssetCostsSection asset={{ ...mockAsset, type: 'STOCK', isPhysical: false }} />
+    );
+    expect(screen.queryByRole('button', { name: 'Add cost' })).not.toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Open transactions' })).toHaveAttribute(
+      'href',
+      '/transactions'
+    );
   });
 
   it('fetches transactions filtered by assetId', () => {

@@ -3,6 +3,7 @@
  * route and the optional down payment.
  */
 import { useTranslation } from 'react-i18next';
+import { HelpTooltip } from '@/components/ui/HelpTooltip';
 import { Input } from '@/components/ui/Input';
 import { NumberInput } from '@/components/ui/NumberInput';
 import { AccountSelector } from '@/components/ui/AccountSelector';
@@ -33,9 +34,12 @@ export function FundingStep({
     <div className="space-y-4">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <label htmlFor="wizard-source" className="block text-sm font-medium mb-1.5">
-            {t('wizard.fundingSource')} *
-          </label>
+          <div className="mb-1.5 flex items-center gap-2">
+            <label htmlFor="wizard-source" className="text-sm font-medium">
+              {t('wizard.fundingSource')} *
+            </label>
+            {locked && <HelpTooltip text={t('wizard.fundingLocked')} />}
+          </div>
           <select
             id="wizard-source"
             value={funding.source}
@@ -47,28 +51,27 @@ export function FundingStep({
             <option value="existing">{t('wizard.funding.existing')}</option>
             <option value="none">{t('wizard.funding.none')}</option>
           </select>
-          {locked && (
-            <p className="text-xs text-text-secondary mt-1">{t('wizard.fundingLocked')}</p>
-          )}
         </div>
-        <div>
-          <label htmlFor="wizard-route" className="block text-sm font-medium mb-1.5">
-            {t('wizard.disbursementRoute')}
-          </label>
-          <select
-            id="wizard-route"
-            value={funding.route}
-            onChange={e => onChange({ route: e.target.value as FundingStepState['route'] })}
-            disabled={funding.source === 'none'}
-            className="w-full h-10 px-3 pr-8 rounded-lg bg-surface border border-border text-text-primary disabled:opacity-50 text-sm placeholder:text-text-muted hover:border-border/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50 transition-colors duration-150"
-          >
-            <option value="direct">{t('wizard.route.direct')}</option>
-            <option value="account">{t('wizard.route.account')}</option>
-          </select>
-          {funding.source !== 'none' && funding.route === 'direct' && (
-            <p className="text-xs text-text-secondary mt-1">{t('wizard.valuationPolicy')}</p>
-          )}
-        </div>
+        {funding.source !== 'none' && (
+          <div>
+            <div className="mb-1.5 flex items-center gap-2">
+              <label htmlFor="wizard-route" className="text-sm font-medium">
+                {t('wizard.disbursementRoute')}
+              </label>
+              {funding.route === 'direct' && <HelpTooltip text={t('wizard.valuationPolicy')} />}
+            </div>
+            <select
+              id="wizard-route"
+              value={funding.route}
+              onChange={e => onChange({ route: e.target.value as FundingStepState['route'] })}
+              disabled={locked}
+              className="w-full h-10 px-3 pr-8 rounded-lg bg-surface border border-border text-text-primary disabled:opacity-50 text-sm placeholder:text-text-muted hover:border-border/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50 transition-colors duration-150"
+            >
+              <option value="direct">{t('wizard.route.direct')}</option>
+              <option value="account">{t('wizard.route.account')}</option>
+            </select>
+          </div>
+        )}
       </div>
 
       {funding.source !== 'none' && (
@@ -131,12 +134,10 @@ export function FundingStep({
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm font-medium mb-1.5">
-            {t('wizard.downPaymentAccount')}
-          </label>
-          <p className="text-xs text-text-secondary mb-1">
-            {t('wizard.fundingCurrency', { currency })}
-          </p>
+          <div className="mb-1.5 flex items-center gap-2">
+            <label className="text-sm font-medium">{t('wizard.downPaymentAccount')}</label>
+            <HelpTooltip text={t('wizard.fundingCurrency', { currency })} />
+          </div>
           {/* Shared account field: it is the SOURCE of the down-payment expense and, when the
               disbursement route is "bank pays my account", also the TARGET account the loan
               funds are paid into (toAccountId of the disbursement). */}
@@ -148,9 +149,12 @@ export function FundingStep({
           />
         </div>
         <div>
-          <label htmlFor="wizard-down" className="block text-sm font-medium mb-1.5">
-            {t('wizard.downPaymentAmount')}
-          </label>
+          <div className="mb-1.5 flex items-center gap-2">
+            <label htmlFor="wizard-down" className="text-sm font-medium">
+              {t('wizard.downPaymentAmount')}
+            </label>
+            <HelpTooltip text={t('wizard.downPaymentCalculated')} />
+          </div>
           <NumberInput
             id="wizard-down"
             value={funding.downPaymentAmount}

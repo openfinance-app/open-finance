@@ -59,7 +59,9 @@ describe('Asset price history currencies', () => {
     renderWithProviders(<AssetDetailModal asset={bitcoin} onClose={vi.fn()} />);
     expect(history).toHaveBeenCalledWith('BTC-USD', expect.any(String), expect.any(String), 'EUR');
     expect(screen.getByLabelText('Historical closing prices')).toHaveTextContent('73112.8');
-    expect(screen.getByText(/daily closing price per unit in EUR/i)).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: /daily closing price per unit in EUR/i })
+    ).toBeInTheDocument();
   });
 
   it('requests the displayed base currency without converting the history twice', () => {

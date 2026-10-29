@@ -12,7 +12,9 @@
     "overallReturn": "Rendement global",
     "bestPerformer": "Meilleure performance",
     "noGainsYet": "Pas encore de gains",
-    "missingRates": "Totaux partiels en {{currency}} : les actifs en {{currencies}} sont exclus car les taux de change sont indisponibles."
+    "missingRates": "Totaux partiels en {{currency}} : les actifs en {{currencies}} sont exclus car les taux de change sont indisponibles.",
+    "physicalValue": "Valeur des biens",
+    "valueChange": "Évolution de la valeur"
   },
   "assetCount_one": "{{count}} actif",
   "assetCount_other": "{{count}} actifs",
@@ -63,13 +65,16 @@
     "actions": "Actions",
     "physicalAssets": "Actifs physiques",
     "financialAssets": "Actifs financiers",
-    "realEstateEditHint": "Modifiez ce bien depuis la vue Immobilier"
+    "realEstateEditHint": "Ouvrez le bien immobilier pour gérer ses détails, frais et emprunts.",
+    "manageProperty": "Gérer le bien immobilier"
   },
   "detail": {
     "tabs": {
       "overview": "Aperçu",
       "attachments": "Pièces jointes",
-      "gallery": "Galerie"
+      "gallery": "Galerie",
+      "costs": "Frais",
+      "financing": "Dettes liées"
     },
     "gallery": {
       "empty": "Aucune image pour le moment. Téléversez des images dans l’onglet Pièces jointes.",
@@ -80,6 +85,7 @@
       "costBasis": "Prix de revient",
       "gainLoss": "Gain/Perte"
     },
+    "navigation": "Rubriques de l’actif",
     "sections": {
       "priceHistory": "Historique des prix",
       "assetDetails": "Détails"
@@ -170,7 +176,14 @@
       "PURCHASE": "Achat",
       "GIFT": "Don / héritage",
       "PLANNED": "Projet d’acquisition"
-    }
+    },
+    "physicalIntro": "Indiquez le bien et sa valeur. Vous pourrez ensuite ajouter des frais, des photos et un emprunt.",
+    "investmentIntro": "Indiquez votre placement et son prix unitaire. Les autres détails sont facultatifs.",
+    "physicalDetailsHint": "Facultatif : marque, modèle, état, numéro de série et garantie.",
+    "moreDetails": "Notes et compte (facultatif)",
+    "accountHint": "Associe le bien à un compte. Enregistrer le bien ne crée pas de paiement.",
+    "itemPurchasePrice": "Prix d’achat par objet",
+    "itemCurrentValue": "Valeur estimée par objet"
   },
   "types": {
     "STOCK": "Action",
@@ -200,27 +213,36 @@
     "acquisition": "Acquisition et autres paiements"
   },
   "financing": {
-    "title": "Financement et garanties",
-    "hint": "Le financement affecte une part de la dette restante. Une garantie indique uniquement une sûreté. Les liens ne déplacent pas d’argent et ne modifient pas la valeur.",
-    "loan": "Gérer une dette",
+    "title": "Dettes liées",
+    "hint": "Reliez un emprunt au bien qu’il finance. Cette association ne crée pas de paiement et ne modifie pas le solde de l’emprunt.",
+    "loan": "Emprunt",
     "allLoans": "Toutes les dettes liées",
-    "asset": "Actif",
+    "asset": "Actif / bien immobilier",
     "relationship": "Relation",
-    "FINANCING": "Financement",
-    "COLLATERAL": "Garantie",
-    "share": "Part de dette (%)",
+    "FINANCING": "Finance ce bien",
+    "COLLATERAL": "Garantie uniquement",
+    "share": "Part de l’emprunt (%)",
     "remove": "Retirer",
-    "allocated": "Affecté : {{percentage}} % de cette dette",
-    "add": "Ajouter un actif",
+    "allocated": "{{percentage}} % de l’emprunt réparti (maximum 100 %).",
+    "add": "Ajouter un autre bien",
     "save": "Enregistrer les liens",
     "cancel": "Annuler",
-    "empty": "Aucun lien explicite avec un actif.",
-    "edit": "Modifier les liens",
+    "empty": "Aucun lien pour le moment. Ajoutez un emprunt ou un bien pour les associer.",
+    "edit": "Gérer les liens",
     "error": "Impossible de charger ou d’enregistrer les liens. Vérifiez les doublons et les parts supérieures à 100 %.",
     "loading": "Chargement des liens…",
-    "value": "Valeur enregistrée",
+    "value": "Valeur du bien",
     "debt": "Dette affectée",
-    "equity": "Valeur nette"
+    "equity": "Valeur après dette",
+    "linkedAssets": "Actifs et biens liés",
+    "linkLoan": "Lier un emprunt",
+    "selectLoan": "Choisir un emprunt existant",
+    "createLoan": "Créer un emprunt",
+    "distributionHint": "Comment « {{name}} » est-il réparti ? Voici la répartition complète de cet emprunt, y compris ses autres biens.",
+    "collateralHint": "« Garantie uniquement » signifie que le bien garantit l’emprunt. Aucune part du solde n’est affectée à ce bien.",
+    "duplicate": "Ce lien existe déjà pour ce bien. Modifiez la ligne existante.",
+    "removeNamed": "Supprimer le lien avec {{name}}",
+    "shareRequired": "Indiquez une part supérieure à zéro. Réduisez une autre part si cet emprunt est déjà entièrement réparti."
   },
   "movementPaging": {
     "label": "Pages des mouvements",
@@ -247,5 +269,60 @@
     "yearsOwned_one": "(détenu depuis {{count}} an)",
     "yearsOwned_other": "(détenu depuis {{count}} ans)",
     "noPhoto": "Aucune photo"
-  }
+  },
+  "workspace": {
+    "label": "Actifs, biens immobiliers et dettes",
+    "assets": "Actifs et objets",
+    "assetsHint": "Placements et biens que vous possédez",
+    "properties": "Biens immobiliers",
+    "propertiesHint": "Logements, terrains et locations",
+    "liabilities": "Emprunts et dettes",
+    "liabilitiesHint": "Ce que vous devez et ce que cela finance"
+  },
+  "createChoice": {
+    "intro": "Que souhaitez-vous ajouter ?",
+    "physical": "Un bien physique",
+    "physicalHint": "Véhicule, bijoux, collection, électronique ou mobilier.",
+    "investment": "Un placement",
+    "investmentHint": "Actions, fonds, cryptomonnaies ou autres placements financiers.",
+    "property": "Un bien immobilier",
+    "propertyHint": "Logement, investissement locatif ou terrain. Gérez sa valeur et son emprunt ensemble.",
+    "back": "Retour aux choix"
+  },
+  "saveError": "Impossible d’enregistrer cet actif. Vos saisies ont été conservées. Réessayez.",
+  "costEntry": {
+    "add": "Ajouter un frais",
+    "title": "Enregistrer un frais pour {{name}}",
+    "hint": "Une dépense sera créée dans le compte sélectionné et liée à ce bien.",
+    "sectionHint": "Le prix d’achat provient de la fiche du bien. Suivez ici les dépenses supplémentaires : les améliorations augmentent le coût de revient, contrairement à l’entretien.",
+    "kind": "À quoi correspond ce frais ?",
+    "maintenance": "Entretien ou réparation",
+    "improvement": "Amélioration ou rénovation",
+    "maintenanceHint": "Entretien courant. Crée une dépense sans modifier le coût de revient ni la valeur estimée du bien.",
+    "improvementHint": "Augmente le montant investi et la valeur suivie du bien. Vous pouvez actualiser la valeur estimée séparément après les travaux.",
+    "description": "Description",
+    "amount": "Montant ({{currency}})",
+    "date": "Date du paiement",
+    "account": "Payé depuis",
+    "selectAccount": "Choisir un compte",
+    "noAccount": "Ajoutez un compte actif en {{currency}} pour enregistrer ce paiement.",
+    "manageAccounts": "Gérer les comptes",
+    "accountsError": "Impossible de charger les comptes. Réessayez.",
+    "existingHint": "Ce paiement est déjà importé ou enregistré ? Modifiez la transaction pour la lier au bien sans la créer à nouveau.",
+    "transactions": "Ouvrir les transactions",
+    "save": "Enregistrer la dépense",
+    "error": "Impossible d’enregistrer la dépense. Vos saisies ont été conservées.",
+    "accountRequired": "Choisissez un compte dans la devise du bien.",
+    "descriptionRequired": "Décrivez ce frais.",
+    "amountRequired": "Saisissez un montant supérieur à zéro.",
+    "dateRequired": "Choisissez une date de paiement.",
+    "investmentHint": "Consultez les paiements liés à ce placement. Gérez les achats, ventes et frais dans Transactions."
+  },
+  "groups": {
+    "label": "Groupe d’actifs",
+    "ALL": "Tous les actifs",
+    "PHYSICAL": "Biens physiques",
+    "FINANCIAL": "Placements"
+  },
+  "physicalDescription": "Gérez vos biens, leur valeur, leurs frais et les emprunts associés."
 }

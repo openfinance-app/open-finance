@@ -73,7 +73,13 @@
     "previouslyFunded": "Ce prêt a déjà été débloqué et est entièrement remboursé",
     "accountSource": "Dette déjà suivie dans un compte",
     "separateBalance": "Suivre le solde avec cette dette",
-    "accountSourceHint": "Sélectionnez le compte de carte correspondant pour compter cette dette une seule fois. Enregistrez les remboursements par virement vers ce compte."
+    "accountSourceHint": "Sélectionnez le compte de carte correspondant pour compter cette dette une seule fois. Enregistrez les remboursements par virement vers ce compte.",
+    "intro": "Indiquez le montant initial de l’emprunt et le solde restant dû. Les modalités et les coordonnées du prêteur sont facultatives.",
+    "repaymentDetails": "Remboursement et frais (facultatif)",
+    "repaymentDetailsHint": "Intérêts, mensualité, assurance, frais et date de fin.",
+    "lenderDetails": "Prêteur et notes (facultatif)",
+    "noProperty": "Aucun bien lié",
+    "linkToPropertyHint": "Associe cet emprunt au bien sans enregistrer de paiement."
   },
   "summary": {
     "totalLiabilities": "Total des passifs",
@@ -286,7 +292,9 @@
     "linkedCount_other": "{{count}} opérations liées",
     "total": "au total",
     "transaction": "Opération n° {{id}}",
-    "title": "{{name}} — Détails"
+    "title": "{{name}} — Détails",
+    "sections": "Rubriques de l’emprunt",
+    "assets": "Biens liés"
   },
   "saveError": "Le passif n’a pas pu être enregistré. Veuillez réessayer.",
   "deleteError": "Le passif n’a pas pu être supprimé. Veuillez réessayer."

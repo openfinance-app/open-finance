@@ -12,7 +12,9 @@
     "overallReturn": "Overall Return",
     "bestPerformer": "Best Performer",
     "noGainsYet": "No gains yet",
-    "missingRates": "Partial totals in {{currency}}: {{currencies}} holdings are excluded because exchange rates are unavailable."
+    "missingRates": "Partial totals in {{currency}}: {{currencies}} holdings are excluded because exchange rates are unavailable.",
+    "physicalValue": "Value of belongings",
+    "valueChange": "Change in value"
   },
   "assetCount_one": "{{count}} asset",
   "assetCount_other": "{{count}} assets",
@@ -63,13 +65,16 @@
     "actions": "Actions",
     "physicalAssets": "Physical Assets",
     "financialAssets": "Financial Assets",
-    "realEstateEditHint": "Edit this property from the Real Estate view"
+    "realEstateEditHint": "Open the property to manage its details, costs and mortgage.",
+    "manageProperty": "Manage property"
   },
   "detail": {
     "tabs": {
       "overview": "Overview",
       "attachments": "Attachments",
-      "gallery": "Gallery"
+      "gallery": "Gallery",
+      "costs": "Costs",
+      "financing": "Linked debt"
     },
     "gallery": {
       "empty": "No images yet. Upload images in the Attachments tab.",
@@ -80,6 +85,7 @@
       "costBasis": "Cost Basis",
       "gainLoss": "Gain/Loss"
     },
+    "navigation": "Asset sections",
     "sections": {
       "priceHistory": "Price History",
       "assetDetails": "Details"
@@ -170,7 +176,14 @@
       "PURCHASE": "Purchased",
       "GIFT": "Gift / inheritance",
       "PLANNED": "Planned acquisition"
-    }
+    },
+    "physicalIntro": "Start with what you own and its value. You can add costs, photos and a loan after saving.",
+    "investmentIntro": "Enter your holding and its price per unit. Other details are optional.",
+    "physicalDetailsHint": "Optional: brand, model, condition, serial number and warranty.",
+    "moreDetails": "Notes & account (optional)",
+    "accountHint": "Associates this item with an account. Saving the item does not create a payment.",
+    "itemPurchasePrice": "Purchase price per item",
+    "itemCurrentValue": "Estimated value per item"
   },
   "types": {
     "STOCK": "Stock",
@@ -200,27 +213,36 @@
     "acquisition": "Acquisition and other payments"
   },
   "financing": {
-    "title": "Financing and collateral",
-    "hint": "Financing allocates a share of the outstanding debt. Collateral records security only. Links do not move money or change asset value.",
-    "loan": "Manage a liability",
+    "title": "Linked debt",
+    "hint": "Connect a loan to what it finances. Linking does not create a payment or change the loan balance.",
+    "loan": "Loan",
     "allLoans": "All linked liabilities",
-    "asset": "Asset",
+    "asset": "Asset / property",
     "relationship": "Relationship",
-    "FINANCING": "Financing",
-    "COLLATERAL": "Collateral",
-    "share": "Debt share (%)",
+    "FINANCING": "Finances this item",
+    "COLLATERAL": "Security only",
+    "share": "Share of loan (%)",
     "remove": "Remove",
-    "allocated": "Allocated: {{percentage}}% of this liability",
-    "add": "Add asset",
+    "allocated": "{{percentage}}% of the loan allocated (maximum 100%).",
+    "add": "Add another asset",
     "save": "Save links",
     "cancel": "Cancel",
-    "empty": "No explicit asset relationships.",
-    "edit": "Edit relationships",
+    "empty": "No links yet. Add a loan or asset to see how they relate.",
+    "edit": "Manage links",
     "error": "Could not save or load relationships. Check for duplicates and allocations above 100%.",
     "loading": "Loading relationships…",
-    "value": "Recorded value",
+    "value": "Item value",
     "debt": "Allocated debt",
-    "equity": "Equity"
+    "equity": "Value after debt",
+    "linkedAssets": "Linked assets & properties",
+    "linkLoan": "Link a loan",
+    "selectLoan": "Choose an existing loan",
+    "createLoan": "Create a new loan",
+    "distributionHint": "How is “{{name}}” shared? This is the full allocation for this loan, including its other assets.",
+    "collateralHint": "“Security only” means the item guarantees the loan. It does not assign any of the loan balance to this item.",
+    "duplicate": "This item already has this relationship. Change the existing row instead.",
+    "removeNamed": "Remove link to {{name}}",
+    "shareRequired": "Enter a share greater than zero. Reduce another allocation if this loan is already fully allocated."
   },
   "movementPaging": {
     "label": "Movement history pages",
@@ -247,5 +269,60 @@
     "yearsOwned_one": "({{count}} year owned)",
     "yearsOwned_other": "({{count}} years owned)",
     "noPhoto": "No photo"
-  }
+  },
+  "workspace": {
+    "label": "Assets, properties and debt",
+    "assets": "Assets & belongings",
+    "assetsHint": "Investments and the things you own",
+    "properties": "Properties",
+    "propertiesHint": "Homes, land and rental properties",
+    "liabilities": "Loans & debts",
+    "liabilitiesHint": "What you owe and what it finances"
+  },
+  "createChoice": {
+    "intro": "What would you like to add?",
+    "physical": "A physical item",
+    "physicalHint": "A vehicle, jewelry, collection, electronics or furniture.",
+    "investment": "An investment",
+    "investmentHint": "Stocks, funds, crypto or other financial holdings.",
+    "property": "A property",
+    "propertyHint": "A home, rental property or land. Manage its value and mortgage together.",
+    "back": "Back to choices"
+  },
+  "saveError": "Unable to save this asset. Your entries have been kept. Please try again.",
+  "costEntry": {
+    "add": "Add cost",
+    "title": "Record a cost for {{name}}",
+    "hint": "This creates an expense in the account you select and links it to this item.",
+    "sectionHint": "Purchase cost comes from the item’s details. Track additional spending here; improvements increase the cost basis, while maintenance does not.",
+    "kind": "What was this cost for?",
+    "maintenance": "Maintenance or repair",
+    "improvement": "Improvement or renovation",
+    "maintenanceHint": "Routine upkeep. Records an expense without changing the item’s cost basis or estimated value.",
+    "improvementHint": "Adds to the amount invested and the tracked value. You can update the estimated value separately after the work.",
+    "description": "Description",
+    "amount": "Amount ({{currency}})",
+    "date": "Payment date",
+    "account": "Paid from",
+    "selectAccount": "Choose an account",
+    "noAccount": "Add an active {{currency}} account to record this payment.",
+    "manageAccounts": "Manage accounts",
+    "accountsError": "Accounts could not be loaded. Please try again.",
+    "existingHint": "Already imported or recorded this payment? Edit that transaction to link it instead of adding it again.",
+    "transactions": "Open transactions",
+    "save": "Save expense",
+    "error": "The expense could not be saved. Your entries have been kept.",
+    "accountRequired": "Choose an account in this item’s currency.",
+    "descriptionRequired": "Describe this cost.",
+    "amountRequired": "Enter an amount greater than zero.",
+    "dateRequired": "Choose a payment date.",
+    "investmentHint": "Review payments linked to this investment. Manage purchases, sales and fees in Transactions."
+  },
+  "groups": {
+    "label": "Asset group",
+    "ALL": "All assets",
+    "PHYSICAL": "Physical assets",
+    "FINANCIAL": "Investments"
+  },
+  "physicalDescription": "Manage your belongings, their value, costs and any linked loans."
 }

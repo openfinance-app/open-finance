@@ -141,6 +141,7 @@ describe('RealEstatePage', () => {
     mockData = { content: [], totalPages: 0, totalElements: 0, number: 0, size: 20 };
     renderWithProviders(<RealEstatePage />);
     await user.click(screen.getByRole('button', { name: /add property/i }));
+    await user.click(screen.getByRole('button', { name: /record a property I already own/i }));
     expect(screen.getByTestId('real-estate-form')).toBeInTheDocument();
   });
 
@@ -286,6 +287,7 @@ describe('RealEstatePage', () => {
     mockCreateMutateAsync.mockResolvedValue({});
     renderWithProviders(<RealEstatePage />);
     await user.click(screen.getByRole('button', { name: /add property/i }));
+    await user.click(screen.getByRole('button', { name: /record a property I already own/i }));
     await user.click(screen.getByRole('button', { name: /submit/i }));
     expect(mockCreateMutateAsync).toHaveBeenCalled();
   });
@@ -325,6 +327,7 @@ describe('RealEstatePage', () => {
     mockData = { content: [], totalPages: 0, totalElements: 0, number: 0, size: 20 };
     renderWithProviders(<RealEstatePage />);
     await user.click(screen.getByRole('button', { name: /add property/i }));
+    await user.click(screen.getByRole('button', { name: /record a property I already own/i }));
     expect(screen.getByTestId('real-estate-form')).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: /cancel/i }));
     expect(screen.queryByTestId('real-estate-form')).not.toBeInTheDocument();
@@ -342,6 +345,7 @@ describe('RealEstatePage', () => {
     mockCreateMutateAsync.mockRejectedValue(new Error('Create failed'));
     renderWithProviders(<RealEstatePage />);
     await user.click(screen.getByRole('button', { name: /add property/i }));
+    await user.click(screen.getByRole('button', { name: /record a property I already own/i }));
     await user.click(screen.getByRole('button', { name: /submit/i }));
     // Should not crash
     expect(mockCreateMutateAsync).toHaveBeenCalled();
