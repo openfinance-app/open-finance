@@ -1,3 +1,175 @@
+# Java / Maven
 target/
+*.class
+*.jar
+*.war
+*.ear
+*.log
+*.ctxt
+.mtj.tmp/
+*.~
+*.iml
+
+# Maven
+.mvn/
+!.mvn/wrapper/maven-wrapper.jar
+!.mvn/wrapper/maven-wrapper.properties
+
+# Package Files
+*.jar
+*.war
+*.nar
+*.ear
+*.zip
+*.tar.gz
+*.rar
+
+# Logs
+logs/
+*.log
+*.log.*
+
+# IDE
+.idea/
+*.iws
+*.ipr
+*.iml
+.vscode/
+*.swp
+*.swo
+*.swn
+*~
+.project
+.classpath
+.settings/
+.metadata
+bin/
+
+# Database
+*.db-journal
+.sqlite
+.sqlite3
+
+# Application Configuration (Sensitive)
+application-local.properties
+application-prod.properties
+*.key
+*.pem
+*.p12
+*.jks
+
+# OS
+.DS_Store
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# Test
+test-output/
+*.hprof
+
+# Build
+build/
 dist/
+out/
+
+# Temporary files
+*.tmp
+*.bak
+*.backup
+*~.nib
+
+# Frontend (Node/React)
 node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Frontend Build
+dist/
+build/
+.vite/
+.turbo/
+
+# Coverage
+coverage/
+.nyc_output/
+*.lcov
+jacoco.exec
+jacoco/
+
+# Environment
+.env
+.env.local
+secrets.properties
+
+# Backup files
+*.ofbak
+backups/
+
+# DevContainer
+.devcontainer/.env
+.devcontainer/*.log
+scripts/download-institution-logos.sh
+scripts/download-payee-logos.sh
+.gitignore
+src/main/resources/application-railway.yml
+src/main/resources/application-prod.yml
+.spec/
+.steering/
+.opencode/
+.agents/
+docs/
+tui.json
+opencode.json
+openfinance-ui/docs/IMPORT_IMPLEMENTATION.md
+openfinance-ui/docs/BUDGET_IMPLEMENTATION.md
+openfinance-ui/playwright-report/index.html
+openfinance-ui/bun.lockb
+openfinance.db
+attachments/
+temp/
+openfinance.db-wal
+openfinance.db-shm
+skrooge_exports/
+remotion-demo/
+railway.toml
+.factorypath
+postgre_tests
+
+TODO.md
+.impeccable/
+
+stashed/
+
+# Demo tour wiki assets (committable despite docs/ above;
+# parent dirs must be un-ignored first — git cannot re-include
+# files under an excluded directory)
+!docs/
+docs/*
+!docs/wiki/
+docs/wiki/*
+!docs/wiki/screenshots/
+docs/wiki/screenshots/*
+!docs/wiki/screenshots/search.png
+!docs/wiki/screenshots/history.png
+!docs/wiki/screenshots/backup.png
+!docs/wiki/screenshots/settings.png
+!docs/wiki/screenshots/ai-assistant.png
+!docs/wiki/screenshots/compound-interest.png
+!docs/wiki/screenshots/financial-freedom.png
+!docs/wiki/screenshots/early-payoff.png
+!docs/wiki/screenshots/financial-map.png
+!docs/wiki/demo/
+docs/wiki/demo/*
+!docs/wiki/demo/demo-tour.mp4
+!docs/wiki/demo/demo-tour-poster.jpg
+src/main/java/org/openfinance/service/history/README.md
+samples/latest_3.json
+samples/latest_3.sqlite
