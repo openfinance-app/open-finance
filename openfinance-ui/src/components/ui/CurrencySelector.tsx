@@ -13,6 +13,7 @@ import { useEffect, useRef, useState } from 'react';
 import * as PopoverPrimitive from '@radix-ui/react-popover';
 import { useTranslation } from 'react-i18next';
 import { useCurrencies } from '@/hooks/useCurrency';
+import { useComboboxNavigation } from '@/hooks/useComboboxNavigation';
 import { ChevronDown, Loader2, Search, Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { Currency } from '@/types/currency';
@@ -93,6 +94,41 @@ export function CurrencySelector({
     }
   }, [open]);
 
+  const baseCurrencies = showInactive
+    ? (currencies ?? [])
+    : (currencies?.filter((c: Currency) => c.isActive) ?? []);
+
+  const normalizedQuery = searchQuery.trim().toLowerCase();
+  const visibleCurrencies = normalizedQuery
+    ? baseCurrencies.filter((currency: Currency) => {
+        const translatedName = getCurrencyDisplayName(currency, t);
+        return [currency.code, translatedName, currency.name, currency.symbol]
+          .filter(Boolean)
+          .some(v => v.toLowerCase().includes(normalizedQuery));
+      })
+    : baseCurrencies;
+
+  const selectedCurrency = value ? currencies?.find((c: Currency) => c.code === value) : undefined;
+
+  const selectedTranslatedName = selectedCurrency
+    ? getCurrencyDisplayName(selectedCurrency, t)
+    : undefined;
+
+  const handleSelect = (code: string | undefined) => {
+    onValueChange(code);
+    setOpen(false);
+  };
+
+  const navigation = useComboboxNavigation({
+    open,
+    onOpenChange: setOpen,
+    options: [...(allowNone ? ['__none__'] : []), ...visibleCurrencies.map(c => c.code)],
+    selectedValue: value || (allowNone ? '__none__' : undefined),
+    onSelect: code => handleSelect(code === '__none__' ? undefined : code),
+    searchQuery,
+    disabled,
+  });
+
   if (isLoading) {
     return (
       <div className="flex h-10 w-full items-center justify-center rounded-lg border border-border bg-surface px-3 py-2">
@@ -110,33 +146,11 @@ export function CurrencySelector({
     );
   }
 
-  const baseCurrencies = showInactive ? currencies : currencies.filter((c: Currency) => c.isActive);
-
-  const normalizedQuery = searchQuery.trim().toLowerCase();
-  const visibleCurrencies = normalizedQuery
-    ? baseCurrencies.filter((currency: Currency) => {
-        const translatedName = getCurrencyDisplayName(currency, t);
-        return [currency.code, translatedName, currency.name, currency.symbol]
-          .filter(Boolean)
-          .some(v => v.toLowerCase().includes(normalizedQuery));
-      })
-    : baseCurrencies;
-
-  const selectedCurrency = value ? currencies.find((c: Currency) => c.code === value) : undefined;
-
-  const selectedTranslatedName = selectedCurrency
-    ? getCurrencyDisplayName(selectedCurrency, t)
-    : undefined;
-
-  const handleSelect = (code: string | undefined) => {
-    onValueChange(code);
-    setOpen(false);
-  };
-
   return (
-    <PopoverPrimitive.Root open={open} onOpenChange={setOpen}>
+    <PopoverPrimitive.Root open={open} onOpenChange={navigation.onOpenChange}>
       <PopoverPrimitive.Trigger asChild>
         <button
+          {...navigation.triggerProps}
           ref={triggerRef}
           type="button"
           disabled={disabled}
@@ -190,16 +204,12 @@ export function CurrencySelector({
             <div className="relative">
               <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted" />
               <input
+                {...navigation.inputProps}
+                aria-label={tc('lastUpdated.searchCurrency')}
                 ref={searchRef}
                 type="text"
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
-                onKeyDown={e => {
-                  if (e.key === 'Escape') {
-                    e.stopPropagation();
-                    setOpen(false);
-                  }
-                }}
                 placeholder={tc('lastUpdated.searchCurrency')}
                 className="h-9 w-full rounded-md border border-border bg-background pl-8 pr-2 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-primary"
                 autoComplete="off"
@@ -209,17 +219,20 @@ export function CurrencySelector({
 
           {/* Options list */}
           <div
+            {...navigation.listProps}
+            aria-label={placeholder}
             className="flex-1 overflow-y-auto p-1 shrink min-h-0 max-h-72"
             onWheel={e => e.stopPropagation()}
             onTouchMove={e => e.stopPropagation()}
           >
             {allowNone && (
               <button
+                {...navigation.getOptionProps('__none__')}
                 type="button"
                 onClick={() => handleSelect(undefined)}
                 className={cn(
                   'flex w-full cursor-default items-center gap-2 rounded-md px-3 py-2 text-sm outline-none',
-                  'hover:bg-surface-elevated focus:bg-surface-elevated',
+                  'hover:bg-surface-elevated focus:bg-surface-elevated data-highlighted:bg-primary/10 data-highlighted:ring-1 data-highlighted:ring-inset data-highlighted:ring-primary',
                   !value && 'bg-surface-elevated'
                 )}
               >
@@ -237,12 +250,13 @@ export function CurrencySelector({
                 const translatedName = getCurrencyDisplayName(currency, t);
                 return (
                   <button
+                    {...navigation.getOptionProps(currency.code)}
                     key={currency.code}
                     type="button"
                     onClick={() => handleSelect(currency.code)}
                     className={cn(
                       'flex w-full cursor-default items-center gap-3 rounded-md px-3 py-2 text-sm outline-none',
-                      'hover:bg-surface-elevated focus:bg-surface-elevated',
+                      'hover:bg-surface-elevated focus:bg-surface-elevated data-highlighted:bg-primary/10 data-highlighted:ring-1 data-highlighted:ring-inset data-highlighted:ring-primary',
                       value === currency.code && 'bg-surface-elevated'
                     )}
                   >
@@ -300,6 +314,33 @@ export function CurrencySelectorCompact({
     }
   }, [open]);
 
+  const normalizedQuery = searchQuery.trim().toLowerCase();
+  const visibleCurrencies = normalizedQuery
+    ? (currencies ?? []).filter((currency: Currency) => {
+        const translatedName = getCurrencyDisplayName(currency, t);
+        return [currency.code, translatedName, currency.name, currency.symbol]
+          .filter(Boolean)
+          .some(v => v.toLowerCase().includes(normalizedQuery));
+      })
+    : (currencies ?? []);
+
+  const selectedCurrency = value ? currencies?.find((c: Currency) => c.code === value) : undefined;
+
+  const handleSelect = (code: string) => {
+    onValueChange(code);
+    setOpen(false);
+  };
+
+  const navigation = useComboboxNavigation({
+    open,
+    onOpenChange: setOpen,
+    options: visibleCurrencies.map(c => c.code),
+    selectedValue: value,
+    onSelect: handleSelect,
+    searchQuery,
+    disabled,
+  });
+
   if (isLoading || !currencies) {
     return (
       <div className="flex h-10 w-24 items-center justify-center rounded-lg border border-border bg-surface">
@@ -308,27 +349,11 @@ export function CurrencySelectorCompact({
     );
   }
 
-  const normalizedQuery = searchQuery.trim().toLowerCase();
-  const visibleCurrencies = normalizedQuery
-    ? currencies.filter((currency: Currency) => {
-        const translatedName = getCurrencyDisplayName(currency, t);
-        return [currency.code, translatedName, currency.name, currency.symbol]
-          .filter(Boolean)
-          .some(v => v.toLowerCase().includes(normalizedQuery));
-      })
-    : currencies;
-
-  const selectedCurrency = value ? currencies.find((c: Currency) => c.code === value) : undefined;
-
-  const handleSelect = (code: string) => {
-    onValueChange(code);
-    setOpen(false);
-  };
-
   return (
-    <PopoverPrimitive.Root open={open} onOpenChange={setOpen}>
+    <PopoverPrimitive.Root open={open} onOpenChange={navigation.onOpenChange}>
       <PopoverPrimitive.Trigger asChild>
         <button
+          {...navigation.triggerProps}
           type="button"
           disabled={disabled}
           className={cn(
@@ -372,16 +397,12 @@ export function CurrencySelectorCompact({
             <div className="relative">
               <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted" />
               <input
+                {...navigation.inputProps}
+                aria-label={tc('lastUpdated.searchCurrency')}
                 ref={searchRef}
                 type="text"
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
-                onKeyDown={e => {
-                  if (e.key === 'Escape') {
-                    e.stopPropagation();
-                    setOpen(false);
-                  }
-                }}
                 placeholder={tc('lastUpdated.searchCurrency')}
                 className="h-9 w-full rounded-md border border-border bg-background pl-8 pr-2 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-primary"
                 autoComplete="off"
@@ -390,6 +411,8 @@ export function CurrencySelectorCompact({
           </div>
 
           <div
+            {...navigation.listProps}
+            aria-label={tc('lastUpdated.searchCurrency')}
             className="flex-1 overflow-y-auto p-1 shrink min-h-0 max-h-72"
             onWheel={e => e.stopPropagation()}
             onTouchMove={e => e.stopPropagation()}
@@ -401,12 +424,13 @@ export function CurrencySelectorCompact({
             ) : (
               visibleCurrencies.map((currency: Currency) => (
                 <button
+                  {...navigation.getOptionProps(currency.code)}
                   key={currency.code}
                   type="button"
                   onClick={() => handleSelect(currency.code)}
                   className={cn(
                     'relative flex w-full cursor-default items-center rounded-md py-1.5 pl-8 pr-2 text-sm outline-none',
-                    'hover:bg-surface-elevated focus:bg-surface-elevated',
+                    'hover:bg-surface-elevated focus:bg-surface-elevated data-highlighted:bg-primary/10 data-highlighted:ring-1 data-highlighted:ring-inset data-highlighted:ring-primary',
                     value === currency.code && 'bg-surface-elevated'
                   )}
                 >

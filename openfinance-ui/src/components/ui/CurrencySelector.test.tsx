@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { screen, waitFor } from '@testing-library/react';
+import { fireEvent, screen, waitFor } from '@testing-library/react';
 import { renderWithProviders, mockAuthentication, userEvent } from '@/test/test-utils';
 import { CurrencySelector, CurrencySelectorCompact } from './CurrencySelector';
 
@@ -29,6 +29,7 @@ describe('CurrencySelector', () => {
     mockAuthentication();
     mockIsLoading = false;
     mockIsError = false;
+    Element.prototype.scrollIntoView = vi.fn();
   });
 
   it('renders with placeholder when no value selected', () => {
@@ -66,6 +67,22 @@ describe('CurrencySelector', () => {
       expect(screen.getByText('EUR')).toBeInTheDocument();
       expect(screen.getByText('GBP')).toBeInTheDocument();
     });
+  });
+
+  it('opens with an arrow key and selects a currency with the keyboard', async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<CurrencySelector onValueChange={onValueChange} />);
+
+    const trigger = screen.getByRole('button');
+    trigger.focus();
+    await user.keyboard('{ArrowDown}');
+
+    const search = await screen.findByRole('combobox');
+    await waitFor(() => expect(search).toHaveFocus());
+    await user.keyboard('{ArrowDown}{Enter}');
+
+    expect(onValueChange).toHaveBeenCalledExactlyOnceWith('EUR');
+    await waitFor(() => expect(trigger).toHaveFocus());
   });
 
   it('filters inactive currencies by default', async () => {
@@ -123,6 +140,17 @@ describe('CurrencySelector', () => {
     });
   });
 
+  it('allows clearing the currency with the keyboard', async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<CurrencySelector value="USD" onValueChange={onValueChange} allowNone />);
+    screen.getByRole('button').focus();
+    await user.keyboard('{ArrowDown}');
+    await waitFor(() => expect(screen.getByRole('combobox')).toHaveFocus());
+    await user.keyboard('{ArrowUp}{Enter}');
+
+    expect(onValueChange).toHaveBeenCalledExactlyOnceWith(undefined);
+  });
+
   it('disables the trigger when disabled prop is true', () => {
     renderWithProviders(<CurrencySelector onValueChange={onValueChange} disabled />);
 
@@ -139,7 +167,7 @@ describe('CurrencySelector', () => {
       expect(screen.getByText('USD')).toBeInTheDocument();
     });
 
-    const searchInput = screen.getByRole('textbox');
+    const searchInput = screen.getByRole('combobox');
     await user.type(searchInput, 'euro');
 
     await waitFor(() => {
@@ -153,10 +181,10 @@ describe('CurrencySelector', () => {
 
     await user.click(screen.getByRole('button'));
     await waitFor(() => {
-      expect(screen.getByRole('textbox')).toBeInTheDocument();
+      expect(screen.getByRole('combobox')).toBeInTheDocument();
     });
 
-    await user.type(screen.getByRole('textbox'), 'xyznonexistent');
+    await user.type(screen.getByRole('combobox'), 'xyznonexistent');
 
     await waitFor(() => {
       expect(screen.queryByText('USD')).not.toBeInTheDocument();
@@ -172,6 +200,7 @@ describe('CurrencySelectorCompact', () => {
     mockAuthentication();
     mockIsLoading = false;
     mockIsError = false;
+    Element.prototype.scrollIntoView = vi.fn();
   });
 
   it('renders with selected currency symbol and code', () => {
@@ -218,5 +247,125 @@ describe('CurrencySelectorCompact', () => {
     }
 
     expect(onValueChange).toHaveBeenCalledWith('GBP');
+  });
+});
+
+describe.each([
+  { name: 'full', Component: CurrencySelector, lastCode: 'GBP' },
+  { name: 'compact', Component: CurrencySelectorCompact, lastCode: 'JPY' },
+])('CurrencySelector keyboard navigation ($name)', ({ Component, lastCode }) => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockAuthentication();
+    mockIsLoading = false;
+    mockIsError = false;
+    Element.prototype.scrollIntoView = vi.fn();
+  });
+
+  it('opens with ArrowUp at the last option and selects with Enter', async () => {
+    const user = userEvent.setup();
+    const onValueChange = vi.fn();
+    renderWithProviders(<Component onValueChange={onValueChange} />);
+    screen.getByRole('button').focus();
+    await user.keyboard('{ArrowUp}');
+
+    const search = screen.getByRole('combobox');
+    await waitFor(() => expect(search).toHaveFocus());
+    const option = screen.getByRole('option', { name: new RegExp(lastCode) });
+    expect(search).toHaveAttribute('aria-activedescendant', option.id);
+    await user.keyboard('{Enter}');
+    expect(onValueChange).toHaveBeenCalledExactlyOnceWith(lastCode);
+  });
+
+  it('moves both ways, stops at list boundaries, and preserves search focus', async () => {
+    const user = userEvent.setup();
+    const onValueChange = vi.fn();
+    renderWithProviders(<Component onValueChange={onValueChange} />);
+    await user.click(screen.getByRole('button'));
+    const search = screen.getByRole('combobox');
+    await waitFor(() => expect(search).toHaveFocus());
+
+    await user.keyboard('{ArrowDown}{ArrowDown}');
+    expect(search).toHaveAttribute(
+      'aria-activedescendant',
+      screen.getByRole('option', { name: /EUR/ }).id
+    );
+    await user.keyboard('{ArrowUp}{ArrowUp}');
+    expect(search).toHaveAttribute(
+      'aria-activedescendant',
+      screen.getByRole('option', { name: /USD/ }).id
+    );
+    expect(search).toHaveFocus();
+    expect(onValueChange).not.toHaveBeenCalled();
+    await user.keyboard('{Enter}');
+    expect(onValueChange).toHaveBeenCalledExactlyOnceWith('USD');
+  });
+
+  it('drops a stale highlight when filtering and selects only a visible match', async () => {
+    const user = userEvent.setup();
+    const onValueChange = vi.fn();
+    renderWithProviders(<Component onValueChange={onValueChange} />);
+    await user.click(screen.getByRole('button'));
+    const search = screen.getByRole('combobox');
+    await waitFor(() => expect(search).toHaveFocus());
+    await user.keyboard('{ArrowDown}{ArrowDown}{ArrowDown}');
+    await user.type(search, 'euro');
+
+    expect(search).not.toHaveAttribute('aria-activedescendant');
+    await user.keyboard('{Enter}');
+    expect(onValueChange).not.toHaveBeenCalled();
+    await user.keyboard('{ArrowDown}{Enter}');
+    expect(onValueChange).toHaveBeenCalledExactlyOnceWith('EUR');
+  });
+
+  it('handles empty results and ignores keys during IME composition', async () => {
+    const user = userEvent.setup();
+    const onValueChange = vi.fn();
+    const onSubmit = vi.fn();
+    renderWithProviders(
+      <form onSubmit={onSubmit}>
+        <Component onValueChange={onValueChange} />
+      </form>
+    );
+    await user.click(screen.getByRole('button'));
+    const search = screen.getByRole('combobox');
+    await waitFor(() => expect(search).toHaveFocus());
+    await user.keyboard('{ArrowDown}');
+    const activeId = search.getAttribute('aria-activedescendant');
+
+    fireEvent.keyDown(search, { key: 'ArrowDown', isComposing: true });
+    expect(search).toHaveAttribute('aria-activedescendant', activeId);
+    fireEvent.keyDown(search, { key: 'Enter', isComposing: true });
+    expect(onValueChange).not.toHaveBeenCalled();
+
+    await user.type(search, 'zzzzzz');
+    await user.keyboard('{ArrowDown}{ArrowUp}{Enter}');
+    expect(screen.queryByRole('option')).not.toBeInTheDocument();
+    expect(search).not.toHaveAttribute('aria-activedescendant');
+    expect(onValueChange).not.toHaveBeenCalled();
+    expect(onSubmit).not.toHaveBeenCalled();
+  });
+
+  it('starts at the selected currency and resets search when dismissed', async () => {
+    const user = userEvent.setup();
+    const onValueChange = vi.fn();
+    renderWithProviders(<Component value="EUR" onValueChange={onValueChange} />);
+    const trigger = screen.getByRole('button');
+    trigger.focus();
+    await user.keyboard('{ArrowDown}');
+    const search = screen.getByRole('combobox');
+    await waitFor(() => expect(search).toHaveFocus());
+    expect(search).toHaveAttribute(
+      'aria-activedescendant',
+      screen.getByRole('option', { name: /EUR/ }).id
+    );
+
+    await user.type(search, 'pound');
+    await user.keyboard('{Escape}');
+    await waitFor(() => expect(trigger).toHaveFocus());
+    expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
+    expect(onValueChange).not.toHaveBeenCalled();
+    await user.keyboard('{ArrowUp}');
+    expect(screen.getByRole('combobox')).toHaveValue('');
   });
 });

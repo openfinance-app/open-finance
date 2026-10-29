@@ -33,6 +33,7 @@ import { useCurrencies } from '@/hooks/useCurrency';
 import { Loader2, Check, Search, Globe } from 'lucide-react';
 import type { Currency } from '@/types/currency';
 import { CountrySelector } from '@/components/common/CountrySelector';
+import { handleSelectSearchKeyDown } from '@/utils/select-keyboard';
 
 // ---------------------------------------------------------------------------
 // SecondaryCurrencySelector
@@ -127,7 +128,7 @@ function SecondaryCurrencySelector({
                 type="text"
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
-                onKeyDown={e => e.stopPropagation()}
+                onKeyDown={handleSelectSearchKeyDown}
                 placeholder={t('general.currencies.searchPlaceholder')}
                 className="h-9 w-full rounded-md border border-border bg-background pl-8 pr-2 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-primary"
                 autoFocus={isOpen}

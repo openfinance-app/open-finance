@@ -9,6 +9,7 @@ describe('CountrySelector', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockAuthentication();
+    Element.prototype.scrollIntoView = vi.fn();
   });
 
   it('renders with placeholder when no value', () => {
@@ -28,7 +29,7 @@ describe('CountrySelector', () => {
     await user.click(screen.getByRole('button'));
 
     await waitFor(() => {
-      expect(screen.getByRole('textbox')).toBeInTheDocument();
+      expect(screen.getByRole('combobox')).toBeInTheDocument();
     });
   });
 
@@ -39,10 +40,10 @@ describe('CountrySelector', () => {
     await user.click(screen.getByRole('button'));
 
     await waitFor(() => {
-      expect(screen.getByRole('textbox')).toBeInTheDocument();
+      expect(screen.getByRole('combobox')).toBeInTheDocument();
     });
 
-    await user.type(screen.getByRole('textbox'), 'France');
+    await user.type(screen.getByRole('combobox'), 'France');
 
     await waitFor(() => {
       expect(screen.getByText('France')).toBeInTheDocument();
@@ -58,10 +59,10 @@ describe('CountrySelector', () => {
     await user.click(screen.getByRole('button'));
 
     await waitFor(() => {
-      expect(screen.getByRole('textbox')).toBeInTheDocument();
+      expect(screen.getByRole('combobox')).toBeInTheDocument();
     });
 
-    await user.type(screen.getByRole('textbox'), 'xyznonexistent');
+    await user.type(screen.getByRole('combobox'), 'xyznonexistent');
 
     await waitFor(() => {
       expect(screen.getByText('No results')).toBeInTheDocument();
@@ -75,10 +76,10 @@ describe('CountrySelector', () => {
     await user.click(screen.getByRole('button'));
 
     await waitFor(() => {
-      expect(screen.getByRole('textbox')).toBeInTheDocument();
+      expect(screen.getByRole('combobox')).toBeInTheDocument();
     });
 
-    await user.type(screen.getByRole('textbox'), 'France');
+    await user.type(screen.getByRole('combobox'), 'France');
 
     await waitFor(() => {
       expect(screen.getByText('France')).toBeInTheDocument();
@@ -102,13 +103,13 @@ describe('CountrySelector', () => {
     await user.click(screen.getByRole('button'));
 
     await waitFor(() => {
-      expect(screen.getByRole('textbox')).toBeInTheDocument();
+      expect(screen.getByRole('combobox')).toBeInTheDocument();
     });
 
-    fireEvent.keyDown(screen.getByRole('textbox'), { key: 'Escape' });
+    fireEvent.keyDown(screen.getByRole('combobox'), { key: 'Escape' });
 
     await waitFor(() => {
-      expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
+      expect(screen.queryByRole('combobox')).not.toBeInTheDocument();
     });
   });
 
@@ -119,10 +120,10 @@ describe('CountrySelector', () => {
     await user.click(screen.getByRole('button'));
 
     await waitFor(() => {
-      expect(screen.getByRole('textbox')).toBeInTheDocument();
+      expect(screen.getByRole('combobox')).toBeInTheDocument();
     });
 
-    await user.type(screen.getByRole('textbox'), 'France');
+    await user.type(screen.getByRole('combobox'), 'France');
 
     await waitFor(() => {
       const franceBtns = screen.getAllByText('France');

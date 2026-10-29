@@ -18,6 +18,7 @@ import { useInstitutions } from '@/hooks/useInstitutions';
 import { Loader2, Search, Building2 } from 'lucide-react';
 import type { Institution } from '@/types/institution';
 import { cn } from '@/lib/utils';
+import { handleSelectSearchKeyDown } from '@/utils/select-keyboard';
 
 interface InstitutionSelectorProps {
   value?: string;
@@ -189,7 +190,7 @@ export function InstitutionSelector({
                 type="text"
                 value={searchQuery}
                 onChange={event => setSearchQuery(event.target.value)}
-                onKeyDown={event => event.stopPropagation()}
+                onKeyDown={handleSelectSearchKeyDown}
                 placeholder={t('institutions:searchInstitution')}
                 className="h-9 w-full rounded-md border border-border bg-background pl-8 pr-2 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-primary"
                 autoFocus={isOpen}

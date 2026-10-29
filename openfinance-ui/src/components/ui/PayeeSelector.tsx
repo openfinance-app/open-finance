@@ -15,6 +15,7 @@ import { useTranslation } from 'react-i18next';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/Popover';
 import { markSelectInteraction } from '@/utils/selectClickGuard';
 import { useActivePayees, useFindOrCreatePayee } from '@/hooks/usePayees';
+import { useComboboxNavigation } from '@/hooks/useComboboxNavigation';
 import { Loader2, Search, User, ChevronDown, Check } from 'lucide-react';
 import type { Payee } from '@/types/payee';
 import { cn } from '@/lib/utils';
@@ -161,8 +162,36 @@ export function PayeeSelector({
     );
   };
 
+  const showUseNew = shouldShowUseNew(searchQuery, payees, allowNewPayee);
+  const navigation = useComboboxNavigation({
+    open: isOpen,
+    onOpenChange: open => {
+      setIsOpen(open);
+      if (!open) {
+        markSelectInteraction();
+        setSearchQuery('');
+      }
+    },
+    options: [
+      ...(allowNone ? ['__none__'] : []),
+      ...sortedCategories.flatMap(category => groupedPayees[category].map(p => String(p.id))),
+      ...(showUseNew && !isCreating ? ['__create__'] : []),
+    ],
+    selectedValue: selectedPayee
+      ? String(selectedPayee.id)
+      : value === undefined
+        ? '__none__'
+        : undefined,
+    onSelect: id => {
+      if (id === '__create__') void handleUseNew();
+      else selectItem(id === '__none__' ? undefined : payees?.find(p => String(p.id) === id)?.name);
+    },
+    searchQuery,
+    disabled: disabled || isCreating,
+  });
+
   const itemClass =
-    'relative flex w-full cursor-default select-none items-center rounded-md py-1.5 pl-8 pr-2 text-sm outline-none hover:bg-surface-elevated focus:bg-surface-elevated transition-colors duration-150';
+    'relative flex w-full cursor-default select-none items-center rounded-md py-1.5 pl-8 pr-2 text-sm outline-none hover:bg-surface-elevated focus:bg-surface-elevated data-highlighted:bg-primary/10 data-highlighted:ring-1 data-highlighted:ring-inset data-highlighted:ring-primary transition-colors duration-150';
 
   if (isLoading) {
     return (
@@ -182,19 +211,11 @@ export function PayeeSelector({
   }
 
   return (
-    <Popover
-      open={isOpen}
-      onOpenChange={open => {
-        setIsOpen(open);
-        if (!open) {
-          markSelectInteraction();
-          setSearchQuery('');
-        }
-      }}
-    >
+    <Popover open={isOpen} onOpenChange={navigation.onOpenChange}>
       <div className="relative">
         <PopoverTrigger asChild>
           <button
+            {...navigation.triggerProps}
             type="button"
             role="combobox"
             aria-expanded={isOpen}
@@ -245,18 +266,18 @@ export function PayeeSelector({
       <PopoverContent
         className="p-0 flex flex-col w-(--radix-popover-trigger-width)"
         onOpenAutoFocus={e => e.preventDefault()}
+        onEscapeKeyDown={e => e.stopPropagation()}
       >
         {/* Search header */}
         <div className="shrink-0 border-b border-border bg-surface p-2">
           <div className="relative">
             <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted" />
             <input
+              {...navigation.inputProps}
+              aria-label={t('payees:searchPayee')}
               type="text"
               value={searchQuery}
               onChange={event => setSearchQuery(event.target.value)}
-              onKeyDown={event => {
-                if (event.key === 'Escape') setIsOpen(false);
-              }}
               placeholder={t('payees:searchPayee')}
               className="h-9 w-full rounded-md border border-border bg-background pl-8 pr-2 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-primary"
               autoFocus
@@ -268,13 +289,20 @@ export function PayeeSelector({
         {/* Stop wheel/touch bubbling so the Radix Dialog's react-remove-scroll
             lock doesn't cancel scrolling inside this portaled popover. */}
         <div
+          {...navigation.listProps}
+          aria-label={placeholder}
           className="max-h-72 overflow-y-auto p-1"
           onWheel={e => e.stopPropagation()}
           onTouchMove={e => e.stopPropagation()}
         >
           {/* "None" option */}
           {allowNone && (
-            <button type="button" className={itemClass} onClick={() => selectItem(undefined)}>
+            <button
+              {...navigation.getOptionProps('__none__')}
+              type="button"
+              className={itemClass}
+              onClick={() => selectItem(undefined)}
+            >
               {value === undefined && (
                 <span className="absolute left-2 flex h-3.5 w-3.5 items-center justify-center">
                   <Check className="h-4 w-4 text-primary" />
@@ -300,6 +328,7 @@ export function PayeeSelector({
               {/* Payees in this category */}
               {groupedPayees[category].map(payee => (
                 <button
+                  {...navigation.getOptionProps(String(payee.id))}
                   key={payee.id}
                   type="button"
                   className={itemClass}
@@ -322,14 +351,15 @@ export function PayeeSelector({
           ))}
 
           {/* Empty state */}
-          {sortedCategories.length === 0 &&
-            !shouldShowUseNew(searchQuery, payees, allowNewPayee) && (
-              <div className="p-2 text-center text-sm text-text-muted">{t('payees:noMatch')}</div>
-            )}
+          {sortedCategories.length === 0 && !showUseNew && (
+            <div className="p-2 text-center text-sm text-text-muted">{t('payees:noMatch')}</div>
+          )}
 
           {/* Inline "use new" item */}
-          {shouldShowUseNew(searchQuery, payees, allowNewPayee) && (
+          {showUseNew && (
             <button
+              {...navigation.getOptionProps('__create__')}
+              disabled={isCreating}
               type="button"
               className={cn(itemClass, 'cursor-pointer border-t border-border mt-1 pt-1')}
               onClick={() => handleUseNew()}
@@ -386,12 +416,29 @@ export function PayeeCombobox({
     return payees.filter(p => p.name.toLowerCase().includes(q));
   }, [payees, inputValue]);
 
+  const selectPayee = (id: string): void => {
+    const payee = filtered.find(p => String(p.id) === id);
+    if (!payee) return;
+    onValueChange(payee.name);
+    setInputValue(payee.name);
+    setIsOpen(false);
+  };
+  const navigation = useComboboxNavigation({
+    open: isOpen && filtered.length > 0,
+    onOpenChange: setIsOpen,
+    options: filtered.map(payee => String(payee.id)),
+    onSelect: selectPayee,
+    searchQuery: inputValue,
+    disabled,
+  });
+
   return (
     <div className="relative">
       <input
+        {...navigation.inputProps}
         type="text"
         value={inputValue}
-        aria-label={ariaLabel}
+        aria-label={ariaLabel ?? placeholder}
         onChange={e => {
           // Update local state only — don't call onValueChange on every keystroke
           // to avoid expensive re-renders in parent tables.
@@ -403,7 +450,7 @@ export function PayeeCombobox({
           setTimeout(() => setIsOpen(false), DROPDOWN_CLOSE_DELAY_MS);
           onValueChange(inputValue);
         }}
-        onFocus={() => setIsOpen(true)}
+        onFocus={() => navigation.onOpenChange(true)}
         placeholder={placeholder}
         disabled={disabled}
         className={cn(
@@ -412,18 +459,21 @@ export function PayeeCombobox({
         )}
       />
       {isOpen && filtered.length > 0 && (
-        <div className="absolute top-full left-0 right-0 z-50 max-h-48 overflow-auto bg-surface border border-border rounded-b shadow-lg">
+        <div
+          {...navigation.listProps}
+          aria-label={ariaLabel ?? placeholder}
+          className="absolute top-full left-0 right-0 z-50 max-h-48 overflow-auto bg-surface border border-border rounded-b shadow-lg"
+        >
           {filtered.map(payee => (
             <button
+              {...navigation.getOptionProps(String(payee.id))}
               key={payee.id}
               type="button"
               onMouseDown={e => {
                 e.preventDefault();
-                onValueChange(payee.name);
-                setInputValue(payee.name);
-                setIsOpen(false);
+                selectPayee(String(payee.id));
               }}
-              className="w-full text-left px-3 py-1.5 text-sm hover:bg-surface-elevated text-text-primary"
+              className="w-full text-left px-3 py-1.5 text-sm hover:bg-surface-elevated data-highlighted:bg-primary/10 data-highlighted:ring-1 data-highlighted:ring-inset data-highlighted:ring-primary text-text-primary"
             >
               {payee.name}
             </button>

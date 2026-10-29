@@ -23,6 +23,7 @@ import { useAuthContext } from '@/context/AuthContext';
 import { ConvertedAmount } from '@/components/ui/ConvertedAmount';
 import { getPropertyTypeName } from '@/types/realEstate';
 import type { BuyRentInputs } from '@/types/realEstateTools';
+import { handleSelectSearchKeyDown } from '@/utils/select-keyboard';
 
 export interface PropertySelectorProps {
   onPropertySelect: (propertyData: Partial<BuyRentInputs>) => void;
@@ -153,7 +154,7 @@ export const PropertySelector: React.FC<PropertySelectorProps> = ({
                 placeholder={t('propertySelector.searchProperties')}
                 className="w-full bg-transparent text-sm text-text-primary placeholder:text-text-tertiary outline-none"
                 onClick={e => e.stopPropagation()}
-                onKeyDown={e => e.stopPropagation()}
+                onKeyDown={handleSelectSearchKeyDown}
               />
             </div>
           )}

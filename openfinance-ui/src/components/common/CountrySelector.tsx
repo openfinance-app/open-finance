@@ -10,6 +10,7 @@ import { Check, ChevronDown, Search } from 'lucide-react';
 import * as PopoverPrimitive from '@radix-ui/react-popover';
 import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/utils';
+import { useComboboxNavigation } from '@/hooks/useComboboxNavigation';
 import { ALL_COUNTRIES, countryFlagClass } from '@/utils/countryUtils';
 
 export { ALL_COUNTRIES } from '@/utils/countryUtils';
@@ -67,10 +68,21 @@ export function CountrySelector({
     setOpen(false);
   };
 
+  const navigation = useComboboxNavigation({
+    open,
+    onOpenChange: setOpen,
+    options: visibleCountries.map(country => country.code),
+    selectedValue: value,
+    onSelect: handleSelect,
+    searchQuery,
+    disabled,
+  });
+
   return (
-    <PopoverPrimitive.Root open={open} onOpenChange={setOpen}>
+    <PopoverPrimitive.Root open={open} onOpenChange={navigation.onOpenChange}>
       <PopoverPrimitive.Trigger asChild>
         <button
+          {...navigation.triggerProps}
           type="button"
           disabled={disabled}
           aria-label={resolvedPlaceholder}
@@ -113,19 +125,19 @@ export function CountrySelector({
             'data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95'
           )}
           onOpenAutoFocus={e => e.preventDefault()}
+          onEscapeKeyDown={e => e.stopPropagation()}
         >
           {/* Search */}
           <div className="shrink-0 border-b border-border p-2">
             <div className="relative">
               <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted" />
               <input
+                {...navigation.inputProps}
+                aria-label={resolvedSearchPlaceholder}
                 ref={searchRef}
                 type="text"
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
-                onKeyDown={e => {
-                  if (e.key === 'Escape') setOpen(false);
-                }}
                 placeholder={resolvedSearchPlaceholder}
                 className="h-9 w-full rounded-md border border-border bg-background pl-8 pr-2 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-primary"
                 autoComplete="off"
@@ -135,6 +147,8 @@ export function CountrySelector({
 
           {/* Options list */}
           <div
+            {...navigation.listProps}
+            aria-label={resolvedPlaceholder}
             className="flex-1 overflow-y-auto p-1 shrink min-h-0 max-h-72"
             onWheel={e => e.stopPropagation()}
             onTouchMove={e => e.stopPropagation()}
@@ -144,12 +158,13 @@ export function CountrySelector({
             ) : (
               visibleCountries.map(country => (
                 <button
+                  {...navigation.getOptionProps(country.code)}
                   key={country.code}
                   type="button"
                   onClick={() => handleSelect(country.code)}
                   className={cn(
                     'flex w-full cursor-default items-center gap-2 rounded-md px-3 py-2 text-sm outline-none',
-                    'hover:bg-surface-elevated focus:bg-surface-elevated',
+                    'hover:bg-surface-elevated focus:bg-surface-elevated data-highlighted:bg-primary/10 data-highlighted:ring-1 data-highlighted:ring-inset data-highlighted:ring-primary',
                     value === country.code && 'bg-surface-elevated'
                   )}
                 >

@@ -21,6 +21,7 @@ import { useAccounts } from '@/hooks/useAccounts';
 import { Loader2, Search, Wallet } from 'lucide-react';
 import type { Account } from '@/types/account';
 import { markSelectInteraction } from '@/utils/selectClickGuard';
+import { handleSelectSearchKeyDown } from '@/utils/select-keyboard';
 
 interface AccountSelectorProps {
   value?: number;
@@ -184,7 +185,7 @@ export function AccountSelector({
                 type="text"
                 value={searchQuery}
                 onChange={event => setSearchQuery(event.target.value)}
-                onKeyDown={event => event.stopPropagation()}
+                onKeyDown={handleSelectSearchKeyDown}
                 placeholder={t('card.searchAccounts')}
                 className="h-9 w-full rounded-md border border-border bg-background pl-8 pr-2 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-primary"
                 autoFocus={isOpen}

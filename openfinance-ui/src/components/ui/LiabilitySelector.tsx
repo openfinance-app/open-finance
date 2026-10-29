@@ -11,6 +11,7 @@ import { ConvertedAmount } from '@/components/ui/ConvertedAmount';
 import { useLiabilities, getLiabilityTypeName } from '@/hooks/useLiabilities';
 import { Loader2, Search, CreditCard } from 'lucide-react';
 import type { Liability } from '@/types/liability';
+import { handleSelectSearchKeyDown } from '@/utils/select-keyboard';
 
 interface LiabilitySelectorProps {
   value?: number;
@@ -154,7 +155,7 @@ export function LiabilitySelector({
                 type="text"
                 value={searchQuery}
                 onChange={event => setSearchQuery(event.target.value)}
-                onKeyDown={event => event.stopPropagation()}
+                onKeyDown={handleSelectSearchKeyDown}
                 placeholder={t('liabilities:form.searchLiability')}
                 className="h-9 w-full rounded-md border border-border bg-background pl-8 pr-2 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-primary"
                 autoFocus={isOpen}
