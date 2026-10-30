@@ -119,6 +119,7 @@
     "nameRequired": "Name is required",
     "nameTooLong": "Name is too long",
     "quantityRequired": "Quantity must be at least 0.00000001",
+    "quantityNonNegative": "Quantity cannot be negative",
     "quantityInvalid": "Enter a valid quantity (e.g. 1.5)",
     "purchasePriceRequired": "Purchase price cannot be negative",
     "purchasePriceInvalid": "Enter a valid price (e.g. 1234.56)",

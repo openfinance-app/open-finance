@@ -63,6 +63,51 @@ describe('AssetForm', () => {
     mockOnCancel.mockClear();
   });
 
+  it.each([
+    { quantity: 0, purchasePrice: 0, currentPrice: 0 },
+    { quantity: 0, purchasePrice: 0, currentPrice: 30 },
+    { quantity: 1, purchasePrice: 0, currentPrice: 0 },
+  ])(
+    'edits a holding with $quantity units and prices $purchasePrice/$currentPrice',
+    async values => {
+      const asset: Asset = {
+        id: 1,
+        userId: 1,
+        accountId: 1,
+        name: 'Imported holding',
+        type: 'STOCK',
+        currency: 'EUR',
+        purchaseDate: '2024-01-01',
+        lastUpdated: '',
+        createdAt: '',
+        updatedAt: '',
+        totalValue: 0,
+        totalCost: 0,
+        unrealizedGain: 0,
+        gainPercentage: 0,
+        holdingDays: 0,
+        ...values,
+      };
+      renderWithProviders(
+        <AssetForm asset={asset} onSubmit={mockOnSubmit} onCancel={mockOnCancel} />
+      );
+      fireEvent.change(screen.getByLabelText(/Asset Name/i), {
+        target: { value: 'Renamed holding' },
+      });
+      await userEvent.setup().click(screen.getByRole('button', { name: /update asset/i }));
+      await waitFor(() =>
+        expect(mockOnSubmit).toHaveBeenCalledWith(
+          expect.objectContaining({
+            name: 'Renamed holding',
+            quantity: String(values.quantity),
+            purchasePrice: String(values.purchasePrice),
+            currentPrice: String(values.currentPrice),
+          })
+        )
+      );
+    }
+  );
+
   it.each(['0.00000001', '0.0000005'])(
     'saves a crypto quantity of %s in a supported four-letter currency',
     async quantity => {
@@ -86,6 +131,19 @@ describe('AssetForm', () => {
       expect(mockOnSubmit.mock.calls[0][0]).toMatchObject({ currency: 'USDT', quantity });
     }
   );
+
+  it('still requires a positive quantity for physical assets', async () => {
+    renderWithProviders(
+      <AssetForm initialType="VEHICLE" onSubmit={mockOnSubmit} onCancel={mockOnCancel} />
+    );
+    fireEvent.change(screen.getByLabelText(/Asset Name/i), { target: { value: 'Car' } });
+    fireEvent.change(screen.getByLabelText(/Quantity/i), { target: { value: '0' } });
+    await userEvent.setup().click(screen.getByRole('button', { name: /create asset/i }));
+    await waitFor(() =>
+      expect(screen.getByText(/Quantity must be at least 0.00000001/i)).toBeInTheDocument()
+    );
+    expect(mockOnSubmit).not.toHaveBeenCalled();
+  });
 
   it('starts a physical item with one unit and keeps optional inventory details collapsed', async () => {
     renderWithProviders(
@@ -221,7 +279,7 @@ describe('AssetForm', () => {
       expect(mockOnSubmit).not.toHaveBeenCalled();
     });
 
-    it('should show error when quantity is zero', async () => {
+    it('should show error when quantity is negative', async () => {
       const user = userEvent.setup();
       renderWithProviders(<AssetForm onSubmit={mockOnSubmit} onCancel={mockOnCancel} />);
 
@@ -239,9 +297,9 @@ describe('AssetForm', () => {
       const currencySelector = screen.getByTestId('currency-selector');
       fireEvent.change(currencySelector, { target: { value: 'USD' } });
 
-      // Set quantity to 0
+      // Negative units remain invalid, including for holdings.
       const quantityInput = screen.getByLabelText(/Quantity/i);
-      fireEvent.change(quantityInput, { target: { value: '0' } });
+      fireEvent.change(quantityInput, { target: { value: '-1' } });
 
       // Set valid purchase and current prices so only quantity fails
       const purchasePriceInput = screen.getByLabelText(/Purchase Price/i);
@@ -256,7 +314,7 @@ describe('AssetForm', () => {
 
       await waitFor(
         () => {
-          expect(screen.getByText(/Quantity must be at least 0.00000001/i)).toBeInTheDocument();
+          expect(screen.getByText(/Quantity cannot be negative/i)).toBeInTheDocument();
         },
         { timeout: 3000 }
       );

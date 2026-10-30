@@ -94,12 +94,15 @@ export function useUpdateAssetPrice() {
       );
       return response.data;
     },
-    onSuccess: () => {
+    onSuccess: async () => {
       // Invalidate assets query to refetch with updated prices
-      queryClient.invalidateQueries({ queryKey: ['assets'] });
-      queryClient.invalidateQueries({ queryKey: ['market', 'history'] });
-      // Refresh dashboard cards (Net Worth, Total Assets) which cache with a long staleTime
-      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['assets'] }),
+        queryClient.invalidateQueries({ queryKey: ['accounts'] }),
+        queryClient.invalidateQueries({ queryKey: ['market', 'history'] }),
+        // Refresh dashboard cards (Net Worth, Total Assets) which cache with a long staleTime
+        queryClient.invalidateQueries({ queryKey: ['dashboard'] }),
+      ]);
     },
   });
 }
@@ -118,12 +121,15 @@ export function useUpdateAllAssetPrices() {
       );
       return { updated: response.data.updated, failed: 0 };
     },
-    onSuccess: () => {
+    onSuccess: async () => {
       // Invalidate assets query to refetch with updated prices
-      queryClient.invalidateQueries({ queryKey: ['assets'] });
-      queryClient.invalidateQueries({ queryKey: ['market', 'history'] });
-      // Refresh dashboard cards (Net Worth, Total Assets) which cache with a long staleTime
-      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['assets'] }),
+        queryClient.invalidateQueries({ queryKey: ['accounts'] }),
+        queryClient.invalidateQueries({ queryKey: ['market', 'history'] }),
+        // Refresh dashboard cards (Net Worth, Total Assets) which cache with a long staleTime
+        queryClient.invalidateQueries({ queryKey: ['dashboard'] }),
+      ]);
     },
   });
 }

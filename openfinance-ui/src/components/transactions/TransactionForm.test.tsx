@@ -19,7 +19,7 @@ import * as useLiabilitiesModule from '@/hooks/useLiabilities';
 import * as useCurrencyModule from '@/hooks/useCurrency';
 import * as useRealEstateModule from '@/hooks/useRealEstate';
 import * as useAssetsModule from '@/hooks/useAssets';
-import { renderWithProviders } from '@/test/test-utils';
+import { mockAuthentication, renderWithProviders } from '@/test/test-utils';
 import type { Payee } from '@/types/payee';
 import type { Category, Transaction } from '@/types/transaction';
 import type { Account } from '@/types/account';
@@ -312,6 +312,11 @@ function renderForm({
   return { onSubmit, onCancel };
 }
 
+function expandMovementDetails(): void {
+  const summary = screen.getByText('Linked liability and movement');
+  if (!summary.closest('details')?.open) fireEvent.click(summary);
+}
+
 /** Simulate the user selecting a payee via the mocked <select> */
 async function selectPayee(name: string) {
   const payeeSelect = screen.getByTestId('payee-selector') as HTMLSelectElement;
@@ -335,6 +340,7 @@ async function selectCategory(categoryId: number | string) {
 describe('TransactionForm', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockAuthentication();
 
     // Default mock: payees loaded, no popular tags
     mockUseActivePayees.mockReturnValue({
@@ -976,7 +982,7 @@ describe('TransactionForm', () => {
   // ── Liability Selector ────────────────────────────────────────────────────
 
   describe('Liability Selector', () => {
-    it('shows liability selector for EXPENSE when liabilities exist', () => {
+    it('collapses optional liability and movement fields until expanded', () => {
       mockUseLiabilities.mockReturnValue({
         data: [
           {
@@ -998,7 +1004,11 @@ describe('TransactionForm', () => {
 
       renderForm();
 
-      expect(screen.getByTestId('liability-selector')).toBeInTheDocument();
+      expect(screen.getByTestId('liability-selector')).not.toBeVisible();
+      expect(screen.getByLabelText(/^movement$/i)).not.toBeVisible();
+      expandMovementDetails();
+      expect(screen.getByTestId('liability-selector')).toBeVisible();
+      expect(screen.getByLabelText(/^movement$/i)).toBeVisible();
     });
 
     it('hides liability selector when no liabilities exist', () => {
@@ -1054,6 +1064,7 @@ describe('TransactionForm', () => {
 
     /** Simulate the user selecting the liability via the mocked <select> */
     async function selectLiability(value: string) {
+      expandMovementDetails();
       const liabSelect = screen.getByTestId('liability-selector') as HTMLSelectElement;
       await act(async () => {
         liabSelect.value = value;
@@ -1704,21 +1715,56 @@ describe('TransactionForm', () => {
     });
 
     async function selectMovementType(value: string) {
+      expandMovementDetails();
       await act(async () => {
         fireEvent.change(screen.getByLabelText(/^movement$/i), { target: { value } });
       });
     }
 
-    it('is visible for EXPENSE and hidden for INCOME', async () => {
+    it('is collapsible for EXPENSE and absent for INCOME', async () => {
       renderForm();
 
-      expect(screen.getByLabelText(/^movement$/i)).toBeInTheDocument();
+      expect(screen.getByLabelText(/^movement$/i)).not.toBeVisible();
+      expandMovementDetails();
+      expect(screen.getByLabelText(/^movement$/i)).toBeVisible();
 
       await act(async () => {
         fireEvent.change(screen.getByLabelText(/type/i), { target: { value: 'INCOME' } });
       });
 
       expect(screen.queryByLabelText(/^movement$/i)).not.toBeInTheDocument();
+      expect(screen.queryByText('Linked liability and movement')).not.toBeInTheDocument();
+    });
+
+    it('opens existing movements and preserves their values when saved while collapsed', async () => {
+      const { onSubmit } = renderForm({
+        transaction: {
+          id: 99,
+          userId: 1,
+          accountId: 1,
+          type: 'EXPENSE',
+          amount: 100,
+          currency: 'EUR',
+          date: '2024-06-15',
+          isReconciled: false,
+          createdAt: '2024-06-15',
+          movementType: 'MAINTENANCE',
+          assetId: 21,
+        },
+      });
+      expect(screen.getByLabelText(/^movement$/i)).toBeVisible();
+      expect(screen.getByLabelText('Physical asset')).toHaveValue('21');
+      fireEvent.click(screen.getByText('Linked liability and movement'));
+      expect(screen.getByLabelText(/^movement$/i)).not.toBeVisible();
+      fireEvent.click(screen.getByRole('button', { name: /update transaction/i }));
+      await waitFor(() =>
+        expect(onSubmit).toHaveBeenCalledWith(
+          expect.objectContaining({
+            movementType: 'MAINTENANCE',
+            assetId: 21,
+          })
+        )
+      );
     });
 
     it('offers capital improvement and maintenance movement types', () => {
@@ -1804,13 +1850,16 @@ describe('TransactionForm', () => {
         screen.getByTestId('account-selector').click();
       });
 
+      fireEvent.click(screen.getByText('Linked liability and movement'));
+      expect(screen.getByLabelText(/^movement$/i)).not.toBeVisible();
+
       await act(async () => {
         screen.getByRole('button', { name: /create transaction/i }).click();
       });
 
       expect(onSubmit).not.toHaveBeenCalled();
       await waitFor(() => {
-        expect(screen.getByText(/select the property or physical asset/i)).toBeInTheDocument();
+        expect(screen.getByText(/select the property or physical asset/i)).toBeVisible();
       });
     });
 

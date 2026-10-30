@@ -20,7 +20,7 @@ import { useTranslation } from 'react-i18next';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Sparkles, X, Scissors } from 'lucide-react';
+import { Sparkles, X, Scissors, ChevronDown } from 'lucide-react';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { DateInput } from '@/components/ui/DateInput';
@@ -247,6 +247,15 @@ export function TransactionForm({
   // State for auto-filled category from payee
   const [autoFilledCategory, setAutoFilledCategory] = useState<number | null>(null);
   const [autoFilledFromPayee, setAutoFilledFromPayee] = useState<string | null>(null);
+  const [isMovementOpen, setIsMovementOpen] = useState(
+    !!(
+      transaction?.liabilityId ||
+      transaction?.realEstateId ||
+      transaction?.assetId ||
+      transaction?.movementType === 'CAPITAL_IMPROVEMENT' ||
+      transaction?.movementType === 'MAINTENANCE'
+    )
+  );
 
   // Fetch liabilities for the liability selector (Requirement 3.1)
   const { data: liabilities = [] } = useLiabilities();
@@ -254,7 +263,7 @@ export function TransactionForm({
   const {
     register,
     handleSubmit,
-    formState: { errors },
+    formState: { errors, submitCount },
     watch,
     setValue,
     setError,
@@ -311,6 +320,17 @@ export function TransactionForm({
           assetId: undefined,
         },
   });
+
+  const hasMovementErrors = !!(
+    errors.liabilityId ||
+    errors.movementType ||
+    errors.realEstateId ||
+    errors.assetId ||
+    errors.principalAmount
+  );
+  useEffect(() => {
+    if (hasMovementErrors) setIsMovementOpen(true);
+  }, [hasMovementErrors, submitCount]);
 
   // Log validation errors for debugging
   useEffect(() => {
@@ -962,148 +982,164 @@ export function TransactionForm({
           </div>
         )}
 
-      {/* Liability Selector - only for EXPENSE transactions (Requirement 3.1) */}
-      {selectedType === 'EXPENSE' && liabilities.length > 0 && (
-        <div>
-          <div className="flex items-center gap-1 mb-1.5">
-            <label htmlFor="liabilityId" className="block text-sm font-medium text-text-secondary">
-              {t('form.linkedLiability')}
-            </label>
-            <HelpTooltip text={t('form.linkedLiabilityHint')} side="right" />
-          </div>
-          <Controller
-            name="liabilityId"
-            control={control}
-            render={({ field }) => (
-              <LiabilitySelector
-                value={field.value}
-                onValueChange={field.onChange}
-                placeholder={t('form.selectLiability')}
-              />
-            )}
-          />
-          {errors.liabilityId && (
-            <p id="liabilityId-error" className="mt-1 text-sm text-error" role="alert">
-              {errors.liabilityId.message}
-            </p>
-          )}
-        </div>
-      )}
-
-      {/* Manual movement entry (improvement/maintenance on a property or physical
-          asset) — only for EXPENSE transactions. Kept visible alongside the
-          liability picker; the zod schema rejects combining them with a clear
-          message (backend rejects the combination too). */}
       {selectedType === 'EXPENSE' && (
-        <MovementSection
-          movementType={
-            watch('movementType') === 'CAPITAL_IMPROVEMENT' ||
-            watch('movementType') === 'MAINTENANCE'
-              ? (watch('movementType') as 'CAPITAL_IMPROVEMENT' | 'MAINTENANCE')
-              : undefined
-          }
-          realEstateId={watch('realEstateId')}
-          assetId={watch('assetId')}
-          onMovementTypeChange={value => {
-            setValue('movementType', value, { shouldValidate: true });
-            if (!value) {
-              setValue('realEstateId', undefined, { shouldValidate: true });
-              setValue('assetId', undefined, { shouldValidate: true });
-            }
-          }}
-          onRealEstateIdChange={value => setValue('realEstateId', value, { shouldValidate: true })}
-          onAssetIdChange={value => setValue('assetId', value, { shouldValidate: true })}
-          errors={{
-            movementType: errors.movementType?.message,
-            realEstateId: errors.realEstateId?.message,
-            assetId: errors.assetId?.message,
-          }}
-          disabled={isLoading}
-        />
-      )}
+        <details
+          className="group border-t border-border/60"
+          open={isMovementOpen}
+          onToggle={event => setIsMovementOpen(event.currentTarget.open)}
+        >
+          <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 rounded-lg py-2 text-sm font-medium text-text-secondary hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary [&::-webkit-details-marker]:hidden">
+            {t('form.linkedLiabilityAndMovement')}
+            <ChevronDown
+              aria-hidden="true"
+              className="h-4 w-4 shrink-0 transition-transform duration-150 group-open:rotate-180 motion-reduce:transition-none"
+            />
+          </summary>
+          <div className="space-y-4 pt-3">
+            {liabilities.length > 0 && (
+              <div>
+                <div className="flex items-center gap-1 mb-1.5">
+                  <label
+                    htmlFor="liabilityId"
+                    className="block text-sm font-medium text-text-secondary"
+                  >
+                    {t('form.linkedLiability')}
+                  </label>
+                  <HelpTooltip text={t('form.linkedLiabilityHint')} side="right" />
+                </div>
+                <Controller
+                  name="liabilityId"
+                  control={control}
+                  render={({ field }) => (
+                    <LiabilitySelector
+                      value={field.value}
+                      onValueChange={field.onChange}
+                      placeholder={t('form.selectLiability')}
+                    />
+                  )}
+                />
+                {errors.liabilityId && (
+                  <p id="liabilityId-error" className="mt-1 text-sm text-error" role="alert">
+                    {errors.liabilityId.message}
+                  </p>
+                )}
+              </div>
+            )}
 
-      {/* Repayment auto-split preview (Task 5) — read-only breakdown of the repayment total,
+            {/* A movement targets a property or asset; validation prevents combining it with a liability. */}
+            <MovementSection
+              movementType={
+                watch('movementType') === 'CAPITAL_IMPROVEMENT' ||
+                watch('movementType') === 'MAINTENANCE'
+                  ? (watch('movementType') as 'CAPITAL_IMPROVEMENT' | 'MAINTENANCE')
+                  : undefined
+              }
+              realEstateId={watch('realEstateId')}
+              assetId={watch('assetId')}
+              onMovementTypeChange={value => {
+                setValue('movementType', value, { shouldValidate: true });
+                if (!value) {
+                  setValue('realEstateId', undefined, { shouldValidate: true });
+                  setValue('assetId', undefined, { shouldValidate: true });
+                }
+              }}
+              onRealEstateIdChange={value =>
+                setValue('realEstateId', value, { shouldValidate: true })
+              }
+              onAssetIdChange={value => setValue('assetId', value, { shouldValidate: true })}
+              errors={{
+                movementType: errors.movementType?.message,
+                realEstateId: errors.realEstateId?.message,
+                assetId: errors.assetId?.message,
+              }}
+              disabled={isLoading}
+            />
+
+            {/* Repayment auto-split preview (Task 5) — read-only breakdown of the repayment total,
            expressed in the LIABILITY currency (FX totals converted client-side since Task 9).
            When the Apply split toggle is on (default) the submit includes the preview legs as a
            splits[] payload: principal uncategorized, interest/insurance categorized. */}
-      {selectedType === 'EXPENSE' && liabilityIdValue && liabilityPreviewTotal != null && (
-        <div
-          data-testid="repayment-preview"
-          className="rounded-lg border border-border bg-surface p-3 space-y-1.5"
-        >
-          <div className="flex items-center justify-between gap-2">
-            <p className="text-sm font-medium text-text-primary">
-              {t('form.repaymentPreviewTitle')}
-              {liabilityCurrency ? ` (${liabilityCurrency})` : ''}
-            </p>
-            <label className="flex items-center gap-1.5 text-xs text-text-secondary cursor-pointer">
-              <input
-                type="checkbox"
-                checked={applyRepaymentSplit}
-                onChange={e => setApplyRepaymentSplit(e.target.checked)}
-                className="h-3.5 w-3.5 rounded border-border bg-surface text-primary focus:ring-2 focus:ring-primary"
-                disabled={isLoading}
-              />
-              {t('form.repaymentApplySplit')}
-            </label>
-          </div>
-          <dl className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm text-text-secondary">
-            <dt>{t('form.repaymentPreviewPrincipal')}</dt>
-            <dd className="text-right text-text-primary">
-              {formatDecimal(
-                repaymentPreview?.principal ?? 0,
-                getCurrencyDecimals(liabilityCurrency)
-              )}
-            </dd>
-            <dt>{t('form.repaymentPreviewInterest')}</dt>
-            <dd className="text-right text-text-primary">
-              {formatDecimal(
-                repaymentPreview?.interest ?? 0,
-                getCurrencyDecimals(liabilityCurrency)
-              )}
-            </dd>
-            <dt>{t('form.repaymentPreviewInsurance')}</dt>
-            <dd className="text-right text-text-primary">
-              {formatDecimal(
-                repaymentPreview?.insurance ?? 0,
-                getCurrencyDecimals(liabilityCurrency)
-              )}
-            </dd>
-          </dl>
-          {repaymentPreview &&
-            selectedLiability &&
-            repaymentPreview.principal > selectedLiability.currentBalance && (
-              <p role="alert" className="text-error">
-                {t('form.repaymentExceedsDebt')}
-              </p>
+            {liabilityIdValue && liabilityPreviewTotal != null && (
+              <div
+                data-testid="repayment-preview"
+                className="rounded-lg border border-border bg-surface p-3 space-y-1.5"
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-sm font-medium text-text-primary">
+                    {t('form.repaymentPreviewTitle')}
+                    {liabilityCurrency ? ` (${liabilityCurrency})` : ''}
+                  </p>
+                  <label className="flex items-center gap-1.5 text-xs text-text-secondary cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={applyRepaymentSplit}
+                      onChange={e => setApplyRepaymentSplit(e.target.checked)}
+                      className="h-3.5 w-3.5 rounded border-border bg-surface text-primary focus:ring-2 focus:ring-primary"
+                      disabled={isLoading}
+                    />
+                    {t('form.repaymentApplySplit')}
+                  </label>
+                </div>
+                <dl className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm text-text-secondary">
+                  <dt>{t('form.repaymentPreviewPrincipal')}</dt>
+                  <dd className="text-right text-text-primary">
+                    {formatDecimal(
+                      repaymentPreview?.principal ?? 0,
+                      getCurrencyDecimals(liabilityCurrency)
+                    )}
+                  </dd>
+                  <dt>{t('form.repaymentPreviewInterest')}</dt>
+                  <dd className="text-right text-text-primary">
+                    {formatDecimal(
+                      repaymentPreview?.interest ?? 0,
+                      getCurrencyDecimals(liabilityCurrency)
+                    )}
+                  </dd>
+                  <dt>{t('form.repaymentPreviewInsurance')}</dt>
+                  <dd className="text-right text-text-primary">
+                    {formatDecimal(
+                      repaymentPreview?.insurance ?? 0,
+                      getCurrencyDecimals(liabilityCurrency)
+                    )}
+                  </dd>
+                </dl>
+                {repaymentPreview &&
+                  selectedLiability &&
+                  repaymentPreview.principal > selectedLiability.currentBalance && (
+                    <p role="alert" className="text-error">
+                      {t('form.repaymentExceedsDebt')}
+                    </p>
+                  )}
+                {repaymentPreviewError && applyRepaymentSplit && (
+                  <p role="alert" className="text-sm text-error">
+                    {t('form.repaymentUnavailable')}
+                  </p>
+                )}
+                {!applyRepaymentSplit && !splitMode && (
+                  <div>
+                    <label htmlFor="principalAmount">
+                      {t('form.manualPrincipal', { currency: liabilityCurrency })}
+                    </label>
+                    <Input
+                      id="principalAmount"
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      {...register('principalAmount')}
+                      error={errors.principalAmount?.message}
+                    />
+                    <p className="text-xs text-text-secondary">{t('form.manualPrincipalHint')}</p>
+                  </div>
+                )}
+                {errors.principalAmount && applyRepaymentSplit && (
+                  <p role="alert" className="text-sm text-error">
+                    {errors.principalAmount.message}
+                  </p>
+                )}
+              </div>
             )}
-          {repaymentPreviewError && applyRepaymentSplit && (
-            <p role="alert" className="text-sm text-error">
-              {t('form.repaymentUnavailable')}
-            </p>
-          )}
-          {!applyRepaymentSplit && !splitMode && (
-            <div>
-              <label htmlFor="principalAmount">
-                {t('form.manualPrincipal', { currency: liabilityCurrency })}
-              </label>
-              <Input
-                id="principalAmount"
-                type="number"
-                min="0"
-                step="0.01"
-                {...register('principalAmount')}
-                error={errors.principalAmount?.message}
-              />
-              <p className="text-xs text-text-secondary">{t('form.manualPrincipalHint')}</p>
-            </div>
-          )}
-          {errors.principalAmount && applyRepaymentSplit && (
-            <p role="alert" className="text-sm text-error">
-              {errors.principalAmount.message}
-            </p>
-          )}
-        </div>
+          </div>
+        </details>
       )}
 
       {/* ── Zone 4: free text — description, tags, notes ──────────────────── */}

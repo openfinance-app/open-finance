@@ -10,15 +10,22 @@ import java.time.LocalDate;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.openfinance.config.TestDatabaseConfig;
 import org.openfinance.dto.AccountRequest;
 import org.openfinance.dto.AssetRequest;
 import org.openfinance.dto.LoginRequest;
 import org.openfinance.dto.UserRegistrationRequest;
 import org.openfinance.entity.AccountType;
+import org.openfinance.entity.Asset;
 import org.openfinance.entity.AssetCondition;
 import org.openfinance.entity.AssetType;
+import org.openfinance.repository.AssetRepository;
 import org.openfinance.repository.UserRepository;
+import org.openfinance.security.EncryptionContext;
+import org.openfinance.security.EncryptionKeyCache;
 import org.openfinance.security.KeyManagementService;
 import org.openfinance.service.OperationHistoryService;
 import org.openfinance.service.UserService;
@@ -60,6 +67,10 @@ class AssetControllerIntegrationTest {
     @Autowired private KeyManagementService keyManagementService;
 
     @Autowired private DatabaseCleanupService databaseCleanupService;
+
+    @Autowired private AssetRepository assetRepository;
+
+    @Autowired private EncryptionKeyCache encryptionKeyCache;
 
     private String token;
     private String encKey;
@@ -389,6 +400,75 @@ class AssetControllerIntegrationTest {
                 .andExpect(jsonPath("$.totalValue").value(2700.00)) // 15 * 180
                 .andExpect(jsonPath("$.updatedAt").exists())
                 .andExpect(jsonPath("$.lastUpdated").exists());
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"0", "30"})
+    @DisplayName("PUT /api/v1/assets/{id} - edit an imported holding with zero remaining units")
+    void shouldEditSoldImportedHolding(String currentPrice) throws Exception {
+        Long assetId = createAsset("Sold holding", AssetType.STOCK, "SOLD");
+        EncryptionContext.setKey(encryptionKeyCache.getKeyBySessionToken(encKey).orElseThrow());
+        try {
+            Asset asset = assetRepository.findById(assetId).orElseThrow();
+            asset.setImportSource("skrooge:unit:sold");
+            asset.setImportOpeningQuantity(BigDecimal.ZERO);
+            asset.setImportOpeningCost(BigDecimal.ZERO);
+            asset.setQuantity(BigDecimal.ZERO);
+            asset.setPurchasePrice(BigDecimal.ZERO);
+            asset.setCurrentPrice(BigDecimal.ZERO);
+            assetRepository.saveAndFlush(asset);
+        } finally {
+            EncryptionContext.clear();
+        }
+        AssetRequest request =
+                AssetRequest.builder()
+                        .accountId(accountId)
+                        .name("Renamed sold holding")
+                        .type(AssetType.STOCK)
+                        .symbol("SOLD")
+                        .quantity(BigDecimal.ZERO)
+                        .purchasePrice(BigDecimal.ZERO)
+                        .currentPrice(new BigDecimal(currentPrice))
+                        .currency("USD")
+                        .purchaseDate(LocalDate.of(2025, 1, 15))
+                        .build();
+
+        mockMvc.perform(
+                        put("/api/v1/assets/" + assetId)
+                                .header("Authorization", "Bearer " + token)
+                                .header("X-Encryption-Session", encKey)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.name").value("Renamed sold holding"))
+                .andExpect(jsonPath("$.quantity").value(0))
+                .andExpect(jsonPath("$.purchasePrice").value(0))
+                .andExpect(jsonPath("$.currentPrice").value(Integer.parseInt(currentPrice)))
+                .andExpect(jsonPath("$.totalValue").value(0));
+    }
+
+    @ParameterizedTest
+    @CsvSource({"STOCK,-1", "VEHICLE,0"})
+    @DisplayName("PUT /api/v1/assets/{id} - reject negative holdings and empty physical assets")
+    void shouldRejectInvalidAssetQuantity(AssetType type, BigDecimal quantity) throws Exception {
+        Long assetId = createAsset("Asset", type, null);
+        AssetRequest request =
+                AssetRequest.builder()
+                        .name("Asset")
+                        .type(type)
+                        .quantity(quantity)
+                        .purchasePrice(BigDecimal.ZERO)
+                        .currentPrice(BigDecimal.ZERO)
+                        .currency("USD")
+                        .purchaseDate(LocalDate.of(2025, 1, 15))
+                        .build();
+        mockMvc.perform(
+                        put("/api/v1/assets/" + assetId)
+                                .header("Authorization", "Bearer " + token)
+                                .header("X-Encryption-Session", encKey)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest());
     }
 
     @Test

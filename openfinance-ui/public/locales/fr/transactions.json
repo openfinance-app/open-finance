@@ -79,6 +79,7 @@
     "tagsHint": "Organisez les transactions avec des étiquettes personnalisées pour un filtrage facile",
     "notes": "Notes (Facultatif)",
     "notesPlaceholder": "Informations complémentaires...",
+    "linkedLiabilityAndMovement": "Passif lié et mouvement",
     "linkedLiability": "Passif lié (Facultatif)",
     "linkedLiabilityHint": "Associez ce paiement à un prêt ou une hypothèque pour le suivi",
     "selectLiability": "Sélectionner un passif à associer",

@@ -28,6 +28,30 @@ describe('useMarketData hooks', () => {
     <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
   );
 
+  it.each(['single', 'all'])(
+    'marks cached account balances stale after a %s price refresh',
+    async mode => {
+      const searchKey = ['accounts', 'search', { type: 'INVESTMENT' }];
+      const detailKey = ['accounts', 2];
+      queryClient.setQueryData(searchKey, { content: [{ id: 2, balance: 100 }] });
+      queryClient.setQueryData(detailKey, { id: 2, balance: 100 });
+      mockedApiClient.post.mockResolvedValue({ data: { updated: 1, failed: 0 } });
+      const { result } = renderHook(
+        () => ({
+          single: useUpdateAssetPrice(),
+          all: useUpdateAllAssetPrices(),
+        }),
+        { wrapper }
+      );
+      await act(async () => {
+        if (mode === 'single') await result.current.single.mutateAsync(1);
+        else await result.current.all.mutateAsync([1]);
+      });
+      expect(queryClient.getQueryState(searchKey)?.isInvalidated).toBe(true);
+      expect(queryClient.getQueryState(detailKey)?.isInvalidated).toBe(true);
+    }
+  );
+
   // ── useMarketQuote ─────────────────────────────────────────────────
   describe('useMarketQuote', () => {
     it('should fetch market quote for a symbol', async () => {

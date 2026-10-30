@@ -79,6 +79,7 @@
     "tagsHint": "Organize transactions with custom tags for easy filtering",
     "notes": "Notes (Optional)",
     "notesPlaceholder": "Additional details...",
+    "linkedLiabilityAndMovement": "Linked liability and movement",
     "linkedLiability": "Linked Liability (Optional)",
     "linkedLiabilityHint": "Link this payment to a loan or mortgage for tracking",
     "selectLiability": "Select a liability to link",

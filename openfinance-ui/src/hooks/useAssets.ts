@@ -117,6 +117,7 @@ export function useCreateAsset() {
     onSuccess: async () => {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['assets'] }),
+        queryClient.invalidateQueries({ queryKey: ['accounts'] }),
         queryClient.invalidateQueries({ queryKey: ['dashboard'] }),
       ]);
     },
@@ -136,12 +137,13 @@ export function useUpdateAsset() {
       });
       return response.data;
     },
-    onSuccess: (_, variables) => {
-      // Invalidate both list and individual asset queries
-      queryClient.invalidateQueries({ queryKey: ['assets'] });
-      queryClient.invalidateQueries({ queryKey: ['assets', variables.id] });
-      // Refresh dashboard cards (Net Worth, Total Assets) which cache with a long staleTime
-      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+    onSuccess: async () => {
+      // Account balances include linked assets; refresh lists and details before closing the form.
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['assets'] }),
+        queryClient.invalidateQueries({ queryKey: ['accounts'] }),
+        queryClient.invalidateQueries({ queryKey: ['dashboard'] }),
+      ]);
     },
   });
 }
@@ -158,11 +160,12 @@ export function useDeleteAsset() {
         headers: buildEncryptionHeaders(),
       });
     },
-    onSuccess: () => {
-      // Invalidate assets query to refetch the list
-      queryClient.invalidateQueries({ queryKey: ['assets'] });
-      // Refresh dashboard cards (Net Worth, Total Assets) which cache with a long staleTime
-      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['assets'] }),
+        queryClient.invalidateQueries({ queryKey: ['accounts'] }),
+        queryClient.invalidateQueries({ queryKey: ['dashboard'] }),
+      ]);
     },
   });
 }

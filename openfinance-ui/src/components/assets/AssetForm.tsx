@@ -105,8 +105,8 @@ export function AssetForm({
             .min(1, t('validation.quantityInvalid'))
             .refine(isValidDecimalString, t('validation.quantityInvalid'))
             .refine(
-              v => isValidDecimalString(v) && new Decimal(v).gte('0.00000001'),
-              t('validation.quantityRequired')
+              v => isValidDecimalString(v) && new Decimal(v).gte(0),
+              t('validation.quantityNonNegative')
             ),
           purchasePrice: z
             .string()
@@ -132,6 +132,17 @@ export function AssetForm({
           usefulLifeYears: z.number().int().min(1).max(50).optional().or(z.nan()),
         })
         .superRefine((data, ctx) => {
+          if (
+            isPhysicalAssetType(data.type) &&
+            isValidDecimalString(data.quantity) &&
+            new Decimal(data.quantity).lt('0.00000001')
+          ) {
+            ctx.addIssue({
+              code: 'custom',
+              path: ['quantity'],
+              message: t('validation.quantityRequired'),
+            });
+          }
           if (data.acquisitionType === 'PLANNED' && Number(data.currentPrice) !== 0) {
             ctx.addIssue({
               code: 'custom',
@@ -393,7 +404,7 @@ export function AssetForm({
                   onBlur={field.onBlur}
                   placeholder="0.00"
                   error={errors.quantity?.message}
-                  min="0.00000001"
+                  min={isPhysicalAsset ? '0.00000001' : '0'}
                 />
               )}
             />

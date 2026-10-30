@@ -119,6 +119,7 @@
     "nameRequired": "Le nom est requis",
     "nameTooLong": "Le nom est trop long",
     "quantityRequired": "La quantité doit être au moins égale à 0,00000001",
+    "quantityNonNegative": "La quantité ne peut pas être négative",
     "quantityInvalid": "Saisissez une quantité valide (ex. 1,5)",
     "purchasePriceRequired": "Le prix d’achat ne peut pas être négatif",
     "purchasePriceInvalid": "Saisissez un prix valide (ex. 1234,56)",

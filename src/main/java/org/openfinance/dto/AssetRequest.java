@@ -1,6 +1,13 @@
 package org.openfinance.dto;
 
-import jakarta.validation.constraints.*;
+import jakarta.validation.constraints.AssertTrue;
+import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.Digits;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import lombok.AllArgsConstructor;
@@ -91,7 +98,7 @@ public class AssetRequest {
      * <p>Requirement REQ-2.6.2: Track quantity of assets
      */
     @NotNull(message = "{asset.quantity.required}")
-    @DecimalMin(value = "0.00000001", message = "{asset.quantity.min}")
+    @DecimalMin(value = "0", message = "{asset.quantity.min}")
     @Digits(integer = 26, fraction = 18, message = "{asset.quantity.digits}")
     private BigDecimal quantity;
 
@@ -233,6 +240,15 @@ public class AssetRequest {
      */
     @Size(max = 500, message = "{asset.photo.max}")
     private String photoPath;
+
+    @AssertTrue(message = "{asset.physical.quantity.min}")
+    public boolean isPhysicalQuantityValid() {
+        // Physical improvements distribute value over owned units and require a positive quantity.
+        return type == null
+                || !type.isPhysical()
+                || quantity == null
+                || quantity.compareTo(new BigDecimal("0.00000001")) >= 0;
+    }
 
     @AssertTrue(message = "{asset.planned.value.zero}")
     public boolean isPlannedValueValid() {

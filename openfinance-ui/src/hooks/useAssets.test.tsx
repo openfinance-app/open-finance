@@ -1,4 +1,4 @@
-import { renderHook, waitFor } from '@testing-library/react';
+import { act, renderHook, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import React from 'react';
@@ -16,6 +16,7 @@ import {
 } from './useAssets';
 import '@/test/i18n-test';
 import apiClient from '@/services/apiClient';
+import { useAccount, useAccountsSearch } from '@/hooks/useAccounts';
 
 vi.mock('@/services/apiClient');
 const mockedApiClient = apiClient as any;
@@ -150,6 +151,58 @@ describe('useAssets hooks', () => {
 
   // ── useUpdateAsset ────────────────────────────────────────────────────────
   describe('useUpdateAsset', () => {
+    it('refreshes linked account balances in both the account list and detail after changing value', async () => {
+      queryClient.setDefaultOptions({ queries: { retry: false, staleTime: 5 * 60 * 1000 } });
+      let balance = 100;
+      mockedApiClient.get.mockImplementation(async (url: string) => {
+        const account = { id: 2, balance, currency: 'EUR' };
+        if (url === '/accounts/2') return { data: account };
+        if (url.startsWith('/accounts/search?')) {
+          return {
+            data: { content: [account], totalElements: 1, totalPages: 1, number: 0, size: 20 },
+          };
+        }
+        throw new Error(`Unexpected request: ${url}`);
+      });
+      mockedApiClient.put.mockImplementation(async () => {
+        balance = 200;
+        return { data: { ...mockAsset, accountId: 2, currentPrice: 200 } };
+      });
+      const { result } = renderHook(
+        () => ({
+          search: useAccountsSearch(),
+          account: useAccount(2),
+          update: useUpdateAsset(),
+        }),
+        { wrapper }
+      );
+      await waitFor(() => {
+        expect(result.current.search.data?.content[0].balance).toBe(100);
+        expect(result.current.account.data?.balance).toBe(100);
+      });
+
+      await act(async () => {
+        await result.current.update.mutateAsync({
+          id: 1,
+          data: {
+            accountId: 2,
+            name: 'Holding',
+            type: 'STOCK',
+            quantity: '1',
+            purchasePrice: '100',
+            currentPrice: '200',
+            currency: 'EUR',
+            purchaseDate: '2024-01-01',
+          },
+        });
+      });
+
+      await waitFor(() => {
+        expect(result.current.search.data?.content[0].balance).toBe(200);
+        expect(result.current.account.data?.balance).toBe(200);
+      });
+    });
+
     it('should update an asset and invalidate queries', async () => {
       const updated = { ...mockAsset, name: 'Updated' };
       mockedApiClient.put.mockResolvedValue({ data: updated });
@@ -162,7 +215,7 @@ describe('useAssets hooks', () => {
       await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
       expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['assets'] });
-      expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['assets', 1] });
+      expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['accounts'] });
     });
   });
 
