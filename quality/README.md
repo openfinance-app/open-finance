@@ -97,6 +97,13 @@ same field and constructor contract. Only those five identities are added. Broad
 exception catches in the touched shared import path are narrowed in source; no bug
 type or package exclusion is introduced.
 
+The bulk metadata controller review records five exact constructor identities for
+its AssetService, AccountService, LiabilityService, TransactionService and
+PayeeService references. These final fields intentionally retain Spring-managed
+services and their transactional proxies. Only those five `EI_EXPOSE_REP2`
+identities are added. The liability-name comparator's locale-sensitive conversion
+is fixed in source with `Locale.ROOT`; no broad exclusion is introduced.
+
 ## Dependency applicability reviews
 
 `dependency-check-suppressions.xml` identifies individual CVEs and exact artifact

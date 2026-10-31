@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -853,7 +854,7 @@ public class LiabilityService {
     private Comparator<LiabilityResponse> buildResponseComparator(String field) {
         return switch (field) {
             case "name" -> Comparator.comparing(
-                    r -> r.getName() != null ? r.getName().toLowerCase() : "",
+                    r -> r.getName() != null ? r.getName().toLowerCase(Locale.ROOT) : "",
                     Comparator.naturalOrder());
             case "currentBalance" -> (Comparator<LiabilityResponse>)
                     Comparator.comparing(

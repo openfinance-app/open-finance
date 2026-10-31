@@ -25402,4 +25402,135 @@
   </BugInstance>
 <BugInstance instanceOccurrenceNum="0" instanceHash="b06135e68c95919962854af244cb5410" cweid="374" rank="18" abbrev="EI2" category="MALICIOUS_CODE" priority="2" type="EI_EXPOSE_REP2" instanceOccurrenceMax="0"><ShortMessage>May expose internal representation by incorporating reference to mutable object</ShortMessage><LongMessage>new org.openfinance.scheduler.MarketDataScheduler(MarketDataService, UserRepository, SchedulerProperties, EncryptionKeyCache, EncryptionProperties, UserEncryptionLock) may expose internal representation by storing an externally mutable object into MarketDataScheduler.encryptionProperties</LongMessage><Class classname="org.openfinance.scheduler.MarketDataScheduler" classAnnotationNames="org.springframework.stereotype.Component" primary="true"><SourceLine classname="org.openfinance.scheduler.MarketDataScheduler" start="70" end="279" sourcepath="org/openfinance/scheduler/MarketDataScheduler.java" sourcefile="MarketDataScheduler.java"><Message>At MarketDataScheduler.java:[lines 70-279]</Message></SourceLine><Message>In class org.openfinance.scheduler.MarketDataScheduler</Message></Class><Method isStatic="false" classname="org.openfinance.scheduler.MarketDataScheduler" signature="(Lorg/openfinance/service/MarketDataService;Lorg/openfinance/repository/UserRepository;Lorg/openfinance/config/SchedulerProperties;Lorg/openfinance/security/EncryptionKeyCache;Lorg/openfinance/config/EncryptionProperties;Lorg/openfinance/security/UserEncryptionLock;)V" name="&lt;init&gt;" classAnnotationNames="org.springframework.stereotype.Component" primary="true"><SourceLine endBytecode="139" classname="org.openfinance.scheduler.MarketDataScheduler" start="72" end="72" sourcepath="org/openfinance/scheduler/MarketDataScheduler.java" sourcefile="MarketDataScheduler.java" startBytecode="0" /><Message>In method new org.openfinance.scheduler.MarketDataScheduler(MarketDataService, UserRepository, SchedulerProperties, EncryptionKeyCache, EncryptionProperties, UserEncryptionLock)</Message></Method><Field isStatic="false" classname="org.openfinance.scheduler.MarketDataScheduler" signature="Lorg/openfinance/config/EncryptionProperties;" name="encryptionProperties" classAnnotationNames="org.springframework.stereotype.Component" primary="true"><SourceLine classname="org.openfinance.scheduler.MarketDataScheduler" sourcepath="org/openfinance/scheduler/MarketDataScheduler.java" sourcefile="MarketDataScheduler.java"><Message>In MarketDataScheduler.java</Message></SourceLine><Message>Field org.openfinance.scheduler.MarketDataScheduler.encryptionProperties</Message></Field><LocalVariable role="LOCAL_VARIABLE_NAMED" pc="28" name="encryptionProperties" register="5"><Message>Local variable named encryptionProperties</Message></LocalVariable><SourceLine endBytecode="28" classname="org.openfinance.scheduler.MarketDataScheduler" start="72" end="72" sourcepath="org/openfinance/scheduler/MarketDataScheduler.java" sourcefile="MarketDataScheduler.java" startBytecode="28" primary="true"><Message>At MarketDataScheduler.java:[line 72]</Message></SourceLine></BugInstance>
 <BugInstance instanceOccurrenceNum="0" instanceHash="c8bc4b3ef0b3809fba627635b1f6cf81" cweid="374" rank="18" abbrev="EI2" category="MALICIOUS_CODE" priority="2" type="EI_EXPOSE_REP2" instanceOccurrenceMax="0"><ShortMessage>May expose internal representation by incorporating reference to mutable object</ShortMessage><LongMessage>new org.openfinance.scheduler.MarketDataScheduler(MarketDataService, UserRepository, SchedulerProperties, EncryptionKeyCache, EncryptionProperties, UserEncryptionLock) may expose internal representation by storing an externally mutable object into MarketDataScheduler.schedulerProperties</LongMessage><Class classname="org.openfinance.scheduler.MarketDataScheduler" classAnnotationNames="org.springframework.stereotype.Component" primary="true"><SourceLine classname="org.openfinance.scheduler.MarketDataScheduler" start="70" end="279" sourcepath="org/openfinance/scheduler/MarketDataScheduler.java" sourcefile="MarketDataScheduler.java"><Message>At MarketDataScheduler.java:[lines 70-279]</Message></SourceLine><Message>In class org.openfinance.scheduler.MarketDataScheduler</Message></Class><Method isStatic="false" classname="org.openfinance.scheduler.MarketDataScheduler" signature="(Lorg/openfinance/service/MarketDataService;Lorg/openfinance/repository/UserRepository;Lorg/openfinance/config/SchedulerProperties;Lorg/openfinance/security/EncryptionKeyCache;Lorg/openfinance/config/EncryptionProperties;Lorg/openfinance/security/UserEncryptionLock;)V" name="&lt;init&gt;" classAnnotationNames="org.springframework.stereotype.Component" primary="true"><SourceLine endBytecode="139" classname="org.openfinance.scheduler.MarketDataScheduler" start="72" end="72" sourcepath="org/openfinance/scheduler/MarketDataScheduler.java" sourcefile="MarketDataScheduler.java" startBytecode="0" /><Message>In method new org.openfinance.scheduler.MarketDataScheduler(MarketDataService, UserRepository, SchedulerProperties, EncryptionKeyCache, EncryptionProperties, UserEncryptionLock)</Message></Method><Field isStatic="false" classname="org.openfinance.scheduler.MarketDataScheduler" signature="Lorg/openfinance/config/SchedulerProperties;" name="schedulerProperties" classAnnotationNames="org.springframework.stereotype.Component" primary="true"><SourceLine classname="org.openfinance.scheduler.MarketDataScheduler" sourcepath="org/openfinance/scheduler/MarketDataScheduler.java" sourcefile="MarketDataScheduler.java"><Message>In MarketDataScheduler.java</Message></SourceLine><Message>Field org.openfinance.scheduler.MarketDataScheduler.schedulerProperties</Message></Field><LocalVariable role="LOCAL_VARIABLE_NAMED" pc="16" name="schedulerProperties" register="3"><Message>Local variable named schedulerProperties</Message></LocalVariable><SourceLine endBytecode="16" classname="org.openfinance.scheduler.MarketDataScheduler" start="72" end="72" sourcepath="org/openfinance/scheduler/MarketDataScheduler.java" sourcefile="MarketDataScheduler.java" startBytecode="16" primary="true"><Message>At MarketDataScheduler.java:[line 72]</Message></SourceLine></BugInstance>
+
+  <BugInstance instanceOccurrenceNum="0" instanceHash="595bbdd06624e9987663a301b15cdeef" cweid="374" rank="18" abbrev="EI2" category="MALICIOUS_CODE" priority="2" type="EI_EXPOSE_REP2" instanceOccurrenceMax="0">
+    <ShortMessage>May expose internal representation by incorporating reference to mutable object</ShortMessage>
+    <LongMessage>new org.openfinance.controller.MetadataUpdateController(AssetService, AccountService, LiabilityService, TransactionService, PayeeService) may expose internal representation by storing an externally mutable object into MetadataUpdateController.accountService</LongMessage>
+    <Class classname="org.openfinance.controller.MetadataUpdateController" classAnnotationNames="org.springframework.web.bind.annotation.RestController,org.springframework.web.bind.annotation.RequestMapping" primary="true">
+      <SourceLine classname="org.openfinance.controller.MetadataUpdateController" start="28" end="78" sourcepath="org/openfinance/controller/MetadataUpdateController.java" sourcefile="MetadataUpdateController.java">
+        <Message>At MetadataUpdateController.java:[lines 28-78]</Message>
+      </SourceLine>
+      <Message>In class org.openfinance.controller.MetadataUpdateController</Message>
+    </Class>
+    <Method isStatic="false" classname="org.openfinance.controller.MetadataUpdateController" signature="(Lorg/openfinance/service/AssetService;Lorg/openfinance/service/AccountService;Lorg/openfinance/service/LiabilityService;Lorg/openfinance/service/TransactionService;Lorg/openfinance/service/PayeeService;)V" name="&lt;init&gt;" classAnnotationNames="org.springframework.web.bind.annotation.RestController,org.springframework.web.bind.annotation.RequestMapping" primary="true">
+      <SourceLine endBytecode="123" classname="org.openfinance.controller.MetadataUpdateController" start="28" end="28" sourcepath="org/openfinance/controller/MetadataUpdateController.java" sourcefile="MetadataUpdateController.java" startBytecode="0" />
+      <Message>In method new org.openfinance.controller.MetadataUpdateController(AssetService, AccountService, LiabilityService, TransactionService, PayeeService)</Message>
+    </Method>
+    <Field isStatic="false" classname="org.openfinance.controller.MetadataUpdateController" signature="Lorg/openfinance/service/AccountService;" name="accountService" classAnnotationNames="org.springframework.web.bind.annotation.RestController,org.springframework.web.bind.annotation.RequestMapping" primary="true">
+      <SourceLine classname="org.openfinance.controller.MetadataUpdateController" sourcepath="org/openfinance/controller/MetadataUpdateController.java" sourcefile="MetadataUpdateController.java">
+        <Message>In MetadataUpdateController.java</Message>
+      </SourceLine>
+      <Message>Field org.openfinance.controller.MetadataUpdateController.accountService</Message>
+    </Field>
+    <LocalVariable role="LOCAL_VARIABLE_NAMED" pc="11" name="accountService" register="2">
+      <Message>Local variable named accountService</Message>
+    </LocalVariable>
+    <SourceLine endBytecode="11" classname="org.openfinance.controller.MetadataUpdateController" start="28" end="28" sourcepath="org/openfinance/controller/MetadataUpdateController.java" sourcefile="MetadataUpdateController.java" startBytecode="11" primary="true">
+      <Message>At MetadataUpdateController.java:[line 28]</Message>
+    </SourceLine>
+  </BugInstance>
+  <BugInstance instanceOccurrenceNum="0" instanceHash="fc0abe7d08355d365d00a9620345af55" cweid="374" rank="18" abbrev="EI2" category="MALICIOUS_CODE" priority="2" type="EI_EXPOSE_REP2" instanceOccurrenceMax="0">
+    <ShortMessage>May expose internal representation by incorporating reference to mutable object</ShortMessage>
+    <LongMessage>new org.openfinance.controller.MetadataUpdateController(AssetService, AccountService, LiabilityService, TransactionService, PayeeService) may expose internal representation by storing an externally mutable object into MetadataUpdateController.assetService</LongMessage>
+    <Class classname="org.openfinance.controller.MetadataUpdateController" classAnnotationNames="org.springframework.web.bind.annotation.RestController,org.springframework.web.bind.annotation.RequestMapping" primary="true">
+      <SourceLine classname="org.openfinance.controller.MetadataUpdateController" start="28" end="78" sourcepath="org/openfinance/controller/MetadataUpdateController.java" sourcefile="MetadataUpdateController.java">
+        <Message>At MetadataUpdateController.java:[lines 28-78]</Message>
+      </SourceLine>
+      <Message>In class org.openfinance.controller.MetadataUpdateController</Message>
+    </Class>
+    <Method isStatic="false" classname="org.openfinance.controller.MetadataUpdateController" signature="(Lorg/openfinance/service/AssetService;Lorg/openfinance/service/AccountService;Lorg/openfinance/service/LiabilityService;Lorg/openfinance/service/TransactionService;Lorg/openfinance/service/PayeeService;)V" name="&lt;init&gt;" classAnnotationNames="org.springframework.web.bind.annotation.RestController,org.springframework.web.bind.annotation.RequestMapping" primary="true">
+      <SourceLine endBytecode="123" classname="org.openfinance.controller.MetadataUpdateController" start="28" end="28" sourcepath="org/openfinance/controller/MetadataUpdateController.java" sourcefile="MetadataUpdateController.java" startBytecode="0" />
+      <Message>In method new org.openfinance.controller.MetadataUpdateController(AssetService, AccountService, LiabilityService, TransactionService, PayeeService)</Message>
+    </Method>
+    <Field isStatic="false" classname="org.openfinance.controller.MetadataUpdateController" signature="Lorg/openfinance/service/AssetService;" name="assetService" classAnnotationNames="org.springframework.web.bind.annotation.RestController,org.springframework.web.bind.annotation.RequestMapping" primary="true">
+      <SourceLine classname="org.openfinance.controller.MetadataUpdateController" sourcepath="org/openfinance/controller/MetadataUpdateController.java" sourcefile="MetadataUpdateController.java">
+        <Message>In MetadataUpdateController.java</Message>
+      </SourceLine>
+      <Message>Field org.openfinance.controller.MetadataUpdateController.assetService</Message>
+    </Field>
+    <LocalVariable role="LOCAL_VARIABLE_NAMED" pc="6" name="assetService" register="1">
+      <Message>Local variable named assetService</Message>
+    </LocalVariable>
+    <SourceLine endBytecode="6" classname="org.openfinance.controller.MetadataUpdateController" start="28" end="28" sourcepath="org/openfinance/controller/MetadataUpdateController.java" sourcefile="MetadataUpdateController.java" startBytecode="6" primary="true">
+      <Message>At MetadataUpdateController.java:[line 28]</Message>
+    </SourceLine>
+  </BugInstance>
+  <BugInstance instanceOccurrenceNum="0" instanceHash="c416d69865b5b9f9a06c664d06183b4c" cweid="374" rank="18" abbrev="EI2" category="MALICIOUS_CODE" priority="2" type="EI_EXPOSE_REP2" instanceOccurrenceMax="0">
+    <ShortMessage>May expose internal representation by incorporating reference to mutable object</ShortMessage>
+    <LongMessage>new org.openfinance.controller.MetadataUpdateController(AssetService, AccountService, LiabilityService, TransactionService, PayeeService) may expose internal representation by storing an externally mutable object into MetadataUpdateController.liabilityService</LongMessage>
+    <Class classname="org.openfinance.controller.MetadataUpdateController" classAnnotationNames="org.springframework.web.bind.annotation.RestController,org.springframework.web.bind.annotation.RequestMapping" primary="true">
+      <SourceLine classname="org.openfinance.controller.MetadataUpdateController" start="28" end="78" sourcepath="org/openfinance/controller/MetadataUpdateController.java" sourcefile="MetadataUpdateController.java">
+        <Message>At MetadataUpdateController.java:[lines 28-78]</Message>
+      </SourceLine>
+      <Message>In class org.openfinance.controller.MetadataUpdateController</Message>
+    </Class>
+    <Method isStatic="false" classname="org.openfinance.controller.MetadataUpdateController" signature="(Lorg/openfinance/service/AssetService;Lorg/openfinance/service/AccountService;Lorg/openfinance/service/LiabilityService;Lorg/openfinance/service/TransactionService;Lorg/openfinance/service/PayeeService;)V" name="&lt;init&gt;" classAnnotationNames="org.springframework.web.bind.annotation.RestController,org.springframework.web.bind.annotation.RequestMapping" primary="true">
+      <SourceLine endBytecode="123" classname="org.openfinance.controller.MetadataUpdateController" start="28" end="28" sourcepath="org/openfinance/controller/MetadataUpdateController.java" sourcefile="MetadataUpdateController.java" startBytecode="0" />
+      <Message>In method new org.openfinance.controller.MetadataUpdateController(AssetService, AccountService, LiabilityService, TransactionService, PayeeService)</Message>
+    </Method>
+    <Field isStatic="false" classname="org.openfinance.controller.MetadataUpdateController" signature="Lorg/openfinance/service/LiabilityService;" name="liabilityService" classAnnotationNames="org.springframework.web.bind.annotation.RestController,org.springframework.web.bind.annotation.RequestMapping" primary="true">
+      <SourceLine classname="org.openfinance.controller.MetadataUpdateController" sourcepath="org/openfinance/controller/MetadataUpdateController.java" sourcefile="MetadataUpdateController.java">
+        <Message>In MetadataUpdateController.java</Message>
+      </SourceLine>
+      <Message>Field org.openfinance.controller.MetadataUpdateController.liabilityService</Message>
+    </Field>
+    <LocalVariable role="LOCAL_VARIABLE_NAMED" pc="16" name="liabilityService" register="3">
+      <Message>Local variable named liabilityService</Message>
+    </LocalVariable>
+    <SourceLine endBytecode="16" classname="org.openfinance.controller.MetadataUpdateController" start="28" end="28" sourcepath="org/openfinance/controller/MetadataUpdateController.java" sourcefile="MetadataUpdateController.java" startBytecode="16" primary="true">
+      <Message>At MetadataUpdateController.java:[line 28]</Message>
+    </SourceLine>
+  </BugInstance>
+  <BugInstance instanceOccurrenceNum="0" instanceHash="7cee410e7211efad1218377dd448c481" cweid="374" rank="18" abbrev="EI2" category="MALICIOUS_CODE" priority="2" type="EI_EXPOSE_REP2" instanceOccurrenceMax="0">
+    <ShortMessage>May expose internal representation by incorporating reference to mutable object</ShortMessage>
+    <LongMessage>new org.openfinance.controller.MetadataUpdateController(AssetService, AccountService, LiabilityService, TransactionService, PayeeService) may expose internal representation by storing an externally mutable object into MetadataUpdateController.payeeService</LongMessage>
+    <Class classname="org.openfinance.controller.MetadataUpdateController" classAnnotationNames="org.springframework.web.bind.annotation.RestController,org.springframework.web.bind.annotation.RequestMapping" primary="true">
+      <SourceLine classname="org.openfinance.controller.MetadataUpdateController" start="28" end="78" sourcepath="org/openfinance/controller/MetadataUpdateController.java" sourcefile="MetadataUpdateController.java">
+        <Message>At MetadataUpdateController.java:[lines 28-78]</Message>
+      </SourceLine>
+      <Message>In class org.openfinance.controller.MetadataUpdateController</Message>
+    </Class>
+    <Method isStatic="false" classname="org.openfinance.controller.MetadataUpdateController" signature="(Lorg/openfinance/service/AssetService;Lorg/openfinance/service/AccountService;Lorg/openfinance/service/LiabilityService;Lorg/openfinance/service/TransactionService;Lorg/openfinance/service/PayeeService;)V" name="&lt;init&gt;" classAnnotationNames="org.springframework.web.bind.annotation.RestController,org.springframework.web.bind.annotation.RequestMapping" primary="true">
+      <SourceLine endBytecode="123" classname="org.openfinance.controller.MetadataUpdateController" start="28" end="28" sourcepath="org/openfinance/controller/MetadataUpdateController.java" sourcefile="MetadataUpdateController.java" startBytecode="0" />
+      <Message>In method new org.openfinance.controller.MetadataUpdateController(AssetService, AccountService, LiabilityService, TransactionService, PayeeService)</Message>
+    </Method>
+    <Field isStatic="false" classname="org.openfinance.controller.MetadataUpdateController" signature="Lorg/openfinance/service/PayeeService;" name="payeeService" classAnnotationNames="org.springframework.web.bind.annotation.RestController,org.springframework.web.bind.annotation.RequestMapping" primary="true">
+      <SourceLine classname="org.openfinance.controller.MetadataUpdateController" sourcepath="org/openfinance/controller/MetadataUpdateController.java" sourcefile="MetadataUpdateController.java">
+        <Message>In MetadataUpdateController.java</Message>
+      </SourceLine>
+      <Message>Field org.openfinance.controller.MetadataUpdateController.payeeService</Message>
+    </Field>
+    <LocalVariable role="LOCAL_VARIABLE_NAMED" pc="28" name="payeeService" register="5">
+      <Message>Local variable named payeeService</Message>
+    </LocalVariable>
+    <SourceLine endBytecode="28" classname="org.openfinance.controller.MetadataUpdateController" start="28" end="28" sourcepath="org/openfinance/controller/MetadataUpdateController.java" sourcefile="MetadataUpdateController.java" startBytecode="28" primary="true">
+      <Message>At MetadataUpdateController.java:[line 28]</Message>
+    </SourceLine>
+  </BugInstance>
+  <BugInstance instanceOccurrenceNum="0" instanceHash="211f8bad94867325e0d7f92be14e6ac2" cweid="374" rank="18" abbrev="EI2" category="MALICIOUS_CODE" priority="2" type="EI_EXPOSE_REP2" instanceOccurrenceMax="0">
+    <ShortMessage>May expose internal representation by incorporating reference to mutable object</ShortMessage>
+    <LongMessage>new org.openfinance.controller.MetadataUpdateController(AssetService, AccountService, LiabilityService, TransactionService, PayeeService) may expose internal representation by storing an externally mutable object into MetadataUpdateController.transactionService</LongMessage>
+    <Class classname="org.openfinance.controller.MetadataUpdateController" classAnnotationNames="org.springframework.web.bind.annotation.RestController,org.springframework.web.bind.annotation.RequestMapping" primary="true">
+      <SourceLine classname="org.openfinance.controller.MetadataUpdateController" start="28" end="78" sourcepath="org/openfinance/controller/MetadataUpdateController.java" sourcefile="MetadataUpdateController.java">
+        <Message>At MetadataUpdateController.java:[lines 28-78]</Message>
+      </SourceLine>
+      <Message>In class org.openfinance.controller.MetadataUpdateController</Message>
+    </Class>
+    <Method isStatic="false" classname="org.openfinance.controller.MetadataUpdateController" signature="(Lorg/openfinance/service/AssetService;Lorg/openfinance/service/AccountService;Lorg/openfinance/service/LiabilityService;Lorg/openfinance/service/TransactionService;Lorg/openfinance/service/PayeeService;)V" name="&lt;init&gt;" classAnnotationNames="org.springframework.web.bind.annotation.RestController,org.springframework.web.bind.annotation.RequestMapping" primary="true">
+      <SourceLine endBytecode="123" classname="org.openfinance.controller.MetadataUpdateController" start="28" end="28" sourcepath="org/openfinance/controller/MetadataUpdateController.java" sourcefile="MetadataUpdateController.java" startBytecode="0" />
+      <Message>In method new org.openfinance.controller.MetadataUpdateController(AssetService, AccountService, LiabilityService, TransactionService, PayeeService)</Message>
+    </Method>
+    <Field isStatic="false" classname="org.openfinance.controller.MetadataUpdateController" signature="Lorg/openfinance/service/TransactionService;" name="transactionService" classAnnotationNames="org.springframework.web.bind.annotation.RestController,org.springframework.web.bind.annotation.RequestMapping" primary="true">
+      <SourceLine classname="org.openfinance.controller.MetadataUpdateController" sourcepath="org/openfinance/controller/MetadataUpdateController.java" sourcefile="MetadataUpdateController.java">
+        <Message>In MetadataUpdateController.java</Message>
+      </SourceLine>
+      <Message>Field org.openfinance.controller.MetadataUpdateController.transactionService</Message>
+    </Field>
+    <LocalVariable role="LOCAL_VARIABLE_NAMED" pc="22" name="transactionService" register="4">
+      <Message>Local variable named transactionService</Message>
+    </LocalVariable>
+    <SourceLine endBytecode="22" classname="org.openfinance.controller.MetadataUpdateController" start="28" end="28" sourcepath="org/openfinance/controller/MetadataUpdateController.java" sourcefile="MetadataUpdateController.java" startBytecode="22" primary="true">
+      <Message>At MetadataUpdateController.java:[line 28]</Message>
+    </SourceLine>
+  </BugInstance>
 </BugCollection>
