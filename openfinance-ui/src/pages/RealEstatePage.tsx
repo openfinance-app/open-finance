@@ -357,8 +357,13 @@ export default function RealEstatePage() {
               {t('filters.searchAndFilter')}
             </h3>
             {hasActiveFilters && (
-              <Button variant="ghost" size="sm" onClick={clearFilters}>
-                <X className="h-4 w-4 mr-1" />
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={clearFilters}
+                className="w-fit gap-1.5 border-border text-text-secondary hover:border-border-strong hover:bg-surface-elevated"
+              >
+                <X className="h-3.5 w-3.5" />
                 {t('filters.clear')}
               </Button>
             )}

@@ -123,14 +123,15 @@ export function LiabilityFilters({ filters, onFiltersChange }: LiabilityFiltersP
         </div>
 
         {/* Clear button */}
-        <div className="flex items-end">
+        <div className="flex items-end justify-end md:col-start-3">
           <Button
-            variant="ghost"
+            variant="outline"
+            size="sm"
             onClick={clearFilters}
             disabled={!hasActiveFilters}
-            className="w-full"
+            className="w-fit gap-1.5 border-border text-text-secondary hover:border-border-strong hover:bg-surface-elevated"
           >
-            <X className="h-4 w-4 mr-2" />
+            <X className="h-3.5 w-3.5" />
             {t('filterOptions.clear')}
           </Button>
         </div>

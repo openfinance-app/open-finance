@@ -404,7 +404,12 @@ export default function RecurringTransactionsPage() {
           </div>
 
           <div className="mt-4 flex justify-end">
-            <Button variant="ghost" size="sm" onClick={clearFilters}>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={clearFilters}
+              className="w-fit border-border text-text-secondary hover:border-border-strong hover:bg-surface-elevated"
+            >
               {t('filters.clearFilters')}
             </Button>
           </div>
