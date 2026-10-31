@@ -1,3 +1,4 @@
+import { BulkSelection, BulkToolbar } from '@/components/bulk/BulkSelection';
 import { formatDecimal } from '@/utils/format';
 /**
  * AssetsPage Component
@@ -168,6 +169,16 @@ export default function AssetsPage() {
   const deleteAsset = useDeleteAsset();
   const updateAllPrices = useUpdateAllAssetPrices();
 
+  // A bulk deletion can remove the last page entirely. Return to the nearest valid page.
+  if (
+    assetsPage &&
+    (filters.page ?? 0) > 0 &&
+    assetsPage.number === filters.page &&
+    assetsPage.totalPages <= filters.page
+  ) {
+    setFilters(current => ({ ...current, page: Math.max(0, assetsPage.totalPages - 1) }));
+  }
+
   const assets = assetsPage?.content || [];
   const allAssets = allAssetsPage?.content || [];
 
@@ -321,7 +332,20 @@ export default function AssetsPage() {
   }
 
   return (
-    <div className="p-4 sm:p-8">
+    <BulkSelection
+      resource="assets"
+      items={assets
+        .filter(item => item.type !== 'REAL_ESTATE')
+        .map(item => ({
+          id: item.id,
+          label: item.name,
+          physical: ['VEHICLE', 'JEWELRY', 'COLLECTIBLE', 'ELECTRONICS', 'FURNITURE'].includes(
+            item.type
+          ),
+        }))}
+      scopeKey={JSON.stringify(filters)}
+      className="p-4 sm:p-8"
+    >
       {/* Header */}
       <div className="flex flex-col gap-4 mb-6">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
@@ -575,6 +599,8 @@ export default function AssetsPage() {
         </div>
       )}
 
+      <BulkToolbar />
+
       {/* Loading State */}
       {isLoading && (
         <div className="space-y-4">
@@ -703,6 +729,6 @@ export default function AssetsPage() {
           )}
         </DialogContent>
       </Dialog>
-    </div>
+    </BulkSelection>
   );
 }

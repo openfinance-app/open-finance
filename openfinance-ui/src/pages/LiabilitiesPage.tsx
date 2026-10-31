@@ -1,3 +1,4 @@
+import { BulkSelection, BulkToolbar } from '@/components/bulk/BulkSelection';
 /**
  * LiabilitiesPage Component
  * Task 6.2.1: Create LiabilitiesPage component
@@ -69,6 +70,16 @@ export default function LiabilitiesPage() {
       setSearchParams(next, { replace: true });
     }
   }, [highlightId, allLiabilities, searchParams, setSearchParams]);
+
+  // A bulk deletion can remove the last page entirely. Return to the nearest valid page.
+  if (
+    liabilitiesPage &&
+    (filters.page ?? 0) > 0 &&
+    liabilitiesPage.number === filters.page &&
+    liabilitiesPage.totalPages <= filters.page
+  ) {
+    setFilters(current => ({ ...current, page: Math.max(0, liabilitiesPage.totalPages - 1) }));
+  }
 
   const liabilities = liabilitiesPage?.content || [];
   const hasLiabilities = (allLiabilities?.content?.length ?? 0) > 0;
@@ -143,7 +154,12 @@ export default function LiabilitiesPage() {
   }
 
   return (
-    <div className="p-4 sm:p-8">
+    <BulkSelection
+      resource="liabilities"
+      items={liabilities.map(item => ({ id: item.id, label: item.name }))}
+      scopeKey={JSON.stringify(filters)}
+      className="p-4 sm:p-8"
+    >
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <PageHeader title={t('title')} description={t('description')} />
@@ -181,6 +197,8 @@ export default function LiabilitiesPage() {
           />
         </div>
       )}
+
+      <BulkToolbar />
 
       {/* Loading State */}
       {isLoading && (
@@ -276,6 +294,6 @@ export default function LiabilitiesPage() {
         }
         onClose={() => setViewingDetailLiability(null)}
       />
-    </div>
+    </BulkSelection>
   );
 }

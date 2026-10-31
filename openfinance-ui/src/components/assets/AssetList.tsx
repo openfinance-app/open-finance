@@ -1,3 +1,4 @@
+import { SelectionCheckbox } from '@/components/bulk/BulkSelection';
 import { formatExactNumber } from '@/utils/format';
 import { formatDecimal } from '@/utils/format';
 /**
@@ -236,7 +237,7 @@ export function AssetList({ assets, onEdit, onDelete, onView, highlightedId }: A
                       key={asset.id}
                       id={`asset-${asset.id}`}
                       className={cn(
-                        'border-b border-border hover:bg-surface-elevated transition-all duration-300 cursor-pointer',
+                        'selection-item border-b border-border hover:bg-surface-elevated transition-all duration-300 cursor-pointer',
                         highlightedId === asset.id && 'bg-primary/10 border-primary shadow-sm'
                       )}
                       onClick={() => onView?.(asset)}
@@ -307,7 +308,8 @@ export function AssetList({ assets, onEdit, onDelete, onView, highlightedId }: A
                         {asset.accountName || '—'}
                       </td>
                       <td className="py-3 px-4">
-                        <div className="flex items-center justify-end gap-2">
+                        <div className="selection-actions flex items-center justify-end gap-2">
+                          <SelectionCheckbox id={asset.id} />
                           {isRealEstateAsset(asset.type) ? (
                             <TooltipProvider>
                               <Tooltip>
@@ -369,7 +371,7 @@ export function AssetList({ assets, onEdit, onDelete, onView, highlightedId }: A
                   key={asset.id}
                   id={`asset-${asset.id}`}
                   className={cn(
-                    'bg-surface border border-border rounded-[var(--radius-card)] shadow-plate p-4 space-y-3 cursor-pointer hover:bg-surface-elevated transition-all duration-300',
+                    'selection-item bg-surface border border-border rounded-[var(--radius-card)] shadow-plate p-4 space-y-3 cursor-pointer hover:bg-surface-elevated transition-all duration-300',
                     highlightedId === asset.id &&
                       'ring-2 ring-primary ring-offset-2 bg-primary/5 shadow-lg scale-[1.02] z-30'
                   )}
@@ -464,20 +466,21 @@ export function AssetList({ assets, onEdit, onDelete, onView, highlightedId }: A
                   </div>
 
                   {/* Actions */}
-                  <div className="flex gap-2 pt-2 border-t border-border">
+                  <div className="selection-actions flex items-center justify-end gap-1 pt-2 border-t border-border">
+                    <SelectionCheckbox id={asset.id} />
                     {isRealEstateAsset(asset.type) ? (
                       <TooltipProvider>
                         <Tooltip>
                           <TooltipTrigger asChild>
-                            <span className="flex-1 inline-flex" onClick={e => e.stopPropagation()}>
+                            <span className="inline-flex" onClick={e => e.stopPropagation()}>
                               <Button
                                 variant="ghost"
                                 size="sm"
                                 onClick={() => onView?.(asset)}
-                                className="flex-1"
+                                className="h-11 w-11 p-0"
+                                aria-label={t('table.manageProperty')}
                               >
-                                <Pencil className="h-4 w-4 mr-2" />
-                                {tc('edit')}
+                                <Pencil className="h-4 w-4" />
                               </Button>
                             </span>
                           </TooltipTrigger>
@@ -492,10 +495,11 @@ export function AssetList({ assets, onEdit, onDelete, onView, highlightedId }: A
                           e.stopPropagation();
                           onEdit(asset);
                         }}
-                        className="flex-1"
+                        className="h-11 w-11 p-0"
+                        aria-label={tc('aria.editAsset')}
+                        title={tc('aria.editAsset')}
                       >
-                        <Pencil className="h-4 w-4 mr-2" />
-                        {tc('edit')}
+                        <Pencil className="h-4 w-4" />
                       </Button>
                     )}
                     <Button
@@ -505,10 +509,11 @@ export function AssetList({ assets, onEdit, onDelete, onView, highlightedId }: A
                         e.stopPropagation();
                         handleDeleteClick(asset);
                       }}
-                      className="flex-1 text-error"
+                      className="h-11 w-11 p-0 text-error"
+                      aria-label={tc('aria.deleteAsset')}
+                      title={tc('aria.deleteAsset')}
                     >
-                      <Trash2 className="h-4 w-4 mr-2" />
-                      {tc('delete')}
+                      <Trash2 className="h-4 w-4" />
                     </Button>
                   </div>
                 </div>

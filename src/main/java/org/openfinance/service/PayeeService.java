@@ -8,6 +8,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.openfinance.dto.MetadataUpdateRequest;
 import org.openfinance.dto.PayeeRequest;
 import org.openfinance.dto.PayeeResponse;
 import org.openfinance.entity.Category;
@@ -351,6 +352,34 @@ public class PayeeService {
                 null);
         log.info("Created custom payee with id: {}", saved.getId());
         return toResponse(saved, null, null);
+    }
+
+    /** Applies only the explicitly supplied metadata; preserves financial state. */
+    @ReversibleOperation(
+            entity = EntityType.PAYEE,
+            operation = OperationType.UPDATE,
+            userArgument = 1,
+            idArgument = 0)
+    public PayeeResponse updateMetadata(Long id, Long userId, MetadataUpdateRequest.Payee patch) {
+        Payee payee =
+                payeeRepository.findById(id).orElseThrow(() -> new PayeeNotFoundException(id));
+        if (!userId.equals(payee.getUserId()) || Boolean.TRUE.equals(payee.getIsSystem())) {
+            throw new IllegalStateException("Only your custom payees can be edited");
+        }
+        if (patch.isCategoryIdPresent()) {
+            payee.setDefaultCategory(
+                    patch.getCategoryId() == null
+                            ? null
+                            : categoryRepository
+                                    .findByIdAndUserId(patch.getCategoryId(), userId)
+                                    .orElseThrow(
+                                            () ->
+                                                    new org.openfinance.exception
+                                                            .CategoryNotFoundException(
+                                                            patch.getCategoryId())));
+        }
+        payeeRepository.save(payee);
+        return toResponse(payee, null, null);
     }
 
     /**

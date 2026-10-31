@@ -1,3 +1,4 @@
+import { SelectionCheckbox } from '@/components/bulk/BulkSelection';
 /**
  * BudgetCard Component
  * TASK-8.2.9: Create BudgetCard component with progress bar
@@ -78,7 +79,7 @@ export function BudgetCard({ budget, onEdit, onDelete, onViewDetail }: BudgetCar
   return (
     <Card
       className={cn(
-        'p-6 transition-colors duration-150 group',
+        'selection-item p-6 transition-colors duration-150 group',
         onViewDetail ? 'hover:bg-surface-elevated cursor-pointer' : 'hover:bg-surface-elevated'
       )}
       onClick={onViewDetail ? () => onViewDetail(budget.budgetId) : undefined}
@@ -88,8 +89,8 @@ export function BudgetCard({ budget, onEdit, onDelete, onViewDetail }: BudgetCar
       }
     >
       {/* Header */}
-      <div className="flex items-start justify-between mb-4">
-        <div className="flex-1 min-w-0">
+      <div className="flex flex-wrap items-start justify-between gap-x-3 gap-y-2 mb-4">
+        <div className="flex-1 basis-40 min-w-0">
           <h3 className="font-display text-base uppercase tracking-[0.06em] text-text-primary truncate">
             {budget.categoryName}
           </h3>
@@ -105,8 +106,9 @@ export function BudgetCard({ budget, onEdit, onDelete, onViewDetail }: BudgetCar
         </div>
 
         {/* Actions */}
-        <div className="flex items-center gap-1 ml-4">
-          <div className="flex items-center gap-1">
+        <div className="flex shrink-0 items-center gap-1 ml-auto">
+          <div className="selection-actions flex items-center gap-1">
+            <SelectionCheckbox id={budget.budgetId} />
             <Button
               variant="ghost"
               size="sm"

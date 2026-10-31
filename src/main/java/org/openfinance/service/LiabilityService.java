@@ -23,6 +23,7 @@ import org.openfinance.dto.LiabilityRequest;
 import org.openfinance.dto.LiabilityResponse;
 import org.openfinance.dto.LiabilityTrancheRequest;
 import org.openfinance.dto.LiabilityTrancheResponse;
+import org.openfinance.dto.MetadataUpdateRequest;
 import org.openfinance.dto.RepaymentPreviewResponse;
 import org.openfinance.dto.TransactionRequest;
 import org.openfinance.entity.Account;
@@ -258,6 +259,56 @@ public class LiabilityService {
                 null);
 
         return liabilityCreateResponse;
+    }
+
+    /** Applies only the explicitly supplied metadata; preserves financial state. */
+    @Caching(
+            evict = {
+                @CacheEvict(
+                        value = {"dashboardSummary", "netWorthSummary", "networthAllocation"},
+                        key = "#userId"),
+                @CacheEvict(
+                        value = {"portfolioPerformance", "borrowingCapacity"},
+                        allEntries = true)
+            })
+    @ReversibleOperation(
+            entity = EntityType.LIABILITY,
+            operation = OperationType.UPDATE,
+            userArgument = 1,
+            idArgument = 0)
+    public LiabilityResponse updateMetadata(
+            Long liabilityId, Long userId, MetadataUpdateRequest.Liability patch) {
+        Liability liability =
+                liabilityRepository
+                        .findByIdAndUserId(liabilityId, userId)
+                        .orElseThrow(
+                                () -> LiabilityNotFoundException.byIdAndUser(liabilityId, userId));
+        LiabilityResponse before = toResponseWithDecryption(liability);
+        if (patch.isInstitutionIdPresent()) {
+            liability.setInstitution(
+                    patch.getInstitutionId() == null
+                            ? null
+                            : institutionRepository
+                                    .findVisibleById(patch.getInstitutionId(), userId)
+                                    .orElseThrow(
+                                            () ->
+                                                    new org.openfinance.exception
+                                                            .InstitutionNotFoundException(
+                                                            patch.getInstitutionId())));
+        }
+        if (patch.getNotes() != null) {
+            liability.setNotes(patch.getNotes().isBlank() ? null : patch.getNotes());
+        }
+        liabilityRepository.save(liability);
+        operationHistoryService.record(
+                userId,
+                EntityType.LIABILITY,
+                liabilityId,
+                liability.getName(),
+                OperationType.UPDATE,
+                before,
+                null);
+        return toResponseWithDecryption(liability);
     }
 
     /**

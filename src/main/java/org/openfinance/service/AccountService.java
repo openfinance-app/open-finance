@@ -13,6 +13,7 @@ import org.openfinance.dto.AccountRequest;
 import org.openfinance.dto.AccountResponse;
 import org.openfinance.dto.AccountSearchCriteria;
 import org.openfinance.dto.AccountSummaryResponse;
+import org.openfinance.dto.MetadataUpdateRequest;
 import org.openfinance.entity.Account;
 import org.openfinance.entity.AccountType;
 import org.openfinance.entity.EntityType;
@@ -220,6 +221,59 @@ public class AccountService {
                 null);
 
         return response;
+    }
+
+    /** Applies only the explicitly supplied metadata; preserves financial state. */
+    @Caching(
+            evict = {
+                @CacheEvict(
+                        value = {
+                            "dashboardSummary",
+                            "accountSummaries",
+                            "netWorthSummary",
+                            "assetAllocation",
+                            "portfolioPerformance"
+                        },
+                        key = "#userId"),
+                @CacheEvict(
+                        value = {
+                            "cashFlow",
+                            "spendingByCategory",
+                            "cashflowSankey",
+                            "portfolioPerformance",
+                            "networthAllocation"
+                        },
+                        allEntries = true)
+            })
+    @ReversibleOperation(
+            entity = EntityType.ACCOUNT,
+            operation = OperationType.UPDATE,
+            userArgument = 1,
+            idArgument = 0)
+    public AccountResponse updateMetadata(
+            Long accountId, Long userId, MetadataUpdateRequest.Account patch) {
+        Account account =
+                accountRepository
+                        .findByIdAndUserId(accountId, userId)
+                        .orElseThrow(() -> AccountNotFoundException.byIdAndUser(accountId, userId));
+        AccountRequest request =
+                AccountRequest.builder()
+                        .name(account.getName())
+                        .currency(account.getCurrency())
+                        .type(patch.getType() == null ? account.getType() : patch.getType())
+                        .description(
+                                patch.getDescription() == null
+                                        ? account.getDescription()
+                                        : patch.getDescription())
+                        .institutionId(
+                                patch.isInstitutionIdPresent()
+                                        ? patch.getInstitutionId()
+                                        : account.getInstitution() == null
+                                                ? null
+                                                : account.getInstitution().getId())
+                        .adjustBalance(false)
+                        .build();
+        return updateAccount(accountId, userId, request);
     }
 
     /**

@@ -1,3 +1,4 @@
+import { SelectionCheckbox } from '@/components/bulk/BulkSelection';
 import { useTranslation } from 'react-i18next';
 import { useDateFormatter } from '@/hooks/useDateFormatter';
 import { formatDecimal } from '@/utils/format';
@@ -44,26 +45,29 @@ export function PhysicalAssetCard({ asset, onClick }: PhysicalAssetCardProps) {
   return (
     <Card
       onClick={onClick}
-      className="cursor-pointer hover:shadow-lg transition-shadow duration-200 p-5 space-y-4"
+      className="selection-item cursor-pointer hover:shadow-lg transition-shadow duration-200 p-5 space-y-4"
     >
       {/* Header: Type Badge and Condition */}
-      <div className="flex items-start justify-between">
-        <div className="flex-1">
-          <div className="flex items-center gap-2 mb-2">
+      <div>
+        <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
+          <div className="flex items-center gap-2">
             <Package className="h-5 w-5 text-text-secondary" />
             <Badge variant={getAssetTypeBadgeVariant(asset.type)} size="sm">
               {t(`types.${asset.type}`)}
             </Badge>
           </div>
-          <h3 className="font-display text-base uppercase tracking-[0.06em] text-text-primary line-clamp-2">
-            {asset.name}
-          </h3>
+          <div className="selection-actions ml-auto flex items-center gap-2">
+            {asset.condition && (
+              <Badge variant={getConditionBadgeVariant(asset.condition)} size="md">
+                {t(`form.conditions.${asset.condition}`)}
+              </Badge>
+            )}
+            <SelectionCheckbox id={asset.id} />
+          </div>
         </div>
-        {asset.condition && (
-          <Badge variant={getConditionBadgeVariant(asset.condition)} size="md" className="ml-2">
-            {t(`form.conditions.${asset.condition}`)}
-          </Badge>
-        )}
+        <h3 className="font-display text-base uppercase tracking-[0.06em] text-text-primary line-clamp-2">
+          {asset.name}
+        </h3>
       </div>
 
       {isPlanned && (

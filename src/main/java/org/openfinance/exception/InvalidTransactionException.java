@@ -29,6 +29,23 @@ public class InvalidTransactionException extends RuntimeException implements Loc
     private final String messageKey;
     private final Object[] messageArgs;
 
+    private InvalidTransactionException(String message, String messageKey) {
+        super(message);
+        this.messageKey = messageKey;
+        this.messageArgs = new Object[0];
+    }
+
+    public static InvalidTransactionException metadataCategoryRequiresIndividualEdit() {
+        return new InvalidTransactionException(
+                "Category bulk edits do not apply to transfers or split transactions; edit split categories individually",
+                "error.metadata.category.individual");
+    }
+
+    public static InvalidTransactionException metadataRequiresPhysicalAsset() {
+        return new InvalidTransactionException(
+                "Brand and model apply only to physical assets", "error.metadata.asset.physical");
+    }
+
     /**
      * Constructs a new InvalidTransactionException with the specified message.
      *

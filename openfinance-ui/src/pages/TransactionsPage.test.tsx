@@ -457,6 +457,32 @@ describe('TransactionsPage', () => {
     // Pagination component should render
     expect(screen.getByTestId('transaction-list')).toBeInTheDocument();
   });
+
+  it('returns to the previous page when deleting the final page of records', async () => {
+    const user = userEvent.setup();
+    let totalPages = 2;
+    mockUseTransactions.mockImplementation((filters: TransactionFilters) => {
+      lastCapturedFilters = filters;
+      return {
+        data: {
+          content: (filters.page ?? 0) >= totalPages ? [] : [mockTransaction],
+          number: filters.page ?? 0,
+          totalPages,
+          totalElements: totalPages === 2 ? 21 : 20,
+          size: 20,
+        },
+        isLoading: false,
+        error: null,
+      };
+    });
+    const { rerender } = renderWithProviders(<TransactionsPage />);
+    await user.click(screen.getByRole('button', { name: 'Next page' }));
+    expect(lastCapturedFilters?.page).toBe(1);
+    totalPages = 1;
+    rerender(<TransactionsPage />);
+    await waitFor(() => expect(lastCapturedFilters?.page).toBe(0));
+    expect(screen.getByTestId('transaction-list')).toBeInTheDocument();
+  });
 });
 
 // Deep-link tests use the same providers as the application.

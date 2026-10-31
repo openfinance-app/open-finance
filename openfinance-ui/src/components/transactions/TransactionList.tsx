@@ -1,3 +1,4 @@
+import { SelectionCheckbox } from '@/components/bulk/BulkSelection';
 /**
  * TransactionList Component
  * Task 3.2.15: Create TransactionList component
@@ -310,7 +311,7 @@ function TransactionItem({
     <div
       id={`transaction-${transaction.id}`}
       className={cn(
-        'flex items-center gap-3 p-4 bg-surface rounded-[10px] border border-border hover:bg-surface-elevated hover:border-border-strong transition-all duration-300 group relative',
+        'selection-item grid grid-cols-[auto_minmax(0,1fr)_auto] sm:grid-cols-[auto_minmax(0,1fr)_auto_auto] items-center gap-3 p-4 bg-surface rounded-[10px] border border-border hover:bg-surface-elevated hover:border-border-strong transition-all duration-300 group relative',
         isHighlighted &&
           'ring-2 ring-primary ring-offset-2 ring-offset-background bg-primary/5 shadow-plate-lift scale-[1.02] z-30',
         onViewDetail && 'cursor-pointer'
@@ -323,9 +324,9 @@ function TransactionItem({
         onViewDetail?.(transaction);
       }}
     >
-      {/* Connector line for transfers */}
+      {/* Join the avatar dots across the row gap; mobile actions sit below the content. */}
       {showConnector && (
-        <div className="absolute left-[2.25rem] top-0 bottom-0 w-0.5 bg-primary/30 -translate-y-1/2 h-full" />
+        <div className="absolute left-[2.25rem] top-0 h-[calc(100%-2rem)] w-0.5 bg-primary/30 -translate-y-[calc(50%+2rem)] sm:-translate-y-[calc(50%+0.25rem)]" />
       )}
 
       {/* Left avatar area: payee logo/initial (if payee known) OR type-icon circle */}
@@ -549,11 +550,10 @@ function TransactionItem({
 
       {/* Action buttons */}
       <div
-        className={cn(
-          'flex items-center gap-1 transition-opacity duration-300 shrink-0',
-          isHighlighted ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
-        )}
+        className="selection-actions selection-actions-reveal col-span-full sm:col-span-1 flex items-center justify-end gap-1 shrink-0"
+        data-highlighted={isHighlighted}
       >
+        <SelectionCheckbox id={transaction.id} />
         <Button
           variant="ghost"
           size="sm"

@@ -17,6 +17,7 @@ import org.openfinance.dto.AssetRequest;
 import org.openfinance.dto.AssetResponse;
 import org.openfinance.dto.AssetSearchCriteria;
 import org.openfinance.dto.AssetSummaryResponse;
+import org.openfinance.dto.MetadataUpdateRequest;
 import org.openfinance.entity.Account;
 import org.openfinance.entity.Asset;
 import org.openfinance.entity.AssetType;
@@ -226,6 +227,44 @@ public class AssetService {
         }
 
         return assetCreateResponse;
+    }
+
+    /** Applies only the explicitly supplied metadata; preserves financial state. */
+    @Caching(
+            evict = {
+                @CacheEvict(
+                        value = {
+                            "dashboardSummary",
+                            "netWorthSummary",
+                            "assetAllocation",
+                            "networthAllocation"
+                        },
+                        key = "#userId"),
+                @CacheEvict(value = "portfolioPerformance", allEntries = true)
+            })
+    @ReversibleOperation(
+            entity = EntityType.ASSET,
+            operation = OperationType.UPDATE,
+            userArgument = 1,
+            idArgument = 0)
+    public AssetResponse updateMetadata(
+            Long assetId, Long userId, MetadataUpdateRequest.Asset patch) {
+        Asset asset =
+                assetRepository
+                        .findByIdAndUserId(assetId, userId)
+                        .orElseThrow(() -> AssetNotFoundException.byIdAndUser(assetId, userId));
+        if ((patch.getBrand() != null || patch.getModel() != null) && !asset.isPhysical()) {
+            throw InvalidTransactionException.metadataRequiresPhysicalAsset();
+        }
+        AssetRequest request =
+                AssetRequest.builder()
+                        .name(asset.getName())
+                        .notes(patch.getNotes())
+                        .brand(patch.getBrand())
+                        .model(patch.getModel())
+                        .build();
+        if (patch.isAccountIdPresent()) request.setAccountId(patch.getAccountId());
+        return updateAssetInternal(assetId, userId, request, false);
     }
 
     /**

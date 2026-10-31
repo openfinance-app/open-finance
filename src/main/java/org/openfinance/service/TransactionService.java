@@ -11,6 +11,7 @@ import java.util.stream.Collectors;
 import javax.crypto.SecretKey;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.openfinance.dto.MetadataUpdateRequest;
 import org.openfinance.dto.TransactionRequest;
 import org.openfinance.dto.TransactionResponse;
 import org.openfinance.dto.TransactionSplitRequest;
@@ -1011,6 +1012,87 @@ public class TransactionService {
                 // Explicit empty -> clear the field
                 transaction.setNotes(null);
             }
+        }
+    }
+
+    /** Applies only the explicitly supplied metadata; preserves financial state. */
+    @Caching(
+            evict = {
+                @CacheEvict(
+                        value = {"dashboardSummary", "accountSummaries", "netWorthSummary"},
+                        key = "#userId"),
+                @CacheEvict(
+                        value = {
+                            "cashFlow",
+                            "spendingByCategory",
+                            "cashflowSankey",
+                            "portfolioPerformance",
+                            "networthAllocation",
+                            "assetAllocation"
+                        },
+                        allEntries = true),
+                @CacheEvict(value = "borrowingCapacity", allEntries = true)
+            })
+    @ReversibleOperation(
+            entity = EntityType.TRANSACTION,
+            operation = OperationType.UPDATE,
+            userArgument = 1,
+            idArgument = 0)
+    public TransactionResponse updateMetadata(
+            Long transactionId, Long userId, MetadataUpdateRequest.Transaction patch) {
+        Transaction transaction =
+                transactionRepository
+                        .findByIdAndUserId(transactionId, userId)
+                        .filter(value -> !Boolean.TRUE.equals(value.getIsDeleted()))
+                        .orElseThrow(
+                                () ->
+                                        TransactionNotFoundException.byIdAndUser(
+                                                transactionId, userId));
+        if (patch.isCategoryIdPresent()) {
+            validateMetadataCategory(transaction, userId, patch.getCategoryId());
+        }
+        TransactionResponse before = toResponseWithDecryption(transaction);
+        if (patch.isCategoryIdPresent()) transaction.setCategoryId(patch.getCategoryId());
+        if (patch.getPayee() != null) {
+            transaction.setPayee(patch.getPayee().isBlank() ? null : patch.getPayee().trim());
+            resolveAndLinkPayee(transaction, userId);
+        }
+        if (patch.getTags() != null) transaction.setTags(patch.getTags());
+        if (patch.getIsReconciled() != null) transaction.setIsReconciled(patch.getIsReconciled());
+        if (patch.isPaymentMethodPresent()) transaction.setPaymentMethod(patch.getPaymentMethod());
+        encryptSensitiveFields(
+                transaction,
+                TransactionRequest.builder()
+                        .description(patch.getDescription())
+                        .notes(patch.getNotes())
+                        .build());
+        transactionRepository.save(transaction);
+        syncTransactionFts(transaction, transaction.getDescription(), transaction.getNotes());
+        if (patch.isCategoryIdPresent())
+            budgetAlertService.checkBudgetAlertsAfterTransaction(userId);
+        operationHistoryService.record(
+                userId,
+                EntityType.TRANSACTION,
+                transactionId,
+                transaction.getDescription(),
+                OperationType.UPDATE,
+                before,
+                null);
+        return toResponseWithDecryption(transaction);
+    }
+
+    private void validateMetadataCategory(Transaction transaction, Long userId, Long categoryId) {
+        if (transaction.getTransferId() != null
+                || transaction.getType() == TransactionType.TRANSFER) {
+            throw InvalidTransactionException.metadataCategoryRequiresIndividualEdit();
+        }
+        if (!transactionSplitService.getSplitsForTransaction(transaction.getId()).isEmpty()) {
+            throw InvalidTransactionException.metadataCategoryRequiresIndividualEdit();
+        }
+        if (categoryId != null) {
+            categoryRepository
+                    .findByIdAndUserId(categoryId, userId)
+                    .orElseThrow(() -> CategoryNotFoundException.byIdAndUser(categoryId, userId));
         }
     }
 

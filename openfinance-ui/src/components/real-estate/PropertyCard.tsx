@@ -1,3 +1,4 @@
+import { SelectionCheckbox } from '@/components/bulk/BulkSelection';
 import { useDateFormatter } from '@/hooks/useDateFormatter';
 import { formatDecimal } from '@/utils/format';
 /**
@@ -95,15 +96,15 @@ export function PropertyCard({ property, onEdit, onView, isHighlighted }: Proper
       <Card
         id={`property-${property.id}`}
         className={cn(
-          'p-6 hover:bg-surface-elevated transition-all duration-300 group cursor-pointer relative',
+          'selection-item p-6 hover:bg-surface-elevated transition-all duration-300 group cursor-pointer relative',
           isHighlighted &&
             'ring-2 ring-primary ring-offset-2 ring-offset-background bg-primary/5 shadow-lg scale-[1.02] z-30'
         )}
         onClick={() => onView(property.id)}
       >
         {/* Header */}
-        <div className="flex items-start justify-between mb-4">
-          <div className="flex items-start gap-3 flex-1 min-w-0">
+        <div className="flex flex-wrap items-start justify-between gap-x-3 gap-y-2 mb-4">
+          <div className="flex items-start gap-3 flex-1 min-w-28">
             {/* Icon */}
             <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 text-primary shrink-0">
               {getPropertyTypeIcon(property.propertyType)}
@@ -111,7 +112,10 @@ export function PropertyCard({ property, onEdit, onView, isHighlighted }: Proper
 
             {/* Name and Type */}
             <div className="flex-1 min-w-0">
-              <h3 className="font-display text-base uppercase tracking-[0.06em] text-text-primary truncate">
+              <h3
+                className="font-display text-base uppercase tracking-[0.06em] text-text-primary truncate"
+                title={property.name}
+              >
                 {property.name}
               </h3>
               {property.acquisitionType && property.acquisitionType !== 'PURCHASE' && (
@@ -121,7 +125,7 @@ export function PropertyCard({ property, onEdit, onView, isHighlighted }: Proper
               )}
               <div
                 className={cn(
-                  'inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium border mt-1',
+                  'inline-block max-w-full truncate align-middle px-2 py-0.5 rounded-md text-xs font-medium border mt-1',
                   getPropertyTypeBadgeColor(property.propertyType)
                 )}
               >
@@ -132,9 +136,10 @@ export function PropertyCard({ property, onEdit, onView, isHighlighted }: Proper
 
           {/* Actions */}
           <div
-            className="flex items-center gap-1 ml-2 opacity-0 group-hover:opacity-100 transition-opacity duration-150"
+            className="selection-actions selection-actions-reveal flex max-w-full shrink-0 flex-wrap items-center justify-end gap-1 ml-auto"
             onClick={e => e.stopPropagation()}
           >
+            <SelectionCheckbox id={property.id} />
             <Button
               variant="ghost"
               size="sm"

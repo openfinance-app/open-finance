@@ -1,3 +1,4 @@
+import { SelectionCheckbox } from '@/components/bulk/BulkSelection';
 import { formatDecimal } from '@/utils/format';
 import { useDateFormatter } from '@/hooks/useDateFormatter';
 /**
@@ -125,14 +126,14 @@ export function LiabilityList({
               key={liability.id}
               id={`liability-${liability.id}`}
               className={cn(
-                'p-5 bg-surface border border-border rounded-lg hover:border-primary/50 transition-all duration-300 relative',
+                'selection-item p-5 bg-surface border border-border rounded-lg hover:border-primary/50 transition-all duration-300 relative',
                 highlightedId === liability.id &&
                   'ring-2 ring-primary ring-offset-2 ring-offset-background bg-primary/5 shadow-lg scale-[1.01] z-30'
               )}
             >
               {/* Header */}
-              <div className="flex items-start justify-between mb-4">
-                <div className="flex items-start gap-3 flex-1 min-w-0">
+              <div className="flex flex-wrap items-start justify-between gap-x-3 gap-y-2 mb-4">
+                <div className="flex items-start gap-3 flex-1 basis-48 min-w-0">
                   {liability.institution?.logo && (
                     <img
                       src={liability.institution.logo}
@@ -164,7 +165,8 @@ export function LiabilityList({
                     )}
                   </div>
                 </div>
-                <div className="flex gap-2 ml-4">
+                <div className="selection-actions flex shrink-0 items-center gap-1 ml-auto">
+                  <SelectionCheckbox id={liability.id} />
                   {/* Requirement 2.1: Single "View Details" button opens unified dialog */}
                   {onViewDetails && (
                     <Button

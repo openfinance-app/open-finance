@@ -1,3 +1,4 @@
+import { BulkSelection, BulkToolbar } from '@/components/bulk/BulkSelection';
 /**
  * AccountsPage Component
  * Task 2.2.9: Create AccountsPage component with list, cards, and add button
@@ -134,6 +135,16 @@ export default function AccountsPage() {
   const closeAccount = useCloseAccount();
   const reopenAccount = useReopenAccount();
   const permanentDeleteAccount = usePermanentDeleteAccount();
+
+  // A bulk deletion can remove the last page entirely. Return to the nearest valid page.
+  if (
+    accountsPage &&
+    (filters.page ?? 0) > 0 &&
+    accountsPage.number === filters.page &&
+    accountsPage.totalPages <= filters.page
+  ) {
+    setFilters(current => ({ ...current, page: Math.max(0, accountsPage.totalPages - 1) }));
+  }
 
   const accounts = accountsPage?.content || [];
   const allAccounts = allAccountsPage?.content || [];
@@ -410,7 +421,12 @@ export default function AccountsPage() {
   const dialogContent = getDialogContent();
 
   return (
-    <div className="p-8">
+    <BulkSelection
+      resource="accounts"
+      items={accounts.map(item => ({ id: item.id, label: item.name }))}
+      scopeKey={JSON.stringify(filters)}
+      className="p-8"
+    >
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <PageHeader title={t('title')} description={t('description')} />
@@ -544,6 +560,8 @@ export default function AccountsPage() {
         />
       )}
 
+      <BulkToolbar />
+
       {/* Accounts Grid */}
       {!isLoading && accounts && accounts.length > 0 && (
         <>
@@ -636,6 +654,6 @@ export default function AccountsPage() {
           }}
         />
       )}
-    </div>
+    </BulkSelection>
   );
 }

@@ -1,3 +1,4 @@
+import { BulkSelection, BulkToolbar, SelectionCheckbox } from '@/components/bulk/BulkSelection';
 import { isAxiosError } from 'axios';
 import { formatDecimal } from '@/utils/format';
 /**
@@ -241,7 +242,16 @@ export default function BudgetsPage() {
     nativeBudgets?.find(b => b.id === deletingBudgetId)?.categoryName;
 
   return (
-    <div className="p-8">
+    <BulkSelection
+      resource="budgets"
+      items={
+        error
+          ? filteredNativeBudgets.map(item => ({ id: item.id, label: item.categoryName }))
+          : paginatedBudgets.map(item => ({ id: item.budgetId, label: item.categoryName }))
+      }
+      scopeKey={JSON.stringify([filters, visiblePage, pageSize])}
+      className="p-8"
+    >
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <PageHeader title={t('title')} description={t('description')} />
@@ -319,6 +329,8 @@ export default function BudgetsPage() {
         />
       )}
 
+      <BulkToolbar />
+
       {error && (
         <div className="space-y-4">
           <div
@@ -336,7 +348,7 @@ export default function BudgetsPage() {
               {filteredNativeBudgets.map(budget => (
                 <div
                   key={budget.id}
-                  className="p-4 rounded-lg border border-border bg-surface space-y-3"
+                  className="selection-item p-4 rounded-lg border border-border bg-surface space-y-3"
                 >
                   <h2 className="font-semibold">{budget.categoryName}</h2>
                   <p className="text-sm text-text-secondary">
@@ -347,7 +359,8 @@ export default function BudgetsPage() {
                     currency={budget.currency}
                     inline
                   />
-                  <div className="flex gap-2">
+                  <div className="selection-actions flex flex-wrap items-center gap-2">
+                    <SelectionCheckbox id={budget.id} />
                     <Button variant="outline" onClick={() => handleEdit(budget.id)}>
                       {tc('aria.editBudget')}
                     </Button>
@@ -485,6 +498,6 @@ export default function BudgetsPage() {
       {detailBudgetId !== null && (
         <BudgetDetailModal budgetId={detailBudgetId} onClose={() => setDetailBudgetId(null)} />
       )}
-    </div>
+    </BulkSelection>
   );
 }

@@ -1,3 +1,4 @@
+import { SelectionCheckbox } from '@/components/bulk/BulkSelection';
 import { useDateFormatter } from '@/hooks/useDateFormatter';
 /**
  * RecurringTransactionCard Component
@@ -103,16 +104,16 @@ export function RecurringTransactionCard({
   };
 
   return (
-    <Card className="p-4 hover:shadow-md transition-shadow">
+    <Card className="selection-item p-4 hover:shadow-md transition-shadow">
       <div
-        className="flex items-start justify-between gap-4 cursor-pointer"
+        className="flex flex-wrap items-start justify-between gap-4 cursor-pointer"
         onClick={e => {
           if ((e.target as HTMLElement).closest('button')) return;
           onViewDetail?.(recurringTransaction);
         }}
       >
         {/* Left: Icon and Details */}
-        <div className="flex items-start gap-3 flex-1 min-w-0">
+        <div className="flex items-start gap-3 flex-1 basis-48 min-w-0">
           <div className="mt-1 flex-shrink-0">{getTypeIcon()}</div>
 
           <div className="flex-1 min-w-0">
@@ -175,7 +176,7 @@ export function RecurringTransactionCard({
         </div>
 
         {/* Right: Amount and Actions */}
-        <div className="flex flex-col items-end gap-2 flex-shrink-0">
+        <div className="ml-auto flex flex-col items-end gap-2 flex-shrink-0">
           {/* Amount */}
           <div className={`text-lg font-semibold ${getAmountColor()}`}>
             {isIncome && '+'}
@@ -192,7 +193,8 @@ export function RecurringTransactionCard({
           </div>
 
           {/* Action Buttons */}
-          <div className="flex items-center gap-1">
+          <div className="selection-actions flex items-center gap-1">
+            <SelectionCheckbox id={recurringTransaction.id} />
             {/* Pause/Resume Button */}
             {!recurringTransaction.isEnded && (
               <>

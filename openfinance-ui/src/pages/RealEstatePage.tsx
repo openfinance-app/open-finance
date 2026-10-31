@@ -1,3 +1,4 @@
+import { BulkSelection, BulkToolbar } from '@/components/bulk/BulkSelection';
 /**
  * RealEstatePage Component
  * Task 9.1.8: Create RealEstatePage component
@@ -95,6 +96,16 @@ export default function RealEstatePage() {
   });
   // Active accounts for the buy wizard's down-payment / to-account pickers
   const { data: accounts = [] } = useAccounts('active');
+
+  // A bulk deletion can remove the last page entirely. Return to the nearest valid page.
+  if (
+    propertiesPage &&
+    (searchFilters.page ?? 0) > 0 &&
+    propertiesPage.number === searchFilters.page &&
+    propertiesPage.totalPages <= searchFilters.page
+  ) {
+    setSearchFilters(current => ({ ...current, page: Math.max(0, propertiesPage.totalPages - 1) }));
+  }
 
   const properties = propertiesPage?.content || [];
   const allProperties = allPropertiesPage?.content || [];
@@ -310,7 +321,12 @@ export default function RealEstatePage() {
   }
 
   return (
-    <div className="p-4 sm:p-8">
+    <BulkSelection
+      resource="real-estate"
+      items={properties.map(item => ({ id: item.id, label: item.name }))}
+      scopeKey={JSON.stringify(apiFilters)}
+      className="p-4 sm:p-8"
+    >
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <PageHeader title={t('title')} description={t('description')} />
@@ -634,7 +650,7 @@ export default function RealEstatePage() {
 
       {/* Loading State */}
       {isLoading && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,20rem),1fr))] gap-6">
           {[...Array(6)].map((_, i) => (
             <LoadingSkeleton key={i} className="h-64" />
           ))}
@@ -654,10 +670,12 @@ export default function RealEstatePage() {
         />
       )}
 
+      <BulkToolbar />
+
       {/* Properties Grid */}
       {!isLoading && properties && properties.length > 0 && (
         <>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
+          <div className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,20rem),1fr))] gap-6 mb-6">
             {properties.map(property => (
               <PropertyCard
                 key={property.id}
@@ -773,6 +791,6 @@ export default function RealEstatePage() {
           <BuyPropertyWizard accounts={accounts} onClose={() => setIsBuyWizardOpen(false)} />
         </DialogContent>
       </Dialog>
-    </div>
+    </BulkSelection>
   );
 }

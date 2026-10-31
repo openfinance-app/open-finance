@@ -1,3 +1,5 @@
+import type { BulkItem } from '@/types/bulk';
+import { BulkSelection, BulkToolbar, SelectionCheckbox } from '@/components/bulk/BulkSelection';
 /**
  * Categories use a single ledger: subtree totals lead, with direct parent
  * activity on a labeled secondary line. Numeric columns stay aligned at
@@ -71,7 +73,7 @@ function CategoryTree({
 
   return (
     <div className="pb-2">
-      <div className="grid grid-cols-1 gap-x-5 border-b border-border px-3 py-2 text-xs font-medium text-text-secondary lg:grid-cols-[minmax(0,1fr)_8rem_11rem_2.75rem] lg:px-5">
+      <div className="grid grid-cols-1 gap-x-5 border-b border-border px-3 py-2 text-xs font-medium text-text-secondary lg:grid-cols-[minmax(0,1fr)_8rem_11rem_6rem] lg:px-5">
         <span className="flex items-center gap-1.5 lg:pl-19">
           {t('table.name')}
           <HelpTooltip text={t('list.amountHint')} />
@@ -129,9 +131,9 @@ function TreeNode({
 
   return (
     <li>
-      <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 px-3 py-2 hover:bg-surface-elevated/60 lg:grid-cols-[minmax(0,1fr)_8rem_11rem_2.75rem] lg:gap-x-5 lg:px-5">
+      <div className="selection-item grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 px-3 py-2 hover:bg-surface-elevated/60 lg:grid-cols-[minmax(0,1fr)_8rem_11rem_6rem] lg:gap-x-5 lg:px-5">
         <div
-          className="col-span-2 col-start-1 row-start-1 flex min-w-0 items-center gap-2 pr-11 lg:col-span-1 lg:pr-0"
+          className="col-start-1 row-start-1 flex min-w-0 items-center gap-2"
           style={{ paddingInlineStart: Math.min(depth, 4) * 12 }}
         >
           {canExpand ? (
@@ -183,7 +185,8 @@ function TreeNode({
         <div className="col-start-2 row-start-2 text-right text-sm font-semibold lg:col-start-3 lg:row-start-1">
           <CategoryAmount node={node} />
         </div>
-        <div className="col-start-2 row-start-1 justify-self-end lg:col-start-4">
+        <div className="selection-actions col-start-2 row-start-1 flex items-center justify-end gap-1 justify-self-end lg:col-start-4">
+          <SelectionCheckbox id={node.id} />
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button
@@ -605,9 +608,23 @@ export default function CategoriesPage() {
     return result;
   }, [visibleCategories]);
   const allExpanded = expandableIds.every(id => expandedNodes.get(id) ?? isSearching);
+  const bulkItems: BulkItem[] = [];
+  const collectVisible = (nodes: CategoryTreeNode[], depth = 0): void => {
+    for (const node of nodes) {
+      if (!node.isSystem) bulkItems.push({ id: node.id, label: node.name, depth });
+      if (expandedNodes.get(node.id) ?? isSearching)
+        collectVisible(node.subcategories || [], depth + 1);
+    }
+  };
+  collectVisible(visibleCategories);
 
   return (
-    <div className="space-y-5">
+    <BulkSelection
+      resource="categories"
+      items={bulkItems}
+      scopeKey={JSON.stringify([searchQuery, searchRegex, sortBy, selectedRoot])}
+      className="space-y-5"
+    >
       <PageHeader
         title={t('title')}
         description={t('description')}
@@ -726,6 +743,8 @@ export default function CategoriesPage() {
           )}
         </div>
 
+        <BulkToolbar embedded />
+
         {isLoading ? (
           <div className="space-y-2 p-3" aria-hidden="true">
             {[...Array(6)].map((_, i) => (
@@ -780,6 +799,6 @@ export default function CategoriesPage() {
 
       {/* Delete Confirmation */}
       <CategoryDeleteDialog category={deletingCategory} onClose={() => setDeletingCategory(null)} />
-    </div>
+    </BulkSelection>
   );
 }

@@ -1,3 +1,4 @@
+import { BulkSelection, BulkToolbar } from '@/components/bulk/BulkSelection';
 /**
  * RecurringTransactionsPage Component
  * Task 12.2.8: Create RecurringTransactionsPage component
@@ -81,6 +82,19 @@ export default function RecurringTransactionsPage() {
   const pauseMutation = usePauseRecurringTransaction();
   const resumeMutation = useResumeRecurringTransaction();
   const processMutation = useProcessRecurringTransactions();
+
+  // A bulk deletion can remove the last page entirely. Return to the nearest valid page.
+  if (
+    recurringTransactionsPage &&
+    (filters.page ?? 0) > 0 &&
+    recurringTransactionsPage.number === filters.page &&
+    recurringTransactionsPage.totalPages <= filters.page
+  ) {
+    setFilters(current => ({
+      ...current,
+      page: Math.max(0, recurringTransactionsPage.totalPages - 1),
+    }));
+  }
 
   const recurringTransactions = recurringTransactionsPage?.content || [];
   const allRecurring = allRecurringPage?.content || [];
@@ -216,7 +230,15 @@ export default function RecurringTransactionsPage() {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <BulkSelection
+      resource="recurring-transactions"
+      items={recurringTransactions.map(item => ({
+        id: item.id,
+        label: item.description || item.payee || String(item.id),
+      }))}
+      scopeKey={JSON.stringify(filters)}
+      className="container mx-auto px-4 py-8"
+    >
       {/* Page Header */}
       <PageHeader title={t('title')} description={t('description')} />
 
@@ -389,6 +411,8 @@ export default function RecurringTransactionsPage() {
         </div>
       )}
 
+      <BulkToolbar />
+
       {/* Loading State */}
       {isLoading && (
         <div className="space-y-4">
@@ -495,6 +519,6 @@ export default function RecurringTransactionsPage() {
           onEdit={rt => handleEdit(rt)}
         />
       )}
-    </div>
+    </BulkSelection>
   );
 }

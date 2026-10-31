@@ -1,3 +1,4 @@
+import { SelectionCheckbox } from '@/components/bulk/BulkSelection';
 /**
  * AccountCard Component
  * Task 2.2.11: Create AccountCard component with edit/delete
@@ -78,12 +79,12 @@ export function AccountCard({
 
   return (
     <Card
-      className="p-6 hover:bg-surface-elevated transition-colors duration-200 group cursor-pointer h-full flex flex-col"
+      className="selection-item p-4 sm:p-6 hover:bg-surface-elevated transition-colors duration-200 group cursor-pointer h-full flex flex-col"
       onClick={handleCardClick}
     >
-      <div className="flex items-start gap-4 pb-4">
+      <div className="flex items-start gap-2 sm:gap-4 pb-4">
         {/* Box-door tile — machined slot with brass mechanism */}
-        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg border border-border-strong bg-surface-elevated shadow-slot text-primary transition-colors duration-200 group-hover:text-brass-bright">
+        <div className="flex h-10 w-10 sm:h-12 sm:w-12 shrink-0 items-center justify-center rounded-lg border border-border-strong bg-surface-elevated shadow-slot text-primary transition-colors duration-200 group-hover:text-brass-bright">
           {account.institution?.logo ? (
             <img
               src={account.institution.logo}
@@ -97,17 +98,18 @@ export function AccountCard({
 
         {/* Info + Actions */}
         <div className="flex-1 min-w-0">
-          <div className="flex items-start justify-between gap-2">
+          <div className="flex flex-col xl:flex-row items-start justify-between gap-2">
             <div className="min-w-0">
               {/* Engraved nameplate */}
-              <h3 className="font-display text-base uppercase tracking-[0.06em] text-text-primary truncate">
+              <h3 className="font-display text-base uppercase tracking-[0.06em] text-text-primary break-words xl:truncate">
                 {account.name}
               </h3>
               <p className="plate-label mt-1">{t(`form.types.${account.type}`)}</p>
             </div>
 
             {/* Actions */}
-            <div className="flex items-center gap-1 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity duration-150">
+            <div className="selection-actions selection-actions-reveal flex shrink-0 flex-wrap items-center gap-1">
+              <SelectionCheckbox id={account.id} />
               <Button
                 variant="ghost"
                 size="sm"
@@ -115,7 +117,7 @@ export function AccountCard({
                   e.stopPropagation();
                   onEdit(account);
                 }}
-                className="h-8 w-8 p-0"
+                className="h-11 w-11 p-0 sm:h-8 sm:w-8"
                 aria-label={tc('aria.editAccount')}
               >
                 <Edit2 className="h-4 w-4" />
@@ -130,7 +132,7 @@ export function AccountCard({
                     e.stopPropagation();
                     onReopen(account);
                   }}
-                  className="h-8 w-8 p-0 text-success hover:text-success hover:bg-success/10"
+                  className="h-11 w-11 p-0 sm:h-8 sm:w-8 text-success hover:text-success hover:bg-success/10"
                   aria-label={t('card.reopen')}
                   title={t('card.reopen')}
                 >
@@ -147,7 +149,7 @@ export function AccountCard({
                     e.stopPropagation();
                     onClose(account);
                   }}
-                  className="h-8 w-8 p-0 text-warning hover:text-warning hover:bg-warning/10"
+                  className="h-11 w-11 p-0 sm:h-8 sm:w-8 text-warning hover:text-warning hover:bg-warning/10"
                   aria-label={tc('aria.closeAccount')}
                   title={tc('aria.closeAccount')}
                 >
@@ -163,7 +165,7 @@ export function AccountCard({
                   e.stopPropagation();
                   onDelete(account);
                 }}
-                className="h-8 w-8 p-0 text-error hover:text-error hover:bg-error/10"
+                className="h-11 w-11 p-0 sm:h-8 sm:w-8 text-error hover:text-error hover:bg-error/10"
                 aria-label={tc('aria.deleteAccount')}
                 title={tc('aria.deleteAccount')}
               >

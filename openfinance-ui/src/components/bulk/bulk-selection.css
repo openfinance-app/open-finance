@@ -1,0 +1,48 @@
+/* Keep control slots stable: revealing selection must never move the content. */
+.selection-checkbox,
+.selection-actions-reveal {
+  transition: opacity 150ms ease-out;
+}
+
+/* The document defaults to dark native controls, so follow the app's light theme. */
+:root.light .selection-input {
+  color-scheme: light;
+}
+
+/* Opacity preserves keyboard access; focus on any row control reveals selection. */
+@media (hover: hover) and (pointer: fine) {
+  .selection-checkbox,
+  .selection-actions-reveal {
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .selection-item:hover .selection-checkbox,
+  .selection-item:focus-within .selection-checkbox,
+  .selection-checkbox:focus-within,
+  .selection-checkbox[data-selected='true'],
+  .selection-item:hover .selection-actions-reveal,
+  .selection-item:focus-within .selection-actions-reveal,
+  .selection-actions-reveal:has(.selection-checkbox[data-selected='true']),
+  .selection-actions-reveal[data-highlighted='true'] {
+    opacity: 1;
+    pointer-events: auto;
+  }
+}
+
+/* Touch has no hover: expose controls directly, with comfortable hit targets. */
+@media (hover: none), (pointer: coarse) {
+  .selection-checkbox,
+  .selection-actions > button:not([role='switch']),
+  .selection-actions > [role='button'] {
+    min-width: 44px;
+    min-height: 44px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .selection-checkbox,
+  .selection-actions-reveal {
+    transition: none;
+  }
+}

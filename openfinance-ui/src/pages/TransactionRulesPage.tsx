@@ -1,3 +1,4 @@
+import { BulkSelection, BulkToolbar } from '@/components/bulk/BulkSelection';
 /**
  * TransactionRulesPage
  *
@@ -114,7 +115,12 @@ export default function TransactionRulesPage() {
   // ---------------------------------------------------------------------------
 
   return (
-    <div className="space-y-6">
+    <BulkSelection
+      resource="transaction-rules"
+      items={rules.map(item => ({ id: item.id, label: item.name }))}
+      scopeKey={''}
+      className="space-y-6"
+    >
       <PageHeader
         title={t('title')}
         description={t('description')}
@@ -145,6 +151,8 @@ export default function TransactionRulesPage() {
           <div className="text-sm text-text-secondary">{t('summary.inactiveRules')}</div>
         </div>
       </div>
+
+      <BulkToolbar />
 
       {/* Rule list */}
       {isLoading ? (
@@ -191,6 +199,6 @@ export default function TransactionRulesPage() {
         onConfirm={handleDeleteConfirm}
         variant="danger"
       />
-    </div>
+    </BulkSelection>
   );
 }

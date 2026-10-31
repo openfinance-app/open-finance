@@ -1,3 +1,4 @@
+import { BulkSelection, BulkToolbar } from '@/components/bulk/BulkSelection';
 /**
  * TransactionsPage Component
  * Task 3.2.13: Create TransactionsPage component
@@ -115,6 +116,16 @@ export default function TransactionsPage() {
   const updateTransaction = useUpdateTransaction();
   const updateTransfer = useUpdateTransfer();
   const deleteTransaction = useDeleteTransaction();
+
+  // A bulk deletion can remove the last page entirely. Return to the nearest valid page.
+  if (
+    transactionsPage &&
+    (filters.page ?? 0) > 0 &&
+    transactionsPage.number === filters.page &&
+    transactionsPage.totalPages <= filters.page
+  ) {
+    setFilters(current => ({ ...current, page: Math.max(0, transactionsPage.totalPages - 1) }));
+  }
 
   const transactions = transactionsPage?.content || [];
   const listedHighlight = transactions.find(transaction => transaction.id === highlightId);
@@ -285,7 +296,16 @@ export default function TransactionsPage() {
   }
 
   return (
-    <div className="p-8">
+    <BulkSelection
+      resource="transactions"
+      items={transactions.map(item => ({
+        id: item.id,
+        label: item.description || item.payee || `${item.date} · ${item.accountName}`,
+        transferId: item.transferId,
+      }))}
+      scopeKey={JSON.stringify(filters)}
+      className="p-8"
+    >
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <PageHeader title={t('title')} description={t('description')} />
@@ -320,6 +340,8 @@ export default function TransactionsPage() {
       )}
 
       <TransactionSummaryHeader filters={filters} />
+
+      <BulkToolbar />
 
       {/* Loading State */}
       {isLoading && (
@@ -443,6 +465,6 @@ export default function TransactionsPage() {
           }}
         />
       )}
-    </div>
+    </BulkSelection>
   );
 }

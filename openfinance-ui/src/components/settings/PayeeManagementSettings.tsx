@@ -1,3 +1,4 @@
+import { BulkSelection, BulkToolbar, SelectionCheckbox } from '@/components/bulk/BulkSelection';
 import { Link } from 'react-router';
 import { buildTransactionsLink } from '@/utils/navigation';
 /**
@@ -243,7 +244,14 @@ export function PayeeManagementSettings() {
   const customPayees = filteredPayees?.filter(p => !p.isSystem) || [];
 
   return (
-    <div className="space-y-6">
+    <BulkSelection
+      resource="payees"
+      items={customPayees
+        .slice(0, showAllCustom ? undefined : 12)
+        .map(item => ({ id: item.id, label: item.name }))}
+      scopeKey={JSON.stringify([searchQuery, showInactive, sortBy, showAllCustom])}
+      className="space-y-6"
+    >
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -321,6 +329,8 @@ export function PayeeManagementSettings() {
         </DropdownMenu>
       </div>
 
+      <BulkToolbar />
+
       {/* Custom Payees Section */}
       <div className="space-y-4">
         <h3 className="text-lg font-medium text-text-primary">{t('custom.title')}</h3>
@@ -345,10 +355,13 @@ export function PayeeManagementSettings() {
           <>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {customPayees.slice(0, showAllCustom ? undefined : 12).map(payee => (
-                <Card key={payee.id} className={cn('p-4', !payee.isActive && 'opacity-50')}>
-                  <div className="flex items-start justify-between">
-                    <div className="flex items-start gap-3">
-                      <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
+                <Card
+                  key={payee.id}
+                  className={cn('selection-item p-4', !payee.isActive && 'opacity-50')}
+                >
+                  <div className="flex flex-wrap items-start justify-between gap-x-3 gap-y-2">
+                    <div className="flex flex-1 basis-40 min-w-0 items-start gap-3">
+                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10">
                         {payee.logo ? (
                           <img
                             src={payee.logo}
@@ -359,8 +372,8 @@ export function PayeeManagementSettings() {
                           <User className="h-5 w-5 text-primary" />
                         )}
                       </div>
-                      <div>
-                        <h4 className="font-display text-base uppercase tracking-[0.06em] text-text-primary">
+                      <div className="min-w-0">
+                        <h4 className="font-display text-base uppercase tracking-[0.06em] text-text-primary break-words">
                           {payee.name}
                         </h4>
                         {payee.categoryName ? (
@@ -392,7 +405,8 @@ export function PayeeManagementSettings() {
                         </div>
                       </div>
                     </div>
-                    <div className="flex gap-1">
+                    <div className="selection-actions ml-auto flex shrink-0 items-center gap-1">
+                      <SelectionCheckbox id={payee.id} />
                       <Button
                         variant="ghost"
                         size="sm"
@@ -654,6 +668,6 @@ export function PayeeManagementSettings() {
           </div>
         </DialogContent>
       </Dialog>
-    </div>
+    </BulkSelection>
   );
 }
