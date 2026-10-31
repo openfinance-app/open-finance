@@ -132,6 +132,7 @@ test('expense editing, payee propagation, recurring processing, and history pres
   expect(transaction.movementType).toBeNull();
   expect(transaction.createdAt).toMatch(/(?:Z|[+-]\d{2}:\d{2})$/);
   await page.goto('/transactions');
+  await page.locator(`#transaction-${transaction.id}`).hover();
   await page.getByRole('button', { name: 'Edit transaction', exact: true }).click();
   const dialog = page.getByRole('dialog');
   await dialog.locator('#amount').fill('12.49');

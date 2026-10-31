@@ -61,7 +61,7 @@ test('form preview, saved account and dashboard share calendar compounding', asy
     .getByRole('button');
   if (!(await currency.textContent())?.includes('EUR')) {
     await currency.click();
-    await page.getByRole('button', { name: /EUR.*Euro/ }).click();
+    await page.getByRole('option', { name: 'EUR Euro', exact: true }).click();
   }
   await page.getByRole('textbox', { name: /^Initial Balance/ }).fill('1000');
   const year = new Date().getFullYear();
@@ -108,6 +108,7 @@ test('form preview, saved account and dashboard share calendar compounding', asy
     description: 'Bank interest credit',
   });
   await page.goto('/transactions');
+  await page.locator(`#transaction-${credit.id}`).hover();
   await page.getByRole('button', { name: 'Edit transaction', exact: true }).click();
   const dialog = page.getByRole('dialog');
   await dialog

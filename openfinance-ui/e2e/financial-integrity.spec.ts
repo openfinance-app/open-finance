@@ -95,6 +95,7 @@ test('dated improvements entered through the form preserve wealth in either date
     [month(-2), '100'],
   ]) {
     const dialog = await expenseForm(page, date, amount);
+    await dialog.getByText('Linked liability and movement', { exact: true }).click();
     await dialog.locator('#movementType').selectOption('CAPITAL_IMPROVEMENT');
     await dialog.locator('#movement-realEstateId').selectOption(String(property.id));
     await dialog.getByRole('button', { name: /^create transaction$/i }).click();
@@ -114,6 +115,7 @@ test('property editing refreshes a warmed dashboard and the backing asset', asyn
   const { property } = await fixtures(page);
   await api(page, '/dashboard/summary');
   await page.goto('/real-estate');
+  await page.getByRole('heading', { name: 'Audit property', exact: true }).hover();
   await page.getByRole('button', { name: /edit property/i }).click();
   const dialog = page.getByRole('dialog');
   await dialog.locator('#currentValue').fill('1500');
@@ -128,6 +130,7 @@ test('property editing refreshes a warmed dashboard and the backing asset', asyn
 test('closing an account through its action preserves earlier history', async ({ page }) => {
   await fixtures(page);
   await page.goto('/accounts');
+  await page.getByRole('heading', { name: 'Audit cash', exact: true }).hover();
   await page.getByRole('button', { name: /close account/i }).click();
   await page
     .getByRole('dialog')
@@ -161,6 +164,7 @@ test('a repayment before origination is rejected through the transaction form', 
     'POST'
   );
   const dialog = await expenseForm(page, month(-2), '100');
+  await dialog.getByText('Linked liability and movement', { exact: true }).click();
   await dialog
     .locator('label[for="liabilityId"]')
     .locator('../..')

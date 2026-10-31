@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import { expect, test, type Page, type TestInfo } from '@playwright/test';
 import { registerUser, signIn } from './helpers/auth';
 
@@ -6,7 +7,7 @@ test.setTimeout(120_000);
 // Every financial record in these tests is created through the real forms.
 // Response observation checks persistence; the purchase route deliberately loses one response.
 async function newUser(page: Page) {
-  const username = `corr_${Date.now().toString(36)}`;
+  const username = `corr_${randomUUID().replaceAll('-', '')}`;
   const user = {
     username,
     email: `${username}@example.invalid`,
@@ -17,7 +18,7 @@ async function newUser(page: Page) {
   await signIn(page, user);
   await page.getByRole('heading', { name: 'Welcome to Open Finance!', exact: true }).waitFor();
   await page.getByRole('button', { name: /USD —/ }).click();
-  await page.getByRole('button', { name: 'EUR Euro', exact: true }).click();
+  await page.getByRole('option', { name: 'EUR Euro', exact: true }).click();
   await page.getByRole('button', { name: 'DD/MM/YYYY', exact: true }).click();
   await page.getByRole('button', { name: 'Get Started', exact: true }).click();
   await page.getByRole('heading', { name: 'Dashboard', exact: true }).waitFor();
@@ -50,8 +51,8 @@ async function account(page: Page, name: string, amount: string, currency = 'EUR
   await page.getByLabel('Account Name *', { exact: true }).fill(name);
   if (currency !== 'EUR') {
     await page.getByRole('button', { name: /EUR —/ }).click();
-    await page.getByRole('textbox', { name: 'Search currency', exact: true }).fill(currency);
-    await page.getByRole('button', { name: new RegExp(`^${currency} `) }).click();
+    await page.getByRole('combobox', { name: 'Search currency', exact: true }).fill(currency);
+    await page.getByRole('option', { name: new RegExp(`^${currency} `) }).click();
   }
   await page.getByLabel(`Initial Balance (${currency}) *`, { exact: true }).fill(amount);
   await page.getByRole('button', { name: 'Create Account', exact: true }).click();
@@ -73,8 +74,8 @@ async function liability(
   await page.getByLabel('Current Balance *', { exact: true }).fill(balance);
   if (currency !== 'EUR') {
     await page.getByRole('button', { name: /EUR —/ }).click();
-    await page.getByRole('textbox', { name: 'Search currency', exact: true }).fill(currency);
-    await page.getByRole('button', { name: new RegExp(`^${currency} `) }).click();
+    await page.getByRole('combobox', { name: 'Search currency', exact: true }).fill(currency);
+    await page.getByRole('option', { name: new RegExp(`^${currency} `) }).click();
   }
 }
 
@@ -84,16 +85,32 @@ function loanCard(page: Page, name: string) {
     .locator('xpath=ancestor::div[starts-with(@id,"liability-")]');
 }
 
+async function createLiability(page: Page, name: string): Promise<void> {
+  await page.getByRole('button', { name: 'Create Liability', exact: true }).click();
+  const details = page.getByRole('dialog', { name: `${name} — Details`, exact: true });
+  await expect(details).toBeVisible();
+  await details.getByRole('button', { name: 'Close', exact: true }).click();
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+}
+
+async function createProperty(page: Page, name: string): Promise<void> {
+  await page.getByRole('button', { name: 'Create Property', exact: true }).click();
+  const details = page.getByRole('dialog', { name, exact: true });
+  await expect(details).toBeVisible();
+  await details.getByRole('button', { name: 'Close', exact: true }).click();
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+}
+
 test('unlinked mortgage edits persist and linked mortgage deletion restores correctly through history', async ({
   page,
 }, info) => {
   await newUser(page);
   await liability(page, 'Editable loan', '1000', '500');
-  await page.getByRole('button', { name: 'Create Liability', exact: true }).click();
-  await expect(page.getByRole('dialog')).toHaveCount(0);
+  await createLiability(page, 'Editable loan');
   await loanCard(page, 'Editable loan')
     .getByRole('button', { name: 'Edit liability', exact: true })
     .click();
+  await page.getByText('Lender & notes (optional)', { exact: true }).click();
   await page.getByLabel('Notes (Optional)', { exact: true }).fill('Saved by clicking Update');
   await page.getByRole('button', { name: 'Update Liability', exact: true }).click();
   await expect(page.getByRole('dialog')).toHaveCount(0);
@@ -103,17 +120,18 @@ test('unlinked mortgage edits persist and linked mortgage deletion restores corr
 
   await visit(page, 'Real Estate', 'Real Estate Portfolio');
   await page.getByRole('button', { name: 'Add Property', exact: true }).click();
+  await page.getByRole('button', { name: /^Record a property I already own/ }).click();
   await page.getByLabel('Property Name *', { exact: true }).fill('Linked home');
   await page.getByLabel('Address *', { exact: true }).fill('Synthetic browser address');
   await page.getByLabel('Purchase Price *', { exact: true }).fill('1000');
   await page.getByLabel('Current Value *', { exact: true }).fill('1000');
+  await page.getByText('Mortgage & rental income (optional)', { exact: true }).click();
   await page
     .getByRole('combobox')
     .filter({ hasText: /^None$/ })
     .click();
   await page.getByRole('option', { name: /Editable loan/ }).click();
-  await page.getByRole('button', { name: 'Create Property', exact: true }).click();
-  await expect(page.getByRole('dialog')).toHaveCount(0);
+  await createProperty(page, 'Linked home');
   await visit(page, 'Liabilities');
   await loanCard(page, 'Editable loan')
     .getByRole('button', { name: 'Delete liability', exact: true })
@@ -141,7 +159,8 @@ test('lost purchase response retries once and the complete purchase can be undon
   await newUser(page);
   await account(page, 'Purchase checking', '30000');
   await visit(page, 'Real Estate', 'Real Estate Portfolio');
-  await page.getByRole('button', { name: /^Buy property$/i }).click();
+  await page.getByRole('button', { name: 'Add Property', exact: true }).click();
+  await page.getByRole('button', { name: /^Buy a property and record the payment/ }).click();
   await page.getByLabel('Property Name *', { exact: true }).fill('Retry home');
   await page.getByLabel('Address *', { exact: true }).fill('Synthetic purchase address');
   await page.getByLabel('Purchase Price *', { exact: true }).fill('100000');
@@ -209,8 +228,7 @@ test('dedicated drawdown form preserves a small BTC amount', async ({ page }, in
   await newUser(page);
   await account(page, 'Bitcoin account', '0', 'BTC');
   await liability(page, 'Bitcoin loan', '1', '0', 'BTC');
-  await page.getByRole('button', { name: 'Create Liability', exact: true }).click();
-  await expect(page.getByRole('dialog')).toHaveCount(0);
+  await createLiability(page, 'Bitcoin loan');
   await loanCard(page, 'Bitcoin loan')
     .getByRole('button', { name: 'View liability details', exact: true })
     .click();
@@ -261,13 +279,13 @@ test('payoff removes future insurance and the monthly payment from the loan card
   await newUser(page);
   await account(page, 'Payoff checking', '30000');
   await liability(page, 'Payoff loan', '10000', '10000');
+  await page.getByText('Repayment terms & fees (optional)', { exact: true }).click();
   await page.getByLabel('Interest Rate (% Annual)', { exact: true }).fill('0');
   await page.getByLabel('Minimum Monthly Payment', { exact: true }).fill('10000');
   await page.getByLabel('Insurance Rate (% Annual)', { exact: true }).fill('1.2');
   const year = new Date().getFullYear() + 1;
   await page.getByLabel('End Date (Optional)', { exact: true }).fill(`30/09/${year}`);
-  await page.getByRole('button', { name: 'Create Liability', exact: true }).click();
-  await expect(page.getByRole('dialog')).toHaveCount(0);
+  await createLiability(page, 'Payoff loan');
   await expect(loanCard(page, 'Payoff loan')).toContainText('10,010.00');
   await loanCard(page, 'Payoff loan')
     .getByRole('button', { name: 'View liability details', exact: true })
@@ -285,6 +303,7 @@ test('payoff removes future insurance and the monthly payment from the loan card
     .filter({ hasText: /^Account$/ })
     .click();
   await page.getByRole('option', { name: /Payoff checking/ }).click();
+  await dialog.getByText('Linked liability and movement', { exact: true }).click();
   await dialog
     .getByRole('combobox')
     .filter({ hasText: /^None$/ })
@@ -313,6 +332,7 @@ test('deactivating a property keeps its earlier value in the dashboard history',
   await newUser(page);
   await visit(page, 'Real Estate', 'Real Estate Portfolio');
   await page.getByRole('button', { name: 'Add Property', exact: true }).click();
+  await page.getByRole('button', { name: /^Record a property I already own/ }).click();
   const past = new Date();
   past.setDate(1);
   past.setMonth(past.getMonth() - 2);
@@ -323,10 +343,11 @@ test('deactivating a property keeps its earlier value in the dashboard history',
   await page.getByLabel('Purchase Price *', { exact: true }).fill('1000');
   await page.getByLabel('Current Value *', { exact: true }).fill('1000');
   await page.getByLabel('Purchase Date *', { exact: true }).fill(`01/${month}/${year}`);
-  await page.getByRole('button', { name: 'Create Property', exact: true }).click();
-  await expect(page.getByRole('dialog')).toHaveCount(0);
+  await createProperty(page, 'Historical home');
+  await page.getByRole('heading', { name: 'Historical home', exact: true }).hover();
   await page.getByRole('button', { name: 'Edit property', exact: true }).click();
   await page.getByLabel('Current Value *', { exact: true }).fill('1200');
+  await page.getByText('Location, notes & status (optional)', { exact: true }).click();
   await page.getByLabel('Property is active', { exact: true }).uncheck();
   await page.getByRole('button', { name: 'Update Property', exact: true }).click();
   await expect(page.getByRole('dialog')).toHaveCount(0);
@@ -362,10 +383,10 @@ test('interest-only payment card includes current interest without scheduled pri
   await newUser(page);
   await account(page, 'Draw account', '0');
   await liability(page, 'Interest-only mortgage', '300000', '0');
+  await page.getByText('Repayment terms & fees (optional)', { exact: true }).click();
   await page.getByLabel('Interest Rate (% Annual)', { exact: true }).fill('4.1');
   await page.getByLabel('Minimum Monthly Payment', { exact: true }).fill('2000');
-  await page.getByRole('button', { name: 'Create Liability', exact: true }).click();
-  await expect(page.getByRole('dialog')).toHaveCount(0);
+  await createLiability(page, 'Interest-only mortgage');
   await loanCard(page, 'Interest-only mortgage')
     .getByRole('button', { name: 'View liability details', exact: true })
     .click();
