@@ -38,7 +38,7 @@ function FeedItem({ item, onClick, onDiscard }: FeedItemProps) {
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-start justify-between gap-2 mb-1">
-            <h4 className="text-sm font-semibold text-text-primary leading-tight flex-1 line-clamp-2">
+            <h4 className="text-sm font-semibold text-text-primary leading-tight flex-1 min-w-0 break-words line-clamp-2">
               {cleanTitle}
             </h4>
             <button
@@ -54,8 +54,8 @@ function FeedItem({ item, onClick, onDiscard }: FeedItemProps) {
               <X className="h-4 w-4" />
             </button>
           </div>
-          <div className="flex items-center justify-between">
-            <span className="text-xs text-text-muted">
+          <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1">
+            <span className="max-w-full shrink-0 text-xs text-text-muted">
               {item.pubDate
                 ? differenceInDays(new Date(), new Date(item.pubDate)) <= 7
                   ? formatDistanceToNow(new Date(item.pubDate), {
@@ -65,8 +65,13 @@ function FeedItem({ item, onClick, onDiscard }: FeedItemProps) {
                   : format(new Date(item.pubDate), 'PP', { locale: dateLocale })
                 : t('cards.rssFeed.recently')}
             </span>
-            <Badge variant="info" size="sm" className="opacity-70 text-[10px] uppercase">
-              {item.source}
+            <Badge
+              variant="info"
+              size="sm"
+              className="min-w-0 max-w-full opacity-70 text-[10px] uppercase"
+              title={item.source}
+            >
+              <span className="truncate">{item.source}</span>
             </Badge>
           </div>
         </div>
@@ -185,11 +190,11 @@ export default function RssFeedCard() {
   return (
     <Card className="h-full flex flex-col">
       <CardHeader>
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Rss className="h-5 w-5 text-primary" />
-            <CardTitle>{t('cards.rssFeed.title')}</CardTitle>
-            <HelpTooltip text={t('cards.rssFeed.rssTooltip')} side="right" />
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex min-w-0 items-center gap-2">
+            <Rss className="h-5 w-5 shrink-0 text-primary" />
+            <CardTitle className="min-w-0 break-words">{t('cards.rssFeed.title')}</CardTitle>
+            <HelpTooltip text={t('cards.rssFeed.rssTooltip')} side="right" className="shrink-0" />
           </div>
           <Button
             onClick={handleRetry}
@@ -235,7 +240,7 @@ export default function RssFeedCard() {
                 <Newspaper className="h-5 w-5 text-primary" />
               </div>
               <div
-                className="flex-1 leading-tight mt-0.5"
+                className="flex-1 min-w-0 break-words leading-tight mt-0.5"
                 dangerouslySetInnerHTML={{
                   __html: DOMPurify.sanitize(selectedItem?.title || '', { ALLOWED_TAGS: [] }),
                 }}
@@ -250,14 +255,19 @@ export default function RssFeedCard() {
               }}
             />
           </div>
-          <div className="flex items-center justify-between mt-4 pt-4 border-t border-border">
-            <div className="flex items-center gap-3">
+          <div className="flex min-w-0 flex-wrap items-center justify-between gap-3 mt-4 pt-4 border-t border-border">
+            <div className="flex min-w-0 max-w-full flex-wrap items-center gap-3">
               {selectedItem?.source && (
-                <Badge variant="outline" size="sm">
-                  {selectedItem.source}
+                <Badge
+                  variant="outline"
+                  size="sm"
+                  className="min-w-0 max-w-full"
+                  title={selectedItem.source}
+                >
+                  <span className="truncate">{selectedItem.source}</span>
                 </Badge>
               )}
-              <span className="text-xs text-text-muted">
+              <span className="max-w-full shrink-0 text-xs text-text-muted">
                 {selectedItem?.pubDate &&
                   (differenceInDays(new Date(), new Date(selectedItem.pubDate)) <= 7
                     ? formatDistanceToNow(new Date(selectedItem.pubDate), {
@@ -273,7 +283,7 @@ export default function RssFeedCard() {
                 href={selectedItem.link}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center gap-1.5 text-sm font-medium text-primary hover:text-primary-hover transition-colors"
+                className="flex shrink-0 items-center gap-1.5 text-sm font-medium text-primary hover:text-primary-hover transition-colors"
               >
                 {t('cards.rssFeed.readArticle')}
                 <ExternalLink className="h-4 w-4" />
