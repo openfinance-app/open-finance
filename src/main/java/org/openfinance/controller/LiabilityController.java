@@ -580,7 +580,7 @@ public class LiabilityController {
         log.info("Total interest calculated: {}", totalInterest);
 
         return ResponseEntity.ok(
-                Map.of("totalInterest", totalInterest != null ? totalInterest : BigDecimal.ZERO));
+                java.util.Collections.singletonMap("totalInterest", totalInterest));
     }
 
     /**

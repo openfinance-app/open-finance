@@ -57,19 +57,23 @@ export function AssetFilters({ filters, onFiltersChange }: AssetFiltersProps) {
   const clearFilters = () => {
     onFiltersChange({
       group: filters.group,
+      ownershipStatus: 'OWNED',
       sort: 'name,asc',
       page: 0,
     });
   };
 
-  const hasActiveFilters = Object.keys(filters).some(
-    key =>
-      filters[key as keyof AssetFilters] !== undefined &&
-      key !== 'page' &&
-      key !== 'size' &&
-      key !== 'sort' &&
-      key !== 'group'
-  );
+  const hasActiveFilters =
+    filters.ownershipStatus !== 'OWNED' ||
+    Object.keys(filters).some(
+      key =>
+        filters[key as keyof AssetFilters] !== undefined &&
+        key !== 'page' &&
+        key !== 'size' &&
+        key !== 'sort' &&
+        key !== 'group' &&
+        key !== 'ownershipStatus'
+    );
 
   return (
     <div className="space-y-4 p-4 bg-surface rounded-lg border border-border">
@@ -100,6 +104,27 @@ export function AssetFilters({ filters, onFiltersChange }: AssetFiltersProps) {
 
       {/* Filters grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div>
+          <label
+            htmlFor="asset-status"
+            className="block text-sm font-medium text-text-primary mb-1.5"
+          >
+            {t('statuses.label')}
+          </label>
+          <select
+            id="asset-status"
+            value={filters.ownershipStatus ?? ''}
+            onChange={event => handleChange('ownershipStatus', event.target.value)}
+            className="w-full h-10 px-3 pr-8 rounded-lg bg-background border border-border text-text-primary text-sm hover:border-border/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background transition-colors duration-150"
+          >
+            {(['OWNED', 'PLANNED', 'CLOSED', ''] as const).map(status => (
+              <option key={status} value={status}>
+                {t(`statuses.${status || 'ALL'}`)}
+              </option>
+            ))}
+          </select>
+        </div>
+
         {/* Type filter */}
         <div>
           <label htmlFor="type" className="block text-sm font-medium text-text-primary mb-1.5">

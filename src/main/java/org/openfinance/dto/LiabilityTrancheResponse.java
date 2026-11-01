@@ -65,6 +65,8 @@ public class LiabilityTrancheResponse {
     /** ID of the linked real estate property. */
     private Long realEstateId;
 
+    private Long assetId;
+
     /** Optional notes about this tranche. */
     private String notes;
 

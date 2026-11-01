@@ -95,6 +95,9 @@ describe('Zero-value properties', () => {
     renderWithProviders(<PropertyCard property={property} onEdit={vi.fn()} onView={vi.fn()} />);
     expect(screen.getByText('Future home')).toBeInTheDocument();
     expect(screen.getByText(/planned/i)).toBeInTheDocument();
+    expect(screen.getByText('Target date')).toBeInTheDocument();
+    expect(screen.queryByText('Current Value')).not.toBeInTheDocument();
+    expect(screen.queryByText('Appreciation')).not.toBeInTheDocument();
   });
 
   it('shows equity for allocated financing without a primary mortgage', () => {
@@ -127,7 +130,7 @@ describe('Zero-value properties', () => {
     await user.type(screen.getByLabelText(/property name/i), 'Future home');
     await user.type(screen.getByLabelText(/address/i), '1 Future Street');
     const future = `${new Date().getFullYear() + 2}-01-01`;
-    const date = screen.getByLabelText(/purchase date/i);
+    const date = screen.getByLabelText(/target date/i);
     await user.clear(date);
     await user.type(date, future);
     await user.click(screen.getByRole('button', { name: /create property/i }));

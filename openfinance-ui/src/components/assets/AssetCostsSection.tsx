@@ -80,7 +80,7 @@ export function AssetCostsSection({ asset }: { asset: Asset }) {
   const groups = [
     {
       key: 'acquisition',
-      title: t('costs.acquisition'),
+      title: t(supportsUpkeep ? 'costs.acquisition' : 'costs.operations'),
       icon: <Wrench className="h-4 w-4" />,
       transactions: acquisition,
     },
@@ -99,15 +99,17 @@ export function AssetCostsSection({ asset }: { asset: Asset }) {
   ];
 
   return (
-    <div className="bg-background border border-border rounded-lg p-6">
+    <div className="bg-background border border-border rounded-lg p-4 sm:p-6">
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2">
-          <h3 className="text-lg font-semibold text-foreground">{t('costs.title')}</h3>
+          <h3 className="text-lg font-semibold text-foreground">
+            {t(supportsUpkeep ? 'costs.title' : 'costs.operations')}
+          </h3>
           <HelpTooltip
             text={t(supportsUpkeep ? 'costEntry.sectionHint' : 'costEntry.investmentHint')}
           />
         </div>
-        {supportsUpkeep && (
+        {supportsUpkeep && asset.acquisitionType !== 'PLANNED' && !asset.soldDate && (
           <Button
             type="button"
             variant="outline"
@@ -126,7 +128,14 @@ export function AssetCostsSection({ asset }: { asset: Asset }) {
       {addingCost && (
         <div className="mb-4">
           <RecordCostForm
-            target={{ id: asset.id, name: asset.name, currency: asset.currency, kind: 'asset' }}
+            target={{
+              id: asset.id,
+              name: asset.name,
+              currency: asset.currency,
+              kind: 'asset',
+              acquisitionType: asset.acquisitionType,
+              purchaseDate: asset.purchaseDate,
+            }}
             onClose={() => setAddingCost(false)}
           />
         </div>

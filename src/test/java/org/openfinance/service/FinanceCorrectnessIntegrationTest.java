@@ -140,6 +140,7 @@ class FinanceCorrectnessIntegrationTest extends AuditApiTestSupport {
         long asset = json("POST", "/assets", assetPayload(1), owner, 201).path("id").asLong();
         Map<String, Object> payload = movement(cash, 100, START.plusMonths(1));
         payload.putAll(data("assetId", asset, "movementType", "CAPITAL_IMPROVEMENT"));
+        payload.put("valuationChange", payload.get("amount"));
         json("POST", "/transactions", payload, owner, 201);
         JsonNode holding = json("GET", "/assets/" + asset, null, owner, 200);
         JsonNode historical = history(START.plusMonths(1), START.plusMonths(1));
@@ -153,6 +154,7 @@ class FinanceCorrectnessIntegrationTest extends AuditApiTestSupport {
         long asset = json("POST", "/assets", assetPayload(1000), owner, 201).path("id").asLong();
         Map<String, Object> payload = movement(cash, 1, LocalDate.now());
         payload.putAll(data("assetId", asset, "movementType", "CAPITAL_IMPROVEMENT"));
+        payload.put("valuationChange", payload.get("amount"));
         json("POST", "/transactions", payload, owner, 201);
         JsonNode holding = json("GET", "/assets/" + asset, null, owner, 200);
         money(holding, "totalValue", "1000001");
@@ -481,10 +483,12 @@ class FinanceCorrectnessIntegrationTest extends AuditApiTestSupport {
         long asset = json("POST", "/assets", assetPayload(3), owner, 201).path("id").asLong();
         Map<String, Object> payload = movement(cash, 1, START.plusMonths(1));
         payload.putAll(data("assetId", asset, "movementType", "CAPITAL_IMPROVEMENT"));
+        payload.put("valuationChange", payload.get("amount"));
         long tx = json("POST", "/transactions", payload, owner, 201).path("id").asLong();
         money(json("GET", "/assets/" + asset, null, owner, 200), "totalValue", "3001");
         money(history(START.plusMonths(1), START.plusMonths(1)).get(0), "netWorth", "4000");
         payload.put("amount", 2);
+        payload.put("valuationChange", 2);
         json("PUT", "/transactions/" + tx, payload, owner, 200);
         money(json("GET", "/assets/" + asset, null, owner, 200), "totalValue", "3002");
         money(history(START.plusMonths(1), START.plusMonths(1)).get(0), "netWorth", "4000");

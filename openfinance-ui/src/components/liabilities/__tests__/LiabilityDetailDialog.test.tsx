@@ -26,11 +26,12 @@ import { useVisibility } from '@/context/VisibilityContext';
 
 // Mock data
 const mockLiability: Liability = {
-  id: '1',
+  id: 1,
   name: 'Home Mortgage',
   description: '30-year fixed mortgage',
-  type: 'mortgage',
-  principalAmount: 300000,
+  type: 'MORTGAGE',
+  principal: 300000,
+  fundedAmount: 280000,
   currentBalance: 280000,
   interestRate: 3.5,
   currency: 'EUR',
@@ -220,10 +221,10 @@ describe('LiabilityDetailDialog', () => {
 
       renderWithProviders(<LiabilityDetailDialog liability={mockLiability} onClose={vi.fn()} />);
 
-      expect(screen.getByRole('button', { name: /^disburse$/i })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /^receive funds$/i })).toBeInTheDocument();
     });
 
-    it('hides the Disburse button while a PLANNED tranche remains', () => {
+    it('keeps Receive funds available while a planned installment remains', () => {
       mockUseLiabilityBreakdown.mockReturnValue({
         data: mockBreakdown,
         isLoading: false,
@@ -248,7 +249,7 @@ describe('LiabilityDetailDialog', () => {
 
       renderWithProviders(<LiabilityDetailDialog liability={mockLiability} onClose={vi.fn()} />);
 
-      expect(screen.queryByRole('button', { name: /^disburse$/i })).not.toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /^receive funds$/i })).toBeInTheDocument();
     });
 
     it('disburses without a trancheId so the backend auto-picks the next tranche', async () => {
@@ -283,7 +284,7 @@ describe('LiabilityDetailDialog', () => {
       renderWithProviders(<LiabilityDetailDialog liability={mockLiability} onClose={vi.fn()} />);
 
       await act(async () => {
-        screen.getByRole('button', { name: /^disburse$/i }).click();
+        screen.getByRole('button', { name: /^receive funds$/i }).click();
       });
 
       await act(async () => {
@@ -303,6 +304,30 @@ describe('LiabilityDetailDialog', () => {
       expect(call.request.amount).toBe('12000');
       expect(call.request.date).toBe('2025-06-15');
     });
+  });
+
+  it('offers Receive funds for an undrawn loan without a funding schedule', () => {
+    renderWithProviders(
+      <LiabilityDetailDialog
+        liability={{
+          ...mockLiability,
+          currentBalance: 0,
+          fundedAmount: 0,
+          fundingStatus: 'UNDRAWN',
+        }}
+        onClose={vi.fn()}
+      />
+    );
+    expect(screen.getByRole('button', { name: /^receive funds$/i })).toBeVisible();
+  });
+  it('does not offer another draw once all approved funds were received', () => {
+    renderWithProviders(
+      <LiabilityDetailDialog
+        liability={{ ...mockLiability, fundedAmount: mockLiability.principal }}
+        onClose={vi.fn()}
+      />
+    );
+    expect(screen.queryByRole('button', { name: /^receive funds$/i })).not.toBeInTheDocument();
   });
 
   describe('Dialog Visibility', () => {
@@ -351,7 +376,7 @@ describe('LiabilityDetailDialog', () => {
 
       // Check legend items
       expect(screen.getByText('Principal')).toBeInTheDocument();
-      expect(screen.getByText('€300,000.00')).toBeInTheDocument();
+      expect(screen.getByText('€280,000.00')).toBeInTheDocument();
       expect(screen.getByText('Interest (paid / total)')).toBeInTheDocument();
       expect(screen.getByText('€185,000.00')).toBeInTheDocument(); // 35000 + 150000
       expect(screen.getByText('Insurance (paid / total)')).toBeInTheDocument();
@@ -379,7 +404,7 @@ describe('LiabilityDetailDialog', () => {
 
       const tooltip = await waitFor(() => screen.getByRole('tooltip'));
       expect(tooltip).toHaveTextContent('Principal');
-      expect(tooltip).toHaveTextContent('€300,000.00');
+      expect(tooltip).toHaveTextContent('€280,000.00');
       expect(tooltip.querySelector('[data-testid="converted-amount"]')).not.toBeNull();
     });
   });
@@ -659,7 +684,7 @@ describe('LiabilityDetailDialog', () => {
 
       renderWithProviders(<LiabilityDetailDialog liability={mockLiability} onClose={vi.fn()} />);
 
-      const drawdownsTab = screen.getByText('Drawdowns');
+      const drawdownsTab = screen.getByText('Staged funding');
       act(() => {
         drawdownsTab.click();
       });
@@ -681,7 +706,7 @@ describe('LiabilityDetailDialog', () => {
       renderWithProviders(<LiabilityDetailDialog liability={mockLiability} onClose={vi.fn()} />);
 
       act(() => {
-        screen.getByText('Drawdowns').click();
+        screen.getByText('Staged funding').click();
       });
 
       expect(screen.getByText(/no planned drawdowns/i)).toBeInTheDocument();

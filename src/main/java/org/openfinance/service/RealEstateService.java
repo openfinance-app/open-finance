@@ -13,6 +13,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.openfinance.dto.*;
 import org.openfinance.dto.AssetRequest;
+import org.openfinance.entity.AcquisitionType;
 import org.openfinance.entity.AssetType;
 import org.openfinance.entity.EntityType;
 import org.openfinance.entity.Liability;
@@ -278,6 +279,28 @@ public class RealEstateService {
             idArgument = 0)
     public RealEstatePropertyResponse updateProperty(
             Long propertyId, Long userId, RealEstatePropertyRequest request) {
+        return updatePropertyInternal(propertyId, userId, request, false);
+    }
+
+    @CacheEvict(
+            value = {
+                "dashboardSummary",
+                "netWorthSummary",
+                "networthAllocation",
+                "assetAllocation",
+                "portfolioPerformance"
+            },
+            allEntries = true)
+    public RealEstatePropertyResponse completePurchasePlan(
+            Long propertyId, Long userId, RealEstatePropertyRequest request) {
+        return updatePropertyInternal(propertyId, userId, request, true);
+    }
+
+    private RealEstatePropertyResponse updatePropertyInternal(
+            Long propertyId,
+            Long userId,
+            RealEstatePropertyRequest request,
+            boolean completingPlan) {
         if (propertyId == null) {
             throw new IllegalArgumentException("Property ID cannot be null");
         }
@@ -302,6 +325,13 @@ public class RealEstateService {
                                         RealEstatePropertyNotFoundException.byIdAndUser(
                                                 propertyId, userId));
 
+        if (!completingPlan
+                && property.getAcquisitionType() == AcquisitionType.PLANNED
+                && request.getAcquisitionType() != null
+                && request.getAcquisitionType() != AcquisitionType.PLANNED) {
+            throw new InvalidTransactionException(
+                    "Use Complete purchase to review funding and acquire this plan");
+        }
         // Capture snapshot before update for history
         RealEstatePropertyResponse beforeSnapshot = toResponseWithDecryption(property);
 
@@ -390,6 +420,14 @@ public class RealEstateService {
 
         if (updatedProperty.getAssetId() != null) {
             updateLinkedAsset(userId, updatedProperty, request);
+        }
+
+        if (request.isMortgageIdPresent() || request.getMortgageId() != null) {
+            assetFinancingService.synchronizePrimary(
+                    userId,
+                    property.getAssetId(),
+                    beforeSnapshot.getMortgageId(),
+                    request.getMortgageId());
         }
 
         log.info("Property updated successfully: id={}, userId={}", propertyId, userId);
@@ -596,6 +634,7 @@ public class RealEstateService {
 
         // Decrypt and convert to response DTOs
         return properties.stream()
+                .filter(property -> includeInactive || property.getSoldDate() == null)
                 .map(property -> toResponseWithDecryption(property))
                 .collect(Collectors.toList());
     }
@@ -945,13 +984,18 @@ public class RealEstateService {
                                 transactionRepository.findByRealEstateIdAndUserId(
                                         propertyId, userId)));
         // Capitalized expenditure is an investment contribution, not appreciation.
-        BigDecimal appreciation = currentValue.subtract(costBasis);
+        BigDecimal performanceBasis =
+                property.getAcquisitionValue() == null
+                        ? null
+                        : property.getAcquisitionValue().add(costBasis.subtract(purchasePrice));
+        BigDecimal appreciation =
+                performanceBasis == null ? null : currentValue.subtract(performanceBasis);
         BigDecimal appreciationPercentage = null;
 
-        if (costBasis.compareTo(BigDecimal.ZERO) > 0) {
+        if (performanceBasis != null && performanceBasis.signum() > 0) {
             appreciationPercentage =
                     appreciation
-                            .divide(costBasis, SCALE, RoundingMode.HALF_UP)
+                            .divide(performanceBasis, SCALE, RoundingMode.HALF_UP)
                             .multiply(MathConstants.HUNDRED)
                             .setScale(2, RoundingMode.HALF_UP);
         }
@@ -1000,7 +1044,7 @@ public class RealEstateService {
         BigDecimal totalROI = null;
         BigDecimal annualizedReturn = null;
 
-        if (costBasis.compareTo(BigDecimal.ZERO) > 0) {
+        if (performanceBasis != null && performanceBasis.signum() > 0) {
             BigDecimal totalGain = appreciation;
             if (totalRentalIncome != null) {
                 totalGain = totalGain.add(totalRentalIncome);
@@ -1008,14 +1052,14 @@ public class RealEstateService {
 
             totalROI =
                     totalGain
-                            .divide(costBasis, SCALE, RoundingMode.HALF_UP)
+                            .divide(performanceBasis, SCALE, RoundingMode.HALF_UP)
                             .multiply(MathConstants.HUNDRED)
                             .setScale(2, RoundingMode.HALF_UP);
 
             annualizedReturn =
                     org.openfinance.util.AnnualizedReturns.compound(
-                            costBasis,
-                            costBasis.add(totalGain),
+                            performanceBasis,
+                            performanceBasis.add(totalGain),
                             property.getPurchaseDate(),
                             LocalDate.now());
         }
@@ -1029,6 +1073,8 @@ public class RealEstateService {
                 .propertyName(propertyName)
                 .purchasePrice(purchasePrice)
                 .costBasis(costBasis)
+                .receivedValue(property.getReceivedValue())
+                .performanceBasis(performanceBasis)
                 .currentValue(currentValue)
                 .purchaseDate(property.getPurchaseDate())
                 .yearsOwned(yearsOwned)
@@ -1120,8 +1166,8 @@ public class RealEstateService {
     }
 
     /**
-     * Applies a capitalized improvement to a property (spec §3.3): increases the current value by
-     * the improvement amount, records a value history entry and invalidates net worth snapshots
+     * Applies the explicitly chosen valuation increase for an improvement. The expense and cost
+     * basis are recorded independently. Records a value history entry and invalidates snapshots
      * from the movement date onward.
      *
      * <p>Currency guard (Task 6/9): {@code movementCurrency} — the currency the user actually
@@ -1131,7 +1177,7 @@ public class RealEstateService {
      *
      * @param propertyId the ID of the property being improved
      * @param userId the owner's ID
-     * @param amount the improvement amount in the property's currency
+     * @param amount the chosen valuation increase in the property's currency
      * @param movementDate the movement date (history effective date, snapshot invalidation start)
      * @param movementCurrency the currency the movement is expressed in (must match the property's)
      */
@@ -1178,6 +1224,7 @@ public class RealEstateService {
             throw InvalidTransactionException.improvementCurrencyMismatch(
                     movementCurrency, property.getCurrency(), propertyId, "property");
         }
+        if (amount.signum() == 0) return;
         recordValueAdjustment(property, amount, movementDate, recordedAt);
         synchronizeValuation(property, userId);
         invalidateSnapshotsFrom(userId, movementDate);
@@ -1206,6 +1253,7 @@ public class RealEstateService {
             BigDecimal amount,
             LocalDate movementDate,
             java.time.LocalDateTime recordedAt) {
+        if (amount.signum() == 0) return;
         RealEstateProperty property =
                 realEstateRepository
                         .findByIdAndUserId(propertyId, userId)
@@ -1323,6 +1371,7 @@ public class RealEstateService {
         property.setAddress(request.getAddress());
         property.setPurchasePrice(request.getPurchasePrice().toString());
         property.setCurrentValue(request.getCurrentValue().toString());
+        property.setReceivedValue(request.getReceivedValue());
 
         if (request.getRentalIncome() != null) {
             property.setRentalIncome(request.getRentalIncome().toString());
@@ -1350,6 +1399,7 @@ public class RealEstateService {
         assetRequest.setPurchaseDate(request.getPurchaseDate());
         assetRequest.setCurrency(property.getCurrency());
         assetRequest.setAcquisitionType(property.getAcquisitionType());
+        assetRequest.setReceivedValue(property.getReceivedValue());
         assetRequest.setNotes("Linked to Real Estate Property: " + request.getAddress());
 
         // Physical asset fields
@@ -1379,6 +1429,7 @@ public class RealEstateService {
         assetRequest.setPurchaseDate(request.getPurchaseDate());
         assetRequest.setCurrency(property.getCurrency());
         assetRequest.setAcquisitionType(property.getAcquisitionType());
+        assetRequest.setReceivedValue(property.getReceivedValue());
 
         // We don't want to overwrite other fields if they are null in the request?
         // RealEstatePropertyRequest usually has all fields for update.
@@ -1412,7 +1463,14 @@ public class RealEstateService {
         RealEstatePropertyResponse response = realEstateMapper.toResponse(property);
 
         // Manually set isActive (MapStruct has issues with boolean "is" prefix fields)
-        response.setActive(property.isActive());
+        response.setActive(property.isActive() && property.getSoldDate() == null);
+        response.setOwnershipStatus(
+                property.getSoldDate() != null
+                        ? "CLOSED"
+                        : property.getAcquisitionType()
+                                        == org.openfinance.entity.AcquisitionType.PLANNED
+                                ? "PLANNED"
+                                : "OWNED");
 
         // Get fields (decrypted by JPA converter)
         response.setName(property.getName());
@@ -1443,13 +1501,33 @@ public class RealEstateService {
                         org.openfinance.util.CapitalizedCosts.total(
                                 transactionRepository.findByRealEstateIdAndUserId(
                                         property.getId(), property.getUserId())));
-        BigDecimal appreciation = currentValue.subtract(costBasis);
+        BigDecimal performanceBasis =
+                property.getAcquisitionValue() == null
+                        ? null
+                        : property.getAcquisitionValue().add(costBasis.subtract(purchasePrice));
+        BigDecimal appreciation =
+                performanceBasis == null ? null : currentValue.subtract(performanceBasis);
         response.setAppreciation(appreciation);
+        response.setPerformanceBasis(performanceBasis);
+        if (property.getSaleTransactionId() != null) {
+            transactionRepository
+                    .findByIdAndUserId(property.getSaleTransactionId(), property.getUserId())
+                    .ifPresent(
+                            sale -> {
+                                response.setSaleProceeds(sale.getAmount());
+                                response.setRealizedGain(
+                                        performanceBasis == null
+                                                ? null
+                                                : sale.getAmount().subtract(performanceBasis));
+                            });
+        }
+        response.setAppreciationPercentage(null);
+        response.setRoi(null);
 
-        if (costBasis.compareTo(BigDecimal.ZERO) > 0) {
+        if (performanceBasis != null && performanceBasis.signum() > 0) {
             BigDecimal appreciationPercentage =
                     appreciation
-                            .divide(costBasis, SCALE, RoundingMode.HALF_UP)
+                            .divide(performanceBasis, SCALE, RoundingMode.HALF_UP)
                             .multiply(MathConstants.HUNDRED)
                             .setScale(2, RoundingMode.HALF_UP);
             response.setAppreciationPercentage(appreciationPercentage);
@@ -1531,10 +1609,10 @@ public class RealEstateService {
 
         // Calculate ROI (simplified - just appreciation for now, full calculation in
         // calculateROI method)
-        if (costBasis.compareTo(BigDecimal.ZERO) > 0) {
+        if (performanceBasis != null && performanceBasis.signum() > 0) {
             BigDecimal roi =
                     appreciation
-                            .divide(costBasis, SCALE, RoundingMode.HALF_UP)
+                            .divide(performanceBasis, SCALE, RoundingMode.HALF_UP)
                             .multiply(MathConstants.HUNDRED)
                             .setScale(2, RoundingMode.HALF_UP);
             response.setRoi(roi);

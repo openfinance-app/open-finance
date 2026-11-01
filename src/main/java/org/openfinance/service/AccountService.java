@@ -1298,22 +1298,34 @@ public class AccountService {
                             .build());
         }
 
-        // Add the total value of linked assets to the account's balance, converting each asset's
-        // value from its own currency to the account currency (Requirement REQ-3.1).
+        // An account association is not a cash payment. Only financial holdings belong in a
+        // portfolio total; a linked car or property must never inflate spendable cash.
         List<org.openfinance.entity.Asset> linkedAssets =
                 assetRepository.findByAccountId(account.getId());
         java.math.BigDecimal assetsTotalValue =
                 linkedAssets.stream()
+                        .filter(asset -> asset.getSoldDate() == null)
+                        .filter(asset -> account.getType() == AccountType.INVESTMENT)
                         .filter(
                                 asset ->
                                         asset.getAcquisitionType()
                                                 != org.openfinance.entity.AcquisitionType.PLANNED)
+                        .filter(
+                                asset ->
+                                        !asset.getType().isPhysical()
+                                                && asset.getType()
+                                                        != org.openfinance.entity.AssetType
+                                                                .REAL_ESTATE)
                         .map(asset -> convertAssetValueToAccountCurrency(asset, account))
                         .reduce(java.math.BigDecimal.ZERO, java.math.BigDecimal::add);
 
-        java.math.BigDecimal totalBalance = account.getBalance().add(assetsTotalValue);
+        java.math.BigDecimal totalBalance =
+                account.getType() == AccountType.INVESTMENT
+                        ? account.getBalance().add(assetsTotalValue)
+                        : account.getBalance();
         // Expose the raw balance (without linked assets) so edit forms don't double it.
         response.setOwnBalance(account.getBalance());
+        response.setHoldingsValue(assetsTotalValue);
         response.setBalance(totalBalance);
 
         // Populate currency conversion metadata (Requirement REQ-3.1, REQ-3.5)

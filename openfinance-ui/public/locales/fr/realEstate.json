@@ -42,7 +42,7 @@
     "propertyType": "Type de bien",
     "status": "Statut",
     "active": "Actifs",
-    "inactive": "Inactifs",
+    "inactive": "Vendus / inactifs",
     "allStatuses": "Tous les statuts",
     "sortBy": "Trier par",
     "minValue": "Valeur min.",
@@ -107,7 +107,7 @@
     "selectCurrency": "Sélectionner une devise...",
     "linkedMortgage": "Hypothèque liée (Facultatif)",
     "selectMortgage": "Sélectionner une hypothèque...",
-    "monthlyRentalIncome": "Revenus locatifs mensuels",
+    "monthlyRentalIncome": "Loyer mensuel attendu",
     "latitude": "Latitude (Facultatif)",
     "longitude": "Longitude (Facultatif)",
     "notes": "Notes (Facultatif)",
@@ -148,13 +148,19 @@
     "financingAndRent": "Emprunt et loyer (facultatif)",
     "financingAndRentHint": "Liez un emprunt existant ou indiquez le loyer mensuel. Les emprunts peuvent aussi être gérés après l’enregistrement.",
     "moreDetails": "Localisation, notes et statut (facultatif)",
-    "moreDetailsHint": "Coordonnées sur la carte et informations complémentaires."
+    "moreDetailsHint": "Coordonnées sur la carte et informations complémentaires.",
+    "targetPrice": "Prix visé",
+    "targetDate": "Date prévue",
+    "receivedDate": "Date de réception",
+    "receivedValue": "Valeur totale à la réception",
+    "acquisitionCost": "Coût d’acquisition",
+    "receivedValueHelp": "Permet de mesurer les variations depuis la réception de ce don. Laissez vide si cette valeur est inconnue."
   },
   "card": {
     "purchased": "Acquis le",
     "appreciation": "Plus-value",
     "equity": "Capitaux propres",
-    "monthlyRent": "Loyer mensuel",
+    "monthlyRent": "Loyer mensuel attendu",
     "inactive": "Inactif",
     "deleteTitle": "Supprimer le bien",
     "deleteConfirm": "Êtes-vous sûr de vouloir supprimer \"{{name}}\" ? Cette action est irréversible."
@@ -191,14 +197,14 @@
     "totalAppreciation": "Plus-value totale",
     "annualizedReturnLabel": "Rendement annualisé",
     "annualizedReturnConvention": "Rendement composé sur la durée de détention, à partir de la valeur actuelle et des loyers nets estimés conservés en trésorerie.",
-    "rentalIncome": "Revenus locatifs",
+    "rentalIncome": "Revenus locatifs estimés",
     "totalRentalIncome": "Revenus locatifs totaux",
     "rentalYield": "Rendement locatif",
     "rentalYieldValue": "{{percentage}}% par an",
     "basedOnCurrentValue": "Basé sur la valeur actuelle du bien",
     "loadROIError": "Échec du chargement des données de ROI.",
     "linkedMortgage": "Hypothèque liée",
-    "monthlyRentalIncome": "Revenus locatifs mensuels",
+    "monthlyRentalIncome": "Loyer mensuel attendu",
     "notes": "Notes",
     "location": "Emplacement",
     "latitude": "Latitude",
@@ -209,7 +215,8 @@
       "empty": "Aucune image pour le moment. Téléversez des images dans l’onglet Pièces jointes.",
       "hint": "Gérez les images dans l’onglet Pièces jointes."
     },
-    "sections": "Rubriques du bien"
+    "sections": "Rubriques du bien",
+    "performanceBasis": "Base de performance (améliorations incluses)"
   },
   "propertySelector": {
     "selectProperty": "Sélectionner un bien existant...",
@@ -671,9 +678,9 @@
     "error": "L'achat n'a pas pu être finalisé. Veuillez réessayer.",
     "existingMortgage": "Prêt existant",
     "funding": {
-      "new": "Nouveau prêt hypothécaire",
-      "existing": "Prêt existant",
-      "none": "Comptant (sans prêt)"
+      "new": "Mon apport + un nouveau prêt",
+      "existing": "Mon apport + un prêt existant",
+      "none": "Mon argent"
     },
     "fundingLocked": "Financement verrouillé : le bien a déjà été créé avec son prêt associé. Réessayez l'achat ou annulez.",
     "fundingSource": "Source de financement",
@@ -692,11 +699,32 @@
       "funding": "Financement",
       "review": "Récapitulatif"
     },
-    "fundingCurrency": "Choisissez un compte de financement et un prêt en {{currency}}.",
+    "fundingCurrency": "Utilisez un compte et, si nécessaire, un prêt en {{currency}}.",
     "fundingMismatch": "Le prêt et votre apport doivent couvrir exactement le prix d’achat.",
     "purchasePaymentDescription": "Paiement de l’achat de {{name}}",
     "accountPayment": "Paiement depuis le compte",
-    "downPaymentCalculated": "Calculé à partir du prix d’achat moins l’emprunt. Ajustez si besoin ; le total doit correspondre au prix d’achat."
+    "downPaymentCalculated": "Calculé à partir du prix d’achat moins l’emprunt. Ajustez si besoin ; le total doit correspondre au prix d’achat.",
+    "paidFrom": "Compte débité",
+    "purchasePayment": "Paiement de l’achat",
+    "cashPaymentHelp": "Le prix d’achat est intégralement débité de ce compte.",
+    "cashChange": "Variation des liquidités",
+    "cashAfter": "Liquidités du compte après achat",
+    "debtAfter": "Capital dû après achat",
+    "loanCredit": "Fonds du prêt versés au compte",
+    "netWorthChange": "Variation du patrimoine net",
+    "valuationReview": "La valeur initiale diffère du prix d’achat. L’écart modifie immédiatement votre patrimoine net ; vérifiez que cette valorisation est intentionnelle.",
+    "zeroValuationReview": "La valeur initiale est nulle. Cet achat réduira votre patrimoine net du prix d’achat total.",
+    "loanName": "Nom du prêt",
+    "existingLoan": "Prêt existant",
+    "chooseLoan": "Choisir un prêt",
+    "knownTerms": "Conditions de paiement connues (facultatif)",
+    "termsHint": "Indiquez les conditions connues. Les estimations restent indisponibles sans informations suffisantes.",
+    "monthlyPayment": "Mensualité",
+    "endDate": "Date de dernière échéance",
+    "receiptTiming": "Fonds du prêt",
+    "newReceipt": "Enregistrer un nouveau versement",
+    "alreadyReceived": "Déjà reçus sur mon compte",
+    "existingReceiptHint": "Liez le versement existant. Cet achat ne crédite pas à nouveau le compte et ne majore pas la dette."
   },
   "movementPaging": {
     "label": "Pages des mouvements",
@@ -786,7 +814,12 @@
     "buyHint": "Renseignez le bien, l’emprunt et le paiement, puis vérifiez avant de valider.",
     "planned": "Préparer un futur achat",
     "plannedHint": "Suivez un projet sans l’inclure dans votre patrimoine actuel.",
-    "back": "Retour aux choix"
+    "back": "Retour aux choix",
+    "gift": "Don ou héritage",
+    "giftHint": "Enregistrer la valeur reçue sans paiement d’achat."
   },
-  "saveError": "Impossible d’enregistrer ce bien. Vos saisies ont été conservées. Réessayez."
+  "saveError": "Impossible d’enregistrer ce bien. Vos saisies ont été conservées. Réessayez.",
+  "performanceUnavailable": "Performance indisponible : renseignez la valeur à la réception.",
+  "notApplicable": "N/D",
+  "plannedNotice": "Cette acquisition est prévue. Elle est exclue du patrimoine détenu et de la performance."
 }

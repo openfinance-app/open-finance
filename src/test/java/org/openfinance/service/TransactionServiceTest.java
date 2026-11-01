@@ -48,10 +48,12 @@ import org.openfinance.exception.InvalidTransactionException;
 import org.openfinance.exception.TransactionNotFoundException;
 import org.openfinance.mapper.TransactionMapper;
 import org.openfinance.repository.AccountRepository;
+import org.openfinance.repository.AssetRepository;
 import org.openfinance.repository.CategoryRepository;
 import org.openfinance.repository.CurrencyRepository;
 import org.openfinance.repository.NetWorthRepository;
 import org.openfinance.repository.PayeeRepository;
+import org.openfinance.repository.RealEstateRepository;
 import org.openfinance.repository.TransactionRepository;
 import org.openfinance.repository.UserRepository;
 import org.openfinance.security.EncryptionService;
@@ -100,6 +102,10 @@ class TransactionServiceTest {
     @Mock private SearchTokenService searchTokenService;
 
     @Mock private DefaultCurrencyProvider defaultCurrencyProvider;
+
+    @Mock private AssetRepository assetRepository;
+
+    @Mock private RealEstateRepository realEstateRepository;
 
     @InjectMocks private TransactionService transactionService;
 

@@ -79,7 +79,22 @@
     "repaymentDetailsHint": "Intérêts, mensualité, assurance, frais et date de fin.",
     "lenderDetails": "Prêteur et notes (facultatif)",
     "noProperty": "Aucun bien lié",
-    "linkToPropertyHint": "Associe cet emprunt au bien sans enregistrer de paiement."
+    "linkToPropertyHint": "Associe cet emprunt au bien sans enregistrer de paiement.",
+    "intent": "Que souhaitez-vous enregistrer ?",
+    "intents": {
+      "existing": "J’ai déjà une dette",
+      "new": "Je souscris un nouveau prêt",
+      "approved": "Des fonds approuvés mais pas encore reçus"
+    },
+    "intentHints": {
+      "existing": "Enregistre une dette initiale. Aucun compte n’est crédité.",
+      "new": "Enregistrez le prêt, puis utilisez Recevoir les fonds pour indiquer le versement réel et sa destination.",
+      "approved": "Enregistre le montant approuvé sans dette restante. Recevez les fonds lorsque le prêteur les verse."
+    },
+    "paidHistory": "Ancien prêt remboursé (facultatif)",
+    "financedAsset": "Bien financé (facultatif)",
+    "noAsset": "Aucun bien lié",
+    "assetLinkHint": "Associe le prêt à ce bien sans créer de paiement ni changer sa valeur."
   },
   "summary": {
     "totalLiabilities": "Total des passifs",
@@ -142,7 +157,7 @@
     }
   },
   "amortization": {
-    "noSchedule": "Aucun tableau d'amortissement disponible pour ce passif.",
+    "noSchedule": "L’estimation du remboursement est indisponible. Renseignez ou vérifiez les modalités de remboursement.",
     "title": "Tableau d'amortissement",
     "interestRate": "Taux d'intérêt",
     "monthlyPayment": "Mensualité",
@@ -172,7 +187,10 @@
       "insurance": "Assurance"
     },
     "pastContract": "Avec cette mensualité, le remboursement est prévu le {{payoff}}, après l’échéance contractuelle du {{contract}}. Vérifiez la mensualité ou les conditions du contrat.",
-    "incomplete": "Cet échéancier ne rembourse pas tout le capital. Vérifiez la mensualité et la période de différé."
+    "incomplete": "Cet échéancier ne rembourse pas tout le capital. Vérifiez la mensualité et la période de différé.",
+    "paidOff": "Aucun paiement restant : cet emprunt est remboursé.",
+    "undrawn": "Aucun échéancier pour le moment : ce prêt n’a pas encore été débloqué.",
+    "noBalance": "Aucun capital restant dû à planifier."
   },
   "breakdown": {
     "loadError": "Impossible de charger la décomposition. Veuillez réessayer.",
@@ -195,10 +213,11 @@
     "annualInsuranceRate": "Taux d'assurance annuel ({{rate}}%)",
     "oneTimeFee": "Frais uniques",
     "institution": "Établissement",
-    "otherChargesPaid": "Autres charges enregistrées"
+    "otherChargesPaid": "Autres charges enregistrées",
+    "forecastUnavailable": "L’estimation du remboursement est indisponible. Renseignez ou vérifiez les modalités de remboursement."
   },
   "drawdowns": {
-    "tab": "Tirages",
+    "tab": "Financement par étapes",
     "title": "Tirages planifiés",
     "tranche": "Tranche",
     "status": {
@@ -208,7 +227,7 @@
     },
     "planned": "Prévu",
     "drawn": "Tiré",
-    "remaining": "Restant",
+    "remaining": "Capital restant dû",
     "linkedProperty": "Bien #{{id}}",
     "interestOnly": "Intérêts seuls",
     "empty": "Ce passif n’a aucune tranche de tirage planifiée pour le moment.",
@@ -225,19 +244,22 @@
       "error": "La tranche n'a pas pu être créée. Veuillez réessayer."
     },
     "draw": "Débloquer",
-    "disburse": "Débloquer des fonds",
+    "disburse": "Recevoir les fonds",
     "disburseForm": {
-      "title": "Débloquer des fonds",
+      "title": "Recevoir les fonds du prêt",
       "amount": "Montant",
       "date": "Date",
       "route": "Destination",
       "routeAccount": "Vers mon compte",
-      "routeProperty": "Directement vers le bien lié",
+      "routeProperty": "Directement au vendeur",
       "valuationPolicy": "Le déblocage augmente le solde du prêt. La valeur du bien se renseigne séparément dans sa valorisation.",
       "account": "Compte",
       "cancel": "Annuler",
       "submit": "Confirmer le déblocage",
-      "error": "Le déblocage a échoué. Veuillez réessayer."
+      "error": "Le déblocage a échoué. Veuillez réessayer.",
+      "target": "Bien financé",
+      "debtAfter": "Nouveau solde du prêt",
+      "valueChange": "Variation de la valeur du bien"
     },
     "reverse": "Annuler le déblocage",
     "reversedOn": "Annulé le {{date}}",
@@ -297,5 +319,23 @@
     "assets": "Biens liés"
   },
   "saveError": "Le passif n’a pas pu être enregistré. Veuillez réessayer.",
-  "deleteError": "Le passif n’a pas pu être supprimé. Veuillez réessayer."
+  "deleteError": "Le passif n’a pas pu être supprimé. Veuillez réessayer.",
+  "recordPayment": {
+    "title": "Enregistrer un remboursement",
+    "hint": "Utilisez les montants du relevé de votre prêteur : le total payé et la part remboursant le capital. Les intérêts et frais ne réduisent pas la dette.",
+    "amount": "Paiement total",
+    "principal": "Capital remboursé",
+    "account": "Payé depuis",
+    "date": "Date de paiement",
+    "chooseAccount": "Choisir un compte",
+    "amountInvalid": "Saisissez un paiement positif et un capital positif ou nul.",
+    "principalInvalid": "Le capital ne peut dépasser le paiement ni la dette restante.",
+    "dateInvalid": "Choisissez une date entre le début de l’emprunt et aujourd’hui.",
+    "description": "Remboursement : {{name}}",
+    "cashChange": "Variation de trésorerie",
+    "debtAfter": "Dette après paiement",
+    "cancel": "Annuler",
+    "confirm": "Confirmer le paiement",
+    "error": "Le paiement n’a pas pu être enregistré. Vos saisies sont conservées."
+  }
 }

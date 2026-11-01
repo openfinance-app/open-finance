@@ -19,8 +19,11 @@ public class PropertyPurchaseRequest {
 
     @NotNull private UUID operationId;
     @Valid @NotNull private RealEstatePropertyRequest property;
+    private Long plannedPropertyId;
+    private Long existingPaymentId;
     @Valid private LiabilityRequest newMortgage;
     private Long existingMortgageId;
+    private Long existingLoanReceiptId;
 
     @NotNull
     @DecimalMin("0")

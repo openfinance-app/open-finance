@@ -16,11 +16,9 @@ import org.springframework.data.jpa.domain.Specification;
  * <p>This class creates type-safe JPA Criteria queries based on search criteria. It builds dynamic
  * WHERE clauses by combining multiple predicates with AND logic.
  *
- * <p><strong>Note on Encrypted Fields:</strong> The keyword search operates on encrypted name
- * field, so it can only match exact encrypted values. For proper keyword search, the service layer
- * should decrypt fields before comparison (not ideal for large datasets). This implementation
- * provides basic database-level filtering; full-text search would require decryption in application
- * layer or use of searchable encryption.
+ * <p><strong>Note on Encrypted Fields:</strong> Name and quantity are encrypted. Keyword, value,
+ * and ownership-status filters are applied to decrypted responses by the service before pagination.
+ * This specification only filters fields that can be compared at the database level.
  *
  * @see AssetSearchCriteria
  * @see org.openfinance.entity.Asset
@@ -37,7 +35,6 @@ public class AssetSpecification {
      *
      * <ul>
      *   <li>userId = ? (always included for security)
-     *   <li>keyword - LIKE search on name (if provided)
      *   <li>type = ? (if provided)
      *   <li>accountId = ? (if provided)
      *   <li>currency = ? (if provided)
@@ -62,15 +59,6 @@ public class AssetSpecification {
 
             // Always filter by userId (security)
             predicates.add(criteriaBuilder.equal(root.get("userId"), userId));
-
-            // Keyword search on asset name
-            // Note: This searches encrypted field, so exact match only
-            // For production, consider decrypt-then-search in service layer
-            if (criteria.getKeyword() != null && !criteria.getKeyword().trim().isEmpty()) {
-                String keyword = "%" + criteria.getKeyword().toLowerCase() + "%";
-                predicates.add(
-                        criteriaBuilder.like(criteriaBuilder.lower(root.get("name")), keyword));
-            }
 
             // Filter by asset type
             if (criteria.getType() != null) {

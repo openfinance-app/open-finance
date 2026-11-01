@@ -26,6 +26,9 @@ import type { LiabilityRequest } from '@/types/liability';
 
 export interface PropertyPurchaseRequest {
   operationId: string;
+  plannedPropertyId?: number;
+  existingPaymentId?: number;
+  existingLoanReceiptId?: number;
   property: RealEstatePropertyRequest;
   newMortgage?: LiabilityRequest;
   existingMortgageId?: number;

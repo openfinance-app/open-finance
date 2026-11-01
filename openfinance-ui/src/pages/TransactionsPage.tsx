@@ -1,4 +1,5 @@
 import { BulkSelection, BulkToolbar } from '@/components/bulk/BulkSelection';
+import { apiErrorMessage } from '@/utils/api-error';
 /**
  * TransactionsPage Component
  * Task 3.2.13: Create TransactionsPage component
@@ -46,6 +47,7 @@ const VALID_TYPES = ['INCOME', 'EXPENSE', 'TRANSFER'] as const;
 
 export default function TransactionsPage() {
   const { t } = useTranslation('transactions');
+  const [saveError, setSaveError] = useState<string | null>(null);
   useDocumentTitle(t('title'));
   const location = useLocation();
   const navigate = useNavigate();
@@ -190,11 +192,13 @@ export default function TransactionsPage() {
   }, [highlightId, listedHighlight, fetchedHighlight, searchParams, setSearchParams]);
 
   const handleCreate = () => {
+    setSaveError(null);
     setEditingTransaction(null);
     setIsFormOpen(true);
   };
 
   const handleEdit = async (transaction: Transaction) => {
+    setSaveError(null);
     setEditError(false);
     try {
       const source =
@@ -213,6 +217,7 @@ export default function TransactionsPage() {
   };
 
   const handleFormSubmit = async (data: TransactionRequest) => {
+    setSaveError(null);
     try {
       if (editingTransaction) {
         // Check if this is a transfer transaction
@@ -253,7 +258,7 @@ export default function TransactionsPage() {
       setIsFormOpen(false);
       setEditingTransaction(null);
     } catch (error) {
-      console.error('Failed to save transaction:', error);
+      setSaveError(apiErrorMessage(error, t('form.saveError')));
     }
   };
 
@@ -439,6 +444,11 @@ export default function TransactionsPage() {
               updateTransfer.isPending
             }
           />
+          {saveError && (
+            <p role="alert" className="text-sm text-error">
+              {saveError}
+            </p>
+          )}
         </DialogContent>
       </Dialog>
 

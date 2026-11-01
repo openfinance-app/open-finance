@@ -7,6 +7,7 @@ import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.openfinance.dto.AssetGroup;
+import org.openfinance.dto.AssetOwnershipStatus;
 import org.openfinance.dto.AssetRequest;
 import org.openfinance.dto.AssetResponse;
 import org.openfinance.dto.AssetSearchCriteria;
@@ -299,6 +300,7 @@ public class AssetController {
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) AssetType type,
             @RequestParam(required = false) AssetGroup group,
+            @RequestParam(required = false) AssetOwnershipStatus ownershipStatus,
             @RequestParam(required = false) Long accountId,
             @RequestParam(required = false) String currency,
             @RequestParam(required = false) String symbol,
@@ -328,6 +330,7 @@ public class AssetController {
                         .keywordRegex(keywordRegex)
                         .type(type)
                         .group(group)
+                        .ownershipStatus(ownershipStatus)
                         .accountId(accountId)
                         .currency(currency)
                         .symbol(symbol)

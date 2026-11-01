@@ -58,18 +58,24 @@ interface AssetFormProps {
   asset?: Asset;
   initialType?: AssetType;
   kind?: 'physical' | 'financial';
+  initialAcquisitionType?: 'PURCHASE' | 'GIFT' | 'PLANNED';
   onSubmit: (data: AssetRequest) => void;
   onCancel: () => void;
   isLoading?: boolean;
+  purchaseMode?: boolean;
+  submitLabel?: string;
 }
 
 export function AssetForm({
   asset,
   initialType = 'STOCK',
   kind,
+  initialAcquisitionType = 'PURCHASE',
   onSubmit,
   onCancel,
   isLoading,
+  purchaseMode = false,
+  submitLabel,
 }: AssetFormProps) {
   const isEditing = !!asset;
   const { baseCurrency } = useAuthContext();
@@ -107,6 +113,12 @@ export function AssetForm({
             .refine(
               v => isValidDecimalString(v) && new Decimal(v).gte(0),
               t('validation.quantityNonNegative')
+            ),
+          receivedValue: z
+            .string()
+            .refine(
+              v => v === '' || (isValidDecimalString(v) && Number(v) >= 0),
+              t('validation.purchasePriceInvalid')
             ),
           purchasePrice: z
             .string()
@@ -179,6 +191,7 @@ export function AssetForm({
             symbol: asset.symbol || '',
             quantity: decimalField(asset, 'quantity'),
             purchasePrice: decimalField(asset, 'purchasePrice'),
+            receivedValue: asset.receivedValue == null ? '' : decimalField(asset, 'receivedValue'),
             acquisitionType: asset.acquisitionType ?? 'PURCHASE',
             currentPrice: decimalField(asset, 'currentPrice'),
             currency: asset.currency,
@@ -198,7 +211,8 @@ export function AssetForm({
             symbol: '',
             quantity: isPhysicalAssetType(initialType) ? '1' : '0',
             purchasePrice: '0',
-            acquisitionType: 'PURCHASE',
+            receivedValue: '',
+            acquisitionType: initialAcquisitionType,
             currentPrice: '0',
             currency: baseCurrency || DEFAULT_CURRENCY,
             purchaseDate: today,
@@ -234,6 +248,11 @@ export function AssetForm({
   const selectedCurrency = watch('currency');
   const selectedType = watch('type');
   const acquisitionType = watch('acquisitionType');
+  const purchasePrice = watch('purchasePrice');
+  useEffect(() => {
+    if (purchaseMode && !getFieldState('currentPrice').isDirty)
+      setValue('currentPrice', purchasePrice);
+  }, [purchaseMode, purchasePrice, getFieldState, setValue]);
   const isPhysicalAsset = isPhysicalAssetType(selectedType);
   useEffect(() => {
     if (!isEditing && isPhysicalAsset && !getFieldState('quantity').isDirty)
@@ -251,6 +270,7 @@ export function AssetForm({
       symbol: data.symbol || undefined,
       quantity: data.quantity.trim(),
       purchasePrice: data.purchasePrice.trim(),
+      receivedValue: data.acquisitionType === 'GIFT' ? data.receivedValue.trim() || null : null,
       acquisitionType: data.acquisitionType,
       currentPrice: data.currentPrice.trim(),
       currency: data.currency,
@@ -272,7 +292,15 @@ export function AssetForm({
 
   return (
     <>
-      <form onSubmit={handleFormSubmit} noValidate className="space-y-4">
+      <form
+        onSubmit={handleFormSubmit}
+        noValidate
+        className={
+          purchaseMode
+            ? 'space-y-4 [&_input]:min-h-11 [&_input]:text-base [&_select]:min-h-11 [&_select]:text-base [&_input[inputmode=decimal]]:font-mono [&_input[inputmode=decimal]]:tabular-nums md:[&_input]:min-h-10 md:[&_input]:text-sm md:[&_select]:min-h-10 md:[&_select]:text-sm'
+            : 'space-y-4'
+        }
+      >
         {/* Top Row: Type and Account */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* Asset Type */}
@@ -340,7 +368,10 @@ export function AssetForm({
           )}
         </div>
 
-        {isPhysicalAsset && (
+        {!isPhysicalAsset && !isEditing && (
+          <p className="text-sm text-text-secondary">{t('ownership.investmentOpening')}</p>
+        )}
+        {isPhysicalAsset && !purchaseMode && (
           <div>
             <label htmlFor="acquisitionType">{t('form.acquisitionType')}</label>
             <select
@@ -348,13 +379,18 @@ export function AssetForm({
               {...register('acquisitionType')}
               className="w-full rounded border border-border bg-surface p-2"
             >
-              {(['PURCHASE', 'GIFT', 'PLANNED'] as const).map(type => (
-                <option key={type} value={type}>
-                  {t(`form.acquisitionTypes.${type}`)}
-                </option>
-              ))}
+              {(['PURCHASE', 'GIFT', 'PLANNED'] as const)
+                .filter(type => asset?.acquisitionType !== 'PLANNED' || type === 'PLANNED')
+                .map(type => (
+                  <option key={type} value={type}>
+                    {t(`form.acquisitionTypes.${type}`)}
+                  </option>
+                ))}
             </select>
           </div>
+        )}
+        {isPhysicalAsset && !isEditing && !purchaseMode && acquisitionType !== 'PLANNED' && (
+          <p className="text-sm text-text-secondary">{t('ownership.openingHint')}</p>
         )}
         {/* Second Row: Name and Symbol */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -426,7 +462,16 @@ export function AssetForm({
               htmlFor="purchasePrice"
               className="block text-sm font-medium text-text-primary mb-1.5"
             >
-              {t(isPhysicalAsset ? 'form.itemPurchasePrice' : 'form.purchasePrice')} *
+              {t(
+                acquisitionType === 'PLANNED'
+                  ? 'form.targetPrice'
+                  : acquisitionType === 'GIFT'
+                    ? 'form.acquisitionCost'
+                    : isPhysicalAsset
+                      ? 'form.itemPurchasePrice'
+                      : 'form.purchasePrice'
+              )}{' '}
+              *
             </label>
             <Controller
               name="purchasePrice"
@@ -441,7 +486,7 @@ export function AssetForm({
                     if (
                       !isEditing &&
                       isPhysicalAsset &&
-                      acquisitionType !== 'PLANNED' &&
+                      acquisitionType === 'PURCHASE' &&
                       !getFieldState('currentPrice').isDirty
                     )
                       setValue('currentPrice', value);
@@ -454,6 +499,33 @@ export function AssetForm({
               )}
             />
           </div>
+
+          {acquisitionType === 'GIFT' && (
+            <div>
+              <label
+                htmlFor="receivedValue"
+                className="block text-sm font-medium text-text-primary mb-1.5"
+              >
+                {t('form.receivedValue')}
+              </label>
+              <Controller
+                name="receivedValue"
+                control={control}
+                render={({ field }) => (
+                  <NumberInput
+                    id="receivedValue"
+                    value={field.value}
+                    onChange={field.onChange}
+                    onBlur={field.onBlur}
+                    min="0"
+                    placeholder="0.00"
+                    error={errors.receivedValue?.message}
+                  />
+                )}
+              />
+              <p className="text-xs text-text-secondary mt-1">{t('form.receivedValueHelp')}</p>
+            </div>
+          )}
 
           {/* Current Price */}
           <div>
@@ -522,7 +594,14 @@ export function AssetForm({
               htmlFor="purchaseDate"
               className="block text-sm font-medium text-text-primary mb-1.5"
             >
-              {t('form.purchaseDate')} *
+              {t(
+                acquisitionType === 'PLANNED'
+                  ? 'form.targetDate'
+                  : acquisitionType === 'GIFT'
+                    ? 'form.receivedDate'
+                    : 'form.purchaseDate'
+              )}{' '}
+              *
             </label>
             <Controller
               name="purchaseDate"
@@ -737,7 +816,7 @@ export function AssetForm({
             {t('form.cancel')}
           </Button>
           <Button variant="primary" type="submit" isLoading={isLoading}>
-            {isEditing ? t('form.updateAsset') : t('form.createAsset')}
+            {submitLabel ?? (isEditing ? t('form.updateAsset') : t('form.createAsset'))}
           </Button>
         </div>
       </form>

@@ -265,7 +265,7 @@ public class AssetService {
                         .model(patch.getModel())
                         .build();
         if (patch.isAccountIdPresent()) request.setAccountId(patch.getAccountId());
-        return updateAssetInternal(assetId, userId, request, false);
+        return updateAssetInternal(assetId, userId, request, false, false);
     }
 
     /**
@@ -309,11 +309,24 @@ public class AssetService {
             userArgument = 1,
             idArgument = 0)
     public AssetResponse updateAsset(Long assetId, Long userId, AssetRequest request) {
-        return updateAssetInternal(assetId, userId, request, false);
+        return updateAssetInternal(assetId, userId, request, false, false);
     }
 
     public AssetResponse updatePropertyAsset(Long assetId, Long userId, AssetRequest request) {
-        return updateAssetInternal(assetId, userId, request, true);
+        return updateAssetInternal(assetId, userId, request, true, true);
+    }
+
+    @CacheEvict(
+            value = {
+                "dashboardSummary",
+                "netWorthSummary",
+                "networthAllocation",
+                "assetAllocation",
+                "portfolioPerformance"
+            },
+            allEntries = true)
+    public AssetResponse completePurchasePlan(Long assetId, Long userId, AssetRequest request) {
+        return updateAssetInternal(assetId, userId, request, false, true);
     }
 
     private void validateImportedHoldingEdit(Asset asset, AssetRequest request) {
@@ -342,7 +355,11 @@ public class AssetService {
     }
 
     private AssetResponse updateAssetInternal(
-            Long assetId, Long userId, AssetRequest request, boolean propertyWrite) {
+            Long assetId,
+            Long userId,
+            AssetRequest request,
+            boolean propertyWrite,
+            boolean completingPlan) {
         log.debug("Updating asset {}: userId={}", assetId, userId);
 
         if (assetId == null) {
@@ -359,6 +376,13 @@ public class AssetService {
                 assetRepository
                         .findByIdAndUserId(assetId, userId)
                         .orElseThrow(() -> AssetNotFoundException.byIdAndUser(assetId, userId));
+        if (!completingPlan
+                && asset.getAcquisitionType() == AcquisitionType.PLANNED
+                && request.getAcquisitionType() != null
+                && request.getAcquisitionType() != AcquisitionType.PLANNED) {
+            throw new InvalidTransactionException(
+                    "Use Complete purchase to review funding and acquire this plan");
+        }
         if (!propertyWrite
                 && (asset.getType() == AssetType.REAL_ESTATE
                         || request.getType() == AssetType.REAL_ESTATE)) {
@@ -375,6 +399,15 @@ public class AssetService {
         validateImportedHoldingEdit(asset, request);
         if (request.getPurchaseDate() != null
                 && transactionRepository.findByAssetIdAndUserId(assetId, userId).stream()
+                        .filter(
+                                tx ->
+                                        !asset.isPhysical()
+                                                || tx.getMovementType()
+                                                        == org.openfinance.entity.MovementType
+                                                                .MAINTENANCE
+                                                || tx.getMovementType()
+                                                        == org.openfinance.entity.MovementType
+                                                                .CAPITAL_IMPROVEMENT)
                         .anyMatch(tx -> tx.getDate().isBefore(request.getPurchaseDate()))) {
             throw new InvalidTransactionException(
                     "Acquisition cannot follow an existing asset cost movement");
@@ -406,6 +439,7 @@ public class AssetService {
 
         // Update fields from request (only non-null fields will be copied)
         assetMapper.updateEntityFromRequest(request, asset);
+        if (request.isReceivedValuePresent()) asset.setReceivedValue(request.getReceivedValue());
         if (request.isAccountIdPresent() || request.getAccountId() != null) {
             asset.setAccountId(request.getAccountId());
             asset.setAccount(null);
@@ -552,6 +586,7 @@ public class AssetService {
         if (movementDate.isBefore(asset.getPurchaseDate())) {
             throw new InvalidTransactionException("An improvement cannot precede acquisition");
         }
+        if (amount.signum() == 0) return;
         if (improvementAffectsValue(asset, movementDate, recordedAt)) {
             asset.updateTotalValue(asset.getTotalValue().add(amount));
         }
@@ -603,6 +638,7 @@ public class AssetService {
             BigDecimal amount,
             LocalDate movementDate,
             LocalDateTime recordedAt) {
+        if (amount.signum() == 0) return;
         // Existing postings remain reversible even if a legacy type edit changed eligibility.
         Asset asset =
                 assetRepository
@@ -880,20 +916,29 @@ public class AssetService {
         boolean hasKeyword =
                 criteria.getKeyword() != null && !criteria.getKeyword().trim().isEmpty();
         boolean hasValueFilter = criteria.getValueMin() != null || criteria.getValueMax() != null;
+        boolean hasOwnershipFilter = criteria.getOwnershipStatus() != null;
         boolean sortInMemory =
                 pageable.getSort().stream()
                         .anyMatch(
                                 order -> IN_MEMORY_ASSET_SORT_FIELDS.contains(order.getProperty()));
 
-        if (hasKeyword || hasValueFilter || sortInMemory) {
-            // Name is encrypted and total value is quantity (also encrypted) * currentPrice, so
-            // keyword/value filtering and value/name sorting cannot run at the DB level. Fetch all
+        if (hasKeyword || hasValueFilter || hasOwnershipFilter || sortInMemory) {
+            // Name and quantity are encrypted; value and ownership status depend on quantity.
+            // These filters and value/name sorting cannot run at the DB level. Fetch all
             // assets matching the non-encrypted criteria, decrypt, then filter/sort/paginate here.
             Specification<Asset> spec = AssetSpecification.buildSpecification(userId, criteria);
             List<AssetResponse> results =
                     assetRepository.findAll(spec).stream()
                             .map(asset -> toResponseWithDecryption(asset))
                             .collect(Collectors.toList());
+
+            if (hasOwnershipFilter) {
+                String status = criteria.getOwnershipStatus().name();
+                results =
+                        results.stream()
+                                .filter(response -> status.equals(response.getOwnershipStatus()))
+                                .collect(Collectors.toList());
+            }
 
             if (hasKeyword) {
                 String keyword = criteria.getKeyword();
@@ -1001,6 +1046,12 @@ public class AssetService {
         for (Sort.Order order : sort) {
             Comparator<AssetResponse> next;
             switch (order.getProperty()) {
+                case "id":
+                    next =
+                            Comparator.comparing(
+                                    AssetResponse::getId,
+                                    Comparator.nullsLast(Comparator.naturalOrder()));
+                    break;
                 case "currentPrice":
                     next =
                             Comparator.comparing(
@@ -1149,6 +1200,7 @@ public class AssetService {
         // Group by currency and sum values
         Map<String, BigDecimal> valuesByCurrency =
                 assets.stream()
+                        .filter(asset -> asset.getSoldDate() == null)
                         .filter(
                                 asset ->
                                         asset.getAcquisitionType()
@@ -1193,6 +1245,7 @@ public class AssetService {
         // Group by currency and sum costs
         Map<String, BigDecimal> costsByCurrency =
                 assets.stream()
+                        .filter(asset -> asset.getSoldDate() == null)
                         .filter(
                                 asset ->
                                         asset.getAcquisitionType()
@@ -1306,17 +1359,68 @@ public class AssetService {
     }
 
     private AssetResponse toResponseWithDecryption(Asset asset) {
-        if (canReadSensitiveFields()) asset.setCapitalizedCost(capitalizedCost(asset));
+        if (canReadSensitiveFields()) {
+            asset.setCapitalizedCost(capitalizedCost(asset));
+            if (asset.getImportOpeningQuantity() != null) {
+                asset.setRemainingReceivedValue(
+                        org.openfinance.util.InvestmentHoldings.at(
+                                        asset,
+                                        transactionRepository.findByAssetIdAndUserId(
+                                                asset.getId(), asset.getUserId()),
+                                        LocalDate.MAX)
+                                .remainingReceivedValue());
+            }
+        }
         // Map to response first (mapper will populate calculated fields automatically)
         AssetResponse response = assetMapper.toResponse(asset);
+        if (canReadSensitiveFields() && asset.getImportOpeningQuantity() != null) {
+            response.setRealizedGain(
+                    org.openfinance.util.InvestmentHoldings.at(
+                                    asset,
+                                    transactionRepository.findByAssetIdAndUserId(
+                                            asset.getId(), asset.getUserId()),
+                                    LocalDate.MAX)
+                            .realizedGain());
+        }
         response.setInvestmentTracked(
                 asset.getImportSource() != null || asset.getImportOpeningQuantity() != null);
-        response.setIsActive(
-                asset.getType() != AssetType.REAL_ESTATE
-                        || realEstateRepository
-                                .findByAssetIdAndUserId(asset.getId(), asset.getUserId())
-                                .map(org.openfinance.entity.RealEstateProperty::isActive)
-                                .orElse(true));
+        boolean closed =
+                asset.getSoldDate() != null
+                        || (!asset.isPhysical()
+                                && asset.getType() != AssetType.REAL_ESTATE
+                                && response.isInvestmentTracked()
+                                && asset.getQuantity().signum() == 0);
+        response.setIsActive(!closed);
+        response.setOwnershipStatus(
+                closed
+                        ? "CLOSED"
+                        : asset.getAcquisitionType()
+                                        == org.openfinance.entity.AcquisitionType.PLANNED
+                                ? "PLANNED"
+                                : "OWNED");
+        if (asset.getSaleTransactionId() != null) {
+            transactionRepository
+                    .findByIdAndUserId(asset.getSaleTransactionId(), asset.getUserId())
+                    .ifPresent(
+                            sale -> {
+                                response.setSaleProceeds(sale.getAmount());
+                                response.setRealizedGain(
+                                        asset.getPerformanceBasis() == null
+                                                ? null
+                                                : sale.getAmount()
+                                                        .subtract(asset.getPerformanceBasis()));
+                            });
+        }
+        if (asset.getType() == AssetType.REAL_ESTATE) {
+            realEstateRepository
+                    .findByAssetIdAndUserId(asset.getId(), asset.getUserId())
+                    .ifPresent(
+                            property -> {
+                                response.setIsActive(
+                                        property.isActive() && property.getSoldDate() == null);
+                                response.setRealEstateId(property.getId());
+                            });
+        }
 
         // Standardize: if no key, return response with encrypted/null fields
         if (!canReadSensitiveFields()) {

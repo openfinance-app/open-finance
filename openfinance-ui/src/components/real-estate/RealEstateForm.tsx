@@ -55,6 +55,12 @@ const propertySchema = (tv: (key: string) => string) =>
         PropertyType.OTHER,
       ] as const),
       acquisitionType: z.enum(['PURCHASE', 'GIFT', 'PLANNED']),
+      receivedValue: z
+        .string()
+        .refine(
+          v => v === '' || (isValidDecimalString(v) && Number(v) >= 0),
+          tv('form.validation.priceInvalid')
+        ),
       purchasePrice: z
         .string()
         .min(1, tv('form.validation.priceInvalid'))
@@ -147,6 +153,8 @@ export function RealEstateForm({
           address: property.address,
           propertyType: property.propertyType,
           purchasePrice: decimalField(property, 'purchasePrice'),
+          receivedValue:
+            property.receivedValue == null ? '' : decimalField(property, 'receivedValue'),
           acquisitionType: property.acquisitionType ?? 'PURCHASE',
           purchaseDate: property.purchaseDate,
           currentValue: decimalField(property, 'currentValue'),
@@ -166,6 +174,7 @@ export function RealEstateForm({
           address: '',
           propertyType: PropertyType.RESIDENTIAL,
           purchasePrice: '0',
+          receivedValue: '',
           acquisitionType: initialAcquisitionType,
           purchaseDate: today,
           currentValue: '0',
@@ -191,6 +200,7 @@ export function RealEstateForm({
       address: data.address,
       propertyType: data.propertyType,
       purchasePrice: data.purchasePrice.trim(),
+      receivedValue: data.acquisitionType === 'GIFT' ? data.receivedValue.trim() || null : null,
       acquisitionType: data.acquisitionType,
       purchaseDate: data.purchaseDate,
       currentValue: data.currentValue.trim(),
@@ -226,11 +236,13 @@ export function RealEstateForm({
           {...register('acquisitionType')}
           className="w-full rounded border border-border bg-surface p-2"
         >
-          {(['PURCHASE', 'GIFT', 'PLANNED'] as const).map(type => (
-            <option key={type} value={type}>
-              {t(`form.acquisitionTypes.${type}`)}
-            </option>
-          ))}
+          {(['PURCHASE', 'GIFT', 'PLANNED'] as const)
+            .filter(type => property?.acquisitionType !== 'PLANNED' || type === 'PLANNED')
+            .map(type => (
+              <option key={type} value={type}>
+                {t(`form.acquisitionTypes.${type}`)}
+              </option>
+            ))}
         </select>
       </div>
       {/* Top Row: Property Name & Type */}
@@ -295,7 +307,14 @@ export function RealEstateForm({
             htmlFor="purchasePrice"
             className="block text-sm font-medium text-text-primary mb-1.5"
           >
-            {t('form.purchasePrice')} *
+            {t(
+              acquisitionType === 'PLANNED'
+                ? 'form.targetPrice'
+                : acquisitionType === 'GIFT'
+                  ? 'form.acquisitionCost'
+                  : 'form.purchasePrice'
+            )}{' '}
+            *
           </label>
           <Controller
             name="purchasePrice"
@@ -308,7 +327,7 @@ export function RealEstateForm({
                   field.onChange(value);
                   if (
                     !isEditing &&
-                    acquisitionType !== 'PLANNED' &&
+                    acquisitionType === 'PURCHASE' &&
                     !getFieldState('currentValue').isDirty
                   )
                     setValue('currentValue', value);
@@ -322,13 +341,47 @@ export function RealEstateForm({
           />
         </div>
 
+        {acquisitionType === 'GIFT' && (
+          <div>
+            <label
+              htmlFor="receivedValue"
+              className="block text-sm font-medium text-text-primary mb-1.5"
+            >
+              {t('form.receivedValue')}
+            </label>
+            <Controller
+              name="receivedValue"
+              control={control}
+              render={({ field }) => (
+                <NumberInput
+                  id="receivedValue"
+                  value={field.value}
+                  onChange={field.onChange}
+                  onBlur={field.onBlur}
+                  min="0"
+                  placeholder="0.00"
+                  error={errors.receivedValue?.message}
+                />
+              )}
+            />
+            <p className="text-xs text-text-secondary mt-1">{t('form.receivedValueHelp')}</p>
+          </div>
+        )}
+
         {/* Purchase Date */}
         <div>
           <label
             htmlFor="purchaseDate"
             className="block text-sm font-medium text-text-primary mb-1.5"
           >
-            {t('form.purchaseDate')} *
+            {t(
+              acquisitionType === 'PLANNED'
+                ? 'form.targetDate'
+                : acquisitionType === 'GIFT'
+                  ? 'form.receivedDate'
+                  : 'form.purchaseDate'
+            )}{' '}
+            *
           </label>
           <Controller
             name="purchaseDate"

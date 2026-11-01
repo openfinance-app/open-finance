@@ -36,12 +36,14 @@ import org.openfinance.exception.InvalidLiabilityStateException;
 import org.openfinance.exception.InvalidTransactionException;
 import org.openfinance.mapper.TransactionMapper;
 import org.openfinance.repository.AccountRepository;
+import org.openfinance.repository.AssetRepository;
 import org.openfinance.repository.CategoryRepository;
 import org.openfinance.repository.CurrencyRepository;
 import org.openfinance.repository.LiabilityRepository;
 import org.openfinance.repository.LiabilityTrancheRepository;
 import org.openfinance.repository.NetWorthRepository;
 import org.openfinance.repository.PayeeRepository;
+import org.openfinance.repository.RealEstateRepository;
 import org.openfinance.repository.TransactionRepository;
 import org.openfinance.repository.UserRepository;
 import org.openfinance.security.EncryptionService;
@@ -84,6 +86,10 @@ class FifoAllocationTest {
     @Mock private CurrencyConversionHelper currencyConversionHelperField;
     @Mock private LiabilityRepository liabilityRepository;
     @Mock private LiabilityTrancheRepository liabilityTrancheRepository;
+
+    @Mock private AssetRepository assetRepository;
+
+    @Mock private RealEstateRepository realEstateRepository;
 
     @InjectMocks private TransactionService transactionService;
     private org.openfinance.repository.LiabilityPrincipalAllocationRepository allocations;

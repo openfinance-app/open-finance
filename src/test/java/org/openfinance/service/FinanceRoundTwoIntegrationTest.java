@@ -207,6 +207,7 @@ class FinanceRoundTwoIntegrationTest extends AuditApiTestSupport {
         long property = property(owner).path("id").asLong();
         Map<String, Object> expense = movement(cash, 100, START.plusMonths(1));
         expense.putAll(data("realEstateId", property, "movementType", "CAPITAL_IMPROVEMENT"));
+        expense.put("valuationChange", expense.get("amount"));
         long transaction = json("POST", "/transactions", expense, owner, 201).path("id").asLong();
         json("PUT", "/real-estate/" + property + "/value", 1200, owner, 200);
         json("DELETE", "/transactions/" + transaction, null, owner, 204);
@@ -227,6 +228,7 @@ class FinanceRoundTwoIntegrationTest extends AuditApiTestSupport {
         long cash = account(owner), property = property(owner).path("id").asLong();
         Map<String, Object> expense = movement(cash, 100, LocalDate.now());
         expense.putAll(data("realEstateId", property, "movementType", "CAPITAL_IMPROVEMENT"));
+        expense.put("valuationChange", expense.get("amount"));
         long transaction = json("POST", "/transactions", expense, owner, 201).path("id").asLong();
         json("PUT", "/real-estate/" + property + "/value", 1500, owner, 200);
         json("DELETE", "/transactions/" + transaction, null, owner, 204);
@@ -241,6 +243,7 @@ class FinanceRoundTwoIntegrationTest extends AuditApiTestSupport {
         long id = json("POST", "/assets", asset, owner, 201).path("id").asLong();
         Map<String, Object> expense = movement(cash, 100, START.plusMonths(1));
         expense.putAll(data("assetId", id, "movementType", "CAPITAL_IMPROVEMENT"));
+        expense.put("valuationChange", expense.get("amount"));
         long transaction = json("POST", "/transactions", expense, owner, 201).path("id").asLong();
         jdbc.update("UPDATE assets SET valuation_recorded_at = NULL WHERE id = ?", id);
         JsonNode rejected = json("DELETE", "/transactions/" + transaction, null, owner, 409);
@@ -260,6 +263,7 @@ class FinanceRoundTwoIntegrationTest extends AuditApiTestSupport {
         long cash = account(owner), property = property(owner).path("id").asLong();
         Map<String, Object> expense = movement(cash, 100, START.plusMonths(1));
         expense.putAll(data("realEstateId", property, "movementType", "CAPITAL_IMPROVEMENT"));
+        expense.put("valuationChange", expense.get("amount"));
         json("POST", "/transactions", expense, owner, 201);
         JsonNode roi = json("GET", "/real-estate/" + property + "/roi", null, owner, 200);
         money(roi, "costBasis", "1100");

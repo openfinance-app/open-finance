@@ -1,6 +1,9 @@
+import { apiErrorMessage } from '@/utils/api-error';
+import { PropertyAssetCard } from '@/components/assets/PropertyAssetCard';
+import { getGainLossColor } from '@/utils/portfolio';
+import { AssetReturn } from '@/components/assets/AssetReturn';
 import { SelectionCheckbox } from '@/components/bulk/BulkSelection';
 import { formatExactNumber } from '@/utils/format';
-import { formatDecimal } from '@/utils/format';
 /**
  * AssetList Component
  * Task 5.2.9: Create AssetList component
@@ -21,7 +24,7 @@ import { PhysicalAssetCard } from './PhysicalAssetCard';
 import { ConvertedAmount } from '@/components/ui/ConvertedAmount';
 import { cn } from '@/lib/utils';
 import { multiply } from '@/utils/money';
-import { getAssetTypeName, getAssetTypeBadgeVariant, formatGainLoss } from '@/hooks/useAssets';
+import { getAssetTypeName, getAssetTypeBadgeVariant } from '@/hooks/useAssets';
 import type { Asset } from '@/types/asset';
 
 // Helper to check if asset is physical
@@ -43,7 +46,7 @@ interface SortConfig {
 interface AssetListProps {
   assets: Asset[];
   onEdit: (asset: Asset) => void;
-  onDelete: (assetId: number) => void;
+  onDelete: (assetId: number) => void | Promise<void>;
   onView?: (asset: Asset) => void;
   highlightedId?: number | null;
 }
@@ -69,6 +72,8 @@ export function AssetList({ assets, onEdit, onDelete, onView, highlightedId }: A
   const { t } = useTranslation('assets');
   const { t: tc } = useTranslation('common');
   const [deletingAsset, setDeletingAsset] = useState<Asset | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
   const [sortConfig, setSortConfig] = useState<SortConfig | null>(null);
 
   useEffect(() => {
@@ -84,13 +89,25 @@ export function AssetList({ assets, onEdit, onDelete, onView, highlightedId }: A
   }, [highlightedId, assets]);
 
   const handleDeleteClick = (asset: Asset) => {
+    if (isRealEstateAsset(asset.type)) {
+      onView?.(asset);
+      return;
+    }
+    setDeleteError(null);
     setDeletingAsset(asset);
   };
 
-  const handleConfirmDelete = () => {
-    if (deletingAsset) {
-      onDelete(deletingAsset.id);
+  const handleConfirmDelete = async () => {
+    if (!deletingAsset || deleting) return;
+    setDeleting(true);
+    setDeleteError(null);
+    try {
+      await onDelete(deletingAsset.id);
       setDeletingAsset(null);
+    } catch (error) {
+      setDeleteError(apiErrorMessage(error, t('deleteError')));
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -104,16 +121,15 @@ export function AssetList({ assets, onEdit, onDelete, onView, highlightedId }: A
   };
 
   if (assets.length === 0) {
-    return (
-      <div className="text-center py-12 text-text-secondary">
-        No assets found. Create your first investment asset!
-      </div>
-    );
+    return <div className="text-center py-12 text-text-secondary">{t('empty.noAssets')}</div>;
   }
 
   // Separate physical and financial assets
   const physicalAssets = assets.filter(asset => isPhysicalAsset(asset.type));
-  let financialAssets = assets.filter(asset => !isPhysicalAsset(asset.type));
+  const propertyAssets = assets.filter(asset => isRealEstateAsset(asset.type));
+  let financialAssets = assets.filter(
+    asset => !isPhysicalAsset(asset.type) && !isRealEstateAsset(asset.type)
+  );
 
   // Apply sort to financial assets
   if (sortConfig) {
@@ -138,8 +154,8 @@ export function AssetList({ assets, onEdit, onDelete, onView, highlightedId }: A
           bVal = b.totalCost;
           break;
         case 'gainPercentage':
-          aVal = a.gainPercentage;
-          bVal = b.gainPercentage;
+          aVal = a.gainPercentage ?? -Infinity;
+          bVal = b.gainPercentage ?? -Infinity;
           break;
         default:
           return 0;
@@ -180,10 +196,21 @@ export function AssetList({ assets, onEdit, onDelete, onView, highlightedId }: A
         </div>
       )}
 
+      {propertyAssets.length > 0 && (
+        <section className="mb-8">
+          <h3 className="plate-label mb-4">{t('table.properties')}</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {propertyAssets.map(asset => (
+              <PropertyAssetCard key={asset.id} asset={asset} onView={item => onView?.(item)} />
+            ))}
+          </div>
+        </section>
+      )}
+
       {/* Financial Assets Section */}
       {financialAssets.length > 0 && (
         <>
-          {physicalAssets.length > 0 && (
+          {(physicalAssets.length > 0 || propertyAssets.length > 0) && (
             <h3 className="plate-label  mb-4 mt-8">{t('table.financialAssets')}</h3>
           )}
 
@@ -226,11 +253,7 @@ export function AssetList({ assets, onEdit, onDelete, onView, highlightedId }: A
               </thead>
               <tbody>
                 {financialAssets.map(asset => {
-                  const { color } = formatGainLoss(
-                    asset.unrealizedGain,
-                    asset.gainPercentage * 100,
-                    asset.baseCurrency ?? asset.currency
-                  );
+                  const color = getGainLossColor(asset.unrealizedGain);
 
                   return (
                     <tr
@@ -243,12 +266,35 @@ export function AssetList({ assets, onEdit, onDelete, onView, highlightedId }: A
                       onClick={() => onView?.(asset)}
                     >
                       <td className="py-3 px-4 text-sm font-medium text-text-primary">
-                        {asset.name}
+                        {onView ? (
+                          <button
+                            type="button"
+                            className="text-left rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                            onClick={event => {
+                              event.stopPropagation();
+                              onView(asset);
+                            }}
+                          >
+                            {asset.name}
+                          </button>
+                        ) : (
+                          asset.name
+                        )}
                       </td>
                       <td className="py-3 px-4">
                         <Badge variant={getAssetTypeBadgeVariant(asset.type)} size="sm">
                           {getAssetTypeName(asset.type)}
                         </Badge>
+                        {asset.isActive === false && asset.ownershipStatus !== 'CLOSED' && (
+                          <Badge variant="default" size="sm">
+                            {t('inactive')}
+                          </Badge>
+                        )}
+                        {asset.acquisitionType === 'PLANNED' && (
+                          <Badge variant="default" size="sm">
+                            {t('form.acquisitionTypes.PLANNED')}
+                          </Badge>
+                        )}
                       </td>
                       <td className="py-3 px-4 text-sm text-text-secondary font-mono">
                         {asset.symbol || '—'}
@@ -287,22 +333,7 @@ export function AssetList({ assets, onEdit, onDelete, onView, highlightedId }: A
                         />
                       </td>
                       <td className={`py-3 px-4 text-sm text-right font-mono font-medium ${color}`}>
-                        {asset.unrealizedGain >= 0 ? '+' : '-'}
-                        <ConvertedAmount
-                          inline
-                          amount={Math.abs(asset.unrealizedGain)}
-                          currency={asset.currency}
-                          convertedAmount={
-                            asset.isConverted && asset.exchangeRate
-                              ? multiply(Math.abs(asset.unrealizedGain), asset.exchangeRate)
-                              : undefined
-                          }
-                          baseCurrency={asset.baseCurrency}
-                          exchangeRate={asset.exchangeRate}
-                          isConverted={asset.isConverted}
-                        />{' '}
-                        ({asset.unrealizedGain >= 0 ? '+' : '-'}
-                        {formatDecimal(asset.gainPercentage * 100, 2)}%)
+                        <AssetReturn asset={asset} />
                       </td>
                       <td className="py-3 px-4 text-sm text-text-secondary">
                         {asset.accountName || '—'}
@@ -341,17 +372,19 @@ export function AssetList({ assets, onEdit, onDelete, onView, highlightedId }: A
                               <Pencil className="h-4 w-4" />
                             </Button>
                           )}
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={e => {
-                              e.stopPropagation();
-                              handleDeleteClick(asset);
-                            }}
-                            aria-label={tc('aria.deleteAsset')}
-                          >
-                            <Trash2 className="h-4 w-4 text-error" />
-                          </Button>
+                          {!isRealEstateAsset(asset.type) && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={e => {
+                                e.stopPropagation();
+                                handleDeleteClick(asset);
+                              }}
+                              aria-label={tc('aria.deleteAsset')}
+                            >
+                              <Trash2 className="h-4 w-4 text-error" />
+                            </Button>
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -364,7 +397,7 @@ export function AssetList({ assets, onEdit, onDelete, onView, highlightedId }: A
           {/* Mobile Card View */}
           <div className="md:hidden space-y-4">
             {financialAssets.map(asset => {
-              const { color } = formatGainLoss(asset.unrealizedGain, asset.gainPercentage * 100);
+              const color = getGainLossColor(asset.unrealizedGain);
 
               return (
                 <div
@@ -378,10 +411,23 @@ export function AssetList({ assets, onEdit, onDelete, onView, highlightedId }: A
                   onClick={() => onView?.(asset)}
                 >
                   {/* Header */}
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
+                  <div className="flex flex-wrap items-start justify-between gap-2">
+                    <div className="min-w-0 flex-1 basis-full">
                       <h3 className="font-display text-base uppercase tracking-[0.06em] text-text-primary truncate">
-                        {asset.name}
+                        {onView ? (
+                          <button
+                            type="button"
+                            className="max-w-full truncate text-left uppercase rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                            onClick={event => {
+                              event.stopPropagation();
+                              onView(asset);
+                            }}
+                          >
+                            {asset.name}
+                          </button>
+                        ) : (
+                          asset.name
+                        )}
                       </h3>
                       {asset.symbol && (
                         <p className="text-sm text-text-secondary font-mono">{asset.symbol}</p>
@@ -390,6 +436,16 @@ export function AssetList({ assets, onEdit, onDelete, onView, highlightedId }: A
                     <Badge variant={getAssetTypeBadgeVariant(asset.type)} size="sm">
                       {getAssetTypeName(asset.type)}
                     </Badge>
+                    {asset.isActive === false && asset.ownershipStatus !== 'CLOSED' && (
+                      <Badge variant="default" size="sm">
+                        {t('inactive')}
+                      </Badge>
+                    )}
+                    {asset.acquisitionType === 'PLANNED' && (
+                      <Badge variant="default" size="sm">
+                        {t('form.acquisitionTypes.PLANNED')}
+                      </Badge>
+                    )}
                   </div>
 
                   {/* Values */}
@@ -433,22 +489,7 @@ export function AssetList({ assets, onEdit, onDelete, onView, highlightedId }: A
                     <div className="flex justify-between text-sm">
                       <span className="text-text-secondary">{t('table.gainLoss')}:</span>
                       <span className={`font-mono font-medium ${color}`}>
-                        {asset.unrealizedGain >= 0 ? '+' : '-'}
-                        <ConvertedAmount
-                          inline
-                          amount={Math.abs(asset.unrealizedGain)}
-                          currency={asset.currency}
-                          convertedAmount={
-                            asset.isConverted && asset.exchangeRate
-                              ? multiply(Math.abs(asset.unrealizedGain), asset.exchangeRate)
-                              : undefined
-                          }
-                          baseCurrency={asset.baseCurrency}
-                          exchangeRate={asset.exchangeRate}
-                          isConverted={asset.isConverted}
-                        />{' '}
-                        ({asset.unrealizedGain >= 0 ? '+' : '-'}
-                        {formatDecimal(asset.gainPercentage * 100, 2)}%)
+                        <AssetReturn asset={asset} />
                       </span>
                     </div>
                     <div className="flex justify-between text-sm">
@@ -502,19 +543,21 @@ export function AssetList({ assets, onEdit, onDelete, onView, highlightedId }: A
                         <Pencil className="h-4 w-4" />
                       </Button>
                     )}
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={e => {
-                        e.stopPropagation();
-                        handleDeleteClick(asset);
-                      }}
-                      className="h-11 w-11 p-0 text-error"
-                      aria-label={tc('aria.deleteAsset')}
-                      title={tc('aria.deleteAsset')}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+                    {!isRealEstateAsset(asset.type) && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={e => {
+                          e.stopPropagation();
+                          handleDeleteClick(asset);
+                        }}
+                        className="h-11 w-11 p-0 text-error"
+                        aria-label={tc('aria.deleteAsset')}
+                        title={tc('aria.deleteAsset')}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    )}
                   </div>
                 </div>
               );
@@ -526,13 +569,20 @@ export function AssetList({ assets, onEdit, onDelete, onView, highlightedId }: A
       {/* Delete Confirmation Dialog */}
       <ConfirmationDialog
         open={!!deletingAsset}
-        onOpenChange={open => !open && setDeletingAsset(null)}
+        onOpenChange={open => !open && !deleting && setDeletingAsset(null)}
         onConfirm={handleConfirmDelete}
         title={t('detail.deleteConfirm.title')}
         description={t('detail.deleteConfirm.message', { name: deletingAsset?.name ?? '' })}
         confirmText={t('detail.deleteConfirm.confirm')}
         variant="danger"
-      />
+        loading={deleting}
+      >
+        {deleteError && (
+          <p role="alert" className="text-sm text-error">
+            {deleteError}
+          </p>
+        )}
+      </ConfirmationDialog>
     </>
   );
 }

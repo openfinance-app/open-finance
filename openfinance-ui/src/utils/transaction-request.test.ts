@@ -27,6 +27,44 @@ function context(transaction?: Transaction): Parameters<typeof buildTransactionR
 }
 
 describe('transaction decimal precision', () => {
+  it('keeps an improvement valuation increase in the item currency when cash is converted', () => {
+    const request = context();
+    Object.assign(request.data, {
+      amount: '100',
+      currency: 'USD',
+      movementType: 'CAPITAL_IMPROVEMENT',
+      assetId: 8,
+      valuationChange: '7.125',
+    });
+    Object.assign(request, {
+      inputCurrency: 'USD',
+      accountCurrency: 'EUR',
+      needsConversion: true,
+      rate: '0.8',
+    });
+    expect(buildTransactionRequest(request)).toMatchObject({
+      amount: '80',
+      originalAmount: '100',
+      valuationChange: '7.125',
+      assetId: 8,
+    });
+  });
+
+  it('retains the property link when editing sale income', () => {
+    const stored = {
+      id: 2,
+      accountId: 1,
+      type: 'INCOME',
+      amount: 100,
+      currency: 'EUR',
+      date: '2026-01-01',
+      realEstateId: 9,
+    } as Transaction;
+    const edit = context(stored);
+    Object.assign(edit.data, { type: 'INCOME', amount: '100', currency: 'EUR', realEstateId: 9 });
+    Object.assign(edit, { inputCurrency: 'EUR', accountCurrency: 'EUR' });
+    expect(buildTransactionRequest(edit)).toMatchObject({ realEstateId: 9, type: 'INCOME' });
+  });
   it.each([undefined, 'INTEREST'] as const)(
     'retains the exact FX booking when toggling interest credit from %s',
     movementType => {

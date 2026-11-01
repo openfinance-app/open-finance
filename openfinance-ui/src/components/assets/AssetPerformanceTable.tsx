@@ -1,3 +1,4 @@
+import { AssetReturn } from '@/components/assets/AssetReturn';
 /**
  * AssetPerformanceTable Component
  * Task 5.4.3: Create AssetPerformanceTable component
@@ -8,7 +9,7 @@ import { useState, useMemo } from 'react';
 import { ArrowUpDown, ArrowUp, ArrowDown, TrendingUp, TrendingDown } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import type { Asset } from '@/types/asset';
-import { formatPercentage, getGainLossColor, getAssetTypeLabel } from '@/utils/portfolio';
+import { getGainLossColor, getAssetTypeLabel } from '@/utils/portfolio';
 import { multiply } from '@/utils/money';
 import { LastUpdatedIndicator } from './LastUpdatedIndicator';
 import { ConvertedAmount } from '@/components/ui/ConvertedAmount';
@@ -61,12 +62,12 @@ export function AssetPerformanceTable({ assets }: AssetPerformanceTableProps) {
           bValue = b.totalCost;
           break;
         case 'unrealizedGain':
-          aValue = a.unrealizedGain;
-          bValue = b.unrealizedGain;
+          aValue = a.unrealizedGain ?? -Infinity;
+          bValue = b.unrealizedGain ?? -Infinity;
           break;
         case 'gainPercentage':
-          aValue = a.gainPercentage;
-          bValue = b.gainPercentage;
+          aValue = a.gainPercentage ?? -Infinity;
+          bValue = b.gainPercentage ?? -Infinity;
           break;
         default:
           return 0;
@@ -262,31 +263,19 @@ export function AssetPerformanceTable({ assets }: AssetPerformanceTableProps) {
               </td>
               <td className="py-3 px-4 text-right">
                 <div className="flex items-center justify-end gap-1">
-                  {asset.unrealizedGain > 0 ? (
+                  {(asset.unrealizedGain ?? 0) > 0 ? (
                     <TrendingUp className="h-4 w-4 text-green-600" />
-                  ) : asset.unrealizedGain < 0 ? (
+                  ) : (asset.unrealizedGain ?? 0) < 0 ? (
                     <TrendingDown className="h-4 w-4 text-red-600" />
                   ) : null}
                   <p className={`text-sm font-medium ${getGainLossColor(asset.unrealizedGain)}`}>
-                    <ConvertedAmount
-                      amount={asset.unrealizedGain}
-                      currency={asset.currency}
-                      convertedAmount={
-                        asset.isConverted && asset.exchangeRate
-                          ? multiply(asset.unrealizedGain, asset.exchangeRate)
-                          : undefined
-                      }
-                      baseCurrency={asset.baseCurrency}
-                      exchangeRate={asset.exchangeRate}
-                      isConverted={asset.isConverted}
-                      inline
-                    />
+                    <AssetReturn asset={asset} mode="amount" />
                   </p>
                 </div>
               </td>
               <td className="py-3 px-4 text-right">
                 <p className={`text-sm font-medium ${getGainLossColor(asset.unrealizedGain)}`}>
-                  {formatPercentage(asset.gainPercentage * 100)}
+                  <AssetReturn asset={asset} mode="percentage" />
                 </p>
               </td>
             </tr>
@@ -335,13 +324,13 @@ export function AssetPerformanceTable({ assets }: AssetPerformanceTableProps) {
               <div className="text-right">
                 <p className="text-xs text-muted-foreground mb-1">{t('table.gainLoss')}</p>
                 <div className="flex items-center justify-end gap-1">
-                  {asset.unrealizedGain > 0 ? (
+                  {(asset.unrealizedGain ?? 0) > 0 ? (
                     <TrendingUp className="h-3 w-3 text-green-600" />
-                  ) : asset.unrealizedGain < 0 ? (
+                  ) : (asset.unrealizedGain ?? 0) < 0 ? (
                     <TrendingDown className="h-3 w-3 text-red-600" />
                   ) : null}
                   <p className={`font-medium ${getGainLossColor(asset.unrealizedGain)}`}>
-                    {formatPercentage(asset.gainPercentage * 100)}
+                    <AssetReturn asset={asset} mode="percentage" />
                   </p>
                 </div>
               </div>

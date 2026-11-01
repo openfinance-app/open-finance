@@ -235,6 +235,7 @@ public class TransactionService {
         // Map request to entity
         Transaction transaction = transactionMapper.toEntity(request);
         transaction.setUserId(userId);
+        setValuationChange(transaction, request, null);
 
         // Resolve or create Payee entity and link
         resolveAndLinkPayee(transaction, userId);
@@ -917,6 +918,13 @@ public class TransactionService {
             if (request.isInvestmentPresent() && request.getInvestment() == null) {
                 transaction.setAssetId(request.getAssetId());
             }
+            if (previous != null
+                    && previous.getInvestmentQuantity() != null
+                    && (transaction.getInvestmentQuantity() == null
+                            || transaction.getInvestmentQuantity().signum() >= 0
+                            || !transaction.isInvestmentCash())) {
+                transaction.setSaleFees(null);
+            }
         }
     }
 
@@ -1198,6 +1206,7 @@ public class TransactionService {
 
         // Capture snapshot before update for history
         TransactionResponse beforeSnapshot = toResponseWithDecryption(transaction);
+        updateSaleOwnership(transaction, request);
 
         // Prevent updating transfer transactions (they must be deleted and recreated)
         if (transaction.getTransferId() != null || request.getType() == TransactionType.TRANSFER) {
@@ -1239,6 +1248,7 @@ public class TransactionService {
                 transaction.getInvestmentQuantity() == null ? request.getAssetId() : oldAssetId);
         transaction.setMovementType(request.getMovementType());
         transaction.setPrincipalAmount(null);
+        setValuationChange(transaction, request, oldMovement);
 
         // Resolve or create Payee entity and link
         resolveAndLinkPayee(transaction, userId);
@@ -1485,6 +1495,7 @@ public class TransactionService {
                     linkedTransactions.size());
         } else {
             // Single transaction delete (non-transfer)
+            reverseSaleOwnership(transaction);
             // Soft delete
             transaction.setIsDeleted(true);
             transactionRepository.save(transaction);
@@ -2037,6 +2048,14 @@ public class TransactionService {
      * @throws CategoryNotFoundException if category doesn't exist or doesn't belong to user
      */
     private void validateTransactionRequest(Long userId, TransactionRequest request) {
+        if (request.getValuationChange() != null
+                && (request.getValuationChange().signum() < 0
+                        || (request.getValuationChange().signum() != 0
+                                && request.getMovementType()
+                                        != MovementType.CAPITAL_IMPROVEMENT))) {
+            throw new InvalidTransactionException(
+                    "A valuation increase must be non-negative and belong to an improvement");
+        }
         if (request.getType() != TransactionType.TRANSFER && request.getToAccountId() != null) {
             throw new InvalidTransactionException(
                     "Only transfers may specify a destination account");
@@ -2215,6 +2234,7 @@ public class TransactionService {
                 && !assetRepository.existsByIdAndUserId(request.getAssetId(), userId)) {
             throw AssetNotFoundException.byIdAndUser(request.getAssetId(), userId);
         }
+        validateCostTarget(userId, request);
         if (request.getLiabilityId() != null) {
             Liability liability =
                     liabilityRepository
@@ -2224,6 +2244,51 @@ public class TransactionService {
                                             LiabilityNotFoundException.byIdAndUser(
                                                     request.getLiabilityId(), userId));
             LoanPostingPolicy.validateDate(liability, request.getDate());
+        }
+    }
+
+    private void validateCostTarget(Long userId, TransactionRequest request) {
+        if (request.getMovementType() != MovementType.CAPITAL_IMPROVEMENT
+                && request.getMovementType() != MovementType.MAINTENANCE) return;
+        if (request.getRealEstateId() != null) {
+            org.openfinance.entity.RealEstateProperty property =
+                    realEstateRepository
+                            .findByIdAndUserId(request.getRealEstateId(), userId)
+                            .orElseThrow();
+            if (!property.isActive())
+                throw new InvalidTransactionException(
+                        "Restore the property before adding expenses");
+            validateCostDates(
+                    property.getAcquisitionType(),
+                    property.getPurchaseDate(),
+                    property.getSoldDate(),
+                    request.getDate());
+        }
+        if (request.getAssetId() != null) {
+            org.openfinance.entity.Asset asset =
+                    assetRepository.findByIdAndUserId(request.getAssetId(), userId).orElseThrow();
+            if (!asset.isPhysical())
+                throw org.openfinance.exception.InvalidAssetStateException.improvementNotPhysical(
+                        asset.getId(), String.valueOf(asset.getType()));
+            validateCostDates(
+                    asset.getAcquisitionType(),
+                    asset.getPurchaseDate(),
+                    asset.getSoldDate(),
+                    request.getDate());
+        }
+    }
+
+    private void validateCostDates(
+            org.openfinance.entity.AcquisitionType acquisition,
+            LocalDate acquired,
+            LocalDate sold,
+            LocalDate date) {
+        if (acquisition == org.openfinance.entity.AcquisitionType.PLANNED
+                || (acquired != null && date.isBefore(acquired))
+                || (sold != null && date.isAfter(sold))
+                || date.isAfter(LocalDate.now())) {
+            throw new InvalidTransactionException(
+                    "Record upkeep during ownership; link purchase payments separately");
         }
     }
 
@@ -2461,6 +2526,9 @@ public class TransactionService {
 
         // Create response with basic fields
         TransactionResponse response = transactionMapper.toResponse(transaction);
+        if (transaction.getMovementType() == MovementType.CAPITAL_IMPROVEMENT)
+            response.setValuationChange(
+                    org.openfinance.util.ValuationContributions.amount(transaction));
         if (transaction.getInvestmentQuantity() != null && transaction.getAssetId() != null) {
             assetRepository
                     .findByIdAndUserId(transaction.getAssetId(), transaction.getUserId())
@@ -3008,24 +3076,22 @@ public class TransactionService {
             adjustLiabilityBalance(liability, delta);
         }
 
-        applyImprovementLeg(
-                userId, transaction.getRealEstateId(), true, request, transaction.getCreatedAt());
-        applyImprovementLeg(
-                userId, transaction.getAssetId(), false, request, transaction.getCreatedAt());
+        applyImprovementLeg(userId, transaction.getRealEstateId(), true, request, transaction);
+        applyImprovementLeg(userId, transaction.getAssetId(), false, request, transaction);
     }
 
     /**
-     * Applies a CAPITAL_IMPROVEMENT leg to a property or asset: the improvement amount is the
-     * instrument-currency total ({@code originalAmount} on a converted movement) and the movement
-     * currency ({@code originalCurrency}-if-present) is guard-checked against the instrument's
-     * currency inside {@link RealEstateService}/{@link AssetService} (Task 6 deferred minor).
+     * Applies the explicit CAPITAL_IMPROVEMENT valuation change in the item's currency,
+     * independently of its expense and capitalized cost. Legacy movements without an explicit
+     * valuation retain their original contribution. The movement's original currency, when present,
+     * is checked against the item's currency by the target service.
      */
     private void applyImprovementLeg(
             Long userId,
             Long instrumentId,
             boolean property,
             TransactionRequest request,
-            LocalDateTime recordedAt) {
+            Transaction transaction) {
         if (instrumentId == null || request.getMovementType() != MovementType.CAPITAL_IMPROVEMENT) {
             return;
         }
@@ -3034,7 +3100,7 @@ public class TransactionService {
                         ? request.getOriginalCurrency()
                         : request.getCurrency();
         BigDecimal instrumentTotal =
-                isConvertedMovement(request) ? request.getOriginalAmount() : request.getAmount();
+                org.openfinance.util.ValuationContributions.amount(transaction);
         if (property) {
             realEstateService.applyCapitalImprovement(
                     instrumentId,
@@ -3042,7 +3108,7 @@ public class TransactionService {
                     instrumentTotal,
                     request.getDate(),
                     movementCurrency,
-                    recordedAt);
+                    transaction.getCreatedAt());
         } else {
             assetService.applyCapitalImprovement(
                     instrumentId,
@@ -3050,8 +3116,23 @@ public class TransactionService {
                     instrumentTotal,
                     request.getDate(),
                     movementCurrency,
-                    recordedAt);
+                    transaction.getCreatedAt());
         }
+    }
+
+    private void setValuationChange(
+            Transaction transaction, TransactionRequest request, ReversibleMovement previous) {
+        if (request.getMovementType() != MovementType.CAPITAL_IMPROVEMENT) {
+            transaction.setValuationChange(null);
+            return;
+        }
+        BigDecimal change = request.getValuationChange();
+        if (change == null)
+            change =
+                    previous != null && previous.movementType() == MovementType.CAPITAL_IMPROVEMENT
+                            ? previous.valuationChange()
+                            : BigDecimal.ZERO;
+        transaction.setValuationChange(change);
     }
 
     /** True when the request carries a full conversion triple (FX movement). */
@@ -3116,6 +3197,7 @@ public class TransactionService {
             BigDecimal originalAmount,
             String originalCurrency,
             BigDecimal conversionRate,
+            BigDecimal valuationChange,
             LocalDate date,
             LocalDateTime recordedAt) {}
 
@@ -3133,8 +3215,55 @@ public class TransactionService {
                 transaction.getOriginalAmount(),
                 transaction.getOriginalCurrency(),
                 transaction.getConversionRate(),
+                org.openfinance.util.ValuationContributions.amount(transaction),
                 transaction.getDate(),
                 transaction.getCreatedAt());
+    }
+
+    private void updateSaleOwnership(Transaction transaction, TransactionRequest request) {
+        if (transaction.getAssetId() == null && transaction.getRealEstateId() == null) return;
+        assetRepository
+                .findBySaleTransactionIdAndUserId(transaction.getId(), transaction.getUserId())
+                .ifPresent(
+                        asset -> {
+                            if (request.getType() != TransactionType.INCOME
+                                    || !java.util.Objects.equals(
+                                            transaction.getAssetId(), request.getAssetId())
+                                    || !java.util.Objects.equals(
+                                            transaction.getRealEstateId(),
+                                            request.getRealEstateId())
+                                    || request.getLiabilityId() != null
+                                    || request.getMovementType() != null
+                                    || request.getInvestment() != null
+                                    || !asset.getCurrency().equals(request.getCurrency())
+                                    || request.getDate().isBefore(asset.getPurchaseDate())
+                                    || request.getDate().isAfter(LocalDate.now())) {
+                                throw new InvalidTransactionException(
+                                        "Keep the sale linked to its item, or delete the sale payment to restore ownership");
+                            }
+                            asset.setSoldDate(request.getDate());
+                        });
+        realEstateRepository
+                .findBySaleTransactionIdAndUserId(transaction.getId(), transaction.getUserId())
+                .ifPresent(property -> property.setSoldDate(request.getDate()));
+    }
+
+    private void reverseSaleOwnership(Transaction transaction) {
+        if (transaction.getAssetId() == null && transaction.getRealEstateId() == null) return;
+        assetRepository
+                .findBySaleTransactionIdAndUserId(transaction.getId(), transaction.getUserId())
+                .ifPresent(
+                        asset -> {
+                            asset.setSoldDate(null);
+                            asset.setSaleTransactionId(null);
+                        });
+        realEstateRepository
+                .findBySaleTransactionIdAndUserId(transaction.getId(), transaction.getUserId())
+                .ifPresent(
+                        property -> {
+                            property.setSoldDate(null);
+                            property.setSaleTransactionId(null);
+                        });
     }
 
     /**
@@ -3189,24 +3318,12 @@ public class TransactionService {
 
         if (realEstateId != null && movementType == MovementType.CAPITAL_IMPROVEMENT) {
             realEstateService.reverseCapitalImprovement(
-                    realEstateId,
-                    userId,
-                    old.originalCurrency() != null && old.conversionRate() != null
-                            ? old.originalAmount()
-                            : old.amount(),
-                    old.date(),
-                    old.recordedAt());
+                    realEstateId, userId, old.valuationChange(), old.date(), old.recordedAt());
         }
 
         if (assetId != null && movementType == MovementType.CAPITAL_IMPROVEMENT) {
             assetService.reverseCapitalImprovement(
-                    assetId,
-                    userId,
-                    old.originalCurrency() != null && old.conversionRate() != null
-                            ? old.originalAmount()
-                            : old.amount(),
-                    old.date(),
-                    old.recordedAt());
+                    assetId, userId, old.valuationChange(), old.date(), old.recordedAt());
         }
     }
 

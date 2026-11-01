@@ -24,6 +24,7 @@ import { markSelectInteraction } from '@/utils/selectClickGuard';
 import { handleSelectSearchKeyDown } from '@/utils/select-keyboard';
 
 interface AccountSelectorProps {
+  id?: string;
   value?: number;
   onValueChange: (value: number | undefined) => void;
   placeholder?: string;
@@ -47,6 +48,7 @@ interface AccountSelectorProps {
 }
 
 export function AccountSelector({
+  id,
   value,
   onValueChange,
   placeholder,
@@ -157,7 +159,7 @@ export function AccountSelector({
         }
       }}
     >
-      <SelectTrigger className={className}>
+      <SelectTrigger id={id} className={className}>
         <SelectValue placeholder={resolvedPlaceholder}>
           {selectedAccount ? (
             <span className="flex items-center gap-2">

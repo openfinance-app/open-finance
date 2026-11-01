@@ -12,11 +12,16 @@ import org.openfinance.entity.Transaction;
 public final class InvestmentHoldings {
     private InvestmentHoldings() {}
 
-    public record Position(BigDecimal quantity, BigDecimal cost) {}
+    public record Position(
+            BigDecimal quantity,
+            BigDecimal cost,
+            BigDecimal remainingReceivedValue,
+            BigDecimal realizedGain) {}
 
     public static void update(Asset asset, List<Transaction> transactions) {
         Position position = at(asset, transactions, LocalDate.MAX);
         asset.setQuantity(position.quantity());
+        asset.setRemainingReceivedValue(position.remainingReceivedValue());
         asset.setPurchasePrice(
                 position.quantity().signum() == 0
                         ? BigDecimal.ZERO
@@ -26,7 +31,7 @@ public final class InvestmentHoldings {
 
     public static Position at(Asset asset, List<Transaction> transactions, LocalDate date) {
         if (asset.getPurchaseDate().isAfter(date))
-            return new Position(BigDecimal.ZERO, BigDecimal.ZERO);
+            return new Position(BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO);
         BigDecimal quantity =
                 asset.getImportOpeningQuantity() == null
                         ? BigDecimal.ZERO
@@ -35,6 +40,12 @@ public final class InvestmentHoldings {
                 asset.getImportOpeningCost() == null
                         ? BigDecimal.ZERO
                         : asset.getImportOpeningCost();
+        BigDecimal giftContribution = asset.getReceivedValue();
+        BigDecimal realizedGain =
+                asset.getAcquisitionType() == org.openfinance.entity.AcquisitionType.GIFT
+                                && giftContribution == null
+                        ? null
+                        : BigDecimal.ZERO;
         List<Transaction> movements =
                 transactions.stream()
                         .filter(
@@ -45,8 +56,8 @@ public final class InvestmentHoldings {
                                                 && !tx.getDate().isAfter(date))
                         .sorted(
                                 Comparator.comparing(Transaction::getDate)
-                                        .thenComparing(
-                                                tx -> tx.getInvestmentQuantity().signum() < 0)
+                                        // Preserve posting order within a day: a later buy must
+                                        // not change the cost basis released by an earlier sale.
                                         .thenComparing(Transaction::getId))
                         .toList();
         for (Transaction movement : movements) {
@@ -70,12 +81,26 @@ public final class InvestmentHoldings {
             if (change.signum() > 0) {
                 cost = cost.add(acquisitionCost(asset, movement));
             } else if (quantity.signum() > 0) {
+                if (movement.isInvestmentCash() && realizedGain != null) {
+                    BigDecimal basis =
+                            cost.add(giftContribution == null ? BigDecimal.ZERO : giftContribution);
+                    BigDecimal released =
+                            basis.multiply(change.abs()).divide(quantity, MathContext.DECIMAL128);
+                    realizedGain =
+                            realizedGain.add(acquisitionCost(asset, movement).subtract(released));
+                }
                 cost = cost.multiply(quantity.add(change)).divide(quantity, MathContext.DECIMAL128);
+                if (giftContribution != null) {
+                    giftContribution =
+                            giftContribution
+                                    .multiply(quantity.add(change))
+                                    .divide(quantity, MathContext.DECIMAL128);
+                }
             }
             quantity = quantity.add(change);
             if (quantity.signum() == 0) cost = BigDecimal.ZERO;
         }
-        return new Position(quantity, cost);
+        return new Position(quantity, cost, giftContribution, realizedGain);
     }
 
     private static BigDecimal acquisitionCost(Asset asset, Transaction movement) {

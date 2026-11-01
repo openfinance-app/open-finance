@@ -139,7 +139,7 @@ public interface AssetMapper {
         // Calculate holding days: days between purchase date and now
         if (asset.getPurchaseDate() != null) {
             long days = ChronoUnit.DAYS.between(asset.getPurchaseDate(), LocalDate.now());
-            response.holdingDays(days);
+            response.holdingDays(Math.max(0, days));
         } else {
             response.holdingDays(0L);
         }

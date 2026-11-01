@@ -116,6 +116,19 @@ public class Asset {
     @lombok.Builder.Default
     private AcquisitionType acquisitionType = AcquisitionType.PURCHASE;
 
+    /** Total value when received as a gift; separate from the actual acquisition cost. */
+    @DecimalMin(value = "0.00", message = "{asset.receivedValue.min}")
+    @Column(name = "received_value", length = 512)
+    @Convert(converter = org.openfinance.converter.EncryptedBigDecimalConverter.class)
+    private BigDecimal receivedValue;
+
+    /** A sale closes ownership without destroying the original quantity, cost or history. */
+    @Column(name = "sold_date")
+    private LocalDate soldDate;
+
+    @Column(name = "sale_transaction_id")
+    private Long saleTransactionId;
+
     /**
      * Ticker symbol or identifier (e.g., "AAPL", "BTC-USD", "SPY"). Used for fetching market data
      * and price updates.
@@ -185,6 +198,9 @@ public class Asset {
 
     /** Loaded from the active expense ledger when computing portfolio cost and return. */
     @Transient private BigDecimal capitalizedCost;
+
+    /** Gift contribution still represented by the remaining transaction-led holding. */
+    @Transient private BigDecimal remainingReceivedValue;
 
     public void updateTotalValue(BigDecimal total) {
         currentPrice = total.divide(quantity, 8, java.math.RoundingMode.HALF_UP);
@@ -350,14 +366,20 @@ public class Asset {
                 .add(capitalizedCost == null ? BigDecimal.ZERO : capitalizedCost);
     }
 
-    /**
-     * Calculates the unrealized gain/loss amount.
-     *
-     * @return (currentPrice - purchasePrice) * quantity
-     */
+    /** Purchase costs plus the gift contribution; unknown for plans and unvalued gifts. */
+    public BigDecimal getPerformanceBasis() {
+        if (acquisitionType == AcquisitionType.PLANNED) return null;
+        if (acquisitionType != AcquisitionType.GIFT) return getTotalCost();
+        if (receivedValue == null) return null;
+        BigDecimal contribution =
+                remainingReceivedValue == null ? receivedValue : remainingReceivedValue;
+        return contribution.add(getTotalCost());
+    }
+
+    /** Current value less the performance basis, excluding contributions from gains. */
     public BigDecimal getUnrealizedGain() {
-        if (acquisitionType == AcquisitionType.PLANNED) return BigDecimal.ZERO;
-        return getTotalValue().subtract(getTotalCost());
+        BigDecimal basis = getPerformanceBasis();
+        return basis == null ? null : getTotalValue().subtract(basis);
     }
 
     /**
@@ -366,11 +388,9 @@ public class Asset {
      * @return percentage gain/loss (0.15 = 15% gain, -0.10 = 10% loss)
      */
     public BigDecimal getGainPercentage() {
-        if (acquisitionType == AcquisitionType.PLANNED) return BigDecimal.ZERO;
-        if (getTotalCost().compareTo(BigDecimal.ZERO) == 0) {
-            return BigDecimal.ZERO;
-        }
-        return getUnrealizedGain().divide(getTotalCost(), 4, java.math.RoundingMode.HALF_UP);
+        BigDecimal basis = getPerformanceBasis();
+        if (basis == null || basis.signum() == 0) return null;
+        return getUnrealizedGain().divide(basis, 4, java.math.RoundingMode.HALF_UP);
     }
 
     /**
@@ -383,7 +403,10 @@ public class Asset {
      */
     public BigDecimal getDepreciatedValue() {
         // Only calculate depreciation for physical assets with useful life
-        if (type == null || !type.isPhysical()) {
+        if (type == null
+                || !type.isPhysical()
+                || acquisitionType == AcquisitionType.PLANNED
+                || getPerformanceBasis() == null) {
             return null;
         }
 
@@ -404,12 +427,12 @@ public class Asset {
 
         // If asset is fully depreciated, return salvage value (10% of purchase price)
         if (yearsOwned.compareTo(BigDecimal.valueOf(effectiveLife)) >= 0) {
-            return getTotalCost().multiply(SALVAGE_RATE);
+            return getPerformanceBasis().multiply(SALVAGE_RATE);
         }
 
         // Calculate annual depreciation
         BigDecimal annualDepreciation =
-                getTotalCost()
+                getPerformanceBasis()
                         .divide(
                                 BigDecimal.valueOf(effectiveLife),
                                 4,
@@ -417,10 +440,10 @@ public class Asset {
         BigDecimal totalDepreciation = annualDepreciation.multiply(yearsOwned);
 
         // Depreciated value = Purchase Cost - Total Depreciation
-        BigDecimal depreciatedValue = getTotalCost().subtract(totalDepreciation);
+        BigDecimal depreciatedValue = getPerformanceBasis().subtract(totalDepreciation);
 
         // Never go below 10% salvage value
-        BigDecimal salvageValue = getTotalCost().multiply(SALVAGE_RATE);
+        BigDecimal salvageValue = getPerformanceBasis().multiply(SALVAGE_RATE);
         return depreciatedValue.max(salvageValue);
     }
 
@@ -431,7 +454,7 @@ public class Asset {
      * @return condition-adjusted value, or depreciated value if condition is not set
      */
     public BigDecimal getConditionAdjustedValue() {
-        if (!isPhysical()) {
+        if (!isPhysical() || getPerformanceBasis() == null) {
             return null;
         }
         if (condition == null) {
@@ -444,7 +467,7 @@ public class Asset {
             long daysOwned =
                     java.time.temporal.ChronoUnit.DAYS.between(purchaseDate, LocalDate.now());
             if (daysOwned == 0) {
-                return getTotalCost();
+                return getPerformanceBasis();
             }
         }
 

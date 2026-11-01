@@ -10,21 +10,26 @@ import { useAuthContext } from '@/context/AuthContext';
 import { DEFAULT_CURRENCY } from '@/utils/currency';
 import { getToday } from '@/utils/date';
 import { isValidDecimalString } from '@/utils/money';
-import { ExactDecimal } from '@/utils/exact-decimal';
+import { ExactDecimal, decimalField } from '@/utils/exact-decimal';
 import { PropertyStep } from './wizard/PropertyStep';
 import { FundingStep } from './wizard/FundingStep';
 import { ReviewStep } from './wizard/ReviewStep';
+import { normalizePurchasePayment } from '@/components/real-estate/wizard/purchase-funding';
 import type { Account } from '@/types/account';
 import type { FundingStepState, PropertyStepState } from './wizard/types';
-import type { RealEstatePropertyRequest } from '@/types/realEstate';
+import type { RealEstateProperty, RealEstatePropertyRequest } from '@/types/realEstate';
 
 const STEP_ICONS = [Building2, Landmark, Wallet];
 
 export function BuyPropertyWizard({
   accounts,
   onClose,
+  plan,
+  onPurchased,
 }: {
   accounts: Account[];
+  plan?: RealEstateProperty;
+  onPurchased?: (id: number) => void;
   onClose: () => void;
 }) {
   const { t } = useTranslation('realEstate');
@@ -36,13 +41,13 @@ export function BuyPropertyWizard({
   const [error, setError] = useState<string | null>(null);
 
   const [property, setProperty] = useState<PropertyStepState>({
-    name: '',
-    address: '',
-    propertyType: 'RESIDENTIAL',
-    purchasePrice: '',
+    name: plan?.name ?? '',
+    address: plan?.address ?? '',
+    propertyType: plan?.propertyType ?? 'RESIDENTIAL',
+    purchasePrice: plan ? decimalField(plan, 'purchasePrice') : '',
     purchaseDate: today,
-    currentValue: '0',
-    currency: baseCurrency || DEFAULT_CURRENCY,
+    currentValue: plan ? decimalField(plan, 'purchasePrice') : '0',
+    currency: plan?.currency ?? baseCurrency ?? DEFAULT_CURRENCY,
   });
   const [funding, setFunding] = useState<FundingStepState>({
     source: 'new',
@@ -73,25 +78,48 @@ export function BuyPropertyWizard({
         ? { currentValue: patch.purchasePrice || '0' }
         : {}),
     }));
-    if (patch.purchasePrice !== undefined)
-      setFunding(prev => ({
-        ...prev,
-        downPaymentAmount: remainingPayment(
-          patch.purchasePrice!,
-          prev.source === 'none' ? '0' : prev.loanAmount
-        ),
-      }));
+    if (
+      patch.purchasePrice !== undefined ||
+      patch.currency !== undefined ||
+      patch.purchaseDate !== undefined
+    )
+      setFunding(prev =>
+        normalizePurchasePayment(
+          {
+            ...prev,
+            existingPaymentId: undefined,
+            ...(patch.purchasePrice !== undefined
+              ? {
+                  downPaymentAmount: remainingPayment(
+                    patch.purchasePrice,
+                    prev.source === 'none' ? '0' : prev.loanAmount
+                  ),
+                }
+              : {}),
+          },
+          patch.purchasePrice ?? property.purchasePrice
+        )
+      );
   };
   const updateFunding = (patch: Partial<FundingStepState>) =>
     setFunding(prev => {
       const next = { ...prev, ...patch };
+      if (
+        patch.downPaymentAccountId !== undefined ||
+        patch.loanAmount !== undefined ||
+        patch.source !== undefined ||
+        patch.route !== undefined
+      ) {
+        next.existingPaymentId = undefined;
+        next.existingLoanReceiptId = undefined;
+      }
       if (patch.source !== undefined || patch.loanAmount !== undefined) {
         next.downPaymentAmount = remainingPayment(
           property.purchasePrice,
           next.source === 'none' ? '0' : next.loanAmount
         );
       }
-      return next;
+      return normalizePurchasePayment(next, property.purchasePrice);
     });
 
   const price = Number(property.purchasePrice);
@@ -138,18 +166,37 @@ export function BuyPropertyWizard({
         !!property.purchaseDate &&
         property.purchaseDate <= today
       : step === 1
-        ? fundingStepValid &&
+        ? (!funding.loanAlreadyReceived || funding.existingLoanReceiptId != null) &&
+          fundingStepValid &&
           fundingAmountsValid &&
           !accountRouteMissingAccount &&
-          fundingCurrencyValid
+          fundingCurrencyValid &&
+          (cashPayment <= 0 ||
+            funding.paymentMode !== 'existing' ||
+            funding.existingPaymentId != null)
         : true;
 
   const fundingLocked = pendingRequest !== null;
 
   const purchaseRequest = (): PropertyPurchaseRequest => ({
     operationId,
+    plannedPropertyId: plan?.id,
+    existingLoanReceiptId: funding.loanAlreadyReceived ? funding.existingLoanReceiptId : undefined,
+    existingPaymentId:
+      cashPayment > 0 && funding.paymentMode === 'existing' ? funding.existingPaymentId : undefined,
     property: {
       ...property,
+      acquisitionType: 'PURCHASE',
+      ...(plan
+        ? {
+            notes: plan.notes,
+            latitude: plan.latitude,
+            longitude: plan.longitude,
+            documents: plan.documents,
+            rentalIncome:
+              plan.rentalIncome == null ? undefined : decimalField(plan, 'rentalIncome'),
+          }
+        : {}),
       name: property.name.trim(),
       address: property.address.trim(),
       propertyType: property.propertyType as RealEstatePropertyRequest['propertyType'],
@@ -162,6 +209,8 @@ export function BuyPropertyWizard({
             type: 'MORTGAGE',
             principal: funding.loanAmount,
             currentBalance: '0',
+            minimumPayment: funding.minimumPayment || undefined,
+            endDate: funding.endDate || undefined,
             interestRate: funding.interestRate ? Number(funding.interestRate) : undefined,
             startDate: property.purchaseDate,
             currency: property.currency,
@@ -185,8 +234,9 @@ export function BuyPropertyWizard({
         throw new Error(t('wizard.fundingCurrency', { currency: property.currency }));
       const request = pendingRequest ?? purchaseRequest();
       setPendingRequest(request);
-      await purchase.mutateAsync(request);
+      const result = await purchase.mutateAsync(request);
       onClose();
+      onPurchased?.(result.propertyId);
     } catch (e) {
       if (isAxiosError(e) && e.response && e.response.status >= 400 && e.response.status < 500) {
         setPendingRequest(null);
@@ -236,6 +286,12 @@ export function BuyPropertyWizard({
       {step === 1 && (
         <FundingStep
           currency={property.currency}
+          paymentDate={property.purchaseDate}
+          paymentAmount={
+            funding.source !== 'none' && funding.route === 'direct'
+              ? funding.downPaymentAmount
+              : property.purchasePrice
+          }
           funding={funding}
           onChange={updateFunding}
           locked={fundingLocked}
@@ -245,7 +301,14 @@ export function BuyPropertyWizard({
       )}
 
       {/* Step 3: review */}
-      {step === 2 && <ReviewStep property={property} funding={funding} />}
+      {step === 2 && (
+        <ReviewStep
+          property={property}
+          funding={funding}
+          account={selectedAccount}
+          mortgage={liabilities.find(loan => loan.id === funding.existingMortgageId)}
+        />
+      )}
 
       {error && (
         <p role="alert" className="text-sm text-error">

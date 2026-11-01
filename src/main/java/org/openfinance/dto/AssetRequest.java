@@ -37,6 +37,17 @@ import org.openfinance.validation.ValidCurrency;
 public class AssetRequest {
     private org.openfinance.entity.AcquisitionType acquisitionType;
 
+    @DecimalMin(value = "0.00", message = "{asset.receivedValue.min}")
+    private BigDecimal receivedValue;
+
+    @com.fasterxml.jackson.annotation.JsonIgnore private boolean receivedValuePresent;
+
+    @com.fasterxml.jackson.annotation.JsonSetter("receivedValue")
+    public void setReceivedValue(BigDecimal receivedValue) {
+        this.receivedValue = receivedValue;
+        this.receivedValuePresent = true;
+    }
+
     /**
      * Optional account ID this asset belongs to (e.g., brokerage account).
      *

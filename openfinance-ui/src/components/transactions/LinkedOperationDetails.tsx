@@ -48,6 +48,7 @@ export function LinkedOperationDetails({
   onNavigate: () => void;
 }) {
   const { t } = useTranslation('transactions');
+  const { t: ta } = useTranslation('assets');
   const { date: formatDate } = useDateFormatter();
   // The receiving leg has no holding link of its own. Resolve the booked source,
   // rather than describing the recipient's cash credit as a second unit movement.
@@ -141,8 +142,29 @@ export function LinkedOperationDetails({
           )}
         </p>
       )}
-      {(quantity || (booked.liabilityId && booked.principalAmount != null)) && (
+      {(quantity ||
+        booked.saleFees != null ||
+        booked.valuationChange != null ||
+        (booked.liabilityId && booked.principalAmount != null)) && (
         <dl className="mt-3 grid grid-cols-1 gap-x-4 gap-y-3 sm:grid-cols-2">
+          {booked.valuationChange != null && (
+            <Field label={ta('costEntry.valueChange')}>
+              <RecordedAmount
+                value={decimalField(booked, 'valuationChange')}
+                currency={
+                  property?.currency ??
+                  asset?.currency ??
+                  booked.originalCurrency ??
+                  booked.currency
+                }
+              />
+            </Field>
+          )}
+          {booked.saleFees != null && (
+            <Field label={ta('ownership.fees')}>
+              <RecordedAmount value={decimalField(booked, 'saleFees')} currency={booked.currency} />
+            </Field>
+          )}
           {quantity && (
             <Field
               label={t(

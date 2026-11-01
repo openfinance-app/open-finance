@@ -34,11 +34,15 @@ describe('AssetFilters', () => {
 
   it('renders core inputs and clear button', () => {
     renderWithProviders(
-      <AssetFilters filters={{ sort: 'name,asc', page: 0 }} onFiltersChange={onFiltersChange} />
+      <AssetFilters
+        filters={{ sort: 'name,asc', page: 0, ownershipStatus: 'OWNED' }}
+        onFiltersChange={onFiltersChange}
+      />
     );
 
     expect(screen.getByLabelText(/search|filtersPanel\.search/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/asset type|filtersPanel\.assetType/i)).toBeInTheDocument();
+    expect(screen.getByRole('combobox', { name: 'Status', exact: true })).toHaveValue('OWNED');
     expect(screen.getByTestId('currency-selector')).toBeInTheDocument();
     expect(
       screen.getByRole('button', { name: /clear|filtersPanel\.clear/i }).closest('button')
@@ -70,6 +74,8 @@ describe('AssetFilters', () => {
           page: 4,
           keyword: 'btc',
           symbol: 'BTC',
+          group: 'FINANCIAL',
+          ownershipStatus: 'CLOSED',
         }}
         onFiltersChange={onFiltersChange}
       />
@@ -80,6 +86,8 @@ describe('AssetFilters', () => {
     await user.click(clearButton);
 
     expect(onFiltersChange).toHaveBeenCalledWith({
+      group: 'FINANCIAL',
+      ownershipStatus: 'OWNED',
       sort: 'name,asc',
       page: 0,
     });

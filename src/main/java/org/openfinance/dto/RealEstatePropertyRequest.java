@@ -31,6 +31,9 @@ import org.openfinance.validation.ValidCurrency;
 public class RealEstatePropertyRequest {
     private org.openfinance.entity.AcquisitionType acquisitionType;
 
+    @DecimalMin(value = "0.00", message = "{asset.receivedValue.min}")
+    private BigDecimal receivedValue;
+
     /**
      * Name or description of the property (e.g., "Main Residence", "Beach House", "Rental Condo").
      *

@@ -142,7 +142,8 @@
     "repaymentUnavailable": "The estimated payment cannot be applied. Check the amount, or turn off the estimate and enter the actual principal component.",
     "manualPrincipal": "Principal repaid ({{currency}})",
     "manualPrincipalHint": "Enter 0 for interest, insurance or fees only. Leave empty to apply the full payment to principal.",
-    "repaymentExceedsDebt": "Principal exceeds the outstanding debt. Check the payment amount."
+    "repaymentExceedsDebt": "Principal exceeds the outstanding debt. Check the payment amount.",
+    "saveError": "The transaction could not be saved. Review the details and try again."
   },
   "detail": {
     "edit": "Edit",
@@ -266,7 +267,7 @@
       "REMOVE": "Investment units are removed from the holding, with no cash withdrawal.",
       "LOAN_PAYMENT": "Cash decreases by the full payment. Only the principal portion reduces the outstanding debt.",
       "MAINTENANCE": "Cash decreases and the expense is linked to the selected property or asset. Its value is unchanged.",
-      "CAPITAL_IMPROVEMENT": "Cash decreases and the improvement increases the property or asset value. A later recorded valuation takes precedence.",
+      "CAPITAL_IMPROVEMENT": "Cash decreases and cost basis increases. Market value changes only by the increase you choose.",
       "INTEREST": "Cash increases and the payment is recorded as bank interest.",
       "EXISTING": "The existing links and classification are preserved. Use the linked asset or loan to manage this operation.",
       "holdingTransfer": "Units are removed from {{holding}} and the transfer is credited to {{destination}}.",
@@ -306,7 +307,9 @@
       "fundingUnavailable": "The transfer funding details could not be loaded.",
       "retry": "Retry",
       "estimatedUnitPrice": "Estimated price per unit"
-    }
+    },
+    "acquireFirst": "Complete the acquisition first",
+    "inactiveTarget": "Inactive"
   },
   "investment": {
     "title": "Investment movement",

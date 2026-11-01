@@ -1571,6 +1571,9 @@ class AssetServiceTest {
                         List.of(
                                 org.openfinance.entity.Transaction.builder()
                                         .date(LocalDate.of(2025, 8, 5))
+                                        .movementType(
+                                                org.openfinance.entity.MovementType
+                                                        .CAPITAL_IMPROVEMENT)
                                         .build()));
         assertThrows(
                 org.openfinance.exception.InvalidTransactionException.class,

@@ -128,6 +128,7 @@ export interface Transaction {
   liabilityId?: number;
   // Classification of the financial movement (disbursement, repayment, costs…)
   movementType?: MovementType;
+  valuationChange?: number;
   principalAmount?: number;
   principalAllocations?: { trancheId: number | null; amount: number }[];
   // Optional ID of the liability tranche this movement is allocated to
@@ -139,6 +140,7 @@ export interface Transaction {
   investmentQuantity?: number | null;
   investmentCash?: boolean;
   investmentValue?: number;
+  saleFees?: number;
   investmentPrice?: number;
   investmentPriceDate?: string;
   investmentPriceSource?: 'HISTORICAL_CLOSE' | 'RECORDED';
@@ -210,6 +212,7 @@ export interface TransactionRequest {
   realEstateId?: number;
   assetId?: number;
   movementType?: MovementType;
+  valuationChange?: number | string;
   principalAmount?: number | string;
   // Original (pre-conversion) values, submitted together when a conversion was applied.
   originalAmount?: number | string;

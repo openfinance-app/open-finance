@@ -74,6 +74,7 @@ describe('PhysicalAssetCard', () => {
       <PhysicalAssetCard asset={{ ...mockAsset, acquisitionType: 'PLANNED', totalValue: 0 }} />
     );
     expect(screen.getByText('Planned Cost')).toBeInTheDocument();
+    expect(screen.queryByText('Current Value')).not.toBeInTheDocument();
     expect(screen.queryByText('Value Change')).not.toBeInTheDocument();
     expect(screen.queryByText('Loss')).not.toBeInTheDocument();
   });
@@ -84,6 +85,21 @@ describe('PhysicalAssetCard', () => {
     );
     expect(screen.getByText('Value Change')).toBeInTheDocument();
     expect(screen.getByText('Loss')).toBeInTheDocument();
+  });
+
+  it('shows a sold item with its purchase cost and history access without a market loss', () => {
+    const view = vi.fn();
+    renderWithProviders(
+      <PhysicalAssetCard
+        asset={{ ...mockAsset, ownershipStatus: 'CLOSED', soldDate: '2026-10-01', totalValue: 0 }}
+        onClick={view}
+      />
+    );
+    expect(screen.getByText('Sold')).toBeInTheDocument();
+    expect(screen.getByText('Purchase Cost')).toBeInTheDocument();
+    expect(screen.queryByText('Value Change')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByText('MacBook Pro'));
+    expect(view).toHaveBeenCalledOnce();
   });
 
   it('preserves ownership duration for acquired assets', () => {

@@ -279,6 +279,28 @@ class AssetTest {
     class ConditionAdjustedValueTests {
 
         @Test
+        @DisplayName("A gift's received value anchors its valuation on receipt day")
+        void giftUsesReceivedValueOnReceiptDay() {
+            Asset asset =
+                    Asset.builder()
+                            .type(AssetType.VEHICLE)
+                            .acquisitionType(AcquisitionType.GIFT)
+                            .quantity(BigDecimal.ONE)
+                            .purchasePrice(BigDecimal.ZERO)
+                            .receivedValue(new BigDecimal("15000"))
+                            .purchaseDate(LocalDate.now())
+                            .condition(AssetCondition.GOOD)
+                            .build();
+
+            assertThat(asset.getConditionAdjustedValue()).isEqualByComparingTo("15000");
+            asset.setReceivedValue(null);
+            assertThat(asset.getConditionAdjustedValue()).isNull();
+            asset.setAcquisitionType(AcquisitionType.PLANNED);
+            asset.setPurchasePrice(new BigDecimal("15000"));
+            assertThat(asset.getConditionAdjustedValue()).isNull();
+        }
+
+        @Test
         @DisplayName("Should apply NEW condition factor (0.95) to depreciated value")
         void shouldApplyNewConditionFactor() {
             // Arrange

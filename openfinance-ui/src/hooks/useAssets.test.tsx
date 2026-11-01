@@ -105,12 +105,14 @@ describe('useAssets hooks', () => {
       mockedApiClient.get.mockResolvedValue({ data: mockPaginatedResponse });
 
       const { result } = renderHook(
-        () => useAssetsSearch({ keyword: 'Apple', page: 0, size: 20 }),
+        () => useAssetsSearch({ keyword: 'Apple', ownershipStatus: 'CLOSED', page: 0, size: 20 }),
         { wrapper }
       );
 
       await waitFor(() => expect(result.current.isSuccess).toBe(true));
       expect(result.current.data).toEqual(mockPaginatedResponse);
+      const url = new URL(mockedApiClient.get.mock.calls[0][0], 'http://localhost');
+      expect(url.searchParams.get('ownershipStatus')).toBe('CLOSED');
     });
   });
 

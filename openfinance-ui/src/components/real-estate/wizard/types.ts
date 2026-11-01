@@ -25,10 +25,16 @@ export interface FundingStepState {
   mortgageName: string;
   loanAmount: string;
   interestRate: string;
+  minimumPayment?: string;
+  endDate?: string;
+  loanAlreadyReceived?: boolean;
+  existingLoanReceiptId?: number;
   existingMortgageId?: number;
   route: DisbursementRoute;
   downPaymentAmount: string;
   downPaymentAccountId?: number;
+  paymentMode?: 'new' | 'existing';
+  existingPaymentId?: number;
 }
 
 export const PROPERTY_TYPE_OPTIONS = [

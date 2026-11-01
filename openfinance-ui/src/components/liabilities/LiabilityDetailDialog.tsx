@@ -1,3 +1,4 @@
+import { RecordLoanPayment } from '@/components/liabilities/RecordLoanPayment';
 import { AssetFinancingSection } from '@/components/assets/AssetFinancingSection';
 /**
  * LiabilityDetailDialog Component
@@ -61,6 +62,7 @@ function TotalCostHero({ liability }: { liability: Liability }) {
   const { data: breakdown } = useLiabilityBreakdown(liability.id);
 
   if (!breakdown) return null;
+  if (breakdown.totalProjectedCost == null) return null;
 
   // Grand total = what has already been paid + what is still projected to be paid
   const grandTotal = breakdown.totalPaid + breakdown.totalProjectedCost;
@@ -69,8 +71,8 @@ function TotalCostHero({ liability }: { liability: Liability }) {
   // additionalFees is a one-time fee already counted in feesPaid; projectedFees is always 0.
   const interestPaid = breakdown.interestPaid;
   const insurancePaid = breakdown.insurancePaid;
-  const totalInterest = breakdown.interestPaid + breakdown.projectedInterest;
-  const totalInsurance = breakdown.insurancePaid + breakdown.projectedInsurance;
+  const totalInterest = breakdown.interestPaid + (breakdown.projectedInterest ?? 0);
+  const totalInsurance = breakdown.insurancePaid + (breakdown.projectedInsurance ?? 0);
   const totalFees = breakdown.feesPaid; // one-time fee — no projected portion
   const totalPrincipal = liability.fundedAmount ?? breakdown.principal;
 
@@ -428,11 +430,19 @@ function OverviewDisburse({ liability }: { liability: Liability }) {
   const { data: tranches = [] } = useTranches(liability.id);
   const [showForm, setShowForm] = useState(false);
 
-  const noPlannedRemaining = tranches.length > 0 && !tranches.some(tr => tr.status === 'PLANNED');
-  if (!noPlannedRemaining) return null;
+  const available =
+    (liability.approvedAmount ?? liability.principal) -
+    (liability.fundedAmount ?? liability.currentBalance);
+  if (
+    available <= 0 ||
+    liability.representedByAccountId != null ||
+    liability.type === 'CREDIT_CARD'
+  )
+    return null;
+  const next = tranches.find(tr => tr.status === 'PLANNED');
 
   if (showForm) {
-    return <DisburseForm liability={liability} onDone={() => setShowForm(false)} />;
+    return <DisburseForm liability={liability} tranche={next} onDone={() => setShowForm(false)} />;
   }
   return (
     <div className="flex justify-end mt-4">
@@ -485,12 +495,14 @@ export function LiabilityDetailDialog({
 
   return (
     <Dialog open={!!liability} onOpenChange={open => !open && onClose()}>
-      <DialogContent className="sm:max-w-[800px] max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>{t('detail.title', { name: liability.name })}</DialogTitle>
+      <DialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-[800px] max-h-[90vh] overflow-y-auto">
+        <DialogHeader className="min-w-0 text-left">
+          <DialogTitle className="break-words">
+            {t('detail.title', { name: liability.name })}
+          </DialogTitle>
         </DialogHeader>
 
-        <div className="w-full">
+        <div className="min-w-0 w-full">
           <nav
             aria-label={t('detail.sections')}
             className="mb-4 flex gap-1 overflow-x-auto border-b border-border"
@@ -537,6 +549,7 @@ export function LiabilityDetailDialog({
                     <TotalCostHero liability={liability} />
                     <LiabilityBreakdownPanel liability={liability} />
                     <OverviewDisburse liability={liability} />
+                    <RecordLoanPayment liability={liability} />
                   </>
                 )}
               </div>

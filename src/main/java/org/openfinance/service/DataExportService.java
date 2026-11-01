@@ -272,6 +272,8 @@ public class DataExportService {
                             data.put("tags", transaction.getTags());
                             data.put("transferId", transaction.getTransferId());
                             data.put("movementType", transaction.getMovementType());
+                            data.put("saleFees", transaction.getSaleFees());
+                            data.put("valuationChange", transaction.getValuationChange());
                             data.put("principalAmount", transaction.getPrincipalAmount());
                             data.put("liabilityId", transaction.getLiabilityId());
                             data.put("trancheId", transaction.getTrancheId());
@@ -339,6 +341,14 @@ public class DataExportService {
                             data.put("symbol", asset.getSymbol());
                             data.put("quantity", asset.getQuantity());
                             data.put("purchasePrice", asset.getPurchasePrice());
+                            data.put("acquisitionType", asset.getAcquisitionType());
+                            data.put("receivedValue", asset.getReceivedValue());
+                            data.put(
+                                    "soldDate",
+                                    asset.getSoldDate() == null
+                                            ? null
+                                            : asset.getSoldDate().toString());
+                            data.put("saleTransactionId", asset.getSaleTransactionId());
                             data.put("currentPrice", asset.getCurrentPrice());
                             data.put("currency", asset.getCurrency());
                             data.put(
@@ -429,6 +439,14 @@ public class DataExportService {
                             data.put("type", property.getPropertyType().name());
                             data.put("address", property.getAddress());
                             data.put("purchasePrice", property.getPurchasePrice());
+                            data.put("acquisitionType", property.getAcquisitionType());
+                            data.put("receivedValue", property.getReceivedValue());
+                            data.put(
+                                    "soldDate",
+                                    property.getSoldDate() == null
+                                            ? null
+                                            : property.getSoldDate().toString());
+                            data.put("saleTransactionId", property.getSaleTransactionId());
                             data.put("currentValue", property.getCurrentValue());
                             data.put(
                                     "purchaseDate",

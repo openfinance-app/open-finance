@@ -132,6 +132,47 @@ class InvestmentMovementEditingIntegrationTest {
     }
 
     @Test
+    void giftBaselineFollowsRemainingUnitsAndReversalsWithoutChangingReceiptHistory() {
+        holding.setImportSource(null);
+        holding.setImportOpeningQuantity(null);
+        holding.setImportOpeningCost(null);
+        holding.setAcquisitionType(org.openfinance.entity.AcquisitionType.GIFT);
+        holding.setQuantity(new BigDecimal("10"));
+        holding.setReceivedValue(new BigDecimal("100"));
+        holding.setCurrentPrice(new BigDecimal("20"));
+        assets.save(holding);
+
+        TransactionResponse firstSale =
+                service.createTransaction(userId, movement(Operation.SELL, "5", "100"));
+        org.openfinance.dto.AssetResponse remaining =
+                assetService.getAssetById(holding.getId(), userId);
+        assertThat(remaining.getReceivedValue()).isEqualByComparingTo("100");
+        assertThat(remaining.getTotalCost()).isEqualByComparingTo("0");
+        assertThat(remaining.getPerformanceBasis()).isEqualByComparingTo("50");
+        assertThat(remaining.getUnrealizedGain()).isEqualByComparingTo("50");
+
+        TransactionRequest nextPurchase = movement(Operation.BUY, "5", "200");
+        nextPurchase.setDate(OPENING.plusDays(1));
+        TransactionResponse purchase = service.createTransaction(userId, nextPurchase);
+        TransactionRequest nextSale = movement(Operation.SELL, "5", "100");
+        nextSale.setDate(OPENING.plusDays(2));
+        TransactionResponse secondSale = service.createTransaction(userId, nextSale);
+        remaining = assetService.getAssetById(holding.getId(), userId);
+        assertThat(remaining.getTotalCost()).isEqualByComparingTo("100");
+        assertThat(remaining.getPerformanceBasis()).isEqualByComparingTo("125");
+        assertThat(remaining.getUnrealizedGain()).isEqualByComparingTo("-25");
+
+        service.deleteTransaction(secondSale.getId(), userId);
+        service.deleteTransaction(purchase.getId(), userId);
+        service.deleteTransaction(firstSale.getId(), userId);
+        remaining = assetService.getAssetById(holding.getId(), userId);
+        assertThat(remaining.getQuantity()).isEqualByComparingTo("10");
+        assertThat(remaining.getReceivedValue()).isEqualByComparingTo("100");
+        assertThat(remaining.getPerformanceBasis()).isEqualByComparingTo("100");
+        assertThat(remaining.getUnrealizedGain()).isEqualByComparingTo("100");
+    }
+
+    @Test
     void authenticatedApiExposesQuotesAndEditsTransferUnitsWithNestedValidation() throws Exception {
         acquisition("1", "100000");
         TransactionResponse transfer = cashTransfer();

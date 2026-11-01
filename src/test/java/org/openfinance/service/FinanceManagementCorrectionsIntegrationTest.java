@@ -316,9 +316,11 @@ class FinanceManagementCorrectionsIntegrationTest {
                                 home,
                                 "movementType",
                                 "CAPITAL_IMPROVEMENT"));
+        body.put("valuationChange", 10);
         long tx = json("POST", "/transactions", body, 201).get("id").asLong();
         assertAllocation("110");
         body.put("amount", 15);
+        body.put("valuationChange", 15);
         json("PUT", "/transactions/" + tx, body, 200);
         assertAllocation("115");
         json("DELETE", "/transactions/" + tx, null, 204);

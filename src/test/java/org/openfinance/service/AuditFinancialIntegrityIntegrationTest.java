@@ -84,6 +84,7 @@ class AuditFinancialIntegrityIntegrationTest extends AuditApiTestSupport {
         long property = property(owner).path("id").asLong();
         Map<String, Object> payload = movement(cash, 100, START.plusMonths(1));
         payload.putAll(data("realEstateId", property, "movementType", "CAPITAL_IMPROVEMENT"));
+        payload.put("valuationChange", payload.get("amount"));
         json("POST", "/transactions", payload, owner, 201);
         json("POST", "/accounts/" + cash + "/close", null, owner, 204);
         JsonNode backup =
@@ -146,6 +147,7 @@ class AuditFinancialIntegrityIntegrationTest extends AuditApiTestSupport {
                         "CAPITAL_IMPROVEMENT",
                         "type",
                         "INCOME"));
+        payload.put("valuationChange", payload.get("amount"));
         json("POST", "/transactions", payload, owner, 400);
         payload.putAll(data("type", "TRANSFER", "toAccountId", destination));
         json("POST", "/transactions", payload, owner, 400);
@@ -161,14 +163,23 @@ class AuditFinancialIntegrityIntegrationTest extends AuditApiTestSupport {
         LocalDate later = earlier.plusMonths(1);
         Map<String, Object> laterPayload = movement(cash, 200, later);
         laterPayload.putAll(data("realEstateId", property, "movementType", "CAPITAL_IMPROVEMENT"));
+        laterPayload.put("valuationChange", laterPayload.get("amount"));
         long laterId = json("POST", "/transactions", laterPayload, owner, 201).path("id").asLong();
         Map<String, Object> earlierPayload = movement(cash, 100, earlier);
         earlierPayload.putAll(
                 data("realEstateId", property, "movementType", "CAPITAL_IMPROVEMENT"));
+        earlierPayload.put("valuationChange", earlierPayload.get("amount"));
         long earlierId =
                 json("POST", "/transactions", earlierPayload, owner, 201).path("id").asLong();
         assertHistory(earlier, later, "2000");
-        laterPayload.putAll(data("date", earlier.minusMonths(1).toString(), "amount", 300));
+        laterPayload.putAll(
+                data(
+                        "date",
+                        earlier.minusMonths(1).toString(),
+                        "amount",
+                        300,
+                        "valuationChange",
+                        300));
         json("PUT", "/transactions/" + laterId, laterPayload, owner, 200);
         assertHistory(earlier.minusMonths(1), later, "2000");
         json("DELETE", "/transactions/" + earlierId, null, owner, 204);

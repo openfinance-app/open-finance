@@ -13,11 +13,14 @@ import { Button } from '@/components/ui/Button';
 import { HelpTooltip } from '@/components/ui/HelpTooltip';
 import { Input } from '@/components/ui/Input';
 import { SimpleSelect } from '@/components/ui/SimpleSelect';
+import { RecordLoanPayment } from '@/components/liabilities/RecordLoanPayment';
+import { ExactDecimal, decimalField } from '@/utils/exact-decimal';
 import { sum, subtract } from '@/utils/money';
 import type { LiabilityRequest } from '@/types/liability';
 
 interface FinancingLink {
   assetId: number;
+  primaryMortgage?: boolean;
   liabilityId?: number;
   relationship: 'FINANCING' | 'COLLATERAL';
   allocationPercentage: number;
@@ -122,9 +125,12 @@ export function AssetFinancingSection({
   };
   const addLoan = async (data: LiabilityRequest) => {
     try {
-      const loan = await createLoan.mutateAsync(data);
+      const loan = await createLoan.mutateAsync({ ...data, financedAssetId: assetId });
       setCreatingLoan(false);
-      startEditing(loan.id);
+      if (assetId) {
+        closeEditor();
+        await client.invalidateQueries({ queryKey: ['assetFinancing'] });
+      } else startEditing(loan.id);
     } catch {
       // Retain the form and display the mutation error below it.
     }
@@ -156,7 +162,12 @@ export function AssetFinancingSection({
   const allocatedDebt = sum((linked.data ?? []).map(row => row.allocatedBalance ?? 0));
   const selectedLoan = liabilities.data?.find(loan => loan.id === chosenLoan);
   const availableAssets = (assets.data ?? []).filter(
-    item => item.isActive !== false || draft?.some(row => row.assetId === item.id)
+    item =>
+      ((item.isPhysical || item.type === 'REAL_ESTATE') &&
+        item.isActive !== false &&
+        item.acquisitionType !== 'PLANNED' &&
+        !item.soldDate) ||
+      loanLinks.data?.some(row => row.assetId === item.id)
   );
 
   return (
@@ -223,13 +234,18 @@ export function AssetFinancingSection({
                   {liabilityId ? row.assetName : row.liabilityName}
                 </Link>
                 <p className="text-xs text-text-secondary">
-                  {t(`financing.${row.relationship}`)}
+                  {t(
+                    row.primaryMortgage
+                      ? 'financing.primaryMortgage'
+                      : `financing.${row.relationship}`
+                  )}
                   {row.relationship === 'FINANCING' && ` · ${row.allocationPercentage}%`}
                 </p>
               </div>
-              <div className="flex items-center gap-3">
+              <div className="flex flex-wrap items-center gap-3">
                 {row.relationship === 'FINANCING' && (
                   <ConvertedAmount
+                    className="font-mono tabular-nums"
                     amount={row.allocatedBalance ?? 0}
                     currency={
                       row.assetCurrency ?? asset?.currency ?? selectedLoan?.currency ?? 'EUR'
@@ -237,6 +253,13 @@ export function AssetFinancingSection({
                     inline
                   />
                 )}
+                {!liabilityId &&
+                  row.liabilityId &&
+                  liabilities.data?.find(loan => loan.id === row.liabilityId) && (
+                    <RecordLoanPayment
+                      liability={liabilities.data.find(loan => loan.id === row.liabilityId)!}
+                    />
+                  )}
                 {!linking && !creatingLoan && (
                   <Button
                     variant="secondary"
@@ -294,7 +317,7 @@ export function AssetFinancingSection({
                     setDraft(null);
                     save.reset();
                   }}
-                  className="mt-1.5"
+                  className="mt-1.5 h-11 text-base md:h-10 md:text-sm"
                 >
                   <option value="">{t('financing.selectLoan')}</option>
                   {liabilities.data?.map(loan => (
@@ -330,6 +353,12 @@ export function AssetFinancingSection({
           )}
           {draft !== null && chosenLoan && (
             <>
+              <div className="space-y-1">
+                <h4 className="font-medium">
+                  {t('financing.editorTitle', { name: selectedLoan?.name ?? '' })}
+                </h4>
+                <p className="text-sm text-text-secondary">{t('financing.editorHint')}</p>
+              </div>
               <fieldset disabled={save.isPending} className="space-y-3">
                 {draft.map((row, index) => (
                   <div
@@ -341,7 +370,7 @@ export function AssetFinancingSection({
                       <SimpleSelect
                         value={row.assetId}
                         onChange={e => update(index, { assetId: Number(e.target.value) })}
-                        className="mt-1"
+                        className="mt-1 h-11 text-base md:h-10 md:text-sm"
                       >
                         {availableAssets.map(item => (
                           <option key={item.id} value={item.id}>
@@ -369,7 +398,7 @@ export function AssetFinancingSection({
                                 : 0,
                           })
                         }
-                        className="mt-1"
+                        className="mt-1 h-11 text-base md:h-10 md:text-sm"
                       >
                         <option value="FINANCING">{t('financing.FINANCING')}</option>
                         <option value="COLLATERAL">{t('financing.COLLATERAL')}</option>
@@ -387,9 +416,24 @@ export function AssetFinancingSection({
                           onChange={e =>
                             update(index, { allocationPercentage: Number(e.target.value) })
                           }
-                          className="mt-1"
+                          className="mt-1 h-11 text-base md:h-10 md:text-sm"
                         />
                       </label>
+                    )}
+                    {selectedLoan && row.relationship === 'FINANCING' && (
+                      <div className="basis-full text-sm text-text-secondary">
+                        {t('financing.allocatedPreview')}
+                        {': '}
+                        <ConvertedAmount
+                          className="font-mono tabular-nums"
+                          amount={new ExactDecimal(decimalField(selectedLoan, 'currentBalance'))
+                            .times(row.allocationPercentage || 0)
+                            .div(100)
+                            .toNumber()}
+                          currency={selectedLoan.currency}
+                          inline
+                        />
+                      </div>
                     )}
                     <Button
                       variant="ghost"

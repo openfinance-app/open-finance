@@ -17,6 +17,7 @@ import lombok.NoArgsConstructor;
 public class AssetFinancingLink {
     @NotNull private Long assetId;
     private Long liabilityId;
+    private boolean primaryMortgage;
 
     @NotNull
     @Pattern(regexp = "FINANCING|COLLATERAL")

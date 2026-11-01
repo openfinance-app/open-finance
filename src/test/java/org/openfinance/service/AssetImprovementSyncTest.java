@@ -40,6 +40,7 @@ import org.openfinance.repository.LiabilityRepository;
 import org.openfinance.repository.LiabilityTrancheRepository;
 import org.openfinance.repository.NetWorthRepository;
 import org.openfinance.repository.PayeeRepository;
+import org.openfinance.repository.RealEstateRepository;
 import org.openfinance.repository.TransactionRepository;
 import org.openfinance.repository.UserRepository;
 import org.openfinance.security.EncryptionService;
@@ -87,6 +88,8 @@ class AssetImprovementSyncTest {
     @Mock private AssetRepository assetRepository;
     @Mock private AssetMapper assetMapper;
     @Mock private EncryptionProperties encryptionProperties;
+
+    @Mock private RealEstateRepository realEstateRepository;
 
     @InjectMocks private TransactionService transactionService;
 
@@ -157,6 +160,7 @@ class AssetImprovementSyncTest {
                 .currency("USD")
                 .date(LocalDate.now())
                 .movementType(movementType)
+                .valuationChange(movementType == MovementType.CAPITAL_IMPROVEMENT ? amount : null)
                 .assetId(ASSET_ID)
                 .build();
     }
@@ -176,6 +180,7 @@ class AssetImprovementSyncTest {
     }
 
     private void stubCreate(TransactionRequest request, Transaction mapped, Transaction saved) {
+        saved.setValuationChange(request.getValuationChange());
         when(accountRepository.findByIdAndUserId(ACCOUNT_ID, USER_ID))
                 .thenReturn(Optional.of(accountFixture(request.getCurrency())));
         when(transactionMapper.toEntity(request)).thenReturn(mapped);
@@ -346,14 +351,15 @@ class AssetImprovementSyncTest {
 
     @Test
     @DisplayName(
-            "FX CAPITAL_IMPROVEMENT applies the asset-currency total from the conversion fields")
-    void fxCapitalImprovementAppliesAssetCurrencyTotal() {
+            "FX CAPITAL_IMPROVEMENT applies the explicit asset-currency valuation independently of cost")
+    void fxCapitalImprovementAppliesExplicitAssetCurrencyValuation() {
         TransactionRequest request =
                 assetRequest(new BigDecimal("500.00"), MovementType.CAPITAL_IMPROVEMENT);
         request.setCurrency("EUR");
         request.setOriginalAmount(new BigDecimal("1000.00"));
         request.setOriginalCurrency("USD");
         request.setConversionRate(new BigDecimal("0.5000"));
+        request.setValuationChange(new BigDecimal("250.00"));
         stubCreate(
                 request,
                 assetEntity(null, new BigDecimal("500.00"), MovementType.CAPITAL_IMPROVEMENT),
@@ -371,6 +377,6 @@ class AssetImprovementSyncTest {
         ArgumentCaptor<Asset> captor = ArgumentCaptor.forClass(Asset.class);
         verify(assetRepository).save(captor.capture());
         assertThat(captor.getValue().getCurrentPrice())
-                .isEqualByComparingTo(new BigDecimal("21000.00"));
+                .isEqualByComparingTo(new BigDecimal("20250.00"));
     }
 }

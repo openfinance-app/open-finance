@@ -2,6 +2,8 @@ package org.openfinance.service;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -38,16 +40,68 @@ public class AssetFinancingServiceImpl implements AssetFinancingService {
     @Transactional(readOnly = true)
     public List<AssetFinancingLink> forLiability(Long userId, Long liabilityId) {
         liability(userId, liabilityId);
-        return links.findByLiabilityIdAndUserId(liabilityId, userId).stream()
-                .map(this::response)
-                .toList();
+        List<AssetFinancingLink> result =
+                new ArrayList<>(
+                        links.findByLiabilityIdAndUserId(liabilityId, userId).stream()
+                                .map(this::response)
+                                .toList());
+        if (result.stream().noneMatch(link -> link.getRelationship().equals("FINANCING"))) {
+            // A primary mortgage represents 100% until explicit allocations replace it.
+            // Prefer the active primary property when a historical inactive association remains.
+            properties.findByMortgageId(liabilityId).stream()
+                    .filter(
+                            property ->
+                                    property.getUserId().equals(userId)
+                                            && property.getAssetId() != null)
+                    .sorted(
+                            Comparator.comparing(
+                                            org.openfinance.entity.RealEstateProperty::isActive)
+                                    .reversed()
+                                    .thenComparing(
+                                            org.openfinance.entity.RealEstateProperty::getId))
+                    .findFirst()
+                    .ifPresent(
+                            property -> {
+                                AssetFinancingLink primary =
+                                        response(
+                                                LiabilityAssetLink.builder()
+                                                        .userId(userId)
+                                                        .liabilityId(liabilityId)
+                                                        .assetId(property.getAssetId())
+                                                        .relationship("FINANCING")
+                                                        .allocationPercentage(new BigDecimal("100"))
+                                                        .build());
+                                primary.setPrimaryMortgage(true);
+                                result.add(primary);
+                            });
+        }
+        return List.copyOf(result);
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<AssetFinancingLink> forAsset(Long userId, Long assetId) {
         asset(userId, assetId);
-        return links.findByAssetIdAndUserId(assetId, userId).stream().map(this::response).toList();
+        List<AssetFinancingLink> result =
+                new ArrayList<>(
+                        links.findByAssetIdAndUserId(assetId, userId).stream()
+                                .map(this::response)
+                                .toList());
+        properties
+                .findByAssetIdAndUserId(assetId, userId)
+                .ifPresent(
+                        property -> {
+                            if (property.getMortgageId() != null) {
+                                forLiability(userId, property.getMortgageId()).stream()
+                                        .filter(
+                                                link ->
+                                                        link.isPrimaryMortgage()
+                                                                && link.getAssetId()
+                                                                        .equals(assetId))
+                                        .forEach(result::add);
+                            }
+                        });
+        return List.copyOf(result);
     }
 
     @Override
@@ -65,7 +119,15 @@ public class AssetFinancingServiceImpl implements AssetFinancingService {
         BigDecimal total = BigDecimal.ZERO;
         Set<String> unique = new HashSet<>();
         for (AssetFinancingLink request : requested) {
-            asset(userId, request.getAssetId());
+            Asset target = asset(userId, request.getAssetId());
+            boolean existing =
+                    forLiability(userId, liabilityId).stream()
+                            .anyMatch(
+                                    link ->
+                                            link.getAssetId().equals(target.getId())
+                                                    && link.getRelationship()
+                                                            .equals(request.getRelationship()));
+            if (!existing) validateTarget(userId, target);
             if (!unique.add(request.getAssetId() + ":" + request.getRelationship())) {
                 throw new InvalidTransactionException("Duplicate asset relationship");
             }
@@ -90,6 +152,24 @@ public class AssetFinancingServiceImpl implements AssetFinancingService {
             throw new InvalidTransactionException(
                     "Allocated financing cannot exceed 100% of a liability");
         }
+        // Removing a primary association must not silently restore its implicit 100% allocation.
+        properties.findByMortgageId(liabilityId).stream()
+                .filter(property -> property.getUserId().equals(userId))
+                .filter(
+                        property ->
+                                requested.stream()
+                                        .noneMatch(
+                                                link ->
+                                                        link.getRelationship().equals("FINANCING")
+                                                                && link.getAssetId()
+                                                                        .equals(
+                                                                                property
+                                                                                        .getAssetId())))
+                .forEach(
+                        property -> {
+                            property.setMortgageId(null);
+                            property.setMortgage(null);
+                        });
         links.deleteByLiabilityIdAndUserId(liabilityId, userId);
         links.flush();
         for (AssetFinancingLink request : requested) {
@@ -114,7 +194,8 @@ public class AssetFinancingServiceImpl implements AssetFinancingService {
                         : forAsset(userId, assetId).stream()
                                 .map(AssetFinancingLink::getAllocatedBalance)
                                 .reduce(BigDecimal.ZERO, BigDecimal::add);
-        if (mortgageId != null
+        if (assetId == null
+                && mortgageId != null
                 && links.findByLiabilityIdAndUserId(mortgageId, userId).stream()
                         .noneMatch(link -> link.getRelationship().equals("FINANCING"))) {
             Liability loan = liability(userId, mortgageId);
@@ -132,6 +213,8 @@ public class AssetFinancingServiceImpl implements AssetFinancingService {
 
     @Override
     public void ensureDirectFinancing(Long userId, Long liabilityId, Long assetId) {
+        validateTarget(userId, asset(userId, assetId));
+        liability(userId, liabilityId);
         List<LiabilityAssetLink> existing = links.findByLiabilityIdAndUserId(liabilityId, userId);
         if (existing.stream()
                 .anyMatch(
@@ -150,7 +233,7 @@ public class AssetFinancingServiceImpl implements AssetFinancingService {
                                                         p.getAssetId(), assetId));
         if (allocated || anotherPrimary) {
             throw new InvalidTransactionException(
-                    "Allocate a financing share to this property before drawing a shared loan");
+                    "Allocate a financing share to this asset before drawing a shared loan");
         }
         links.save(
                 LiabilityAssetLink.builder()
@@ -160,6 +243,39 @@ public class AssetFinancingServiceImpl implements AssetFinancingService {
                         .relationship("FINANCING")
                         .allocationPercentage(new BigDecimal("100"))
                         .build());
+    }
+
+    @Override
+    public void synchronizePrimary(Long userId, Long assetId, Long previousLoanId, Long loanId) {
+        if (java.util.Objects.equals(previousLoanId, loanId) || assetId == null) return;
+        if (previousLoanId != null) {
+            links.findByLiabilityIdAndUserId(previousLoanId, userId).stream()
+                    .filter(
+                            link ->
+                                    link.getAssetId().equals(assetId)
+                                            && link.getRelationship().equals("FINANCING"))
+                    .forEach(links::delete);
+            links.flush();
+        }
+        if (loanId != null) ensureDirectFinancing(userId, loanId, assetId);
+    }
+
+    private void validateTarget(Long userId, Asset target) {
+        if ((!target.isPhysical()
+                        && target.getType() != org.openfinance.entity.AssetType.REAL_ESTATE)
+                || target.getAcquisitionType() == org.openfinance.entity.AcquisitionType.PLANNED
+                || target.getSoldDate() != null) {
+            throw new InvalidTransactionException(
+                    "Link financing or security to an owned physical asset or property");
+        }
+        if (target.getType() == org.openfinance.entity.AssetType.REAL_ESTATE
+                && properties
+                        .findByAssetIdAndUserId(target.getId(), userId)
+                        .filter(property -> property.isActive())
+                        .isEmpty()) {
+            throw new InvalidTransactionException(
+                    "Restore the property before linking financing or security");
+        }
     }
 
     private AssetFinancingLink response(LiabilityAssetLink link) {

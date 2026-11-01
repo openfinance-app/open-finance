@@ -61,4 +61,37 @@ describe('Reporting currency asset aggregates', () => {
       )
     ).toMatchObject({ totalValue: 0, totalCost: 0, missingCurrencies: ['GBP'] });
   });
+  it('separates gifted wealth from returns and excludes unknown receipt values from performance', () => {
+    const result = computeAssetSummary(
+      [
+        holding({
+          acquisitionType: 'GIFT',
+          receivedValue: 150000,
+          performanceBasis: 150000,
+          totalCost: 0,
+          totalValue: 165000,
+        }),
+        holding({
+          acquisitionType: 'GIFT',
+          performanceBasis: null,
+          totalCost: 0,
+          totalValue: 5000,
+        }),
+        holding({ acquisitionType: 'PLANNED', totalCost: 250000, totalValue: 0 }),
+      ],
+      'USD'
+    );
+    expect(result).toMatchObject({
+      totalValue: 170000,
+      totalCost: 0,
+      totalGain: 15000,
+      gainPct: 10,
+      excludedFromPerformance: 1,
+    });
+  });
+  it('does not report a zero percent return when the only receipt value is unknown', () => {
+    expect(
+      computeAssetSummary([holding({ acquisitionType: 'GIFT', performanceBasis: null })], 'USD')
+    ).toMatchObject({ hasPerformance: false, gainPct: null });
+  });
 });

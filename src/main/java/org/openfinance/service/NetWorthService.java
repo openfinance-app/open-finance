@@ -233,6 +233,7 @@ public class NetWorthService {
         // including it would double-count the property in total assets.
         BigDecimal investmentAssets =
                 assetRepository.findByUserId(userId).stream()
+                        .filter(asset -> asset.getSoldDate() == null)
                         .filter(
                                 asset ->
                                         asset.getAcquisitionType()
@@ -253,6 +254,7 @@ public class NetWorthService {
         // conversion)
         BigDecimal realEstateAssets =
                 realEstateRepository.findByUserIdAndIsActive(userId, true).stream()
+                        .filter(property -> property.getSoldDate() == null)
                         .filter(
                                 property ->
                                         property.getAcquisitionType()
@@ -869,6 +871,8 @@ public class NetWorthService {
                 // gated by purchaseDate. Skip REAL_ESTATE type to avoid double-counting
                 // with RealEstateProperty entities below.
                 for (Asset asset : assets) {
+                    if (asset.getSoldDate() != null && !asset.getSoldDate().isAfter(targetDate))
+                        continue;
                     if (asset.getAcquisitionType()
                             == org.openfinance.entity.AcquisitionType.PLANNED) continue;
                     if (asset.getType() == org.openfinance.entity.AssetType.REAL_ESTATE) {
@@ -879,6 +883,17 @@ public class NetWorthService {
                         continue;
                     }
                     if (asset.getPurchasePrice() == null || asset.getQuantity() == null) {
+                        continue;
+                    }
+                    if (asset.isPhysical()) {
+                        totalAssets =
+                                totalAssets.add(
+                                        convertToBaseCurrency(
+                                                historicalPhysicalValue(
+                                                        asset, allTransactions, targetDate),
+                                                asset.getCurrency(),
+                                                baseCurrency,
+                                                targetDate));
                         continue;
                     }
                     BigDecimal costBasis = asset.getPurchasePrice().multiply(asset.getQuantity());
@@ -932,6 +947,8 @@ public class NetWorthService {
                     // (latest history entry whose effectiveDate <= targetDate),
                     // falling back to purchasePrice if no history entry exists yet.
                     for (RealEstateProperty property : realEstateProps) {
+                        if (property.getSoldDate() != null
+                                && !property.getSoldDate().isAfter(targetDate)) continue;
                         if (!propertyWasActive(
                                 statusByProperty.getOrDefault(property.getId(), List.of()),
                                 targetDate)) continue;
@@ -1245,6 +1262,38 @@ public class NetWorthService {
      * Computes the historical balance of an account at a given date by reversing transactions that
      * occurred after that date.
      */
+    /** Reconstruct value from valuation contributions, never from the price of improvements. */
+    private BigDecimal historicalPhysicalValue(
+            Asset asset, List<Transaction> transactions, LocalDate date) {
+        java.time.LocalDateTime anchor = asset.getValuationRecordedAt();
+        boolean anchored = anchor != null && !anchor.toLocalDate().isAfter(date);
+        BigDecimal value =
+                anchored
+                        ? asset.getTotalValue()
+                        : asset.getAcquisitionType() == org.openfinance.entity.AcquisitionType.GIFT
+                                ? (asset.getReceivedValue() == null
+                                        ? BigDecimal.ZERO
+                                        : asset.getReceivedValue())
+                                : asset.getPurchasePrice().multiply(asset.getQuantity());
+        for (Transaction transaction : transactions) {
+            if (!asset.getId().equals(transaction.getAssetId())
+                    || Boolean.TRUE.equals(transaction.getIsDeleted())
+                    || transaction.getMovementType()
+                            != org.openfinance.entity.MovementType.CAPITAL_IMPROVEMENT) continue;
+            BigDecimal change = org.openfinance.util.ValuationContributions.amount(transaction);
+            if (anchored) {
+                if (!org.openfinance.util.ValuationContributions.applies(
+                        transaction.getDate(),
+                        transaction.getCreatedAt(),
+                        anchor.toLocalDate(),
+                        anchor)) continue;
+                value = value.subtract(change);
+            }
+            if (!transaction.getDate().isAfter(date)) value = value.add(change);
+        }
+        return value.max(BigDecimal.ZERO);
+    }
+
     private BigDecimal computeHistoricalBalance(
             Account account,
             LocalDate targetDate,

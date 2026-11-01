@@ -8,11 +8,17 @@
  * seller of the linked property (directRealEstateId). When no tranche is
  * passed the backend auto-picks (or creates) the next tranche.
  */
+import { useQuery } from '@tanstack/react-query';
+import apiClient from '@/services/apiClient';
+import { useAssets } from '@/hooks/useAssets';
+import { apiErrorMessage } from '@/utils/api-error';
+import { ExactDecimal } from '@/utils/exact-decimal';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/Button';
 import { DateInput } from '@/components/ui/DateInput';
 import { NumberInput } from '@/components/ui/NumberInput';
+import { ConvertedAmount } from '@/components/ui/ConvertedAmount';
 import { useDisburseLiability } from '@/hooks/useLiabilities';
 import { useAccounts } from '@/hooks/useAccounts';
 import { getToday } from '@/utils/date';
@@ -33,11 +39,47 @@ export function DisburseForm({ liability, tranche, onDone }: DisburseFormProps) 
   const { t } = useTranslation('liabilities');
   const disburse = useDisburseLiability();
   const { data: accounts = [] } = useAccounts('active');
+  const { data: assets = [] } = useAssets();
+  const { data: links = [] } = useQuery<{ assetId: number; relationship: string }[]>({
+    queryKey: ['assetFinancing', 'liability', liability.id],
+    queryFn: async () => (await apiClient.get(`/liabilities/${liability.id}/asset-links`)).data,
+  });
+  const eligibleAssets = assets.filter(
+    asset =>
+      (asset.isPhysical || asset.type === 'REAL_ESTATE') &&
+      asset.acquisitionType !== 'PLANNED' &&
+      !asset.soldDate &&
+      asset.isActive !== false &&
+      asset.currency === liability.currency &&
+      links.some(link => link.assetId === asset.id && link.relationship === 'FINANCING')
+  );
+  const [selectedAssetId, setSelectedAssetId] = useState<number | undefined>(
+    tranche?.assetId ?? undefined
+  );
+  const selectedAsset = eligibleAssets.find(asset => asset.id === selectedAssetId);
 
   const linkedPropertyId = tranche?.realEstateId ?? liability.linkedPropertyId ?? null;
   // Amount prefilled with the remaining planned amount of the tranche.
   const [amount, setAmount] = useState(
-    tranche ? decimalField(tranche, tranche.remaining == null ? 'plannedAmount' : 'remaining') : ''
+    tranche
+      ? decimalField(
+          tranche,
+          tranche.status === 'PLANNED' || tranche.remaining == null ? 'plannedAmount' : 'remaining'
+        )
+      : ExactDecimal.max(
+          new ExactDecimal(
+            decimalField(
+              liability,
+              liability.approvedAmount == null ? 'principal' : 'approvedAmount'
+            )
+          ).minus(
+            decimalField(
+              liability,
+              liability.fundedAmount == null ? 'currentBalance' : 'fundedAmount'
+            )
+          ),
+          0
+        ).toFixed()
   );
   const [date, setDate] = useState(getToday());
   const [route, setRoute] = useState<DisburseRoute>('account');
@@ -47,7 +89,13 @@ export function DisburseForm({ liability, tranche, onDone }: DisburseFormProps) 
   const valid =
     isValidDecimalString(amount) &&
     numericAmount > 0 &&
-    (route === 'property' ? linkedPropertyId != null : accountId !== undefined);
+    date >= liability.startDate &&
+    date <= getToday() &&
+    (route === 'property'
+      ? selectedAsset != null || linkedPropertyId != null
+      : accounts.some(
+          account => account.id === accountId && account.currency === liability.currency
+        ));
 
   const submit = async () => {
     if (!valid) return;
@@ -59,7 +107,15 @@ export function DisburseForm({ liability, tranche, onDone }: DisburseFormProps) 
           amount: amount.trim(),
           date,
           toAccountId: route === 'account' ? accountId : undefined,
-          directRealEstateId: route === 'property' ? (linkedPropertyId ?? undefined) : undefined,
+          directRealEstateId:
+            route === 'property'
+              ? (selectedAsset?.realEstateId ??
+                (selectedAsset ? undefined : (linkedPropertyId ?? undefined)))
+              : undefined,
+          directAssetId:
+            route === 'property' && selectedAsset && selectedAsset.type !== 'REAL_ESTATE'
+              ? selectedAsset.id
+              : undefined,
         },
       });
       onDone();
@@ -69,7 +125,7 @@ export function DisburseForm({ liability, tranche, onDone }: DisburseFormProps) 
   };
 
   const selectClass =
-    'w-full h-10 px-3 rounded-lg bg-surface border border-border text-text-primary text-sm placeholder:text-text-muted hover:border-border/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50 transition-colors duration-150';
+    'w-full h-11 md:h-10 px-3 rounded-lg bg-surface border border-border text-text-primary text-base md:text-sm placeholder:text-text-muted hover:border-border/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50 transition-colors duration-150';
 
   return (
     <div
@@ -83,6 +139,7 @@ export function DisburseForm({ liability, tranche, onDone }: DisburseFormProps) 
             {t('drawdowns.disburseForm.amount')} *
           </label>
           <NumberInput
+            className="h-11 font-mono text-base tabular-nums md:h-10 md:text-sm"
             id="disburse-amount"
             value={amount}
             onChange={setAmount}
@@ -94,7 +151,13 @@ export function DisburseForm({ liability, tranche, onDone }: DisburseFormProps) 
           <label htmlFor="disburse-date" className="block text-sm font-medium mb-1.5">
             {t('drawdowns.disburseForm.date')}
           </label>
-          <DateInput id="disburse-date" value={date} onChange={setDate} />
+          <DateInput
+            id="disburse-date"
+            value={date}
+            onChange={setDate}
+            min={liability.startDate}
+            max={getToday()}
+          />
         </div>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -109,7 +172,7 @@ export function DisburseForm({ liability, tranche, onDone }: DisburseFormProps) 
             className={selectClass}
           >
             <option value="account">{t('drawdowns.disburseForm.routeAccount')}</option>
-            {linkedPropertyId != null && (
+            {(linkedPropertyId != null || eligibleAssets.length > 0) && (
               <option value="property">{t('drawdowns.disburseForm.routeProperty')}</option>
             )}
           </select>
@@ -126,21 +189,73 @@ export function DisburseForm({ liability, tranche, onDone }: DisburseFormProps) 
               className={selectClass}
             >
               <option value="">--</option>
-              {accounts.map(account => (
-                <option key={account.id} value={account.id}>
-                  {account.name}
-                </option>
-              ))}
+              {accounts
+                .filter(account => account.currency === liability.currency)
+                .map(account => (
+                  <option key={account.id} value={account.id}>
+                    {account.name}
+                  </option>
+                ))}
             </select>
           </div>
         )}
       </div>
+      {route === 'property' && eligibleAssets.length > 0 && (
+        <div className="space-y-1">
+          <label htmlFor="disburse-target" className="block text-sm font-medium">
+            {t('drawdowns.disburseForm.target')}
+          </label>
+          <select
+            id="disburse-target"
+            className={selectClass}
+            value={selectedAssetId ?? ''}
+            onChange={event => setSelectedAssetId(Number(event.target.value) || undefined)}
+          >
+            <option value="">{liability.linkedPropertyName ?? t('form.noAsset')}</option>
+            {eligibleAssets.map(asset => (
+              <option key={asset.id} value={asset.id}>
+                {asset.name}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
       {route === 'property' && (
         <p className="text-xs text-text-secondary">{t('drawdowns.disburseForm.valuationPolicy')}</p>
       )}
+      {valid && (
+        <dl className="grid grid-cols-2 gap-x-3 gap-y-2 border-t border-border pt-3 text-sm">
+          <dt>{t('recordPayment.cashChange')}</dt>
+          <dd className="text-right font-mono tabular-nums">
+            <ConvertedAmount
+              inline
+              amount={route === 'account' ? numericAmount : 0}
+              currency={liability.currency}
+            />
+          </dd>
+          <dt>{t('drawdowns.disburseForm.debtAfter')}</dt>
+          <dd className="text-right font-mono tabular-nums">
+            <ConvertedAmount
+              inline
+              amount={new ExactDecimal(decimalField(liability, 'currentBalance'))
+                .plus(amount)
+                .toNumber()}
+              currency={liability.currency}
+            />
+          </dd>
+          {route === 'property' && (
+            <>
+              <dt>{t('drawdowns.disburseForm.valueChange')}</dt>
+              <dd className="text-right font-mono tabular-nums">
+                <ConvertedAmount inline amount={0} currency={liability.currency} />
+              </dd>
+            </>
+          )}
+        </dl>
+      )}
       {disburse.isError && (
         <p role="alert" className="text-sm text-error">
-          {t('drawdowns.disburseForm.error')}
+          {apiErrorMessage(disburse.error, t('drawdowns.disburseForm.error'))}
         </p>
       )}
       <div className="flex justify-end gap-2">

@@ -1,5 +1,6 @@
+import { OwnershipIntentChoice } from '@/components/assets/OwnershipIntentChoice';
+import { AssetPurchaseFlow } from '@/components/assets/AssetPurchaseFlow';
 import { BulkSelection, BulkToolbar } from '@/components/bulk/BulkSelection';
-import { formatDecimal } from '@/utils/format';
 /**
  * AssetsPage Component
  * Task 5.2.7: Create AssetsPage component
@@ -106,6 +107,7 @@ export default function AssetsPage() {
     page: 0,
     size: DEFAULT_PAGE_SIZE,
     sort: 'name,asc',
+    ownershipStatus: 'OWNED',
     currency: validCurrency,
     type: validType,
     group: groupParam === 'PHYSICAL' || groupParam === 'FINANCIAL' ? groupParam : undefined,
@@ -120,7 +122,12 @@ export default function AssetsPage() {
   const [showFilters, setShowFilters] = useState(
     Boolean(validCurrency || validType || validSymbol)
   );
+  const [buying, setBuying] = useState(false);
+  const [purchasePlan, setPurchasePlan] = useState<Asset>();
   const [isFormOpen, setIsFormOpen] = useState(false);
+  const [creationIntent, setCreationIntent] = useState<'PURCHASE' | 'GIFT' | 'PLANNED' | null>(
+    null
+  );
   const [creationType, setCreationType] = useState<AssetType | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [editingAsset, setEditingAsset] = useState<Asset | null>(null);
@@ -188,6 +195,7 @@ export default function AssetsPage() {
 
   /** Check if any meaningful filter (beyond pagination/sort) is active */
   const isFiltered = !!(
+    (filters.ownershipStatus && filters.ownershipStatus !== 'OWNED') ||
     filters.keyword ||
     filters.type ||
     filters.currency ||
@@ -251,6 +259,7 @@ export default function AssetsPage() {
   };
 
   const handleCreate = () => {
+    setCreationIntent(null);
     setEditingAsset(null);
     setCreationType(
       filters.group === 'PHYSICAL' ? 'VEHICLE' : filters.group === 'FINANCIAL' ? 'STOCK' : null
@@ -288,11 +297,7 @@ export default function AssetsPage() {
   }, [highlightId, allAssetsList, navigate, searchParams, setSearchParams]);
 
   const handleDelete = async (assetId: number) => {
-    try {
-      await deleteAsset.mutateAsync(assetId);
-    } catch (error) {
-      console.error('Failed to delete asset:', error);
-    }
+    await deleteAsset.mutateAsync(assetId);
   };
 
   const handleFormSubmit = async (data: AssetRequest) => {
@@ -543,22 +548,35 @@ export default function AssetsPage() {
                 )}
               </span>
             </div>
-            <ConvertedAmount
-              amount={globalSummary.totalGain}
-              currency={globalSummary.currency}
-              isConverted={false}
-              secondaryAmount={convert(globalSummary.totalGain)}
-              secondaryCurrency={secCurrency}
-              secondaryExchangeRate={secondaryExchangeRate}
-              className={`text-2xl font-bold ${getGainLossColor(globalSummary.totalGain)}`}
-            />
+            {globalSummary.hasPerformance ? (
+              <ConvertedAmount
+                amount={globalSummary.totalGain}
+                currency={globalSummary.currency}
+                isConverted={false}
+                secondaryAmount={convert(globalSummary.totalGain)}
+                secondaryCurrency={secCurrency}
+                secondaryExchangeRate={secondaryExchangeRate}
+                className={`text-2xl font-bold ${getGainLossColor(globalSummary.totalGain)}`}
+              />
+            ) : (
+              <p className="text-2xl text-text-muted">{t('notApplicable')}</p>
+            )}
             <p className={`text-xs mt-1 ${getGainLossColor(globalSummary.gainPct)}`}>
-              {formatPercentage(globalSummary.gainPct)}
+              {globalSummary.gainPct == null
+                ? t('notApplicable')
+                : formatPercentage(globalSummary.gainPct)}
             </p>
             {isFiltered && (
               <p className="text-xs font-mono text-text-tertiary mt-1">
-                {t('filtered')} {filteredSummary.gainPct >= 0 ? '+' : ''}
-                {formatDecimal(filteredSummary.gainPct, 2)}%
+                {t('filtered')}{' '}
+                {filteredSummary.gainPct == null
+                  ? t('notApplicable')
+                  : formatPercentage(filteredSummary.gainPct)}
+              </p>
+            )}
+            {globalSummary.excludedFromPerformance > 0 && (
+              <p className="text-xs text-text-secondary mt-2">
+                {t('summary.performanceExcluded', { count: globalSummary.excludedFromPerformance })}
               </p>
             )}
           </div>
@@ -614,11 +632,9 @@ export default function AssetsPage() {
       {!isLoading && assets && assets.length === 0 && (
         <EmptyState
           title={t('empty.noResults')}
-          description={isFiltered ? t('empty.noMatch') : t('empty.noAssets')}
-          action={{
-            label: t('addAsset'),
-            onClick: handleCreate,
-          }}
+          description={
+            isFiltered || allAssets.length > 0 ? t('empty.noMatch') : t('empty.noAssets')
+          }
         />
       )}
 
@@ -655,9 +671,31 @@ export default function AssetsPage() {
           onClose={() => setViewingAsset(null)}
           onEdit={handleEdit}
           onDelete={handleDelete}
+          onCompletePurchase={plan => {
+            setViewingAsset(null);
+            setPurchasePlan(plan);
+            setBuying(true);
+          }}
         />
       )}
 
+      <Dialog open={buying} onOpenChange={setBuying}>
+        <DialogContent className="sm:max-w-[650px] max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>
+              {t(purchasePlan ? 'ownership.completePurchase' : 'ownership.buy')}
+            </DialogTitle>
+          </DialogHeader>
+          <AssetPurchaseFlow
+            plan={purchasePlan}
+            onClose={() => setBuying(false)}
+            onPurchased={id => {
+              setBuying(false);
+              navigate(`/assets?highlight=${id}`);
+            }}
+          />
+        </DialogContent>
+      </Dialog>
       {/* Create/Edit Dialog */}
       <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
         <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
@@ -696,6 +734,17 @@ export default function AssetsPage() {
                 </button>
               ))}
             </div>
+          ) : !editingAsset && creationType === 'VEHICLE' && !creationIntent ? (
+            <OwnershipIntentChoice
+              onSelect={intent => {
+                if (intent === 'BUY') {
+                  setIsFormOpen(false);
+                  setPurchasePlan(undefined);
+                  setBuying(true);
+                } else setCreationIntent(intent);
+              }}
+              onBack={() => setCreationType(null)}
+            />
           ) : (
             <>
               {!editingAsset && (
@@ -704,7 +753,10 @@ export default function AssetsPage() {
                   variant="secondary"
                   size="sm"
                   className="justify-self-start"
-                  onClick={() => setCreationType(null)}
+                  onClick={() => {
+                    setCreationType(null);
+                    setCreationIntent(null);
+                  }}
                 >
                   <ChevronLeft className="mr-2 h-4 w-4" aria-hidden="true" />
                   {t('createChoice.back')}
@@ -714,6 +766,7 @@ export default function AssetsPage() {
                 kind={
                   editingAsset ? undefined : creationType === 'VEHICLE' ? 'physical' : 'financial'
                 }
+                initialAcquisitionType={creationIntent ?? undefined}
                 initialType={creationType ?? undefined}
                 asset={editingAsset || undefined}
                 onSubmit={handleFormSubmit}

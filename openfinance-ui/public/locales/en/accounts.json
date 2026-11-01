@@ -129,7 +129,10 @@
     "noAccountsMatch": "No accounts match your search",
     "searchAccounts": "Search accounts",
     "none": "None",
-    "totalEarned": "Total earned"
+    "totalEarned": "Total earned",
+    "cash": "Cash",
+    "holdings": "Holdings",
+    "totalValue": "Total value"
   },
   "detail": {
     "currentBalance": "Current Balance",

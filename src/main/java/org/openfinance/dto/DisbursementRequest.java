@@ -32,6 +32,9 @@ public class DisbursementRequest {
     /** ID of the real estate property for a direct disbursement (bank paid seller route). */
     private Long directRealEstateId;
 
+    /** Physical possession financed directly by the lender, without a bank-account receipt. */
+    private Long directAssetId;
+
     /** Optional ID of the planned tranche being drawn; auto-picked when absent. */
     private Long trancheId;
 
@@ -58,6 +61,9 @@ public class DisbursementRequest {
      */
     @AssertTrue(message = "{disbursement.route.exclusive}")
     private boolean isValidRoute() {
-        return (toAccountId != null) ^ (directRealEstateId != null);
+        return (toAccountId != null ? 1 : 0)
+                        + (directRealEstateId != null ? 1 : 0)
+                        + (directAssetId != null ? 1 : 0)
+                == 1;
     }
 }

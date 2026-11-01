@@ -1,3 +1,4 @@
+import { useAsset } from '@/hooks/useAssets';
 import { BulkSelection, BulkToolbar } from '@/components/bulk/BulkSelection';
 /**
  * RealEstatePage Component
@@ -58,6 +59,8 @@ export default function RealEstatePage() {
   const highlightId = searchParams.get('highlight')
     ? parseInt(searchParams.get('highlight')!)
     : null;
+  const assetId = Number(searchParams.get('asset')) || null;
+  const { data: linkedAsset } = useAsset(assetId);
   const { baseCurrency } = useAuthContext();
   const {
     convert,
@@ -66,8 +69,9 @@ export default function RealEstatePage() {
   } = useSecondaryConversion(baseCurrency);
 
   const [isFormOpen, setIsFormOpen] = useState(searchParams.get('create') === '1');
-  const [creationMode, setCreationMode] = useState<'PURCHASE' | 'PLANNED' | null>(null);
+  const [creationMode, setCreationMode] = useState<'PURCHASE' | 'GIFT' | 'PLANNED' | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [purchasePlan, setPurchasePlan] = useState<RealEstateProperty>();
   const [isBuyWizardOpen, setIsBuyWizardOpen] = useState(false);
   const [editingProperty, setEditingProperty] = useState<RealEstateProperty | null>(null);
   const [viewingPropertyId, setViewingPropertyId] = useState<number | null>(null);
@@ -111,18 +115,18 @@ export default function RealEstatePage() {
   const allProperties = allPropertiesPage?.content || [];
 
   useEffect(() => {
-    const assetId = Number(searchParams.get('asset'));
-    const property = allProperties.find(
-      item => item.id === highlightId || (assetId > 0 && item.assetId === assetId)
-    );
-    if (property) {
-      setViewingPropertyId(property.id);
+    const propertyId =
+      highlightId ||
+      linkedAsset?.realEstateId ||
+      allProperties.find(item => assetId != null && item.assetId === assetId)?.id;
+    if (propertyId && Number.isSafeInteger(propertyId) && propertyId > 0) {
+      setViewingPropertyId(propertyId);
       const next = new URLSearchParams(searchParams);
       next.delete('highlight');
       next.delete('asset');
       setSearchParams(next, { replace: true });
     }
-  }, [allPropertiesPage, highlightId, searchParams, setSearchParams]);
+  }, [allPropertiesPage, highlightId, linkedAsset, assetId, searchParams, setSearchParams]);
   useEffect(() => {
     if (searchParams.get('create') !== '1') return;
     setIsFormOpen(true);
@@ -711,6 +715,11 @@ export default function RealEstatePage() {
         <PropertyDetailView
           key={viewingPropertyId}
           propertyId={viewingPropertyId}
+          onCompletePurchase={plan => {
+            setPurchasePlan(plan);
+            setViewingPropertyId(null);
+            setIsBuyWizardOpen(true);
+          }}
           onClose={() => setViewingPropertyId(null)}
         />
       )}
@@ -737,6 +746,7 @@ export default function RealEstatePage() {
                       setIsBuyWizardOpen(true);
                     },
                   },
+                  { key: 'gift', icon: Home, select: () => setCreationMode('GIFT') },
                   { key: 'planned', icon: Calculator, select: () => setCreationMode('PLANNED') },
                 ] as const
               ).map(({ key, icon: Icon, select }) => (
@@ -788,12 +798,26 @@ export default function RealEstatePage() {
       </Dialog>
 
       {/* Buy Property Wizard (Task 9) */}
-      <Dialog open={isBuyWizardOpen} onOpenChange={setIsBuyWizardOpen}>
+      <Dialog
+        open={isBuyWizardOpen}
+        onOpenChange={open => {
+          setIsBuyWizardOpen(open);
+          if (!open) setPurchasePlan(undefined);
+        }}
+      >
         <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{t('wizard.buyProperty')}</DialogTitle>
           </DialogHeader>
-          <BuyPropertyWizard accounts={accounts} onClose={() => setIsBuyWizardOpen(false)} />
+          <BuyPropertyWizard
+            accounts={accounts}
+            plan={purchasePlan}
+            onClose={() => {
+              setIsBuyWizardOpen(false);
+              setPurchasePlan(undefined);
+            }}
+            onPurchased={setViewingPropertyId}
+          />
         </DialogContent>
       </Dialog>
     </BulkSelection>

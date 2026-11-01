@@ -8,17 +8,39 @@ interface Target {
 }
 
 interface Props extends Target {
+  movementType?: string;
+  date?: string;
   onChange: (target: Target) => void;
   error?: string;
   disabled?: boolean;
 }
 
 /** One target for the maintenance or improvement action selected by the parent form. */
-export function MovementSection({ realEstateId, assetId, onChange, error, disabled }: Props) {
+export function MovementSection({
+  realEstateId,
+  assetId,
+  onChange,
+  error,
+  disabled,
+  movementType,
+  date,
+}: Props) {
   const { t } = useTranslation('transactions');
   const { data: properties = [] } = useProperties();
   const { data: assets = [] } = useAssets();
   const physicalAssets = assets.filter(asset => asset.isPhysical);
+  const unavailable = (target: {
+    acquisitionType?: string;
+    isActive?: boolean;
+    soldDate?: string;
+    purchaseDate: string;
+  }) =>
+    target.isActive === false || (!!target.soldDate && !!date && date > target.soldDate)
+      ? t('linkedOperation.inactiveTarget')
+      : (movementType === 'CAPITAL_IMPROVEMENT' || movementType === 'MAINTENANCE') &&
+          (target.acquisitionType === 'PLANNED' || (!!date && target.purchaseDate > date))
+        ? t('linkedOperation.acquireFirst')
+        : undefined;
   const value = realEstateId ? `property:${realEstateId}` : assetId ? `asset:${assetId}` : '';
   return (
     <div className="space-y-1.5">
@@ -55,8 +77,13 @@ export function MovementSection({ realEstateId, assetId, onChange, error, disabl
         {properties.length > 0 && (
           <optgroup label={t('linkedOperation.properties')}>
             {properties.map(property => (
-              <option key={property.id} value={`property:${property.id}`}>
+              <option
+                key={property.id}
+                value={`property:${property.id}`}
+                disabled={!!unavailable(property)}
+              >
                 {property.name}
+                {unavailable(property) ? ` — ${unavailable(property)}` : ''}
               </option>
             ))}
           </optgroup>
@@ -64,8 +91,9 @@ export function MovementSection({ realEstateId, assetId, onChange, error, disabl
         {physicalAssets.length > 0 && (
           <optgroup label={t('linkedOperation.physicalAssets')}>
             {physicalAssets.map(asset => (
-              <option key={asset.id} value={`asset:${asset.id}`}>
+              <option key={asset.id} value={`asset:${asset.id}`} disabled={!!unavailable(asset)}>
                 {asset.name}
+                {unavailable(asset) ? ` — ${unavailable(asset)}` : ''}
               </option>
             ))}
           </optgroup>

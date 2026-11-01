@@ -1,6 +1,6 @@
 {
-  "title": "Investment Assets",
-  "description": "Track and manage your investment portfolio",
+  "title": "Assets",
+  "description": "Track your investments, belongings and properties",
   "addAsset": "Add Asset",
   "refreshPrices": "Refresh Prices",
   "refreshing": "Refreshing...",
@@ -14,7 +14,8 @@
     "noGainsYet": "No gains yet",
     "missingRates": "Partial totals in {{currency}}: {{currencies}} holdings are excluded because exchange rates are unavailable.",
     "physicalValue": "Value of belongings",
-    "valueChange": "Change in value"
+    "valueChange": "Change in value",
+    "performanceExcluded": "Excludes {{count}} asset(s) with an unknown received value."
   },
   "assetCount_one": "{{count}} asset",
   "assetCount_other": "{{count}} assets",
@@ -23,7 +24,7 @@
   "empty": {
     "noResults": "No assets found",
     "noMatch": "No assets match your filters. Try adjusting your search criteria.",
-    "noAssets": "Add your first investment to start tracking your portfolio performance"
+    "noAssets": "Add an investment, possession, or property to track its value."
   },
   "dialogs": {
     "editTitle": "Edit Asset",
@@ -66,7 +67,8 @@
     "physicalAssets": "Physical Assets",
     "financialAssets": "Financial Assets",
     "realEstateEditHint": "Open the property to manage its details, costs and mortgage.",
-    "manageProperty": "Manage property"
+    "manageProperty": "Manage property",
+    "properties": "Properties"
   },
   "detail": {
     "tabs": {
@@ -74,7 +76,8 @@
       "attachments": "Attachments",
       "gallery": "Gallery",
       "costs": "Costs",
-      "financing": "Linked debt"
+      "financing": "Linked debt",
+      "operations": "Transactions"
     },
     "gallery": {
       "empty": "No images yet. Upload images in the Attachments tab.",
@@ -185,7 +188,13 @@
     "accountHint": "Associates this item with an account. Saving the item does not create a payment.",
     "itemPurchasePrice": "Purchase price per item",
     "itemCurrentValue": "Estimated value per item",
-    "investmentTracked": "Quantity, acquisition cost, purchase date and linked account come from the investment ledger. Edit the linked transactions to correct them. You can still update the current unit price here."
+    "investmentTracked": "Quantity, acquisition cost, purchase date and linked account come from the investment ledger. Edit the linked transactions to correct them. You can still update the current unit price here.",
+    "targetPrice": "Target price",
+    "targetDate": "Target date",
+    "receivedDate": "Date received",
+    "receivedValue": "Total value when received",
+    "acquisitionCost": "Acquisition cost",
+    "receivedValueHelp": "Used to measure changes since receiving this gift. Leave blank if unknown."
   },
   "types": {
     "STOCK": "Stock",
@@ -212,7 +221,8 @@
       "MAINTENANCE": "Maintenance"
     },
     "error": "Failed to load costs. Please try again.",
-    "acquisition": "Acquisition and other payments"
+    "acquisition": "Acquisition and other payments",
+    "operations": "Linked transactions"
   },
   "financing": {
     "title": "Linked debt",
@@ -244,7 +254,12 @@
     "collateralHint": "“Security only” means the item guarantees the loan. It does not assign any of the loan balance to this item.",
     "duplicate": "This item already has this relationship. Change the existing row instead.",
     "removeNamed": "Remove link to {{name}}",
-    "shareRequired": "Enter a share greater than zero. Reduce another allocation if this loan is already fully allocated."
+    "shareRequired": "Enter a share greater than zero. Reduce another allocation if this loan is already fully allocated.",
+    "primaryMortgage": "Primary mortgage",
+    "editorTitle": "Manage assets linked to {{name}}",
+    "editorHint": "This changes the allocation for every asset listed below. It does not move money.",
+    "allocatedPreview": "Assigned outstanding debt",
+    "recordPayment": "Record payment"
   },
   "movementPaging": {
     "label": "Movement history pages",
@@ -301,7 +316,7 @@
     "maintenance": "Maintenance or repair",
     "improvement": "Improvement or renovation",
     "maintenanceHint": "Routine upkeep. Records an expense without changing the item’s cost basis or estimated value.",
-    "improvementHint": "Adds to the amount invested and the tracked value. You can update the estimated value separately after the work.",
+    "improvementHint": "Adds to the amount invested. The estimated market value changes only if you choose to update it.",
     "description": "Description",
     "amount": "Amount ({{currency}})",
     "date": "Payment date",
@@ -318,7 +333,15 @@
     "descriptionRequired": "Describe this cost.",
     "amountRequired": "Enter an amount greater than zero.",
     "dateRequired": "Choose a payment date.",
-    "investmentHint": "Review payments linked to this investment. Manage purchases, sales and fees in Transactions."
+    "investmentHint": "Review payments linked to this investment. Manage purchases, sales and fees in Transactions.",
+    "acquireFirst": "Record upkeep between acquisition and sale, no later than today. Purchase payments can be linked separately.",
+    "adjustValue": "Also update the estimated market value",
+    "valueIncrease": "Market-value increase ({{currency}})",
+    "independentValue": "Spending more does not automatically make the item worth more. Leave this off to keep its valuation.",
+    "cashChange": "Cash change",
+    "costChange": "Cost-basis change",
+    "valueChange": "Market-value change",
+    "valueRequired": "Enter zero or a positive valuation increase."
   },
   "groups": {
     "label": "Asset group",
@@ -326,5 +349,92 @@
     "PHYSICAL": "Physical assets",
     "FINANCIAL": "Investments"
   },
-  "physicalDescription": "Manage your belongings, their value, costs and any linked loans."
+  "statuses": {
+    "label": "Status",
+    "OWNED": "Owned",
+    "PLANNED": "Planned",
+    "CLOSED": "Sold / no holdings",
+    "ALL": "All statuses"
+  },
+  "physicalDescription": "Manage your belongings, their value, costs and any linked loans.",
+  "deleteError": "The asset could not be deleted. Try again.",
+  "performanceUnavailable": "Performance unavailable: add the value when received.",
+  "notApplicable": "N/A",
+  "plannedNotice": "This is a planned acquisition. It is excluded from owned value and performance.",
+  "inactive": "Inactive",
+  "manageProperty": "Manage property",
+  "ownership": {
+    "sold": "Sold",
+    "closed": "Closed",
+    "closedHint": "This item is no longer included in owned value. Its payments and history are retained.",
+    "viewHistory": "View history",
+    "buy": "Buy a physical asset",
+    "completePurchase": "Complete purchase",
+    "linkPayment": "Link purchase payment",
+    "linkHint": "Choose an expense already recorded in this currency. Linking it creates no new payment and does not debit the account again.",
+    "choosePayment": "Existing purchase payment",
+    "searchPayments": "Search payments",
+    "loading": "Loading payments…",
+    "loadPaymentsError": "Payments could not be loaded. Please try again.",
+    "noPayments": "No eligible payments on this page. Try another search or page.",
+    "previous": "Back",
+    "next": "Next",
+    "cancel": "Cancel",
+    "reviewPayment": "Review payment",
+    "paidFrom": "Paid from",
+    "chooseAccount": "Choose an account",
+    "payment": "Payment entry",
+    "newPayment": "Create a new payment",
+    "existingPayment": "Link an existing payment",
+    "price": "Total purchase price",
+    "cashChange": "Cash change now",
+    "netWorthChange": "Net worth change now",
+    "confirmPurchase": "Confirm purchase",
+    "error": "The operation could not be saved. Your entries have been kept.",
+    "saveError": "The payment could not be linked. Your selection has been kept.",
+    "purchaseDescription": "Purchase: {{name}}",
+    "saleDescription": "Sale: {{name}}",
+    "sell": "Sell",
+    "sellTitle": "Sell {{name}}",
+    "saleHint": "Enter total proceeds before fees. One net payment will be credited. Selling all units closes the item and keeps its history.",
+    "debtRetained": "The linked loan remains outstanding. Record any loan repayment separately from the sale.",
+    "investmentAccount": "Proceeds go to the holding’s linked account. You can transfer that cash afterward.",
+    "positiveAmount": "Enter an amount greater than zero.",
+    "availableQuantity": "Quantity cannot exceed the units held.",
+    "nonNegativeFees": "Fees must be zero or positive.",
+    "feesTooHigh": "Fees must be less than the proceeds.",
+    "saleDateHint": "Choose a date between acquisition and today.",
+    "receivingAccount": "Receive payment in",
+    "saleDate": "Sale date",
+    "quantity": "Units to sell",
+    "proceeds": "Total proceeds before fees",
+    "fees": "Sale fees",
+    "netProceeds": "Net sale proceeds",
+    "remainingQuantity": "Units remaining",
+    "confirmSale": "Confirm sale",
+    "realizedGain": "Realized gain / loss",
+    "unknownGain": "Unknown cost basis",
+    "openingHint": "Recording an already-owned item creates no new payment. Link its existing purchase payment from the item’s details.",
+    "chooseReceipt": "Choose the loan receipt",
+    "intentPrompt": "What are you recording?",
+    "intents": {
+      "PURCHASE": "Something I already own",
+      "BUY": "A purchase",
+      "GIFT": "A gift or inheritance",
+      "PLANNED": "A purchase plan"
+    },
+    "intentHints": {
+      "PURCHASE": "Record its value and history without creating a payment.",
+      "BUY": "Review the payment and optional loan together.",
+      "GIFT": "Record when you received it and its value at that time.",
+      "PLANNED": "Keep a target price and date outside your owned portfolio."
+    },
+    "buyMore": "Buy more",
+    "buyMoreHint": "Records one payment in the linked account and adds the purchased units.",
+    "buyUnits": "Units to buy",
+    "buyAmount": "Total paid, including fees ({{currency}})",
+    "buyDate": "Purchase date",
+    "unitsAfter": "Units after purchase",
+    "investmentOpening": "This records opening units and cost without a new payment. To record a new trade, save the holding, then choose Buy more."
+  }
 }

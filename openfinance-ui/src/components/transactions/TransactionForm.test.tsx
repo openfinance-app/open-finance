@@ -2880,6 +2880,61 @@ describe('TransactionForm', () => {
   });
 
   describe('Original currency conversion', () => {
+    it('previews improvement cash in account currency and cost and valuation in asset currency', async () => {
+      renderForm({
+        transaction: {
+          id: 5,
+          userId: 1,
+          accountId: 1,
+          type: 'EXPENSE',
+          amount: 500,
+          currency: 'EUR',
+          originalAmount: 1000,
+          originalCurrency: 'USD',
+          conversionRate: 0.5,
+          date: '2024-06-01',
+          isReconciled: false,
+          createdAt: '2024-06-01',
+          assetId: 9,
+          movementType: 'CAPITAL_IMPROVEMENT',
+          valuationChange: 250,
+        },
+      });
+      const cash = await screen.findByText('Cash change', { selector: 'dt' });
+      expect(cash.nextElementSibling).toHaveTextContent('-€500.00');
+      expect(
+        screen.getByText('Cost-basis change', { selector: 'dt' }).nextElementSibling
+      ).toHaveTextContent('$1,000.00');
+      expect(
+        screen.getByText('Market-value change', { selector: 'dt' }).nextElementSibling
+      ).toHaveTextContent('$250.00');
+      fireEvent.change(screen.getByLabelText(/amount/i), { target: { value: '1200' } });
+      await waitFor(() => expect(cash.nextElementSibling).toHaveTextContent('-€600.00'));
+    });
+
+    it('does not invent the cash effect when the improvement exchange rate is unavailable', async () => {
+      renderForm({
+        transaction: {
+          id: 5,
+          userId: 1,
+          accountId: 1,
+          type: 'EXPENSE',
+          amount: 500,
+          currency: 'EUR',
+          originalAmount: 1000,
+          originalCurrency: 'USD',
+          date: '2024-06-01',
+          isReconciled: false,
+          createdAt: '2024-06-01',
+          assetId: 9,
+          movementType: 'CAPITAL_IMPROVEMENT',
+          valuationChange: 250,
+        },
+      });
+      const cash = await screen.findByText('Cash change', { selector: 'dt' });
+      expect(cash.nextElementSibling).toHaveTextContent('—');
+    });
+
     it('submits originalAmount/originalCurrency/conversionRate when converting', async () => {
       mockUseExchangeRate.mockReturnValue({
         data: { rate: 0.9 },

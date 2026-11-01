@@ -78,8 +78,7 @@ public class InvestmentMovementServiceImpl implements InvestmentMovementService 
                         .filter(tx -> tx.getInvestmentQuantity() != null)
                         .sorted(
                                 Comparator.comparing(Transaction::getDate)
-                                        .thenComparing(
-                                                tx -> tx.getInvestmentQuantity().signum() < 0))
+                                        .thenComparing(Transaction::getId))
                         .toList();
         BigDecimal quantity = asset.getImportOpeningQuantity();
         if (quantity == null)

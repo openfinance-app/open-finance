@@ -65,6 +65,7 @@ export interface Liability {
 }
 
 export interface LiabilityRequest {
+  financedAssetId?: number;
   name: string;
   type: LiabilityType;
   // Exact decimal strings as entered by the user — never JS numbers.
@@ -85,6 +86,7 @@ export interface LiabilityRequest {
   additionalFees?: string;
   /** Optional real estate property ID to link this mortgage to on creation */
   realEstateId?: number | null;
+  assetId?: number | null;
 }
 
 export interface AmortizationPayment {
@@ -100,6 +102,8 @@ export interface AmortizationPayment {
 }
 
 export interface AmortizationSchedule {
+  fundingStatus?: Liability['fundingStatus'];
+  currentBalance?: number;
   liabilityId: number;
   liabilityName: string;
   principal: number;
@@ -160,10 +164,11 @@ export interface LiabilityBreakdown {
   otherChargesPaid?: number;
   totalPaid: number;
   // Projections
-  projectedInterest: number;
-  projectedInsurance: number;
-  projectedFees: number;
-  totalProjectedCost: number;
+  forecastAvailable?: boolean;
+  projectedInterest: number | null;
+  projectedInsurance: number | null;
+  projectedFees: number | null;
+  totalProjectedCost: number | null;
   // Linked transactions summary
   linkedTransactionCount: number;
   linkedTransactionsTotalAmount: number;
@@ -194,6 +199,7 @@ export interface LiabilityTranche {
   interestOnlyUntil?: string | null;
   status: TrancheStatus;
   realEstateId?: number | null;
+  assetId?: number | null;
   notes?: string | null;
   currency: string;
 }

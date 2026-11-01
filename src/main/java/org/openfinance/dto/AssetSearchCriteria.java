@@ -62,6 +62,9 @@ public class AssetSearchCriteria {
     /** Optional workspace group, applied before sorting and pagination. */
     private AssetGroup group;
 
+    /** Derived ownership state, evaluated after decryption and before pagination. */
+    private AssetOwnershipStatus ownershipStatus;
+
     /**
      * Filter by account ID.
      *
@@ -123,6 +126,7 @@ public class AssetSearchCriteria {
     public boolean hasAnyCriteria() {
         return keyword != null
                 || group != null
+                || ownershipStatus != null
                 || type != null
                 || accountId != null
                 || currency != null

@@ -63,31 +63,43 @@ describe('Record cost from the item', () => {
     }
   );
 
-  it('explains the value effect of improvements and saves their classification', async () => {
-    renderWithProviders(
-      <RecordCostForm
-        target={{ id: 7, name: 'Home', currency: 'USD', kind: 'property' }}
-        onClose={vi.fn()}
-      />
-    );
-    await fillCost();
-    await userEvent.selectOptions(
-      screen.getByLabelText('What was this cost for?'),
-      'CAPITAL_IMPROVEMENT'
-    );
-    const help = screen.getByRole('button', { name: /amount invested and the tracked value/ });
-    await userEvent.hover(help);
-    expect(await screen.findByRole('tooltip')).toHaveTextContent(
-      'amount invested and the tracked value'
-    );
-    await userEvent.unhover(help);
-    await userEvent.click(screen.getByRole('button', { name: 'Save expense' }));
-    await waitFor(() =>
-      expect(save).toHaveBeenCalledWith(
-        expect.objectContaining({ movementType: 'CAPITAL_IMPROVEMENT' })
-      )
-    );
-  });
+  it.each(['0', '7.50'])(
+    'keeps cost separate from a chosen value increase of %s',
+    async valuationChange => {
+      renderWithProviders(
+        <RecordCostForm
+          target={{ id: 7, name: 'Home', currency: 'USD', kind: 'property' }}
+          onClose={vi.fn()}
+        />
+      );
+      await fillCost();
+      await userEvent.selectOptions(
+        screen.getByLabelText('What was this cost for?'),
+        'CAPITAL_IMPROVEMENT'
+      );
+      expect(
+        screen.getByRole('checkbox', { name: 'Also update the estimated market value' })
+      ).not.toBeChecked();
+      if (valuationChange !== '0') {
+        await userEvent.click(
+          screen.getByRole('checkbox', { name: 'Also update the estimated market value' })
+        );
+        fireEvent.change(screen.getByLabelText('Market-value increase (USD)'), {
+          target: { value: valuationChange },
+        });
+      }
+      await userEvent.click(screen.getByRole('button', { name: 'Save expense' }));
+      await waitFor(() =>
+        expect(save).toHaveBeenCalledWith(
+          expect.objectContaining({
+            amount: '120.000000000000000001',
+            movementType: 'CAPITAL_IMPROVEMENT',
+            valuationChange,
+          })
+        )
+      );
+    }
+  );
 
   it('keeps entries and the form open when saving fails', async () => {
     save.mockRejectedValue(new Error('Offline'));

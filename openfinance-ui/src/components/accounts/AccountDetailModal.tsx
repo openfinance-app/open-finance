@@ -1,3 +1,4 @@
+import { AccountBalanceBreakdown } from '@/components/accounts/AccountBalanceBreakdown';
 import { useDateFormatter } from '@/hooks/useDateFormatter';
 /**
  * AccountDetailModal Component
@@ -226,7 +227,9 @@ export function AccountDetailModal({ accountId, onClose, onEdit }: AccountDetail
               {/* Current Balance Hero */}
               <div className="mb-6 p-4 bg-background border border-border rounded-lg flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-muted-foreground mb-1">{t('detail.currentBalance')}</p>
+                  <p className="text-sm text-muted-foreground mb-1">
+                    {t(account.type === 'INVESTMENT' ? 'card.totalValue' : 'detail.currentBalance')}
+                  </p>
                   <ConvertedAmount
                     amount={account.balance}
                     currency={account.currency}
@@ -241,6 +244,7 @@ export function AccountDetailModal({ accountId, onClose, onEdit }: AccountDetail
                       account.balance < 0 ? 'text-error' : 'text-foreground'
                     )}
                   />
+                  <AccountBalanceBreakdown account={account} />
                 </div>
                 {!account.isActive && (
                   <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-surface-elevated text-muted-foreground border border-border">

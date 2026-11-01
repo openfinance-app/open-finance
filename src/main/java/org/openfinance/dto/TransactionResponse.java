@@ -189,6 +189,7 @@ public class TransactionResponse {
 
     private boolean investmentCash;
     private BigDecimal investmentValue;
+    private BigDecimal saleFees;
     private BigDecimal investmentPrice;
     private java.time.LocalDate investmentPriceDate;
     private String investmentPriceSource;
@@ -197,6 +198,8 @@ public class TransactionResponse {
 
     /** Classification of the financial movement (e.g. DISBURSEMENT, REPAYMENT). */
     private MovementType movementType;
+
+    private BigDecimal valuationChange;
 
     /** Principal component in liability currency; zero for interest, insurance and fees. */
     private BigDecimal principalAmount;

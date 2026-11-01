@@ -86,7 +86,14 @@ public class RealEstateSpecification {
 
             // Filter by active status
             if (criteria.getIsActive() != null) {
-                predicates.add(criteriaBuilder.equal(root.get("isActive"), criteria.getIsActive()));
+                predicates.add(
+                        criteria.getIsActive()
+                                ? criteriaBuilder.and(
+                                        criteriaBuilder.isTrue(root.get("isActive")),
+                                        criteriaBuilder.isNull(root.get("soldDate")))
+                                : criteriaBuilder.or(
+                                        criteriaBuilder.isFalse(root.get("isActive")),
+                                        criteriaBuilder.isNotNull(root.get("soldDate"))));
             }
 
             // Filter by mortgage presence

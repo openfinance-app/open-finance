@@ -142,7 +142,8 @@
     "repaymentUnavailable": "Le paiement estimé ne peut pas être appliqué. Vérifiez le montant ou désactivez l’estimation pour saisir le capital réellement remboursé.",
     "manualPrincipal": "Capital remboursé ({{currency}})",
     "manualPrincipalHint": "Saisissez 0 pour les intérêts, assurances ou frais seuls. Laissez vide pour affecter tout le paiement au capital.",
-    "repaymentExceedsDebt": "Le capital dépasse la dette restante. Vérifiez le montant du paiement."
+    "repaymentExceedsDebt": "Le capital dépasse la dette restante. Vérifiez le montant du paiement.",
+    "saveError": "La transaction n’a pas pu être enregistrée. Vérifiez les informations et réessayez."
   },
   "detail": {
     "edit": "Modifier",
@@ -266,7 +267,7 @@
       "REMOVE": "Des unités sont retirées du placement, sans retrait de liquidités.",
       "LOAN_PAYMENT": "Les liquidités diminuent du montant total payé. Seule la part de capital réduit la dette restante.",
       "MAINTENANCE": "Les liquidités diminuent et la dépense est liée au bien ou à l’actif sélectionné. Sa valeur reste inchangée.",
-      "CAPITAL_IMPROVEMENT": "Les liquidités diminuent et les travaux augmentent la valeur du bien ou de l’actif. Une valorisation ultérieure enregistrée reste prioritaire.",
+      "CAPITAL_IMPROVEMENT": "Les liquidités diminuent et le coût de revient augmente. La valeur de marché évolue uniquement selon la hausse choisie.",
       "INTEREST": "Les liquidités augmentent et le versement est enregistré comme intérêts bancaires.",
       "EXISTING": "Les liens et la classification existants sont conservés. Gérez cette opération depuis l’actif ou l’emprunt lié.",
       "holdingTransfer": "Des unités sont retirées de {{holding}} et le virement est crédité sur {{destination}}.",
@@ -306,7 +307,9 @@
       "fundingUnavailable": "Les détails du financement du virement n’ont pas pu être chargés.",
       "retry": "Réessayer",
       "estimatedUnitPrice": "Prix unitaire estimé"
-    }
+    },
+    "acquireFirst": "Finalisez d’abord l’acquisition",
+    "inactiveTarget": "Inactif"
   },
   "investment": {
     "title": "Mouvement de placement",

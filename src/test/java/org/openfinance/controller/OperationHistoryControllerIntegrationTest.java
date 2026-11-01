@@ -519,7 +519,7 @@ class OperationHistoryControllerIntegrationTest {
                         call(get("/api/v1/assets/" + asset.get("id").asLong()), null)
                                 .get("totalValue")
                                 .decimalValue())
-                .isEqualByComparingTo("1100");
+                .isEqualByComparingTo("1000");
     }
 
     @Test

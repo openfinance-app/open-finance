@@ -21,7 +21,7 @@ import {
   ArrowRightLeft,
   Paperclip,
   Scissors,
-  Receipt,
+  Pencil,
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
@@ -128,8 +128,8 @@ export function TransactionDetailModal({
       {/* Modal panel */}
       <div className="relative bg-surface border border-border rounded-lg shadow-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto m-4">
         {/* ── Header ── */}
-        <div className="sticky top-0 z-10 bg-surface border-b border-border px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
+        <div className="sticky top-0 z-10 bg-surface border-b border-border px-6 py-4 flex items-center justify-between gap-3">
+          <div className="flex min-w-0 items-center gap-3">
             <div
               className={cn(
                 'flex h-10 w-10 items-center justify-center rounded-xl shrink-0',
@@ -139,11 +139,11 @@ export function TransactionDetailModal({
             >
               {typeConfig.icon}
             </div>
-            <div>
-              <h2 className="text-xl font-bold text-foreground">
+            <div className="min-w-0">
+              <h2 className="break-words text-xl font-bold text-foreground">
                 {transaction.description || transaction.payee || 'Transaction'}
               </h2>
-              <p className="text-sm text-muted-foreground">
+              <p className="break-words text-sm text-muted-foreground">
                 {t('form.types.' + transaction.type)}
                 {transaction.payee && ` · ${transaction.payee}`}
                 {' · '}
@@ -152,19 +152,20 @@ export function TransactionDetailModal({
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex shrink-0 items-center gap-2">
             {onEdit && (
               <Button
                 variant="secondary"
                 size="sm"
+                aria-label={t('detail.edit')}
                 onClick={() => {
                   onClose();
                   onEdit(transaction);
                 }}
-                className="hidden sm:flex"
+                className="h-11 w-11 shrink-0 p-0 sm:h-8 sm:w-auto sm:px-3"
               >
-                <Receipt className="h-4 w-4 mr-1.5" />
-                {t('detail.edit')}
+                <Pencil className="h-4 w-4 sm:mr-1.5" />
+                <span className="hidden sm:inline">{t('detail.edit')}</span>
               </Button>
             )}
             <button

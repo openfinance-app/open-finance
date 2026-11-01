@@ -3,6 +3,8 @@ package org.openfinance.config;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -14,6 +16,8 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
 
 /**
  * Integration tests for database configuration and connectivity.
@@ -46,6 +50,24 @@ import org.springframework.test.context.ActiveProfiles;
 class DatabaseConfigIntegrationTest {
 
     @Autowired private DataSource dataSource;
+
+    @DynamicPropertySource
+    static void isolateDatabase(DynamicPropertyRegistry registry) throws Exception {
+        // Exercise production configuration without ever migrating the developer's database.
+        String configured = System.getenv("SPRING_DATASOURCE_URL");
+        if (configured == null || !configured.startsWith("jdbc:postgresql:")) {
+            Files.createDirectories(Path.of("target", "test-dbs"));
+            Path database =
+                    Files.createTempFile(Path.of("target", "test-dbs"), "configuration-", ".db");
+            registry.add(
+                    "spring.datasource.url",
+                    () ->
+                            "jdbc:sqlite:"
+                                    + database
+                                    + "?foreign_keys=on&journal_mode=WAL&busy_timeout=10000");
+        }
+        registry.add("application.crypto-list.enabled", () -> false);
+    }
 
     @Test
     @DisplayName("Should inject DataSource bean successfully")

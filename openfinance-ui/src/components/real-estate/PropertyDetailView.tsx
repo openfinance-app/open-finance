@@ -1,3 +1,6 @@
+import { OwnershipActions } from '@/components/assets/OwnershipActions';
+import { decimalField } from '@/utils/exact-decimal';
+import type { RealEstateProperty } from '@/types/realEstate';
 import { formatDecimal } from '@/utils/format';
 import { useDateFormatter } from '@/hooks/useDateFormatter';
 import { AssetFinancingSection } from '@/components/assets/AssetFinancingSection';
@@ -44,6 +47,7 @@ import { cn } from '@/lib/utils';
 
 interface PropertyDetailViewProps {
   propertyId: number;
+  onCompletePurchase?: (property: RealEstateProperty) => void;
   onClose: () => void;
 }
 
@@ -62,7 +66,11 @@ function getPropertyTypeIcon(type: string): React.ReactNode {
 
 type TabType = 'overview' | 'costs' | 'financing' | 'equity' | 'roi' | 'gallery' | 'attachments';
 
-export function PropertyDetailView({ propertyId, onClose }: PropertyDetailViewProps) {
+export function PropertyDetailView({
+  propertyId,
+  onClose,
+  onCompletePurchase,
+}: PropertyDetailViewProps) {
   const { t } = useTranslation('realEstate');
   const { date: formatDate } = useDateFormatter();
   const [activeTab, setActiveTab] = useState<TabType>('overview');
@@ -74,6 +82,9 @@ export function PropertyDetailView({ propertyId, onClose }: PropertyDetailViewPr
   } = useProperty(propertyId);
   const { data: equity, isLoading: loadingEquity } = usePropertyEquity(propertyId);
   const { data: roi, isLoading: loadingROI } = usePropertyROI(propertyId);
+
+  const isPlanned = property?.acquisitionType === 'PLANNED';
+  const isGift = property?.acquisitionType === 'GIFT';
 
   if (propertyError) {
     return (
@@ -150,22 +161,28 @@ export function PropertyDetailView({ propertyId, onClose }: PropertyDetailViewPr
                     'gallery',
                     'attachments',
                   ] as const
-                ).map(tab => (
-                  <button
-                    key={tab}
-                    type="button"
-                    aria-pressed={activeTab === tab}
-                    onClick={() => setActiveTab(tab)}
-                    className={cn(
-                      'whitespace-nowrap border-b-2 px-3 py-3 text-sm font-medium',
-                      activeTab === tab
-                        ? 'border-primary text-primary'
-                        : 'border-transparent text-text-secondary hover:text-text-primary'
-                    )}
-                  >
-                    {t(`propertyDetail.tab.${tab}`)}
-                  </button>
-                ))}
+                )
+                  .filter(
+                    tab =>
+                      (!isPlanned || (tab !== 'equity' && tab !== 'roi')) &&
+                      (property.ownershipStatus !== 'CLOSED' || (tab !== 'roi' && tab !== 'equity'))
+                  )
+                  .map(tab => (
+                    <button
+                      key={tab}
+                      type="button"
+                      aria-pressed={activeTab === tab}
+                      onClick={() => setActiveTab(tab)}
+                      className={cn(
+                        'whitespace-nowrap border-b-2 px-3 py-3 text-sm font-medium',
+                        activeTab === tab
+                          ? 'border-primary text-primary'
+                          : 'border-transparent text-text-secondary hover:text-text-primary'
+                      )}
+                    >
+                      {t(`propertyDetail.tab.${tab}`)}
+                    </button>
+                  ))}
               </nav>
 
               {/* Tab Content */}
@@ -175,86 +192,120 @@ export function PropertyDetailView({ propertyId, onClose }: PropertyDetailViewPr
                   <AssetFinancingSection assetId={property.assetId} />
                 )}
                 {/* Overview Tab */}
-                {activeTab === 'overview' && (
+                {activeTab === 'overview' && property.assetId && (
+                  <OwnershipActions
+                    target={{
+                      id: property.assetId,
+                      name: property.name,
+                      currency: property.currency,
+                      quantity: '1',
+                      currentValue: decimalField(property, 'currentValue'),
+                      purchaseDate: property.purchaseDate,
+                      property: true,
+                    }}
+                    acquisitionType={property.acquisitionType}
+                    inactive={!property.isActive}
+                    closed={property.ownershipStatus === 'CLOSED'}
+                    soldDate={property.soldDate}
+                    saleProceeds={property.saleProceeds}
+                    realizedGain={property.realizedGain}
+                    onComplete={onCompletePurchase ? () => onCompletePurchase(property) : undefined}
+                  />
+                )}
+                {activeTab === 'overview' && property.ownershipStatus !== 'CLOSED' && (
                   <div className="space-y-6">
+                    {isPlanned && (
+                      <p className="text-sm text-text-secondary" role="status">
+                        {t('plannedNotice')}
+                      </p>
+                    )}
+                    {isGift && property.receivedValue == null && (
+                      <p className="text-sm text-text-secondary" role="status">
+                        {t('performanceUnavailable')}
+                      </p>
+                    )}
                     {/* Key Metrics Cards */}
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      <Card className="p-4">
-                        <div className="flex items-center gap-2 mb-1">
-                          <DollarSign className="h-4 w-4 text-text-secondary" />
-                          <p className="text-sm text-text-secondary">{t('form.currentValue')}</p>
-                        </div>
-                        <p className="text-2xl font-bold text-text-primary">
-                          {/* REQ-2.4: Show converted base-currency value when available */}
-                          <ConvertedAmount
-                            amount={property.currentValue}
-                            currency={property.currency}
-                            convertedAmount={property.valueInBaseCurrency}
-                            baseCurrency={property.baseCurrency}
-                            exchangeRate={property.exchangeRate}
-                            isConverted={property.isConverted}
-                            secondaryAmount={property.valueInSecondaryCurrency}
-                            secondaryCurrency={property.secondaryCurrency}
-                          />
-                        </p>
-                      </Card>
-
-                      <Card className="p-4">
-                        <div className="flex items-center gap-2 mb-1">
-                          <TrendingUp className="h-4 w-4 text-text-secondary" />
-                          <p className="text-sm text-text-secondary">{t('card.appreciation')}</p>
-                        </div>
-                        {property.appreciation != null &&
-                        property.appreciationPercentage != null ? (
-                          <p
-                            className={cn(
-                              'text-2xl font-bold',
-                              formatAppreciation(
-                                property.appreciation,
-                                property.appreciationPercentage,
-                                property.currency
-                              ).color
-                            )}
-                          >
-                            {property.appreciation >= 0 ? '+' : '-'}
+                    {!isPlanned && (
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <Card className="p-4">
+                          <div className="flex items-center gap-2 mb-1">
+                            <DollarSign className="h-4 w-4 text-text-secondary" />
+                            <p className="text-sm text-text-secondary">{t('form.currentValue')}</p>
+                          </div>
+                          <p className="text-2xl font-bold text-text-primary">
+                            {/* REQ-2.4: Show converted base-currency value when available */}
                             <ConvertedAmount
-                              amount={Math.abs(property.appreciation)}
+                              amount={property.currentValue}
                               currency={property.currency}
-                              convertedAmount={
-                                property.exchangeRate != null
-                                  ? multiply(Math.abs(property.appreciation), property.exchangeRate)
-                                  : undefined
-                              }
+                              convertedAmount={property.valueInBaseCurrency}
                               baseCurrency={property.baseCurrency}
                               exchangeRate={property.exchangeRate}
                               isConverted={property.isConverted}
-                              inline
-                            />{' '}
-                            ({property.appreciation >= 0 ? '+' : ''}
-                            {formatDecimal(property.appreciationPercentage, 2)}%)
+                              secondaryAmount={property.valueInSecondaryCurrency}
+                              secondaryCurrency={property.secondaryCurrency}
+                            />
                           </p>
-                        ) : (
-                          <p className="text-2xl font-bold text-text-muted">
-                            {t('propertyDetail.na')}
-                          </p>
-                        )}
-                      </Card>
+                        </Card>
 
-                      <Card className="p-4">
-                        <div className="flex items-center gap-2 mb-1">
-                          <Calendar className="h-4 w-4 text-text-secondary" />
-                          <p className="text-sm text-text-secondary">
-                            {t('propertyDetail.propertyAgeLabel')}
-                          </p>
-                        </div>
-                        <p className="text-2xl font-bold text-text-primary">
-                          {t('propertyDetail.propertyAge', {
-                            years: calculatePropertyAge(property.purchaseDate),
-                          })}
-                        </p>
-                      </Card>
-                    </div>
+                        <Card className="p-4">
+                          <div className="flex items-center gap-2 mb-1">
+                            <TrendingUp className="h-4 w-4 text-text-secondary" />
+                            <p className="text-sm text-text-secondary">{t('card.appreciation')}</p>
+                          </div>
+                          {property.appreciation != null &&
+                          property.appreciationPercentage != null ? (
+                            <p
+                              className={cn(
+                                'text-2xl font-bold',
+                                formatAppreciation(
+                                  property.appreciation,
+                                  property.appreciationPercentage,
+                                  property.currency
+                                ).color
+                              )}
+                            >
+                              {property.appreciation >= 0 ? '+' : '-'}
+                              <ConvertedAmount
+                                amount={Math.abs(property.appreciation)}
+                                currency={property.currency}
+                                convertedAmount={
+                                  property.exchangeRate != null
+                                    ? multiply(
+                                        Math.abs(property.appreciation),
+                                        property.exchangeRate
+                                      )
+                                    : undefined
+                                }
+                                baseCurrency={property.baseCurrency}
+                                exchangeRate={property.exchangeRate}
+                                isConverted={property.isConverted}
+                                inline
+                              />{' '}
+                              ({property.appreciation >= 0 ? '+' : ''}
+                              {formatDecimal(property.appreciationPercentage, 2)}%)
+                            </p>
+                          ) : (
+                            <p className="text-2xl font-bold text-text-muted">
+                              {t('propertyDetail.na')}
+                            </p>
+                          )}
+                        </Card>
 
+                        <Card className="p-4">
+                          <div className="flex items-center gap-2 mb-1">
+                            <Calendar className="h-4 w-4 text-text-secondary" />
+                            <p className="text-sm text-text-secondary">
+                              {t('propertyDetail.propertyAgeLabel')}
+                            </p>
+                          </div>
+                          <p className="text-2xl font-bold text-text-primary">
+                            {t('propertyDetail.propertyAge', {
+                              years: calculatePropertyAge(property.purchaseDate),
+                            })}
+                          </p>
+                        </Card>
+                      </div>
+                    )}
                     {/* Property Details */}
                     <Card className="p-6">
                       <h3 className="plate-label  mb-4">{t('propertyDetail.title')}</h3>
@@ -266,14 +317,26 @@ export function PropertyDetailView({ propertyId, onClose }: PropertyDetailViewPr
 
                         <div>
                           <p className="text-sm text-text-secondary mb-1">
-                            {t('form.purchaseDate')}
+                            {t(
+                              isPlanned
+                                ? 'form.targetDate'
+                                : isGift
+                                  ? 'form.receivedDate'
+                                  : 'form.purchaseDate'
+                            )}
                           </p>
                           <p className="text-text-primary">{formatDate(property.purchaseDate)}</p>
                         </div>
 
                         <div>
                           <p className="text-sm text-text-secondary mb-1">
-                            {t('form.purchasePrice')}
+                            {t(
+                              isPlanned
+                                ? 'form.targetPrice'
+                                : isGift
+                                  ? 'form.acquisitionCost'
+                                  : 'form.purchasePrice'
+                            )}
                           </p>
                           <p className="text-text-primary">
                             <ConvertedAmount
@@ -291,6 +354,23 @@ export function PropertyDetailView({ propertyId, onClose }: PropertyDetailViewPr
                           </p>
                         </div>
 
+                        {isGift && (
+                          <div>
+                            <p className="text-sm text-text-secondary mb-1">
+                              {t('form.receivedValue')}
+                            </p>
+                            <p className="text-text-primary">
+                              {property.receivedValue == null ? (
+                                t('propertyDetail.na')
+                              ) : (
+                                <ConvertedAmount
+                                  amount={property.receivedValue}
+                                  currency={property.currency}
+                                />
+                              )}
+                            </p>
+                          </div>
+                        )}
                         <div>
                           <p className="text-sm text-text-secondary mb-1">{t('form.currency')}</p>
                           <p className="text-text-primary">{property.currency}</p>
@@ -379,7 +459,7 @@ export function PropertyDetailView({ propertyId, onClose }: PropertyDetailViewPr
                 )}
 
                 {/* Equity Tab */}
-                {activeTab === 'equity' && (
+                {!isPlanned && activeTab === 'equity' && (
                   <div className="space-y-6">
                     {loadingEquity ? (
                       <LoadingSkeleton className="h-64" />
@@ -556,7 +636,7 @@ export function PropertyDetailView({ propertyId, onClose }: PropertyDetailViewPr
                 )}
 
                 {/* ROI Analysis Tab */}
-                {activeTab === 'roi' && (
+                {!isPlanned && property.ownershipStatus !== 'CLOSED' && activeTab === 'roi' && (
                   <div className="space-y-6">
                     {loadingROI ? (
                       <LoadingSkeleton className="h-64" />
@@ -573,12 +653,14 @@ export function PropertyDetailView({ propertyId, onClose }: PropertyDetailViewPr
                             </PrivateAmount>
                           </p>
                           <p className="text-text-secondary">
-                            {t('propertyDetail.annualizedReturn', {
-                              value:
-                                roi.annualizedReturn != null
-                                  ? formatDecimal(roi.annualizedReturn, 2)
-                                  : t('propertyDetail.na'),
-                            })}
+                            {roi.annualizedReturn == null
+                              ? `${t('propertyDetail.annualizedReturnLabel')}: ${t('propertyDetail.na')}`
+                              : t('propertyDetail.annualizedReturn', {
+                                  value:
+                                    roi.annualizedReturn != null
+                                      ? formatDecimal(roi.annualizedReturn, 2)
+                                      : t('propertyDetail.na'),
+                                })}
                           </p>
                           <p className="text-sm text-text-secondary">
                             {t('propertyDetail.annualizedReturnConvention')}
@@ -596,21 +678,25 @@ export function PropertyDetailView({ propertyId, onClose }: PropertyDetailViewPr
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
                               <p className="text-sm text-text-secondary mb-1">
-                                {t('form.purchasePrice')}
+                                {t('propertyDetail.performanceBasis')}
                               </p>
                               <p className="text-text-primary font-medium">
-                                <ConvertedAmount
-                                  amount={roi.purchasePrice}
-                                  currency={roi.currency}
-                                  convertedAmount={
-                                    property.exchangeRate != null
-                                      ? multiply(roi.purchasePrice, property.exchangeRate)
-                                      : undefined
-                                  }
-                                  baseCurrency={property.baseCurrency}
-                                  exchangeRate={property.exchangeRate}
-                                  isConverted={property.isConverted}
-                                />
+                                {roi.performanceBasis == null ? (
+                                  t('propertyDetail.na')
+                                ) : (
+                                  <ConvertedAmount
+                                    amount={roi.performanceBasis}
+                                    currency={roi.currency}
+                                    convertedAmount={
+                                      property.exchangeRate != null
+                                        ? multiply(roi.performanceBasis, property.exchangeRate)
+                                        : undefined
+                                    }
+                                    baseCurrency={property.baseCurrency}
+                                    exchangeRate={property.exchangeRate}
+                                    isConverted={property.isConverted}
+                                  />
+                                )}
                               </p>
                             </div>
 
@@ -641,28 +727,41 @@ export function PropertyDetailView({ propertyId, onClose }: PropertyDetailViewPr
                               <p
                                 className={cn(
                                   'font-bold text-lg',
-                                  roi.appreciation >= 0 ? 'text-green-400' : 'text-red-400'
+                                  roi.appreciation == null
+                                    ? 'text-text-muted'
+                                    : roi.appreciation >= 0
+                                      ? 'text-green-400'
+                                      : 'text-red-400'
                                 )}
                               >
-                                {roi.appreciation >= 0 ? '+' : '-'}
-                                <ConvertedAmount
-                                  amount={Math.abs(roi.appreciation)}
-                                  currency={roi.currency}
-                                  convertedAmount={
-                                    property.exchangeRate != null
-                                      ? multiply(Math.abs(roi.appreciation), property.exchangeRate)
-                                      : undefined
-                                  }
-                                  baseCurrency={property.baseCurrency}
-                                  exchangeRate={property.exchangeRate}
-                                  isConverted={property.isConverted}
-                                  inline
-                                />{' '}
-                                (
-                                {roi.appreciationPercentage != null
-                                  ? formatDecimal(roi.appreciationPercentage, 2)
-                                  : t('propertyDetail.na')}
-                                %)
+                                {roi.appreciation == null ? (
+                                  t('propertyDetail.na')
+                                ) : (
+                                  <>
+                                    {roi.appreciation >= 0 ? '+' : '-'}
+                                    <ConvertedAmount
+                                      amount={Math.abs(roi.appreciation)}
+                                      currency={roi.currency}
+                                      convertedAmount={
+                                        property.exchangeRate != null
+                                          ? multiply(
+                                              Math.abs(roi.appreciation),
+                                              property.exchangeRate
+                                            )
+                                          : undefined
+                                      }
+                                      baseCurrency={property.baseCurrency}
+                                      exchangeRate={property.exchangeRate}
+                                      isConverted={property.isConverted}
+                                      inline
+                                    />{' '}
+                                    (
+                                    {roi.appreciationPercentage != null
+                                      ? `${formatDecimal(roi.appreciationPercentage, 2)}%`
+                                      : t('propertyDetail.na')}
+                                    )
+                                  </>
+                                )}
                               </p>
                             </div>
 
@@ -672,9 +771,8 @@ export function PropertyDetailView({ propertyId, onClose }: PropertyDetailViewPr
                               </p>
                               <p className="text-primary font-bold text-lg">
                                 {roi.annualizedReturn != null
-                                  ? formatDecimal(roi.annualizedReturn, 2)
+                                  ? `${formatDecimal(roi.annualizedReturn, 2)}%`
                                   : t('propertyDetail.na')}
-                                %
                               </p>
                             </div>
                           </div>

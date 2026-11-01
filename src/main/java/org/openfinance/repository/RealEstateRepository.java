@@ -122,6 +122,8 @@ public interface RealEstateRepository
     @EntityGraph(attributePaths = {"mortgage"})
     Optional<RealEstateProperty> findByIdAndUserId(Long id, Long userId);
 
+    Optional<RealEstateProperty> findBySaleTransactionIdAndUserId(Long transactionId, Long userId);
+
     /**
      * Finds a property by ID with mortgage eagerly loaded, ensuring it belongs to the specified
      * user.

@@ -79,7 +79,22 @@
     "repaymentDetailsHint": "Interest, monthly payment, insurance, fees and end date.",
     "lenderDetails": "Lender & notes (optional)",
     "noProperty": "No property linked",
-    "linkToPropertyHint": "This links the mortgage to the property without recording a payment."
+    "linkToPropertyHint": "This links the mortgage to the property without recording a payment.",
+    "intent": "What are you recording?",
+    "intents": {
+      "existing": "I already owe money",
+      "new": "I am taking a new loan",
+      "approved": "Approved funds I have not received"
+    },
+    "intentHints": {
+      "existing": "Records an opening debt. No money is added to an account.",
+      "new": "Save the loan, then use Receive funds to record the actual borrowing and destination.",
+      "approved": "Records the approved amount with no outstanding debt. Receive funds when the lender pays."
+    },
+    "paidHistory": "Historical paid loan (optional)",
+    "financedAsset": "Financed possession (optional)",
+    "noAsset": "No linked possession",
+    "assetLinkHint": "Associates the loan with this item. No payment or valuation change is created."
   },
   "summary": {
     "totalLiabilities": "Total Liabilities",
@@ -142,7 +157,7 @@
     }
   },
   "amortization": {
-    "noSchedule": "No amortization schedule available for this liability.",
+    "noSchedule": "A payoff estimate is unavailable. Add or review the repayment terms.",
     "title": "Amortization Schedule",
     "interestRate": "Interest Rate",
     "monthlyPayment": "Monthly Payment",
@@ -172,7 +187,10 @@
       "insurance": "Insurance"
     },
     "pastContract": "At this payment amount, estimated payoff is {{payoff}}, after the contractual end date {{contract}}. Review the payment amount or the contract terms.",
-    "incomplete": "This schedule does not repay the full balance. Review the payment amount and any interest-only period."
+    "incomplete": "This schedule does not repay the full balance. Review the payment amount and any interest-only period.",
+    "paidOff": "No payments remain: this loan is paid off.",
+    "undrawn": "No repayment schedule yet: this loan has not been drawn.",
+    "noBalance": "There is no outstanding principal to schedule."
   },
   "breakdown": {
     "loadError": "Failed to load breakdown. Please try again.",
@@ -195,10 +213,11 @@
     "annualInsuranceRate": "Annual Insurance Rate ({{rate}}%)",
     "oneTimeFee": "One-time Fee",
     "institution": "Institution",
-    "otherChargesPaid": "Other recorded charges"
+    "otherChargesPaid": "Other recorded charges",
+    "forecastUnavailable": "A payoff estimate is unavailable. Add or review the repayment terms."
   },
   "drawdowns": {
-    "tab": "Drawdowns",
+    "tab": "Staged funding",
     "title": "Planned drawdowns",
     "tranche": "Tranche",
     "status": {
@@ -208,7 +227,7 @@
     },
     "planned": "Planned",
     "drawn": "Drawn",
-    "remaining": "Remaining",
+    "remaining": "Outstanding principal",
     "linkedProperty": "Property #{{id}}",
     "interestOnly": "Interest-only",
     "empty": "This liability has no planned drawdowns (tranches) yet.",
@@ -225,19 +244,22 @@
       "error": "The tranche could not be created. Please try again."
     },
     "draw": "Draw",
-    "disburse": "Disburse",
+    "disburse": "Receive funds",
     "disburseForm": {
-      "title": "Disburse funds",
+      "title": "Receive loan funds",
       "amount": "Amount",
       "date": "Date",
       "route": "Route",
       "routeAccount": "To my account",
-      "routeProperty": "Direct to the linked property",
-      "valuationPolicy": "The draw increases the mortgage balance. Property value is set separately in the property's valuation.",
+      "routeProperty": "Directly to the seller",
+      "valuationPolicy": "Receiving funds increases the loan balance. The financed item's value is set separately.",
       "account": "Account",
       "cancel": "Cancel",
       "submit": "Confirm disbursement",
-      "error": "The disbursement failed. Please try again."
+      "error": "The disbursement failed. Please try again.",
+      "target": "Financed asset or property",
+      "debtAfter": "New debt balance",
+      "valueChange": "Change in item value"
     },
     "reverse": "Reverse draw",
     "reversedOn": "Reversed on {{date}}",
@@ -297,5 +319,23 @@
     "assets": "Linked assets"
   },
   "saveError": "The liability could not be saved. Please try again.",
-  "deleteError": "The liability could not be deleted. Please try again."
+  "deleteError": "The liability could not be deleted. Please try again.",
+  "recordPayment": {
+    "title": "Record a loan payment",
+    "hint": "Use the amounts from your lender’s statement: total paid and the part that repays principal. Interest and fees do not reduce debt.",
+    "amount": "Total payment",
+    "principal": "Principal repaid",
+    "account": "Paid from",
+    "date": "Payment date",
+    "chooseAccount": "Choose an account",
+    "amountInvalid": "Enter a valid positive payment and non-negative principal.",
+    "principalInvalid": "Principal cannot exceed the payment or outstanding debt.",
+    "dateInvalid": "Choose a date between the loan start and today.",
+    "description": "Loan payment: {{name}}",
+    "cashChange": "Cash change",
+    "debtAfter": "Debt after payment",
+    "cancel": "Cancel",
+    "confirm": "Confirm payment",
+    "error": "Payment could not be saved. Your entries have been kept."
+  }
 }

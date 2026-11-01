@@ -230,6 +230,11 @@ public class TransactionRequest {
     /** Classification of the financial movement (e.g. DISBURSEMENT, REPAYMENT). */
     private MovementType movementType;
 
+    /** Optional market-value increase in the linked item's currency, independent of cost. */
+    @DecimalMin("0")
+    @Digits(integer = 26, fraction = 18)
+    private BigDecimal valuationChange;
+
     /** Principal component in liability currency; zero for interest, insurance and fees. */
     private BigDecimal principalAmount;
 

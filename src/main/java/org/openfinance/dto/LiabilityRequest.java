@@ -76,6 +76,9 @@ public class LiabilityRequest {
 
     private Long representedByAccountId;
 
+    /** Optional financed possession when creating an opening loan; never posts cash. */
+    private Long financedAssetId;
+
     @DecimalMin(value = "0.00", message = "{liability.balance.min}")
     private BigDecimal creditLimit;
 

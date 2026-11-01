@@ -129,7 +129,10 @@
     "noAccountsMatch": "Aucun compte ne correspond à votre recherche",
     "searchAccounts": "Rechercher des comptes",
     "none": "Aucun",
-    "totalEarned": "Total gagné"
+    "totalEarned": "Total gagné",
+    "cash": "Liquidités",
+    "holdings": "Placements",
+    "totalValue": "Valeur totale"
   },
   "detail": {
     "currentBalance": "Solde actuel",

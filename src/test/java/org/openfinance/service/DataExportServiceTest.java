@@ -91,6 +91,53 @@ class DataExportServiceTest {
     }
 
     @Test
+    @DisplayName("Gift exports retain received value separately from actual acquisition cost")
+    void giftExportsRetainTheirPerformanceBaseline() throws Exception {
+        BigDecimal received = new BigDecimal("150000.25");
+        when(assets.findByUserId(1L))
+                .thenReturn(
+                        List.of(
+                                org.openfinance.entity.Asset.builder()
+                                        .id(1L)
+                                        .name("Gifted possession")
+                                        .type(org.openfinance.entity.AssetType.COLLECTIBLE)
+                                        .acquisitionType(
+                                                org.openfinance.entity.AcquisitionType.GIFT)
+                                        .receivedValue(received)
+                                        .quantity(BigDecimal.ONE)
+                                        .purchasePrice(BigDecimal.ZERO)
+                                        .currentPrice(received)
+                                        .currency("EUR")
+                                        .build()));
+        when(properties.findByUserId(1L))
+                .thenReturn(
+                        List.of(
+                                org.openfinance.entity.RealEstateProperty.builder()
+                                        .id(2L)
+                                        .name("Gifted property")
+                                        .propertyType(
+                                                org.openfinance.entity.PropertyType.RESIDENTIAL)
+                                        .acquisitionType(
+                                                org.openfinance.entity.AcquisitionType.GIFT)
+                                        .receivedValue(received)
+                                        .purchasePrice("0")
+                                        .currentValue(received.toPlainString())
+                                        .currency("EUR")
+                                        .build()));
+        byte[] content =
+                service.exportUserData(1L, DataExportRequest.builder().format("JSON").build())
+                        .content();
+        com.fasterxml.jackson.databind.JsonNode exported =
+                new com.fasterxml.jackson.databind.ObjectMapper().readTree(content);
+        for (String section : List.of("assets", "realEstate")) {
+            com.fasterxml.jackson.databind.JsonNode row = exported.path(section).get(0);
+            assertThat(row.path("acquisitionType").asText()).isEqualTo("GIFT");
+            assertThat(row.path("receivedValue").decimalValue()).isEqualByComparingTo(received);
+            assertThat(row.path("purchasePrice").asText()).isEqualTo("0");
+        }
+    }
+
+    @Test
     @DisplayName("CSV retains booked amounts, movement links and JSON split details in valid cells")
     void csvPreservesFinancialMetadataAndQuotedSplitText() throws Exception {
         org.openfinance.entity.Transaction transaction =

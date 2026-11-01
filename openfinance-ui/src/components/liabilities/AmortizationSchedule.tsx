@@ -33,10 +33,18 @@ export function AmortizationSchedule({
   const [filterOption, setFilterOption] = useState<FilterOption>('all');
   const [isExpanded, setIsExpanded] = useState(false);
 
-  if (!schedule?.payments) {
+  if (!schedule?.payments?.length) {
     return (
       <div className="p-8 text-center bg-surface border border-border rounded-lg text-text-secondary">
-        {t('amortization.noSchedule')}
+        {t(
+          schedule?.fundingStatus === 'UNDRAWN'
+            ? 'amortization.undrawn'
+            : schedule?.fundingStatus === 'PAID'
+              ? 'amortization.paidOff'
+              : schedule?.currentBalance === 0
+                ? 'amortization.noBalance'
+                : 'amortization.noSchedule'
+        )}
       </div>
     );
   }

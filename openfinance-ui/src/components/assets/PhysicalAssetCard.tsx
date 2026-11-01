@@ -35,12 +35,13 @@ export function PhysicalAssetCard({ asset, onClick }: PhysicalAssetCardProps) {
 
   // Actual market value change: purchase cost vs current market value
   const currentValue = asset.totalValue; // quantity × currentPrice (actual market value)
-  const valueLoss = subtract(asset.totalCost, currentValue);
-  const lossPercent = asset.totalCost > 0 ? percentage(valueLoss, asset.totalCost) : 0;
-  const retainedPercent =
-    asset.totalCost > 0 ? Math.min(percentage(currentValue, asset.totalCost), 100) : 0;
+  const basis = asset.performanceBasis ?? (asset.acquisitionType === 'GIFT' ? 0 : asset.totalCost);
+  const valueLoss = subtract(basis, currentValue);
+  const lossPercent = basis > 0 ? percentage(valueLoss, basis) : 0;
+  const retainedPercent = basis > 0 ? Math.min(percentage(currentValue, basis), 100) : 0;
   const isPlanned = asset.acquisitionType === 'PLANNED';
-  const hasValueChange = !isPlanned && asset.totalCost > 0 && currentValue !== asset.totalCost;
+  const isClosed = asset.ownershipStatus === 'CLOSED';
+  const hasValueChange = !isPlanned && !isClosed && basis > 0 && currentValue !== basis;
 
   return (
     <Card
@@ -66,9 +67,31 @@ export function PhysicalAssetCard({ asset, onClick }: PhysicalAssetCardProps) {
           </div>
         </div>
         <h3 className="font-display text-base uppercase tracking-[0.06em] text-text-primary line-clamp-2">
-          {asset.name}
+          {onClick ? (
+            <button
+              type="button"
+              className="text-left uppercase rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+              onClick={event => {
+                event.stopPropagation();
+                onClick();
+              }}
+            >
+              {asset.name}
+            </button>
+          ) : (
+            asset.name
+          )}
         </h3>
       </div>
+
+      {isClosed && (
+        <div className="flex items-center gap-2 text-sm text-text-secondary">
+          <Badge variant="default" size="sm">
+            {t('ownership.sold')}
+          </Badge>
+          {asset.soldDate && <span>{date(asset.soldDate)}</span>}
+        </div>
+      )}
 
       {isPlanned && (
         <div className="flex items-center gap-2 text-sm text-text-secondary">
@@ -183,24 +206,28 @@ export function PhysicalAssetCard({ asset, onClick }: PhysicalAssetCardProps) {
       )}
 
       {/* Value Summary */}
-      <div className="grid grid-cols-2 gap-3 pt-2 border-t border-border">
-        <div>
-          <div className="text-xs text-text-secondary mb-1">{t('physicalCard.currentValue')}</div>
-          <div className="text-lg font-bold text-text-primary">
-            {/* Reference REQ-10.1: Show asset value with base-currency conversion hint */}
-            <ConvertedAmount
-              amount={asset.totalValue}
-              currency={asset.currency}
-              convertedAmount={asset.valueInBaseCurrency}
-              baseCurrency={asset.baseCurrency}
-              exchangeRate={asset.exchangeRate}
-              isConverted={asset.isConverted}
-              secondaryAmount={asset.valueInSecondaryCurrency}
-              secondaryCurrency={asset.secondaryCurrency}
-              inline
-            />
+      <div
+        className={`grid ${isPlanned || isClosed ? 'grid-cols-1' : 'grid-cols-2'} gap-3 pt-2 border-t border-border`}
+      >
+        {!isPlanned && !isClosed && (
+          <div>
+            <div className="text-xs text-text-secondary mb-1">{t('physicalCard.currentValue')}</div>
+            <div className="text-lg font-bold text-text-primary">
+              {/* Reference REQ-10.1: Show asset value with base-currency conversion hint */}
+              <ConvertedAmount
+                amount={asset.totalValue}
+                currency={asset.currency}
+                convertedAmount={asset.valueInBaseCurrency}
+                baseCurrency={asset.baseCurrency}
+                exchangeRate={asset.exchangeRate}
+                isConverted={asset.isConverted}
+                secondaryAmount={asset.valueInSecondaryCurrency}
+                secondaryCurrency={asset.secondaryCurrency}
+                inline
+              />
+            </div>
           </div>
-        </div>
+        )}
         <div>
           <div className="text-xs text-text-secondary mb-1">
             {t(isPlanned ? 'physicalCard.plannedCost' : 'physicalCard.purchaseCost')}
@@ -249,7 +276,7 @@ export function PhysicalAssetCard({ asset, onClick }: PhysicalAssetCardProps) {
           <Info className="h-4 w-4" />
           <span>
             {t('physicalCard.usefulLife', { count: asset.usefulLifeYears })}
-            {!isPlanned && asset.holdingDays != null && asset.holdingDays >= 0 && (
+            {!isPlanned && !isClosed && asset.holdingDays != null && asset.holdingDays >= 0 && (
               <span className="ml-1">
                 {t('physicalCard.yearsOwned', { count: Math.floor(asset.holdingDays / 365) })}
               </span>

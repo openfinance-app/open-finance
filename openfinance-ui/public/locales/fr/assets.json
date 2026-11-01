@@ -1,6 +1,6 @@
 {
-  "title": "Actifs d'investissement",
-  "description": "Suivez et gérez votre portefeuille d'investissement",
+  "title": "Actifs",
+  "description": "Suivez vos placements, vos possessions et vos biens immobiliers",
   "addAsset": "Ajouter un actif",
   "refreshPrices": "Actualiser les prix",
   "refreshing": "Actualisation...",
@@ -14,7 +14,8 @@
     "noGainsYet": "Pas encore de gains",
     "missingRates": "Totaux partiels en {{currency}} : les actifs en {{currencies}} sont exclus car les taux de change sont indisponibles.",
     "physicalValue": "Valeur des biens",
-    "valueChange": "Évolution de la valeur"
+    "valueChange": "Évolution de la valeur",
+    "performanceExcluded": "Exclut {{count}} actif(s) dont la valeur à la réception est inconnue."
   },
   "assetCount_one": "{{count}} actif",
   "assetCount_other": "{{count}} actifs",
@@ -23,7 +24,7 @@
   "empty": {
     "noResults": "Aucun actif trouvé",
     "noMatch": "Aucun actif ne correspond à vos filtres. Essayez d'ajuster vos critères de recherche.",
-    "noAssets": "Ajoutez votre premier investissement pour commencer à suivre la performance de votre portefeuille"
+    "noAssets": "Ajoutez un placement, un bien personnel ou immobilier pour suivre sa valeur."
   },
   "dialogs": {
     "editTitle": "Modifier l'actif",
@@ -66,7 +67,8 @@
     "physicalAssets": "Actifs physiques",
     "financialAssets": "Actifs financiers",
     "realEstateEditHint": "Ouvrez le bien immobilier pour gérer ses détails, frais et emprunts.",
-    "manageProperty": "Gérer le bien immobilier"
+    "manageProperty": "Gérer le bien immobilier",
+    "properties": "Biens immobiliers"
   },
   "detail": {
     "tabs": {
@@ -74,7 +76,8 @@
       "attachments": "Pièces jointes",
       "gallery": "Galerie",
       "costs": "Frais",
-      "financing": "Dettes liées"
+      "financing": "Dettes liées",
+      "operations": "Transactions"
     },
     "gallery": {
       "empty": "Aucune image pour le moment. Téléversez des images dans l’onglet Pièces jointes.",
@@ -185,7 +188,13 @@
     "accountHint": "Associe le bien à un compte. Enregistrer le bien ne crée pas de paiement.",
     "itemPurchasePrice": "Prix d’achat par objet",
     "itemCurrentValue": "Valeur estimée par objet",
-    "investmentTracked": "La quantité, le coût d’acquisition, la date d’achat et le compte lié proviennent des mouvements de placement. Modifiez les opérations liées pour les corriger. Le cours unitaire actuel reste modifiable ici."
+    "investmentTracked": "La quantité, le coût d’acquisition, la date d’achat et le compte lié proviennent des mouvements de placement. Modifiez les opérations liées pour les corriger. Le cours unitaire actuel reste modifiable ici.",
+    "targetPrice": "Prix visé",
+    "targetDate": "Date prévue",
+    "receivedDate": "Date de réception",
+    "receivedValue": "Valeur totale à la réception",
+    "acquisitionCost": "Coût d’acquisition",
+    "receivedValueHelp": "Permet de mesurer les variations depuis la réception de ce don. Laissez vide si cette valeur est inconnue."
   },
   "types": {
     "STOCK": "Action",
@@ -212,7 +221,8 @@
       "MAINTENANCE": "Entretien"
     },
     "error": "Échec du chargement des coûts. Veuillez réessayer.",
-    "acquisition": "Acquisition et autres paiements"
+    "acquisition": "Acquisition et autres paiements",
+    "operations": "Transactions liées"
   },
   "financing": {
     "title": "Dettes liées",
@@ -244,7 +254,12 @@
     "collateralHint": "« Garantie uniquement » signifie que le bien garantit l’emprunt. Aucune part du solde n’est affectée à ce bien.",
     "duplicate": "Ce lien existe déjà pour ce bien. Modifiez la ligne existante.",
     "removeNamed": "Supprimer le lien avec {{name}}",
-    "shareRequired": "Indiquez une part supérieure à zéro. Réduisez une autre part si cet emprunt est déjà entièrement réparti."
+    "shareRequired": "Indiquez une part supérieure à zéro. Réduisez une autre part si cet emprunt est déjà entièrement réparti.",
+    "primaryMortgage": "Prêt immobilier principal",
+    "editorTitle": "Gérer les biens liés à {{name}}",
+    "editorHint": "Cette modification concerne la répartition de tous les biens ci-dessous. Aucun mouvement de trésorerie.",
+    "allocatedPreview": "Dette restante affectée",
+    "recordPayment": "Enregistrer un remboursement"
   },
   "movementPaging": {
     "label": "Pages des mouvements",
@@ -301,7 +316,7 @@
     "maintenance": "Entretien ou réparation",
     "improvement": "Amélioration ou rénovation",
     "maintenanceHint": "Entretien courant. Crée une dépense sans modifier le coût de revient ni la valeur estimée du bien.",
-    "improvementHint": "Augmente le montant investi et la valeur suivie du bien. Vous pouvez actualiser la valeur estimée séparément après les travaux.",
+    "improvementHint": "Augmente le montant investi. La valeur de marché estimée change uniquement si vous choisissez de l’actualiser.",
     "description": "Description",
     "amount": "Montant ({{currency}})",
     "date": "Date du paiement",
@@ -318,7 +333,15 @@
     "descriptionRequired": "Décrivez ce frais.",
     "amountRequired": "Saisissez un montant supérieur à zéro.",
     "dateRequired": "Choisissez une date de paiement.",
-    "investmentHint": "Consultez les paiements liés à ce placement. Gérez les achats, ventes et frais dans Transactions."
+    "investmentHint": "Consultez les paiements liés à ce placement. Gérez les achats, ventes et frais dans Transactions.",
+    "acquireFirst": "Enregistrez l’entretien entre l’acquisition et la vente, au plus tard aujourd’hui. Les paiements d’achat peuvent être liés séparément.",
+    "adjustValue": "Actualiser aussi la valeur de marché estimée",
+    "valueIncrease": "Hausse de la valeur de marché ({{currency}})",
+    "independentValue": "Une dépense ne fait pas automatiquement augmenter la valeur du bien. Laissez cette option désactivée pour conserver sa valorisation.",
+    "cashChange": "Variation des liquidités",
+    "costChange": "Variation du coût de revient",
+    "valueChange": "Variation de la valeur de marché",
+    "valueRequired": "Saisissez zéro ou une hausse de valeur positive."
   },
   "groups": {
     "label": "Groupe d’actifs",
@@ -326,5 +349,92 @@
     "PHYSICAL": "Biens physiques",
     "FINANCIAL": "Placements"
   },
-  "physicalDescription": "Gérez vos biens, leur valeur, leurs frais et les emprunts associés."
+  "statuses": {
+    "label": "Statut",
+    "OWNED": "Détenus",
+    "PLANNED": "Prévus",
+    "CLOSED": "Vendus / solde nul",
+    "ALL": "Tous les statuts"
+  },
+  "physicalDescription": "Gérez vos biens, leur valeur, leurs frais et les emprunts associés.",
+  "deleteError": "L’actif n’a pas pu être supprimé. Réessayez.",
+  "performanceUnavailable": "Performance indisponible : renseignez la valeur à la réception.",
+  "notApplicable": "N/D",
+  "plannedNotice": "Cette acquisition est prévue. Elle est exclue du patrimoine détenu et de la performance.",
+  "inactive": "Inactif",
+  "manageProperty": "Gérer le bien",
+  "ownership": {
+    "sold": "Vendu",
+    "closed": "Vendus / clôturés",
+    "closedHint": "Ce bien n’est plus inclus dans la valeur détenue. Ses paiements et son historique sont conservés.",
+    "viewHistory": "Voir l’historique",
+    "buy": "Acheter un bien",
+    "completePurchase": "Finaliser l’achat",
+    "linkPayment": "Lier un paiement d’achat",
+    "linkHint": "Choisissez une dépense déjà enregistrée dans cette devise. Le lien ne crée aucun nouveau paiement et ne débite pas le compte une deuxième fois.",
+    "choosePayment": "Paiement d’achat existant",
+    "searchPayments": "Rechercher un paiement",
+    "loading": "Chargement des paiements…",
+    "loadPaymentsError": "Impossible de charger les paiements. Réessayez.",
+    "noPayments": "Aucun paiement admissible sur cette page. Essayez une autre recherche ou page.",
+    "previous": "Retour",
+    "next": "Suivant",
+    "cancel": "Annuler",
+    "reviewPayment": "Vérifier le paiement",
+    "paidFrom": "Payé depuis",
+    "chooseAccount": "Choisir un compte",
+    "payment": "Écriture de paiement",
+    "newPayment": "Créer un nouveau paiement",
+    "existingPayment": "Lier un paiement existant",
+    "price": "Prix d’achat total",
+    "cashChange": "Variation de trésorerie maintenant",
+    "netWorthChange": "Variation du patrimoine maintenant",
+    "confirmPurchase": "Confirmer l’achat",
+    "error": "L’opération n’a pas pu être enregistrée. Vos saisies sont conservées.",
+    "saveError": "Le paiement n’a pas pu être lié. Votre sélection est conservée.",
+    "purchaseDescription": "Achat : {{name}}",
+    "saleDescription": "Vente : {{name}}",
+    "sell": "Vendre",
+    "sellTitle": "Vendre {{name}}",
+    "saleHint": "Indiquez le produit total avant frais. Un seul paiement net sera crédité. La vente de toutes les unités clôture le bien et conserve son historique.",
+    "debtRetained": "L’emprunt lié reste dû. Enregistrez son remboursement séparément de la vente.",
+    "investmentAccount": "Le produit est versé sur le compte lié à la position. Vous pourrez ensuite transférer ces liquidités.",
+    "positiveAmount": "Saisissez un montant supérieur à zéro.",
+    "availableQuantity": "La quantité ne peut pas dépasser les unités détenues.",
+    "nonNegativeFees": "Les frais doivent être positifs ou nuls.",
+    "feesTooHigh": "Les frais doivent être inférieurs au produit de vente.",
+    "saleDateHint": "Choisissez une date comprise entre l’acquisition et aujourd’hui.",
+    "receivingAccount": "Recevoir le paiement sur",
+    "saleDate": "Date de vente",
+    "quantity": "Unités à vendre",
+    "proceeds": "Produit total avant frais",
+    "fees": "Frais de vente",
+    "netProceeds": "Produit net de vente",
+    "remainingQuantity": "Unités restantes",
+    "confirmSale": "Confirmer la vente",
+    "realizedGain": "Gain / perte réalisé(e)",
+    "unknownGain": "Base de calcul inconnue",
+    "openingHint": "L’enregistrement d’un bien déjà détenu ne crée aucun paiement. Liez son paiement d’achat existant depuis la fiche du bien.",
+    "chooseReceipt": "Choisir le versement du prêt",
+    "intentPrompt": "Que souhaitez-vous enregistrer ?",
+    "intents": {
+      "PURCHASE": "Un bien que je possède déjà",
+      "BUY": "Un achat",
+      "GIFT": "Un don ou un héritage",
+      "PLANNED": "Un projet d’achat"
+    },
+    "intentHints": {
+      "PURCHASE": "Enregistrer sa valeur et son historique sans créer de paiement.",
+      "BUY": "Vérifier ensemble le paiement et le prêt éventuel.",
+      "GIFT": "Indiquer la date de réception et la valeur reçue.",
+      "PLANNED": "Conserver un prix et une date cibles hors du patrimoine détenu."
+    },
+    "buyMore": "Acheter des unités",
+    "buyMoreHint": "Enregistre un paiement sur le compte lié et ajoute les unités achetées.",
+    "buyUnits": "Unités à acheter",
+    "buyAmount": "Total payé, frais inclus ({{currency}})",
+    "buyDate": "Date d’achat",
+    "unitsAfter": "Unités après l’achat",
+    "investmentOpening": "Enregistre des unités et un coût initiaux sans nouveau paiement. Pour une nouvelle opération, enregistrez la position puis choisissez Acheter des unités."
+  }
 }

@@ -114,6 +114,9 @@ public class LiabilityTranche {
     @Column(name = "real_estate_id")
     private Long realEstateId;
 
+    @Column(name = "asset_id")
+    private Long assetId;
+
     @Convert(converter = EncryptedStringConverter.class)
     @Column(name = "notes", columnDefinition = "TEXT")
     private String notes;

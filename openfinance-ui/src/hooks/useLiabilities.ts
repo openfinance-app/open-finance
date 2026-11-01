@@ -121,6 +121,7 @@ export function useCreateLiability() {
 export interface DisbursementRequest {
   toAccountId?: number;
   directRealEstateId?: number;
+  directAssetId?: number;
   trancheId?: number;
   amount: number | string;
   date: string;
@@ -268,6 +269,8 @@ export function useAmortizationSchedule(liability: Liability | null) {
       return {
         liabilityId: liability.id,
         liabilityName: liability.name,
+        currentBalance: liability.currentBalance,
+        fundingStatus: liability.fundingStatus,
         principal: liability.principal,
         interestRate: liability.interestRate ?? 0,
         termMonths: payments.length,

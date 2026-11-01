@@ -197,7 +197,15 @@ export function PropertyCard({ property, onEdit, onView, isHighlighted }: Proper
         <div className="space-y-2 text-sm">
           {/* Purchase Date */}
           <div className="flex justify-between">
-            <span className="text-text-secondary">{t('card.purchased')}</span>
+            <span className="text-text-secondary">
+              {t(
+                property.acquisitionType === 'PLANNED'
+                  ? 'form.targetDate'
+                  : property.acquisitionType === 'GIFT'
+                    ? 'form.receivedDate'
+                    : 'card.purchased'
+              )}
+            </span>
             <span className="text-text-primary font-medium">
               {formatDate(property.purchaseDate)}
             </span>
@@ -205,7 +213,15 @@ export function PropertyCard({ property, onEdit, onView, isHighlighted }: Proper
 
           {/* Purchase Price */}
           <div className="flex justify-between">
-            <span className="text-text-secondary">{t('form.purchasePrice')}</span>
+            <span className="text-text-secondary">
+              {t(
+                property.acquisitionType === 'PLANNED'
+                  ? 'form.targetPrice'
+                  : property.acquisitionType === 'GIFT'
+                    ? 'form.acquisitionCost'
+                    : 'form.purchasePrice'
+              )}
+            </span>
             <span className="text-text-primary font-medium">
               <ConvertedAmount
                 amount={property.purchasePrice}
@@ -223,23 +239,24 @@ export function PropertyCard({ property, onEdit, onView, isHighlighted }: Proper
           </div>
 
           {/* Current Value */}
-          <div className="flex justify-between">
-            <span className="text-text-secondary">{t('form.currentValue')}</span>
-            <span className="text-text-primary font-bold text-base">
-              {/* REQ-10.3: Display property current value with base-currency conversion hint */}
-              <ConvertedAmount
-                amount={property.currentValue}
-                currency={property.currency}
-                convertedAmount={property.valueInBaseCurrency}
-                baseCurrency={property.baseCurrency}
-                exchangeRate={property.exchangeRate}
-                isConverted={property.isConverted}
-                secondaryAmount={property.valueInSecondaryCurrency}
-                secondaryCurrency={property.secondaryCurrency}
-              />
-            </span>
-          </div>
-
+          {property.acquisitionType !== 'PLANNED' && (
+            <div className="flex justify-between">
+              <span className="text-text-secondary">{t('form.currentValue')}</span>
+              <span className="text-text-primary font-bold text-base">
+                {/* REQ-10.3: Display property current value with base-currency conversion hint */}
+                <ConvertedAmount
+                  amount={property.currentValue}
+                  currency={property.currency}
+                  convertedAmount={property.valueInBaseCurrency}
+                  baseCurrency={property.baseCurrency}
+                  exchangeRate={property.exchangeRate}
+                  isConverted={property.isConverted}
+                  secondaryAmount={property.valueInSecondaryCurrency}
+                  secondaryCurrency={property.secondaryCurrency}
+                />
+              </span>
+            </div>
+          )}
           {/* Appreciation */}
           {property.appreciation != null && property.appreciationPercentage != null && (
             <div className="flex justify-between">
@@ -268,27 +285,29 @@ export function PropertyCard({ property, onEdit, onView, isHighlighted }: Proper
           )}
 
           {/* Equity includes explicit financing as well as a primary mortgage. */}
-          {(property.mortgageId || property.allocatedDebt > 0) && property.equity != null && (
-            <div className="flex justify-between">
-              <span className="text-text-secondary">{t('card.equity')}</span>
-              <span
-                className={`font-medium ${property.equity < 0 ? 'text-error' : 'text-green-400'}`}
-              >
-                <ConvertedAmount
-                  amount={property.equity}
-                  currency={property.currency}
-                  convertedAmount={
-                    property.isConverted && property.exchangeRate
-                      ? multiply(property.equity!, property.exchangeRate)
-                      : undefined
-                  }
-                  baseCurrency={property.baseCurrency}
-                  exchangeRate={property.exchangeRate}
-                  isConverted={property.isConverted}
-                />
-              </span>
-            </div>
-          )}
+          {property.acquisitionType !== 'PLANNED' &&
+            (property.mortgageId || property.allocatedDebt > 0) &&
+            property.equity != null && (
+              <div className="flex justify-between">
+                <span className="text-text-secondary">{t('card.equity')}</span>
+                <span
+                  className={`font-medium ${property.equity < 0 ? 'text-error' : 'text-green-400'}`}
+                >
+                  <ConvertedAmount
+                    amount={property.equity}
+                    currency={property.currency}
+                    convertedAmount={
+                      property.isConverted && property.exchangeRate
+                        ? multiply(property.equity!, property.exchangeRate)
+                        : undefined
+                    }
+                    baseCurrency={property.baseCurrency}
+                    exchangeRate={property.exchangeRate}
+                    isConverted={property.isConverted}
+                  />
+                </span>
+              </div>
+            )}
 
           {/* Rental Income */}
           {property.rentalIncome && property.rentalIncome > 0 && (

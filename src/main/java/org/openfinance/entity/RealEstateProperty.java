@@ -113,6 +113,18 @@ public class RealEstateProperty {
     @lombok.Builder.Default
     private AcquisitionType acquisitionType = AcquisitionType.PURCHASE;
 
+    /** Total value when received as a gift; separate from the actual acquisition cost. */
+    @DecimalMin(value = "0.00", message = "{asset.receivedValue.min}")
+    @Column(name = "received_value", length = 512)
+    @Convert(converter = org.openfinance.converter.EncryptedBigDecimalConverter.class)
+    private BigDecimal receivedValue;
+
+    @Column(name = "sold_date")
+    private LocalDate soldDate;
+
+    @Column(name = "sale_transaction_id")
+    private Long saleTransactionId;
+
     /**
      * Purchase price of the property. Stored as encrypted string to protect financial information.
      *
@@ -314,9 +326,16 @@ public class RealEstateProperty {
      *
      * @return appreciation (positive) or depreciation (negative), or null if values are missing
      */
+    public BigDecimal getAcquisitionValue() {
+        if (acquisitionType == AcquisitionType.PLANNED) return null;
+        return acquisitionType == AcquisitionType.GIFT
+                ? receivedValue == null ? null : receivedValue.add(getPurchasePriceDecimal())
+                : getPurchasePriceDecimal();
+    }
+
     public BigDecimal getAppreciation() {
         BigDecimal current = getCurrentValueDecimal();
-        BigDecimal purchase = getPurchasePriceDecimal();
+        BigDecimal purchase = getAcquisitionValue();
 
         if (current == null || purchase == null) {
             return null;
@@ -334,7 +353,7 @@ public class RealEstateProperty {
      */
     public BigDecimal getAppreciationPercentage() {
         BigDecimal appreciation = getAppreciation();
-        BigDecimal purchase = getPurchasePriceDecimal();
+        BigDecimal purchase = getAcquisitionValue();
 
         if (appreciation == null || purchase == null || purchase.compareTo(BigDecimal.ZERO) == 0) {
             return null;

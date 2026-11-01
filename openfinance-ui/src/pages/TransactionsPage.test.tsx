@@ -417,15 +417,22 @@ describe('TransactionsPage', () => {
     expect(screen.queryByTestId('delete-dialog')).not.toBeInTheDocument();
   });
 
-  it('handles create failure gracefully', async () => {
+  it('keeps a failed save visible and clears its message when editing another transaction', async () => {
     const user = userEvent.setup();
-    mockCreateMutateAsync.mockRejectedValue(new Error('Create failed'));
+    const message = 'Complete the acquisition before recording an improvement.';
+    mockCreateMutateAsync.mockRejectedValueOnce({
+      isAxiosError: true,
+      response: { data: { message } },
+    });
     renderWithProviders(<TransactionsPage />);
     await user.click(screen.getByRole('button', { name: /add transaction/i }));
-    await waitFor(() => expect(screen.getByTestId('transaction-form')).toBeInTheDocument());
     await user.click(screen.getByRole('button', { name: /submit/i }));
-    // Form should still be open on error (not crash)
-    await waitFor(() => expect(screen.getByTestId('transaction-form')).toBeInTheDocument());
+    expect(await screen.findByRole('alert')).toHaveTextContent(message);
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: /^cancel$/i }));
+    await user.click(screen.getAllByRole('button', { name: /^edit$/i })[0]);
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    expect(screen.getByRole('dialog')).toHaveTextContent('Weekly groceries');
   });
 
   it('handles delete failure gracefully', async () => {

@@ -21,11 +21,14 @@ export type AssetType =
 
 export type AssetCondition = 'NEW' | 'EXCELLENT' | 'GOOD' | 'FAIR' | 'POOR';
 
+export type AssetOwnershipStatus = 'OWNED' | 'PLANNED' | 'CLOSED';
+
 /**
  * Asset filters for search
  */
 export interface AssetFilters {
   group?: 'PHYSICAL' | 'FINANCIAL';
+  ownershipStatus?: AssetOwnershipStatus;
   keyword?: string;
   /** When true, `keyword` is treated as a regular expression instead of a plain substring. */
   keywordRegex?: boolean;
@@ -46,8 +49,14 @@ export interface AssetFilters {
 export interface Asset {
   investmentTracked?: boolean;
   exactValues?: Record<string, string>;
+  ownershipStatus?: AssetOwnershipStatus;
+  soldDate?: string;
+  saleTransactionId?: number;
+  saleProceeds?: number;
+  realizedGain?: number | null;
   /** False for the retained backing asset of an inactive property. */
   isActive?: boolean;
+  realEstateId?: number;
   id: number;
   userId: number;
   accountId?: number;
@@ -57,6 +66,8 @@ export interface Asset {
   symbol?: string;
   quantity: number;
   purchasePrice: number;
+  receivedValue?: number | null;
+  performanceBasis?: number | null;
   acquisitionType?: 'PURCHASE' | 'GIFT' | 'PLANNED';
   currentPrice: number;
   currency: string;
@@ -67,8 +78,8 @@ export interface Asset {
   updatedAt: string;
   totalValue: number; // Calculated: quantity * currentPrice
   totalCost: number; // Calculated: quantity * purchasePrice
-  unrealizedGain: number; // Calculated: totalValue - totalCost
-  gainPercentage: number; // Calculated: (unrealizedGain / totalCost) * 100
+  unrealizedGain: number | null; // Calculated: totalValue - totalCost
+  gainPercentage: number | null; // Calculated: (unrealizedGain / totalCost) * 100
   holdingDays: number; // Calculated: days since purchase
 
   // Physical asset fields (Task 9.2.5)
@@ -103,6 +114,7 @@ export interface AssetRequest {
   /** Exact decimal strings as entered by the user — never JS numbers. */
   quantity: string;
   purchasePrice: string;
+  receivedValue?: string | null;
   acquisitionType?: 'PURCHASE' | 'GIFT' | 'PLANNED';
   currentPrice: string;
   currency: string;

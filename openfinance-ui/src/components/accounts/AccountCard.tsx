@@ -1,4 +1,5 @@
 import { SelectionCheckbox } from '@/components/bulk/BulkSelection';
+import { AccountBalanceBreakdown } from '@/components/accounts/AccountBalanceBreakdown';
 /**
  * AccountCard Component
  * Task 2.2.11: Create AccountCard component with edit/delete
@@ -190,7 +191,9 @@ export function AccountCard({
       <div className="mt-auto pt-4 border-t border-border flex items-start justify-between gap-3">
         {/* Left: balance */}
         <div className="min-w-0">
-          <p className="plate-label mb-1.5">{t('card.balance')}</p>
+          <p className="plate-label mb-1.5">
+            {t(account.type === 'INVESTMENT' ? 'card.totalValue' : 'card.balance')}
+          </p>
           <div
             className={cn(
               'text-2xl font-bold font-mono',
@@ -210,6 +213,7 @@ export function AccountCard({
               animate
             />
           </div>
+          <AccountBalanceBreakdown account={account} />
         </div>
 
         {/* Right: interest stats (only when enabled) */}

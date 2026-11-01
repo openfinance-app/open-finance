@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { screen } from '@testing-library/react';
+import { screen, fireEvent, waitFor, within } from '@testing-library/react';
 import { AssetList } from '@/components/assets/AssetList';
 import type { Asset } from '@/types/asset';
 import { mockAuthentication, renderWithProviders } from '@/test/test-utils';
@@ -34,6 +34,67 @@ describe('Asset column labels', () => {
 
   afterEach(async () => {
     await i18n.changeLanguage('en');
+  });
+
+  it('routes properties to their management view without offering generic deletion', () => {
+    const view = vi.fn();
+    renderWithProviders(
+      <AssetList
+        assets={[{ ...bitcoin, type: 'REAL_ESTATE', name: 'Home' }]}
+        onEdit={vi.fn()}
+        onDelete={vi.fn()}
+        onView={view}
+      />
+    );
+    expect(screen.queryByRole('button', { name: /delete asset/i })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /manage property/i }));
+    expect(view).toHaveBeenCalled();
+  });
+
+  it('keeps a zero-balance holding in the regular table with access to its details', () => {
+    const view = vi.fn();
+    const closed: Asset = {
+      ...bitcoin,
+      ownershipStatus: 'CLOSED',
+      isActive: false,
+      quantity: 0,
+      totalValue: 0,
+      unrealizedGain: -70000,
+      gainPercentage: -1,
+    };
+    const { container } = renderWithProviders(
+      <AssetList assets={[closed]} onEdit={vi.fn()} onDelete={vi.fn()} onView={view} />
+    );
+    expect(container.querySelector('details')).not.toBeInTheDocument();
+    const row = screen.getByRole('row', { name: /Bitcoin/ });
+    expect(screen.queryByText('No holdings')).not.toBeInTheDocument();
+    expect(screen.queryByText('Inactive')).not.toBeInTheDocument();
+    expect(within(row).getByRole('cell', { name: '0', exact: true })).toBeInTheDocument();
+    expect(within(row).getByText('N/A')).toBeInTheDocument();
+    fireEvent.click(row);
+    expect(view).toHaveBeenCalledWith(closed);
+  });
+
+  it('keeps a rejected delete open and allows retry without losing the selected asset', async () => {
+    const remove = vi
+      .fn()
+      .mockRejectedValueOnce({
+        isAxiosError: true,
+        response: { data: { message: 'Reverse linked movements before deleting this holding.' } },
+      })
+      .mockResolvedValue(undefined);
+    renderWithProviders(<AssetList assets={[bitcoin]} onEdit={vi.fn()} onDelete={remove} />);
+    fireEvent.click(screen.getAllByRole('button', { name: /delete asset/i })[0]);
+    fireEvent.click(
+      within(screen.getByRole('dialog')).getByRole('button', { name: 'Delete', exact: true })
+    );
+    expect(await screen.findByRole('alert')).toHaveTextContent('Reverse linked movements');
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+    fireEvent.click(
+      within(screen.getByRole('dialog')).getByRole('button', { name: 'Delete', exact: true })
+    );
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+    expect(remove).toHaveBeenNthCalledWith(2, bitcoin.id);
   });
 
   it('uses Prix d’achat for the French purchase column while retaining the total cost', async () => {

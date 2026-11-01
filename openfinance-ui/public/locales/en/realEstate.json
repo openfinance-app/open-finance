@@ -42,7 +42,7 @@
     "propertyType": "Property Type",
     "status": "Status",
     "active": "Active",
-    "inactive": "Inactive",
+    "inactive": "Closed / inactive",
     "allStatuses": "All statuses",
     "sortBy": "Sort By",
     "minValue": "Min Value",
@@ -107,7 +107,7 @@
     "selectCurrency": "Select a currency...",
     "linkedMortgage": "Linked Mortgage (Optional)",
     "selectMortgage": "Select a mortgage...",
-    "monthlyRentalIncome": "Monthly Rental Income",
+    "monthlyRentalIncome": "Expected monthly rent",
     "latitude": "Latitude (Optional)",
     "longitude": "Longitude (Optional)",
     "notes": "Notes (Optional)",
@@ -148,13 +148,19 @@
     "financingAndRent": "Mortgage & rental income (optional)",
     "financingAndRentHint": "Link an existing mortgage or enter the monthly rent. You can also manage loans after saving.",
     "moreDetails": "Location, notes & status (optional)",
-    "moreDetailsHint": "Map coordinates and additional information."
+    "moreDetailsHint": "Map coordinates and additional information.",
+    "targetPrice": "Target price",
+    "targetDate": "Target date",
+    "receivedDate": "Date received",
+    "receivedValue": "Total value when received",
+    "acquisitionCost": "Acquisition cost",
+    "receivedValueHelp": "Used to measure changes since receiving this gift. Leave blank if unknown."
   },
   "card": {
     "purchased": "Purchased",
     "appreciation": "Appreciation",
     "equity": "Equity",
-    "monthlyRent": "Monthly Rent",
+    "monthlyRent": "Expected monthly rent",
     "inactive": "Inactive",
     "deleteTitle": "Delete Property",
     "deleteConfirm": "Are you sure you want to delete \"{{name}}\"? This action cannot be undone."
@@ -191,14 +197,14 @@
     "totalAppreciation": "Total Appreciation",
     "annualizedReturnLabel": "Annualized Return",
     "annualizedReturnConvention": "Compounded over the holding period using current value and estimated net rent retained as cash.",
-    "rentalIncome": "Rental Income",
+    "rentalIncome": "Estimated rental income",
     "totalRentalIncome": "Total Rental Income",
     "rentalYield": "Rental Yield",
     "rentalYieldValue": "{{percentage}}% annually",
     "basedOnCurrentValue": "Based on current property value",
     "loadROIError": "Failed to load ROI data.",
     "linkedMortgage": "Linked Mortgage",
-    "monthlyRentalIncome": "Monthly Rental Income",
+    "monthlyRentalIncome": "Expected monthly rent",
     "notes": "Notes",
     "location": "Location",
     "latitude": "Latitude",
@@ -209,7 +215,8 @@
       "empty": "No images yet. Upload images in the Attachments tab.",
       "hint": "Manage images in the Attachments tab."
     },
-    "sections": "Property sections"
+    "sections": "Property sections",
+    "performanceBasis": "Performance basis (including improvements)"
   },
   "propertySelector": {
     "selectProperty": "Select an existing property...",
@@ -666,14 +673,14 @@
     "disbursementRoute": "Disbursement route",
     "valuationPolicy": "The draw increases mortgage debt. The Current Value entered for the property is kept separately.",
     "downPaymentAccount": "Down payment account",
-    "downPaymentAmount": "Down payment amount",
+    "downPaymentAmount": "Own contribution",
     "downPaymentDescription": "Down payment for {{name}}",
     "error": "The purchase could not be completed. Please try again.",
     "existingMortgage": "Existing mortgage",
     "funding": {
-      "new": "New mortgage",
-      "existing": "Existing mortgage",
-      "none": "Cash (no loan)"
+      "new": "My money + a new loan",
+      "existing": "My money + an existing loan",
+      "none": "My money"
     },
     "fundingLocked": "Funding is locked: the property was already created with its mortgage link. Retry the purchase or cancel.",
     "fundingSource": "Funding source",
@@ -692,11 +699,32 @@
       "funding": "Funding",
       "review": "Review"
     },
-    "fundingCurrency": "Choose a funding account and mortgage in {{currency}}.",
+    "fundingCurrency": "Use an account and, if needed, a loan in {{currency}}.",
     "fundingMismatch": "The loan and your contribution must add up to the purchase price.",
     "purchasePaymentDescription": "Purchase payment for {{name}}",
     "accountPayment": "Payment from account",
-    "downPaymentCalculated": "Suggested from the purchase price minus the loan. Adjust if needed; the total must equal the purchase price."
+    "downPaymentCalculated": "Suggested from the purchase price minus the loan. Adjust if needed; the total must equal the purchase price.",
+    "paidFrom": "Paid from",
+    "purchasePayment": "Purchase payment",
+    "cashPaymentHelp": "The purchase price is paid in full from this account.",
+    "cashChange": "Cash change",
+    "cashAfter": "Account cash after purchase",
+    "debtAfter": "Loan balance after purchase",
+    "loanCredit": "Loan credit to account",
+    "netWorthChange": "Net worth change",
+    "valuationReview": "The initial value differs from the purchase price. The difference changes your net worth immediately; confirm that this valuation is intentional.",
+    "zeroValuationReview": "The initial value is zero. This purchase will reduce your net worth by the full purchase price.",
+    "loanName": "Loan name",
+    "existingLoan": "Existing loan",
+    "chooseLoan": "Choose a loan",
+    "knownTerms": "Known payment terms (optional)",
+    "termsHint": "Add the terms you know. Estimates remain unavailable until there is enough information.",
+    "monthlyPayment": "Monthly payment",
+    "endDate": "Final payment date",
+    "receiptTiming": "Loan funds",
+    "newReceipt": "Record a new draw",
+    "alreadyReceived": "Already received in my account",
+    "existingReceiptHint": "Link the existing receipt. This purchase will not credit your account or increase the debt again."
   },
   "movementPaging": {
     "label": "Movement history pages",
@@ -786,7 +814,12 @@
     "buyHint": "Set up the property, mortgage and purchase payment together, then review before saving.",
     "planned": "Plan a future property",
     "plannedHint": "Track a project without including it in your current net worth.",
-    "back": "Back to choices"
+    "back": "Back to choices",
+    "gift": "Gift or inheritance",
+    "giftHint": "Record the received value without a purchase payment."
   },
-  "saveError": "Unable to save this property. Your entries have been kept. Please try again."
+  "saveError": "Unable to save this property. Your entries have been kept. Please try again.",
+  "performanceUnavailable": "Performance unavailable: add the value when received.",
+  "notApplicable": "N/A",
+  "plannedNotice": "This is a planned acquisition. It is excluded from owned value and performance."
 }

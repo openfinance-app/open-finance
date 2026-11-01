@@ -359,9 +359,16 @@ export function buildTransactionRequest(ctx: SubmitContext): TransactionRequest 
             ? decimalValue(repaymentPreview, 'principal')
             : data.principalAmount
         : undefined,
-    // Manual movement entry: only include the instrument links for EXPENSE
-    realEstateId: data.type === 'EXPENSE' ? data.realEstateId : undefined,
-    assetId: data.type === 'EXPENSE' ? data.assetId : undefined,
+    // Preserve existing sale/rental links when editing an income payment.
+    realEstateId:
+      data.type === 'EXPENSE' || (data.type === 'INCOME' && ctx.transaction?.realEstateId != null)
+        ? data.realEstateId
+        : undefined,
+    assetId:
+      data.type === 'EXPENSE' || (data.type === 'INCOME' && ctx.transaction?.assetId != null)
+        ? data.assetId
+        : undefined,
+    valuationChange: data.movementType === 'CAPITAL_IMPROVEMENT' ? data.valuationChange : undefined,
     movementType:
       carriesLoan && data.liabilityId
         ? (data.movementType ?? (data.type === 'INCOME' ? 'DISBURSEMENT' : 'REPAYMENT'))

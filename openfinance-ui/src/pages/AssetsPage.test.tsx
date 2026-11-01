@@ -213,6 +213,52 @@ describe('AssetsPage', () => {
   });
 
   describe('Filter toggle', () => {
+    it('filters by ownership status and preserves it when changing asset groups', async () => {
+      const user = userEvent.setup();
+      renderWithProviders(<AssetsPage />);
+      expect(
+        screen.queryByRole('combobox', { name: 'Status', exact: true })
+      ).not.toBeInTheDocument();
+      await user.click(screen.getByRole('button', { name: 'Filters', exact: true }));
+      const status = screen.getByRole('combobox', { name: 'Status', exact: true });
+      expect(status).toHaveValue('OWNED');
+      expect(useAssetsSearch).toHaveBeenCalledWith(
+        expect.objectContaining({ ownershipStatus: 'OWNED', page: 0 })
+      );
+      await user.selectOptions(status, 'CLOSED');
+      await user.click(screen.getByRole('button', { name: 'Physical assets', exact: true }));
+      expect(useAssetsSearch).toHaveBeenCalledWith(
+        expect.objectContaining({ ownershipStatus: 'CLOSED', group: 'PHYSICAL', page: 0 })
+      );
+      await user.selectOptions(status, 'PLANNED');
+      expect(useAssetsSearch).toHaveBeenCalledWith(
+        expect.objectContaining({ ownershipStatus: 'PLANNED', group: 'PHYSICAL', page: 0 })
+      );
+      await user.selectOptions(status, '');
+      expect(useAssetsSearch).toHaveBeenCalledWith(
+        expect.objectContaining({ ownershipStatus: undefined, group: 'PHYSICAL', page: 0 })
+      );
+      await user.click(screen.getByRole('button', { name: 'Clear', exact: true }));
+      expect(status).toHaveValue('OWNED');
+      expect(useAssetsSearch).toHaveBeenCalledWith(
+        expect.objectContaining({ ownershipStatus: 'OWNED', group: 'PHYSICAL', page: 0 })
+      );
+      await user.click(screen.getByRole('button', { name: 'Filters', exact: true }));
+      expect(
+        screen.queryByRole('combobox', { name: 'Status', exact: true })
+      ).not.toBeInTheDocument();
+      window.history.replaceState({}, '', '/assets');
+    });
+
+    it('keeps one Add Asset entry point, including for an empty list', () => {
+      mockPagedData = { ...mockPagedResponse, content: [], totalElements: 0, totalPages: 0 };
+      renderWithProviders(<AssetsPage />);
+      expect(screen.getAllByRole('button', { name: 'Add Asset', exact: true })).toHaveLength(1);
+      expect(
+        screen.queryByRole('button', { name: 'Buy a physical asset' })
+      ).not.toBeInTheDocument();
+    });
+
     it('should have a filter button', () => {
       renderWithProviders(<AssetsPage />);
       expect(screen.getByRole('button', { name: /filter/i })).toBeInTheDocument();

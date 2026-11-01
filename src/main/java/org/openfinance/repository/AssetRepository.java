@@ -24,6 +24,8 @@ public interface AssetRepository
         extends JpaRepository<Asset, Long>, JpaSpecificationExecutor<Asset> {
     boolean existsByIdAndUserId(Long id, Long userId);
 
+    Optional<Asset> findBySaleTransactionIdAndUserId(Long transactionId, Long userId);
+
     /**
      * Finds all assets belonging to a specific user.
      *
@@ -39,6 +41,7 @@ public interface AssetRepository
     @EntityGraph(attributePaths = {"account"})
     @Query(
             "SELECT a FROM Asset a WHERE a.userId = :userId "
+                    + "AND a.soldDate IS NULL "
                     + "AND a.acquisitionType <> org.openfinance.entity.AcquisitionType.PLANNED "
                     + "AND NOT EXISTS (SELECT p.id FROM RealEstateProperty p "
                     + "WHERE p.userId = :userId AND p.assetId = a.id AND p.isActive = false)")

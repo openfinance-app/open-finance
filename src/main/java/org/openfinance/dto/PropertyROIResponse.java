@@ -36,6 +36,11 @@ public class PropertyROIResponse {
      */
     private BigDecimal purchasePrice;
 
+    private BigDecimal receivedValue;
+
+    /** Acquisition or received value plus capitalized costs; null when unknown or planned. */
+    private BigDecimal performanceBasis;
+
     /** Purchase price plus capitalized expenses from the active ledger. */
     private BigDecimal costBasis;
 

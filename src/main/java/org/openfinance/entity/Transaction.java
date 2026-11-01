@@ -381,6 +381,16 @@ public class Transaction {
     @Convert(converter = EncryptedBigDecimalConverter.class)
     private BigDecimal investmentValue;
 
+    /** Fees already deducted from the net sale payment, not a second cash expense. */
+    @Column(name = "sale_fees", length = 512)
+    @Convert(converter = EncryptedBigDecimalConverter.class)
+    private BigDecimal saleFees;
+
+    /** Null preserves the automatic value contribution of older improvement postings. */
+    @Column(name = "valuation_change", length = 512)
+    @Convert(converter = EncryptedBigDecimalConverter.class)
+    private BigDecimal valuationChange;
+
     @Column(name = "investment_price", length = 512)
     @Convert(converter = EncryptedBigDecimalConverter.class)
     private BigDecimal investmentPrice;

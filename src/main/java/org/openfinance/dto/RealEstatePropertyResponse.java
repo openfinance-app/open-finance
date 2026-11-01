@@ -63,6 +63,16 @@ public class RealEstatePropertyResponse {
      */
     private BigDecimal purchasePrice;
 
+    private BigDecimal receivedValue;
+    private java.time.LocalDate soldDate;
+    private Long saleTransactionId;
+    private BigDecimal saleProceeds;
+    private BigDecimal realizedGain;
+    private String ownershipStatus;
+
+    /** Acquisition or received value plus capitalized costs; null when unknown or planned. */
+    private BigDecimal performanceBasis;
+
     /**
      * Current estimated market value of the property (decrypted).
      *

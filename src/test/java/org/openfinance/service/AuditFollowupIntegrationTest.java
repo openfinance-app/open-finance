@@ -813,6 +813,8 @@ class AuditFollowupIntegrationTest {
                                         "Renovation",
                                         "movementType",
                                         "CAPITAL_IMPROVEMENT",
+                                        "valuationChange",
+                                        30,
                                         "realEstateId",
                                         propertyId),
                                 owner,

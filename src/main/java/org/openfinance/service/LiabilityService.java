@@ -246,6 +246,12 @@ public class LiabilityService {
             updatePrimaryProperty(userId, savedLiability.getId(), request.getRealEstateId());
         }
 
+        if (request.getFinancedAssetId() != null) {
+            if (request.getRealEstateId() != null)
+                throw new InvalidTransactionException("Choose one financed asset");
+            assetFinancingService.ensureDirectFinancing(
+                    userId, savedLiability.getId(), request.getFinancedAssetId());
+        }
         // Decrypt and return response with calculated fields
         LiabilityResponse liabilityCreateResponse = toResponseWithDecryption(savedLiability);
 
@@ -1433,6 +1439,16 @@ public class LiabilityService {
         // --- Total projected cost (from today to payoff) ---
         BigDecimal totalProjectedCost =
                 currentBalance.add(projectedInterest).add(projectedInsurance).add(projectedFees);
+        boolean forecastAvailable =
+                currentBalance.signum() == 0
+                        || (!schedule.isEmpty()
+                                && schedule.getLast().getRemainingBalance().signum() == 0);
+        if (!forecastAvailable) {
+            projectedInterest = null;
+            projectedInsurance = null;
+            projectedFees = null;
+            totalProjectedCost = null;
+        }
 
         // --- Linked transactions summary (Requirement REQ-LIA-4) ---
         int linkedTransactionCount = linkedTransactions.size();
@@ -1460,6 +1476,7 @@ public class LiabilityService {
                 .insurancePaid(insurancePaid)
                 .feesPaid(feesPaid)
                 .totalPaid(totalPaid)
+                .forecastAvailable(forecastAvailable)
                 .projectedInterest(projectedInterest)
                 .projectedInsurance(projectedInsurance)
                 .projectedFees(projectedFees)
@@ -1597,7 +1614,8 @@ public class LiabilityService {
         }
         // Only mutate an existing tranche after claiming it. A pre-claim flush could otherwise
         // overwrite another request's DRAWN status with this request's stale PLANNED value.
-        tranche.setDirectDisbursement(request.getDirectRealEstateId() != null);
+        tranche.setDirectDisbursement(request.getToAccountId() == null);
+        tranche.setAssetId(request.getDirectAssetId());
         if (request.getDirectRealEstateId() != null) {
             tranche.setRealEstateId(request.getDirectRealEstateId());
         }
@@ -1698,25 +1716,8 @@ public class LiabilityService {
             Liability liability,
             LiabilityTranche tranche,
             DisbursementRequest request) {
-        RealEstateProperty property =
-                realEstateRepository
-                        .findByIdAndUserId(request.getDirectRealEstateId(), userId)
-                        .orElseThrow(
-                                () ->
-                                        RealEstatePropertyNotFoundException.byIdAndUser(
-                                                request.getDirectRealEstateId(), userId));
-        if (property.getCurrency() != null
-                && liability.getCurrency() != null
-                && !property.getCurrency().equalsIgnoreCase(liability.getCurrency())) {
-            throw InvalidTransactionException.currencyMismatch(
-                    property.getCurrency(), liability.getCurrency());
-        }
-
-        if (property.getAssetId() == null || !property.isActive()) {
-            throw new InvalidTransactionException("Direct funding requires an active property");
-        }
-        assetFinancingService.ensureDirectFinancing(
-                userId, liability.getId(), property.getAssetId());
+        Long assetId = directFundingAsset(userId, request, liability.getCurrency());
+        assetFinancingService.ensureDirectFinancing(userId, liability.getId(), assetId);
 
         BigDecimal current = currentDebt(liability);
         BigDecimal updated = (current == null ? BigDecimal.ZERO : current).add(request.getAmount());
@@ -1727,17 +1728,44 @@ public class LiabilityService {
         // post-reconcile balance, never the intermediate.
         String finalBalance = liability.getCurrentBalance();
 
-        if (property.getAcquisitionType() == org.openfinance.entity.AcquisitionType.PLANNED) {
-            throw new InvalidTransactionException(
-                    "Complete the property's acquisition details before disbursing directly to it");
-        }
-        // Financing changes the debt, not the independently recorded property valuation.
+        // Financing changes debt, never the independently recorded valuation.
         log.info(
-                "Direct disbursement of {} applied to liability {} for property {}: balance {}",
+                "Direct disbursement of {} applied to liability {} for asset {}: balance {}",
                 request.getAmount(),
                 liability.getId(),
-                property.getId(),
+                assetId,
                 finalBalance);
+    }
+
+    private Long directFundingAsset(Long userId, DisbursementRequest request, String currency) {
+        Long assetId = request.getDirectAssetId();
+        if (request.getDirectRealEstateId() != null) {
+            RealEstateProperty property =
+                    realEstateRepository
+                            .findByIdAndUserId(request.getDirectRealEstateId(), userId)
+                            .orElseThrow(
+                                    () -> new InvalidTransactionException("Property not found"));
+            if (!property.isActive()) {
+                throw new InvalidTransactionException("Direct funding requires an active property");
+            }
+            assetId = property.getAssetId();
+        }
+        org.openfinance.entity.Asset asset =
+                backingAssetRepository
+                        .findByIdAndUserId(assetId, userId)
+                        .orElseThrow(
+                                () -> new InvalidTransactionException("Financed asset not found"));
+        if ((!asset.isPhysical() && asset.getType() != org.openfinance.entity.AssetType.REAL_ESTATE)
+                || asset.getAcquisitionType() == org.openfinance.entity.AcquisitionType.PLANNED
+                || asset.getSoldDate() != null
+                || request.getDate().isBefore(asset.getPurchaseDate())) {
+            throw new InvalidTransactionException(
+                    "Direct funding requires an owned physical asset or property");
+        }
+        if (!currency.equalsIgnoreCase(asset.getCurrency())) {
+            throw InvalidTransactionException.currencyMismatch(asset.getCurrency(), currency);
+        }
+        return assetId;
     }
 
     /**
@@ -2045,6 +2073,7 @@ public class LiabilityService {
                 .interestOnlyUntil(tranche.getInterestOnlyUntil())
                 .status(tranche.getStatus())
                 .realEstateId(tranche.getRealEstateId())
+                .assetId(tranche.getAssetId())
                 .directDisbursement(tranche.isDirectDisbursement())
                 .reversedDate(tranche.getReversedDate())
                 .notes(tranche.getNotes())
@@ -2242,7 +2271,7 @@ public class LiabilityService {
         tranche.setReversedDate(date);
         tranche.setStatus(TrancheStatus.CANCELLED);
         liabilityTrancheRepository.save(tranche);
-        restoreDirectValuation(userId, tranche);
+        if (tranche.getRealEstateId() != null) restoreDirectValuation(userId, tranche);
         invalidateSnapshotsFrom(userId, loan.getStartDate());
         return toTrancheResponse(tranche);
     }
@@ -2387,11 +2416,16 @@ public class LiabilityService {
                                                         propertyId, userId));
         for (RealEstateProperty property : realEstateRepository.findByMortgageId(liabilityId)) {
             if (!userId.equals(property.getUserId())) continue;
+            if (java.util.Objects.equals(property.getId(), propertyId)) continue;
+            assetFinancingService.synchronizePrimary(
+                    userId, property.getAssetId(), liabilityId, null);
             property.setMortgageId(null);
             property.setMortgage(null);
             realEstateRepository.save(property);
         }
         if (target != null) {
+            assetFinancingService.synchronizePrimary(
+                    userId, target.getAssetId(), target.getMortgageId(), liabilityId);
             target.setMortgageId(liabilityId);
             target.setMortgage(null);
             realEstateRepository.save(target);

@@ -9,13 +9,22 @@ import { AssetFinancingSection } from '@/components/assets/AssetFinancingSection
 vi.mock('@/hooks/useAssets', () => ({
   useAssets: () => ({
     data: [
-      { id: 1, name: 'Car', type: 'VEHICLE', totalValue: 5000, currency: 'USD' },
-      { id: 2, name: 'Other asset', type: 'JEWELRY', totalValue: 1000, currency: 'USD' },
+      { id: 1, name: 'Car', type: 'VEHICLE', isPhysical: true, totalValue: 5000, currency: 'USD' },
+      {
+        id: 2,
+        name: 'Other asset',
+        type: 'JEWELRY',
+        isPhysical: true,
+        totalValue: 1000,
+        currency: 'USD',
+      },
     ],
   }),
 }));
 vi.mock('@/hooks/useLiabilities', () => ({
-  useLiabilities: () => ({ data: [{ id: 9, name: 'Shared loan', currency: 'USD' }] }),
+  useLiabilities: () => ({
+    data: [{ id: 9, name: 'Shared loan', currency: 'USD', currentBalance: 1000 }],
+  }),
   useCreateLiability: () => ({ reset: vi.fn() }),
 }));
 const save = vi.fn();
@@ -45,6 +54,10 @@ describe('Loan relationships', () => {
   it('preselects the current item, allocates the remaining share and preserves other assets', async () => {
     renderWithProviders(<AssetFinancingSection assetId={1} />);
     await openLink();
+    expect(
+      screen.getByRole('heading', { name: 'Manage assets linked to Shared loan' })
+    ).toBeVisible();
+    expect(screen.getByText('$600.00')).toBeVisible();
     expect(screen.getByText('100% of the loan allocated (maximum 100%).')).toBeVisible();
     await userEvent.click(screen.getByRole('button', { name: 'Save links' }));
     await waitFor(() =>

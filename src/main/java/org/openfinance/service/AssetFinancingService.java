@@ -17,5 +17,7 @@ public interface AssetFinancingService {
 
     boolean hasFinancingAllocations(Long userId, Long liabilityId);
 
+    void synchronizePrimary(Long userId, Long assetId, Long previousLoanId, Long loanId);
+
     void ensureDirectFinancing(Long userId, Long liabilityId, Long assetId);
 }

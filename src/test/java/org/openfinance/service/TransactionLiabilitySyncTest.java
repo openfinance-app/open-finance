@@ -37,6 +37,7 @@ import org.openfinance.entity.TransactionType;
 import org.openfinance.exception.InvalidTransactionException;
 import org.openfinance.mapper.TransactionMapper;
 import org.openfinance.repository.AccountRepository;
+import org.openfinance.repository.AssetRepository;
 import org.openfinance.repository.CategoryRepository;
 import org.openfinance.repository.CurrencyRepository;
 import org.openfinance.repository.LiabilityRepository;
@@ -97,6 +98,8 @@ class TransactionLiabilitySyncTest {
     @Mock private RealEstateValueHistoryRepository realEstateValueHistoryRepository;
     @Mock private org.openfinance.mapper.RealEstateMapper realEstateMapper;
     @Mock private AssetService assetService;
+
+    @Mock private AssetRepository assetRepository;
 
     @InjectMocks private TransactionService transactionService;
     private org.openfinance.repository.LiabilityPrincipalAllocationRepository allocations;
@@ -260,6 +263,7 @@ class TransactionLiabilitySyncTest {
     }
 
     private void stubCreate(TransactionRequest request, Transaction mapped, Transaction saved) {
+        saved.setValuationChange(request.getValuationChange());
         when(accountRepository.findByIdAndUserId(ACCOUNT_ID, USER_ID))
                 .thenReturn(Optional.of(accountFixture(request.getCurrency())));
         when(transactionMapper.toEntity(request)).thenReturn(mapped);
@@ -876,6 +880,7 @@ class TransactionLiabilitySyncTest {
         TransactionRequest request =
                 linkedRequest(new BigDecimal("500.00"), MovementType.CAPITAL_IMPROVEMENT, "EUR");
         request.setOriginalAmount(new BigDecimal("1000.00"));
+        request.setValuationChange(new BigDecimal("1000.00"));
         request.setOriginalCurrency("USD");
         request.setConversionRate(new BigDecimal("0.5000"));
         stubCreate(

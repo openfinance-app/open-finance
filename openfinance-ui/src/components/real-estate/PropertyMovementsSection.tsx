@@ -158,14 +158,18 @@ export function PropertyMovementsSection({ property }: { property: RealEstatePro
           <h3 className="plate-label">{t('movements.costsTitle')}</h3>
           <HelpTooltip text={t('assets:costEntry.sectionHint')} />
         </div>
-        <Button
-          type="button"
-          variant="outline"
-          onClick={() => setAddingCost(true)}
-          disabled={addingCost}
-        >
-          {t('assets:costEntry.add')}
-        </Button>
+        {property.isActive !== false &&
+          !property.soldDate &&
+          property.acquisitionType !== 'PLANNED' && (
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setAddingCost(true)}
+              disabled={addingCost}
+            >
+              {t('assets:costEntry.add')}
+            </Button>
+          )}
       </div>
       {addingCost && (
         <RecordCostForm
@@ -174,6 +178,8 @@ export function PropertyMovementsSection({ property }: { property: RealEstatePro
             name: property.name,
             currency: property.currency,
             kind: 'property',
+            acquisitionType: property.acquisitionType,
+            purchaseDate: property.purchaseDate,
           }}
           onClose={() => setAddingCost(false)}
         />

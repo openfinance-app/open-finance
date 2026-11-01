@@ -66,10 +66,13 @@ public class AccountResponse {
     /**
      * The account's own balance, excluding the value of any linked assets.
      *
-     * <p>{@code balance} includes linked-asset values for display; this field holds the raw
-     * editable balance so account edit forms don't re-add assets and double the total.
+     * <p>Investment accounts include financial holdings in {@code balance}; other accounts show
+     * cash only. This field always holds the cash balance used by account edit forms.
      */
     private BigDecimal ownBalance;
+
+    /** Financial holdings in the account currency, excluding physical assets and property. */
+    private BigDecimal holdingsValue;
 
     /** Optional description of the account (decrypted). */
     private String description;

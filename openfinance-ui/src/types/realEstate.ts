@@ -27,6 +27,11 @@ export type PropertyType = (typeof PropertyType)[keyof typeof PropertyType];
  */
 export interface RealEstateProperty {
   exactValues?: Record<string, string>;
+  ownershipStatus?: 'OWNED' | 'PLANNED' | 'CLOSED';
+  soldDate?: string;
+  saleTransactionId?: number;
+  saleProceeds?: number;
+  realizedGain?: number | null;
   assetId?: number;
   allocatedDebt: number;
   mortgageOriginalBalance?: number;
@@ -39,6 +44,8 @@ export interface RealEstateProperty {
   address: string;
   propertyType: PropertyType;
   purchasePrice: number;
+  receivedValue?: number | null;
+  performanceBasis?: number | null;
   acquisitionType?: 'PURCHASE' | 'GIFT' | 'PLANNED';
   purchaseDate: string; // ISO date format
   currentValue: number;
@@ -56,7 +63,7 @@ export interface RealEstateProperty {
   updatedAt: string; // ISO datetime
 
   // Calculated fields
-  appreciation?: number;
+  appreciation?: number | null;
   appreciationPercentage?: number | null;
   equity?: number;
   rentalYield?: number;
@@ -82,6 +89,7 @@ export interface RealEstatePropertyRequest {
   propertyType: PropertyType;
   /** Exact decimal string as entered by the user — never a JS number. */
   purchasePrice: string;
+  receivedValue?: string | null;
   acquisitionType?: 'PURCHASE' | 'GIFT' | 'PLANNED';
   purchaseDate: string; // ISO date format (YYYY-MM-DD)
   /** Exact decimal string as entered by the user — never a JS number. */
@@ -123,13 +131,15 @@ export interface PropertyROIResponse {
   propertyId: number;
   propertyName: string;
   purchasePrice: number;
+  receivedValue?: number | null;
+  performanceBasis?: number | null;
   acquisitionType?: 'PURCHASE' | 'GIFT' | 'PLANNED';
   currentValue: number;
   purchaseDate: string; // ISO date
   yearsOwned: number;
-  appreciation: number;
+  appreciation: number | null;
   appreciationPercentage: number | null;
-  annualizedReturn: number;
+  annualizedReturn: number | null;
   totalRentalIncome: number | null;
   monthlyRentalIncome: number | null;
   rentalYield: number | null;
@@ -242,14 +252,14 @@ export function getPropertyTypeBadgeColor(type: PropertyType): string {
  * @param currency - ISO 4217 currency code of the property (e.g. "JPY", "EUR")
  */
 export function formatAppreciation(
-  appreciation: number | undefined,
-  percentage: number | undefined,
+  appreciation: number | null | undefined,
+  percentage: number | null | undefined,
   currency: string = DEFAULT_CURRENCY
 ): {
   text: string;
   color: string;
 } {
-  if (appreciation === undefined || percentage === undefined) {
+  if (appreciation == null || percentage == null) {
     return { text: 'N/A', color: 'text-text-muted' };
   }
 
@@ -269,5 +279,5 @@ export function calculatePropertyAge(purchaseDate: string): number {
   const now = new Date();
   const diffMs = now.getTime() - purchase.getTime();
   const diffYears = diffMs / (1000 * 60 * 60 * 24 * 365.25);
-  return Math.floor(diffYears);
+  return Math.max(0, Math.floor(diffYears));
 }

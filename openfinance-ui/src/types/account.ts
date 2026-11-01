@@ -95,6 +95,8 @@ export interface Account {
   balance: number;
   /** Account's own balance excluding linked assets — use for edit forms. */
   ownBalance: number;
+  /** Financial holdings only, expressed in the account currency. */
+  holdingsValue?: number;
   description?: string;
   /** ISO date (yyyy-MM-dd) when the account was opened. */
   openingDate?: string;

@@ -7,7 +7,6 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.HexFormat;
 import lombok.RequiredArgsConstructor;
-import org.openfinance.dto.DisbursementRequest;
 import org.openfinance.dto.LiabilityRequest;
 import org.openfinance.dto.LiabilityResponse;
 import org.openfinance.dto.PropertyPurchaseRequest;
@@ -37,6 +36,8 @@ public class PropertyPurchaseServiceImpl implements PropertyPurchaseService {
     private final TransactionService transactions;
     private final AccountRepository accounts;
     private final ObjectMapper objectMapper;
+    private final PurchasePaymentService purchasePayments;
+    private final PurchaseLoanService funding;
 
     @Override
     @ReversibleOperation(
@@ -58,7 +59,7 @@ public class PropertyPurchaseServiceImpl implements PropertyPurchaseService {
         validateFunding(userId, request);
         Long mortgageId = mortgage(userId, request);
         request.getProperty().setMortgageId(mortgageId);
-        Long propertyId = properties.createProperty(userId, request.getProperty()).getId();
+        Long propertyId = acquireProperty(userId, request);
         if (mortgageId != null) drawMortgage(userId, request, mortgageId, propertyId);
         paySeller(userId, request, propertyId);
         receipt = new PropertyPurchaseReceipt();
@@ -71,12 +72,26 @@ public class PropertyPurchaseServiceImpl implements PropertyPurchaseService {
         return new PropertyPurchaseResponse(propertyId, mortgageId);
     }
 
+    private Long acquireProperty(Long userId, PropertyPurchaseRequest request) {
+        if (request.getPlannedPropertyId() == null) {
+            return properties.createProperty(userId, request.getProperty()).getId();
+        }
+        org.openfinance.dto.RealEstatePropertyResponse plan =
+                properties.getPropertyById(request.getPlannedPropertyId(), userId);
+        if (plan.getAcquisitionType() != AcquisitionType.PLANNED || !plan.isActive()) {
+            throw new InvalidTransactionException("Only an active purchase plan can be completed");
+        }
+        request.getProperty().setAcquisitionType(AcquisitionType.PURCHASE);
+        return properties.completePurchasePlan(plan.getId(), userId, request.getProperty()).getId();
+    }
+
     private void validateFunding(Long userId, PropertyPurchaseRequest request) {
         boolean financed = request.getLoanAmount().signum() > 0;
         int sources =
                 (request.getNewMortgage() != null ? 1 : 0)
                         + (request.getExistingMortgageId() != null ? 1 : 0);
-        if ((financed ? sources != 1 : sources != 0)
+        if ((request.getExistingLoanReceiptId() != null && request.getExistingMortgageId() == null)
+                || (financed ? sources != 1 : sources != 0)
                 || request.getLoanAmount()
                                 .add(request.getDownPayment())
                                 .compareTo(request.getProperty().getPurchasePrice())
@@ -135,21 +150,18 @@ public class PropertyPurchaseServiceImpl implements PropertyPurchaseService {
 
     private void drawMortgage(
             Long userId, PropertyPurchaseRequest request, Long mortgageId, Long propertyId) {
-        liabilities.disburse(
+        Long assetId = properties.getPropertyById(propertyId, userId).getAssetId();
+        funding.fund(
                 userId,
                 mortgageId,
-                DisbursementRequest.builder()
-                        .amount(request.getLoanAmount())
-                        .date(request.getProperty().getPurchaseDate())
-                        .directRealEstateId(
-                                request.getRoute() == PropertyPurchaseRequest.Route.DIRECT
-                                        ? propertyId
-                                        : null)
-                        .toAccountId(
-                                request.getRoute() == PropertyPurchaseRequest.Route.ACCOUNT
-                                        ? request.getAccountId()
-                                        : null)
-                        .build());
+                request.getLoanAmount(),
+                request.getProperty().getCurrency(),
+                request.getProperty().getPurchaseDate(),
+                request.getRoute(),
+                request.getAccountId(),
+                request.getExistingLoanReceiptId(),
+                assetId,
+                propertyId);
     }
 
     private BigDecimal cashPayment(PropertyPurchaseRequest request) {
@@ -160,6 +172,22 @@ public class PropertyPurchaseServiceImpl implements PropertyPurchaseService {
 
     private void paySeller(Long userId, PropertyPurchaseRequest request, Long propertyId) {
         BigDecimal amount = cashPayment(request);
+        if (request.getExistingPaymentId() != null) {
+            if (amount.signum() == 0) {
+                throw new InvalidTransactionException(
+                        "This purchase has no account payment to link");
+            }
+            purchasePayments.link(
+                    userId,
+                    request.getExistingPaymentId(),
+                    request.getAccountId(),
+                    request.getProperty().getCurrency(),
+                    amount,
+                    request.getProperty().getPurchaseDate(),
+                    null,
+                    propertyId);
+            return;
+        }
         if (amount.signum() == 0) return;
         transactions.createTransaction(
                 userId,

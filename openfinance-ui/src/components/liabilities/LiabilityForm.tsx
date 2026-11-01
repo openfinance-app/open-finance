@@ -1,3 +1,6 @@
+import { useState } from 'react';
+import { useAssets } from '@/hooks/useAssets';
+
 import { OptionalDetails } from '@/components/ui/OptionalDetails';
 import { HelpTooltip } from '@/components/ui/HelpTooltip';
 import { decimalField, ExactDecimal } from '@/utils/exact-decimal';
@@ -103,6 +106,7 @@ const liabilitySchema = (tv: (key: string) => string) =>
         .optional()
         .or(z.literal('')),
       realEstateId: z.number().optional(),
+      financedAssetId: z.number().optional(),
       creditLimit: z
         .string()
         .refine(
@@ -150,6 +154,8 @@ export function LiabilityForm({
   isLoading,
 }: LiabilityFormProps) {
   const isEditing = !!liability;
+  const [intent, setIntent] = useState<'existing' | 'new' | 'approved'>('existing');
+  const { data: assets = [] } = useAssets();
   const today = new Date().toISOString().split('T')[0];
   const { t } = useTranslation('liabilities');
   // Get base currency from user settings (REQ-6.3)
@@ -219,7 +225,10 @@ export function LiabilityForm({
       name: data.name,
       type: data.type,
       principal: data.principal.trim(),
-      currentBalance: data.currentBalance.trim(),
+      currentBalance:
+        !isEditing && intent !== 'existing' && data.type !== 'CREDIT_CARD'
+          ? '0'
+          : data.currentBalance.trim(),
       interestRate: data.interestRate == null ? undefined : Number(data.interestRate),
       startDate: data.startDate,
       endDate: data.endDate && data.endDate !== '' ? data.endDate : undefined,
@@ -247,7 +256,8 @@ export function LiabilityForm({
         data.type === 'CREDIT_CARD' || liability?.type === data.type
           ? data.creditLimit || undefined
           : undefined,
-      previouslyFunded: data.previouslyFunded,
+      previouslyFunded: !isEditing && intent !== 'existing' ? false : data.previouslyFunded,
+      financedAssetId: !isEditing && data.type !== 'MORTGAGE' ? data.financedAssetId : undefined,
       representedByAccountId:
         data.type === 'CREDIT_CARD' && data.representedByAccountId
           ? Number(data.representedByAccountId)
@@ -257,6 +267,34 @@ export function LiabilityForm({
 
   return (
     <form onSubmit={handleFormSubmit} noValidate className="space-y-4">
+      {!isEditing && watch('type') !== 'CREDIT_CARD' && (
+        <div className="space-y-2 border-b border-border pb-4">
+          <label htmlFor="loan-intent" className="block text-sm font-medium">
+            {t('form.intent')}
+          </label>
+          <select
+            id="loan-intent"
+            className="h-11 w-full rounded-lg border border-border bg-surface px-3 text-base md:h-10 md:text-sm"
+            value={intent}
+            onChange={event => {
+              const next = event.target.value as typeof intent;
+              setIntent(next);
+              if (next !== 'existing') {
+                setValue('currentBalance', '0');
+                setValue('previouslyFunded', false);
+              }
+            }}
+          >
+            {(['existing', 'new', 'approved'] as const).map(key => (
+              <option key={key} value={key}>
+                {t(`form.intents.${key}`)}
+              </option>
+            ))}
+          </select>
+          <p className="text-sm text-text-secondary">{t(`form.intentHints.${intent}`)}</p>
+        </div>
+      )}
+
       {Object.keys(errors).length > 0 && (
         <p role="alert" className="text-sm text-error">
           {t('form.validation.reviewFields')}
@@ -352,13 +390,16 @@ export function LiabilityForm({
           </div>
         </div>
       )}
-      {!liability?.balanceLocked &&
+      {(isEditing || intent === 'existing') &&
+        !liability?.balanceLocked &&
         Number(watch('currentBalance')) === 0 &&
         watch('type') !== 'CREDIT_CARD' && (
-          <label className="flex items-center gap-2 text-sm">
-            <input type="checkbox" {...register('previouslyFunded')} />
-            {t('form.previouslyFunded')}
-          </label>
+          <OptionalDetails title={t('form.paidHistory')}>
+            <label className="flex items-center gap-2 text-sm">
+              <input type="checkbox" {...register('previouslyFunded')} />
+              {t('form.previouslyFunded')}
+            </label>
+          </OptionalDetails>
         )}
       {/* Principal, Balance, and Currency Row */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -385,33 +426,36 @@ export function LiabilityForm({
         </div>
 
         {/* Current Balance */}
-        <div>
-          <div className="mb-1.5 flex items-center gap-2">
-            <label htmlFor="currentBalance" className="text-sm font-medium text-text-primary">
-              {t('form.currentBalance')} *
-            </label>
-            <HelpTooltip
-              text={t(liability?.balanceLocked ? 'form.balanceLocked' : 'form.currentBalanceHint')}
+        {(isEditing || intent === 'existing' || watch('type') === 'CREDIT_CARD') && (
+          <div>
+            <div className="mb-1.5 flex items-center gap-2">
+              <label htmlFor="currentBalance" className="text-sm font-medium text-text-primary">
+                {t('form.currentBalance')} *
+              </label>
+              <HelpTooltip
+                text={t(
+                  liability?.balanceLocked ? 'form.balanceLocked' : 'form.currentBalanceHint'
+                )}
+              />
+            </div>
+            <Controller
+              name="currentBalance"
+              control={control}
+              render={({ field }) => (
+                <NumberInput
+                  id="currentBalance"
+                  value={field.value}
+                  onChange={field.onChange}
+                  onBlur={field.onBlur}
+                  placeholder="0.00"
+                  error={errors.currentBalance?.message}
+                  disabled={!!liability?.balanceLocked}
+                  min="0"
+                />
+              )}
             />
           </div>
-          <Controller
-            name="currentBalance"
-            control={control}
-            render={({ field }) => (
-              <NumberInput
-                id="currentBalance"
-                value={field.value}
-                onChange={field.onChange}
-                onBlur={field.onBlur}
-                placeholder="0.00"
-                error={errors.currentBalance?.message}
-                disabled={!!liability?.balanceLocked}
-                min="0"
-              />
-            )}
-          />
-        </div>
-
+        )}
         {/* Currency */}
         <div>
           <label htmlFor="currency" className="block text-sm font-medium text-text-primary mb-1.5">
@@ -673,17 +717,60 @@ export function LiabilityForm({
                 className="w-full h-10 px-3 pr-8 rounded-lg bg-surface border border-border text-text-primary text-sm placeholder:text-text-muted hover:border-border/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50 transition-colors duration-150"
               >
                 <option value="">{t('form.noProperty')}</option>
-                {(properties ?? []).map(p => (
-                  <option key={p.id} value={p.id}>
-                    {p.name}
-                  </option>
-                ))}
+                {(properties ?? [])
+                  .filter(
+                    p =>
+                      p.isActive !== false &&
+                      p.acquisitionType !== 'PLANNED' &&
+                      !p.soldDate &&
+                      !p.mortgageId
+                  )
+                  .map(p => (
+                    <option key={p.id} value={p.id}>
+                      {p.name}
+                    </option>
+                  ))}
               </select>
             )}
           />
         </div>
       )}
 
+      {showPropertyLink &&
+        !isEditing &&
+        selectedType !== 'MORTGAGE' &&
+        selectedType !== 'CREDIT_CARD' && (
+          <div className="space-y-2 border-t border-border pt-4">
+            <label htmlFor="financedAssetId" className="block text-sm font-medium">
+              {t('form.financedAsset')}
+            </label>
+            <Controller
+              name="financedAssetId"
+              control={control}
+              render={({ field }) => (
+                <select
+                  id="financedAssetId"
+                  value={field.value ?? ''}
+                  onChange={event => field.onChange(Number(event.target.value) || undefined)}
+                  className="h-11 w-full rounded-lg border border-border bg-surface px-3 text-base md:h-10 md:text-sm"
+                >
+                  <option value="">{t('form.noAsset')}</option>
+                  {assets
+                    .filter(
+                      item =>
+                        item.isPhysical && item.acquisitionType !== 'PLANNED' && !item.soldDate
+                    )
+                    .map(item => (
+                      <option key={item.id} value={item.id}>
+                        {item.name}
+                      </option>
+                    ))}
+                </select>
+              )}
+            />
+            <p className="text-sm text-text-secondary">{t('form.assetLinkHint')}</p>
+          </div>
+        )}
       {/* Actions */}
       <div className="sticky bottom-[-25px] -mx-6 mt-2 flex justify-end gap-3 border-t border-border bg-surface px-6 py-4">
         <Button variant="ghost" type="button" onClick={onCancel} disabled={isLoading}>

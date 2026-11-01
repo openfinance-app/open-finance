@@ -55,6 +55,15 @@ const mockSchedule: AmortizationScheduleType = {
 };
 
 describe('AmortizationSchedule', () => {
+  it('does not display zero payment totals when an outstanding loan has no schedule', () => {
+    mockAuthentication();
+    renderWithProviders(
+      <AmortizationSchedule schedule={{ ...mockSchedule, currentBalance: 80000, payments: [] }} />
+    );
+    expect(screen.getByText(/payoff estimate is unavailable/i)).toBeInTheDocument();
+    expect(screen.queryByText('Remaining Total')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /export csv/i })).not.toBeInTheDocument();
+  });
   beforeEach(() => {
     vi.clearAllMocks();
     mockAuthentication();
@@ -220,11 +229,21 @@ describe('AmortizationSchedule', () => {
     });
   });
 
+  it('does not describe an undrawn loan as paid off', () => {
+    renderWithProviders(
+      <AmortizationSchedule
+        schedule={{ ...mockSchedule, payments: [], currentBalance: 0, fundingStatus: 'UNDRAWN' }}
+      />
+    );
+    expect(screen.getByText(/has not been drawn/i)).toBeInTheDocument();
+    expect(screen.queryByText(/paid off/i)).not.toBeInTheDocument();
+  });
+
   describe('No Schedule', () => {
     it('shows message when schedule has no payments', () => {
       const emptySchedule = { ...mockSchedule, payments: undefined as any };
       renderWithProviders(<AmortizationSchedule schedule={emptySchedule} />);
-      expect(screen.getByText(/no amortization schedule/i)).toBeInTheDocument();
+      expect(screen.getByText(/payoff estimate is unavailable/i)).toBeInTheDocument();
     });
   });
 

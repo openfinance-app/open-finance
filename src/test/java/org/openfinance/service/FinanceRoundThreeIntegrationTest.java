@@ -235,7 +235,8 @@ class FinanceRoundThreeIntegrationTest extends AuditApiTestSupport {
         Map<String, Object> asset = holding("STOCK");
         asset.put("accountId", account);
         json("POST", "/assets", asset, owner, 201);
-        money(json("GET", "/accounts/" + account, null, owner, 200), "balance", "10000");
+        // Linking a holding must not turn the savings account cash balance into a portfolio total.
+        money(json("GET", "/accounts/" + account, null, owner, 200), "balance", "1000");
         money(
                 json("GET", "/accounts/" + account + "/interest-estimate", null, owner, 200),
                 "estimate",

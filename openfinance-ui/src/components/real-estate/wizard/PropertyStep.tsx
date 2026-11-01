@@ -1,3 +1,4 @@
+import { getPropertyTypeName } from '@/types/realEstate';
 /**
  * Wizard step 1 (Task 9): property identity, type, valuation and currency.
  */
@@ -53,9 +54,7 @@ export function PropertyStep({ property, onChange, today }: PropertyStepProps) {
         >
           {PROPERTY_TYPE_OPTIONS.map(type => (
             <option key={type} value={type}>
-              {t(`filters.${type.toLowerCase()}`) !== `filters.${type.toLowerCase()}`
-                ? t(`filters.${type.toLowerCase()}`)
-                : type}
+              {getPropertyTypeName(type as Parameters<typeof getPropertyTypeName>[0])}
             </option>
           ))}
         </select>

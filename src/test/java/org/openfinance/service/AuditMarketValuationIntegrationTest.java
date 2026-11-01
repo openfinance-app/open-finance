@@ -231,7 +231,25 @@ class AuditMarketValuationIntegrationTest extends AuditApiTestSupport {
     @Test
     void auditLinkedForeignAssetDoesNotFabricateAccountBalanceWithoutFx() throws Exception {
         jdbc.update("UPDATE users SET base_currency = 'EUR' WHERE id = ?", owner.id());
-        long cash = account(owner);
+        long cash =
+                json(
+                                "POST",
+                                "/accounts",
+                                data(
+                                        "name",
+                                        "Foreign investment account",
+                                        "type",
+                                        "INVESTMENT",
+                                        "currency",
+                                        "EUR",
+                                        "initialBalance",
+                                        "1000",
+                                        "openingDate",
+                                        START.toString()),
+                                owner,
+                                201)
+                        .path("id")
+                        .asLong();
         org.mockito.Mockito.doReturn(new BigDecimal("0.5"))
                 .when(rates)
                 .getExchangeRate("USD", "EUR", null);

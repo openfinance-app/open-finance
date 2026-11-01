@@ -100,6 +100,9 @@ public class LiabilityBreakdownResponse {
      */
     private BigDecimal totalPaid;
 
+    /** True only when the outstanding debt has a complete payoff estimate (or is already zero). */
+    private boolean forecastAvailable;
+
     // ===========================
     // Projected (Remaining) Costs
     // ===========================

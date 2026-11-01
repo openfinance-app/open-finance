@@ -38,7 +38,7 @@ function BreakdownRow({
   secondary,
 }: {
   label: string;
-  value: number | undefined;
+  value: number | null | undefined;
   liability: Liability;
   highlight?: boolean;
   secondary?: boolean;
@@ -292,7 +292,7 @@ export function LiabilityBreakdownPanel({ liability }: LiabilityBreakdownPanelPr
           value={breakdown.projectedInterest}
           liability={liability}
         />
-        {breakdown.projectedInsurance > 0 && (
+        {(breakdown.projectedInsurance ?? 0) > 0 && (
           <BreakdownRow
             label={t('breakdown.projectedInsurance')}
             value={breakdown.projectedInsurance}
@@ -305,6 +305,11 @@ export function LiabilityBreakdownPanel({ liability }: LiabilityBreakdownPanelPr
           liability={liability}
           highlight
         />
+        {breakdown.totalProjectedCost == null && (
+          <p className="py-3 text-sm text-text-secondary" role="status">
+            {t('breakdown.forecastUnavailable')}
+          </p>
+        )}
       </BreakdownSection>
 
       {/* Insurance & One-time Fee configuration info if applicable */}

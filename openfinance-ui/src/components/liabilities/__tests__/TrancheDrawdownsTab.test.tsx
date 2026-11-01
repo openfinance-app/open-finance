@@ -69,7 +69,7 @@ const mockTranches: LiabilityTranche[] = [
     trancheNo: 2,
     plannedAmount: 50000,
     drawnAmount: null,
-    remaining: 50000,
+    remaining: 0,
     status: 'PLANNED',
     interestOnly: true,
     currency: 'USD',
@@ -80,7 +80,7 @@ const mockTranches: LiabilityTranche[] = [
     trancheNo: 3,
     plannedAmount: 20000,
     drawnAmount: null,
-    remaining: 20000,
+    remaining: 0,
     status: 'PLANNED',
     realEstateId: 8,
     currency: 'USD',
@@ -140,7 +140,7 @@ describe('TrancheDrawdownsTab', () => {
 
     expect(screen.getAllByText('$100,000.00').length).toBeGreaterThanOrEqual(2); // planned + drawn of T1
     expect(screen.getByText('$40,000.00')).toBeInTheDocument(); // remaining T1
-    expect(screen.getAllByText('$50,000.00').length).toBeGreaterThanOrEqual(2); // planned + remaining of T2
+    expect(screen.getAllByText('$50,000.00').length).toBeGreaterThanOrEqual(1); // planned amount of T2
   });
 
   it('shows the linked property label when a tranche carries a realEstateId', () => {
@@ -286,10 +286,17 @@ describe('TrancheDrawdownsTab', () => {
 
   // ── Draw action (tranche drawdown) ────────────────────────────────────────
 
-  it('preserves the exact remaining amount when drawing a tranche', async () => {
+  it('preserves the exact planned amount when drawing an undrawn tranche', async () => {
     const exact = '10006858.9112567483';
     mockUseTranches.mockReturnValue({
-      data: [{ ...mockTranches[1], remaining: Number(exact), exactValues: { remaining: exact } }],
+      data: [
+        {
+          ...mockTranches[1],
+          plannedAmount: Number(exact),
+          remaining: 0,
+          exactValues: { plannedAmount: exact },
+        },
+      ],
       isLoading: false,
       error: null,
     } as unknown as ReturnType<typeof useTranchesModule.useTranches>);
@@ -318,7 +325,7 @@ describe('TrancheDrawdownsTab', () => {
     expect(drawButtons).toHaveLength(2); // T2 and T3 are PLANNED
   });
 
-  it('draws a PLANNED tranche to an account with the remaining amount prefilled', async () => {
+  it('draws a PLANNED tranche using its planned amount even though outstanding principal is zero', async () => {
     const mutateAsync = vi.fn().mockResolvedValue({});
     mockUseDisburseLiability.mockReturnValue({
       mutateAsync,
@@ -342,6 +349,12 @@ describe('TrancheDrawdownsTab', () => {
       fireEvent.change(screen.getByLabelText('Date'), { target: { value: '2025-06-15' } });
       fireEvent.change(screen.getByLabelText(/account/i), { target: { value: '3' } });
     });
+    expect(
+      screen.getByText('Cash change', { selector: 'dt' }).nextElementSibling
+    ).toHaveTextContent('$50,000.00');
+    expect(screen.getByText('New debt balance').nextElementSibling).toHaveTextContent(
+      '$140,000.00'
+    );
     await act(async () => {
       screen.getByRole('button', { name: /confirm disbursement/i }).click();
     });
@@ -379,6 +392,13 @@ describe('TrancheDrawdownsTab', () => {
       fireEvent.change(screen.getByLabelText(/route/i), { target: { value: 'property' } });
       fireEvent.change(screen.getByLabelText(/amount/i), { target: { value: '15000' } });
     });
+    expect(
+      screen.getByText('Cash change', { selector: 'dt' }).nextElementSibling
+    ).toHaveTextContent('$0.00');
+    expect(screen.getByText('New debt balance').nextElementSibling).toHaveTextContent(
+      '$105,000.00'
+    );
+    expect(screen.getByText('Change in item value').nextElementSibling).toHaveTextContent('$0.00');
     await act(async () => {
       screen.getByRole('button', { name: /confirm disbursement/i }).click();
     });

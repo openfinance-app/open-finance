@@ -1,3 +1,7 @@
+import { OwnershipActions } from '@/components/assets/OwnershipActions';
+import { decimalField } from '@/utils/exact-decimal';
+import { apiErrorMessage } from '@/utils/api-error';
+import { AssetReturn } from '@/components/assets/AssetReturn';
 import { useDateFormatter } from '@/hooks/useDateFormatter';
 import { formatExactNumber } from '@/utils/format';
 import { AssetFinancingSection } from '@/components/assets/AssetFinancingSection';
@@ -30,7 +34,7 @@ import {
 } from 'recharts';
 import type { Asset } from '@/types/asset';
 import { useHistoricalPrices } from '@/hooks/useMarketData';
-import { formatPercentage, getGainLossColor } from '@/utils/portfolio';
+import { getGainLossColor } from '@/utils/portfolio';
 import { multiply } from '@/utils/money';
 import { getCurrencySymbol } from '@/utils/currency';
 import { useFormatCurrency } from '@/hooks/useFormatCurrency';
@@ -58,10 +62,17 @@ interface AssetDetailModalProps {
   asset: Asset;
   onClose: () => void;
   onEdit?: (asset: Asset) => void;
-  onDelete?: (assetId: number) => void;
+  onCompletePurchase?: (asset: Asset) => void;
+  onDelete?: (assetId: number) => void | Promise<void>;
 }
 
-export function AssetDetailModal({ asset, onClose, onEdit, onDelete }: AssetDetailModalProps) {
+export function AssetDetailModal({
+  asset,
+  onClose,
+  onEdit,
+  onDelete,
+  onCompletePurchase,
+}: AssetDetailModalProps) {
   const { format: formatCurrency } = useFormatCurrency();
   const {
     convert: convertChart,
@@ -78,6 +89,8 @@ export function AssetDetailModal({ asset, onClose, onEdit, onDelete }: AssetDeta
     'overview' | 'costs' | 'financing' | 'gallery' | 'attachments'
   >('overview');
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   // Calculate date range based on selection
   const getDateRange = () => {
@@ -122,11 +135,11 @@ export function AssetDetailModal({ asset, onClose, onEdit, onDelete }: AssetDeta
   // Close modal on Escape key
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
+      if (e.key === 'Escape' && !showDeleteConfirm) onClose();
     };
     window.addEventListener('keydown', handleEscape);
     return () => window.removeEventListener('keydown', handleEscape);
-  }, [onClose]);
+  }, [onClose, showDeleteConfirm]);
 
   const handleEdit = () => {
     onEdit?.(asset);
@@ -134,13 +147,23 @@ export function AssetDetailModal({ asset, onClose, onEdit, onDelete }: AssetDeta
   };
 
   const handleDelete = () => {
+    setDeleteError(null);
     setShowDeleteConfirm(true);
   };
 
-  const handleConfirmDelete = () => {
-    onDelete?.(asset.id);
-    setShowDeleteConfirm(false);
-    onClose();
+  const handleConfirmDelete = async () => {
+    if (deleting) return;
+    setDeleting(true);
+    setDeleteError(null);
+    try {
+      await onDelete?.(asset.id);
+      setShowDeleteConfirm(false);
+      onClose();
+    } catch (error) {
+      setDeleteError(apiErrorMessage(error, t('deleteError')));
+    } finally {
+      setDeleting(false);
+    }
   };
 
   // The API converts the quote currency using the exchange rate for each historical date.
@@ -194,77 +217,110 @@ export function AssetDetailModal({ asset, onClose, onEdit, onDelete }: AssetDeta
               aria-label={t('detail.navigation')}
               className="mb-4 flex gap-1 overflow-x-auto border-b border-border"
             >
-              {(['overview', 'costs', 'financing', 'gallery', 'attachments'] as const).map(tab => (
-                <button
-                  key={tab}
-                  type="button"
-                  aria-pressed={activeTab === tab}
-                  onClick={() => setActiveTab(tab)}
-                  className={cn(
-                    'whitespace-nowrap border-b-2 px-3 py-3 text-sm font-medium',
-                    activeTab === tab
-                      ? 'border-primary text-primary'
-                      : 'border-transparent text-text-secondary hover:text-text-primary'
-                  )}
-                >
-                  {t(`detail.tabs.${tab}`)}
-                </button>
-              ))}
+              {(['overview', 'costs', 'financing', 'gallery', 'attachments'] as const)
+                .filter(tab => tab !== 'financing' || asset.isPhysical)
+                .map(tab => (
+                  <button
+                    key={tab}
+                    type="button"
+                    aria-pressed={activeTab === tab}
+                    onClick={() => setActiveTab(tab)}
+                    className={cn(
+                      'whitespace-nowrap border-b-2 px-3 py-3 text-sm font-medium',
+                      activeTab === tab
+                        ? 'border-primary text-primary'
+                        : 'border-transparent text-text-secondary hover:text-text-primary'
+                    )}
+                  >
+                    {t(`detail.tabs.${tab === 'costs' && !asset.isPhysical ? 'operations' : tab}`)}
+                  </button>
+                ))}
             </nav>
 
             {/* Tab Content */}
             <div className="py-4 space-y-6">
-              {activeTab === 'overview' && (
+              {activeTab === 'overview' && asset.type !== 'REAL_ESTATE' && (
+                <OwnershipActions
+                  target={{
+                    id: asset.id,
+                    name: asset.name,
+                    currency: asset.currency,
+                    quantity: decimalField(asset, 'quantity'),
+                    currentValue: decimalField(asset, 'totalValue'),
+                    purchaseDate: asset.purchaseDate,
+                    financial: !asset.isPhysical,
+                    accountId: asset.accountId,
+                  }}
+                  acquisitionType={asset.acquisitionType}
+                  closed={asset.ownershipStatus === 'CLOSED'}
+                  soldDate={asset.soldDate}
+                  saleProceeds={asset.saleProceeds}
+                  realizedGain={asset.realizedGain}
+                  onComplete={onCompletePurchase ? () => onCompletePurchase(asset) : undefined}
+                />
+              )}
+              {activeTab === 'overview' && asset.ownershipStatus !== 'CLOSED' && (
                 <>
+                  {asset.acquisitionType === 'PLANNED' && (
+                    <p className="text-sm text-text-secondary">{t('plannedNotice')}</p>
+                  )}
+                  {asset.acquisitionType === 'GIFT' && asset.receivedValue == null && (
+                    <p className="text-sm text-text-secondary">{t('performanceUnavailable')}</p>
+                  )}
                   {/* Key Metrics */}
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div className="bg-background border border-border rounded-lg p-4">
-                      <div className="flex items-center gap-2 mb-2">
-                        <DollarSign className="h-4 w-4 text-muted-foreground" />
-                        <span className="text-sm text-muted-foreground">
-                          {t('detail.metrics.currentValue')}
-                        </span>
+                    {asset.acquisitionType !== 'PLANNED' && (
+                      <div className="bg-background border border-border rounded-lg p-4">
+                        <div className="flex items-center gap-2 mb-2">
+                          <DollarSign className="h-4 w-4 text-muted-foreground" />
+                          <span className="text-sm text-muted-foreground">
+                            {t('detail.metrics.currentValue')}
+                          </span>
+                        </div>
+                        <p className="text-2xl font-bold text-foreground">
+                          {/* REQ-2.2: Display current value with base-currency conversion when available */}
+                          <ConvertedAmount
+                            amount={asset.totalValue}
+                            currency={asset.currency}
+                            convertedAmount={asset.valueInBaseCurrency}
+                            baseCurrency={asset.baseCurrency}
+                            exchangeRate={asset.exchangeRate}
+                            isConverted={asset.isConverted}
+                            secondaryAmount={asset.valueInSecondaryCurrency}
+                            secondaryCurrency={asset.secondaryCurrency}
+                          />
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          {formatExactNumber(asset.quantity)} ×{' '}
+                          <ConvertedAmount
+                            amount={
+                              isConverted && asset.exchangeRate
+                                ? multiply(asset.currentPrice, asset.exchangeRate)
+                                : asset.currentPrice
+                            }
+                            currency={chartCurrency}
+                            isConverted={false}
+                            secondaryAmount={convertChart(
+                              isConverted && asset.exchangeRate
+                                ? multiply(asset.currentPrice, asset.exchangeRate)
+                                : asset.currentPrice
+                            )}
+                            secondaryCurrency={secCurrencyChart}
+                            secondaryExchangeRate={secExRateChart}
+                            inline
+                          />
+                        </p>
                       </div>
-                      <p className="text-2xl font-bold text-foreground">
-                        {/* REQ-2.2: Display current value with base-currency conversion when available */}
-                        <ConvertedAmount
-                          amount={asset.totalValue}
-                          currency={asset.currency}
-                          convertedAmount={asset.valueInBaseCurrency}
-                          baseCurrency={asset.baseCurrency}
-                          exchangeRate={asset.exchangeRate}
-                          isConverted={asset.isConverted}
-                          secondaryAmount={asset.valueInSecondaryCurrency}
-                          secondaryCurrency={asset.secondaryCurrency}
-                        />
-                      </p>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        {formatExactNumber(asset.quantity)} ×{' '}
-                        <ConvertedAmount
-                          amount={
-                            isConverted && asset.exchangeRate
-                              ? multiply(asset.currentPrice, asset.exchangeRate)
-                              : asset.currentPrice
-                          }
-                          currency={chartCurrency}
-                          isConverted={false}
-                          secondaryAmount={convertChart(
-                            isConverted && asset.exchangeRate
-                              ? multiply(asset.currentPrice, asset.exchangeRate)
-                              : asset.currentPrice
-                          )}
-                          secondaryCurrency={secCurrencyChart}
-                          secondaryExchangeRate={secExRateChart}
-                          inline
-                        />
-                      </p>
-                    </div>
-
+                    )}
                     <div className="bg-background border border-border rounded-lg p-4">
                       <div className="flex items-center gap-2 mb-2">
                         <DollarSign className="h-4 w-4 text-muted-foreground" />
                         <span className="text-sm text-muted-foreground">
-                          {t('detail.metrics.costBasis')}
+                          {t(
+                            asset.acquisitionType === 'PLANNED'
+                              ? 'form.targetPrice'
+                              : 'detail.metrics.costBasis'
+                          )}
                         </span>
                       </div>
                       <p className="text-2xl font-bold text-foreground">
@@ -304,36 +360,29 @@ export function AssetDetailModal({ asset, onClose, onEdit, onDelete }: AssetDeta
                       </p>
                     </div>
 
-                    <div className="bg-background border border-border rounded-lg p-4">
-                      <div className="flex items-center gap-2 mb-2">
-                        {asset.unrealizedGain >= 0 ? (
-                          <TrendingUp className="h-4 w-4 text-green-600" />
-                        ) : (
-                          <TrendingDown className="h-4 w-4 text-red-600" />
-                        )}
-                        <span className="text-sm text-muted-foreground">
-                          {t('detail.metrics.gainLoss')}
-                        </span>
+                    {asset.acquisitionType !== 'PLANNED' && (
+                      <div className="bg-background border border-border rounded-lg p-4">
+                        <div className="flex items-center gap-2 mb-2">
+                          {(asset.unrealizedGain ?? 0) >= 0 ? (
+                            <TrendingUp className="h-4 w-4 text-green-600" />
+                          ) : (
+                            <TrendingDown className="h-4 w-4 text-red-600" />
+                          )}
+                          <span className="text-sm text-muted-foreground">
+                            {t('detail.metrics.gainLoss')}
+                          </span>
+                        </div>
+                        <p
+                          className={`text-2xl font-bold ${getGainLossColor(asset.unrealizedGain)}`}
+                        >
+                          {/* Gain/Loss converted to base currency using same rate */}
+                          <AssetReturn asset={asset} mode="amount" />
+                        </p>
+                        <p className={`text-xs mt-1 ${getGainLossColor(asset.unrealizedGain)}`}>
+                          <AssetReturn asset={asset} mode="percentage" />
+                        </p>
                       </div>
-                      <p className={`text-2xl font-bold ${getGainLossColor(asset.unrealizedGain)}`}>
-                        {/* Gain/Loss converted to base currency using same rate */}
-                        <ConvertedAmount
-                          amount={asset.unrealizedGain}
-                          currency={asset.currency}
-                          convertedAmount={
-                            asset.isConverted && asset.exchangeRate
-                              ? multiply(asset.unrealizedGain, asset.exchangeRate)
-                              : undefined
-                          }
-                          baseCurrency={asset.baseCurrency}
-                          exchangeRate={asset.exchangeRate}
-                          isConverted={asset.isConverted}
-                        />
-                      </p>
-                      <p className={`text-xs mt-1 ${getGainLossColor(asset.unrealizedGain)}`}>
-                        {formatPercentage(asset.gainPercentage * 100)}
-                      </p>
-                    </div>
+                    )}
                   </div>
 
                   {/* Historical Price Chart */}
@@ -443,17 +492,39 @@ export function AssetDetailModal({ asset, onClose, onEdit, onDelete }: AssetDeta
                         <Calendar className="h-5 w-5 text-muted-foreground mt-0.5" />
                         <div>
                           <p className="text-sm text-muted-foreground">
-                            {t('detail.fields.purchaseDate')}
+                            {t(
+                              asset.acquisitionType === 'PLANNED'
+                                ? 'form.targetDate'
+                                : asset.acquisitionType === 'GIFT'
+                                  ? 'form.receivedDate'
+                                  : 'detail.fields.purchaseDate'
+                            )}
                           </p>
                           <p className="text-sm font-medium text-foreground">
                             {formatDate(asset.purchaseDate)}
                           </p>
                           <p className="text-xs text-muted-foreground">
-                            {t('detail.fields.daysHeld', { count: asset.holdingDays })}
+                            {asset.acquisitionType !== 'PLANNED' &&
+                              t('detail.fields.daysHeld', { count: asset.holdingDays })}
                           </p>
                         </div>
                       </div>
 
+                      {asset.acquisitionType === 'GIFT' && (
+                        <div>
+                          <p className="text-sm text-text-secondary">{t('form.receivedValue')}</p>
+                          <p className="text-sm font-medium">
+                            {asset.receivedValue == null ? (
+                              t('notApplicable')
+                            ) : (
+                              <ConvertedAmount
+                                amount={asset.receivedValue}
+                                currency={asset.currency}
+                              />
+                            )}
+                          </p>
+                        </div>
+                      )}
                       {asset.accountName && (
                         <div className="flex items-start gap-3">
                           <DollarSign className="h-5 w-5 text-muted-foreground mt-0.5" />
@@ -510,13 +581,14 @@ export function AssetDetailModal({ asset, onClose, onEdit, onDelete }: AssetDeta
               <Button variant="secondary" onClick={onClose}>
                 {t('detail.actions.close')}
               </Button>
-              {onDelete && (
+              {onDelete && asset.type !== 'REAL_ESTATE' && (
                 <Button variant="danger" onClick={handleDelete}>
                   <Trash2 className="h-4 w-4 mr-2" />
                   {t('detail.actions.delete')}
                 </Button>
               )}
               {onEdit &&
+                asset.ownershipStatus !== 'CLOSED' &&
                 (asset.type === 'REAL_ESTATE' ? (
                   <TooltipProvider>
                     <UITooltip>
@@ -541,13 +613,20 @@ export function AssetDetailModal({ asset, onClose, onEdit, onDelete }: AssetDeta
 
             <ConfirmationDialog
               open={showDeleteConfirm}
-              onOpenChange={setShowDeleteConfirm}
+              onOpenChange={open => !deleting && setShowDeleteConfirm(open)}
               onConfirm={handleConfirmDelete}
               title={t('detail.deleteConfirm.title')}
               description={t('detail.deleteConfirm.message', { name: asset.name })}
               confirmText={t('detail.deleteConfirm.confirm')}
               variant="danger"
-            />
+              loading={deleting}
+            >
+              {deleteError && (
+                <p role="alert" className="text-sm text-error">
+                  {deleteError}
+                </p>
+              )}
+            </ConfirmationDialog>
           </div>
         </div>
       </div>

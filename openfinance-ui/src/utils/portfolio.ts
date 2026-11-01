@@ -42,11 +42,23 @@ export const calculatePortfolioMetrics = (assets: Asset[]): PortfolioMetrics => 
     };
   }
 
-  assets = assets.filter(asset => asset.acquisitionType !== 'PLANNED');
+  assets = assets.filter(asset => asset.acquisitionType !== 'PLANNED' && asset.isActive !== false);
   const totalValue = sum(assets.map(asset => Number(asset.totalValue)));
   const totalCost = sum(assets.map(asset => Number(asset.totalCost)));
-  const unrealizedGain = subtract(totalValue, totalCost);
-  const gainPercentage = totalCost > 0 ? percentage(unrealizedGain, totalCost) : 0;
+  const known = assets.filter(
+    asset =>
+      asset.performanceBasis != null ||
+      (asset.performanceBasis !== null && asset.acquisitionType !== 'GIFT')
+  );
+  const basis = sum(
+    known.map(
+      asset => asset.performanceBasis ?? (asset.acquisitionType === 'GIFT' ? 0 : asset.totalCost)
+    )
+  );
+  const unrealizedGain = sum(
+    known.map(asset => subtract(asset.totalValue, asset.performanceBasis ?? asset.totalCost))
+  );
+  const gainPercentage = basis > 0 ? percentage(unrealizedGain, basis) : 0;
 
   return {
     totalValue,
@@ -65,7 +77,7 @@ export const calculateAssetAllocation = (assets: Asset[]): AssetAllocation[] => 
     return [];
   }
 
-  assets = assets.filter(asset => asset.acquisitionType !== 'PLANNED');
+  assets = assets.filter(asset => asset.acquisitionType !== 'PLANNED' && asset.isActive !== false);
   const totalValue = sum(assets.map(asset => Number(asset.totalValue)));
 
   // Group by asset type
@@ -105,7 +117,12 @@ export const getTopPerformers = (
 
   // Sort by gain percentage
   const sorted = assets
-    .filter(asset => asset.acquisitionType !== 'PLANNED')
+    .filter(
+      (asset): asset is Asset & { gainPercentage: number } =>
+        asset.acquisitionType !== 'PLANNED' &&
+        asset.isActive !== false &&
+        asset.gainPercentage != null
+    )
     .sort((a, b) => b.gainPercentage - a.gainPercentage);
 
   // Get top 3 best and worst
@@ -153,7 +170,8 @@ export const formatPercentage = (value: number, includeSign: boolean = true): st
 /**
  * Get color class for gain/loss
  */
-export const getGainLossColor = (value: number): string => {
+export const getGainLossColor = (value: number | null): string => {
+  if (value == null) return 'text-text-muted';
   if (value > 0) return 'text-green-500';
   if (value < 0) return 'text-red-500';
   return 'text-text-muted';

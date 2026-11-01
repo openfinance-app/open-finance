@@ -34,6 +34,7 @@ import { AccountSelector } from '@/components/ui/AccountSelector';
 import { LiabilitySelector } from '@/components/ui/LiabilitySelector';
 import { SplitTransactionForm } from './SplitTransactionForm';
 import { MovementSection } from '@/components/transactions/MovementSection';
+import { ImprovementValuationFields } from '@/components/assets/ImprovementValuationFields';
 import { LinkedOperationSection } from '@/components/transactions/LinkedOperationSection';
 import {
   initialLinkedOperation,
@@ -150,6 +151,10 @@ const transactionSchema = (tValidation: (key: string) => string) =>
         ])
         .optional(),
       trancheId: optionalNumber,
+      valuationChange: z
+        .string()
+        .refine(value => isValidDecimalString(value) && new ExactDecimal(value).gte(0))
+        .optional(),
       principalAmount: z.preprocess(
         v => (v === '' || v == null ? undefined : String(v)),
         z
@@ -304,6 +309,10 @@ export function TransactionForm({
           paymentMethod: transaction.paymentMethod || undefined,
           liabilityId: transaction.liabilityId,
           movementType: transaction.movementType ?? undefined,
+          valuationChange:
+            transaction.valuationChange == null
+              ? '0'
+              : decimalField(transaction, 'valuationChange'),
           trancheId: transaction.trancheId,
           principalAmount:
             transaction.principalAmount == null
@@ -327,12 +336,14 @@ export function TransactionForm({
           paymentMethod: undefined,
           liabilityId: undefined,
           movementType: undefined,
+          valuationChange: '0',
           realEstateId: undefined,
           assetId: undefined,
         },
   });
 
   const hasMovementErrors = !!(
+    errors.valuationChange ||
     errors.liabilityId ||
     errors.movementType ||
     errors.realEstateId ||
@@ -591,6 +602,7 @@ export function TransactionForm({
     setValue('liabilityId', undefined, { shouldDirty: true });
     setValue('trancheId', undefined, { shouldDirty: true });
     setValue('principalAmount', undefined, { shouldDirty: true });
+    setValue('valuationChange', '0', { shouldDirty: true });
     setValue(
       'movementType',
       next === 'MAINTENANCE' || next === 'CAPITAL_IMPROVEMENT' || next === 'INTEREST'
@@ -1155,6 +1167,8 @@ export function TransactionForm({
           linkedOperation === 'CAPITAL_IMPROVEMENT' ||
           (linkedOperation === 'EXISTING' && (watch('realEstateId') || watch('assetId')))) && (
           <MovementSection
+            movementType={watch('movementType')}
+            date={watch('date')}
             realEstateId={watch('realEstateId')}
             assetId={watch('assetId')}
             onChange={target => {
@@ -1168,6 +1182,27 @@ export function TransactionForm({
               errors.assetId?.message
             }
             disabled={isLoading || linkedOperation === 'EXISTING'}
+          />
+        )}
+        {linkedOperation === 'CAPITAL_IMPROVEMENT' && (
+          <Controller
+            name="valuationChange"
+            control={control}
+            render={({ field }) => (
+              <ImprovementValuationFields
+                amount={watch('amount')}
+                currency={watch('currency')}
+                cashEffect={
+                  needsConversion
+                    ? { amount: convertedPreview ?? null, currency: accountCurrency }
+                    : undefined
+                }
+                value={field.value ?? '0'}
+                onChange={field.onChange}
+                disabled={isLoading}
+                error={errors.valuationChange?.message}
+              />
+            )}
           />
         )}
         {linkedOperation === 'EXISTING' && watch('liabilityId') && (

@@ -606,7 +606,9 @@ class DomainManagementIntegrationTest {
                             "realEstateId",
                             propertyId,
                             "movementType",
-                            "CAPITAL_IMPROVEMENT"),
+                            "CAPITAL_IMPROVEMENT",
+                            "valuationChange",
+                            amount),
                     owner,
                     201);
         }
@@ -1104,10 +1106,13 @@ class DomainManagementIntegrationTest {
                                 home,
                                 "movementType",
                                 "CAPITAL_IMPROVEMENT"));
+        body.put("valuationChange", 10);
         long first = json("POST", "/transactions", body, owner, 201).get("id").asLong();
         body.put("amount", 20);
+        body.put("valuationChange", 20);
         long second = json("POST", "/transactions", body, owner, 201).get("id").asLong();
         body.put("amount", 15);
+        body.put("valuationChange", 15);
         json("PUT", "/transactions/" + first, body, owner, 200);
         json("DELETE", "/transactions/" + second, null, owner, 204);
         assertThat(
@@ -1297,7 +1302,32 @@ class DomainManagementIntegrationTest {
         body.put("purchaseDate", LocalDate.now());
         body.put("purchasePrice", 100);
         body.put("currentValue", 100);
-        json("PUT", "/real-estate/" + id, body, owner, 200);
+        json("PUT", "/real-estate/" + id, body, owner, 400);
+        json(
+                "POST",
+                "/real-estate/purchase",
+                Map.of(
+                        "operationId",
+                        java.util.UUID.randomUUID().toString(),
+                        "property",
+                        body,
+                        "plannedPropertyId",
+                        id,
+                        "accountId",
+                        cash,
+                        "route",
+                        "DIRECT",
+                        "loanAmount",
+                        0,
+                        "downPayment",
+                        100),
+                owner,
+                201);
+        assertThat(
+                        json("GET", "/accounts/" + cash, null, owner, 200)
+                                .get("ownBalance")
+                                .decimalValue())
+                .isEqualByComparingTo("900");
         JsonNode backing = json("GET", "/assets/" + assetId, null, owner, 200);
         assertThat(backing.get("acquisitionType").asText()).isEqualTo("PURCHASE");
         assertThat(backing.get("purchasePrice").decimalValue()).isEqualByComparingTo("100");

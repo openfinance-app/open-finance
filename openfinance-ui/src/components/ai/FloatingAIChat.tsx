@@ -382,7 +382,7 @@ const FloatingAIChatSession: React.FC<{ selectionKey: string }> = ({ selectionKe
       <button
         onClick={toggleOpen}
         className={cn(
-          'fixed z-[60] bottom-6 right-6',
+          'fixed z-40 bottom-6 right-6',
           'w-14 h-14 rounded-full shadow-lg',
           'flex items-center justify-center',
           'transition-all duration-200',

@@ -16,8 +16,16 @@ import { DateInput } from '@/components/ui/DateInput';
 import { getToday } from '@/utils/date';
 import { ExactDecimal } from '@/utils/exact-decimal';
 import { isValidDecimalString } from '@/utils/money';
+import { ImprovementValuationFields } from '@/components/assets/ImprovementValuationFields';
 
-type CostTarget = { id: number; name: string; currency: string; kind: 'asset' | 'property' };
+type CostTarget = {
+  id: number;
+  name: string;
+  currency: string;
+  kind: 'asset' | 'property';
+  acquisitionType?: string;
+  purchaseDate?: string;
+};
 
 /** A focused expense form: the item and its currency are supplied by the detail view. */
 export function RecordCostForm({ target, onClose }: { target: CostTarget; onClose: () => void }) {
@@ -26,23 +34,37 @@ export function RecordCostForm({ target, onClose }: { target: CostTarget; onClos
   const accounts = useAccounts('active');
   const create = useCreateTransaction();
   const eligibleAccounts = (accounts.data ?? []).filter(a => a.currency === target.currency);
-  const schema = z.object({
-    accountId: z
-      .string()
-      .refine(
-        value => eligibleAccounts.some(a => a.id === Number(value)),
-        t('costEntry.accountRequired')
-      ),
-    description: z.string().trim().min(1, t('costEntry.descriptionRequired')).max(255),
-    amount: z
-      .string()
-      .refine(
-        value => isValidDecimalString(value) && new ExactDecimal(value).gt(0),
-        t('costEntry.amountRequired')
-      ),
-    date: z.string().min(1, t('costEntry.dateRequired')),
-    movementType: z.enum(['MAINTENANCE', 'CAPITAL_IMPROVEMENT']),
-  });
+  const schema = z
+    .object({
+      accountId: z
+        .string()
+        .refine(
+          value => eligibleAccounts.some(a => a.id === Number(value)),
+          t('costEntry.accountRequired')
+        ),
+      description: z.string().trim().min(1, t('costEntry.descriptionRequired')).max(255),
+      amount: z
+        .string()
+        .refine(
+          value => isValidDecimalString(value) && new ExactDecimal(value).gt(0),
+          t('costEntry.amountRequired')
+        ),
+      date: z.string().min(1, t('costEntry.dateRequired')),
+      movementType: z.enum(['MAINTENANCE', 'CAPITAL_IMPROVEMENT']),
+      valuationChange: z
+        .string()
+        .refine(
+          value => isValidDecimalString(value) && new ExactDecimal(value).gte(0),
+          t('costEntry.valueRequired')
+        ),
+    })
+    .refine(
+      values =>
+        target.acquisitionType !== 'PLANNED' &&
+        values.date <= getToday() &&
+        (!target.purchaseDate || values.date >= target.purchaseDate),
+      { path: ['movementType'], message: t('costEntry.acquireFirst') }
+    );
   const {
     register,
     control,
@@ -57,6 +79,7 @@ export function RecordCostForm({ target, onClose }: { target: CostTarget; onClos
       amount: '',
       date: getToday(),
       movementType: 'MAINTENANCE',
+      valuationChange: '0',
     },
   });
   const submit = handleSubmit(async values => {
@@ -69,6 +92,8 @@ export function RecordCostForm({ target, onClose }: { target: CostTarget; onClos
         date: values.date,
         description: values.description,
         movementType: values.movementType,
+        valuationChange:
+          values.movementType === 'CAPITAL_IMPROVEMENT' ? values.valuationChange : undefined,
         ...(target.kind === 'asset' ? { assetId: target.id } : { realEstateId: target.id }),
       });
       onClose();
@@ -78,11 +103,7 @@ export function RecordCostForm({ target, onClose }: { target: CostTarget; onClos
   });
 
   return (
-    <form
-      onSubmit={submit}
-      noValidate
-      className="space-y-4 rounded-xl border border-primary/30 bg-surface p-4"
-    >
+    <form onSubmit={submit} noValidate className="space-y-4 border-t border-border pt-4">
       <div className="flex items-center gap-2">
         <h4 className="font-semibold">{t('costEntry.title', { name: target.name })}</h4>
         <HelpTooltip text={t('costEntry.hint')} />
@@ -101,16 +122,31 @@ export function RecordCostForm({ target, onClose }: { target: CostTarget; onClos
               )}
             />
           </div>
-          <SimpleSelect id={`${id}-kind`} {...register('movementType')}>
+          <SimpleSelect
+            className="h-11 text-base md:h-10 md:text-sm"
+            id={`${id}-kind`}
+            {...register('movementType')}
+          >
             <option value="MAINTENANCE">{t('costEntry.maintenance')}</option>
-            <option value="CAPITAL_IMPROVEMENT">{t('costEntry.improvement')}</option>
+            <option value="CAPITAL_IMPROVEMENT" disabled={target.acquisitionType === 'PLANNED'}>
+              {t('costEntry.improvement')}
+            </option>
           </SimpleSelect>
+          {target.acquisitionType === 'PLANNED' && (
+            <p className="mt-1 text-sm text-text-secondary">{t('costEntry.acquireFirst')}</p>
+          )}
+          {errors.movementType && (
+            <p role="alert" className="mt-1 text-sm text-error">
+              {errors.movementType.message}
+            </p>
+          )}
         </div>
         <div>
           <label htmlFor={`${id}-description`} className="mb-1.5 block text-sm font-medium">
             {t('costEntry.description')}
           </label>
           <Input
+            className="h-11 text-base md:h-10 md:text-sm"
             id={`${id}-description`}
             {...register('description')}
             error={errors.description?.message}
@@ -126,6 +162,7 @@ export function RecordCostForm({ target, onClose }: { target: CostTarget; onClos
               control={control}
               render={({ field }) => (
                 <NumberInput
+                  className="h-11 font-mono text-base tabular-nums md:h-10 md:text-sm"
                   id={`${id}-amount`}
                   value={field.value}
                   onChange={field.onChange}
@@ -145,6 +182,9 @@ export function RecordCostForm({ target, onClose }: { target: CostTarget; onClos
               control={control}
               render={({ field }) => (
                 <DateInput
+                  min={target.purchaseDate}
+                  max={getToday()}
+                  className="h-11 text-base md:h-10 md:text-sm"
                   id={`${id}-date`}
                   value={field.value}
                   onChange={field.onChange}
@@ -162,7 +202,7 @@ export function RecordCostForm({ target, onClose }: { target: CostTarget; onClos
           <SimpleSelect
             id={`${id}-account`}
             {...register('accountId')}
-            className={errors.accountId ? 'border-error focus:ring-error' : undefined}
+            className={`h-11 text-base md:h-10 md:text-sm ${errors.accountId ? 'border-error focus:ring-error' : ''}`}
             aria-invalid={!!errors.accountId}
             aria-describedby={errors.accountId ? `${id}-account-error` : undefined}
           >
@@ -192,6 +232,21 @@ export function RecordCostForm({ target, onClose }: { target: CostTarget; onClos
             </p>
           )}
         </div>
+        {watch('movementType') === 'CAPITAL_IMPROVEMENT' && (
+          <Controller
+            name="valuationChange"
+            control={control}
+            render={({ field }) => (
+              <ImprovementValuationFields
+                amount={watch('amount')}
+                currency={target.currency}
+                value={field.value}
+                onChange={field.onChange}
+                error={errors.valuationChange?.message}
+              />
+            )}
+          />
+        )}
         <div className="flex items-center gap-2 text-xs">
           <Link to="/transactions" className="text-primary underline">
             {t('costEntry.transactions')}

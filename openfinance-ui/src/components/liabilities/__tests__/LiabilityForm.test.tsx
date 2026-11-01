@@ -443,4 +443,32 @@ describe('LiabilityForm', () => {
       expect(screen.queryByTestId('exchange-rate')).not.toBeInTheDocument();
     });
   });
+  it.each(['new', 'approved'])(
+    'records %s borrowing as undrawn, with no opening cash',
+    async intent => {
+      renderWithProviders(
+        <LiabilityForm onSubmit={mockOnSubmit} onCancel={mockOnCancel} isLoading={false} />
+      );
+      fireEvent.change(screen.getByLabelText('What are you recording?'), {
+        target: { value: intent },
+      });
+      expect(screen.queryByLabelText(/current balance/i)).not.toBeInTheDocument();
+      fireEvent.change(screen.getByLabelText(/liability name/i), {
+        target: { value: 'Car finance' },
+      });
+      fireEvent.change(screen.getByLabelText(/original or approved principal/i), {
+        target: { value: '1000' },
+      });
+      fireEvent.click(screen.getByRole('button', { name: /create liability/i }));
+      await waitFor(() =>
+        expect(mockOnSubmit).toHaveBeenCalledWith(
+          expect.objectContaining({
+            currentBalance: '0',
+            principal: '1000',
+            previouslyFunded: false,
+          })
+        )
+      );
+    }
+  );
 });

@@ -65,6 +65,8 @@ public class AssetResponse {
     /** False when the backing property is inactive; its valuation and history are retained. */
     private Boolean isActive;
 
+    private Long realEstateId;
+
     /** Ticker symbol or identifier (e.g., "AAPL", "BTC-USD", "SPY"). */
     private String symbol;
 
@@ -81,6 +83,16 @@ public class AssetResponse {
      * <p>Requirement REQ-2.6.2: Display purchase price
      */
     private BigDecimal purchasePrice;
+
+    private BigDecimal receivedValue;
+    private java.time.LocalDate soldDate;
+    private Long saleTransactionId;
+    private BigDecimal saleProceeds;
+    private BigDecimal realizedGain;
+    private String ownershipStatus;
+
+    /** Acquisition or received value plus capitalized costs; null when unknown or planned. */
+    private BigDecimal performanceBasis;
 
     /**
      * Current market price per unit.

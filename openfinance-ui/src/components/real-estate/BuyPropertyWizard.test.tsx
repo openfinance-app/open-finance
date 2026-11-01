@@ -116,7 +116,7 @@ describe('BuyPropertyWizard', () => {
     submit.mockReset().mockResolvedValue({ propertyId: 55, mortgageId: 77 });
     mockAuthentication();
     mockUseLiabilities.mockReturnValue({
-      data: [{ id: 9, name: 'Existing Mortgage', currency: 'USD' }],
+      data: [{ id: 9, name: 'Existing Mortgage', currentBalance: 0, currency: 'USD' }],
     } as ReturnType<typeof useLiabilitiesModule.useLiabilities>);
     mockUseAccounts.mockReturnValue({ data: mockAccounts } as ReturnType<
       typeof useAccountsModule.useAccounts
@@ -129,7 +129,7 @@ describe('BuyPropertyWizard', () => {
   async function fillFunding(source = 'new', route = 'direct', selectAccount = true) {
     fireEvent.change(screen.getByLabelText(/funding source/i), { target: { value: source } });
     if (source === 'new')
-      fireEvent.change(screen.getByLabelText(/mortgage name/i), { target: { value: 'Home loan' } });
+      fireEvent.change(screen.getByLabelText(/loan name/i), { target: { value: 'Home loan' } });
     if (source === 'existing')
       fireEvent.change(screen.getByTestId('wizard-mortgage'), { target: { value: '9' } });
     if (source !== 'none') {
@@ -138,7 +138,7 @@ describe('BuyPropertyWizard', () => {
       });
       fireEvent.change(screen.getByLabelText(/disbursement route/i), { target: { value: route } });
     }
-    fireEvent.change(screen.getByLabelText(/down payment amount/i), {
+    fireEvent.change(screen.getByLabelText(/own contribution|purchase payment/i), {
       target: { value: source === 'none' ? '300000' : '60000' },
     });
     if (selectAccount) fireEvent.click(screen.getByTestId('wizard-account'));
@@ -190,9 +190,9 @@ describe('BuyPropertyWizard', () => {
     renderWizard();
     await fillPropertyStep();
     fireEvent.change(screen.getByLabelText(/loan amount/i), { target: { value: '240000' } });
-    expect(screen.getByLabelText(/down payment amount/i)).toHaveValue('60,000');
+    expect(screen.getByLabelText(/own contribution|purchase payment/i)).toHaveValue('60,000');
     fireEvent.change(screen.getByLabelText(/funding source/i), { target: { value: 'none' } });
-    expect(screen.getByLabelText(/down payment amount/i)).toHaveValue('300,000');
+    expect(screen.getByLabelText(/own contribution|purchase payment/i)).toHaveValue('300,000');
     expect(screen.queryByLabelText(/disbursement route/i)).not.toBeInTheDocument();
   });
 
@@ -202,6 +202,28 @@ describe('BuyPropertyWizard', () => {
     await fillFunding('new', 'account', false);
     expect(screen.getByRole('button', { name: /next/i })).toBeDisabled();
     expect(submit).not.toHaveBeenCalled();
+  });
+  it('removes the old payment requirement when the direct mortgage covers the full price', async () => {
+    renderWizard();
+    await fillPropertyStep();
+    await fillFunding();
+    fireEvent.change(screen.getByLabelText('Payment entry'), { target: { value: 'existing' } });
+    expect(screen.getByRole('button', { name: /next/i })).toBeDisabled();
+    fireEvent.change(screen.getByLabelText(/loan amount/i), { target: { value: '300000' } });
+    expect(screen.queryByLabelText('Payment entry')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /next/i })).toBeEnabled();
+    fireEvent.click(screen.getByRole('button', { name: /next/i }));
+    expect(
+      screen.getByText('Cash change', { selector: 'dt' }).nextElementSibling
+    ).toHaveTextContent('$0.00');
+    fireEvent.click(screen.getByRole('button', { name: /confirm/i }));
+    await waitFor(() => expect(submit).toHaveBeenCalledOnce());
+    expect(submit.mock.calls[0][0]).toMatchObject({
+      downPayment: '0',
+      loanAmount: '300000',
+      existingPaymentId: undefined,
+      route: 'DIRECT',
+    });
   });
 
   it('rejects a payment account in another currency', async () => {
@@ -214,4 +236,26 @@ describe('BuyPropertyWizard', () => {
     expect(screen.getByRole('button', { name: /next/i })).toBeDisabled();
     expect(submit).not.toHaveBeenCalled();
   });
+  it.each(['new', 'none'])(
+    'clears receipt matching after switching to %s funding',
+    async source => {
+      renderWizard();
+      await fillPropertyStep();
+      await fillFunding('existing', 'account');
+      fireEvent.change(screen.getByLabelText('Loan funds'), { target: { value: 'received' } });
+      expect(screen.getByRole('button', { name: /next/i })).toBeDisabled();
+      fireEvent.change(screen.getByLabelText(/funding source/i), { target: { value: source } });
+      if (source === 'new')
+        fireEvent.change(screen.getByLabelText(/loan name/i), {
+          target: { value: 'New mortgage' },
+        });
+      expect(screen.queryByLabelText('Loan funds')).not.toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /next/i })).toBeEnabled();
+      fireEvent.click(screen.getByRole('button', { name: /next/i }));
+      fireEvent.click(screen.getByRole('button', { name: /confirm/i }));
+      await waitFor(() => expect(submit).toHaveBeenCalledOnce());
+      expect(submit.mock.calls[0][0].existingLoanReceiptId).toBeUndefined();
+      expect(submit.mock.calls[0][0].existingMortgageId).toBeUndefined();
+    }
+  );
 });
