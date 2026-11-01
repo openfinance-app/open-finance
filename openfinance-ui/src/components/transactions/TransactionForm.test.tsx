@@ -19,6 +19,8 @@ import * as useLiabilitiesModule from '@/hooks/useLiabilities';
 import * as useCurrencyModule from '@/hooks/useCurrency';
 import * as useRealEstateModule from '@/hooks/useRealEstate';
 import * as useAssetsModule from '@/hooks/useAssets';
+import * as useInvestmentQuoteModule from '@/hooks/useInvestmentQuote';
+import type { Asset } from '@/types/asset';
 import { mockAuthentication, renderWithProviders } from '@/test/test-utils';
 import type { Payee } from '@/types/payee';
 import type { Category, Transaction } from '@/types/transaction';
@@ -109,9 +111,11 @@ vi.mock('./TagInput', () => ({
 }));
 
 vi.mock('@/components/ui/LiabilitySelector', () => ({
-  LiabilitySelector: ({ value, onValueChange }: any) => (
+  LiabilitySelector: ({ id, value, onValueChange, disabled }: any) => (
     <select
       data-testid="liability-selector"
+      id={id}
+      disabled={disabled}
       value={value ?? ''}
       onChange={(e: any) => onValueChange(e.target.value ? Number(e.target.value) : undefined)}
     >
@@ -217,6 +221,8 @@ vi.mock('@/hooks/useAssets', async importOriginal => {
   return { ...actual, useAssets: vi.fn() };
 });
 
+vi.mock('@/hooks/useInvestmentQuote', () => ({ useInvestmentQuote: vi.fn() }));
+
 vi.mock('@/hooks/useCurrency', async importOriginal => {
   const actual = await importOriginal<typeof useCurrencyModule>();
   return { ...actual, useExchangeRate: vi.fn() };
@@ -232,6 +238,7 @@ const mockUseRepaymentPreview = vi.mocked(useLiabilitiesModule.useRepaymentPrevi
 const mockUseExchangeRate = vi.mocked(useCurrencyModule.useExchangeRate);
 const mockUseProperties = vi.mocked(useRealEstateModule.useProperties);
 const mockUseAssets = vi.mocked(useAssetsModule.useAssets);
+const mockInvestmentQuote = vi.mocked(useInvestmentQuoteModule.useInvestmentQuote);
 
 // ── Fixtures ──────────────────────────────────────────────────────────────────
 
@@ -313,7 +320,7 @@ function renderForm({
 }
 
 function expandMovementDetails(): void {
-  const summary = screen.getByText('Linked liability and movement');
+  const summary = screen.getByText('Linked operation');
   if (!summary.closest('details')?.open) fireEvent.click(summary);
 }
 
@@ -341,6 +348,12 @@ describe('TransactionForm', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockAuthentication();
+    mockInvestmentQuote.mockReturnValue({
+      data: undefined,
+      isFetching: false,
+      isError: false,
+      isSaved: false,
+    } as ReturnType<typeof useInvestmentQuoteModule.useInvestmentQuote>);
 
     // Default mock: payees loaded, no popular tags
     mockUseActivePayees.mockReturnValue({
@@ -394,6 +407,398 @@ describe('TransactionForm', () => {
 
   // ── Basic Rendering ─────────────────────────────────────────────────────────
 
+  describe('Investment movements', () => {
+    const imported: Transaction = {
+      id: 1966,
+      userId: 1,
+      accountId: 1,
+      type: 'INCOME',
+      amount: 461.00078382204,
+      currency: 'EUR',
+      date: '2025-07-20',
+      description: 'Bitcoin acquisition',
+      isReconciled: false,
+      createdAt: '2025-07-20',
+      assetId: 8,
+      assetName: 'Bitcoin',
+      investmentQuantity: 0.00453915,
+      investmentCash: false,
+      exactValues: { investmentQuantity: '0.004539150000000123' },
+    };
+    const holding = {
+      id: 8,
+      accountId: 1,
+      name: 'Bitcoin',
+      type: 'CRYPTO',
+      symbol: 'BTC-EUR',
+      currency: 'EUR',
+      isPhysical: false,
+    } as Asset;
+
+    beforeEach(() => {
+      mockUseAssets.mockReturnValue({ data: [holding], isSuccess: true } as ReturnType<
+        typeof useAssetsModule.useAssets
+      >);
+    });
+
+    it('reveals the imported income link and exact units, and submits edited units', async () => {
+      const { onSubmit } = renderForm({ transaction: imported });
+      expect(screen.getByLabelText('Linked holding')).toHaveValue('8');
+      expect(screen.getByLabelText('Operation')).toHaveValue('ADD');
+      expect(screen.getByLabelText('Quantity (units)')).toHaveValue('0.004539150000000123');
+      expect(screen.getByText('Linked operation').closest('details')).toHaveAttribute('open');
+      fireEvent.change(screen.getByLabelText('Quantity (units)'), { target: { value: '0.004' } });
+      fireEvent.click(screen.getByRole('button', { name: /update transaction/i }));
+      await waitFor(() =>
+        expect(onSubmit).toHaveBeenCalledWith(
+          expect.objectContaining({
+            amount: imported.amount,
+            assetId: undefined,
+            investment: { assetId: 8, operation: 'ADD', pricing: 'QUANTITY', quantity: '0.004' },
+          })
+        )
+      );
+    });
+
+    it('can unlink an imported movement explicitly', async () => {
+      const { onSubmit } = renderForm({ transaction: imported });
+      fireEvent.change(screen.getByLabelText('Operation'), { target: { value: 'NONE' } });
+      fireEvent.click(screen.getByRole('button', { name: /update transaction/i }));
+      await waitFor(() =>
+        expect(onSubmit).toHaveBeenCalledWith(
+          expect.objectContaining({ investment: null, assetId: undefined })
+        )
+      );
+    });
+
+    it('uses one section and one effect preview for a holding-funded transfer', () => {
+      renderForm({
+        transaction: {
+          ...imported,
+          type: 'EXPENSE',
+          transferId: 'transfer',
+          toAccountId: 2,
+          investmentQuantity: -0.004,
+          exactValues: undefined,
+        },
+      });
+      expect(screen.getAllByText('Linked operation')).toHaveLength(1);
+      expect(screen.queryByText('Investment movement')).not.toBeInTheDocument();
+      expect(screen.queryByText('Transfer funding')).not.toBeInTheDocument();
+      expect(screen.getByLabelText('Funding source')).toHaveValue('REMOVE');
+      expect(
+        within(screen.getByLabelText('Funding source'))
+          .getAllByRole('option')
+          .map(option => (option as HTMLOptionElement).value)
+      ).toEqual(['NONE', 'REMOVE']);
+      expect(screen.getByRole('region', { name: 'Effect of this operation' })).toHaveTextContent(
+        'Units are removed from Bitcoin'
+      );
+      expect(screen.queryByTestId('liability-selector')).not.toBeInTheDocument();
+      expect(screen.queryByLabelText('Property or physical asset')).not.toBeInTheDocument();
+    });
+
+    it('requires a holding when an investment action is chosen and can return to an ordinary transaction', () => {
+      renderForm();
+      expandMovementDetails();
+      fireEvent.change(screen.getByLabelText('Operation'), { target: { value: 'BUY' } });
+      expect(screen.getByRole('alert')).toHaveTextContent('Choose the investment holding');
+      expect(screen.getByRole('button', { name: /create transaction/i })).toBeDisabled();
+      fireEvent.change(screen.getByLabelText('Operation'), { target: { value: 'NONE' } });
+      expect(screen.queryByLabelText('Linked holding')).not.toBeInTheDocument();
+      expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /create transaction/i })).toBeEnabled();
+    });
+
+    it('keeps split transactions intact while disabling investment actions', () => {
+      renderForm();
+      fireEvent.click(screen.getByRole('button', { name: /split transaction/i }));
+      expandMovementDetails();
+      expect(
+        within(screen.getByLabelText('Operation')).getByRole('option', {
+          name: 'Buy an investment',
+        })
+      ).toBeDisabled();
+      expect(
+        within(screen.getByLabelText('Operation')).getByRole('option', {
+          name: 'Withdraw investment units',
+        })
+      ).toBeDisabled();
+      expect(
+        screen.getByText(/Investment operations require a transaction without category splits/)
+      ).toBeVisible();
+      fireEvent.click(screen.getByRole('button', { name: 'Remove split', exact: true }));
+      expect(
+        within(screen.getByLabelText('Operation')).getByRole('option', {
+          name: 'Buy an investment',
+        })
+      ).toBeEnabled();
+    });
+
+    it('clears loan identifiers and principal when changing a loan payment into an investment purchase', async () => {
+      const { onSubmit } = renderForm({
+        transaction: {
+          ...imported,
+          type: 'EXPENSE',
+          assetId: undefined,
+          investmentQuantity: undefined,
+          exactValues: undefined,
+          liabilityId: 1,
+          trancheId: 7,
+          principalAmount: 80,
+          movementType: 'REPAYMENT',
+        },
+      });
+      expect(screen.getByLabelText('Operation')).toHaveValue('LOAN_PAYMENT');
+      fireEvent.change(screen.getByLabelText('Operation'), { target: { value: 'BUY' } });
+      fireEvent.change(screen.getByLabelText('Linked holding'), { target: { value: '8' } });
+      fireEvent.change(screen.getByLabelText('Quantity (units)'), { target: { value: '0.004' } });
+      expect(screen.queryByTestId('liability-selector')).not.toBeInTheDocument();
+      fireEvent.click(screen.getByRole('button', { name: /update transaction/i }));
+      await waitFor(() =>
+        expect(onSubmit).toHaveBeenCalledWith(
+          expect.objectContaining({
+            liabilityId: undefined,
+            trancheId: undefined,
+            principalAmount: undefined,
+            movementType: undefined,
+            assetId: undefined,
+            investment: { assetId: 8, operation: 'BUY', pricing: 'QUANTITY', quantity: '0.004' },
+          })
+        )
+      );
+    });
+
+    it('explicitly unlinks the holding when an investment transaction becomes a loan payment', async () => {
+      mockUseLiabilities.mockReturnValue({
+        data: [
+          {
+            id: 1,
+            userId: 1,
+            name: 'Mortgage',
+            type: 'MORTGAGE',
+            currentBalance: 10000,
+            currency: 'EUR',
+            interestRate: 5,
+            startDate: '2020-01-01',
+            isActive: true,
+            createdAt: '2020-01-01',
+          },
+        ],
+      } as ReturnType<typeof useLiabilitiesModule.useLiabilities>);
+      mockUseRepaymentPreview.mockReturnValue({
+        data: {
+          total: 100,
+          principal: 80,
+          interest: 20,
+          insurance: 0,
+          interestOnly: false,
+        },
+      } as ReturnType<typeof useLiabilitiesModule.useRepaymentPreview>);
+      const { onSubmit } = renderForm({
+        transaction: { ...imported, type: 'EXPENSE', amount: 100, investmentCash: true },
+      });
+      fireEvent.change(screen.getByLabelText('Operation'), { target: { value: 'LOAN_PAYMENT' } });
+      fireEvent.change(screen.getByLabelText('Loan'), { target: { value: '1' } });
+      await screen.findByTestId('repayment-preview');
+      expect(screen.queryByLabelText('Linked holding')).not.toBeInTheDocument();
+      fireEvent.click(screen.getByRole('button', { name: /update transaction/i }));
+      await waitFor(() =>
+        expect(onSubmit).toHaveBeenCalledWith(
+          expect.objectContaining({
+            investment: null,
+            assetId: undefined,
+            liabilityId: 1,
+            principalAmount: 80,
+            movementType: 'REPAYMENT',
+          })
+        )
+      );
+    });
+
+    it('does not reinterpret an investment purchase as a unit receipt when switching transaction types', async () => {
+      const { onSubmit } = renderForm({
+        transaction: { ...imported, type: 'EXPENSE', investmentCash: true },
+      });
+      fireEvent.change(screen.getByLabelText(/^Type/i), { target: { value: 'INCOME' } });
+      expect(screen.getByLabelText('Operation')).toHaveValue('NONE');
+      expect(screen.queryByLabelText('Linked holding')).not.toBeInTheDocument();
+      fireEvent.click(screen.getByRole('button', { name: /update transaction/i }));
+      await waitFor(() =>
+        expect(onSubmit).toHaveBeenCalledWith(
+          expect.objectContaining({ type: 'INCOME', investment: null })
+        )
+      );
+    });
+
+    it.each([
+      ['EXPENSE', true, 'BUY'],
+      ['INCOME', true, 'SELL'],
+      ['EXPENSE', false, 'REMOVE'],
+    ] as const)('shows the correct %s operation (cash: %s)', (type, investmentCash, operation) => {
+      renderForm({
+        transaction: {
+          ...imported,
+          type,
+          investmentCash,
+          investmentQuantity: operation === 'BUY' ? 2 : -2,
+          exactValues: undefined,
+        },
+      });
+      expect(screen.getByLabelText('Operation')).toHaveValue(operation);
+      expect(screen.getByLabelText('Quantity (units)')).toHaveValue('2');
+    });
+
+    it('blocks unavailable estimates and lets the user enter an exact transfer quantity', async () => {
+      mockInvestmentQuote.mockReturnValue({
+        data: undefined,
+        isFetching: false,
+        isError: true,
+        isSaved: false,
+      } as ReturnType<typeof useInvestmentQuoteModule.useInvestmentQuote>);
+      const { onSubmit } = renderForm({
+        transaction: {
+          ...imported,
+          type: 'EXPENSE',
+          transferId: 'transfer',
+          toAccountId: 2,
+          amount: 377.65,
+          investmentQuantity: undefined,
+          assetId: undefined,
+          exactValues: undefined,
+        },
+      });
+      fireEvent.click(screen.getByText('Linked operation'));
+      fireEvent.change(screen.getByLabelText('Funding source'), { target: { value: 'REMOVE' } });
+      fireEvent.change(screen.getByLabelText('Linked holding'), { target: { value: '8' } });
+      fireEvent.change(screen.getByLabelText('Quantity entry'), {
+        target: { value: 'HISTORICAL' },
+      });
+      expect(screen.getByText(/No closing price is available/)).toBeVisible();
+      expect(screen.getByRole('button', { name: /update transaction/i })).toBeDisabled();
+      fireEvent.change(screen.getByLabelText('Quantity entry'), { target: { value: 'QUANTITY' } });
+      fireEvent.change(screen.getByLabelText('Quantity (units)'), {
+        target: { value: '0.0037765' },
+      });
+      fireEvent.click(screen.getByRole('button', { name: /update transaction/i }));
+      await waitFor(() =>
+        expect(onSubmit).toHaveBeenCalledWith(
+          expect.objectContaining({
+            type: 'TRANSFER',
+            investment: {
+              assetId: 8,
+              operation: 'REMOVE',
+              pricing: 'QUANTITY',
+              quantity: '0.0037765',
+            },
+          })
+        )
+      );
+    });
+
+    it('blocks an oversized closing-price estimate and allows an exact quantity correction', async () => {
+      mockInvestmentQuote.mockReturnValue({
+        data: {
+          assetId: 8,
+          quantity: '0.007029722811435399',
+          availableQuantity: '0.00688795',
+          price: '53721.890625',
+          value: '377.65',
+          currency: 'EUR',
+          priceDate: '2026-06-24',
+          source: 'HISTORICAL_CLOSE',
+        },
+        isFetching: false,
+        isError: false,
+        isSaved: false,
+      } as ReturnType<typeof useInvestmentQuoteModule.useInvestmentQuote>);
+      const { onSubmit } = renderForm({
+        transaction: {
+          ...imported,
+          type: 'EXPENSE',
+          transferId: 'transfer',
+          toAccountId: 2,
+          amount: 377.65,
+          date: '2026-06-24',
+          investmentQuantity: undefined,
+          assetId: undefined,
+          exactValues: undefined,
+        },
+      });
+      fireEvent.click(screen.getByText('Linked operation'));
+      fireEvent.change(screen.getByLabelText('Funding source'), { target: { value: 'REMOVE' } });
+      fireEvent.change(screen.getByLabelText('Linked holding'), { target: { value: '8' } });
+      fireEvent.change(screen.getByLabelText('Quantity entry'), {
+        target: { value: 'HISTORICAL' },
+      });
+      expect(screen.getByText('Available units')).toBeVisible();
+      expect(screen.getByText('0.00688795')).toBeVisible();
+      expect(screen.getByRole('alert')).toHaveTextContent(
+        'This estimate exceeds the units available'
+      );
+      expect(screen.getByRole('button', { name: /update transaction/i })).toBeDisabled();
+      expect(onSubmit).not.toHaveBeenCalled();
+      fireEvent.click(screen.getByRole('button', { name: 'Use and adjust this quantity' }));
+      expect(screen.getByRole('alert')).toHaveTextContent(
+        'This quantity exceeds the units available'
+      );
+      expect(screen.getByRole('button', { name: /update transaction/i })).toBeDisabled();
+      fireEvent.change(screen.getByLabelText('Quantity (units)'), { target: { value: '0.006' } });
+      expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+      fireEvent.click(screen.getByRole('button', { name: /update transaction/i }));
+      await waitFor(() =>
+        expect(onSubmit).toHaveBeenCalledWith(
+          expect.objectContaining({
+            amount: 377.65,
+            investment: { assetId: 8, operation: 'REMOVE', pricing: 'QUANTITY', quantity: '0.006' },
+          })
+        )
+      );
+    });
+
+    it.each(['ADD', 'BUY'] as const)(
+      'does not limit %s estimates to the existing holding',
+      operation => {
+        mockInvestmentQuote.mockReturnValue({
+          data: {
+            quantity: '1',
+            availableQuantity: '0',
+            price: '100',
+            currency: 'EUR',
+            priceDate: '2025-07-20',
+          },
+          isFetching: false,
+          isError: false,
+          isSaved: false,
+        } as ReturnType<typeof useInvestmentQuoteModule.useInvestmentQuote>);
+        renderForm({
+          transaction: {
+            ...imported,
+            type: operation === 'BUY' ? 'EXPENSE' : 'INCOME',
+            investmentCash: operation === 'BUY',
+          },
+        });
+        fireEvent.change(screen.getByLabelText('Quantity entry'), {
+          target: { value: 'HISTORICAL' },
+        });
+        expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+        expect(screen.getByRole('button', { name: /update transaction/i })).toBeEnabled();
+      }
+    );
+
+    it('blocks a holding attached to another account', () => {
+      mockUseAssets.mockReturnValue({
+        data: [{ ...holding, accountId: 2 }],
+        isSuccess: true,
+      } as ReturnType<typeof useAssetsModule.useAssets>);
+      renderForm({ transaction: imported });
+      expect(screen.getByRole('alert')).toHaveTextContent(
+        'Choose a holding linked to the selected account'
+      );
+      expect(screen.getByRole('button', { name: /update transaction/i })).toBeDisabled();
+    });
+  });
+
   describe('Basic Rendering', () => {
     it('renders the form with required fields', () => {
       renderForm();
@@ -420,17 +825,51 @@ describe('TransactionForm', () => {
           movementType: 'INTEREST',
         },
       });
-      const credit = screen.getByRole('checkbox', { name: /Interest credited by the bank/i });
-      expect(credit).toBeChecked();
+      const credit = screen.getByLabelText('Operation');
+      expect(credit).toHaveValue('INTEREST');
       fireEvent.click(screen.getByRole('button', { name: /update transaction/i }));
       await waitFor(() =>
         expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({ movementType: 'INTEREST' }))
       );
-      fireEvent.click(credit);
+      fireEvent.change(credit, { target: { value: 'NONE' } });
       fireEvent.click(screen.getByRole('button', { name: /update transaction/i }));
       await waitFor(() =>
         expect(onSubmit).toHaveBeenLastCalledWith(
           expect.objectContaining({ movementType: undefined })
+        )
+      );
+    });
+
+    it('shows an existing loan disbursement and preserves it when saved with the section collapsed', async () => {
+      const { onSubmit } = renderForm({
+        transaction: {
+          id: 99,
+          userId: 1,
+          accountId: 1,
+          type: 'INCOME',
+          amount: 1000,
+          currency: 'EUR',
+          date: '2026-04-01',
+          isReconciled: false,
+          createdAt: '2026-04-01',
+          liabilityId: 1,
+          trancheId: 7,
+          movementType: 'DISBURSEMENT',
+        },
+      });
+      expect(screen.getByLabelText('Operation')).toHaveValue('EXISTING');
+      expect(screen.getByTestId('liability-selector')).toBeDisabled();
+      expect(screen.getByTestId('liability-selector')).toHaveValue('1');
+      fireEvent.click(screen.getByText('Linked operation'));
+      fireEvent.click(screen.getByRole('button', { name: /update transaction/i }));
+      await waitFor(() =>
+        expect(onSubmit).toHaveBeenCalledWith(
+          expect.objectContaining({
+            liabilityId: 1,
+            trancheId: 7,
+            movementType: 'DISBURSEMENT',
+            amount: 1000,
+          })
         )
       );
     });
@@ -1004,11 +1443,13 @@ describe('TransactionForm', () => {
 
       renderForm();
 
-      expect(screen.getByTestId('liability-selector')).not.toBeVisible();
-      expect(screen.getByLabelText(/^movement$/i)).not.toBeVisible();
+      expect(screen.queryByTestId('liability-selector')).not.toBeInTheDocument();
+      expect(screen.getByLabelText(/^Operation$/i)).not.toBeVisible();
       expandMovementDetails();
+      expect(screen.getByLabelText(/^Operation$/i)).toBeVisible();
+      expect(screen.queryByTestId('liability-selector')).not.toBeInTheDocument();
+      fireEvent.change(screen.getByLabelText('Operation'), { target: { value: 'LOAN_PAYMENT' } });
       expect(screen.getByTestId('liability-selector')).toBeVisible();
-      expect(screen.getByLabelText(/^movement$/i)).toBeVisible();
     });
 
     it('hides liability selector when no liabilities exist', () => {
@@ -1065,6 +1506,7 @@ describe('TransactionForm', () => {
     /** Simulate the user selecting the liability via the mocked <select> */
     async function selectLiability(value: string) {
       expandMovementDetails();
+      fireEvent.change(screen.getByLabelText('Operation'), { target: { value: 'LOAN_PAYMENT' } });
       const liabSelect = screen.getByTestId('liability-selector') as HTMLSelectElement;
       await act(async () => {
         liabSelect.value = value;
@@ -1717,23 +2159,29 @@ describe('TransactionForm', () => {
     async function selectMovementType(value: string) {
       expandMovementDetails();
       await act(async () => {
-        fireEvent.change(screen.getByLabelText(/^movement$/i), { target: { value } });
+        fireEvent.change(screen.getByLabelText(/^Operation$/i), {
+          target: { value: value || 'NONE' },
+        });
       });
     }
 
-    it('is collapsible for EXPENSE and absent for INCOME', async () => {
+    it('uses the same collapsible section with choices adapted to the transaction type', async () => {
       renderForm();
 
-      expect(screen.getByLabelText(/^movement$/i)).not.toBeVisible();
+      expect(screen.getByLabelText(/^Operation$/i)).not.toBeVisible();
       expandMovementDetails();
-      expect(screen.getByLabelText(/^movement$/i)).toBeVisible();
+      expect(screen.getByLabelText(/^Operation$/i)).toBeVisible();
 
       await act(async () => {
         fireEvent.change(screen.getByLabelText(/type/i), { target: { value: 'INCOME' } });
       });
 
-      expect(screen.queryByLabelText(/^movement$/i)).not.toBeInTheDocument();
-      expect(screen.queryByText('Linked liability and movement')).not.toBeInTheDocument();
+      expect(screen.getByLabelText('Operation')).toBeVisible();
+      expect(screen.getAllByText('Linked operation')).toHaveLength(1);
+      const options = within(screen.getByLabelText('Operation'))
+        .getAllByRole('option')
+        .map(option => (option as HTMLOptionElement).value);
+      expect(options).toEqual(['NONE', 'ADD', 'SELL']);
     });
 
     it('opens existing movements and preserves their values when saved while collapsed', async () => {
@@ -1752,10 +2200,10 @@ describe('TransactionForm', () => {
           assetId: 21,
         },
       });
-      expect(screen.getByLabelText(/^movement$/i)).toBeVisible();
-      expect(screen.getByLabelText('Physical asset')).toHaveValue('21');
-      fireEvent.click(screen.getByText('Linked liability and movement'));
-      expect(screen.getByLabelText(/^movement$/i)).not.toBeVisible();
+      expect(screen.getByLabelText(/^Operation$/i)).toBeVisible();
+      expect(screen.getByLabelText('Property or physical asset')).toHaveValue('asset:21');
+      fireEvent.click(screen.getByText('Linked operation'));
+      expect(screen.getByLabelText(/^Operation$/i)).not.toBeVisible();
       fireEvent.click(screen.getByRole('button', { name: /update transaction/i }));
       await waitFor(() =>
         expect(onSubmit).toHaveBeenCalledWith(
@@ -1767,10 +2215,40 @@ describe('TransactionForm', () => {
       );
     });
 
+    it('clears the physical asset and its classification when removing the linked operation', async () => {
+      const { onSubmit } = renderForm({
+        transaction: {
+          id: 99,
+          userId: 1,
+          accountId: 1,
+          type: 'EXPENSE',
+          amount: 100,
+          currency: 'EUR',
+          date: '2024-06-15',
+          isReconciled: false,
+          createdAt: '2024-06-15',
+          movementType: 'MAINTENANCE',
+          assetId: 21,
+        },
+      });
+      fireEvent.change(screen.getByLabelText('Operation'), { target: { value: 'NONE' } });
+      expect(screen.queryByLabelText('Property or physical asset')).not.toBeInTheDocument();
+      fireEvent.click(screen.getByRole('button', { name: /update transaction/i }));
+      await waitFor(() =>
+        expect(onSubmit).toHaveBeenCalledWith(
+          expect.objectContaining({
+            assetId: undefined,
+            realEstateId: undefined,
+            movementType: undefined,
+          })
+        )
+      );
+    });
+
     it('offers capital improvement and maintenance movement types', () => {
       renderForm();
 
-      const select = screen.getByLabelText(/^movement$/i) as HTMLSelectElement;
+      const select = screen.getByLabelText(/^Operation$/i) as HTMLSelectElement;
       const options = Array.from(select.options).map(o => o.value);
       expect(options).toContain('CAPITAL_IMPROVEMENT');
       expect(options).toContain('MAINTENANCE');
@@ -1781,12 +2259,14 @@ describe('TransactionForm', () => {
 
       await selectMovementType('CAPITAL_IMPROVEMENT');
 
-      const propertySelect = screen.getByLabelText('Property') as HTMLSelectElement;
+      const propertySelect = screen.getByLabelText(
+        'Property or physical asset'
+      ) as HTMLSelectElement;
       const propertyOptions = Array.from(propertySelect.options).map(o => o.textContent);
       expect(propertyOptions).toContain('Rue de la Paix apartment');
       expect(propertyOptions).toContain('Lake cabin');
 
-      const assetSelect = screen.getByLabelText('Physical asset') as HTMLSelectElement;
+      const assetSelect = screen.getByLabelText('Property or physical asset') as HTMLSelectElement;
       const assetOptions = Array.from(assetSelect.options).map(o => o.textContent);
       expect(assetOptions).toContain('Family car');
       expect(assetOptions).not.toContain('VTI ETF');
@@ -1797,7 +2277,9 @@ describe('TransactionForm', () => {
 
       await selectMovementType('CAPITAL_IMPROVEMENT');
       await act(async () => {
-        fireEvent.change(screen.getByLabelText('Property'), { target: { value: '11' } });
+        fireEvent.change(screen.getByLabelText('Property or physical asset'), {
+          target: { value: 'property:11' },
+        });
       });
       await act(async () => {
         fireEvent.change(screen.getByLabelText(/amount/i), { target: { value: '1500' } });
@@ -1821,7 +2303,9 @@ describe('TransactionForm', () => {
 
       await selectMovementType('MAINTENANCE');
       await act(async () => {
-        fireEvent.change(screen.getByLabelText('Physical asset'), { target: { value: '21' } });
+        fireEvent.change(screen.getByLabelText('Property or physical asset'), {
+          target: { value: 'asset:21' },
+        });
       });
       await act(async () => {
         fireEvent.change(screen.getByLabelText(/amount/i), { target: { value: '120' } });
@@ -1840,7 +2324,7 @@ describe('TransactionForm', () => {
       expect(payload.realEstateId).toBeUndefined();
     });
 
-    it('blocks submit when a movement type is selected without a target', async () => {
+    it('blocks a missing target and clears the error when a target is selected', async () => {
       const { onSubmit } = renderForm();
 
       await selectMovementType('CAPITAL_IMPROVEMENT');
@@ -1850,8 +2334,8 @@ describe('TransactionForm', () => {
         screen.getByTestId('account-selector').click();
       });
 
-      fireEvent.click(screen.getByText('Linked liability and movement'));
-      expect(screen.getByLabelText(/^movement$/i)).not.toBeVisible();
+      fireEvent.click(screen.getByText('Linked operation'));
+      expect(screen.getByLabelText(/^Operation$/i)).not.toBeVisible();
 
       await act(async () => {
         screen.getByRole('button', { name: /create transaction/i }).click();
@@ -1861,15 +2345,34 @@ describe('TransactionForm', () => {
       await waitFor(() => {
         expect(screen.getByText(/select the property or physical asset/i)).toBeVisible();
       });
+      fireEvent.change(screen.getByLabelText('Property or physical asset'), {
+        target: { value: 'property:11' },
+      });
+      await waitFor(() => {
+        expect(
+          screen.queryByText(/select the property or physical asset/i)
+        ).not.toBeInTheDocument();
+        expect(screen.queryByText('Check details')).not.toBeInTheDocument();
+      });
+      fireEvent.click(screen.getByRole('button', { name: /create transaction/i }));
+      await waitFor(() =>
+        expect(onSubmit).toHaveBeenCalledWith(
+          expect.objectContaining({ realEstateId: 11, movementType: 'CAPITAL_IMPROVEMENT' })
+        )
+      );
     });
 
-    it('blocks submit when both a property and an asset are selected', async () => {
+    it('replaces the property target when a physical asset is selected', async () => {
       const { onSubmit } = renderForm();
 
       await selectMovementType('CAPITAL_IMPROVEMENT');
       await act(async () => {
-        fireEvent.change(screen.getByLabelText('Property'), { target: { value: '11' } });
-        fireEvent.change(screen.getByLabelText('Physical asset'), { target: { value: '21' } });
+        fireEvent.change(screen.getByLabelText('Property or physical asset'), {
+          target: { value: 'property:11' },
+        });
+        fireEvent.change(screen.getByLabelText('Property or physical asset'), {
+          target: { value: 'asset:21' },
+        });
       });
 
       await act(async () => {
@@ -1882,13 +2385,18 @@ describe('TransactionForm', () => {
         screen.getByRole('button', { name: /create transaction/i }).click();
       });
 
-      expect(onSubmit).not.toHaveBeenCalled();
-      await waitFor(() => {
-        expect(screen.getByText(/either a property or an asset/i)).toBeInTheDocument();
-      });
+      await waitFor(() =>
+        expect(onSubmit).toHaveBeenCalledWith(
+          expect.objectContaining({
+            assetId: 21,
+            realEstateId: undefined,
+            movementType: 'CAPITAL_IMPROVEMENT',
+          })
+        )
+      );
     });
 
-    it('blocks submit with a clear message when a liability and a property are selected simultaneously', async () => {
+    it('clears the loan link when switching to a maintenance expense', async () => {
       mockUseLiabilities.mockReturnValue({
         data: [
           {
@@ -1910,12 +2418,15 @@ describe('TransactionForm', () => {
 
       const { onSubmit } = renderForm();
 
+      await selectMovementType('LOAN_PAYMENT');
       await act(async () => {
         fireEvent.change(screen.getByTestId('liability-selector'), { target: { value: '1' } });
       });
       await selectMovementType('MAINTENANCE');
       await act(async () => {
-        fireEvent.change(screen.getByLabelText('Property'), { target: { value: '11' } });
+        fireEvent.change(screen.getByLabelText('Property or physical asset'), {
+          target: { value: 'property:11' },
+        });
       });
 
       await act(async () => {
@@ -1928,10 +2439,17 @@ describe('TransactionForm', () => {
         screen.getByRole('button', { name: /create transaction/i }).click();
       });
 
-      expect(onSubmit).not.toHaveBeenCalled();
-      await waitFor(() => {
-        expect(screen.getByText(/liability or target a property\/asset/i)).toBeInTheDocument();
-      });
+      await waitFor(() =>
+        expect(onSubmit).toHaveBeenCalledWith(
+          expect.objectContaining({
+            liabilityId: undefined,
+            trancheId: undefined,
+            principalAmount: undefined,
+            realEstateId: 11,
+            movementType: 'MAINTENANCE',
+          })
+        )
+      );
     });
   });
 
@@ -2299,6 +2817,8 @@ describe('TransactionForm', () => {
 
       // Start as EXPENSE, select a liability
       fireEvent.change(screen.getByLabelText(/type/i), { target: { value: 'EXPENSE' } });
+      expandMovementDetails();
+      fireEvent.change(screen.getByLabelText('Operation'), { target: { value: 'LOAN_PAYMENT' } });
       fireEvent.change(screen.getByTestId('liability-selector'), { target: { value: '1' } });
 
       // Switch to INCOME

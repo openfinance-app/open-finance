@@ -222,6 +222,7 @@ export default function TransactionsPage() {
             transferId: editingTransaction.transferId,
             data: {
               fromAccountId: data.accountId,
+              investment: data.investment,
               toAccountId: data.toAccountId!,
               amount: data.amount,
               currency: data.currency,

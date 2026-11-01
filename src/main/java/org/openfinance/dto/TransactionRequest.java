@@ -38,6 +38,18 @@ import org.openfinance.validation.ValidCurrency;
 @NoArgsConstructor
 @AllArgsConstructor
 public class TransactionRequest {
+    @Valid private InvestmentMovementRequest investment;
+    @com.fasterxml.jackson.annotation.JsonIgnore private boolean investmentPresent;
+
+    @com.fasterxml.jackson.annotation.JsonSetter("investment")
+    public void setInvestment(InvestmentMovementRequest investment) {
+        this.investment = investment;
+        this.investmentPresent = true;
+    }
+
+    public boolean isInvestmentPresent() {
+        return investmentPresent || investment != null;
+    }
 
     /**
      * ID of the account this transaction belongs to.

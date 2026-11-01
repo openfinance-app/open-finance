@@ -14,6 +14,7 @@ import type { Liability } from '@/types/liability';
 import { handleSelectSearchKeyDown } from '@/utils/select-keyboard';
 
 interface LiabilitySelectorProps {
+  id?: string;
   value?: number;
   onValueChange: (value: number | undefined) => void;
   placeholder?: string;
@@ -26,6 +27,7 @@ interface LiabilitySelectorProps {
 }
 
 export function LiabilitySelector({
+  id,
   value,
   onValueChange,
   placeholder = 'Select liability',
@@ -131,7 +133,7 @@ export function LiabilitySelector({
         }
       }}
     >
-      <SelectTrigger className={className}>
+      <SelectTrigger id={id} className={className}>
         <SelectValue placeholder={placeholder}>
           {selectedLiability ? (
             <span className="flex items-center gap-2">

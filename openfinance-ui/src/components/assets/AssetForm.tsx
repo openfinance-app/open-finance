@@ -293,6 +293,11 @@ export function AssetForm({
               {assetTypes
                 .filter(
                   type =>
+                    !asset?.investmentTracked ||
+                    (!isPhysicalAssetType(type) && type !== 'REAL_ESTATE')
+                )
+                .filter(
+                  type =>
                     !kind ||
                     (kind === 'physical' ? isPhysicalAssetType(type) : !isPhysicalAssetType(type))
                 )
@@ -320,6 +325,7 @@ export function AssetForm({
                   control={control}
                   render={({ field }) => (
                     <AccountSelector
+                      disabled={asset?.investmentTracked}
                       value={field.value}
                       onValueChange={field.onChange}
                       className="w-full"
@@ -384,6 +390,9 @@ export function AssetForm({
           )}
         </div>
         {/* Quantity and Prices Row */}
+        {asset?.investmentTracked && (
+          <p className="text-sm text-text-secondary">{t('form.investmentTracked')}</p>
+        )}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {/* Quantity */}
           <div>
@@ -399,6 +408,7 @@ export function AssetForm({
               render={({ field }) => (
                 <NumberInput
                   id="quantity"
+                  readOnly={asset?.investmentTracked}
                   value={field.value}
                   onChange={field.onChange}
                   onBlur={field.onBlur}
@@ -424,6 +434,7 @@ export function AssetForm({
               render={({ field }) => (
                 <NumberInput
                   id="purchasePrice"
+                  readOnly={asset?.investmentTracked}
                   value={field.value}
                   onChange={value => {
                     field.onChange(value);
@@ -486,6 +497,7 @@ export function AssetForm({
               control={control}
               render={({ field }) => (
                 <CurrencySelector
+                  disabled={asset?.investmentTracked}
                   value={field.value}
                   onValueChange={field.onChange}
                   placeholder={t('form.selectCurrencyPlaceholder')}
@@ -518,6 +530,7 @@ export function AssetForm({
               render={({ field }) => (
                 <DateInput
                   id="purchaseDate"
+                  disabled={asset?.investmentTracked}
                   value={field.value}
                   onChange={field.onChange}
                   onBlur={field.onBlur}

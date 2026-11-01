@@ -137,6 +137,13 @@ export interface Transaction {
   // Optional ID of the asset this movement is linked to
   assetId?: number;
   investmentQuantity?: number | null;
+  investmentCash?: boolean;
+  investmentValue?: number;
+  investmentPrice?: number;
+  investmentPriceDate?: string;
+  investmentPriceSource?: 'HISTORICAL_CLOSE' | 'RECORDED';
+  investmentCurrency?: string;
+  assetName?: string;
   // Original (pre-conversion) values — set only when the transaction was entered in a currency
   // different from its account currency. Used by the edit form to restore what the user typed.
   /** Pre-conversion amount in originalCurrency (e.g. 100) */
@@ -182,6 +189,7 @@ export interface Transaction {
 }
 
 export interface TransactionRequest {
+  investment?: InvestmentMovementRequest | null;
   accountId: number;
   toAccountId?: number;
   type: TransactionType;
@@ -216,6 +224,7 @@ export interface TransactionRequest {
  * Both sides of the transfer (source EXPENSE and destination INCOME) are updated atomically.
  */
 export interface TransferUpdateRequest {
+  investment?: InvestmentMovementRequest | null;
   fromAccountId: number;
   toAccountId: number;
   amount: number | string;
@@ -230,6 +239,26 @@ export interface TransferUpdateRequest {
   tags?: string[];
   paymentMethod?: PaymentMethod;
   isReconciled: boolean;
+}
+
+export interface InvestmentMovementRequest {
+  assetId: number;
+  operation: 'ADD' | 'REMOVE' | 'BUY' | 'SELL';
+  pricing: 'QUANTITY' | 'HISTORICAL';
+  /** Positive, lossless units. The operation controls sign and cash effects. */
+  quantity?: string;
+}
+
+export interface InvestmentQuote {
+  exactValues?: Record<string, string>;
+  assetId: number;
+  quantity: number | string;
+  availableQuantity?: number | string;
+  price: number | string;
+  value: number | string;
+  currency: string;
+  priceDate: string;
+  source: string;
 }
 
 export interface TransactionFilters {

@@ -129,6 +129,7 @@ public class TransactionService {
     private final RealEstateService realEstateService;
     private final AssetService assetService;
     private final ImportedInvestmentService investmentImportService;
+    private final InvestmentMovementService investmentMovementService;
     private final AssetRepository assetRepository;
     private final RealEstateRepository realEstateRepository;
 
@@ -242,6 +243,7 @@ public class TransactionService {
         resolveAndLinkCurrency(transaction);
 
         applyConversionFields(transaction, request);
+        applyInvestment(transaction, request, null);
         accountCurrencyService.book(transaction, userId);
 
         // Encrypt sensitive fields (Requirement 2.18: Encryption at rest)
@@ -306,6 +308,7 @@ public class TransactionService {
 
         // Sync linked liability / property balances (Task 3)
         applyLinkedMovements(userId, savedTransaction, request);
+        recalculateInvestment(null, savedTransaction);
 
         // Transparently invalidate net worth snapshots whose historical balance
         // calculation is affected by this transaction's date.
@@ -515,6 +518,8 @@ public class TransactionService {
                 destinationTransaction.getDescription());
 
         // Save both transactions atomically
+        applyInvestment(sourceTransaction, request, null);
+        destinationTransaction.setAssetId(null);
         accountCurrencyService.book(sourceTransaction, userId);
         accountCurrencyService.book(destinationTransaction, userId);
         Transaction savedSourceTransaction = transactionRepository.save(sourceTransaction);
@@ -572,6 +577,7 @@ public class TransactionService {
         destAccount.setBalance(
                 destAccount.getBalance().add(destinationTransaction.getBalanceAmount()));
         accountRepository.save(destAccount);
+        recalculateInvestment(null, savedSourceTransaction);
 
         log.info(
                 "Transfer created successfully: transferId={}, userId={}, sourceId={}, destId={}, amount={}",
@@ -722,7 +728,8 @@ public class TransactionService {
                         .conversionRate(request.getConversionRate())
                         .build();
         validateConversionDetails(conversion);
-        if (sameTransferBooking(sourceTransaction, destTransaction, request)) {
+        if (!request.isInvestmentPresent()
+                && sameTransferBooking(sourceTransaction, destTransaction, request)) {
             updateTransferMetadata(sourceTransaction, userId, request);
             updateTransferMetadata(destTransaction, userId, request);
             transactionRepository.save(sourceTransaction);
@@ -730,10 +737,12 @@ public class TransactionService {
             return toResponseWithDecryption(sourceTransaction);
         }
         BigDecimal previousSourceAmount = sourceTransaction.getAmount();
-        if (sourceTransaction.getInvestmentQuantity() != null
-                || destTransaction.getInvestmentQuantity() != null) {
-            throw new InvalidTransactionException(
-                    "Investment transfers retain their imported units and monetary values");
+        Transaction previousInvestment = InvestmentMovementService.snapshot(sourceTransaction);
+        if (destTransaction.getInvestmentQuantity() != null
+                && !sameTransferBooking(sourceTransaction, destTransaction, request)) {
+            throw InvalidTransactionException.investment(
+                    "destination",
+                    "This transfer also receives investment units. Its destination movement must remain unchanged.");
         }
         BigDecimal previousDestAmount = destTransaction.getAmount();
         String previousSourceCurrency = sourceTransaction.getCurrency();
@@ -837,6 +846,13 @@ public class TransactionService {
         resolveAndLinkCurrency(destTransaction);
 
         // Save both updated transactions
+        if (request.isInvestmentPresent() || previousInvestment.getInvestmentQuantity() != null) {
+            investmentMovementService.apply(
+                    sourceTransaction,
+                    request.getInvestment(),
+                    request.isInvestmentPresent(),
+                    previousInvestment);
+        }
         accountCurrencyService.book(sourceTransaction, userId);
         accountCurrencyService.book(destTransaction, userId);
         Transaction savedSourceTransaction = transactionRepository.save(sourceTransaction);
@@ -854,6 +870,7 @@ public class TransactionService {
                 newDestAccount.getBalance().add(destTransaction.getBalanceAmount()));
         includeTransactionDate(newDestAccount, request.getDate());
         accountRepository.save(newDestAccount);
+        recalculateInvestment(previousInvestment, savedSourceTransaction);
 
         log.info(
                 "Transfer updated successfully: transferId={}, userId={}, sourceId={}, destId={}, amount={}",
@@ -875,18 +892,38 @@ public class TransactionService {
         return toResponseWithDecryption(savedSourceTransaction);
     }
 
-    private void validateInvestmentEdit(Transaction transaction, TransactionRequest request) {
-        if (transaction.getInvestmentQuantity() == null) return;
-        if (!transaction.getAccountId().equals(request.getAccountId())
-                || transaction.getAmount().compareTo(request.getAmount()) != 0
-                || !transaction.getCurrency().equals(request.getCurrency())
-                || !transaction.getDate().equals(request.getDate())
-                || transaction.getType() != request.getType()
-                || (request.getAssetId() != null
-                        && !request.getAssetId().equals(transaction.getAssetId()))
-                || request.getMovementType() != null) {
-            throw new InvalidTransactionException(
-                    "Investment movements retain their imported units and monetary values; delete and reimport to change them");
+    private void applyInvestment(
+            Transaction transaction, TransactionRequest request, Transaction previous) {
+        boolean linked =
+                request.getInvestment() != null
+                        || (!request.isInvestmentPresent()
+                                && previous != null
+                                && previous.getInvestmentQuantity() != null);
+        if (linked && request.getSplits() != null && !request.getSplits().isEmpty()) {
+            throw InvalidTransactionException.investment(
+                    "splits",
+                    "Investment movements cannot be split; record separate movements instead");
+        }
+        if (request.getInvestment() != null
+                && request.getAssetId() != null
+                && !request.getAssetId().equals(request.getInvestment().getAssetId())) {
+            throw InvalidTransactionException.investment(
+                    "conflict", "Choose a single asset for this movement");
+        }
+        if (request.isInvestmentPresent()
+                || (previous != null && previous.getInvestmentQuantity() != null)) {
+            investmentMovementService.apply(
+                    transaction, request.getInvestment(), request.isInvestmentPresent(), previous);
+            if (request.isInvestmentPresent() && request.getInvestment() == null) {
+                transaction.setAssetId(request.getAssetId());
+            }
+        }
+    }
+
+    private void recalculateInvestment(Transaction previous, Transaction current) {
+        if (current.getInvestmentQuantity() != null
+                || (previous != null && previous.getInvestmentQuantity() != null)) {
+            investmentMovementService.recalculate(previous, current);
         }
     }
 
@@ -1170,7 +1207,7 @@ public class TransactionService {
         }
 
         // Store old values for balance adjustment
-        validateInvestmentEdit(transaction, request);
+        Transaction previousInvestment = InvestmentMovementService.snapshot(transaction);
         BigDecimal oldAmount = transaction.getBalanceAmount();
         TransactionType oldType = transaction.getType();
         Long oldAccountId = transaction.getAccountId();
@@ -1210,6 +1247,7 @@ public class TransactionService {
         resolveAndLinkCurrency(transaction);
 
         applyConversionFields(transaction, request);
+        applyInvestment(transaction, request, previousInvestment);
         accountCurrencyService.book(transaction, userId);
 
         // Re-encrypt sensitive fields (always re-encrypt the provided plaintext values)
@@ -1308,6 +1346,7 @@ public class TransactionService {
                 oldMovement,
                 false);
         applyLinkedMovements(userId, transaction, request);
+        recalculateInvestment(previousInvestment, updatedTransaction);
 
         log.info(
                 "Transaction updated successfully: id={}, userId={}, balance adjusted",
@@ -2422,6 +2461,15 @@ public class TransactionService {
 
         // Create response with basic fields
         TransactionResponse response = transactionMapper.toResponse(transaction);
+        if (transaction.getInvestmentQuantity() != null && transaction.getAssetId() != null) {
+            assetRepository
+                    .findByIdAndUserId(transaction.getAssetId(), transaction.getUserId())
+                    .ifPresent(
+                            asset -> {
+                                response.setAssetName(asset.getName());
+                                response.setInvestmentCurrency(asset.getCurrency());
+                            });
+        }
         if (transaction.getLiabilityId() != null && transaction.getPrincipalAmount() != null) {
             response.setPrincipalAllocations(
                     liabilityTrancheService.allocations(

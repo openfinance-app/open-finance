@@ -28,6 +28,9 @@ import org.openfinance.entity.AssetType;
 @NoArgsConstructor
 @AllArgsConstructor
 public class AssetResponse {
+    /** Quantity, cost and linked account are maintained through investment movements. */
+    private boolean investmentTracked;
+
     private org.openfinance.entity.AcquisitionType acquisitionType;
 
     /** Unique identifier of the asset. */

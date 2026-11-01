@@ -20,7 +20,7 @@ import { useTranslation } from 'react-i18next';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Sparkles, X, Scissors, ChevronDown } from 'lucide-react';
+import { Sparkles, X, Scissors } from 'lucide-react';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { DateInput } from '@/components/ui/DateInput';
@@ -33,7 +33,18 @@ import { CategorySelect } from '@/components/ui/CategorySelect';
 import { AccountSelector } from '@/components/ui/AccountSelector';
 import { LiabilitySelector } from '@/components/ui/LiabilitySelector';
 import { SplitTransactionForm } from './SplitTransactionForm';
-import { MovementSection } from './MovementSection';
+import { MovementSection } from '@/components/transactions/MovementSection';
+import { LinkedOperationSection } from '@/components/transactions/LinkedOperationSection';
+import {
+  initialLinkedOperation,
+  isInvestmentOperation,
+  linkedOperations,
+  type LinkedOperation,
+} from '@/utils/linked-operation';
+import { InvestmentMovementFields } from '@/components/transactions/InvestmentMovementFields';
+import { useAssets } from '@/hooks/useAssets';
+import { useInvestmentQuote } from '@/hooks/useInvestmentQuote';
+import { investmentInstruction, validInvestmentQuantity } from '@/utils/investment-movement';
 import { usePopularTags } from '@/hooks/useTransactionTags';
 import { useActivePayees } from '@/hooks/usePayees';
 import { useLiabilities, useRepaymentPreview } from '@/hooks/useLiabilities';
@@ -235,6 +246,11 @@ export function TransactionForm({
 
   // State for tags (not managed by react-hook-form due to complex interaction)
   const [tags, setTags] = useState<string[]>(transaction?.tags || []);
+  const [investment, setInvestment] = useState(() => investmentInstruction(transaction));
+  const [linkedOperation, setLinkedOperation] = useState<LinkedOperation>(() =>
+    initialLinkedOperation(transaction)
+  );
+  const { data: investmentAssets = [], isSuccess: holdingsLoaded } = useAssets();
 
   // State for split mode — REQ-SPL-1.5, REQ-SPL-3.1
   const [splitMode, setSplitMode] = useState<boolean>(
@@ -248,13 +264,7 @@ export function TransactionForm({
   const [autoFilledCategory, setAutoFilledCategory] = useState<number | null>(null);
   const [autoFilledFromPayee, setAutoFilledFromPayee] = useState<string | null>(null);
   const [isMovementOpen, setIsMovementOpen] = useState(
-    !!(
-      transaction?.liabilityId ||
-      transaction?.realEstateId ||
-      transaction?.assetId ||
-      transaction?.movementType === 'CAPITAL_IMPROVEMENT' ||
-      transaction?.movementType === 'MAINTENANCE'
-    )
+    initialLinkedOperation(transaction) !== 'NONE'
   );
 
   // Fetch liabilities for the liability selector (Requirement 3.1)
@@ -268,6 +278,7 @@ export function TransactionForm({
     setValue,
     setError,
     clearErrors,
+    trigger,
     control,
   } = useForm<TransactionFormData>({
     resolver: zodResolver(transactionSchema(t)) as any,
@@ -299,7 +310,7 @@ export function TransactionForm({
               ? undefined
               : decimalField(transaction, 'principalAmount'),
           realEstateId: transaction.realEstateId,
-          assetId: transaction.assetId,
+          assetId: transaction.investmentQuantity == null ? transaction.assetId : undefined,
         }
       : {
           accountId: undefined as any,
@@ -328,9 +339,6 @@ export function TransactionForm({
     errors.assetId ||
     errors.principalAmount
   );
-  useEffect(() => {
-    if (hasMovementErrors) setIsMovementOpen(true);
-  }, [hasMovementErrors, submitCount]);
 
   // Log validation errors for debugging
   useEffect(() => {
@@ -374,6 +382,72 @@ export function TransactionForm({
   // input is in the account currency (when the input IS the liability currency the existing
   // account-conversion machinery already stores the liability view).
   const transactionDate = watch('date');
+  const investmentQuote = useInvestmentQuote(
+    investment,
+    amountValue,
+    inputCurrency,
+    transactionDate,
+    transaction
+  );
+  const selectedHolding = investmentAssets.find(asset => asset.id === investment?.assetId);
+  const removalQuantity =
+    investment?.pricing === 'HISTORICAL'
+      ? investmentQuote.data && decimalField(investmentQuote.data, 'quantity')
+      : investment?.quantity;
+  const exceedsAvailable =
+    investment &&
+    ['REMOVE', 'SELL'].includes(investment.operation) &&
+    investmentQuote.data?.availableQuantity != null &&
+    validInvestmentQuantity(removalQuantity) &&
+    new ExactDecimal(removalQuantity!).gt(decimalField(investmentQuote.data, 'availableQuantity'));
+  const investmentError = !isInvestmentOperation(linkedOperation)
+    ? undefined
+    : !investment
+      ? t('linkedOperation.holdingRequired')
+      : splitMode
+        ? t('linkedOperation.splitHint')
+        : holdingsLoaded && (!selectedHolding || selectedHolding.accountId !== selectedAccountId)
+          ? t('investment.accountMismatch')
+          : investment.pricing === 'QUANTITY' && !validInvestmentQuantity(investment.quantity)
+            ? t('investment.quantityInvalid')
+            : exceedsAvailable
+              ? t(
+                  investment.pricing === 'HISTORICAL'
+                    ? 'investment.estimateExceedsAvailable'
+                    : 'investment.quantityExceedsAvailable'
+                )
+              : undefined;
+  const investmentBlocked =
+    isInvestmentOperation(linkedOperation) &&
+    (!!investmentError ||
+      !investment ||
+      (investment.pricing === 'HISTORICAL' &&
+        (!investmentQuote.data ||
+          (!investmentQuote.isSaved && (investmentQuote.isFetching || investmentQuote.isError)))));
+  const linkedOperationError =
+    linkedOperation === 'LOAN_PAYMENT' && !liabilityIdValue
+      ? t('linkedOperation.loanRequired')
+      : undefined;
+  const operationChoices = linkedOperations(
+    selectedType,
+    liabilities.length > 0 || linkedOperation === 'LOAN_PAYMENT',
+    !!selectedAccount?.isInterestEnabled || linkedOperation === 'INTEREST'
+  );
+  const historicalQuoteFailed =
+    isInvestmentOperation(linkedOperation) &&
+    investment?.pricing === 'HISTORICAL' &&
+    investmentQuote.isError &&
+    !investmentQuote.isSaved;
+  useEffect(() => {
+    if (hasMovementErrors || investmentError || linkedOperationError || historicalQuoteFailed)
+      setIsMovementOpen(true);
+  }, [
+    hasMovementErrors,
+    investmentError,
+    linkedOperationError,
+    historicalQuoteFailed,
+    submitCount,
+  ]);
   const { data: liabilityRateData } = useExchangeRate(
     accountCurrency,
     liabilityCurrency ?? '',
@@ -496,20 +570,53 @@ export function TransactionForm({
     currentCategoryId,
   ]);
 
+  function changeLinkedOperation(next: LinkedOperation): void {
+    if (next === linkedOperation || (splitMode && isInvestmentOperation(next))) return;
+    const keepTarget =
+      ['MAINTENANCE', 'CAPITAL_IMPROVEMENT'].includes(next) &&
+      ['MAINTENANCE', 'CAPITAL_IMPROVEMENT'].includes(linkedOperation);
+    setLinkedOperation(next);
+    setIsMovementOpen(true);
+    setInvestment(current =>
+      isInvestmentOperation(next) && current ? { ...current, operation: next } : null
+    );
+    clearErrors([
+      'liabilityId',
+      'trancheId',
+      'principalAmount',
+      'movementType',
+      'realEstateId',
+      'assetId',
+    ]);
+    setValue('liabilityId', undefined, { shouldDirty: true });
+    setValue('trancheId', undefined, { shouldDirty: true });
+    setValue('principalAmount', undefined, { shouldDirty: true });
+    setValue(
+      'movementType',
+      next === 'MAINTENANCE' || next === 'CAPITAL_IMPROVEMENT' || next === 'INTEREST'
+        ? next
+        : undefined,
+      { shouldDirty: true }
+    );
+    if (!keepTarget) {
+      setValue('realEstateId', undefined, { shouldDirty: true });
+      setValue('assetId', undefined, { shouldDirty: true });
+    }
+    if (next === 'LOAN_PAYMENT') setApplyRepaymentSplit(true);
+  }
+
+  function changeTransactionType(type: TransactionType): void {
+    setValue('type', type, { shouldDirty: true, shouldValidate: true });
+    if (!linkedOperations(type, true, true).includes(linkedOperation))
+      changeLinkedOperation('NONE');
+    if (type === 'TRANSFER') {
+      setSplitMode(false);
+      setSplits([]);
+    }
+  }
+
   // Default the input currency to the selected account's currency, but only when the account
   // actually changes — so a manual currency choice is not clobbered on unrelated re-renders.
-  const previousType = useRef(selectedType);
-  useEffect(() => {
-    if (
-      previousType.current === 'INCOME' &&
-      selectedType !== 'INCOME' &&
-      watch('movementType') === 'INTEREST'
-    ) {
-      setValue('movementType', undefined);
-    }
-    previousType.current = selectedType;
-  }, [selectedType, setValue, watch]);
-
   const prevAccountIdRef = useRef<number | undefined>(selectedAccountId);
   useEffect(() => {
     if (selectedAccountId && selectedAccountId !== prevAccountIdRef.current) {
@@ -522,6 +629,7 @@ export function TransactionForm({
   }, [selectedAccountId, accounts, setValue]);
 
   const handleFormSubmit = (data: TransactionFormData) => {
+    if (investmentBlocked || linkedOperationError) return;
     if (
       splitMode &&
       (splits.length < 2 ||
@@ -573,7 +681,17 @@ export function TransactionForm({
     }
     onSubmit(
       buildTransactionRequest({
-        data,
+        data: {
+          ...data,
+          investment: investment
+            ? {
+                ...investment,
+                quantity: investment.pricing === 'QUANTITY' ? investment.quantity : undefined,
+              }
+            : transaction?.investmentQuantity != null
+              ? null
+              : undefined,
+        },
         transaction,
         splits,
         splitMode,
@@ -609,6 +727,7 @@ export function TransactionForm({
           <select
             id="transaction-type"
             {...register('type')}
+            onChange={event => changeTransactionType(event.target.value as TransactionType)}
             aria-required="true"
             aria-invalid={errors.type ? 'true' : 'false'}
             aria-describedby={errors.type ? 'transaction-type-error' : undefined}
@@ -860,6 +979,7 @@ export function TransactionForm({
               type="button"
               variant="ghost"
               size="sm"
+              disabled={isInvestmentOperation(linkedOperation)}
               className={`flex items-center gap-1.5 text-xs ${
                 splitMode
                   ? 'text-primary bg-primary/10 hover:bg-primary/20'
@@ -962,99 +1082,124 @@ export function TransactionForm({
         </div>
       )}
 
-      {selectedType === 'INCOME' &&
-        (selectedAccount?.isInterestEnabled || watch('movementType') === 'INTEREST') && (
-          <div className="flex items-center gap-2">
-            <input
-              id="interestCredit"
-              type="checkbox"
-              checked={watch('movementType') === 'INTEREST'}
-              onChange={event =>
-                setValue('movementType', event.target.checked ? 'INTEREST' : undefined, {
-                  shouldDirty: true,
-                })
-              }
-            />
-            <label htmlFor="interestCredit" className="text-sm text-text-secondary">
-              {t('form.interestCredit')}
+      <LinkedOperationSection
+        type={selectedType}
+        operation={linkedOperation}
+        options={operationChoices}
+        onChange={changeLinkedOperation}
+        open={isMovementOpen}
+        onOpenChange={setIsMovementOpen}
+        targetName={
+          investment ? (selectedHolding?.name ?? transaction?.assetName) : selectedLiability?.name
+        }
+        hasError={
+          hasMovementErrors ||
+          !!investmentError ||
+          !!linkedOperationError ||
+          !!historicalQuoteFailed
+        }
+        splitMode={splitMode}
+        disabled={isLoading}
+      >
+        {isInvestmentOperation(linkedOperation) && (
+          <InvestmentMovementFields
+            value={investment}
+            onChange={setInvestment}
+            operation={linkedOperation}
+            accountId={selectedAccountId}
+            assets={investmentAssets}
+            originalAssetName={transaction?.assetName}
+            quote={investmentQuote.data}
+            quoteLoading={!investmentQuote.isSaved && investmentQuote.isFetching}
+            quoteError={!investmentQuote.isSaved && investmentQuote.isError}
+            savedQuote={investmentQuote.isSaved}
+            error={investmentError}
+            disabled={isLoading}
+          />
+        )}
+        {linkedOperation === 'LOAN_PAYMENT' && (
+          <div className="space-y-1.5">
+            <label htmlFor="liabilityId" className="block text-sm font-medium text-text-secondary">
+              {t('linkedOperation.loan')}
             </label>
-            <HelpTooltip text={t('form.interestCreditHint')} />
+            <Controller
+              name="liabilityId"
+              control={control}
+              render={({ field }) => (
+                <LiabilitySelector
+                  id="liabilityId"
+                  value={field.value}
+                  disabled={isLoading}
+                  allowNone={false}
+                  onValueChange={value => {
+                    if (value !== field.value) {
+                      setValue('trancheId', undefined);
+                      setValue('principalAmount', undefined);
+                      setValue('movementType', undefined);
+                      setApplyRepaymentSplit(true);
+                    }
+                    field.onChange(value);
+                  }}
+                  placeholder={t('form.selectLiability')}
+                />
+              )}
+            />
+            {(errors.liabilityId || linkedOperationError) && (
+              <p className="text-sm text-error" role="alert">
+                {errors.liabilityId?.message ?? linkedOperationError}
+              </p>
+            )}
           </div>
         )}
-
-      {selectedType === 'EXPENSE' && (
-        <details
-          className="group border-t border-border/60"
-          open={isMovementOpen}
-          onToggle={event => setIsMovementOpen(event.currentTarget.open)}
-        >
-          <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 rounded-lg py-2 text-sm font-medium text-text-secondary hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary [&::-webkit-details-marker]:hidden">
-            {t('form.linkedLiabilityAndMovement')}
-            <ChevronDown
-              aria-hidden="true"
-              className="h-4 w-4 shrink-0 transition-transform duration-150 group-open:rotate-180 motion-reduce:transition-none"
-            />
-          </summary>
-          <div className="space-y-4 pt-3">
-            {liabilities.length > 0 && (
-              <div>
-                <div className="flex items-center gap-1 mb-1.5">
-                  <label
-                    htmlFor="liabilityId"
-                    className="block text-sm font-medium text-text-secondary"
-                  >
-                    {t('form.linkedLiability')}
-                  </label>
-                  <HelpTooltip text={t('form.linkedLiabilityHint')} side="right" />
-                </div>
-                <Controller
-                  name="liabilityId"
-                  control={control}
-                  render={({ field }) => (
-                    <LiabilitySelector
-                      value={field.value}
-                      onValueChange={field.onChange}
-                      placeholder={t('form.selectLiability')}
-                    />
-                  )}
-                />
-                {errors.liabilityId && (
-                  <p id="liabilityId-error" className="mt-1 text-sm text-error" role="alert">
-                    {errors.liabilityId.message}
-                  </p>
-                )}
-              </div>
-            )}
-
-            {/* A movement targets a property or asset; validation prevents combining it with a liability. */}
-            <MovementSection
-              movementType={
-                watch('movementType') === 'CAPITAL_IMPROVEMENT' ||
-                watch('movementType') === 'MAINTENANCE'
-                  ? (watch('movementType') as 'CAPITAL_IMPROVEMENT' | 'MAINTENANCE')
-                  : undefined
-              }
-              realEstateId={watch('realEstateId')}
-              assetId={watch('assetId')}
-              onMovementTypeChange={value => {
-                setValue('movementType', value, { shouldValidate: true });
-                if (!value) {
-                  setValue('realEstateId', undefined, { shouldValidate: true });
-                  setValue('assetId', undefined, { shouldValidate: true });
+        {(linkedOperation === 'MAINTENANCE' ||
+          linkedOperation === 'CAPITAL_IMPROVEMENT' ||
+          (linkedOperation === 'EXISTING' && (watch('realEstateId') || watch('assetId')))) && (
+          <MovementSection
+            realEstateId={watch('realEstateId')}
+            assetId={watch('assetId')}
+            onChange={target => {
+              setValue('realEstateId', target.realEstateId, { shouldDirty: true });
+              setValue('assetId', target.assetId, { shouldDirty: true });
+              void trigger(['movementType', 'realEstateId', 'assetId']);
+            }}
+            error={
+              errors.movementType?.message ??
+              errors.realEstateId?.message ??
+              errors.assetId?.message
+            }
+            disabled={isLoading || linkedOperation === 'EXISTING'}
+          />
+        )}
+        {linkedOperation === 'EXISTING' && watch('liabilityId') && (
+          <div className="space-y-1.5">
+            <p className="text-sm text-text-secondary">{t('linkedOperation.loan')}</p>
+            <LiabilitySelector value={watch('liabilityId')} onValueChange={() => {}} disabled />
+          </div>
+        )}
+        {(linkedOperation !== 'NONE' || selectedType === 'TRANSFER') && (
+          <div
+            className="space-y-3 border-t border-border/60 pt-3"
+            role="region"
+            aria-label={t('linkedOperation.effect')}
+          >
+            <p className="text-sm text-text-secondary">
+              {t(
+                selectedType === 'TRANSFER'
+                  ? linkedOperation === 'REMOVE'
+                    ? 'linkedOperation.effects.holdingTransfer'
+                    : 'linkedOperation.effects.cashTransfer'
+                  : `linkedOperation.effects.${linkedOperation}`,
+                {
+                  holding:
+                    selectedHolding?.name ??
+                    transaction?.assetName ??
+                    t('linkedOperation.selectedHolding'),
+                  destination:
+                    accounts.find(account => account.id === watch('toAccountId'))?.name ??
+                    t('linkedOperation.destinationAccount'),
                 }
-              }}
-              onRealEstateIdChange={value =>
-                setValue('realEstateId', value, { shouldValidate: true })
-              }
-              onAssetIdChange={value => setValue('assetId', value, { shouldValidate: true })}
-              errors={{
-                movementType: errors.movementType?.message,
-                realEstateId: errors.realEstateId?.message,
-                assetId: errors.assetId?.message,
-              }}
-              disabled={isLoading}
-            />
-
+              )}
+            </p>
             {/* Repayment auto-split preview (Task 5) — read-only breakdown of the repayment total,
            expressed in the LIABILITY currency (FX totals converted client-side since Task 9).
            When the Apply split toggle is on (default) the submit includes the preview legs as a
@@ -1139,8 +1284,8 @@ export function TransactionForm({
               </div>
             )}
           </div>
-        </details>
-      )}
+        )}
+      </LinkedOperationSection>
 
       {/* ── Zone 4: free text — description, tags, notes ──────────────────── */}
       <div aria-hidden="true" className="border-t border-border/60" />
@@ -1208,7 +1353,12 @@ export function TransactionForm({
         <Button variant="ghost" type="button" onClick={onCancel} disabled={isLoading}>
           {t('form.cancel')}
         </Button>
-        <Button variant="primary" type="submit" isLoading={isLoading}>
+        <Button
+          variant="primary"
+          type="submit"
+          isLoading={isLoading}
+          disabled={investmentBlocked || !!linkedOperationError}
+        >
           {isEditing ? t('form.updateTransaction') : t('form.createTransaction')}
         </Button>
       </div>

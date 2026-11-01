@@ -774,9 +774,26 @@ class SkroogeJsonImportFlowE2ETest {
         assertThat(transactionRepository.findById(purchase.getId()).orElseThrow().getAssetId())
                 .isEqualTo(purchase.getAssetId());
         edit.setAmount(purchase.getAmount().add(BigDecimal.ONE));
-        org.assertj.core.api.Assertions.assertThatThrownBy(
-                        () -> transactions.updateTransaction(purchase.getId(), userId, edit))
-                .isInstanceOf(org.openfinance.exception.InvalidTransactionException.class);
+        edit.setInvestment(
+                org.openfinance.dto.InvestmentMovementRequest.builder()
+                        .assetId(holdingId)
+                        .operation(org.openfinance.dto.InvestmentMovementRequest.Operation.BUY)
+                        .quantity(new BigDecimal("3"))
+                        .build());
+        transactions.updateTransaction(purchase.getId(), userId, edit);
+        assertThat(assets.findById(holdingId).orElseThrow().getQuantity())
+                .isEqualByComparingTo("2.5");
+        assertThat(accountRepository.findById(purchase.getAccountId()).orElseThrow().getBalance())
+                .isEqualByComparingTo("918");
+        importData("trades." + format, source.getBytes(StandardCharsets.UTF_8));
+        assertThat(assets.findById(holdingId).orElseThrow().getQuantity())
+                .isEqualByComparingTo("2.5");
+        assertThat(
+                        transactionRepository
+                                .findById(purchase.getId())
+                                .orElseThrow()
+                                .getInvestmentQuantity())
+                .isEqualByComparingTo("3");
     }
 
     @Test

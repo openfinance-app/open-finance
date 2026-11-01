@@ -184,7 +184,8 @@
     "moreDetails": "Notes & account (optional)",
     "accountHint": "Associates this item with an account. Saving the item does not create a payment.",
     "itemPurchasePrice": "Purchase price per item",
-    "itemCurrentValue": "Estimated value per item"
+    "itemCurrentValue": "Estimated value per item",
+    "investmentTracked": "Quantity, acquisition cost, purchase date and linked account come from the investment ledger. Edit the linked transactions to correct them. You can still update the current unit price here."
   },
   "types": {
     "STOCK": "Stock",

@@ -63,22 +63,27 @@ public final class HistoryDomainRegistry {
                     Map.entry(EntityType.IMPORT, "import_sessions"));
     public static final Map<String, String> REFERENCES =
             Map.ofEntries(
-                    Map.entry("user_id", "users"), Map.entry("account_id", "accounts"),
+                    Map.entry("user_id", "users"),
+                    Map.entry("account_id", "accounts"),
+                    Map.entry("investment_import_account_id", "accounts"),
                     Map.entry("represented_by_account_id", "accounts"),
-                            Map.entry("to_account_id", "accounts"),
+                    Map.entry("to_account_id", "accounts"),
                     Map.entry("institution_id", "institutions"),
-                            Map.entry("currency_id", "currencies"),
+                    Map.entry("currency_id", "currencies"),
                     Map.entry("category_id", "categories"),
-                            Map.entry("default_category_id", "categories"),
-                    Map.entry("parent_id", "categories"), Map.entry("asset_id", "assets"),
+                    Map.entry("default_category_id", "categories"),
+                    Map.entry("parent_id", "categories"),
+                    Map.entry("asset_id", "assets"),
                     Map.entry("liability_id", "liabilities"),
-                            Map.entry("mortgage_id", "liabilities"),
+                    Map.entry("mortgage_id", "liabilities"),
                     Map.entry("tranche_id", "liability_tranches"),
-                            Map.entry("source_tranche_id", "liability_tranches"),
+                    Map.entry("source_tranche_id", "liability_tranches"),
                     Map.entry("real_estate_id", "real_estate_properties"),
-                            Map.entry("property_id", "real_estate_properties"),
-                    Map.entry("budget_id", "budgets"), Map.entry("transaction_id", "transactions"),
-                    Map.entry("rule_id", "transaction_rules"), Map.entry("payee_id", "payees"));
+                    Map.entry("property_id", "real_estate_properties"),
+                    Map.entry("budget_id", "budgets"),
+                    Map.entry("transaction_id", "transactions"),
+                    Map.entry("rule_id", "transaction_rules"),
+                    Map.entry("payee_id", "payees"));
 
     public static String owned(String table) {
         String child = CHILDREN.get(table);

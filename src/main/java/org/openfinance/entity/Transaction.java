@@ -376,6 +376,34 @@ public class Transaction {
     @Builder.Default
     private boolean investmentCash = false;
 
+    /** Historical valuation in the holding's currency, preserved when rebuilding cost basis. */
+    @Column(name = "investment_value", length = 512)
+    @Convert(converter = EncryptedBigDecimalConverter.class)
+    private BigDecimal investmentValue;
+
+    @Column(name = "investment_price", length = 512)
+    @Convert(converter = EncryptedBigDecimalConverter.class)
+    private BigDecimal investmentPrice;
+
+    @Column(name = "investment_price_date")
+    private LocalDate investmentPriceDate;
+
+    @Column(name = "investment_price_source", length = 100)
+    private String investmentPriceSource;
+
+    /** Explicit corrections must not be overwritten by a repeated import of the original file. */
+    @Column(name = "investment_edited", nullable = false)
+    @Builder.Default
+    private boolean investmentEdited = false;
+
+    /** Original import identity survives a user's corrections to booking fields. */
+    @Column(name = "investment_import_identity", length = 512)
+    @Convert(converter = EncryptedStringConverter.class)
+    private String investmentImportIdentity;
+
+    @Column(name = "investment_import_account_id")
+    private Long investmentImportAccountId;
+
     /** Classification of the financial movement (e.g. DISBURSEMENT, REPAYMENT). */
     @Enumerated(EnumType.STRING)
     @Column(name = "movement_type", length = 30)

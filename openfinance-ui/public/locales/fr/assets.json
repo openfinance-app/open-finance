@@ -184,7 +184,8 @@
     "moreDetails": "Notes et compte (facultatif)",
     "accountHint": "Associe le bien à un compte. Enregistrer le bien ne crée pas de paiement.",
     "itemPurchasePrice": "Prix d’achat par objet",
-    "itemCurrentValue": "Valeur estimée par objet"
+    "itemCurrentValue": "Valeur estimée par objet",
+    "investmentTracked": "La quantité, le coût d’acquisition, la date d’achat et le compte lié proviennent des mouvements de placement. Modifiez les opérations liées pour les corriger. Le cours unitaire actuel reste modifiable ici."
   },
   "types": {
     "STOCK": "Action",

@@ -1242,6 +1242,16 @@ public class ImportService {
                                 ? List.of()
                                 : transactionRepository.findByAccountId(accountId)
                         : transactionRepository.findByUserId(userId);
+        if (importedAccounts.isEmpty() && accountId != null) {
+            existing =
+                    java.util.stream.Stream.concat(
+                                    existing.stream(),
+                                    transactionRepository
+                                            .findInvestmentCorrections(accountId, userId)
+                                            .stream())
+                            .distinct()
+                            .toList();
+        }
         Map<String, Integer> seenReferences = new HashMap<>();
         for (int index = 0; index < transactions.size(); index++) {
             ImportedTransaction tx = transactions.get(index);
@@ -1274,7 +1284,8 @@ public class ImportService {
             if (targetId == null)
                 continue; // A new/unselected account has no existing transactions.
             for (Transaction candidate : existing) {
-                if (targetId.equals(candidate.getAccountId())
+                if ((targetId.equals(candidate.getAccountId())
+                                || targetId.equals(candidate.getInvestmentImportAccountId()))
                         && ImportDuplicateMatcher.matches(
                                 tx, candidate, authoritative, exchangeRateService)) {
                     String message =

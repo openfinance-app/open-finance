@@ -1,0 +1,14 @@
+ALTER TABLE transactions ADD COLUMN investment_value VARCHAR(512);
+ALTER TABLE transactions ADD COLUMN investment_price VARCHAR(512);
+ALTER TABLE transactions ADD COLUMN investment_price_date DATE;
+ALTER TABLE transactions ADD COLUMN investment_price_source VARCHAR(100);
+ALTER TABLE transactions ADD COLUMN investment_edited BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE transactions ADD COLUMN investment_import_identity VARCHAR(512);
+ALTER TABLE transactions ADD COLUMN investment_import_account_id BIGINT;
+ALTER TABLE transactions_archive ADD COLUMN investment_value VARCHAR(512);
+ALTER TABLE transactions_archive ADD COLUMN investment_price VARCHAR(512);
+ALTER TABLE transactions_archive ADD COLUMN investment_price_date DATE;
+ALTER TABLE transactions_archive ADD COLUMN investment_price_source VARCHAR(100);
+ALTER TABLE transactions_archive ADD COLUMN investment_edited BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE transactions_archive ADD COLUMN investment_import_identity VARCHAR(512);
+ALTER TABLE transactions_archive ADD COLUMN investment_import_account_id BIGINT;

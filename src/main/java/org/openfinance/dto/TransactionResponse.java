@@ -184,8 +184,16 @@ public class TransactionResponse {
     /** Optional ID of the asset this transaction is associated with. */
     private Long assetId;
 
-    /** Signed units of an imported holding; amount retains its historical monetary value. */
+    /** Signed holding units; amount retains the movement's historical monetary value. */
     private BigDecimal investmentQuantity;
+
+    private boolean investmentCash;
+    private BigDecimal investmentValue;
+    private BigDecimal investmentPrice;
+    private java.time.LocalDate investmentPriceDate;
+    private String investmentPriceSource;
+    private String investmentCurrency;
+    private String assetName;
 
     /** Classification of the financial movement (e.g. DISBURSEMENT, REPAYMENT). */
     private MovementType movementType;

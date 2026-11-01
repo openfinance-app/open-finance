@@ -882,7 +882,8 @@ public class NetWorthService {
                         continue;
                     }
                     BigDecimal costBasis = asset.getPurchasePrice().multiply(asset.getQuantity());
-                    if (asset.getImportSource() != null) {
+                    if (asset.getImportSource() != null
+                            || asset.getImportOpeningQuantity() != null) {
                         costBasis =
                                 org.openfinance.util.InvestmentHoldings.at(
                                                 asset, allTransactions, targetDate)

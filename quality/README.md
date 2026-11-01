@@ -32,6 +32,14 @@ Run `mvn compile spotbugs:check`. A new identity fails the check. Review it agai
 source and fix real defects; do not regenerate this file from current output just
 to make CI pass.
 
+The investment movement editor reviewed 23 exact constructor identities after a
+clean Java 21 build. Twenty-one retain the same already-baselined DTO collections,
+JPA associations and Spring collaborators under changed constructor signatures.
+Two are the transaction repository and exchange-rate service injected into
+`InvestmentMovementServiceImpl`; retaining their Spring-managed instances is
+required for transactional behavior. The new investment request is immutable.
+No package-wide or bug-type-wide exception was added.
+
 The asset-price refresh correction reviewed two exact `MarketDataScheduler` constructor
 identities. One is the already-baselined scheduler configuration under its new constructor
 signature; the other is the encryption configuration shared with the request filters and

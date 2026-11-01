@@ -29,10 +29,10 @@ public class InvalidTransactionException extends RuntimeException implements Loc
     private final String messageKey;
     private final Object[] messageArgs;
 
-    private InvalidTransactionException(String message, String messageKey) {
+    private InvalidTransactionException(String message, String messageKey, Object... messageArgs) {
         super(message);
         this.messageKey = messageKey;
-        this.messageArgs = new Object[0];
+        this.messageArgs = messageArgs.clone();
     }
 
     public static InvalidTransactionException metadataCategoryRequiresIndividualEdit() {
@@ -44,6 +44,11 @@ public class InvalidTransactionException extends RuntimeException implements Loc
     public static InvalidTransactionException metadataRequiresPhysicalAsset() {
         return new InvalidTransactionException(
                 "Brand and model apply only to physical assets", "error.metadata.asset.physical");
+    }
+
+    public static InvalidTransactionException investment(
+            String key, String message, Object... args) {
+        return new InvalidTransactionException(message, "error.investment." + key, args);
     }
 
     /**
@@ -214,6 +219,6 @@ public class InvalidTransactionException extends RuntimeException implements Loc
 
     @Override
     public Object[] getMessageArgs() {
-        return messageArgs;
+        return messageArgs.clone();
     }
 }

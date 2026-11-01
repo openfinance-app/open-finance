@@ -174,6 +174,22 @@ describe('TransactionList', () => {
     } as ReturnType<typeof usePayeesModule.useActivePayees>);
   });
 
+  it('includes the linked-operation hint in a transaction card', () => {
+    renderList({
+      transactions: [
+        {
+          ...mockRegularTransaction,
+          assetId: 8,
+          assetName: 'Bitcoin',
+          investmentQuantity: -0.006,
+          investmentCash: false,
+          transferId: 'transfer-1',
+        },
+      ],
+    });
+    expect(screen.getByText('Holding-funded transfer · Bitcoin')).toBeInTheDocument();
+  });
+
   describe('Split Transaction Display', () => {
     it('shows "Split" badge for transactions with hasSplits=true', () => {
       renderList();

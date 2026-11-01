@@ -30,6 +30,13 @@ public final class ImportDuplicateMatcher {
                 && existing.getType() != TransactionType.EXPENSE) {
             return false;
         }
+        if (existing.getInvestmentImportIdentity() != null
+                && existing.getInvestmentImportIdentity()
+                        .equals(
+                                investmentIdentity(
+                                        imported,
+                                        existing.getInvestmentImportIdentity().split(":", 2)[0])))
+            return true;
         if ((imported.getAmount().signum() >= 0)
                 != (existing.getType() == TransactionType.INCOME)) {
             return false;
@@ -44,6 +51,70 @@ public final class ImportDuplicateMatcher {
                         ? imported.getOriginalPayee()
                         : imported.getPayee();
         return isPayeeSimilar(payee, existing.getDescription());
+    }
+
+    /** Stable source fields for investment corrections, before any form edits or FX changes. */
+    public static String investmentIdentity(Transaction existing) {
+        boolean original =
+                existing.getOriginalAmount() != null && existing.getOriginalCurrency() != null;
+        BigDecimal amount = original ? existing.getOriginalAmount() : existing.getAmount();
+        return identity(
+                existing.getDate().toString(),
+                existing.getType() == TransactionType.INCOME,
+                amount,
+                original ? existing.getOriginalCurrency() : existing.getCurrency(),
+                existing.getDescription());
+    }
+
+    private static String investmentIdentity(
+            ImportedTransaction imported, String fallbackCurrency) {
+        String description =
+                imported.getOriginalPayee() == null
+                        ? imported.getPayee()
+                        : imported.getOriginalPayee();
+        return identity(
+                imported.getTransactionDate().toString(),
+                imported.getAmount().signum() >= 0,
+                imported.getAmount(),
+                imported.getCurrency() == null || imported.getCurrency().isBlank()
+                        ? fallbackCurrency
+                        : imported.getCurrency(),
+                description);
+    }
+
+    private static String identity(
+            String date, boolean income, BigDecimal amount, String currency, String description) {
+        String normalized =
+                description == null
+                        ? ""
+                        : description
+                                .substring(0, Math.min(description.length(), 255))
+                                .toLowerCase(java.util.Locale.ROOT)
+                                .trim()
+                                .replaceAll("\\s+", " ");
+        String source =
+                date
+                        + "\n"
+                        + income
+                        + "\n"
+                        + amount.abs().stripTrailingZeros().toPlainString()
+                        + "\n"
+                        + (currency == null ? "" : currency.toUpperCase(java.util.Locale.ROOT))
+                        + "\n"
+                        + normalized;
+        try {
+            return (currency == null ? "" : currency.toUpperCase(java.util.Locale.ROOT))
+                    + ":"
+                    + java.util.HexFormat.of()
+                            .formatHex(
+                                    java.security.MessageDigest.getInstance("SHA-256")
+                                            .digest(
+                                                    source.getBytes(
+                                                            java.nio.charset.StandardCharsets
+                                                                    .UTF_8)));
+        } catch (java.security.NoSuchAlgorithmException ex) {
+            throw new IllegalStateException(ex);
+        }
     }
 
     private static boolean matchesDuplicateAmount(

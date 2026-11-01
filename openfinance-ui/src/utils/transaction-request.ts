@@ -327,6 +327,7 @@ export function buildTransactionRequest(ctx: SubmitContext): TransactionRequest 
   const carriesLoan =
     data.type === 'EXPENSE' || (data.type === 'INCOME' && data.movementType === 'DISBURSEMENT');
   const request: TransactionRequest = {
+    investment: data.investment,
     accountId: data.accountId,
     toAccountId: data.toAccountId,
     type: data.type,
@@ -422,7 +423,12 @@ function hasUnchangedBooking(ctx: SubmitContext, transaction: Transaction): bool
   const initialSplits = reconstructInitialSplits(transaction);
   return (
     !ctx.applyRepaymentSplit &&
-    fields.every(field => (data[field] ?? null) === (transaction[field] ?? null)) &&
+    fields.every(
+      field =>
+        ((field === 'assetId' && transaction.investmentQuantity != null
+          ? data.investment?.assetId
+          : data[field]) ?? null) === (transaction[field] ?? null)
+    ) &&
     (savingsClassificationOnly ||
       (data.movementType ?? null) === (transaction.movementType ?? null)) &&
     data.type === (transaction.transferId ? 'TRANSFER' : transaction.type) &&

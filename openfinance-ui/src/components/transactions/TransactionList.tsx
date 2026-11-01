@@ -31,6 +31,7 @@ import {
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { TransactionAmount } from '@/components/transactions/TransactionAmount';
+import { LinkedOperationHint } from '@/components/transactions/LinkedOperationHint';
 import { groupByDate } from '@/utils/date';
 import type { Transaction } from '@/types/transaction';
 import type { PaymentMethod } from '@/types/transaction';
@@ -456,6 +457,8 @@ function TransactionItem({
               </>
             )}
         </div>
+
+        <LinkedOperationHint transaction={transaction} />
 
         {/* Tags */}
         {(() => {

@@ -5,7 +5,7 @@
  * close button, backdrop click, Escape key, Edit button,
  * tags, notes, status badges, account link navigation.
  */
-import { screen, fireEvent } from '@testing-library/react';
+import { screen, fireEvent, within } from '@testing-library/react';
 import { vi, describe, it, expect, beforeEach } from 'vitest';
 import { act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -130,6 +130,45 @@ describe('TransactionDetailModal', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+  });
+
+  it('includes the linked operation in the existing Details fields without an extra section', () => {
+    renderWithProviders(
+      <TransactionDetailModal
+        transaction={{ ...baseTransaction, type: 'INCOME', movementType: 'INTEREST' }}
+        onClose={onClose}
+      />
+    );
+    const details = screen.getByRole('heading', { name: 'Details' }).parentElement!;
+    expect(within(details).getByText('Interest received')).toBeInTheDocument();
+    expect(within(details).getByText('Operation').closest('dl')).toContainElement(
+      screen.getByText('Interest received')
+    );
+    expect(details.querySelector('dl')?.lastElementChild).toBe(
+      screen.getByText('Operation').parentElement
+    );
+    expect(screen.queryByRole('heading', { name: 'Linked operation' })).not.toBeInTheDocument();
+    expect(screen.queryByText(/Cash increases and the payment/)).not.toBeInTheDocument();
+  });
+
+  it.each([
+    ['EXPENSE', 'To Account'],
+    ['INCOME', 'From Account'],
+  ] as const)('keeps the other account visible on a transfer %s', (type, label) => {
+    renderWithProviders(
+      <TransactionDetailModal
+        transaction={{
+          ...baseTransaction,
+          type,
+          transferId: 'paired-transfer',
+          toAccountName: 'Other account',
+        }}
+        onClose={onClose}
+      />
+    );
+    const details = screen.getByRole('heading', { name: 'Details' }).parentElement!;
+    expect(within(details).getByText(label)).toBeInTheDocument();
+    expect(within(details).getByText('Other account')).toBeInTheDocument();
   });
 
   // ── Rendering ──────────────────────────────────────────────────────────────

@@ -44,6 +44,7 @@ export interface AssetFilters {
 }
 
 export interface Asset {
+  investmentTracked?: boolean;
   exactValues?: Record<string, string>;
   /** False for the retained backing asset of an inactive property. */
   isActive?: boolean;

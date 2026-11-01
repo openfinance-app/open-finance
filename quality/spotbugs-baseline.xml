@@ -25533,4 +25533,602 @@
       <Message>At MetadataUpdateController.java:[line 28]</Message>
     </SourceLine>
   </BugInstance>
+  <BugInstance instanceOccurrenceNum="0" instanceHash="f50bae88dbd00140ec66a5be4bc145da" cweid="374" rank="18" abbrev="EI2" category="MALICIOUS_CODE" priority="2" type="EI_EXPOSE_REP2" instanceOccurrenceMax="0">
+    <ShortMessage>May expose internal representation by incorporating reference to mutable object</ShortMessage>
+    <LongMessage>new org.openfinance.dto.TransactionRequest(InvestmentMovementRequest, boolean, Long, Long, TransactionType, BigDecimal, String, BigDecimal, String, BigDecimal, Long, LocalDate, String, String, String, String, PaymentMethod, Boolean, Long, Long, Long, Long, MovementType, BigDecimal, List) may expose internal representation by storing an externally mutable object into TransactionRequest.splits</LongMessage>
+    <Class classname="org.openfinance.dto.TransactionRequest" primary="true">
+      <SourceLine classname="org.openfinance.dto.TransactionRequest" start="36" end="304" sourcepath="org/openfinance/dto/TransactionRequest.java" sourcefile="TransactionRequest.java">
+        <Message>At TransactionRequest.java:[lines 36-304]</Message>
+      </SourceLine>
+      <Message>In class org.openfinance.dto.TransactionRequest</Message>
+    </Class>
+    <Method isStatic="false" classname="org.openfinance.dto.TransactionRequest" signature="(Lorg/openfinance/dto/InvestmentMovementRequest;ZLjava/lang/Long;Ljava/lang/Long;Lorg/openfinance/entity/TransactionType;Ljava/math/BigDecimal;Ljava/lang/String;Ljava/math/BigDecimal;Ljava/lang/String;Ljava/math/BigDecimal;Ljava/lang/Long;Ljava/time/LocalDate;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Lorg/openfinance/entity/PaymentMethod;Ljava/lang/Boolean;Ljava/lang/Long;Ljava/lang/Long;Ljava/lang/Long;Ljava/lang/Long;Lorg/openfinance/entity/MovementType;Ljava/math/BigDecimal;Ljava/util/List;)V" name="&lt;init&gt;" primary="true">
+      <SourceLine endBytecode="461" classname="org.openfinance.dto.TransactionRequest" start="39" end="39" sourcepath="org/openfinance/dto/TransactionRequest.java" sourcefile="TransactionRequest.java" startBytecode="0" />
+      <Message>In method new org.openfinance.dto.TransactionRequest(InvestmentMovementRequest, boolean, Long, Long, TransactionType, BigDecimal, String, BigDecimal, String, BigDecimal, Long, LocalDate, String, String, String, String, PaymentMethod, Boolean, Long, Long, Long, Long, MovementType, BigDecimal, List)</Message>
+    </Method>
+    <Field isStatic="false" classname="org.openfinance.dto.TransactionRequest" signature="Ljava/util/List;" name="splits" primary="true">
+      <SourceLine classname="org.openfinance.dto.TransactionRequest" sourcepath="org/openfinance/dto/TransactionRequest.java" sourcefile="TransactionRequest.java">
+        <Message>In TransactionRequest.java</Message>
+      </SourceLine>
+      <Message>Field org.openfinance.dto.TransactionRequest.splits</Message>
+    </Field>
+    <LocalVariable role="LOCAL_VARIABLE_NAMED" pc="148" name="splits" register="25">
+      <Message>Local variable named splits</Message>
+    </LocalVariable>
+    <SourceLine endBytecode="148" classname="org.openfinance.dto.TransactionRequest" start="39" end="39" sourcepath="org/openfinance/dto/TransactionRequest.java" sourcefile="TransactionRequest.java" startBytecode="148" primary="true">
+      <Message>At TransactionRequest.java:[line 39]</Message>
+    </SourceLine>
+  </BugInstance>
+  <BugInstance instanceOccurrenceNum="0" instanceHash="6b1e74ce5aa949ed669d40de857bdc9e" cweid="374" rank="18" abbrev="EI2" category="MALICIOUS_CODE" priority="2" type="EI_EXPOSE_REP2" instanceOccurrenceMax="0">
+    <ShortMessage>May expose internal representation by incorporating reference to mutable object</ShortMessage>
+    <LongMessage>new org.openfinance.dto.TransactionResponse(Long, Long, String, Long, String, TransactionType, BigDecimal, BigDecimal, String, String, Long, BigDecimal, String, BigDecimal, Long, String, String, String, LocalDate, String, String, String, String, Long, PaymentMethod, String, BigDecimal, String, Long, Long, Long, Long, BigDecimal, boolean, BigDecimal, BigDecimal, LocalDate, String, String, String, MovementType, BigDecimal, List, Boolean, Boolean, LocalDateTime, LocalDateTime, Boolean, List, BigDecimal, String, BigDecimal, Boolean) may expose internal representation by storing an externally mutable object into TransactionResponse.principalAllocations</LongMessage>
+    <Class classname="org.openfinance.dto.TransactionResponse" primary="true">
+      <SourceLine classname="org.openfinance.dto.TransactionResponse" start="28" end="290" sourcepath="org/openfinance/dto/TransactionResponse.java" sourcefile="TransactionResponse.java">
+        <Message>At TransactionResponse.java:[lines 28-290]</Message>
+      </SourceLine>
+      <Message>In class org.openfinance.dto.TransactionResponse</Message>
+    </Class>
+    <Method isStatic="false" classname="org.openfinance.dto.TransactionResponse" signature="(Ljava/lang/Long;Ljava/lang/Long;Ljava/lang/String;Ljava/lang/Long;Ljava/lang/String;Lorg/openfinance/entity/TransactionType;Ljava/math/BigDecimal;Ljava/math/BigDecimal;Ljava/lang/String;Ljava/lang/String;Ljava/lang/Long;Ljava/math/BigDecimal;Ljava/lang/String;Ljava/math/BigDecimal;Ljava/lang/Long;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/time/LocalDate;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/Long;Lorg/openfinance/entity/PaymentMethod;Ljava/lang/String;Ljava/math/BigDecimal;Ljava/lang/String;Ljava/lang/Long;Ljava/lang/Long;Ljava/lang/Long;Ljava/lang/Long;Ljava/math/BigDecimal;ZLjava/math/BigDecimal;Ljava/math/BigDecimal;Ljava/time/LocalDate;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Lorg/openfinance/entity/MovementType;Ljava/math/BigDecimal;Ljava/util/List;Ljava/lang/Boolean;Ljava/lang/Boolean;Ljava/time/LocalDateTime;Ljava/time/LocalDateTime;Ljava/lang/Boolean;Ljava/util/List;Ljava/math/BigDecimal;Ljava/lang/String;Ljava/math/BigDecimal;Ljava/lang/Boolean;)V" name="&lt;init&gt;" primary="true">
+      <SourceLine endBytecode="919" classname="org.openfinance.dto.TransactionResponse" start="31" end="31" sourcepath="org/openfinance/dto/TransactionResponse.java" sourcefile="TransactionResponse.java" startBytecode="0" />
+      <Message>In method new org.openfinance.dto.TransactionResponse(Long, Long, String, Long, String, TransactionType, BigDecimal, BigDecimal, String, String, Long, BigDecimal, String, BigDecimal, Long, String, String, String, LocalDate, String, String, String, String, Long, PaymentMethod, String, BigDecimal, String, Long, Long, Long, Long, BigDecimal, boolean, BigDecimal, BigDecimal, LocalDate, String, String, String, MovementType, BigDecimal, List, Boolean, Boolean, LocalDateTime, LocalDateTime, Boolean, List, BigDecimal, String, BigDecimal, Boolean)</Message>
+    </Method>
+    <Field isStatic="false" classname="org.openfinance.dto.TransactionResponse" signature="Ljava/util/List;" name="principalAllocations" primary="true">
+      <SourceLine classname="org.openfinance.dto.TransactionResponse" sourcepath="org/openfinance/dto/TransactionResponse.java" sourcefile="TransactionResponse.java">
+        <Message>In TransactionResponse.java</Message>
+      </SourceLine>
+      <Message>Field org.openfinance.dto.TransactionResponse.principalAllocations</Message>
+    </Field>
+    <LocalVariable role="LOCAL_VARIABLE_NAMED" pc="256" name="principalAllocations" register="43">
+      <Message>Local variable named principalAllocations</Message>
+    </LocalVariable>
+    <SourceLine endBytecode="256" classname="org.openfinance.dto.TransactionResponse" start="31" end="31" sourcepath="org/openfinance/dto/TransactionResponse.java" sourcefile="TransactionResponse.java" startBytecode="256" primary="true">
+      <Message>At TransactionResponse.java:[line 31]</Message>
+    </SourceLine>
+  </BugInstance>
+  <BugInstance instanceOccurrenceNum="0" instanceHash="e31442a944adc8d4fa86f310d2df06dc" cweid="374" rank="18" abbrev="EI2" category="MALICIOUS_CODE" priority="2" type="EI_EXPOSE_REP2" instanceOccurrenceMax="0">
+    <ShortMessage>May expose internal representation by incorporating reference to mutable object</ShortMessage>
+    <LongMessage>new org.openfinance.dto.TransactionResponse(Long, Long, String, Long, String, TransactionType, BigDecimal, BigDecimal, String, String, Long, BigDecimal, String, BigDecimal, Long, String, String, String, LocalDate, String, String, String, String, Long, PaymentMethod, String, BigDecimal, String, Long, Long, Long, Long, BigDecimal, boolean, BigDecimal, BigDecimal, LocalDate, String, String, String, MovementType, BigDecimal, List, Boolean, Boolean, LocalDateTime, LocalDateTime, Boolean, List, BigDecimal, String, BigDecimal, Boolean) may expose internal representation by storing an externally mutable object into TransactionResponse.splits</LongMessage>
+    <Class classname="org.openfinance.dto.TransactionResponse" primary="true">
+      <SourceLine classname="org.openfinance.dto.TransactionResponse" start="28" end="290" sourcepath="org/openfinance/dto/TransactionResponse.java" sourcefile="TransactionResponse.java">
+        <Message>At TransactionResponse.java:[lines 28-290]</Message>
+      </SourceLine>
+      <Message>In class org.openfinance.dto.TransactionResponse</Message>
+    </Class>
+    <Method isStatic="false" classname="org.openfinance.dto.TransactionResponse" signature="(Ljava/lang/Long;Ljava/lang/Long;Ljava/lang/String;Ljava/lang/Long;Ljava/lang/String;Lorg/openfinance/entity/TransactionType;Ljava/math/BigDecimal;Ljava/math/BigDecimal;Ljava/lang/String;Ljava/lang/String;Ljava/lang/Long;Ljava/math/BigDecimal;Ljava/lang/String;Ljava/math/BigDecimal;Ljava/lang/Long;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/time/LocalDate;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/Long;Lorg/openfinance/entity/PaymentMethod;Ljava/lang/String;Ljava/math/BigDecimal;Ljava/lang/String;Ljava/lang/Long;Ljava/lang/Long;Ljava/lang/Long;Ljava/lang/Long;Ljava/math/BigDecimal;ZLjava/math/BigDecimal;Ljava/math/BigDecimal;Ljava/time/LocalDate;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Lorg/openfinance/entity/MovementType;Ljava/math/BigDecimal;Ljava/util/List;Ljava/lang/Boolean;Ljava/lang/Boolean;Ljava/time/LocalDateTime;Ljava/time/LocalDateTime;Ljava/lang/Boolean;Ljava/util/List;Ljava/math/BigDecimal;Ljava/lang/String;Ljava/math/BigDecimal;Ljava/lang/Boolean;)V" name="&lt;init&gt;" primary="true">
+      <SourceLine endBytecode="919" classname="org.openfinance.dto.TransactionResponse" start="31" end="31" sourcepath="org/openfinance/dto/TransactionResponse.java" sourcefile="TransactionResponse.java" startBytecode="0" />
+      <Message>In method new org.openfinance.dto.TransactionResponse(Long, Long, String, Long, String, TransactionType, BigDecimal, BigDecimal, String, String, Long, BigDecimal, String, BigDecimal, Long, String, String, String, LocalDate, String, String, String, String, Long, PaymentMethod, String, BigDecimal, String, Long, Long, Long, Long, BigDecimal, boolean, BigDecimal, BigDecimal, LocalDate, String, String, String, MovementType, BigDecimal, List, Boolean, Boolean, LocalDateTime, LocalDateTime, Boolean, List, BigDecimal, String, BigDecimal, Boolean)</Message>
+    </Method>
+    <Field isStatic="false" classname="org.openfinance.dto.TransactionResponse" signature="Ljava/util/List;" name="splits" primary="true">
+      <SourceLine classname="org.openfinance.dto.TransactionResponse" sourcepath="org/openfinance/dto/TransactionResponse.java" sourcefile="TransactionResponse.java">
+        <Message>In TransactionResponse.java</Message>
+      </SourceLine>
+      <Message>Field org.openfinance.dto.TransactionResponse.splits</Message>
+    </Field>
+    <LocalVariable role="LOCAL_VARIABLE_NAMED" pc="292" name="splits" register="49">
+      <Message>Local variable named splits</Message>
+    </LocalVariable>
+    <SourceLine endBytecode="292" classname="org.openfinance.dto.TransactionResponse" start="31" end="31" sourcepath="org/openfinance/dto/TransactionResponse.java" sourcefile="TransactionResponse.java" startBytecode="292" primary="true">
+      <Message>At TransactionResponse.java:[line 31]</Message>
+    </SourceLine>
+  </BugInstance>
+  <BugInstance instanceOccurrenceNum="0" instanceHash="4017a0566cec1e8c9b901747b079bd51" cweid="374" rank="18" abbrev="EI2" category="MALICIOUS_CODE" priority="2" type="EI_EXPOSE_REP2" instanceOccurrenceMax="0">
+    <ShortMessage>May expose internal representation by incorporating reference to mutable object</ShortMessage>
+    <LongMessage>new org.openfinance.entity.Transaction(Long, Long, Long, Account, Long, Account, TransactionType, BigDecimal, BigDecimal, String, String, Long, Currency, BigDecimal, String, BigDecimal, Long, Category, LocalDate, String, String, String, String, Long, Payee, PaymentMethod, Long, Long, Long, Long, BigDecimal, boolean, BigDecimal, BigDecimal, LocalDate, String, boolean, String, Long, MovementType, BigDecimal, String, String, Boolean, Boolean, LocalDateTime, LocalDateTime) may expose internal representation by storing an externally mutable object into Transaction.account</LongMessage>
+    <Class classname="org.openfinance.entity.Transaction" classAnnotationNames="jakarta.persistence.Entity,jakarta.persistence.Table" primary="true">
+      <SourceLine classname="org.openfinance.entity.Transaction" start="59" end="520" sourcepath="org/openfinance/entity/Transaction.java" sourcefile="Transaction.java">
+        <Message>At Transaction.java:[lines 59-520]</Message>
+      </SourceLine>
+      <Message>In class org.openfinance.entity.Transaction</Message>
+    </Class>
+    <Method isStatic="false" classname="org.openfinance.entity.Transaction" signature="(Ljava/lang/Long;Ljava/lang/Long;Ljava/lang/Long;Lorg/openfinance/entity/Account;Ljava/lang/Long;Lorg/openfinance/entity/Account;Lorg/openfinance/entity/TransactionType;Ljava/math/BigDecimal;Ljava/math/BigDecimal;Ljava/lang/String;Ljava/lang/String;Ljava/lang/Long;Lorg/openfinance/entity/Currency;Ljava/math/BigDecimal;Ljava/lang/String;Ljava/math/BigDecimal;Ljava/lang/Long;Lorg/openfinance/entity/Category;Ljava/time/LocalDate;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/Long;Lorg/openfinance/entity/Payee;Lorg/openfinance/entity/PaymentMethod;Ljava/lang/Long;Ljava/lang/Long;Ljava/lang/Long;Ljava/lang/Long;Ljava/math/BigDecimal;ZLjava/math/BigDecimal;Ljava/math/BigDecimal;Ljava/time/LocalDate;Ljava/lang/String;ZLjava/lang/String;Ljava/lang/Long;Lorg/openfinance/entity/MovementType;Ljava/math/BigDecimal;Ljava/lang/String;Ljava/lang/String;Ljava/lang/Boolean;Ljava/lang/Boolean;Ljava/time/LocalDateTime;Ljava/time/LocalDateTime;)V" name="&lt;init&gt;" classAnnotationNames="jakarta.persistence.Entity,jakarta.persistence.Table" primary="true">
+      <SourceLine endBytecode="795" classname="org.openfinance.entity.Transaction" start="62" end="62" sourcepath="org/openfinance/entity/Transaction.java" sourcefile="Transaction.java" startBytecode="0" />
+      <Message>In method new org.openfinance.entity.Transaction(Long, Long, Long, Account, Long, Account, TransactionType, BigDecimal, BigDecimal, String, String, Long, Currency, BigDecimal, String, BigDecimal, Long, Category, LocalDate, String, String, String, String, Long, Payee, PaymentMethod, Long, Long, Long, Long, BigDecimal, boolean, BigDecimal, BigDecimal, LocalDate, String, boolean, String, Long, MovementType, BigDecimal, String, String, Boolean, Boolean, LocalDateTime, LocalDateTime)</Message>
+    </Method>
+    <Field isStatic="false" classname="org.openfinance.entity.Transaction" signature="Lorg/openfinance/entity/Account;" name="account" classAnnotationNames="jakarta.persistence.Entity,jakarta.persistence.Table" primary="true">
+      <SourceLine classname="org.openfinance.entity.Transaction" sourcepath="org/openfinance/entity/Transaction.java" sourcefile="Transaction.java">
+        <Message>In Transaction.java</Message>
+      </SourceLine>
+      <Message>Field org.openfinance.entity.Transaction.account</Message>
+    </Field>
+    <LocalVariable role="LOCAL_VARIABLE_NAMED" pc="22" name="account" register="4">
+      <Message>Local variable named account</Message>
+    </LocalVariable>
+    <SourceLine endBytecode="22" classname="org.openfinance.entity.Transaction" start="62" end="62" sourcepath="org/openfinance/entity/Transaction.java" sourcefile="Transaction.java" startBytecode="22" primary="true">
+      <Message>At Transaction.java:[line 62]</Message>
+    </SourceLine>
+  </BugInstance>
+  <BugInstance instanceOccurrenceNum="0" instanceHash="acdbc4691690c641486adde01e4c4218" cweid="374" rank="18" abbrev="EI2" category="MALICIOUS_CODE" priority="2" type="EI_EXPOSE_REP2" instanceOccurrenceMax="0">
+    <ShortMessage>May expose internal representation by incorporating reference to mutable object</ShortMessage>
+    <LongMessage>new org.openfinance.entity.Transaction(Long, Long, Long, Account, Long, Account, TransactionType, BigDecimal, BigDecimal, String, String, Long, Currency, BigDecimal, String, BigDecimal, Long, Category, LocalDate, String, String, String, String, Long, Payee, PaymentMethod, Long, Long, Long, Long, BigDecimal, boolean, BigDecimal, BigDecimal, LocalDate, String, boolean, String, Long, MovementType, BigDecimal, String, String, Boolean, Boolean, LocalDateTime, LocalDateTime) may expose internal representation by storing an externally mutable object into Transaction.category</LongMessage>
+    <Class classname="org.openfinance.entity.Transaction" classAnnotationNames="jakarta.persistence.Entity,jakarta.persistence.Table" primary="true">
+      <SourceLine classname="org.openfinance.entity.Transaction" start="59" end="520" sourcepath="org/openfinance/entity/Transaction.java" sourcefile="Transaction.java">
+        <Message>At Transaction.java:[lines 59-520]</Message>
+      </SourceLine>
+      <Message>In class org.openfinance.entity.Transaction</Message>
+    </Class>
+    <Method isStatic="false" classname="org.openfinance.entity.Transaction" signature="(Ljava/lang/Long;Ljava/lang/Long;Ljava/lang/Long;Lorg/openfinance/entity/Account;Ljava/lang/Long;Lorg/openfinance/entity/Account;Lorg/openfinance/entity/TransactionType;Ljava/math/BigDecimal;Ljava/math/BigDecimal;Ljava/lang/String;Ljava/lang/String;Ljava/lang/Long;Lorg/openfinance/entity/Currency;Ljava/math/BigDecimal;Ljava/lang/String;Ljava/math/BigDecimal;Ljava/lang/Long;Lorg/openfinance/entity/Category;Ljava/time/LocalDate;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/Long;Lorg/openfinance/entity/Payee;Lorg/openfinance/entity/PaymentMethod;Ljava/lang/Long;Ljava/lang/Long;Ljava/lang/Long;Ljava/lang/Long;Ljava/math/BigDecimal;ZLjava/math/BigDecimal;Ljava/math/BigDecimal;Ljava/time/LocalDate;Ljava/lang/String;ZLjava/lang/String;Ljava/lang/Long;Lorg/openfinance/entity/MovementType;Ljava/math/BigDecimal;Ljava/lang/String;Ljava/lang/String;Ljava/lang/Boolean;Ljava/lang/Boolean;Ljava/time/LocalDateTime;Ljava/time/LocalDateTime;)V" name="&lt;init&gt;" classAnnotationNames="jakarta.persistence.Entity,jakarta.persistence.Table" primary="true">
+      <SourceLine endBytecode="795" classname="org.openfinance.entity.Transaction" start="62" end="62" sourcepath="org/openfinance/entity/Transaction.java" sourcefile="Transaction.java" startBytecode="0" />
+      <Message>In method new org.openfinance.entity.Transaction(Long, Long, Long, Account, Long, Account, TransactionType, BigDecimal, BigDecimal, String, String, Long, Currency, BigDecimal, String, BigDecimal, Long, Category, LocalDate, String, String, String, String, Long, Payee, PaymentMethod, Long, Long, Long, Long, BigDecimal, boolean, BigDecimal, BigDecimal, LocalDate, String, boolean, String, Long, MovementType, BigDecimal, String, String, Boolean, Boolean, LocalDateTime, LocalDateTime)</Message>
+    </Method>
+    <Field isStatic="false" classname="org.openfinance.entity.Transaction" signature="Lorg/openfinance/entity/Category;" name="category" classAnnotationNames="jakarta.persistence.Entity,jakarta.persistence.Table" primary="true">
+      <SourceLine classname="org.openfinance.entity.Transaction" sourcepath="org/openfinance/entity/Transaction.java" sourcefile="Transaction.java">
+        <Message>In Transaction.java</Message>
+      </SourceLine>
+      <Message>Field org.openfinance.entity.Transaction.category</Message>
+    </Field>
+    <LocalVariable role="LOCAL_VARIABLE_NAMED" pc="106" name="category" register="18">
+      <Message>Local variable named category</Message>
+    </LocalVariable>
+    <SourceLine endBytecode="106" classname="org.openfinance.entity.Transaction" start="62" end="62" sourcepath="org/openfinance/entity/Transaction.java" sourcefile="Transaction.java" startBytecode="106" primary="true">
+      <Message>At Transaction.java:[line 62]</Message>
+    </SourceLine>
+  </BugInstance>
+  <BugInstance instanceOccurrenceNum="0" instanceHash="2768f7fe0570a620fe5e380aa2535e34" cweid="374" rank="18" abbrev="EI2" category="MALICIOUS_CODE" priority="2" type="EI_EXPOSE_REP2" instanceOccurrenceMax="0">
+    <ShortMessage>May expose internal representation by incorporating reference to mutable object</ShortMessage>
+    <LongMessage>new org.openfinance.entity.Transaction(Long, Long, Long, Account, Long, Account, TransactionType, BigDecimal, BigDecimal, String, String, Long, Currency, BigDecimal, String, BigDecimal, Long, Category, LocalDate, String, String, String, String, Long, Payee, PaymentMethod, Long, Long, Long, Long, BigDecimal, boolean, BigDecimal, BigDecimal, LocalDate, String, boolean, String, Long, MovementType, BigDecimal, String, String, Boolean, Boolean, LocalDateTime, LocalDateTime) may expose internal representation by storing an externally mutable object into Transaction.currencyEntity</LongMessage>
+    <Class classname="org.openfinance.entity.Transaction" classAnnotationNames="jakarta.persistence.Entity,jakarta.persistence.Table" primary="true">
+      <SourceLine classname="org.openfinance.entity.Transaction" start="59" end="520" sourcepath="org/openfinance/entity/Transaction.java" sourcefile="Transaction.java">
+        <Message>At Transaction.java:[lines 59-520]</Message>
+      </SourceLine>
+      <Message>In class org.openfinance.entity.Transaction</Message>
+    </Class>
+    <Method isStatic="false" classname="org.openfinance.entity.Transaction" signature="(Ljava/lang/Long;Ljava/lang/Long;Ljava/lang/Long;Lorg/openfinance/entity/Account;Ljava/lang/Long;Lorg/openfinance/entity/Account;Lorg/openfinance/entity/TransactionType;Ljava/math/BigDecimal;Ljava/math/BigDecimal;Ljava/lang/String;Ljava/lang/String;Ljava/lang/Long;Lorg/openfinance/entity/Currency;Ljava/math/BigDecimal;Ljava/lang/String;Ljava/math/BigDecimal;Ljava/lang/Long;Lorg/openfinance/entity/Category;Ljava/time/LocalDate;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/Long;Lorg/openfinance/entity/Payee;Lorg/openfinance/entity/PaymentMethod;Ljava/lang/Long;Ljava/lang/Long;Ljava/lang/Long;Ljava/lang/Long;Ljava/math/BigDecimal;ZLjava/math/BigDecimal;Ljava/math/BigDecimal;Ljava/time/LocalDate;Ljava/lang/String;ZLjava/lang/String;Ljava/lang/Long;Lorg/openfinance/entity/MovementType;Ljava/math/BigDecimal;Ljava/lang/String;Ljava/lang/String;Ljava/lang/Boolean;Ljava/lang/Boolean;Ljava/time/LocalDateTime;Ljava/time/LocalDateTime;)V" name="&lt;init&gt;" classAnnotationNames="jakarta.persistence.Entity,jakarta.persistence.Table" primary="true">
+      <SourceLine endBytecode="795" classname="org.openfinance.entity.Transaction" start="62" end="62" sourcepath="org/openfinance/entity/Transaction.java" sourcefile="Transaction.java" startBytecode="0" />
+      <Message>In method new org.openfinance.entity.Transaction(Long, Long, Long, Account, Long, Account, TransactionType, BigDecimal, BigDecimal, String, String, Long, Currency, BigDecimal, String, BigDecimal, Long, Category, LocalDate, String, String, String, String, Long, Payee, PaymentMethod, Long, Long, Long, Long, BigDecimal, boolean, BigDecimal, BigDecimal, LocalDate, String, boolean, String, Long, MovementType, BigDecimal, String, String, Boolean, Boolean, LocalDateTime, LocalDateTime)</Message>
+    </Method>
+    <Field isStatic="false" classname="org.openfinance.entity.Transaction" signature="Lorg/openfinance/entity/Currency;" name="currencyEntity" classAnnotationNames="jakarta.persistence.Entity,jakarta.persistence.Table" primary="true">
+      <SourceLine classname="org.openfinance.entity.Transaction" sourcepath="org/openfinance/entity/Transaction.java" sourcefile="Transaction.java">
+        <Message>In Transaction.java</Message>
+      </SourceLine>
+      <Message>Field org.openfinance.entity.Transaction.currencyEntity</Message>
+    </Field>
+    <LocalVariable role="LOCAL_VARIABLE_NAMED" pc="76" name="currencyEntity" register="13">
+      <Message>Local variable named currencyEntity</Message>
+    </LocalVariable>
+    <SourceLine endBytecode="76" classname="org.openfinance.entity.Transaction" start="62" end="62" sourcepath="org/openfinance/entity/Transaction.java" sourcefile="Transaction.java" startBytecode="76" primary="true">
+      <Message>At Transaction.java:[line 62]</Message>
+    </SourceLine>
+  </BugInstance>
+  <BugInstance instanceOccurrenceNum="0" instanceHash="f119bc38799fcdb0715f3f241c847807" cweid="374" rank="18" abbrev="EI2" category="MALICIOUS_CODE" priority="2" type="EI_EXPOSE_REP2" instanceOccurrenceMax="0">
+    <ShortMessage>May expose internal representation by incorporating reference to mutable object</ShortMessage>
+    <LongMessage>new org.openfinance.entity.Transaction(Long, Long, Long, Account, Long, Account, TransactionType, BigDecimal, BigDecimal, String, String, Long, Currency, BigDecimal, String, BigDecimal, Long, Category, LocalDate, String, String, String, String, Long, Payee, PaymentMethod, Long, Long, Long, Long, BigDecimal, boolean, BigDecimal, BigDecimal, LocalDate, String, boolean, String, Long, MovementType, BigDecimal, String, String, Boolean, Boolean, LocalDateTime, LocalDateTime) may expose internal representation by storing an externally mutable object into Transaction.payeeEntity</LongMessage>
+    <Class classname="org.openfinance.entity.Transaction" classAnnotationNames="jakarta.persistence.Entity,jakarta.persistence.Table" primary="true">
+      <SourceLine classname="org.openfinance.entity.Transaction" start="59" end="520" sourcepath="org/openfinance/entity/Transaction.java" sourcefile="Transaction.java">
+        <Message>At Transaction.java:[lines 59-520]</Message>
+      </SourceLine>
+      <Message>In class org.openfinance.entity.Transaction</Message>
+    </Class>
+    <Method isStatic="false" classname="org.openfinance.entity.Transaction" signature="(Ljava/lang/Long;Ljava/lang/Long;Ljava/lang/Long;Lorg/openfinance/entity/Account;Ljava/lang/Long;Lorg/openfinance/entity/Account;Lorg/openfinance/entity/TransactionType;Ljava/math/BigDecimal;Ljava/math/BigDecimal;Ljava/lang/String;Ljava/lang/String;Ljava/lang/Long;Lorg/openfinance/entity/Currency;Ljava/math/BigDecimal;Ljava/lang/String;Ljava/math/BigDecimal;Ljava/lang/Long;Lorg/openfinance/entity/Category;Ljava/time/LocalDate;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/Long;Lorg/openfinance/entity/Payee;Lorg/openfinance/entity/PaymentMethod;Ljava/lang/Long;Ljava/lang/Long;Ljava/lang/Long;Ljava/lang/Long;Ljava/math/BigDecimal;ZLjava/math/BigDecimal;Ljava/math/BigDecimal;Ljava/time/LocalDate;Ljava/lang/String;ZLjava/lang/String;Ljava/lang/Long;Lorg/openfinance/entity/MovementType;Ljava/math/BigDecimal;Ljava/lang/String;Ljava/lang/String;Ljava/lang/Boolean;Ljava/lang/Boolean;Ljava/time/LocalDateTime;Ljava/time/LocalDateTime;)V" name="&lt;init&gt;" classAnnotationNames="jakarta.persistence.Entity,jakarta.persistence.Table" primary="true">
+      <SourceLine endBytecode="795" classname="org.openfinance.entity.Transaction" start="62" end="62" sourcepath="org/openfinance/entity/Transaction.java" sourcefile="Transaction.java" startBytecode="0" />
+      <Message>In method new org.openfinance.entity.Transaction(Long, Long, Long, Account, Long, Account, TransactionType, BigDecimal, BigDecimal, String, String, Long, Currency, BigDecimal, String, BigDecimal, Long, Category, LocalDate, String, String, String, String, Long, Payee, PaymentMethod, Long, Long, Long, Long, BigDecimal, boolean, BigDecimal, BigDecimal, LocalDate, String, boolean, String, Long, MovementType, BigDecimal, String, String, Boolean, Boolean, LocalDateTime, LocalDateTime)</Message>
+    </Method>
+    <Field isStatic="false" classname="org.openfinance.entity.Transaction" signature="Lorg/openfinance/entity/Payee;" name="payeeEntity" classAnnotationNames="jakarta.persistence.Entity,jakarta.persistence.Table" primary="true">
+      <SourceLine classname="org.openfinance.entity.Transaction" sourcepath="org/openfinance/entity/Transaction.java" sourcefile="Transaction.java">
+        <Message>In Transaction.java</Message>
+      </SourceLine>
+      <Message>Field org.openfinance.entity.Transaction.payeeEntity</Message>
+    </Field>
+    <LocalVariable role="LOCAL_VARIABLE_NAMED" pc="148" name="payeeEntity" register="25">
+      <Message>Local variable named payeeEntity</Message>
+    </LocalVariable>
+    <SourceLine endBytecode="148" classname="org.openfinance.entity.Transaction" start="62" end="62" sourcepath="org/openfinance/entity/Transaction.java" sourcefile="Transaction.java" startBytecode="148" primary="true">
+      <Message>At Transaction.java:[line 62]</Message>
+    </SourceLine>
+  </BugInstance>
+  <BugInstance instanceOccurrenceNum="0" instanceHash="c63c660c5ade62eafaf722e4f5333317" cweid="374" rank="18" abbrev="EI2" category="MALICIOUS_CODE" priority="2" type="EI_EXPOSE_REP2" instanceOccurrenceMax="0">
+    <ShortMessage>May expose internal representation by incorporating reference to mutable object</ShortMessage>
+    <LongMessage>new org.openfinance.entity.Transaction(Long, Long, Long, Account, Long, Account, TransactionType, BigDecimal, BigDecimal, String, String, Long, Currency, BigDecimal, String, BigDecimal, Long, Category, LocalDate, String, String, String, String, Long, Payee, PaymentMethod, Long, Long, Long, Long, BigDecimal, boolean, BigDecimal, BigDecimal, LocalDate, String, boolean, String, Long, MovementType, BigDecimal, String, String, Boolean, Boolean, LocalDateTime, LocalDateTime) may expose internal representation by storing an externally mutable object into Transaction.toAccount</LongMessage>
+    <Class classname="org.openfinance.entity.Transaction" classAnnotationNames="jakarta.persistence.Entity,jakarta.persistence.Table" primary="true">
+      <SourceLine classname="org.openfinance.entity.Transaction" start="59" end="520" sourcepath="org/openfinance/entity/Transaction.java" sourcefile="Transaction.java">
+        <Message>At Transaction.java:[lines 59-520]</Message>
+      </SourceLine>
+      <Message>In class org.openfinance.entity.Transaction</Message>
+    </Class>
+    <Method isStatic="false" classname="org.openfinance.entity.Transaction" signature="(Ljava/lang/Long;Ljava/lang/Long;Ljava/lang/Long;Lorg/openfinance/entity/Account;Ljava/lang/Long;Lorg/openfinance/entity/Account;Lorg/openfinance/entity/TransactionType;Ljava/math/BigDecimal;Ljava/math/BigDecimal;Ljava/lang/String;Ljava/lang/String;Ljava/lang/Long;Lorg/openfinance/entity/Currency;Ljava/math/BigDecimal;Ljava/lang/String;Ljava/math/BigDecimal;Ljava/lang/Long;Lorg/openfinance/entity/Category;Ljava/time/LocalDate;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/Long;Lorg/openfinance/entity/Payee;Lorg/openfinance/entity/PaymentMethod;Ljava/lang/Long;Ljava/lang/Long;Ljava/lang/Long;Ljava/lang/Long;Ljava/math/BigDecimal;ZLjava/math/BigDecimal;Ljava/math/BigDecimal;Ljava/time/LocalDate;Ljava/lang/String;ZLjava/lang/String;Ljava/lang/Long;Lorg/openfinance/entity/MovementType;Ljava/math/BigDecimal;Ljava/lang/String;Ljava/lang/String;Ljava/lang/Boolean;Ljava/lang/Boolean;Ljava/time/LocalDateTime;Ljava/time/LocalDateTime;)V" name="&lt;init&gt;" classAnnotationNames="jakarta.persistence.Entity,jakarta.persistence.Table" primary="true">
+      <SourceLine endBytecode="795" classname="org.openfinance.entity.Transaction" start="62" end="62" sourcepath="org/openfinance/entity/Transaction.java" sourcefile="Transaction.java" startBytecode="0" />
+      <Message>In method new org.openfinance.entity.Transaction(Long, Long, Long, Account, Long, Account, TransactionType, BigDecimal, BigDecimal, String, String, Long, Currency, BigDecimal, String, BigDecimal, Long, Category, LocalDate, String, String, String, String, Long, Payee, PaymentMethod, Long, Long, Long, Long, BigDecimal, boolean, BigDecimal, BigDecimal, LocalDate, String, boolean, String, Long, MovementType, BigDecimal, String, String, Boolean, Boolean, LocalDateTime, LocalDateTime)</Message>
+    </Method>
+    <Field isStatic="false" classname="org.openfinance.entity.Transaction" signature="Lorg/openfinance/entity/Account;" name="toAccount" classAnnotationNames="jakarta.persistence.Entity,jakarta.persistence.Table" primary="true">
+      <SourceLine classname="org.openfinance.entity.Transaction" sourcepath="org/openfinance/entity/Transaction.java" sourcefile="Transaction.java">
+        <Message>In Transaction.java</Message>
+      </SourceLine>
+      <Message>Field org.openfinance.entity.Transaction.toAccount</Message>
+    </Field>
+    <LocalVariable role="LOCAL_VARIABLE_NAMED" pc="34" name="toAccount" register="6">
+      <Message>Local variable named toAccount</Message>
+    </LocalVariable>
+    <SourceLine endBytecode="34" classname="org.openfinance.entity.Transaction" start="62" end="62" sourcepath="org/openfinance/entity/Transaction.java" sourcefile="Transaction.java" startBytecode="34" primary="true">
+      <Message>At Transaction.java:[line 62]</Message>
+    </SourceLine>
+  </BugInstance>
+  <BugInstance instanceOccurrenceNum="0" instanceHash="3f6932bf5282e0e7ed8fbb0aa6d082bc" cweid="374" rank="18" abbrev="EI2" category="MALICIOUS_CODE" priority="2" type="EI_EXPOSE_REP2" instanceOccurrenceMax="0">
+    <ShortMessage>May expose internal representation by incorporating reference to mutable object</ShortMessage>
+    <LongMessage>new org.openfinance.service.InvestmentMovementServiceImpl(AssetRepository, TransactionRepository, MarketDataService, ExchangeRateService) may expose internal representation by storing an externally mutable object into InvestmentMovementServiceImpl.exchangeRates</LongMessage>
+    <Class classname="org.openfinance.service.InvestmentMovementServiceImpl" classAnnotationNames="org.springframework.stereotype.Service,org.springframework.transaction.annotation.Transactional" primary="true">
+      <SourceLine classname="org.openfinance.service.InvestmentMovementServiceImpl" start="30" end="331" sourcepath="org/openfinance/service/InvestmentMovementServiceImpl.java" sourcefile="InvestmentMovementServiceImpl.java">
+        <Message>At InvestmentMovementServiceImpl.java:[lines 30-331]</Message>
+      </SourceLine>
+      <Message>In class org.openfinance.service.InvestmentMovementServiceImpl</Message>
+    </Class>
+    <Method isStatic="false" classname="org.openfinance.service.InvestmentMovementServiceImpl" signature="(Lorg/openfinance/repository/AssetRepository;Lorg/openfinance/repository/TransactionRepository;Lorg/openfinance/service/MarketDataService;Lorg/openfinance/service/ExchangeRateService;)V" name="&lt;init&gt;" classAnnotationNames="org.springframework.stereotype.Service,org.springframework.transaction.annotation.Transactional" primary="true">
+      <SourceLine endBytecode="107" classname="org.openfinance.service.InvestmentMovementServiceImpl" start="30" end="30" sourcepath="org/openfinance/service/InvestmentMovementServiceImpl.java" sourcefile="InvestmentMovementServiceImpl.java" startBytecode="0" />
+      <Message>In method new org.openfinance.service.InvestmentMovementServiceImpl(AssetRepository, TransactionRepository, MarketDataService, ExchangeRateService)</Message>
+    </Method>
+    <Field isStatic="false" classname="org.openfinance.service.InvestmentMovementServiceImpl" signature="Lorg/openfinance/service/ExchangeRateService;" name="exchangeRates" classAnnotationNames="org.springframework.stereotype.Service,org.springframework.transaction.annotation.Transactional" primary="true">
+      <SourceLine classname="org.openfinance.service.InvestmentMovementServiceImpl" sourcepath="org/openfinance/service/InvestmentMovementServiceImpl.java" sourcefile="InvestmentMovementServiceImpl.java">
+        <Message>In InvestmentMovementServiceImpl.java</Message>
+      </SourceLine>
+      <Message>Field org.openfinance.service.InvestmentMovementServiceImpl.exchangeRates</Message>
+    </Field>
+    <LocalVariable role="LOCAL_VARIABLE_NAMED" pc="22" name="exchangeRates" register="4">
+      <Message>Local variable named exchangeRates</Message>
+    </LocalVariable>
+    <SourceLine endBytecode="22" classname="org.openfinance.service.InvestmentMovementServiceImpl" start="30" end="30" sourcepath="org/openfinance/service/InvestmentMovementServiceImpl.java" sourcefile="InvestmentMovementServiceImpl.java" startBytecode="22" primary="true">
+      <Message>At InvestmentMovementServiceImpl.java:[line 30]</Message>
+    </SourceLine>
+  </BugInstance>
+  <BugInstance instanceOccurrenceNum="0" instanceHash="b79bb998f4d3306068935dae31d49f12" cweid="374" rank="18" abbrev="EI2" category="MALICIOUS_CODE" priority="2" type="EI_EXPOSE_REP2" instanceOccurrenceMax="0">
+    <ShortMessage>May expose internal representation by incorporating reference to mutable object</ShortMessage>
+    <LongMessage>new org.openfinance.service.InvestmentMovementServiceImpl(AssetRepository, TransactionRepository, MarketDataService, ExchangeRateService) may expose internal representation by storing an externally mutable object into InvestmentMovementServiceImpl.transactions</LongMessage>
+    <Class classname="org.openfinance.service.InvestmentMovementServiceImpl" classAnnotationNames="org.springframework.stereotype.Service,org.springframework.transaction.annotation.Transactional" primary="true">
+      <SourceLine classname="org.openfinance.service.InvestmentMovementServiceImpl" start="30" end="331" sourcepath="org/openfinance/service/InvestmentMovementServiceImpl.java" sourcefile="InvestmentMovementServiceImpl.java">
+        <Message>At InvestmentMovementServiceImpl.java:[lines 30-331]</Message>
+      </SourceLine>
+      <Message>In class org.openfinance.service.InvestmentMovementServiceImpl</Message>
+    </Class>
+    <Method isStatic="false" classname="org.openfinance.service.InvestmentMovementServiceImpl" signature="(Lorg/openfinance/repository/AssetRepository;Lorg/openfinance/repository/TransactionRepository;Lorg/openfinance/service/MarketDataService;Lorg/openfinance/service/ExchangeRateService;)V" name="&lt;init&gt;" classAnnotationNames="org.springframework.stereotype.Service,org.springframework.transaction.annotation.Transactional" primary="true">
+      <SourceLine endBytecode="107" classname="org.openfinance.service.InvestmentMovementServiceImpl" start="30" end="30" sourcepath="org/openfinance/service/InvestmentMovementServiceImpl.java" sourcefile="InvestmentMovementServiceImpl.java" startBytecode="0" />
+      <Message>In method new org.openfinance.service.InvestmentMovementServiceImpl(AssetRepository, TransactionRepository, MarketDataService, ExchangeRateService)</Message>
+    </Method>
+    <Field isStatic="false" classname="org.openfinance.service.InvestmentMovementServiceImpl" signature="Lorg/openfinance/repository/TransactionRepository;" name="transactions" classAnnotationNames="org.springframework.stereotype.Service,org.springframework.transaction.annotation.Transactional" primary="true">
+      <SourceLine classname="org.openfinance.service.InvestmentMovementServiceImpl" sourcepath="org/openfinance/service/InvestmentMovementServiceImpl.java" sourcefile="InvestmentMovementServiceImpl.java">
+        <Message>In InvestmentMovementServiceImpl.java</Message>
+      </SourceLine>
+      <Message>Field org.openfinance.service.InvestmentMovementServiceImpl.transactions</Message>
+    </Field>
+    <LocalVariable role="LOCAL_VARIABLE_NAMED" pc="11" name="transactions" register="2">
+      <Message>Local variable named transactions</Message>
+    </LocalVariable>
+    <SourceLine endBytecode="11" classname="org.openfinance.service.InvestmentMovementServiceImpl" start="30" end="30" sourcepath="org/openfinance/service/InvestmentMovementServiceImpl.java" sourcefile="InvestmentMovementServiceImpl.java" startBytecode="11" primary="true">
+      <Message>At InvestmentMovementServiceImpl.java:[line 30]</Message>
+    </SourceLine>
+  </BugInstance>
+  <BugInstance instanceOccurrenceNum="0" instanceHash="d615e677449d35c5df373cea5db377a3" cweid="374" rank="18" abbrev="EI2" category="MALICIOUS_CODE" priority="2" type="EI_EXPOSE_REP2" instanceOccurrenceMax="0">
+    <ShortMessage>May expose internal representation by incorporating reference to mutable object</ShortMessage>
+    <LongMessage>new org.openfinance.service.TransactionService(TransactionRepository, AccountRepository, CategoryRepository, PayeeRepository, CurrencyRepository, TransactionMapper, EncryptionService, BudgetAlertService, TransactionSplitService, UserRepository, ExchangeRateService, JdbcTemplate, MessageSource, NetWorthRepository, OperationHistoryService, SearchTokenService, DefaultCurrencyProvider, CurrencyConversionHelper, AccountCurrencyService, LiabilityRepository, LiabilityTrancheRepository, LiabilityTrancheService, RealEstateService, AssetService, ImportedInvestmentService, InvestmentMovementService, AssetRepository, RealEstateRepository) may expose internal representation by storing an externally mutable object into TransactionService.assetService</LongMessage>
+    <Class classname="org.openfinance.service.TransactionService" classAnnotationNames="org.springframework.stereotype.Service,org.springframework.transaction.annotation.Transactional" primary="true">
+      <SourceLine classname="org.openfinance.service.TransactionService" start="103" end="3307" sourcepath="org/openfinance/service/TransactionService.java" sourcefile="TransactionService.java">
+        <Message>At TransactionService.java:[lines 103-3307]</Message>
+      </SourceLine>
+      <Message>In class org.openfinance.service.TransactionService</Message>
+    </Class>
+    <Method isStatic="false" classname="org.openfinance.service.TransactionService" signature="(Lorg/openfinance/repository/TransactionRepository;Lorg/openfinance/repository/AccountRepository;Lorg/openfinance/repository/CategoryRepository;Lorg/openfinance/repository/PayeeRepository;Lorg/openfinance/repository/CurrencyRepository;Lorg/openfinance/mapper/TransactionMapper;Lorg/openfinance/security/EncryptionService;Lorg/openfinance/service/BudgetAlertService;Lorg/openfinance/service/TransactionSplitService;Lorg/openfinance/repository/UserRepository;Lorg/openfinance/service/ExchangeRateService;Lorg/springframework/jdbc/core/JdbcTemplate;Lorg/springframework/context/MessageSource;Lorg/openfinance/repository/NetWorthRepository;Lorg/openfinance/service/OperationHistoryService;Lorg/openfinance/service/SearchTokenService;Lorg/openfinance/service/DefaultCurrencyProvider;Lorg/openfinance/service/CurrencyConversionHelper;Lorg/openfinance/service/AccountCurrencyService;Lorg/openfinance/repository/LiabilityRepository;Lorg/openfinance/repository/LiabilityTrancheRepository;Lorg/openfinance/service/LiabilityTrancheService;Lorg/openfinance/service/RealEstateService;Lorg/openfinance/service/AssetService;Lorg/openfinance/service/ImportedInvestmentService;Lorg/openfinance/service/InvestmentMovementService;Lorg/openfinance/repository/AssetRepository;Lorg/openfinance/repository/RealEstateRepository;)V" name="&lt;init&gt;" classAnnotationNames="org.springframework.stereotype.Service,org.springframework.transaction.annotation.Transactional" primary="true">
+      <SourceLine endBytecode="491" classname="org.openfinance.service.TransactionService" start="103" end="103" sourcepath="org/openfinance/service/TransactionService.java" sourcefile="TransactionService.java" startBytecode="0" />
+      <Message>In method new org.openfinance.service.TransactionService(TransactionRepository, AccountRepository, CategoryRepository, PayeeRepository, CurrencyRepository, TransactionMapper, EncryptionService, BudgetAlertService, TransactionSplitService, UserRepository, ExchangeRateService, JdbcTemplate, MessageSource, NetWorthRepository, OperationHistoryService, SearchTokenService, DefaultCurrencyProvider, CurrencyConversionHelper, AccountCurrencyService, LiabilityRepository, LiabilityTrancheRepository, LiabilityTrancheService, RealEstateService, AssetService, ImportedInvestmentService, InvestmentMovementService, AssetRepository, RealEstateRepository)</Message>
+    </Method>
+    <Field isStatic="false" classname="org.openfinance.service.TransactionService" signature="Lorg/openfinance/service/AssetService;" name="assetService" classAnnotationNames="org.springframework.stereotype.Service,org.springframework.transaction.annotation.Transactional" primary="true">
+      <SourceLine classname="org.openfinance.service.TransactionService" sourcepath="org/openfinance/service/TransactionService.java" sourcefile="TransactionService.java">
+        <Message>In TransactionService.java</Message>
+      </SourceLine>
+      <Message>Field org.openfinance.service.TransactionService.assetService</Message>
+    </Field>
+    <LocalVariable role="LOCAL_VARIABLE_NAMED" pc="142" name="assetService" register="24">
+      <Message>Local variable named assetService</Message>
+    </LocalVariable>
+    <SourceLine endBytecode="142" classname="org.openfinance.service.TransactionService" start="103" end="103" sourcepath="org/openfinance/service/TransactionService.java" sourcefile="TransactionService.java" startBytecode="142" primary="true">
+      <Message>At TransactionService.java:[line 103]</Message>
+    </SourceLine>
+  </BugInstance>
+  <BugInstance instanceOccurrenceNum="0" instanceHash="1aa0475cda2dc50f053005f5a8cd6e6f" cweid="374" rank="18" abbrev="EI2" category="MALICIOUS_CODE" priority="2" type="EI_EXPOSE_REP2" instanceOccurrenceMax="0">
+    <ShortMessage>May expose internal representation by incorporating reference to mutable object</ShortMessage>
+    <LongMessage>new org.openfinance.service.TransactionService(TransactionRepository, AccountRepository, CategoryRepository, PayeeRepository, CurrencyRepository, TransactionMapper, EncryptionService, BudgetAlertService, TransactionSplitService, UserRepository, ExchangeRateService, JdbcTemplate, MessageSource, NetWorthRepository, OperationHistoryService, SearchTokenService, DefaultCurrencyProvider, CurrencyConversionHelper, AccountCurrencyService, LiabilityRepository, LiabilityTrancheRepository, LiabilityTrancheService, RealEstateService, AssetService, ImportedInvestmentService, InvestmentMovementService, AssetRepository, RealEstateRepository) may expose internal representation by storing an externally mutable object into TransactionService.budgetAlertService</LongMessage>
+    <Class classname="org.openfinance.service.TransactionService" classAnnotationNames="org.springframework.stereotype.Service,org.springframework.transaction.annotation.Transactional" primary="true">
+      <SourceLine classname="org.openfinance.service.TransactionService" start="103" end="3307" sourcepath="org/openfinance/service/TransactionService.java" sourcefile="TransactionService.java">
+        <Message>At TransactionService.java:[lines 103-3307]</Message>
+      </SourceLine>
+      <Message>In class org.openfinance.service.TransactionService</Message>
+    </Class>
+    <Method isStatic="false" classname="org.openfinance.service.TransactionService" signature="(Lorg/openfinance/repository/TransactionRepository;Lorg/openfinance/repository/AccountRepository;Lorg/openfinance/repository/CategoryRepository;Lorg/openfinance/repository/PayeeRepository;Lorg/openfinance/repository/CurrencyRepository;Lorg/openfinance/mapper/TransactionMapper;Lorg/openfinance/security/EncryptionService;Lorg/openfinance/service/BudgetAlertService;Lorg/openfinance/service/TransactionSplitService;Lorg/openfinance/repository/UserRepository;Lorg/openfinance/service/ExchangeRateService;Lorg/springframework/jdbc/core/JdbcTemplate;Lorg/springframework/context/MessageSource;Lorg/openfinance/repository/NetWorthRepository;Lorg/openfinance/service/OperationHistoryService;Lorg/openfinance/service/SearchTokenService;Lorg/openfinance/service/DefaultCurrencyProvider;Lorg/openfinance/service/CurrencyConversionHelper;Lorg/openfinance/service/AccountCurrencyService;Lorg/openfinance/repository/LiabilityRepository;Lorg/openfinance/repository/LiabilityTrancheRepository;Lorg/openfinance/service/LiabilityTrancheService;Lorg/openfinance/service/RealEstateService;Lorg/openfinance/service/AssetService;Lorg/openfinance/service/ImportedInvestmentService;Lorg/openfinance/service/InvestmentMovementService;Lorg/openfinance/repository/AssetRepository;Lorg/openfinance/repository/RealEstateRepository;)V" name="&lt;init&gt;" classAnnotationNames="org.springframework.stereotype.Service,org.springframework.transaction.annotation.Transactional" primary="true">
+      <SourceLine endBytecode="491" classname="org.openfinance.service.TransactionService" start="103" end="103" sourcepath="org/openfinance/service/TransactionService.java" sourcefile="TransactionService.java" startBytecode="0" />
+      <Message>In method new org.openfinance.service.TransactionService(TransactionRepository, AccountRepository, CategoryRepository, PayeeRepository, CurrencyRepository, TransactionMapper, EncryptionService, BudgetAlertService, TransactionSplitService, UserRepository, ExchangeRateService, JdbcTemplate, MessageSource, NetWorthRepository, OperationHistoryService, SearchTokenService, DefaultCurrencyProvider, CurrencyConversionHelper, AccountCurrencyService, LiabilityRepository, LiabilityTrancheRepository, LiabilityTrancheService, RealEstateService, AssetService, ImportedInvestmentService, InvestmentMovementService, AssetRepository, RealEstateRepository)</Message>
+    </Method>
+    <Field isStatic="false" classname="org.openfinance.service.TransactionService" signature="Lorg/openfinance/service/BudgetAlertService;" name="budgetAlertService" classAnnotationNames="org.springframework.stereotype.Service,org.springframework.transaction.annotation.Transactional" primary="true">
+      <SourceLine classname="org.openfinance.service.TransactionService" sourcepath="org/openfinance/service/TransactionService.java" sourcefile="TransactionService.java">
+        <Message>In TransactionService.java</Message>
+      </SourceLine>
+      <Message>Field org.openfinance.service.TransactionService.budgetAlertService</Message>
+    </Field>
+    <LocalVariable role="LOCAL_VARIABLE_NAMED" pc="46" name="budgetAlertService" register="8">
+      <Message>Local variable named budgetAlertService</Message>
+    </LocalVariable>
+    <SourceLine endBytecode="46" classname="org.openfinance.service.TransactionService" start="103" end="103" sourcepath="org/openfinance/service/TransactionService.java" sourcefile="TransactionService.java" startBytecode="46" primary="true">
+      <Message>At TransactionService.java:[line 103]</Message>
+    </SourceLine>
+  </BugInstance>
+  <BugInstance instanceOccurrenceNum="0" instanceHash="fba864f4322e2346329c065c07c0098d" cweid="374" rank="18" abbrev="EI2" category="MALICIOUS_CODE" priority="2" type="EI_EXPOSE_REP2" instanceOccurrenceMax="0">
+    <ShortMessage>May expose internal representation by incorporating reference to mutable object</ShortMessage>
+    <LongMessage>new org.openfinance.service.TransactionService(TransactionRepository, AccountRepository, CategoryRepository, PayeeRepository, CurrencyRepository, TransactionMapper, EncryptionService, BudgetAlertService, TransactionSplitService, UserRepository, ExchangeRateService, JdbcTemplate, MessageSource, NetWorthRepository, OperationHistoryService, SearchTokenService, DefaultCurrencyProvider, CurrencyConversionHelper, AccountCurrencyService, LiabilityRepository, LiabilityTrancheRepository, LiabilityTrancheService, RealEstateService, AssetService, ImportedInvestmentService, InvestmentMovementService, AssetRepository, RealEstateRepository) may expose internal representation by storing an externally mutable object into TransactionService.encryptionService</LongMessage>
+    <Class classname="org.openfinance.service.TransactionService" classAnnotationNames="org.springframework.stereotype.Service,org.springframework.transaction.annotation.Transactional" primary="true">
+      <SourceLine classname="org.openfinance.service.TransactionService" start="103" end="3307" sourcepath="org/openfinance/service/TransactionService.java" sourcefile="TransactionService.java">
+        <Message>At TransactionService.java:[lines 103-3307]</Message>
+      </SourceLine>
+      <Message>In class org.openfinance.service.TransactionService</Message>
+    </Class>
+    <Method isStatic="false" classname="org.openfinance.service.TransactionService" signature="(Lorg/openfinance/repository/TransactionRepository;Lorg/openfinance/repository/AccountRepository;Lorg/openfinance/repository/CategoryRepository;Lorg/openfinance/repository/PayeeRepository;Lorg/openfinance/repository/CurrencyRepository;Lorg/openfinance/mapper/TransactionMapper;Lorg/openfinance/security/EncryptionService;Lorg/openfinance/service/BudgetAlertService;Lorg/openfinance/service/TransactionSplitService;Lorg/openfinance/repository/UserRepository;Lorg/openfinance/service/ExchangeRateService;Lorg/springframework/jdbc/core/JdbcTemplate;Lorg/springframework/context/MessageSource;Lorg/openfinance/repository/NetWorthRepository;Lorg/openfinance/service/OperationHistoryService;Lorg/openfinance/service/SearchTokenService;Lorg/openfinance/service/DefaultCurrencyProvider;Lorg/openfinance/service/CurrencyConversionHelper;Lorg/openfinance/service/AccountCurrencyService;Lorg/openfinance/repository/LiabilityRepository;Lorg/openfinance/repository/LiabilityTrancheRepository;Lorg/openfinance/service/LiabilityTrancheService;Lorg/openfinance/service/RealEstateService;Lorg/openfinance/service/AssetService;Lorg/openfinance/service/ImportedInvestmentService;Lorg/openfinance/service/InvestmentMovementService;Lorg/openfinance/repository/AssetRepository;Lorg/openfinance/repository/RealEstateRepository;)V" name="&lt;init&gt;" classAnnotationNames="org.springframework.stereotype.Service,org.springframework.transaction.annotation.Transactional" primary="true">
+      <SourceLine endBytecode="491" classname="org.openfinance.service.TransactionService" start="103" end="103" sourcepath="org/openfinance/service/TransactionService.java" sourcefile="TransactionService.java" startBytecode="0" />
+      <Message>In method new org.openfinance.service.TransactionService(TransactionRepository, AccountRepository, CategoryRepository, PayeeRepository, CurrencyRepository, TransactionMapper, EncryptionService, BudgetAlertService, TransactionSplitService, UserRepository, ExchangeRateService, JdbcTemplate, MessageSource, NetWorthRepository, OperationHistoryService, SearchTokenService, DefaultCurrencyProvider, CurrencyConversionHelper, AccountCurrencyService, LiabilityRepository, LiabilityTrancheRepository, LiabilityTrancheService, RealEstateService, AssetService, ImportedInvestmentService, InvestmentMovementService, AssetRepository, RealEstateRepository)</Message>
+    </Method>
+    <Field isStatic="false" classname="org.openfinance.service.TransactionService" signature="Lorg/openfinance/security/EncryptionService;" name="encryptionService" classAnnotationNames="org.springframework.stereotype.Service,org.springframework.transaction.annotation.Transactional" primary="true">
+      <SourceLine classname="org.openfinance.service.TransactionService" sourcepath="org/openfinance/service/TransactionService.java" sourcefile="TransactionService.java">
+        <Message>In TransactionService.java</Message>
+      </SourceLine>
+      <Message>Field org.openfinance.service.TransactionService.encryptionService</Message>
+    </Field>
+    <LocalVariable role="LOCAL_VARIABLE_NAMED" pc="40" name="encryptionService" register="7">
+      <Message>Local variable named encryptionService</Message>
+    </LocalVariable>
+    <SourceLine endBytecode="40" classname="org.openfinance.service.TransactionService" start="103" end="103" sourcepath="org/openfinance/service/TransactionService.java" sourcefile="TransactionService.java" startBytecode="40" primary="true">
+      <Message>At TransactionService.java:[line 103]</Message>
+    </SourceLine>
+  </BugInstance>
+  <BugInstance instanceOccurrenceNum="0" instanceHash="5655f7ad231b0f7c64f5cb0df6402b67" cweid="374" rank="18" abbrev="EI2" category="MALICIOUS_CODE" priority="2" type="EI_EXPOSE_REP2" instanceOccurrenceMax="0">
+    <ShortMessage>May expose internal representation by incorporating reference to mutable object</ShortMessage>
+    <LongMessage>new org.openfinance.service.TransactionService(TransactionRepository, AccountRepository, CategoryRepository, PayeeRepository, CurrencyRepository, TransactionMapper, EncryptionService, BudgetAlertService, TransactionSplitService, UserRepository, ExchangeRateService, JdbcTemplate, MessageSource, NetWorthRepository, OperationHistoryService, SearchTokenService, DefaultCurrencyProvider, CurrencyConversionHelper, AccountCurrencyService, LiabilityRepository, LiabilityTrancheRepository, LiabilityTrancheService, RealEstateService, AssetService, ImportedInvestmentService, InvestmentMovementService, AssetRepository, RealEstateRepository) may expose internal representation by storing an externally mutable object into TransactionService.exchangeRateService</LongMessage>
+    <Class classname="org.openfinance.service.TransactionService" classAnnotationNames="org.springframework.stereotype.Service,org.springframework.transaction.annotation.Transactional" primary="true">
+      <SourceLine classname="org.openfinance.service.TransactionService" start="103" end="3307" sourcepath="org/openfinance/service/TransactionService.java" sourcefile="TransactionService.java">
+        <Message>At TransactionService.java:[lines 103-3307]</Message>
+      </SourceLine>
+      <Message>In class org.openfinance.service.TransactionService</Message>
+    </Class>
+    <Method isStatic="false" classname="org.openfinance.service.TransactionService" signature="(Lorg/openfinance/repository/TransactionRepository;Lorg/openfinance/repository/AccountRepository;Lorg/openfinance/repository/CategoryRepository;Lorg/openfinance/repository/PayeeRepository;Lorg/openfinance/repository/CurrencyRepository;Lorg/openfinance/mapper/TransactionMapper;Lorg/openfinance/security/EncryptionService;Lorg/openfinance/service/BudgetAlertService;Lorg/openfinance/service/TransactionSplitService;Lorg/openfinance/repository/UserRepository;Lorg/openfinance/service/ExchangeRateService;Lorg/springframework/jdbc/core/JdbcTemplate;Lorg/springframework/context/MessageSource;Lorg/openfinance/repository/NetWorthRepository;Lorg/openfinance/service/OperationHistoryService;Lorg/openfinance/service/SearchTokenService;Lorg/openfinance/service/DefaultCurrencyProvider;Lorg/openfinance/service/CurrencyConversionHelper;Lorg/openfinance/service/AccountCurrencyService;Lorg/openfinance/repository/LiabilityRepository;Lorg/openfinance/repository/LiabilityTrancheRepository;Lorg/openfinance/service/LiabilityTrancheService;Lorg/openfinance/service/RealEstateService;Lorg/openfinance/service/AssetService;Lorg/openfinance/service/ImportedInvestmentService;Lorg/openfinance/service/InvestmentMovementService;Lorg/openfinance/repository/AssetRepository;Lorg/openfinance/repository/RealEstateRepository;)V" name="&lt;init&gt;" classAnnotationNames="org.springframework.stereotype.Service,org.springframework.transaction.annotation.Transactional" primary="true">
+      <SourceLine endBytecode="491" classname="org.openfinance.service.TransactionService" start="103" end="103" sourcepath="org/openfinance/service/TransactionService.java" sourcefile="TransactionService.java" startBytecode="0" />
+      <Message>In method new org.openfinance.service.TransactionService(TransactionRepository, AccountRepository, CategoryRepository, PayeeRepository, CurrencyRepository, TransactionMapper, EncryptionService, BudgetAlertService, TransactionSplitService, UserRepository, ExchangeRateService, JdbcTemplate, MessageSource, NetWorthRepository, OperationHistoryService, SearchTokenService, DefaultCurrencyProvider, CurrencyConversionHelper, AccountCurrencyService, LiabilityRepository, LiabilityTrancheRepository, LiabilityTrancheService, RealEstateService, AssetService, ImportedInvestmentService, InvestmentMovementService, AssetRepository, RealEstateRepository)</Message>
+    </Method>
+    <Field isStatic="false" classname="org.openfinance.service.TransactionService" signature="Lorg/openfinance/service/ExchangeRateService;" name="exchangeRateService" classAnnotationNames="org.springframework.stereotype.Service,org.springframework.transaction.annotation.Transactional" primary="true">
+      <SourceLine classname="org.openfinance.service.TransactionService" sourcepath="org/openfinance/service/TransactionService.java" sourcefile="TransactionService.java">
+        <Message>In TransactionService.java</Message>
+      </SourceLine>
+      <Message>Field org.openfinance.service.TransactionService.exchangeRateService</Message>
+    </Field>
+    <LocalVariable role="LOCAL_VARIABLE_NAMED" pc="64" name="exchangeRateService" register="11">
+      <Message>Local variable named exchangeRateService</Message>
+    </LocalVariable>
+    <SourceLine endBytecode="64" classname="org.openfinance.service.TransactionService" start="103" end="103" sourcepath="org/openfinance/service/TransactionService.java" sourcefile="TransactionService.java" startBytecode="64" primary="true">
+      <Message>At TransactionService.java:[line 103]</Message>
+    </SourceLine>
+  </BugInstance>
+  <BugInstance instanceOccurrenceNum="0" instanceHash="85577353a111ec1c65de2829092940d3" cweid="374" rank="18" abbrev="EI2" category="MALICIOUS_CODE" priority="2" type="EI_EXPOSE_REP2" instanceOccurrenceMax="0">
+    <ShortMessage>May expose internal representation by incorporating reference to mutable object</ShortMessage>
+    <LongMessage>new org.openfinance.service.TransactionService(TransactionRepository, AccountRepository, CategoryRepository, PayeeRepository, CurrencyRepository, TransactionMapper, EncryptionService, BudgetAlertService, TransactionSplitService, UserRepository, ExchangeRateService, JdbcTemplate, MessageSource, NetWorthRepository, OperationHistoryService, SearchTokenService, DefaultCurrencyProvider, CurrencyConversionHelper, AccountCurrencyService, LiabilityRepository, LiabilityTrancheRepository, LiabilityTrancheService, RealEstateService, AssetService, ImportedInvestmentService, InvestmentMovementService, AssetRepository, RealEstateRepository) may expose internal representation by storing an externally mutable object into TransactionService.jdbcTemplate</LongMessage>
+    <Class classname="org.openfinance.service.TransactionService" classAnnotationNames="org.springframework.stereotype.Service,org.springframework.transaction.annotation.Transactional" primary="true">
+      <SourceLine classname="org.openfinance.service.TransactionService" start="103" end="3307" sourcepath="org/openfinance/service/TransactionService.java" sourcefile="TransactionService.java">
+        <Message>At TransactionService.java:[lines 103-3307]</Message>
+      </SourceLine>
+      <Message>In class org.openfinance.service.TransactionService</Message>
+    </Class>
+    <Method isStatic="false" classname="org.openfinance.service.TransactionService" signature="(Lorg/openfinance/repository/TransactionRepository;Lorg/openfinance/repository/AccountRepository;Lorg/openfinance/repository/CategoryRepository;Lorg/openfinance/repository/PayeeRepository;Lorg/openfinance/repository/CurrencyRepository;Lorg/openfinance/mapper/TransactionMapper;Lorg/openfinance/security/EncryptionService;Lorg/openfinance/service/BudgetAlertService;Lorg/openfinance/service/TransactionSplitService;Lorg/openfinance/repository/UserRepository;Lorg/openfinance/service/ExchangeRateService;Lorg/springframework/jdbc/core/JdbcTemplate;Lorg/springframework/context/MessageSource;Lorg/openfinance/repository/NetWorthRepository;Lorg/openfinance/service/OperationHistoryService;Lorg/openfinance/service/SearchTokenService;Lorg/openfinance/service/DefaultCurrencyProvider;Lorg/openfinance/service/CurrencyConversionHelper;Lorg/openfinance/service/AccountCurrencyService;Lorg/openfinance/repository/LiabilityRepository;Lorg/openfinance/repository/LiabilityTrancheRepository;Lorg/openfinance/service/LiabilityTrancheService;Lorg/openfinance/service/RealEstateService;Lorg/openfinance/service/AssetService;Lorg/openfinance/service/ImportedInvestmentService;Lorg/openfinance/service/InvestmentMovementService;Lorg/openfinance/repository/AssetRepository;Lorg/openfinance/repository/RealEstateRepository;)V" name="&lt;init&gt;" classAnnotationNames="org.springframework.stereotype.Service,org.springframework.transaction.annotation.Transactional" primary="true">
+      <SourceLine endBytecode="491" classname="org.openfinance.service.TransactionService" start="103" end="103" sourcepath="org/openfinance/service/TransactionService.java" sourcefile="TransactionService.java" startBytecode="0" />
+      <Message>In method new org.openfinance.service.TransactionService(TransactionRepository, AccountRepository, CategoryRepository, PayeeRepository, CurrencyRepository, TransactionMapper, EncryptionService, BudgetAlertService, TransactionSplitService, UserRepository, ExchangeRateService, JdbcTemplate, MessageSource, NetWorthRepository, OperationHistoryService, SearchTokenService, DefaultCurrencyProvider, CurrencyConversionHelper, AccountCurrencyService, LiabilityRepository, LiabilityTrancheRepository, LiabilityTrancheService, RealEstateService, AssetService, ImportedInvestmentService, InvestmentMovementService, AssetRepository, RealEstateRepository)</Message>
+    </Method>
+    <Field isStatic="false" classname="org.openfinance.service.TransactionService" signature="Lorg/springframework/jdbc/core/JdbcTemplate;" name="jdbcTemplate" classAnnotationNames="org.springframework.stereotype.Service,org.springframework.transaction.annotation.Transactional" primary="true">
+      <SourceLine classname="org.openfinance.service.TransactionService" sourcepath="org/openfinance/service/TransactionService.java" sourcefile="TransactionService.java">
+        <Message>In TransactionService.java</Message>
+      </SourceLine>
+      <Message>Field org.openfinance.service.TransactionService.jdbcTemplate</Message>
+    </Field>
+    <LocalVariable role="LOCAL_VARIABLE_NAMED" pc="70" name="jdbcTemplate" register="12">
+      <Message>Local variable named jdbcTemplate</Message>
+    </LocalVariable>
+    <SourceLine endBytecode="70" classname="org.openfinance.service.TransactionService" start="103" end="103" sourcepath="org/openfinance/service/TransactionService.java" sourcefile="TransactionService.java" startBytecode="70" primary="true">
+      <Message>At TransactionService.java:[line 103]</Message>
+    </SourceLine>
+  </BugInstance>
+  <BugInstance instanceOccurrenceNum="0" instanceHash="63bc14e52555c736048add12c067b4c0" cweid="374" rank="18" abbrev="EI2" category="MALICIOUS_CODE" priority="2" type="EI_EXPOSE_REP2" instanceOccurrenceMax="0">
+    <ShortMessage>May expose internal representation by incorporating reference to mutable object</ShortMessage>
+    <LongMessage>new org.openfinance.service.TransactionService(TransactionRepository, AccountRepository, CategoryRepository, PayeeRepository, CurrencyRepository, TransactionMapper, EncryptionService, BudgetAlertService, TransactionSplitService, UserRepository, ExchangeRateService, JdbcTemplate, MessageSource, NetWorthRepository, OperationHistoryService, SearchTokenService, DefaultCurrencyProvider, CurrencyConversionHelper, AccountCurrencyService, LiabilityRepository, LiabilityTrancheRepository, LiabilityTrancheService, RealEstateService, AssetService, ImportedInvestmentService, InvestmentMovementService, AssetRepository, RealEstateRepository) may expose internal representation by storing an externally mutable object into TransactionService.liabilityRepository</LongMessage>
+    <Class classname="org.openfinance.service.TransactionService" classAnnotationNames="org.springframework.stereotype.Service,org.springframework.transaction.annotation.Transactional" primary="true">
+      <SourceLine classname="org.openfinance.service.TransactionService" start="103" end="3307" sourcepath="org/openfinance/service/TransactionService.java" sourcefile="TransactionService.java">
+        <Message>At TransactionService.java:[lines 103-3307]</Message>
+      </SourceLine>
+      <Message>In class org.openfinance.service.TransactionService</Message>
+    </Class>
+    <Method isStatic="false" classname="org.openfinance.service.TransactionService" signature="(Lorg/openfinance/repository/TransactionRepository;Lorg/openfinance/repository/AccountRepository;Lorg/openfinance/repository/CategoryRepository;Lorg/openfinance/repository/PayeeRepository;Lorg/openfinance/repository/CurrencyRepository;Lorg/openfinance/mapper/TransactionMapper;Lorg/openfinance/security/EncryptionService;Lorg/openfinance/service/BudgetAlertService;Lorg/openfinance/service/TransactionSplitService;Lorg/openfinance/repository/UserRepository;Lorg/openfinance/service/ExchangeRateService;Lorg/springframework/jdbc/core/JdbcTemplate;Lorg/springframework/context/MessageSource;Lorg/openfinance/repository/NetWorthRepository;Lorg/openfinance/service/OperationHistoryService;Lorg/openfinance/service/SearchTokenService;Lorg/openfinance/service/DefaultCurrencyProvider;Lorg/openfinance/service/CurrencyConversionHelper;Lorg/openfinance/service/AccountCurrencyService;Lorg/openfinance/repository/LiabilityRepository;Lorg/openfinance/repository/LiabilityTrancheRepository;Lorg/openfinance/service/LiabilityTrancheService;Lorg/openfinance/service/RealEstateService;Lorg/openfinance/service/AssetService;Lorg/openfinance/service/ImportedInvestmentService;Lorg/openfinance/service/InvestmentMovementService;Lorg/openfinance/repository/AssetRepository;Lorg/openfinance/repository/RealEstateRepository;)V" name="&lt;init&gt;" classAnnotationNames="org.springframework.stereotype.Service,org.springframework.transaction.annotation.Transactional" primary="true">
+      <SourceLine endBytecode="491" classname="org.openfinance.service.TransactionService" start="103" end="103" sourcepath="org/openfinance/service/TransactionService.java" sourcefile="TransactionService.java" startBytecode="0" />
+      <Message>In method new org.openfinance.service.TransactionService(TransactionRepository, AccountRepository, CategoryRepository, PayeeRepository, CurrencyRepository, TransactionMapper, EncryptionService, BudgetAlertService, TransactionSplitService, UserRepository, ExchangeRateService, JdbcTemplate, MessageSource, NetWorthRepository, OperationHistoryService, SearchTokenService, DefaultCurrencyProvider, CurrencyConversionHelper, AccountCurrencyService, LiabilityRepository, LiabilityTrancheRepository, LiabilityTrancheService, RealEstateService, AssetService, ImportedInvestmentService, InvestmentMovementService, AssetRepository, RealEstateRepository)</Message>
+    </Method>
+    <Field isStatic="false" classname="org.openfinance.service.TransactionService" signature="Lorg/openfinance/repository/LiabilityRepository;" name="liabilityRepository" classAnnotationNames="org.springframework.stereotype.Service,org.springframework.transaction.annotation.Transactional" primary="true">
+      <SourceLine classname="org.openfinance.service.TransactionService" sourcepath="org/openfinance/service/TransactionService.java" sourcefile="TransactionService.java">
+        <Message>In TransactionService.java</Message>
+      </SourceLine>
+      <Message>Field org.openfinance.service.TransactionService.liabilityRepository</Message>
+    </Field>
+    <LocalVariable role="LOCAL_VARIABLE_NAMED" pc="118" name="liabilityRepository" register="20">
+      <Message>Local variable named liabilityRepository</Message>
+    </LocalVariable>
+    <SourceLine endBytecode="118" classname="org.openfinance.service.TransactionService" start="103" end="103" sourcepath="org/openfinance/service/TransactionService.java" sourcefile="TransactionService.java" startBytecode="118" primary="true">
+      <Message>At TransactionService.java:[line 103]</Message>
+    </SourceLine>
+  </BugInstance>
+  <BugInstance instanceOccurrenceNum="0" instanceHash="98890394fef3c5ef0d904ed3bb4aca60" cweid="374" rank="18" abbrev="EI2" category="MALICIOUS_CODE" priority="2" type="EI_EXPOSE_REP2" instanceOccurrenceMax="0">
+    <ShortMessage>May expose internal representation by incorporating reference to mutable object</ShortMessage>
+    <LongMessage>new org.openfinance.service.TransactionService(TransactionRepository, AccountRepository, CategoryRepository, PayeeRepository, CurrencyRepository, TransactionMapper, EncryptionService, BudgetAlertService, TransactionSplitService, UserRepository, ExchangeRateService, JdbcTemplate, MessageSource, NetWorthRepository, OperationHistoryService, SearchTokenService, DefaultCurrencyProvider, CurrencyConversionHelper, AccountCurrencyService, LiabilityRepository, LiabilityTrancheRepository, LiabilityTrancheService, RealEstateService, AssetService, ImportedInvestmentService, InvestmentMovementService, AssetRepository, RealEstateRepository) may expose internal representation by storing an externally mutable object into TransactionService.liabilityTrancheService</LongMessage>
+    <Class classname="org.openfinance.service.TransactionService" classAnnotationNames="org.springframework.stereotype.Service,org.springframework.transaction.annotation.Transactional" primary="true">
+      <SourceLine classname="org.openfinance.service.TransactionService" start="103" end="3307" sourcepath="org/openfinance/service/TransactionService.java" sourcefile="TransactionService.java">
+        <Message>At TransactionService.java:[lines 103-3307]</Message>
+      </SourceLine>
+      <Message>In class org.openfinance.service.TransactionService</Message>
+    </Class>
+    <Method isStatic="false" classname="org.openfinance.service.TransactionService" signature="(Lorg/openfinance/repository/TransactionRepository;Lorg/openfinance/repository/AccountRepository;Lorg/openfinance/repository/CategoryRepository;Lorg/openfinance/repository/PayeeRepository;Lorg/openfinance/repository/CurrencyRepository;Lorg/openfinance/mapper/TransactionMapper;Lorg/openfinance/security/EncryptionService;Lorg/openfinance/service/BudgetAlertService;Lorg/openfinance/service/TransactionSplitService;Lorg/openfinance/repository/UserRepository;Lorg/openfinance/service/ExchangeRateService;Lorg/springframework/jdbc/core/JdbcTemplate;Lorg/springframework/context/MessageSource;Lorg/openfinance/repository/NetWorthRepository;Lorg/openfinance/service/OperationHistoryService;Lorg/openfinance/service/SearchTokenService;Lorg/openfinance/service/DefaultCurrencyProvider;Lorg/openfinance/service/CurrencyConversionHelper;Lorg/openfinance/service/AccountCurrencyService;Lorg/openfinance/repository/LiabilityRepository;Lorg/openfinance/repository/LiabilityTrancheRepository;Lorg/openfinance/service/LiabilityTrancheService;Lorg/openfinance/service/RealEstateService;Lorg/openfinance/service/AssetService;Lorg/openfinance/service/ImportedInvestmentService;Lorg/openfinance/service/InvestmentMovementService;Lorg/openfinance/repository/AssetRepository;Lorg/openfinance/repository/RealEstateRepository;)V" name="&lt;init&gt;" classAnnotationNames="org.springframework.stereotype.Service,org.springframework.transaction.annotation.Transactional" primary="true">
+      <SourceLine endBytecode="491" classname="org.openfinance.service.TransactionService" start="103" end="103" sourcepath="org/openfinance/service/TransactionService.java" sourcefile="TransactionService.java" startBytecode="0" />
+      <Message>In method new org.openfinance.service.TransactionService(TransactionRepository, AccountRepository, CategoryRepository, PayeeRepository, CurrencyRepository, TransactionMapper, EncryptionService, BudgetAlertService, TransactionSplitService, UserRepository, ExchangeRateService, JdbcTemplate, MessageSource, NetWorthRepository, OperationHistoryService, SearchTokenService, DefaultCurrencyProvider, CurrencyConversionHelper, AccountCurrencyService, LiabilityRepository, LiabilityTrancheRepository, LiabilityTrancheService, RealEstateService, AssetService, ImportedInvestmentService, InvestmentMovementService, AssetRepository, RealEstateRepository)</Message>
+    </Method>
+    <Field isStatic="false" classname="org.openfinance.service.TransactionService" signature="Lorg/openfinance/service/LiabilityTrancheService;" name="liabilityTrancheService" classAnnotationNames="org.springframework.stereotype.Service,org.springframework.transaction.annotation.Transactional" primary="true">
+      <SourceLine classname="org.openfinance.service.TransactionService" sourcepath="org/openfinance/service/TransactionService.java" sourcefile="TransactionService.java">
+        <Message>In TransactionService.java</Message>
+      </SourceLine>
+      <Message>Field org.openfinance.service.TransactionService.liabilityTrancheService</Message>
+    </Field>
+    <LocalVariable role="LOCAL_VARIABLE_NAMED" pc="130" name="liabilityTrancheService" register="22">
+      <Message>Local variable named liabilityTrancheService</Message>
+    </LocalVariable>
+    <SourceLine endBytecode="130" classname="org.openfinance.service.TransactionService" start="103" end="103" sourcepath="org/openfinance/service/TransactionService.java" sourcefile="TransactionService.java" startBytecode="130" primary="true">
+      <Message>At TransactionService.java:[line 103]</Message>
+    </SourceLine>
+  </BugInstance>
+  <BugInstance instanceOccurrenceNum="0" instanceHash="6299dfa1ff491fb15e7556df5e6e981d" cweid="374" rank="18" abbrev="EI2" category="MALICIOUS_CODE" priority="2" type="EI_EXPOSE_REP2" instanceOccurrenceMax="0">
+    <ShortMessage>May expose internal representation by incorporating reference to mutable object</ShortMessage>
+    <LongMessage>new org.openfinance.service.TransactionService(TransactionRepository, AccountRepository, CategoryRepository, PayeeRepository, CurrencyRepository, TransactionMapper, EncryptionService, BudgetAlertService, TransactionSplitService, UserRepository, ExchangeRateService, JdbcTemplate, MessageSource, NetWorthRepository, OperationHistoryService, SearchTokenService, DefaultCurrencyProvider, CurrencyConversionHelper, AccountCurrencyService, LiabilityRepository, LiabilityTrancheRepository, LiabilityTrancheService, RealEstateService, AssetService, ImportedInvestmentService, InvestmentMovementService, AssetRepository, RealEstateRepository) may expose internal representation by storing an externally mutable object into TransactionService.netWorthRepository</LongMessage>
+    <Class classname="org.openfinance.service.TransactionService" classAnnotationNames="org.springframework.stereotype.Service,org.springframework.transaction.annotation.Transactional" primary="true">
+      <SourceLine classname="org.openfinance.service.TransactionService" start="103" end="3307" sourcepath="org/openfinance/service/TransactionService.java" sourcefile="TransactionService.java">
+        <Message>At TransactionService.java:[lines 103-3307]</Message>
+      </SourceLine>
+      <Message>In class org.openfinance.service.TransactionService</Message>
+    </Class>
+    <Method isStatic="false" classname="org.openfinance.service.TransactionService" signature="(Lorg/openfinance/repository/TransactionRepository;Lorg/openfinance/repository/AccountRepository;Lorg/openfinance/repository/CategoryRepository;Lorg/openfinance/repository/PayeeRepository;Lorg/openfinance/repository/CurrencyRepository;Lorg/openfinance/mapper/TransactionMapper;Lorg/openfinance/security/EncryptionService;Lorg/openfinance/service/BudgetAlertService;Lorg/openfinance/service/TransactionSplitService;Lorg/openfinance/repository/UserRepository;Lorg/openfinance/service/ExchangeRateService;Lorg/springframework/jdbc/core/JdbcTemplate;Lorg/springframework/context/MessageSource;Lorg/openfinance/repository/NetWorthRepository;Lorg/openfinance/service/OperationHistoryService;Lorg/openfinance/service/SearchTokenService;Lorg/openfinance/service/DefaultCurrencyProvider;Lorg/openfinance/service/CurrencyConversionHelper;Lorg/openfinance/service/AccountCurrencyService;Lorg/openfinance/repository/LiabilityRepository;Lorg/openfinance/repository/LiabilityTrancheRepository;Lorg/openfinance/service/LiabilityTrancheService;Lorg/openfinance/service/RealEstateService;Lorg/openfinance/service/AssetService;Lorg/openfinance/service/ImportedInvestmentService;Lorg/openfinance/service/InvestmentMovementService;Lorg/openfinance/repository/AssetRepository;Lorg/openfinance/repository/RealEstateRepository;)V" name="&lt;init&gt;" classAnnotationNames="org.springframework.stereotype.Service,org.springframework.transaction.annotation.Transactional" primary="true">
+      <SourceLine endBytecode="491" classname="org.openfinance.service.TransactionService" start="103" end="103" sourcepath="org/openfinance/service/TransactionService.java" sourcefile="TransactionService.java" startBytecode="0" />
+      <Message>In method new org.openfinance.service.TransactionService(TransactionRepository, AccountRepository, CategoryRepository, PayeeRepository, CurrencyRepository, TransactionMapper, EncryptionService, BudgetAlertService, TransactionSplitService, UserRepository, ExchangeRateService, JdbcTemplate, MessageSource, NetWorthRepository, OperationHistoryService, SearchTokenService, DefaultCurrencyProvider, CurrencyConversionHelper, AccountCurrencyService, LiabilityRepository, LiabilityTrancheRepository, LiabilityTrancheService, RealEstateService, AssetService, ImportedInvestmentService, InvestmentMovementService, AssetRepository, RealEstateRepository)</Message>
+    </Method>
+    <Field isStatic="false" classname="org.openfinance.service.TransactionService" signature="Lorg/openfinance/repository/NetWorthRepository;" name="netWorthRepository" classAnnotationNames="org.springframework.stereotype.Service,org.springframework.transaction.annotation.Transactional" primary="true">
+      <SourceLine classname="org.openfinance.service.TransactionService" sourcepath="org/openfinance/service/TransactionService.java" sourcefile="TransactionService.java">
+        <Message>In TransactionService.java</Message>
+      </SourceLine>
+      <Message>Field org.openfinance.service.TransactionService.netWorthRepository</Message>
+    </Field>
+    <LocalVariable role="LOCAL_VARIABLE_NAMED" pc="82" name="netWorthRepository" register="14">
+      <Message>Local variable named netWorthRepository</Message>
+    </LocalVariable>
+    <SourceLine endBytecode="82" classname="org.openfinance.service.TransactionService" start="103" end="103" sourcepath="org/openfinance/service/TransactionService.java" sourcefile="TransactionService.java" startBytecode="82" primary="true">
+      <Message>At TransactionService.java:[line 103]</Message>
+    </SourceLine>
+  </BugInstance>
+  <BugInstance instanceOccurrenceNum="0" instanceHash="ebc74f0a008982a686a7f1cca0020372" cweid="374" rank="18" abbrev="EI2" category="MALICIOUS_CODE" priority="2" type="EI_EXPOSE_REP2" instanceOccurrenceMax="0">
+    <ShortMessage>May expose internal representation by incorporating reference to mutable object</ShortMessage>
+    <LongMessage>new org.openfinance.service.TransactionService(TransactionRepository, AccountRepository, CategoryRepository, PayeeRepository, CurrencyRepository, TransactionMapper, EncryptionService, BudgetAlertService, TransactionSplitService, UserRepository, ExchangeRateService, JdbcTemplate, MessageSource, NetWorthRepository, OperationHistoryService, SearchTokenService, DefaultCurrencyProvider, CurrencyConversionHelper, AccountCurrencyService, LiabilityRepository, LiabilityTrancheRepository, LiabilityTrancheService, RealEstateService, AssetService, ImportedInvestmentService, InvestmentMovementService, AssetRepository, RealEstateRepository) may expose internal representation by storing an externally mutable object into TransactionService.realEstateRepository</LongMessage>
+    <Class classname="org.openfinance.service.TransactionService" classAnnotationNames="org.springframework.stereotype.Service,org.springframework.transaction.annotation.Transactional" primary="true">
+      <SourceLine classname="org.openfinance.service.TransactionService" start="103" end="3307" sourcepath="org/openfinance/service/TransactionService.java" sourcefile="TransactionService.java">
+        <Message>At TransactionService.java:[lines 103-3307]</Message>
+      </SourceLine>
+      <Message>In class org.openfinance.service.TransactionService</Message>
+    </Class>
+    <Method isStatic="false" classname="org.openfinance.service.TransactionService" signature="(Lorg/openfinance/repository/TransactionRepository;Lorg/openfinance/repository/AccountRepository;Lorg/openfinance/repository/CategoryRepository;Lorg/openfinance/repository/PayeeRepository;Lorg/openfinance/repository/CurrencyRepository;Lorg/openfinance/mapper/TransactionMapper;Lorg/openfinance/security/EncryptionService;Lorg/openfinance/service/BudgetAlertService;Lorg/openfinance/service/TransactionSplitService;Lorg/openfinance/repository/UserRepository;Lorg/openfinance/service/ExchangeRateService;Lorg/springframework/jdbc/core/JdbcTemplate;Lorg/springframework/context/MessageSource;Lorg/openfinance/repository/NetWorthRepository;Lorg/openfinance/service/OperationHistoryService;Lorg/openfinance/service/SearchTokenService;Lorg/openfinance/service/DefaultCurrencyProvider;Lorg/openfinance/service/CurrencyConversionHelper;Lorg/openfinance/service/AccountCurrencyService;Lorg/openfinance/repository/LiabilityRepository;Lorg/openfinance/repository/LiabilityTrancheRepository;Lorg/openfinance/service/LiabilityTrancheService;Lorg/openfinance/service/RealEstateService;Lorg/openfinance/service/AssetService;Lorg/openfinance/service/ImportedInvestmentService;Lorg/openfinance/service/InvestmentMovementService;Lorg/openfinance/repository/AssetRepository;Lorg/openfinance/repository/RealEstateRepository;)V" name="&lt;init&gt;" classAnnotationNames="org.springframework.stereotype.Service,org.springframework.transaction.annotation.Transactional" primary="true">
+      <SourceLine endBytecode="491" classname="org.openfinance.service.TransactionService" start="103" end="103" sourcepath="org/openfinance/service/TransactionService.java" sourcefile="TransactionService.java" startBytecode="0" />
+      <Message>In method new org.openfinance.service.TransactionService(TransactionRepository, AccountRepository, CategoryRepository, PayeeRepository, CurrencyRepository, TransactionMapper, EncryptionService, BudgetAlertService, TransactionSplitService, UserRepository, ExchangeRateService, JdbcTemplate, MessageSource, NetWorthRepository, OperationHistoryService, SearchTokenService, DefaultCurrencyProvider, CurrencyConversionHelper, AccountCurrencyService, LiabilityRepository, LiabilityTrancheRepository, LiabilityTrancheService, RealEstateService, AssetService, ImportedInvestmentService, InvestmentMovementService, AssetRepository, RealEstateRepository)</Message>
+    </Method>
+    <Field isStatic="false" classname="org.openfinance.service.TransactionService" signature="Lorg/openfinance/repository/RealEstateRepository;" name="realEstateRepository" classAnnotationNames="org.springframework.stereotype.Service,org.springframework.transaction.annotation.Transactional" primary="true">
+      <SourceLine classname="org.openfinance.service.TransactionService" sourcepath="org/openfinance/service/TransactionService.java" sourcefile="TransactionService.java">
+        <Message>In TransactionService.java</Message>
+      </SourceLine>
+      <Message>Field org.openfinance.service.TransactionService.realEstateRepository</Message>
+    </Field>
+    <LocalVariable role="LOCAL_VARIABLE_NAMED" pc="166" name="realEstateRepository" register="28">
+      <Message>Local variable named realEstateRepository</Message>
+    </LocalVariable>
+    <SourceLine endBytecode="166" classname="org.openfinance.service.TransactionService" start="103" end="103" sourcepath="org/openfinance/service/TransactionService.java" sourcefile="TransactionService.java" startBytecode="166" primary="true">
+      <Message>At TransactionService.java:[line 103]</Message>
+    </SourceLine>
+  </BugInstance>
+  <BugInstance instanceOccurrenceNum="0" instanceHash="4ffcb7b9703bed5c43fa13b78702fddc" cweid="374" rank="18" abbrev="EI2" category="MALICIOUS_CODE" priority="2" type="EI_EXPOSE_REP2" instanceOccurrenceMax="0">
+    <ShortMessage>May expose internal representation by incorporating reference to mutable object</ShortMessage>
+    <LongMessage>new org.openfinance.service.TransactionService(TransactionRepository, AccountRepository, CategoryRepository, PayeeRepository, CurrencyRepository, TransactionMapper, EncryptionService, BudgetAlertService, TransactionSplitService, UserRepository, ExchangeRateService, JdbcTemplate, MessageSource, NetWorthRepository, OperationHistoryService, SearchTokenService, DefaultCurrencyProvider, CurrencyConversionHelper, AccountCurrencyService, LiabilityRepository, LiabilityTrancheRepository, LiabilityTrancheService, RealEstateService, AssetService, ImportedInvestmentService, InvestmentMovementService, AssetRepository, RealEstateRepository) may expose internal representation by storing an externally mutable object into TransactionService.realEstateService</LongMessage>
+    <Class classname="org.openfinance.service.TransactionService" classAnnotationNames="org.springframework.stereotype.Service,org.springframework.transaction.annotation.Transactional" primary="true">
+      <SourceLine classname="org.openfinance.service.TransactionService" start="103" end="3307" sourcepath="org/openfinance/service/TransactionService.java" sourcefile="TransactionService.java">
+        <Message>At TransactionService.java:[lines 103-3307]</Message>
+      </SourceLine>
+      <Message>In class org.openfinance.service.TransactionService</Message>
+    </Class>
+    <Method isStatic="false" classname="org.openfinance.service.TransactionService" signature="(Lorg/openfinance/repository/TransactionRepository;Lorg/openfinance/repository/AccountRepository;Lorg/openfinance/repository/CategoryRepository;Lorg/openfinance/repository/PayeeRepository;Lorg/openfinance/repository/CurrencyRepository;Lorg/openfinance/mapper/TransactionMapper;Lorg/openfinance/security/EncryptionService;Lorg/openfinance/service/BudgetAlertService;Lorg/openfinance/service/TransactionSplitService;Lorg/openfinance/repository/UserRepository;Lorg/openfinance/service/ExchangeRateService;Lorg/springframework/jdbc/core/JdbcTemplate;Lorg/springframework/context/MessageSource;Lorg/openfinance/repository/NetWorthRepository;Lorg/openfinance/service/OperationHistoryService;Lorg/openfinance/service/SearchTokenService;Lorg/openfinance/service/DefaultCurrencyProvider;Lorg/openfinance/service/CurrencyConversionHelper;Lorg/openfinance/service/AccountCurrencyService;Lorg/openfinance/repository/LiabilityRepository;Lorg/openfinance/repository/LiabilityTrancheRepository;Lorg/openfinance/service/LiabilityTrancheService;Lorg/openfinance/service/RealEstateService;Lorg/openfinance/service/AssetService;Lorg/openfinance/service/ImportedInvestmentService;Lorg/openfinance/service/InvestmentMovementService;Lorg/openfinance/repository/AssetRepository;Lorg/openfinance/repository/RealEstateRepository;)V" name="&lt;init&gt;" classAnnotationNames="org.springframework.stereotype.Service,org.springframework.transaction.annotation.Transactional" primary="true">
+      <SourceLine endBytecode="491" classname="org.openfinance.service.TransactionService" start="103" end="103" sourcepath="org/openfinance/service/TransactionService.java" sourcefile="TransactionService.java" startBytecode="0" />
+      <Message>In method new org.openfinance.service.TransactionService(TransactionRepository, AccountRepository, CategoryRepository, PayeeRepository, CurrencyRepository, TransactionMapper, EncryptionService, BudgetAlertService, TransactionSplitService, UserRepository, ExchangeRateService, JdbcTemplate, MessageSource, NetWorthRepository, OperationHistoryService, SearchTokenService, DefaultCurrencyProvider, CurrencyConversionHelper, AccountCurrencyService, LiabilityRepository, LiabilityTrancheRepository, LiabilityTrancheService, RealEstateService, AssetService, ImportedInvestmentService, InvestmentMovementService, AssetRepository, RealEstateRepository)</Message>
+    </Method>
+    <Field isStatic="false" classname="org.openfinance.service.TransactionService" signature="Lorg/openfinance/service/RealEstateService;" name="realEstateService" classAnnotationNames="org.springframework.stereotype.Service,org.springframework.transaction.annotation.Transactional" primary="true">
+      <SourceLine classname="org.openfinance.service.TransactionService" sourcepath="org/openfinance/service/TransactionService.java" sourcefile="TransactionService.java">
+        <Message>In TransactionService.java</Message>
+      </SourceLine>
+      <Message>Field org.openfinance.service.TransactionService.realEstateService</Message>
+    </Field>
+    <LocalVariable role="LOCAL_VARIABLE_NAMED" pc="136" name="realEstateService" register="23">
+      <Message>Local variable named realEstateService</Message>
+    </LocalVariable>
+    <SourceLine endBytecode="136" classname="org.openfinance.service.TransactionService" start="103" end="103" sourcepath="org/openfinance/service/TransactionService.java" sourcefile="TransactionService.java" startBytecode="136" primary="true">
+      <Message>At TransactionService.java:[line 103]</Message>
+    </SourceLine>
+  </BugInstance>
+  <BugInstance instanceOccurrenceNum="0" instanceHash="aa5f2c544198ae8c7be023292790746a" cweid="374" rank="18" abbrev="EI2" category="MALICIOUS_CODE" priority="2" type="EI_EXPOSE_REP2" instanceOccurrenceMax="0">
+    <ShortMessage>May expose internal representation by incorporating reference to mutable object</ShortMessage>
+    <LongMessage>new org.openfinance.service.TransactionService(TransactionRepository, AccountRepository, CategoryRepository, PayeeRepository, CurrencyRepository, TransactionMapper, EncryptionService, BudgetAlertService, TransactionSplitService, UserRepository, ExchangeRateService, JdbcTemplate, MessageSource, NetWorthRepository, OperationHistoryService, SearchTokenService, DefaultCurrencyProvider, CurrencyConversionHelper, AccountCurrencyService, LiabilityRepository, LiabilityTrancheRepository, LiabilityTrancheService, RealEstateService, AssetService, ImportedInvestmentService, InvestmentMovementService, AssetRepository, RealEstateRepository) may expose internal representation by storing an externally mutable object into TransactionService.searchTokenService</LongMessage>
+    <Class classname="org.openfinance.service.TransactionService" classAnnotationNames="org.springframework.stereotype.Service,org.springframework.transaction.annotation.Transactional" primary="true">
+      <SourceLine classname="org.openfinance.service.TransactionService" start="103" end="3307" sourcepath="org/openfinance/service/TransactionService.java" sourcefile="TransactionService.java">
+        <Message>At TransactionService.java:[lines 103-3307]</Message>
+      </SourceLine>
+      <Message>In class org.openfinance.service.TransactionService</Message>
+    </Class>
+    <Method isStatic="false" classname="org.openfinance.service.TransactionService" signature="(Lorg/openfinance/repository/TransactionRepository;Lorg/openfinance/repository/AccountRepository;Lorg/openfinance/repository/CategoryRepository;Lorg/openfinance/repository/PayeeRepository;Lorg/openfinance/repository/CurrencyRepository;Lorg/openfinance/mapper/TransactionMapper;Lorg/openfinance/security/EncryptionService;Lorg/openfinance/service/BudgetAlertService;Lorg/openfinance/service/TransactionSplitService;Lorg/openfinance/repository/UserRepository;Lorg/openfinance/service/ExchangeRateService;Lorg/springframework/jdbc/core/JdbcTemplate;Lorg/springframework/context/MessageSource;Lorg/openfinance/repository/NetWorthRepository;Lorg/openfinance/service/OperationHistoryService;Lorg/openfinance/service/SearchTokenService;Lorg/openfinance/service/DefaultCurrencyProvider;Lorg/openfinance/service/CurrencyConversionHelper;Lorg/openfinance/service/AccountCurrencyService;Lorg/openfinance/repository/LiabilityRepository;Lorg/openfinance/repository/LiabilityTrancheRepository;Lorg/openfinance/service/LiabilityTrancheService;Lorg/openfinance/service/RealEstateService;Lorg/openfinance/service/AssetService;Lorg/openfinance/service/ImportedInvestmentService;Lorg/openfinance/service/InvestmentMovementService;Lorg/openfinance/repository/AssetRepository;Lorg/openfinance/repository/RealEstateRepository;)V" name="&lt;init&gt;" classAnnotationNames="org.springframework.stereotype.Service,org.springframework.transaction.annotation.Transactional" primary="true">
+      <SourceLine endBytecode="491" classname="org.openfinance.service.TransactionService" start="103" end="103" sourcepath="org/openfinance/service/TransactionService.java" sourcefile="TransactionService.java" startBytecode="0" />
+      <Message>In method new org.openfinance.service.TransactionService(TransactionRepository, AccountRepository, CategoryRepository, PayeeRepository, CurrencyRepository, TransactionMapper, EncryptionService, BudgetAlertService, TransactionSplitService, UserRepository, ExchangeRateService, JdbcTemplate, MessageSource, NetWorthRepository, OperationHistoryService, SearchTokenService, DefaultCurrencyProvider, CurrencyConversionHelper, AccountCurrencyService, LiabilityRepository, LiabilityTrancheRepository, LiabilityTrancheService, RealEstateService, AssetService, ImportedInvestmentService, InvestmentMovementService, AssetRepository, RealEstateRepository)</Message>
+    </Method>
+    <Field isStatic="false" classname="org.openfinance.service.TransactionService" signature="Lorg/openfinance/service/SearchTokenService;" name="searchTokenService" classAnnotationNames="org.springframework.stereotype.Service,org.springframework.transaction.annotation.Transactional" primary="true">
+      <SourceLine classname="org.openfinance.service.TransactionService" sourcepath="org/openfinance/service/TransactionService.java" sourcefile="TransactionService.java">
+        <Message>In TransactionService.java</Message>
+      </SourceLine>
+      <Message>Field org.openfinance.service.TransactionService.searchTokenService</Message>
+    </Field>
+    <LocalVariable role="LOCAL_VARIABLE_NAMED" pc="94" name="searchTokenService" register="16">
+      <Message>Local variable named searchTokenService</Message>
+    </LocalVariable>
+    <SourceLine endBytecode="94" classname="org.openfinance.service.TransactionService" start="103" end="103" sourcepath="org/openfinance/service/TransactionService.java" sourcefile="TransactionService.java" startBytecode="94" primary="true">
+      <Message>At TransactionService.java:[line 103]</Message>
+    </SourceLine>
+  </BugInstance>
+  <BugInstance instanceOccurrenceNum="0" instanceHash="8a8da6ccca08c3d9ec187894ceba02d9" cweid="374" rank="18" abbrev="EI2" category="MALICIOUS_CODE" priority="2" type="EI_EXPOSE_REP2" instanceOccurrenceMax="0">
+    <ShortMessage>May expose internal representation by incorporating reference to mutable object</ShortMessage>
+    <LongMessage>new org.openfinance.service.TransactionService(TransactionRepository, AccountRepository, CategoryRepository, PayeeRepository, CurrencyRepository, TransactionMapper, EncryptionService, BudgetAlertService, TransactionSplitService, UserRepository, ExchangeRateService, JdbcTemplate, MessageSource, NetWorthRepository, OperationHistoryService, SearchTokenService, DefaultCurrencyProvider, CurrencyConversionHelper, AccountCurrencyService, LiabilityRepository, LiabilityTrancheRepository, LiabilityTrancheService, RealEstateService, AssetService, ImportedInvestmentService, InvestmentMovementService, AssetRepository, RealEstateRepository) may expose internal representation by storing an externally mutable object into TransactionService.transactionRepository</LongMessage>
+    <Class classname="org.openfinance.service.TransactionService" classAnnotationNames="org.springframework.stereotype.Service,org.springframework.transaction.annotation.Transactional" primary="true">
+      <SourceLine classname="org.openfinance.service.TransactionService" start="103" end="3307" sourcepath="org/openfinance/service/TransactionService.java" sourcefile="TransactionService.java">
+        <Message>At TransactionService.java:[lines 103-3307]</Message>
+      </SourceLine>
+      <Message>In class org.openfinance.service.TransactionService</Message>
+    </Class>
+    <Method isStatic="false" classname="org.openfinance.service.TransactionService" signature="(Lorg/openfinance/repository/TransactionRepository;Lorg/openfinance/repository/AccountRepository;Lorg/openfinance/repository/CategoryRepository;Lorg/openfinance/repository/PayeeRepository;Lorg/openfinance/repository/CurrencyRepository;Lorg/openfinance/mapper/TransactionMapper;Lorg/openfinance/security/EncryptionService;Lorg/openfinance/service/BudgetAlertService;Lorg/openfinance/service/TransactionSplitService;Lorg/openfinance/repository/UserRepository;Lorg/openfinance/service/ExchangeRateService;Lorg/springframework/jdbc/core/JdbcTemplate;Lorg/springframework/context/MessageSource;Lorg/openfinance/repository/NetWorthRepository;Lorg/openfinance/service/OperationHistoryService;Lorg/openfinance/service/SearchTokenService;Lorg/openfinance/service/DefaultCurrencyProvider;Lorg/openfinance/service/CurrencyConversionHelper;Lorg/openfinance/service/AccountCurrencyService;Lorg/openfinance/repository/LiabilityRepository;Lorg/openfinance/repository/LiabilityTrancheRepository;Lorg/openfinance/service/LiabilityTrancheService;Lorg/openfinance/service/RealEstateService;Lorg/openfinance/service/AssetService;Lorg/openfinance/service/ImportedInvestmentService;Lorg/openfinance/service/InvestmentMovementService;Lorg/openfinance/repository/AssetRepository;Lorg/openfinance/repository/RealEstateRepository;)V" name="&lt;init&gt;" classAnnotationNames="org.springframework.stereotype.Service,org.springframework.transaction.annotation.Transactional" primary="true">
+      <SourceLine endBytecode="491" classname="org.openfinance.service.TransactionService" start="103" end="103" sourcepath="org/openfinance/service/TransactionService.java" sourcefile="TransactionService.java" startBytecode="0" />
+      <Message>In method new org.openfinance.service.TransactionService(TransactionRepository, AccountRepository, CategoryRepository, PayeeRepository, CurrencyRepository, TransactionMapper, EncryptionService, BudgetAlertService, TransactionSplitService, UserRepository, ExchangeRateService, JdbcTemplate, MessageSource, NetWorthRepository, OperationHistoryService, SearchTokenService, DefaultCurrencyProvider, CurrencyConversionHelper, AccountCurrencyService, LiabilityRepository, LiabilityTrancheRepository, LiabilityTrancheService, RealEstateService, AssetService, ImportedInvestmentService, InvestmentMovementService, AssetRepository, RealEstateRepository)</Message>
+    </Method>
+    <Field isStatic="false" classname="org.openfinance.service.TransactionService" signature="Lorg/openfinance/repository/TransactionRepository;" name="transactionRepository" classAnnotationNames="org.springframework.stereotype.Service,org.springframework.transaction.annotation.Transactional" primary="true">
+      <SourceLine classname="org.openfinance.service.TransactionService" sourcepath="org/openfinance/service/TransactionService.java" sourcefile="TransactionService.java">
+        <Message>In TransactionService.java</Message>
+      </SourceLine>
+      <Message>Field org.openfinance.service.TransactionService.transactionRepository</Message>
+    </Field>
+    <LocalVariable role="LOCAL_VARIABLE_NAMED" pc="6" name="transactionRepository" register="1">
+      <Message>Local variable named transactionRepository</Message>
+    </LocalVariable>
+    <SourceLine endBytecode="6" classname="org.openfinance.service.TransactionService" start="103" end="103" sourcepath="org/openfinance/service/TransactionService.java" sourcefile="TransactionService.java" startBytecode="6" primary="true">
+      <Message>At TransactionService.java:[line 103]</Message>
+    </SourceLine>
+  </BugInstance>
+  <BugInstance instanceOccurrenceNum="0" instanceHash="63f7132d6fe165e7e84f2f499fd575af" cweid="374" rank="18" abbrev="EI2" category="MALICIOUS_CODE" priority="2" type="EI_EXPOSE_REP2" instanceOccurrenceMax="0">
+    <ShortMessage>May expose internal representation by incorporating reference to mutable object</ShortMessage>
+    <LongMessage>new org.openfinance.service.TransactionService(TransactionRepository, AccountRepository, CategoryRepository, PayeeRepository, CurrencyRepository, TransactionMapper, EncryptionService, BudgetAlertService, TransactionSplitService, UserRepository, ExchangeRateService, JdbcTemplate, MessageSource, NetWorthRepository, OperationHistoryService, SearchTokenService, DefaultCurrencyProvider, CurrencyConversionHelper, AccountCurrencyService, LiabilityRepository, LiabilityTrancheRepository, LiabilityTrancheService, RealEstateService, AssetService, ImportedInvestmentService, InvestmentMovementService, AssetRepository, RealEstateRepository) may expose internal representation by storing an externally mutable object into TransactionService.transactionSplitService</LongMessage>
+    <Class classname="org.openfinance.service.TransactionService" classAnnotationNames="org.springframework.stereotype.Service,org.springframework.transaction.annotation.Transactional" primary="true">
+      <SourceLine classname="org.openfinance.service.TransactionService" start="103" end="3307" sourcepath="org/openfinance/service/TransactionService.java" sourcefile="TransactionService.java">
+        <Message>At TransactionService.java:[lines 103-3307]</Message>
+      </SourceLine>
+      <Message>In class org.openfinance.service.TransactionService</Message>
+    </Class>
+    <Method isStatic="false" classname="org.openfinance.service.TransactionService" signature="(Lorg/openfinance/repository/TransactionRepository;Lorg/openfinance/repository/AccountRepository;Lorg/openfinance/repository/CategoryRepository;Lorg/openfinance/repository/PayeeRepository;Lorg/openfinance/repository/CurrencyRepository;Lorg/openfinance/mapper/TransactionMapper;Lorg/openfinance/security/EncryptionService;Lorg/openfinance/service/BudgetAlertService;Lorg/openfinance/service/TransactionSplitService;Lorg/openfinance/repository/UserRepository;Lorg/openfinance/service/ExchangeRateService;Lorg/springframework/jdbc/core/JdbcTemplate;Lorg/springframework/context/MessageSource;Lorg/openfinance/repository/NetWorthRepository;Lorg/openfinance/service/OperationHistoryService;Lorg/openfinance/service/SearchTokenService;Lorg/openfinance/service/DefaultCurrencyProvider;Lorg/openfinance/service/CurrencyConversionHelper;Lorg/openfinance/service/AccountCurrencyService;Lorg/openfinance/repository/LiabilityRepository;Lorg/openfinance/repository/LiabilityTrancheRepository;Lorg/openfinance/service/LiabilityTrancheService;Lorg/openfinance/service/RealEstateService;Lorg/openfinance/service/AssetService;Lorg/openfinance/service/ImportedInvestmentService;Lorg/openfinance/service/InvestmentMovementService;Lorg/openfinance/repository/AssetRepository;Lorg/openfinance/repository/RealEstateRepository;)V" name="&lt;init&gt;" classAnnotationNames="org.springframework.stereotype.Service,org.springframework.transaction.annotation.Transactional" primary="true">
+      <SourceLine endBytecode="491" classname="org.openfinance.service.TransactionService" start="103" end="103" sourcepath="org/openfinance/service/TransactionService.java" sourcefile="TransactionService.java" startBytecode="0" />
+      <Message>In method new org.openfinance.service.TransactionService(TransactionRepository, AccountRepository, CategoryRepository, PayeeRepository, CurrencyRepository, TransactionMapper, EncryptionService, BudgetAlertService, TransactionSplitService, UserRepository, ExchangeRateService, JdbcTemplate, MessageSource, NetWorthRepository, OperationHistoryService, SearchTokenService, DefaultCurrencyProvider, CurrencyConversionHelper, AccountCurrencyService, LiabilityRepository, LiabilityTrancheRepository, LiabilityTrancheService, RealEstateService, AssetService, ImportedInvestmentService, InvestmentMovementService, AssetRepository, RealEstateRepository)</Message>
+    </Method>
+    <Field isStatic="false" classname="org.openfinance.service.TransactionService" signature="Lorg/openfinance/service/TransactionSplitService;" name="transactionSplitService" classAnnotationNames="org.springframework.stereotype.Service,org.springframework.transaction.annotation.Transactional" primary="true">
+      <SourceLine classname="org.openfinance.service.TransactionService" sourcepath="org/openfinance/service/TransactionService.java" sourcefile="TransactionService.java">
+        <Message>In TransactionService.java</Message>
+      </SourceLine>
+      <Message>Field org.openfinance.service.TransactionService.transactionSplitService</Message>
+    </Field>
+    <LocalVariable role="LOCAL_VARIABLE_NAMED" pc="52" name="transactionSplitService" register="9">
+      <Message>Local variable named transactionSplitService</Message>
+    </LocalVariable>
+    <SourceLine endBytecode="52" classname="org.openfinance.service.TransactionService" start="103" end="103" sourcepath="org/openfinance/service/TransactionService.java" sourcefile="TransactionService.java" startBytecode="52" primary="true">
+      <Message>At TransactionService.java:[line 103]</Message>
+    </SourceLine>
+  </BugInstance>
 </BugCollection>

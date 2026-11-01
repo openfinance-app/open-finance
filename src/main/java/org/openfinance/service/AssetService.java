@@ -19,6 +19,7 @@ import org.openfinance.dto.AssetSearchCriteria;
 import org.openfinance.dto.AssetSummaryResponse;
 import org.openfinance.dto.MetadataUpdateRequest;
 import org.openfinance.entity.Account;
+import org.openfinance.entity.AcquisitionType;
 import org.openfinance.entity.Asset;
 import org.openfinance.entity.AssetType;
 import org.openfinance.entity.EntityType;
@@ -316,7 +317,14 @@ public class AssetService {
     }
 
     private void validateImportedHoldingEdit(Asset asset, AssetRequest request) {
-        if (asset.getImportSource() == null) return;
+        if (asset.getImportSource() == null && asset.getImportOpeningQuantity() == null) return;
+        if ((request.getType() != null
+                        && (request.getType().isPhysical()
+                                || request.getType() == AssetType.REAL_ESTATE))
+                || request.getAcquisitionType() == AcquisitionType.PLANNED) {
+            throw InvalidTransactionException.investment(
+                    "holding", "An investment holding must remain an active financial asset");
+        }
         if ((request.getCurrency() != null
                         && !request.getCurrency().equalsIgnoreCase(asset.getCurrency()))
                 || (request.getQuantity() != null
@@ -329,7 +337,7 @@ public class AssetService {
                         && !java.util.Objects.equals(
                                 request.getAccountId(), asset.getAccountId()))) {
             throw new InvalidTransactionException(
-                    "Imported holding quantities and costs are derived from their investment movements");
+                    "Holding quantities and costs are derived from their investment movements; edit the transactions instead");
         }
     }
 
@@ -704,8 +712,9 @@ public class AssetService {
                     "Manage real estate through its property record");
         }
 
-        if (asset.getImportSource() != null
-                && (asset.getImportOpeningQuantity().signum() != 0
+        if ((asset.getImportSource() != null || asset.getImportOpeningQuantity() != null)
+                && ((asset.getImportSource() != null
+                                && asset.getImportOpeningQuantity().signum() != 0)
                         || transactionRepository.findByAssetIdAndUserId(assetId, userId).stream()
                                 .anyMatch(
                                         tx ->
@@ -713,7 +722,7 @@ public class AssetService {
                                                         && !Boolean.TRUE.equals(
                                                                 tx.getIsDeleted())))) {
             throw new InvalidTransactionException(
-                    "Remove the imported investment movements before deleting their holding");
+                    "Remove the investment movements before deleting their holding");
         }
 
         // Capture snapshot before delete for history (only if key provided)
@@ -1300,6 +1309,8 @@ public class AssetService {
         if (canReadSensitiveFields()) asset.setCapitalizedCost(capitalizedCost(asset));
         // Map to response first (mapper will populate calculated fields automatically)
         AssetResponse response = assetMapper.toResponse(asset);
+        response.setInvestmentTracked(
+                asset.getImportSource() != null || asset.getImportOpeningQuantity() != null);
         response.setIsActive(
                 asset.getType() != AssetType.REAL_ESTATE
                         || realEstateRepository

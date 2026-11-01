@@ -28,6 +28,8 @@ import { Badge } from '@/components/ui/Badge';
 import { AttachmentList, AttachmentUpload } from '@/components/attachments';
 import { AttachmentEntityType } from '@/types/attachment';
 import { TransactionAmount } from '@/components/transactions/TransactionAmount';
+import { LinkedOperationDetails } from '@/components/transactions/LinkedOperationDetails';
+import { linkedOperationSummary } from '@/utils/linked-operation';
 import { SplitDetail } from './SplitDetail';
 import { useFormatCurrency } from '@/hooks/useFormatCurrency';
 import { cn } from '@/lib/utils';
@@ -268,11 +270,15 @@ export function TransactionDetailModal({
                       </button>
                     </dd>
                   </div>
-                  {transaction.type === 'TRANSFER' &&
+                  {(transaction.type === 'TRANSFER' || transaction.transferId) &&
                     (transaction.toAccount?.name || transaction.toAccountName) && (
                       <div>
                         <dt className="text-xs text-muted-foreground uppercase tracking-wide mb-1">
-                          {t('detail.fields.toAccount')}
+                          {t(
+                            transaction.type === 'INCOME'
+                              ? 'detail.fields.fromAccount'
+                              : 'detail.fields.toAccount'
+                          )}
                         </dt>
                         <dd className="text-sm font-medium text-foreground">
                           {transaction.toAccount?.name || transaction.toAccountName}
@@ -341,6 +347,9 @@ export function TransactionDetailModal({
                         )}
                       </dd>
                     </div>
+                  )}
+                  {linkedOperationSummary(transaction) && (
+                    <LinkedOperationDetails transaction={transaction} onNavigate={onClose} />
                   )}
                 </dl>
               </div>

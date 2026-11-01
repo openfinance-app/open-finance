@@ -358,6 +358,11 @@ public interface TransactionRepository
             @Param("assetId") Long assetId, @Param("userId") Long userId);
 
     @Query(
+            "SELECT t FROM Transaction t WHERE t.investmentImportAccountId = :accountId AND t.userId = :userId AND t.isDeleted = false")
+    List<Transaction> findInvestmentCorrections(
+            @Param("accountId") Long accountId, @Param("userId") Long userId);
+
+    @Query(
             "SELECT t FROM Transaction t WHERE t.realEstateId = :realEstateId AND t.userId = :userId AND t.isDeleted = false")
     List<Transaction> findByRealEstateIdAndUserId(
             @Param("realEstateId") Long realEstateId, @Param("userId") Long userId);

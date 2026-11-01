@@ -133,7 +133,8 @@ public class ImportedInvestmentServiceImpl implements ImportedInvestmentService 
     }
 
     private boolean matches(Transaction stored, ImportedTransaction source) {
-        return source != null
+        return !stored.isInvestmentEdited()
+                && source != null
                 && source.getInvestmentQuantity() != null
                 && stored.getDate().equals(source.getTransactionDate())
                 && sameSourceAmount(stored, source)
@@ -197,7 +198,6 @@ public class ImportedInvestmentServiceImpl implements ImportedInvestmentService 
     @Override
     public void recalculate(Long assetId, Long userId) {
         Asset asset = assets.findByIdAndUserId(assetId, userId).orElseThrow();
-        if (asset.getImportSource() == null) return;
         InvestmentHoldings.update(asset, transactions.findActiveByAccountId(asset.getAccountId()));
         assets.save(asset);
     }
