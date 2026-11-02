@@ -1,3 +1,4 @@
+import { useViewStateStore } from '@/stores/viewState';
 /**
  * AuthContext - Manages global authentication state
  *
@@ -105,6 +106,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     const handleStorageChange = (e: StorageEvent) => {
       if (e.key === STORAGE_KEYS.AUTH_TOKEN) {
         queryClient?.clear();
+        useViewStateStore.getState().clear();
         sessionStorage.removeItem(STORAGE_KEYS.ENCRYPTION_SESSION);
         if (e.newValue === null) {
           // Logged out in another tab
@@ -136,6 +138,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const setAuth = useCallback(
     (user: User, token: string, rememberMe = false) => {
       queryClient?.clear();
+      useViewStateStore.getState().clear();
       useImportDraftStore.getState().clear();
       setUser(user);
       setToken(token);
@@ -200,6 +203,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
    */
   const clearAuth = useCallback(() => {
     queryClient?.clear();
+    useViewStateStore.getState().clear();
     useImportDraftStore.getState().clear();
     setUser(null);
     setToken(null);

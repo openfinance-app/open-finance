@@ -1,3 +1,4 @@
+import { useViewState } from '@/hooks/useViewState';
 import type { BulkItem } from '@/types/bulk';
 import { BulkSelection, BulkToolbar, SelectionCheckbox } from '@/components/bulk/BulkSelection';
 /**
@@ -453,12 +454,15 @@ export default function CategoriesPage() {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingCategory, setEditingCategory] = useState<CategoryTreeNode | null>(null);
   const [deletingCategory, setDeletingCategory] = useState<CategoryTreeNode | null>(null);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [searchRegex, setSearchRegex] = useState(false);
-  const [sortBy, setSortBy] = useState<SortOption>('name');
+  const [searchQuery, setSearchQuery] = useViewState('searchQuery', '');
+  const [searchRegex, setSearchRegex] = useViewState('searchRegex', false);
+  const [sortBy, setSortBy] = useViewState<SortOption>('sortBy', 'name');
   const [formError, setFormError] = useState<string | null>(null);
-  const [selectedRoot, setSelectedRoot] = useState<number | 'all'>('all');
-  const [expandedNodes, setExpandedNodes] = useState<Map<number, boolean>>(() => new Map());
+  const [selectedRoot, setSelectedRoot] = useViewState<number | 'all'>('selectedRoot', 'all');
+  const [expandedNodes, setExpandedNodes] = useViewState<Map<number, boolean>>(
+    'expandedNodes',
+    () => new Map()
+  );
 
   const { data: categories = [], isLoading, error } = useCategoryTree();
   const createCategory = useCreateCategory();
@@ -515,11 +519,16 @@ export default function CategoriesPage() {
 
   // Clear a group filter when its category is deleted.
   useEffect(() => {
-    if (selectedRoot !== 'all' && !sortedTree.some(c => c.id === selectedRoot)) {
+    if (
+      !isLoading &&
+      !error &&
+      selectedRoot !== 'all' &&
+      !sortedTree.some(c => c.id === selectedRoot)
+    ) {
       setSelectedRoot('all');
       setExpandedNodes(new Map());
     }
-  }, [sortedTree, selectedRoot]);
+  }, [sortedTree, selectedRoot, isLoading, error, setSelectedRoot, setExpandedNodes]);
 
   const handleCreate = () => {
     setFormError(null);

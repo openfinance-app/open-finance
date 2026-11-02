@@ -1,9 +1,11 @@
+import { useViewState } from '@/hooks/useViewState';
+import { buildTransactionsLink } from '@/utils/navigation';
 import { RecordCostForm } from '@/components/assets/RecordCostForm';
 import { useDateFormatter } from '@/hooks/useDateFormatter';
 import { useQuery } from '@tanstack/react-query';
 import apiClient from '@/services/apiClient';
 import type { LiabilityTranche } from '@/types/liability';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Button } from '@/components/ui/Button';
 import { HelpTooltip } from '@/components/ui/HelpTooltip';
 import { Link } from 'react-router';
@@ -43,7 +45,12 @@ function MovementRow({
   return (
     <div className="group relative flex items-center justify-between px-4 py-3 bg-surface hover:bg-surface-elevated transition-colors">
       <Link
-        to={`/transactions?highlight=${tx.id}`}
+        to={buildTransactionsLink({
+          highlight: tx.id,
+          ...(tx.realEstateId
+            ? { realEstateId: tx.realEstateId }
+            : { liabilityId: tx.liabilityId }),
+        })}
         className="flex flex-1 items-center gap-3 min-w-0 rounded-sm hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
       >
         <span className="absolute inset-0" aria-hidden="true" />
@@ -102,9 +109,8 @@ function MovementList({
 
 export function PropertyMovementsSection({ property }: { property: RealEstateProperty }) {
   const { t } = useTranslation('realEstate');
-  const [page, setPage] = useState(0);
+  const [page, setPage] = useViewState(`property:${property.id}:movementsPage`, 0);
   const [addingCost, setAddingCost] = useState(false);
-  useEffect(() => setPage(0), [property.id]);
   const {
     data: costsPage,
     isLoading: isLoadingCosts,
@@ -171,6 +177,12 @@ export function PropertyMovementsSection({ property }: { property: RealEstatePro
             </Button>
           )}
       </div>
+      <Link
+        to={buildTransactionsLink({ realEstateId: property.id })}
+        className="inline-flex py-2 text-sm text-primary underline underline-offset-4"
+      >
+        {t('assets:costEntry.transactions')}
+      </Link>
       {addingCost && (
         <RecordCostForm
           target={{

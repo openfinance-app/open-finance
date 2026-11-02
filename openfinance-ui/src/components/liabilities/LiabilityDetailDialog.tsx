@@ -1,3 +1,7 @@
+import { Link } from 'react-router';
+import { buildTransactionsLink } from '@/utils/navigation';
+import { useViewScroll } from '@/hooks/useViewScroll';
+import { useViewState } from '@/hooks/useViewState';
 import { RecordLoanPayment } from '@/components/liabilities/RecordLoanPayment';
 import { AssetFinancingSection } from '@/components/assets/AssetFinancingSection';
 /**
@@ -330,6 +334,12 @@ function LinkedPaymentsTab({ liability }: { liability: Liability }) {
 
   return (
     <div className="space-y-3">
+      <Link
+        to={buildTransactionsLink({ liabilityId: liability.id })}
+        className="inline-flex py-2 text-sm text-primary underline underline-offset-4"
+      >
+        {t('assets:costEntry.transactions')}
+      </Link>
       {/* Summary banner */}
       {breakdown && breakdown.linkedTransactionCount > 0 && (
         <div className="flex items-center justify-between bg-surface border border-border rounded-lg px-4 py-3 text-sm">
@@ -356,15 +366,18 @@ function LinkedPaymentsTab({ liability }: { liability: Liability }) {
         {transactions.map(tx => (
           <div
             key={tx.id}
-            className="flex items-center justify-between px-4 py-3 bg-surface hover:bg-surface-elevated transition-colors"
+            className="relative flex items-center justify-between px-4 py-3 bg-surface hover:bg-surface-elevated transition-colors"
           >
             <div className="flex items-center gap-3 min-w-0">
               <RefreshCcw className="h-4 w-4 text-text-tertiary flex-shrink-0" />
               <div className="min-w-0">
                 <div className="text-sm text-text-primary truncate flex items-center gap-2">
-                  <span className="truncate">
+                  <Link
+                    to={buildTransactionsLink({ liabilityId: liability.id, highlight: tx.id })}
+                    className="truncate hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary after:absolute after:inset-0"
+                  >
                     {tx.description || tx.payee || t('detail.transaction', { id: tx.id })}
-                  </span>
+                  </Link>
                   {tx.movementType && (
                     <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-surface-elevated text-text-secondary border border-border text-xs font-medium flex-shrink-0">
                       {t(`movementTypes.${tx.movementType}`)}
@@ -393,7 +406,17 @@ function LinkedPaymentsTab({ liability }: { liability: Liability }) {
                       />
                     </span>
                   ))}
-                  {tx.accountName && <span>{tx.accountName} · </span>}
+                  {tx.accountName && (
+                    <>
+                      <Link
+                        to={`/accounts?highlight=${tx.accountId}`}
+                        className="relative z-10 text-primary hover:underline"
+                      >
+                        {tx.accountName}
+                      </Link>{' '}
+                      ·{' '}
+                    </>
+                  )}
                   {date(tx.date)}
                   {tx.payee && tx.description && (
                     <span className="ml-2 text-text-tertiary">{tx.payee}</span>
@@ -467,7 +490,11 @@ export function LiabilityDetailDialog({
   onClose,
 }: LiabilityDetailDialogProps) {
   const { t } = useTranslation('liabilities');
-  const [activeTab, setActiveTab] = useState<DetailTab>(initialTab);
+  const detailScrollRef = useViewScroll(`liability:${liability?.id}:scroll`);
+  const [activeTab, setActiveTab] = useViewState<DetailTab>(
+    `liability:${liability?.id}:tab`,
+    initialTab
+  );
 
   // Fetch amortization schedule only when schedule tab is active and liability has an interest rate
   const hasSchedule = (liability?.interestRate ?? 0) > 0;
@@ -495,7 +522,10 @@ export function LiabilityDetailDialog({
 
   return (
     <Dialog open={!!liability} onOpenChange={open => !open && onClose()}>
-      <DialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-[800px] max-h-[90vh] overflow-y-auto">
+      <DialogContent
+        ref={detailScrollRef}
+        className="max-w-[calc(100vw-2rem)] sm:max-w-[800px] max-h-[90vh] overflow-y-auto"
+      >
         <DialogHeader className="min-w-0 text-left">
           <DialogTitle className="break-words">
             {t('detail.title', { name: liability.name })}

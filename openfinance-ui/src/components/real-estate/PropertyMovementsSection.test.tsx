@@ -133,7 +133,7 @@ describe('PropertyMovementsSection', () => {
     expect(screen.getByText('Kitchen renovation')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /Kitchen renovation/ })).toHaveAttribute(
       'href',
-      '/transactions?highlight=101'
+      '/transactions?realEstateId=7&highlight=101'
     );
     expect(screen.getByText('$15,000.00')).toBeInTheDocument();
   });
@@ -145,7 +145,7 @@ describe('PropertyMovementsSection', () => {
     expect(screen.getByText('Roof leak repair')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /Roof leak repair/ })).toHaveAttribute(
       'href',
-      '/transactions?highlight=102'
+      '/transactions?realEstateId=7&highlight=102'
     );
     expect(screen.getByText('$500.00')).toBeInTheDocument();
   });
@@ -157,7 +157,7 @@ describe('PropertyMovementsSection', () => {
     expect(screen.getByText('Mortgage payment')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /Mortgage payment/ })).toHaveAttribute(
       'href',
-      '/transactions?highlight=103'
+      '/transactions?liabilityId=42&highlight=103'
     );
     expect(screen.getByText('$1,200.00')).toBeInTheDocument();
     expect(screen.getByText('Repayment')).toBeInTheDocument();

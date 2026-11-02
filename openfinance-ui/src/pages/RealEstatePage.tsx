@@ -1,3 +1,5 @@
+import { useProperty } from '@/hooks/useRealEstate';
+import { useViewState } from '@/hooks/useViewState';
 import { useAsset } from '@/hooks/useAssets';
 import { BulkSelection, BulkToolbar } from '@/components/bulk/BulkSelection';
 /**
@@ -74,11 +76,15 @@ export default function RealEstatePage() {
   const [purchasePlan, setPurchasePlan] = useState<RealEstateProperty>();
   const [isBuyWizardOpen, setIsBuyWizardOpen] = useState(false);
   const [editingProperty, setEditingProperty] = useState<RealEstateProperty | null>(null);
-  const [viewingPropertyId, setViewingPropertyId] = useState<number | null>(null);
-  const [showFilters, setShowFilters] = useState(false);
+  const [viewingPropertyId, setViewingPropertyId] = useViewState<number | null>(
+    'viewingPropertyId',
+    null
+  );
+  const { data: purchaseProperty } = useProperty(linkedAsset?.realEstateId ?? highlightId ?? 0);
+  const [showFilters, setShowFilters] = useViewState('showFilters', false);
 
   // Search filters state
-  const [searchFilters, setSearchFilters] = useState<PropertySearchFilters>({
+  const [searchFilters, setSearchFilters] = useViewState<PropertySearchFilters>('searchFilters', {
     page: 0,
     size: DEFAULT_PAGE_SIZE,
     sort: 'name,asc',
@@ -118,15 +124,32 @@ export default function RealEstatePage() {
     const propertyId =
       highlightId ||
       linkedAsset?.realEstateId ||
-      allProperties.find(item => assetId != null && item.assetId === assetId)?.id;
+      allPropertiesPage?.content.find(item => assetId != null && item.assetId === assetId)?.id;
     if (propertyId && Number.isSafeInteger(propertyId) && propertyId > 0) {
-      setViewingPropertyId(propertyId);
+      if (searchParams.get('purchase') === '1') {
+        if (!purchaseProperty || purchaseProperty.id !== propertyId) return;
+        if (purchaseProperty.acquisitionType === 'PLANNED') {
+          setPurchasePlan(purchaseProperty);
+          setIsBuyWizardOpen(true);
+          setViewingPropertyId(null);
+        } else setViewingPropertyId(propertyId);
+      } else setViewingPropertyId(propertyId);
       const next = new URLSearchParams(searchParams);
       next.delete('highlight');
       next.delete('asset');
+      next.delete('purchase');
       setSearchParams(next, { replace: true });
     }
-  }, [allPropertiesPage, highlightId, linkedAsset, assetId, searchParams, setSearchParams]);
+  }, [
+    allPropertiesPage,
+    highlightId,
+    linkedAsset,
+    purchaseProperty,
+    assetId,
+    searchParams,
+    setSearchParams,
+    setViewingPropertyId,
+  ]);
   useEffect(() => {
     if (searchParams.get('create') !== '1') return;
     setIsFormOpen(true);

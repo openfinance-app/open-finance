@@ -9,6 +9,10 @@ export type TransactionTypeFilter = 'INCOME' | 'EXPENSE' | 'TRANSFER';
 
 export interface TransactionsLinkParams {
   accountId?: number;
+  assetId?: number;
+  realEstateId?: number;
+  liabilityId?: number;
+  highlight?: number;
   categoryId?: number;
   includeSubcategories?: boolean;
   payee?: string;
@@ -21,6 +25,9 @@ export interface TransactionsLinkParams {
 
 export function buildTransactionsLink(params: TransactionsLinkParams): string {
   const sp = new URLSearchParams();
+  for (const key of ['assetId', 'realEstateId', 'liabilityId', 'highlight'] as const) {
+    if (params[key] != null) sp.set(key, String(params[key]));
+  }
   if (params.accountId != null) sp.set('accountId', String(params.accountId));
   if (params.categoryId != null) sp.set('categoryId', String(params.categoryId));
   if (params.includeSubcategories) sp.set('includeSubcategories', 'true');

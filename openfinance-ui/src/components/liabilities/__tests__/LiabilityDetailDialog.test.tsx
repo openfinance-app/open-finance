@@ -785,7 +785,10 @@ describe('LiabilityDetailDialog', () => {
         screen.getByText('Linked Payments').click();
       });
 
-      expect(screen.getByText(/Checking ·/)).toBeInTheDocument();
+      expect(screen.getByRole('link', { name: 'Checking' })).toHaveAttribute(
+        'href',
+        '/accounts?highlight=acc-1'
+      );
     });
   });
 

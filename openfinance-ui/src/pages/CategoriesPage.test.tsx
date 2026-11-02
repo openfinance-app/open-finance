@@ -189,6 +189,21 @@ describe('CategoriesPage', () => {
     expect(screen.getByText('System')).toBeInTheDocument();
   });
 
+  it('retains the category group while categories reload on a return visit', async () => {
+    const user = userEvent.setup();
+    const firstVisit = renderWithProviders(<CategoriesPage />);
+    await user.selectOptions(screen.getByRole('combobox', { name: 'Category group' }), '1');
+    firstVisit.unmount();
+    const loadedCategories = mockCategoryData;
+    mockCategoryData = [];
+    mockIsLoading = true;
+    const returnVisit = renderWithProviders(<CategoriesPage />);
+    mockCategoryData = loadedCategories;
+    mockIsLoading = false;
+    returnVisit.rerender(<CategoriesPage />);
+    expect(screen.getByRole('combobox', { name: 'Category group' })).toHaveValue('1');
+  });
+
   it('shows loading skeletons', () => {
     mockIsLoading = true;
     renderWithProviders(<CategoriesPage />);

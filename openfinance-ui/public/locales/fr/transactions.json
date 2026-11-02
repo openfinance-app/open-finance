@@ -353,5 +353,12 @@
     "overrideQuantity": "Utiliser et ajuster cette quantité",
     "accountMismatch": "Choisissez un actif lié au compte sélectionné ou retirez le lien vers le placement.",
     "quantityInvalid": "Saisissez une quantité positive avec au maximum 18 décimales."
+  },
+  "scope": {
+    "label": "Filtres des opérations liées",
+    "asset": "Actif",
+    "property": "Bien immobilier",
+    "liability": "Passif",
+    "clear": "Retirer le filtre : {{name}}"
   }
 }

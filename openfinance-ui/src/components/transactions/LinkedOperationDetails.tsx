@@ -45,7 +45,7 @@ export function LinkedOperationDetails({
   onNavigate,
 }: {
   transaction: Transaction;
-  onNavigate: () => void;
+  onNavigate?: () => void;
 }) {
   const { t } = useTranslation('transactions');
   const { t: ta } = useTranslation('assets');

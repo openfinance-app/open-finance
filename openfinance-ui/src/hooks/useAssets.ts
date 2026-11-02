@@ -89,7 +89,7 @@ export function useAssetsSearch(filters?: AssetFilters) {
  */
 export function useAsset(assetId: number | null) {
   return useQuery<Asset>({
-    queryKey: ['assets', assetId],
+    queryKey: ['assets', 'detail', assetId],
     queryFn: async () => {
       if (!assetId) throw new Error('Asset ID is required');
 

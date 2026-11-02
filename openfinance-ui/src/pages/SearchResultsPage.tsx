@@ -1,3 +1,4 @@
+import { useViewState } from '@/hooks/useViewState';
 /**
  * SearchResultsPage Component
  * Task 12.4.7: Create SearchResultsPage component
@@ -57,12 +58,21 @@ export default function SearchResultsPage() {
   };
 
   // State
-  const [query, setQuery] = useState(queryParam);
-  const [filters, setFilters] = useState<AdvancedSearchRequest>({
+  const [query, setQuery] = useViewState('query', queryParam);
+  const [filters, setFilters] = useViewState<AdvancedSearchRequest>('filters', {
     query: queryParam,
     limit: 100,
   });
-  const [expandedTypes, setExpandedTypes] = useState<Set<string>>(new Set());
+  const [expandedTypes, setExpandedTypes] = useViewState<Set<string> | null>(
+    'expandedTypes',
+    null,
+    Boolean(queryParam)
+  );
+  const [appliedFilters, setAppliedFilters] = useViewState<AdvancedSearchRequest | null>(
+    'appliedFilters',
+    null
+  );
+  const hasAppliedFilters = appliedFilters?.query === queryParam;
   const [searchResults, setSearchResults] = useState<GlobalSearchResponse | null>(null);
   const [isSaveDialogOpen, setIsSaveDialogOpen] = useState(false);
 
@@ -70,35 +80,46 @@ export default function SearchResultsPage() {
   const { savedSearches, saveSearch, deleteSearch, updateLastUsed } = useSavedSearches();
 
   // Use simple search for initial load from URL, advanced search for filtered results
-  const simpleSearch = useGlobalSearch(queryParam, 100, queryParam.length >= 2, !!filters.regex);
+  const simpleSearch = useGlobalSearch(
+    queryParam,
+    100,
+    queryParam.length >= 2 && !hasAppliedFilters,
+    !!filters.regex
+  );
   const advancedSearch = useAdvancedSearch();
+
+  // Re-run the last applied search after returning; keep result data in TanStack Query.
+  const runAdvancedSearch = advancedSearch.mutate;
+  useEffect(() => {
+    if (hasAppliedFilters && appliedFilters) runAdvancedSearch(appliedFilters);
+  }, [hasAppliedFilters, appliedFilters, runAdvancedSearch]);
 
   // Update query from URL param
   useEffect(() => {
     const q = searchParams.get('q') || '';
     setQuery(q);
     setFilters(prev => ({ ...prev, query: q }));
-  }, [searchParams]);
+  }, [searchParams, setQuery, setFilters]);
 
   // Set initial results from simple search
   useEffect(() => {
-    if (simpleSearch.data) {
+    if (!hasAppliedFilters && simpleSearch.data) {
       setSearchResults(simpleSearch.data);
       // Expand all result types by default
       const types = Object.keys(simpleSearch.data.resultsByType);
-      setExpandedTypes(new Set(types));
+      if (expandedTypes === null) setExpandedTypes(new Set(types));
     }
-  }, [simpleSearch.data]);
+  }, [simpleSearch.data, hasAppliedFilters, expandedTypes, setExpandedTypes]);
 
   // Handle advanced search results
   useEffect(() => {
-    if (advancedSearch.data) {
+    if (hasAppliedFilters && advancedSearch.data) {
       setSearchResults(advancedSearch.data);
       // Expand all result types by default
       const types = Object.keys(advancedSearch.data.resultsByType);
-      setExpandedTypes(new Set(types));
+      if (expandedTypes === null) setExpandedTypes(new Set(types));
     }
-  }, [advancedSearch.data]);
+  }, [advancedSearch.data, hasAppliedFilters, expandedTypes, setExpandedTypes]);
 
   // Handlers
   const handleQueryChange = (newQuery: string) => {
@@ -108,6 +129,8 @@ export default function SearchResultsPage() {
   const handleQuerySubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (query.trim().length >= 2) {
+      setAppliedFilters(null);
+      setExpandedTypes(null);
       setSearchParams({ q: query.trim() });
       setFilters(prev => ({ ...prev, query: query.trim() }));
     }
@@ -120,7 +143,8 @@ export default function SearchResultsPage() {
   const handleApplyFilters = (override?: AdvancedSearchRequest) => {
     const toSearch = override ?? filters;
     if (toSearch.query && toSearch.query.length >= 2) {
-      advancedSearch.mutate(toSearch);
+      setExpandedTypes(null);
+      setAppliedFilters({ ...toSearch });
     }
   };
 
@@ -144,7 +168,8 @@ export default function SearchResultsPage() {
     }
 
     // Execute search
-    advancedSearch.mutate(search.filters);
+    setExpandedTypes(null);
+    setAppliedFilters({ ...search.filters });
 
     // Update last used timestamp
     updateLastUsed(search.id);
@@ -170,8 +195,8 @@ export default function SearchResultsPage() {
   };
 
   // Loading state
-  const isLoading = simpleSearch.isLoading || advancedSearch.isPending;
-  const error = simpleSearch.error || advancedSearch.error;
+  const isLoading = hasAppliedFilters ? advancedSearch.isPending : simpleSearch.isLoading;
+  const error = hasAppliedFilters ? advancedSearch.error : simpleSearch.error;
 
   // Get icon component dynamically
   const getIcon = (iconName: string) => {
@@ -285,7 +310,7 @@ export default function SearchResultsPage() {
           Object.entries(searchResults.resultsByType).map(([type, results]) => {
             if (results.length === 0) return null;
 
-            const isExpanded = expandedTypes.has(type);
+            const isExpanded = expandedTypes?.has(type);
             const Icon = getIcon(getResultTypeIcon(type as any));
             const displayName = getResultTypeDisplayName(type as any, key => t(`errors:${key}`));
             const count = searchResults.countsPerType[type] || results.length;

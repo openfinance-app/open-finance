@@ -1,3 +1,4 @@
+import { useViewState } from '@/hooks/useViewState';
 import { BulkSelection, BulkToolbar } from '@/components/bulk/BulkSelection';
 /**
  * RecurringTransactionsPage Component
@@ -45,12 +46,12 @@ export default function RecurringTransactionsPage() {
   const { t } = useTranslation('recurring');
   useDocumentTitle(t('title'));
 
-  const [filters, setFilters] = useState<RecurringTransactionFilters>({
+  const [filters, setFilters] = useViewState<RecurringTransactionFilters>('filters', {
     page: 0,
     size: 20,
     sort: 'nextOccurrence,asc',
   });
-  const [showFilters, setShowFilters] = useState(false);
+  const [showFilters, setShowFilters] = useViewState('showFilters', false);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingTransaction, setEditingTransaction] = useState<RecurringTransaction | null>(null);
   const [deletingTransaction, setDeletingTransaction] = useState<RecurringTransaction | null>(null);

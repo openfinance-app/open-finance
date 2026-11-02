@@ -1,3 +1,4 @@
+import { AssetTradeActions } from '@/components/assets/AssetTradeActions';
 import { useTranslation } from 'react-i18next';
 import { Home } from 'lucide-react';
 import type { Asset } from '@/types/asset';
@@ -11,9 +12,11 @@ import { multiply } from '@/utils/money';
 export function PropertyAssetCard({
   asset,
   onView,
+  onCompletePurchase,
 }: {
   asset: Asset;
   onView: (asset: Asset) => void;
+  onCompletePurchase?: (asset: Asset) => void;
 }) {
   const { t } = useTranslation('assets');
   const planned = asset.acquisitionType === 'PLANNED';
@@ -54,9 +57,12 @@ export function PropertyAssetCard({
           className="text-xl font-semibold"
         />
       </div>
-      <Button variant="secondary" size="sm" onClick={() => onView(asset)}>
-        {t('manageProperty')}
-      </Button>
+      <div className="flex flex-wrap items-center justify-end gap-2">
+        <AssetTradeActions asset={asset} onCompletePurchase={onCompletePurchase} />
+        <Button variant="secondary" size="sm" onClick={() => onView(asset)}>
+          {t('manageProperty')}
+        </Button>
+      </div>
     </Card>
   );
 }

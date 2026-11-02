@@ -2,10 +2,9 @@
  * Tests for RuleList component
  */
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { screen, fireEvent } from '@testing-library/react';
 import { act } from 'react';
-import { I18nextProvider } from 'react-i18next';
-import i18n from '@/test/i18n-test';
+import { renderWithProviders, mockAuthentication } from '@/test/test-utils';
 import { RuleList } from './RuleList';
 import type { TransactionRule } from '@/types/transactionRules';
 
@@ -15,8 +14,7 @@ describe('RuleList', () => {
   const mockOnToggle = vi.fn();
   const mockOnCreateFirst = vi.fn();
 
-  const renderWithI18n = (ui: React.ReactElement) =>
-    render(<I18nextProvider i18n={i18n}>{ui}</I18nextProvider>);
+  const renderWithI18n = renderWithProviders;
 
   const mockRules: TransactionRule[] = [
     {
@@ -43,6 +41,7 @@ describe('RuleList', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    mockAuthentication();
   });
 
   it('should render empty state when no rules', () => {

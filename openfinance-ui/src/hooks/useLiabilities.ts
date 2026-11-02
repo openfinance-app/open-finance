@@ -77,7 +77,7 @@ export function useLiabilitiesPaged(filters: LiabilityFilters = {}) {
  */
 export function useLiability(liabilityId: number | null) {
   return useQuery<Liability>({
-    queryKey: ['liabilities', liabilityId],
+    queryKey: ['liabilities', 'detail', liabilityId],
     queryFn: async () => {
       if (!liabilityId) throw new Error('Liability ID is required');
 

@@ -1,3 +1,5 @@
+import { useViewScroll } from '@/hooks/useViewScroll';
+import { useViewState } from '@/hooks/useViewState';
 import { OwnershipActions } from '@/components/assets/OwnershipActions';
 import { decimalField } from '@/utils/exact-decimal';
 import { apiErrorMessage } from '@/utils/api-error';
@@ -84,10 +86,14 @@ export function AssetDetailModal({
   const { t: tc } = useTranslation('common');
   const { date: formatDate } = useDateFormatter();
   const { t } = useTranslation('assets');
-  const [timeRange, setTimeRange] = useState<'1M' | '3M' | '6M' | '1Y'>('3M');
-  const [activeTab, setActiveTab] = useState<
+  const [timeRange, setTimeRange] = useViewState<'1M' | '3M' | '6M' | '1Y'>(
+    `asset:${asset.id}:period`,
+    '3M'
+  );
+  const detailScrollRef = useViewScroll(`asset:${asset.id}:scroll`);
+  const [activeTab, setActiveTab] = useViewState<
     'overview' | 'costs' | 'financing' | 'gallery' | 'attachments'
-  >('overview');
+  >(`asset:${asset.id}:tab`, 'overview');
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
@@ -185,6 +191,7 @@ export function AssetDetailModal({
 
       {/* Modal */}
       <div
+        ref={detailScrollRef}
         role="dialog"
         aria-modal="true"
         aria-label={asset.name}
@@ -241,6 +248,7 @@ export function AssetDetailModal({
             <div className="py-4 space-y-6">
               {activeTab === 'overview' && asset.type !== 'REAL_ESTATE' && (
                 <OwnershipActions
+                  showTradeActions={false}
                   target={{
                     id: asset.id,
                     name: asset.name,

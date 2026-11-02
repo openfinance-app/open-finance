@@ -1,3 +1,4 @@
+import { AssetTradeActions } from '@/components/assets/AssetTradeActions';
 import { SelectionCheckbox } from '@/components/bulk/BulkSelection';
 import { useTranslation } from 'react-i18next';
 import { useDateFormatter } from '@/hooks/useDateFormatter';
@@ -21,9 +22,10 @@ import type { Asset } from '@/types/asset';
 interface PhysicalAssetCardProps {
   asset: Asset;
   onClick?: () => void;
+  onCompletePurchase?: (asset: Asset) => void;
 }
 
-export function PhysicalAssetCard({ asset, onClick }: PhysicalAssetCardProps) {
+export function PhysicalAssetCard({ asset, onClick, onCompletePurchase }: PhysicalAssetCardProps) {
   const { t } = useTranslation('assets');
   const { date } = useDateFormatter();
   const {
@@ -64,6 +66,7 @@ export function PhysicalAssetCard({ asset, onClick }: PhysicalAssetCardProps) {
               </Badge>
             )}
             <SelectionCheckbox id={asset.id} />
+            <AssetTradeActions asset={asset} onCompletePurchase={onCompletePurchase} />
           </div>
         </div>
         <h3 className="font-display text-base uppercase tracking-[0.06em] text-text-primary line-clamp-2">

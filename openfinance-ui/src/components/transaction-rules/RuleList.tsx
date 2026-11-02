@@ -1,3 +1,4 @@
+import { useViewState } from '@/hooks/useViewState';
 import { SelectionCheckbox } from '@/components/bulk/BulkSelection';
 /**
  * RuleList Component
@@ -9,7 +10,6 @@ import { SelectionCheckbox } from '@/components/bulk/BulkSelection';
  *
  * Requirement: REQ-TR-6.2, REQ-TR-6.6
  */
-import { useState } from 'react';
 import { Edit2, Trash2, Sliders, ChevronUp, ChevronDown, ChevronsUpDown } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Badge } from '@/components/ui/Badge';
@@ -139,8 +139,8 @@ export function RuleList({
   isMutating,
 }: RuleListProps) {
   const { t } = useTranslation('rules');
-  const [sortKey, setSortKey] = useState<SortKey | null>(null);
-  const [sortDir, setSortDir] = useState<SortDir>('asc');
+  const [sortKey, setSortKey] = useViewState<SortKey | null>(`rules:sortKey`, null);
+  const [sortDir, setSortDir] = useViewState<SortDir>(`rules:sortDir`, 'asc');
 
   const handleSort = (key: SortKey) => {
     if (sortKey === key) {

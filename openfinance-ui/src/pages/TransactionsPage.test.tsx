@@ -531,6 +531,29 @@ describe('TransactionsPage deep links', () => {
     expect(lastCapturedFilters?.type).toBeUndefined();
   });
 
+  it.each(['assetId', 'realEstateId', 'liabilityId'] as const)(
+    'applies the %s scope and keeps it visible and removable',
+    async key => {
+      renderPage(`?${key}=42`);
+      await waitFor(() => expect(lastCapturedFilters?.[key]).toBe(42));
+      expect(window.location.search).not.toContain(key);
+      expect(screen.getByRole('button', { name: 'Filters', exact: true })).toHaveAttribute(
+        'aria-expanded',
+        'false'
+      );
+      const clear = await screen.findByRole('button', { name: /Remove filter:/ });
+      await userEvent.setup().click(clear);
+      await waitFor(() => expect(lastCapturedFilters?.[key]).toBeUndefined());
+    }
+  );
+
+  it('ignores invalid ownership scope IDs', () => {
+    renderPage('?assetId=-2&realEstateId=oops&liabilityId=1.5');
+    expect(lastCapturedFilters?.assetId).toBeUndefined();
+    expect(lastCapturedFilters?.realEstateId).toBeUndefined();
+    expect(lastCapturedFilters?.liabilityId).toBeUndefined();
+  });
+
   it('auto-opens the detail modal for ?highlight=', async () => {
     mockPagedResponse = {
       content: [

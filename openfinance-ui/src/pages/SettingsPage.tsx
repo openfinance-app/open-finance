@@ -1,3 +1,4 @@
+import { useViewState } from '@/hooks/useViewState';
 /**
  * SettingsPage - User settings management
  *
@@ -23,7 +24,7 @@ type SettingsTab = 'general' | 'security' | 'display' | 'backup';
  */
 export default function SettingsPage() {
   const { t } = useTranslation('settings');
-  const [activeTab, setActiveTab] = useState<SettingsTab>('general');
+  const [activeTab, setActiveTab] = useViewState<SettingsTab>('tab', 'general');
   const [generalHasChanges, setGeneralHasChanges] = useState(false);
 
   // Warn user before leaving the page via browser/tab close while unsaved changes exist

@@ -1,3 +1,4 @@
+import { useViewStateStore } from '@/stores/viewState';
 /**
  * Test Setup Configuration
  *
@@ -139,6 +140,7 @@ beforeAll(() => {
  * Reset handlers after each test to ensure test isolation
  */
 afterEach(() => {
+  useViewStateStore.getState().clear();
   server.resetHandlers();
 });
 

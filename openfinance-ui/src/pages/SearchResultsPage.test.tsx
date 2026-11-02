@@ -299,6 +299,21 @@ describe('SearchResultsPage', () => {
     expect(mockMutate).toHaveBeenCalled();
   });
 
+  it('re-runs the applied filtered search when returning to its view', async () => {
+    window.history.replaceState({}, '', '/search?q=rent');
+    const filters = { query: 'rent', minAmount: 500, accountIds: [7], limit: 100 };
+    mockSavedSearches = [
+      { id: 'retained', name: 'Rent', filters, createdAt: Date.now(), lastUsedAt: Date.now() },
+    ];
+    const firstVisit = renderWithProviders(<SearchResultsPage />);
+    await userEvent.setup().click(screen.getByRole('button', { name: 'Load', exact: true }));
+    await waitFor(() => expect(mockMutate).toHaveBeenCalledWith(filters));
+    firstVisit.unmount();
+    mockMutate.mockClear();
+    renderWithProviders(<SearchResultsPage />);
+    await waitFor(() => expect(mockMutate).toHaveBeenCalledWith(filters));
+  });
+
   it('deletes a saved search', async () => {
     const user = userEvent.setup();
     mockSavedSearches = [

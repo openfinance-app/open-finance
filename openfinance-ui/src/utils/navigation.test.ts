@@ -17,6 +17,14 @@ describe('buildTransactionsLink', () => {
     expect(buildTransactionsLink({ noCategory: true })).toBe('/transactions?noCategory=1');
   });
 
+  it('scopes ownership links and optionally opens one transaction', () => {
+    expect(buildTransactionsLink({ assetId: 7, highlight: 15 })).toBe(
+      '/transactions?assetId=7&highlight=15'
+    );
+    expect(buildTransactionsLink({ realEstateId: 8 })).toBe('/transactions?realEstateId=8');
+    expect(buildTransactionsLink({ liabilityId: 9 })).toBe('/transactions?liabilityId=9');
+  });
+
   it('omits absent params', () => {
     expect(buildTransactionsLink({})).toBe('/transactions');
     expect(buildTransactionsLink({ categoryId: undefined })).toBe('/transactions');

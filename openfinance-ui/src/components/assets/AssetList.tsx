@@ -1,3 +1,6 @@
+import { Link } from 'react-router';
+import { AssetTradeActions } from '@/components/assets/AssetTradeActions';
+import { useViewState } from '@/hooks/useViewState';
 import { apiErrorMessage } from '@/utils/api-error';
 import { PropertyAssetCard } from '@/components/assets/PropertyAssetCard';
 import { getGainLossColor } from '@/utils/portfolio';
@@ -49,6 +52,7 @@ interface AssetListProps {
   onDelete: (assetId: number) => void | Promise<void>;
   onView?: (asset: Asset) => void;
   highlightedId?: number | null;
+  onCompletePurchase?: (asset: Asset) => void;
 }
 
 function SortIcon({
@@ -68,13 +72,20 @@ function SortIcon({
   );
 }
 
-export function AssetList({ assets, onEdit, onDelete, onView, highlightedId }: AssetListProps) {
+export function AssetList({
+  assets,
+  onEdit,
+  onDelete,
+  onView,
+  highlightedId,
+  onCompletePurchase,
+}: AssetListProps) {
   const { t } = useTranslation('assets');
   const { t: tc } = useTranslation('common');
   const [deletingAsset, setDeletingAsset] = useState<Asset | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
-  const [sortConfig, setSortConfig] = useState<SortConfig | null>(null);
+  const [sortConfig, setSortConfig] = useViewState<SortConfig | null>(`assetSort`, null);
 
   useEffect(() => {
     if (highlightedId && assets.length > 0) {
@@ -189,7 +200,11 @@ export function AssetList({ assets, onEdit, onDelete, onView, highlightedId }: A
                     'ring-2 ring-primary ring-offset-2 bg-primary/5 shadow-lg scale-[1.02] z-30'
                 )}
               >
-                <PhysicalAssetCard asset={asset} onClick={() => onView?.(asset)} />
+                <PhysicalAssetCard
+                  onCompletePurchase={onCompletePurchase}
+                  asset={asset}
+                  onClick={() => onView?.(asset)}
+                />
               </div>
             ))}
           </div>
@@ -201,7 +216,12 @@ export function AssetList({ assets, onEdit, onDelete, onView, highlightedId }: A
           <h3 className="plate-label mb-4">{t('table.properties')}</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {propertyAssets.map(asset => (
-              <PropertyAssetCard key={asset.id} asset={asset} onView={item => onView?.(item)} />
+              <PropertyAssetCard
+                onCompletePurchase={onCompletePurchase}
+                key={asset.id}
+                asset={asset}
+                onView={item => onView?.(item)}
+              />
             ))}
           </div>
         </section>
@@ -336,11 +356,25 @@ export function AssetList({ assets, onEdit, onDelete, onView, highlightedId }: A
                         <AssetReturn asset={asset} />
                       </td>
                       <td className="py-3 px-4 text-sm text-text-secondary">
-                        {asset.accountName || '—'}
+                        {asset.accountId && asset.accountName ? (
+                          <Link
+                            to={`/accounts?highlight=${asset.accountId}`}
+                            onClick={event => event.stopPropagation()}
+                            className="text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-sm"
+                          >
+                            {asset.accountName}
+                          </Link>
+                        ) : (
+                          asset.accountName || '—'
+                        )}
                       </td>
                       <td className="py-3 px-4">
                         <div className="selection-actions flex items-center justify-end gap-2">
                           <SelectionCheckbox id={asset.id} />
+                          <AssetTradeActions
+                            asset={asset}
+                            onCompletePurchase={onCompletePurchase}
+                          />
                           {isRealEstateAsset(asset.type) ? (
                             <TooltipProvider>
                               <Tooltip>
@@ -501,7 +535,17 @@ export function AssetList({ assets, onEdit, onDelete, onView, highlightedId }: A
                     {asset.accountName && (
                       <div className="flex justify-between text-sm">
                         <span className="text-text-secondary">{t('table.account')}:</span>
-                        <span className="text-text-primary">{asset.accountName}</span>
+                        {asset.accountId ? (
+                          <Link
+                            to={`/accounts?highlight=${asset.accountId}`}
+                            onClick={event => event.stopPropagation()}
+                            className="min-w-0 break-words text-right text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-sm"
+                          >
+                            {asset.accountName}
+                          </Link>
+                        ) : (
+                          <span className="text-text-primary">{asset.accountName}</span>
+                        )}
                       </div>
                     )}
                   </div>
@@ -509,6 +553,7 @@ export function AssetList({ assets, onEdit, onDelete, onView, highlightedId }: A
                   {/* Actions */}
                   <div className="selection-actions flex items-center justify-end gap-1 pt-2 border-t border-border">
                     <SelectionCheckbox id={asset.id} />
+                    <AssetTradeActions asset={asset} onCompletePurchase={onCompletePurchase} />
                     {isRealEstateAsset(asset.type) ? (
                       <TooltipProvider>
                         <Tooltip>

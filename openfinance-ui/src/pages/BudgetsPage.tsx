@@ -1,3 +1,4 @@
+import { useViewState } from '@/hooks/useViewState';
 import { BulkSelection, BulkToolbar, SelectionCheckbox } from '@/components/bulk/BulkSelection';
 import { isAxiosError } from 'axios';
 import { formatDecimal } from '@/utils/format';
@@ -55,19 +56,23 @@ export default function BudgetsPage() {
   const alertKeywordParam = searchParams.get('alertKeyword') || undefined;
 
   // Unified filter state (mirrors AccountsPage pattern)
-  const [filters, setFilters] = useState<BudgetFiltersState>({
-    keyword: alertKeywordParam,
-  });
-  const [showFilters, setShowFilters] = useState(!!alertKeywordParam);
+  const [filters, setFilters] = useViewState<BudgetFiltersState>(
+    'filters',
+    {
+      keyword: alertKeywordParam,
+    },
+    Boolean(alertKeywordParam)
+  );
+  const [showFilters, setShowFilters] = useViewState('showFilters', !!alertKeywordParam);
 
-  const [currentPage, setCurrentPage] = useState(0);
-  const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
+  const [currentPage, setCurrentPage] = useViewState('currentPage', 0);
+  const [pageSize, setPageSize] = useViewState('pageSize', DEFAULT_PAGE_SIZE);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [formFieldErrors, setFormFieldErrors] = useState<Record<string, string>>({});
   const [editingBudgetId, setEditingBudgetId] = useState<number | null>(null);
   const [deletingBudgetId, setDeletingBudgetId] = useState<number | null>(null);
-  const [detailBudgetId, setDetailBudgetId] = useState<number | null>(null);
+  const [detailBudgetId, setDetailBudgetId] = useViewState<number | null>('detailBudgetId', null);
   const [dismissedAlerts, setDismissedAlerts] = useState<Set<number>>(() => {
     try {
       const stored = localStorage.getItem('dismissed_budget_alerts');
@@ -111,7 +116,7 @@ export default function BudgetsPage() {
     next.delete('open');
     next.delete('alertKeyword');
     setSearchParams(next, { replace: true });
-  }, [openParam, searchParams, setSearchParams]);
+  }, [openParam, searchParams, setSearchParams, setFilters, setCurrentPage, setDetailBudgetId]);
 
   const filteredNativeBudgets = (nativeBudgets ?? []).filter(
     budget =>

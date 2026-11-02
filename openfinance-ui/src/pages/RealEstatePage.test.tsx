@@ -14,6 +14,9 @@ let mockCreateMutateAsync = vi.fn();
 let mockUpdateMutateAsync = vi.fn();
 
 vi.mock('@/hooks/useRealEstate', () => ({
+  useProperty: (id: number) => ({
+    data: mockData?.content?.find((property: { id: number }) => property.id === id),
+  }),
   usePropertiesSearch: vi.fn(() => ({
     data: mockData,
     isLoading: mockIsLoading,

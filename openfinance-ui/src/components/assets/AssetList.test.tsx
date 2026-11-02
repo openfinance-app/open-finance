@@ -36,6 +36,25 @@ describe('Asset column labels', () => {
     await i18n.changeLanguage('en');
   });
 
+  it('links the account from both table rows and mobile cards without opening asset details', () => {
+    const view = vi.fn();
+    renderWithProviders(
+      <AssetList
+        assets={[{ ...bitcoin, accountId: 7, accountName: 'BTC account' }]}
+        onEdit={vi.fn()}
+        onDelete={vi.fn()}
+        onView={view}
+      />
+    );
+    const links = screen.getAllByRole('link', { name: 'BTC account' });
+    expect(links).toHaveLength(2);
+    for (const link of links) {
+      expect(link).toHaveAttribute('href', '/accounts?highlight=7');
+      fireEvent.click(link, { ctrlKey: true });
+    }
+    expect(view).not.toHaveBeenCalled();
+  });
+
   it('routes properties to their management view without offering generic deletion', () => {
     const view = vi.fn();
     renderWithProviders(

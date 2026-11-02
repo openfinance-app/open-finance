@@ -1,3 +1,4 @@
+import { useViewState } from '@/hooks/useViewState';
 import { BulkSelection, BulkToolbar, SelectionCheckbox } from '@/components/bulk/BulkSelection';
 import { Link } from 'react-router';
 import { buildTransactionsLink } from '@/utils/navigation';
@@ -80,14 +81,14 @@ export function PayeeManagementSettings() {
     logo: '',
     categoryId: undefined,
   });
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useViewState(`payees:searchQuery`, '');
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const [logoError, setLogoError] = useState<string | null>(null);
-  const [showInactive, setShowInactive] = useState(false);
-  const [sortBy, setSortBy] = useState<SortOption>('name');
+  const [showInactive, setShowInactive] = useViewState(`payees:showInactive`, false);
+  const [sortBy, setSortBy] = useViewState<SortOption>(`payees:sortBy`, 'name');
   const [formError, setFormError] = useState<string | null>(null);
-  const [showAllSystem, setShowAllSystem] = useState(false);
-  const [showAllCustom, setShowAllCustom] = useState(false);
+  const [showAllSystem, setShowAllSystem] = useViewState(`payees:showAllSystem`, false);
+  const [showAllCustom, setShowAllCustom] = useViewState(`payees:showAllCustom`, false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Filter payees by search query

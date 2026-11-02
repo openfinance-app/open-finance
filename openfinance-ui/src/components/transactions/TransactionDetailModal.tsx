@@ -1,3 +1,5 @@
+import { useViewState } from '@/hooks/useViewState';
+import { useViewScroll } from '@/hooks/useViewScroll';
 import { useDateFormatter } from '@/hooks/useDateFormatter';
 /**
  * TransactionDetailModal Component
@@ -11,7 +13,7 @@ import { useDateFormatter } from '@/hooks/useDateFormatter';
  * Follows the same hand-rolled overlay pattern as AssetDetailModal /
  * AccountDetailModal.
  */
-import { useState, useEffect } from 'react';
+import { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router';
 import {
@@ -80,8 +82,12 @@ export function TransactionDetailModal({
   onClose,
   onEdit,
 }: TransactionDetailModalProps) {
-  const [activeTab, setActiveTab] = useState<Tab>('overview');
+  const [activeTab, setActiveTab] = useViewState<Tab>(
+    `transaction:${transaction.id}:tab`,
+    'overview'
+  );
   const navigate = useNavigate();
+  const detailScrollRef = useViewScroll(`transaction:${transaction.id}:scroll`);
   const { format: formatCurrency } = useFormatCurrency();
   const { t: tc } = useTranslation('common');
   const { date: formatDate } = useDateFormatter();
@@ -89,7 +95,6 @@ export function TransactionDetailModal({
 
   const handleAccountClick = () => {
     if (!transaction.accountId) return;
-    onClose();
     navigate(`/accounts?highlight=${transaction.accountId}`);
   };
 
@@ -126,7 +131,13 @@ export function TransactionDetailModal({
       <div className="absolute inset-0 bg-background/80 backdrop-blur-sm" onClick={onClose} />
 
       {/* Modal panel */}
-      <div className="relative bg-surface border border-border rounded-lg shadow-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto m-4">
+      <div
+        ref={detailScrollRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label={transaction.description || transaction.payee || t('detail.title')}
+        className="relative bg-surface border border-border rounded-lg shadow-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto m-4"
+      >
         {/* ── Header ── */}
         <div className="sticky top-0 z-10 bg-surface border-b border-border px-6 py-4 flex items-center justify-between gap-3">
           <div className="flex min-w-0 items-center gap-3">
@@ -350,7 +361,7 @@ export function TransactionDetailModal({
                     </div>
                   )}
                   {linkedOperationSummary(transaction) && (
-                    <LinkedOperationDetails transaction={transaction} onNavigate={onClose} />
+                    <LinkedOperationDetails transaction={transaction} />
                   )}
                 </dl>
               </div>

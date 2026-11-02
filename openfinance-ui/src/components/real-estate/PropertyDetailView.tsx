@@ -1,3 +1,6 @@
+import { Link } from 'react-router';
+import { useViewScroll } from '@/hooks/useViewScroll';
+import { useViewState } from '@/hooks/useViewState';
 import { OwnershipActions } from '@/components/assets/OwnershipActions';
 import { decimalField } from '@/utils/exact-decimal';
 import type { RealEstateProperty } from '@/types/realEstate';
@@ -10,7 +13,6 @@ import { AssetFinancingSection } from '@/components/assets/AssetFinancingSection
  *
  * Detailed view of a property with tabs for Overview, Equity, and ROI analysis
  */
-import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/Dialog';
 import { Button } from '@/components/ui/Button';
@@ -73,7 +75,8 @@ export function PropertyDetailView({
 }: PropertyDetailViewProps) {
   const { t } = useTranslation('realEstate');
   const { date: formatDate } = useDateFormatter();
-  const [activeTab, setActiveTab] = useState<TabType>('overview');
+  const detailScrollRef = useViewScroll(`property:${propertyId}:scroll`);
+  const [activeTab, setActiveTab] = useViewState<TabType>(`property:${propertyId}:tab`, 'overview');
 
   const {
     data: property,
@@ -107,7 +110,10 @@ export function PropertyDetailView({
   return (
     <>
       <Dialog open={true} onOpenChange={onClose}>
-        <DialogContent className="grid-cols-1 sm:max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogContent
+          ref={detailScrollRef}
+          className="grid-cols-1 sm:max-w-4xl max-h-[90vh] overflow-y-auto"
+        >
           {loadingProperty ? (
             <div className="space-y-4">
               <DialogHeader>
@@ -622,7 +628,12 @@ export function PropertyDetailView({
 
                           {equity.mortgageId && (
                             <p className="mt-4 text-sm text-text-secondary">
-                              {t('propertyDetail.mortgageId', { id: equity.mortgageId })}
+                              <Link
+                                to={`/liabilities?highlight=${equity.mortgageId}`}
+                                className="text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                              >
+                                {t('propertyDetail.mortgageId', { id: equity.mortgageId })}
+                              </Link>
                             </p>
                           )}
                         </Card>

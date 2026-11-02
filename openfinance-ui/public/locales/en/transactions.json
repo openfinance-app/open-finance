@@ -353,5 +353,12 @@
     "overrideQuantity": "Use and adjust this quantity",
     "accountMismatch": "Choose a holding linked to the selected account, or remove the investment link.",
     "quantityInvalid": "Enter a positive quantity with at most 18 decimal places."
+  },
+  "scope": {
+    "label": "Linked operation filters",
+    "asset": "Asset",
+    "property": "Property",
+    "liability": "Liability",
+    "clear": "Remove filter: {{name}}"
   }
 }

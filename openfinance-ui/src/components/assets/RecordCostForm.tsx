@@ -1,3 +1,4 @@
+import { buildTransactionsLink } from '@/utils/navigation';
 import { useId } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -248,7 +249,12 @@ export function RecordCostForm({ target, onClose }: { target: CostTarget; onClos
           />
         )}
         <div className="flex items-center gap-2 text-xs">
-          <Link to="/transactions" className="text-primary underline">
+          <Link
+            to={buildTransactionsLink(
+              target.kind === 'property' ? { realEstateId: target.id } : { assetId: target.id }
+            )}
+            className="text-primary underline"
+          >
             {t('costEntry.transactions')}
           </Link>
           <HelpTooltip text={t('costEntry.existingHint')} />

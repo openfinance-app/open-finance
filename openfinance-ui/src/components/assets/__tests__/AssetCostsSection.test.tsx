@@ -99,7 +99,7 @@ describe('AssetCostsSection', () => {
     expect(screen.getByText('Engine restoration')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /Engine restoration/ })).toHaveAttribute(
       'href',
-      '/transactions?highlight=201'
+      '/transactions?assetId=3&highlight=201'
     );
     expect(screen.getByText('$8,000.00')).toBeInTheDocument();
   });
@@ -110,7 +110,7 @@ describe('AssetCostsSection', () => {
     expect(screen.getByText('New tires')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /New tires/ })).toHaveAttribute(
       'href',
-      '/transactions?highlight=202'
+      '/transactions?assetId=3&highlight=202'
     );
     expect(screen.getByText('$600.00')).toBeInTheDocument();
   });
@@ -122,7 +122,7 @@ describe('AssetCostsSection', () => {
     expect(screen.queryByRole('button', { name: 'Add cost' })).not.toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Open transactions' })).toHaveAttribute(
       'href',
-      '/transactions'
+      '/transactions?assetId=3'
     );
   });
 

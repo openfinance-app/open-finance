@@ -1,3 +1,5 @@
+import { useLiability } from '@/hooks/useLiabilities';
+import { useViewState } from '@/hooks/useViewState';
 import { BulkSelection, BulkToolbar } from '@/components/bulk/BulkSelection';
 /**
  * LiabilitiesPage Component
@@ -43,13 +45,18 @@ export default function LiabilitiesPage() {
     ? parseInt(searchParams.get('highlight')!)
     : null;
 
-  const [showFilters, setShowFilters] = useState(false);
+  const [showFilters, setShowFilters] = useViewState('showFilters', false);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [editingLiability, setEditingLiability] = useState<Liability | null>(null);
   /** Requirement 2.1: Single state for unified details dialog */
-  const [viewingDetailLiability, setViewingDetailLiability] = useState<Liability | null>(null);
-  const [filters, setFilters] = useState<Filters>({ page: 0, size: 20, sort: 'createdAt,desc' });
+  const [detailId, setDetailId] = useViewState<number | null>('detail', null, Boolean(highlightId));
+  const { data: fetchedDetailLiability } = useLiability(detailId);
+  const [filters, setFilters] = useViewState<Filters>('filters', {
+    page: 0,
+    size: 20,
+    sort: 'createdAt,desc',
+  });
 
   const { data: liabilitiesPage, isLoading, error } = useLiabilitiesPaged(filters);
   const createLiability = useCreateLiability();
@@ -64,12 +71,12 @@ export default function LiabilitiesPage() {
     if (!highlightId) return;
     const liability = allLiabilities?.content?.find(l => l.id === highlightId);
     if (liability) {
-      setViewingDetailLiability(liability);
+      setDetailId(liability.id);
       const next = new URLSearchParams(searchParams);
       next.delete('highlight');
       setSearchParams(next, { replace: true });
     }
-  }, [highlightId, allLiabilities, searchParams, setSearchParams]);
+  }, [highlightId, allLiabilities, searchParams, setSearchParams, setDetailId]);
 
   // A bulk deletion can remove the last page entirely. Return to the nearest valid page.
   if (
@@ -102,7 +109,7 @@ export default function LiabilitiesPage() {
 
   /** Requirement 2.1: Open the unified details dialog for the selected liability */
   const handleViewDetails = (liability: Liability) => {
-    setViewingDetailLiability(liability);
+    setDetailId(liability.id);
   };
 
   const handleFormSubmit = async (data: LiabilityRequest) => {
@@ -112,7 +119,7 @@ export default function LiabilitiesPage() {
         await updateLiability.mutateAsync({ id: editingLiability.id, data });
       } else {
         const created = await createLiability.mutateAsync(data);
-        setViewingDetailLiability(created);
+        setDetailId(created.id);
       }
       setIsFormOpen(false);
       setEditingLiability(null);
@@ -287,12 +294,13 @@ export default function LiabilitiesPage() {
 
       {/* Requirement 2.1: Unified Liability Details Dialog (Overview / Amortization / Linked Payments) */}
       <LiabilityDetailDialog
-        key={viewingDetailLiability?.id ?? 'closed'}
+        key={detailId ?? 'closed'}
         liability={
-          allLiabilities?.content.find(item => item.id === viewingDetailLiability?.id) ??
-          viewingDetailLiability
+          allLiabilities?.content.find(item => item.id === detailId) ??
+          fetchedDetailLiability ??
+          null
         }
-        onClose={() => setViewingDetailLiability(null)}
+        onClose={() => setDetailId(null)}
       />
     </BulkSelection>
   );

@@ -1,3 +1,4 @@
+import { useViewScroll } from '@/hooks/useViewScroll';
 import { type ReactNode, useEffect, useRef, useState } from 'react';
 import { useLocation } from 'react-router';
 import { Sidebar } from './Sidebar';
@@ -22,6 +23,7 @@ export interface AppLayoutProps {
  */
 function AppLayoutInner({ children }: AppLayoutProps) {
   const isMobile = useIsMobile();
+  const scrollRef = useViewScroll();
   const location = useLocation();
   const { data: settings, isLoading: settingsLoading } = useUserSettings();
   const { locale, setLocale } = useLocale();
@@ -71,10 +73,11 @@ function AppLayoutInner({ children }: AppLayoutProps) {
 
         {/* Scrollable content */}
         <main
+          ref={scrollRef}
           className={cn(
             'flex-1 overflow-y-auto overflow-x-hidden',
             'bg-background',
-            isMobile ? 'p-4' : 'p-6 lg:p-8'
+            isMobile ? 'p-4 pb-28' : 'p-6 lg:p-8'
           )}
         >
           <div className="mx-auto max-w-7xl">

@@ -407,7 +407,7 @@ describe('TransactionDetailModal', () => {
       );
       const link = screen.getByRole('button', { name: 'Open account details' });
       await user.click(link);
-      expect(onClose).toHaveBeenCalledTimes(1);
+      expect(onClose).not.toHaveBeenCalled();
       expect(mockNavigate).toHaveBeenCalledWith('/accounts?highlight=10');
     });
 

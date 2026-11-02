@@ -146,7 +146,7 @@ export function useTransactions(filters?: TransactionFilters) {
  */
 export function useTransaction(transactionId: number | null) {
   return useQuery<Transaction>({
-    queryKey: ['transactions', transactionId],
+    queryKey: ['transactions', 'detail', transactionId],
     queryFn: async () => {
       if (!transactionId) throw new Error('Transaction ID is required');
 

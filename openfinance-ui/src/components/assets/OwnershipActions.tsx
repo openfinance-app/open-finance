@@ -16,6 +16,7 @@ interface Props {
   saleProceeds?: number;
   realizedGain?: number | null;
   onComplete?: () => void;
+  showTradeActions?: boolean;
 }
 export function OwnershipActions({
   target,
@@ -26,12 +27,14 @@ export function OwnershipActions({
   saleProceeds,
   realizedGain,
   onComplete,
+  showTradeActions = true,
 }: Props) {
   const { t } = useTranslation('assets');
   const { date } = useDateFormatter();
   const [buying, setBuying] = useState(false);
   const [selling, setSelling] = useState(false);
-  if (buying && !inactive) return <AssetBuyForm target={target} onClose={() => setBuying(false)} />;
+  if (showTradeActions && buying && !inactive)
+    return <AssetBuyForm target={target} onClose={() => setBuying(false)} />;
   if (closed)
     return (
       <section className="space-y-3 rounded-lg border border-border p-4">
@@ -69,7 +72,7 @@ export function OwnershipActions({
             )}
           </dd>
         </dl>
-        {target.financial && target.accountId && !inactive && (
+        {showTradeActions && target.financial && target.accountId && !inactive && (
           <Button type="button" variant="secondary" size="sm" onClick={() => setBuying(true)}>
             {t('ownership.buyMore')}
           </Button>
@@ -77,28 +80,34 @@ export function OwnershipActions({
       </section>
     );
   if (inactive) return null;
-  if (selling) return <AssetSaleForm target={target} onClose={() => setSelling(false)} />;
+  if (showTradeActions && selling)
+    return <AssetSaleForm target={target} onClose={() => setSelling(false)} />;
   if (acquisitionType === 'PLANNED')
     return onComplete ? (
       <Button onClick={onComplete}>{t('ownership.completePurchase')}</Button>
     ) : null;
+  const canLinkPurchasePayment =
+    (!acquisitionType || acquisitionType === 'PURCHASE') && !target.financial;
+  if (!showTradeActions && !canLinkPurchasePayment) return null;
   return (
     <div className="flex flex-wrap items-start gap-3">
-      {(!acquisitionType || acquisitionType === 'PURCHASE') && !target.financial && (
+      {canLinkPurchasePayment && (
         <LinkPurchasePayment
           assetId={target.id}
           currency={target.currency}
           purchaseDate={target.purchaseDate}
         />
       )}
-      {target.financial && target.accountId && (
+      {showTradeActions && target.financial && target.accountId && (
         <Button type="button" variant="secondary" size="sm" onClick={() => setBuying(true)}>
           {t('ownership.buyMore')}
         </Button>
       )}
-      <Button type="button" variant="secondary" size="sm" onClick={() => setSelling(true)}>
-        {t('ownership.sell')}
-      </Button>
+      {showTradeActions && (
+        <Button type="button" variant="secondary" size="sm" onClick={() => setSelling(true)}>
+          {t('ownership.sell')}
+        </Button>
+      )}
     </div>
   );
 }

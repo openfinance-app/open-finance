@@ -1,3 +1,5 @@
+import { TransactionScope } from '@/components/transactions/TransactionScope';
+import { useViewState } from '@/hooks/useViewState';
 import { BulkSelection, BulkToolbar } from '@/components/bulk/BulkSelection';
 import { apiErrorMessage } from '@/utils/api-error';
 /**
@@ -7,7 +9,7 @@ import { apiErrorMessage } from '@/utils/api-error';
  *
  * Main page for viewing and managing transactions with filters and pagination
  */
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useLocation, useNavigate, useSearchParams } from 'react-router';
 import { Plus, Filter } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
@@ -64,9 +66,6 @@ export default function TransactionsPage() {
   const noCategoryParam = searchParams.get('noCategory') === '1';
   const noPayeeParam = searchParams.get('noPayee') === '1';
   const payeeParam = searchParams.get('payee') || undefined;
-  const accountIdParam = searchParams.get('accountId')
-    ? parseInt(searchParams.get('accountId')!)
-    : null;
   const typeParam = searchParams.get('type');
   const typeFilter =
     typeParam && (VALID_TYPES as readonly string[]).includes(typeParam)
@@ -78,38 +77,70 @@ export default function TransactionsPage() {
     dateFromParam && ISO_DATE_RE.test(dateFromParam) ? dateFromParam : undefined;
   const dateToFilter = dateToParam && ISO_DATE_RE.test(dateToParam) ? dateToParam : undefined;
 
-  const [filters, setFilters] = useState<Filters>({
-    page: 0,
-    size: 20,
-    categoryId: categoryId || categoryIdParam || undefined,
-    noCategory: noCategoryParam || undefined,
-    noPayee: noPayeeParam || undefined,
-    payee: payeeParam,
-    payeeExact: searchParams.get('payeeExact') === 'true' || undefined,
-    includeSubcategories: searchParams.get('includeSubcategories') === 'true' || undefined,
-    accountId: accountIdParam || undefined,
-    type: typeFilter,
-    excludeTransfers: searchParams.get('excludeTransfers') === 'true' || undefined,
-    dateFrom: dateFromFilter,
-    dateTo: dateToFilter,
-  });
-  const [showFilters, setShowFilters] = useState(
-    Boolean(
-      noCategoryParam ||
-      noPayeeParam ||
-      payeeParam ||
-      categoryIdParam ||
-      accountIdParam ||
-      typeFilter ||
-      dateFromFilter ||
-      dateToFilter
-    )
+  const scopeId = (key: string) => {
+    const value = Number(searchParams.get(key));
+    return Number.isSafeInteger(value) && value > 0 ? value : undefined;
+  };
+  const deepLinkKeys = [
+    'accountId',
+    'assetId',
+    'realEstateId',
+    'liabilityId',
+    'category',
+    'categoryId',
+    'noCategory',
+    'noPayee',
+    'payee',
+    'payeeExact',
+    'includeSubcategories',
+    'type',
+    'excludeTransfers',
+    'dateFrom',
+    'dateTo',
+  ];
+  const hasLinkedFilters = deepLinkKeys.some(key => searchParams.has(key));
+  const hasFormFilters = deepLinkKeys.some(
+    key => !['assetId', 'realEstateId', 'liabilityId'].includes(key) && searchParams.has(key)
+  );
+
+  const [filters, setFilters] = useViewState<Filters>(
+    'filters',
+    {
+      page: 0,
+      size: 20,
+      categoryId: categoryId || categoryIdParam || undefined,
+      noCategory: noCategoryParam || undefined,
+      noPayee: noPayeeParam || undefined,
+      payee: payeeParam,
+      payeeExact: searchParams.get('payeeExact') === 'true' || undefined,
+      includeSubcategories: searchParams.get('includeSubcategories') === 'true' || undefined,
+      accountId: scopeId('accountId'),
+      assetId: scopeId('assetId'),
+      realEstateId: scopeId('realEstateId'),
+      liabilityId: scopeId('liabilityId'),
+      type: typeFilter,
+      excludeTransfers: searchParams.get('excludeTransfers') === 'true' || undefined,
+      dateFrom: dateFromFilter,
+      dateTo: dateToFilter,
+    },
+    hasLinkedFilters
+  );
+  const [showFilters, setShowFilters] = useViewState(
+    'showFilters',
+    hasFormFilters,
+    hasLinkedFilters
   );
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
   const [editError, setEditError] = useState(false);
   const [deletingTransaction, setDeletingTransaction] = useState<Transaction | null>(null);
-  const [detailTransaction, setDetailTransaction] = useState<Transaction | null>(null);
+  const [detailId, setDetailId] = useViewState<number | null>(
+    'detail',
+    highlightId,
+    hasLinkedFilters || Boolean(highlightId)
+  );
+  const setDetailTransaction = (transaction: Transaction | null) =>
+    setDetailId(transaction?.id ?? null);
   const { data: transactionsPage, isLoading, error } = useTransactions(filters);
   const { data: accounts = [] } = useAccounts();
   const { data: categories = [] } = useCategories();
@@ -130,10 +161,12 @@ export default function TransactionsPage() {
   }
 
   const transactions = transactionsPage?.content || [];
-  const listedHighlight = transactions.find(transaction => transaction.id === highlightId);
+  const listedHighlight = transactions.find(transaction => transaction.id === detailId);
   const { data: fetchedHighlight, error: highlightError } = useTransaction(
-    listedHighlight ? null : highlightId
+    listedHighlight ? null : detailId
   );
+
+  const detailTransaction = listedHighlight ?? fetchedHighlight;
 
   useEffect(() => {
     if ((location.state as { openForm?: boolean } | null)?.openForm) {
@@ -142,54 +175,32 @@ export default function TransactionsPage() {
     }
   }, [location.pathname, location.state, navigate]);
 
-  // Handle category from query param after categories are loaded
+  // Consume a deep link once, including links into the already-mounted Transactions page.
   useEffect(() => {
-    if (categoryId && filters.categoryId !== categoryId) {
-      setFilters(prev => ({ ...prev, categoryId, page: 0 }));
-      setShowFilters(true);
-    } else if (categoryId && !showFilters) {
-      setShowFilters(true);
-    }
-  }, [categoryId, filters.categoryId, showFilters]);
-
-  // Consume deep-link params after mount so a refresh doesn't re-impose filters
-  useEffect(() => {
-    const deepLinkKeys = [
+    const keys = [
       'accountId',
-      'type',
-      'dateFrom',
-      'dateTo',
+      'assetId',
+      'realEstateId',
+      'liabilityId',
+      'category',
       'categoryId',
-      'excludeTransfers',
+      'noCategory',
+      'noPayee',
       'payee',
       'payeeExact',
       'includeSubcategories',
+      'type',
+      'excludeTransfers',
+      'dateFrom',
+      'dateTo',
+      'highlight',
     ];
-    if (deepLinkKeys.some(k => searchParams.get(k) !== null)) {
+    if (keys.some(key => searchParams.has(key))) {
       const next = new URLSearchParams(searchParams);
-      deepLinkKeys.forEach(k => next.delete(k));
+      keys.forEach(key => next.delete(key));
       setSearchParams(next, { replace: true });
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- consume once on mount
-  }, []);
-
-  // Resolve linked transactions independently of the current list's filters and page.
-  const highlightOpenedRef = useRef<number | null>(null);
-  useEffect(() => {
-    if (!highlightId) {
-      highlightOpenedRef.current = null;
-      return;
-    }
-    if (highlightOpenedRef.current === highlightId) return;
-    const tx = listedHighlight ?? fetchedHighlight;
-    if (tx?.id === highlightId) {
-      setDetailTransaction(tx);
-      highlightOpenedRef.current = highlightId;
-      const next = new URLSearchParams(searchParams);
-      next.delete('highlight');
-      setSearchParams(next, { replace: true });
-    }
-  }, [highlightId, listedHighlight, fetchedHighlight, searchParams, setSearchParams]);
+  }, [searchParams, setSearchParams]);
 
   const handleCreate = () => {
     setSaveError(null);
@@ -345,6 +356,7 @@ export default function TransactionsPage() {
         </div>
       )}
 
+      <TransactionScope filters={filters} onChange={handleFiltersChange} />
       <TransactionSummaryHeader filters={filters} />
 
       <BulkToolbar />

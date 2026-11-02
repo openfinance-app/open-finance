@@ -1,3 +1,4 @@
+import { useViewState } from '@/hooks/useViewState';
 import { formatExactNumber } from '@/utils/format';
 import { useVisibility } from '@/context/VisibilityContext';
 import { Fragment, useState } from 'react';
@@ -68,13 +69,16 @@ export default function HistoryPage() {
   const { isAmountsVisible } = useVisibility();
   useDocumentTitle(t('title'));
   const queryClient = useQueryClient();
-  const [currentPage, setCurrentPage] = useState(0);
-  const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
-  const [entityType, setEntityType] = useState<EntityType | undefined>();
-  const [operationType, setOperationType] = useState<OperationType | undefined>();
-  const [since, setSince] = useState('');
-  const [until, setUntil] = useState('');
-  const [expanded, setExpanded] = useState<number | null>(null);
+  const [currentPage, setCurrentPage] = useViewState('currentPage', 0);
+  const [pageSize, setPageSize] = useViewState('pageSize', DEFAULT_PAGE_SIZE);
+  const [entityType, setEntityType] = useViewState<EntityType | undefined>('entityType', undefined);
+  const [operationType, setOperationType] = useViewState<OperationType | undefined>(
+    'operationType',
+    undefined
+  );
+  const [since, setSince] = useViewState('since', '');
+  const [until, setUntil] = useViewState('until', '');
+  const [expanded, setExpanded] = useViewState<number | null>('expanded', null);
   const [notice, setNotice] = useState('');
   const {
     data: historyPage,

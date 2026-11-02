@@ -1,3 +1,5 @@
+import { useLiability } from '@/hooks/useLiabilities';
+import { useTransaction } from '@/hooks/useTransactions';
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
@@ -57,6 +59,25 @@ describe('useAssets hooks', () => {
     currentPrice: 175.5,
     purchasePrice: 150.0,
   };
+
+  it('keeps inactive detail queries separate from cached asset, liability and transaction lists', () => {
+    queryClient.setQueryData(['assets', undefined], [mockAsset]);
+    queryClient.setQueryData(['liabilities', undefined], [{ id: 1 }]);
+    queryClient.setQueryData(['transactions', undefined], { content: [{ id: 1 }] });
+    const { result } = renderHook(
+      () => ({
+        asset: useAsset(null).data,
+        liability: useLiability(null).data,
+        transaction: useTransaction(null).data,
+      }),
+      { wrapper }
+    );
+    expect(result.current).toEqual({
+      asset: undefined,
+      liability: undefined,
+      transaction: undefined,
+    });
+  });
 
   // ── useAssets ─────────────────────────────────────────────────────────────
   describe('useAssets', () => {

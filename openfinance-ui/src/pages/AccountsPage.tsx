@@ -1,3 +1,4 @@
+import { useViewState } from '@/hooks/useViewState';
 import { BulkSelection, BulkToolbar } from '@/components/bulk/BulkSelection';
 /**
  * AccountsPage Component
@@ -66,24 +67,34 @@ export default function AccountsPage() {
   const institutionParam = searchParams.get('institution');
   const validInstitution = institutionParam?.trim() || undefined;
 
-  const [filters, setFilters] = useState<Filters>({
-    page: 0,
-    size: DEFAULT_PAGE_SIZE,
-    sort: 'name,asc',
-    lowBalance: lowBalanceParam || undefined,
-    institution: validInstitution,
-  });
-  const [showFilters, setShowFilters] = useState(lowBalanceParam || Boolean(validInstitution));
+  const [filters, setFilters] = useViewState<Filters>(
+    'filters',
+    {
+      page: 0,
+      size: DEFAULT_PAGE_SIZE,
+      sort: 'name,asc',
+      lowBalance: lowBalanceParam || undefined,
+      institution: validInstitution,
+    },
+    Boolean(lowBalanceParam || validInstitution)
+  );
+  const [showFilters, setShowFilters] = useViewState(
+    'showFilters',
+    lowBalanceParam || Boolean(validInstitution)
+  );
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingAccount, setEditingAccount] = useState<Account | null>(null);
-  const [detailAccountId, setDetailAccountId] = useState<number | null>(highlightId);
+  const [detailAccountId, setDetailAccountId] = useViewState<number | null>(
+    'detailAccountId',
+    highlightId
+  );
 
   // Auto-open modal when highlight param is present
   useEffect(() => {
     if (highlightId) {
       setDetailAccountId(highlightId);
     }
-  }, [highlightId]);
+  }, [highlightId, setDetailAccountId]);
 
   // Consume deep-link param after mount so a refresh doesn't re-impose the filter
   useEffect(() => {
@@ -92,8 +103,7 @@ export default function AccountsPage() {
       next.delete('institution');
       setSearchParams(next, { replace: true });
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- consume once on mount
-  }, []);
+  }, [searchParams, setSearchParams]);
 
   // Close filter panel on Escape key
   useEffect(() => {
@@ -102,7 +112,7 @@ export default function AccountsPage() {
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [showFilters]);
+  }, [showFilters, setShowFilters]);
 
   // Dialog state for close/reopen/delete actions
   const [actionAccount, setActionAccount] = useState<Account | null>(null);

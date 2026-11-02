@@ -1,3 +1,6 @@
+import { buildTransactionsLink } from '@/utils/navigation';
+import { useViewScroll } from '@/hooks/useViewScroll';
+import { useViewState } from '@/hooks/useViewState';
 import { AccountBalanceBreakdown } from '@/components/accounts/AccountBalanceBreakdown';
 import { useDateFormatter } from '@/hooks/useDateFormatter';
 /**
@@ -23,7 +26,7 @@ import {
   Package,
   ArrowUpRight,
 } from 'lucide-react';
-import { useNavigate } from 'react-router';
+import { Link } from 'react-router';
 import {
   LineChart,
   Line,
@@ -82,9 +85,9 @@ interface AccountDetailModalProps {
 type Tab = 'overview' | 'interest' | 'attachments';
 
 export function AccountDetailModal({ accountId, onClose, onEdit }: AccountDetailModalProps) {
-  const navigate = useNavigate();
-  const [period, setPeriod] = useState('3M');
-  const [activeTab, setActiveTab] = useState<Tab>('overview');
+  const [period, setPeriod] = useViewState(`account:${accountId}:period`, '3M');
+  const detailScrollRef = useViewScroll(`account:${accountId}:scroll`);
+  const [activeTab, setActiveTab] = useViewState<Tab>(`account:${accountId}:tab`, 'overview');
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const { format: formatCurrency } = useFormatCurrency();
   const { t: tc } = useTranslation('common');
@@ -159,7 +162,13 @@ export function AccountDetailModal({ accountId, onClose, onEdit }: AccountDetail
       <div className="absolute inset-0 bg-background/80 backdrop-blur-sm" onClick={onClose} />
 
       {/* Modal panel */}
-      <div className="relative bg-surface border border-border rounded-lg shadow-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto m-4">
+      <div
+        ref={detailScrollRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label={account?.name || t('detail.details')}
+        className="relative bg-surface border border-border rounded-lg shadow-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto m-4"
+      >
         {/* ── Header ── */}
         <div className="sticky top-0 z-10 bg-surface border-b border-border px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -383,11 +392,15 @@ export function AccountDetailModal({ accountId, onClose, onEdit }: AccountDetail
                       <div className="space-y-2">
                         {transactions.map(tx => {
                           return (
-                            <div
+                            <Link
+                              to={buildTransactionsLink({
+                                accountId: account.id,
+                                highlight: tx.id,
+                              })}
                               key={tx.id}
-                              className="flex items-center justify-between p-3 rounded-lg hover:bg-surface-elevated transition-colors"
+                              className="flex items-center justify-between gap-3 p-3 rounded-lg hover:bg-surface-elevated transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                             >
-                              <div className="flex items-center gap-3">
+                              <div className="flex min-w-0 flex-1 items-center gap-3">
                                 <div className="w-9 h-9 rounded-full bg-surface-elevated flex items-center justify-center shrink-0">
                                   {tx.category?.icon ? (
                                     <span className="text-base">{tx.category.icon}</span>
@@ -395,8 +408,8 @@ export function AccountDetailModal({ accountId, onClose, onEdit }: AccountDetail
                                     <span className="text-muted-foreground text-sm">$</span>
                                   )}
                                 </div>
-                                <div>
-                                  <p className="font-medium text-sm text-foreground">
+                                <div className="min-w-0">
+                                  <p className="break-words font-medium text-sm text-foreground">
                                     {tx.payee || tx.description || 'Transaction'}
                                   </p>
                                   <p className="text-xs text-muted-foreground">
@@ -407,7 +420,7 @@ export function AccountDetailModal({ accountId, onClose, onEdit }: AccountDetail
                               </div>
                               <span
                                 className={cn(
-                                  'font-mono font-semibold text-sm',
+                                  'inline-flex shrink-0 items-baseline whitespace-nowrap font-mono font-semibold text-sm',
                                   tx.type === 'EXPENSE' ? 'text-error' : 'text-success'
                                 )}
                               >
@@ -415,7 +428,7 @@ export function AccountDetailModal({ accountId, onClose, onEdit }: AccountDetail
                                 {tx.type === 'EXPENSE' && '-'}
                                 <TransactionAmount transaction={tx} inline />
                               </span>
-                            </div>
+                            </Link>
                           );
                         })}
                       </div>
@@ -427,17 +440,13 @@ export function AccountDetailModal({ accountId, onClose, onEdit }: AccountDetail
 
                     {transactionsData && transactionsData.totalElements > 0 && (
                       <div className="mt-4 pt-4 border-t border-border text-center">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => {
-                            onClose();
-                            navigate(`/transactions?accountId=${account.id}`);
-                          }}
+                        <Link
+                          className="inline-flex min-h-11 items-center justify-center rounded-lg px-3 text-sm font-medium hover:bg-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                          to={buildTransactionsLink({ accountId: account.id })}
                         >
-                          <ArrowUpRight className="h-4 w-4 mr-1.5" />
                           {t('detail.viewAllTransactions')}
-                        </Button>
+                          <ArrowUpRight className="h-4 w-4 ml-2" />
+                        </Link>
                       </div>
                     )}
                   </div>

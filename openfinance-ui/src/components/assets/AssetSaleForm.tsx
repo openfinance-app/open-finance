@@ -77,7 +77,6 @@ export function AssetSaleForm({ target, onClose }: { target: SaleTarget; onClose
       { path: ['fees'], message: t('ownership.feesTooHigh') }
     );
   const {
-    register,
     control,
     handleSubmit,
     watch,
@@ -137,19 +136,24 @@ export function AssetSaleForm({ target, onClose }: { target: SaleTarget; onClose
           <label className="block" htmlFor={`${id}-account`}>
             {t('ownership.receivingAccount')}
           </label>
-          <select
-            id={`${id}-account`}
-            {...register('accountId')}
-            value={values.accountId}
-            className="h-11 w-full rounded-lg border border-border bg-background p-2 text-base md:h-10 md:text-sm"
-          >
-            <option value="">{t('ownership.chooseAccount')}</option>
-            {eligible.map(account => (
-              <option key={account.id} value={account.id}>
-                {account.name}
-              </option>
-            ))}
-          </select>
+          <Controller
+            name="accountId"
+            control={control}
+            render={({ field }) => (
+              <select
+                id={`${id}-account`}
+                {...field}
+                className="h-11 w-full rounded-lg border border-border bg-background p-2 text-base md:h-10 md:text-sm"
+              >
+                <option value="">{t('ownership.chooseAccount')}</option>
+                {eligible.map(account => (
+                  <option key={account.id} value={account.id}>
+                    {account.name}
+                  </option>
+                ))}
+              </select>
+            )}
+          />
         </div>
         <div className="space-y-1 text-sm">
           <label className="block" htmlFor={`${id}-date`}>

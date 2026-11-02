@@ -1,3 +1,4 @@
+import { useViewState } from '@/hooks/useViewState';
 import { OwnershipIntentChoice } from '@/components/assets/OwnershipIntentChoice';
 import { AssetPurchaseFlow } from '@/components/assets/AssetPurchaseFlow';
 import { BulkSelection, BulkToolbar } from '@/components/bulk/BulkSelection';
@@ -43,6 +44,7 @@ import { useAuthContext } from '@/context/AuthContext';
 import {
   useAssetsSearch,
   useAssets,
+  useAsset,
   useCreateAsset,
   useUpdateAsset,
   useDeleteAsset,
@@ -103,23 +105,22 @@ export default function AssetsPage() {
 
   const { baseCurrency } = useAuthContext();
 
-  const [filters, setFilters] = useState<Filters>({
-    page: 0,
-    size: DEFAULT_PAGE_SIZE,
-    sort: 'name,asc',
-    ownershipStatus: 'OWNED',
-    currency: validCurrency,
-    type: validType,
-    group: groupParam === 'PHYSICAL' || groupParam === 'FINANCIAL' ? groupParam : undefined,
-    symbol: validSymbol,
-  });
-  useEffect(() => {
-    const group = groupParam === 'PHYSICAL' || groupParam === 'FINANCIAL' ? groupParam : undefined;
-    setFilters(prev =>
-      prev.group === group ? prev : { ...prev, group, type: undefined, page: 0 }
-    );
-  }, [groupParam]);
-  const [showFilters, setShowFilters] = useState(
+  const [filters, setFilters] = useViewState<Filters>(
+    'filters',
+    {
+      page: 0,
+      size: DEFAULT_PAGE_SIZE,
+      sort: 'name,asc',
+      ownershipStatus: 'OWNED',
+      currency: validCurrency,
+      type: validType,
+      group: groupParam === 'PHYSICAL' || groupParam === 'FINANCIAL' ? groupParam : undefined,
+      symbol: validSymbol,
+    },
+    Boolean(validCurrency || validType || validSymbol || groupParam)
+  );
+  const [showFilters, setShowFilters] = useViewState(
+    'showFilters',
     Boolean(validCurrency || validType || validSymbol)
   );
   const [buying, setBuying] = useState(false);
@@ -131,7 +132,12 @@ export default function AssetsPage() {
   const [creationType, setCreationType] = useState<AssetType | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [editingAsset, setEditingAsset] = useState<Asset | null>(null);
-  const [viewingAsset, setViewingAsset] = useState<Asset | null>(null);
+  const [viewingAssetId, setViewingAssetId] = useViewState<number | null>(
+    'detail',
+    null,
+    Boolean(highlightId)
+  );
+  const { data: fetchedViewingAsset } = useAsset(viewingAssetId);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   // BUG-ASSETS-20: Escape key closes the filter panel
@@ -143,23 +149,24 @@ export default function AssetsPage() {
     };
     window.addEventListener('keydown', handleEscape);
     return () => window.removeEventListener('keydown', handleEscape);
-  }, [showFilters]);
+  }, [showFilters, setShowFilters]);
 
   // Consume deep-link params after mount so a refresh doesn't re-impose filters
   useEffect(() => {
     if (
+      searchParams.get('group') !== null ||
       searchParams.get('currency') !== null ||
       searchParams.get('type') !== null ||
       searchParams.get('symbol') !== null
     ) {
       const next = new URLSearchParams(searchParams);
+      next.delete('group');
       next.delete('currency');
       next.delete('type');
       next.delete('symbol');
       setSearchParams(next, { replace: true });
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- consume once on mount
-  }, []);
+  }, [searchParams, setSearchParams]);
 
   const { data: assetsPage, isLoading, error } = useAssetsSearch(filters);
   // Fetch all assets (unfiltered) for global totals in summary cards
@@ -171,6 +178,8 @@ export default function AssetsPage() {
   });
   // Also use the flat assets list for portfolio metrics
   const { data: allAssetsList } = useAssets();
+  const viewingAsset =
+    allAssetsList?.find(asset => asset.id === viewingAssetId) ?? fetchedViewingAsset;
   const createAsset = useCreateAsset();
   const updateAsset = useUpdateAsset();
   const deleteAsset = useDeleteAsset();
@@ -280,7 +289,7 @@ export default function AssetsPage() {
 
   const handleView = (asset: Asset) => {
     if (asset.type === 'REAL_ESTATE') navigate(`/real-estate?asset=${asset.id}`);
-    else setViewingAsset(asset);
+    else setViewingAssetId(asset.id);
   };
 
   useEffect(() => {
@@ -289,12 +298,12 @@ export default function AssetsPage() {
     if (!asset) return;
     if (asset.type === 'REAL_ESTATE') navigate(`/real-estate?asset=${asset.id}`, { replace: true });
     else {
-      setViewingAsset(asset);
+      setViewingAssetId(asset.id);
       const next = new URLSearchParams(searchParams);
       next.delete('highlight');
       setSearchParams(next, { replace: true });
     }
-  }, [highlightId, allAssetsList, navigate, searchParams, setSearchParams]);
+  }, [highlightId, allAssetsList, navigate, searchParams, setSearchParams, setViewingAssetId]);
 
   const handleDelete = async (assetId: number) => {
     await deleteAsset.mutateAsync(assetId);
@@ -307,7 +316,7 @@ export default function AssetsPage() {
         await updateAsset.mutateAsync({ id: editingAsset.id, data });
       } else {
         const created = await createAsset.mutateAsync(data);
-        setViewingAsset(created);
+        setViewingAssetId(created.id);
       }
       setIsFormOpen(false);
       setEditingAsset(null);
@@ -407,10 +416,6 @@ export default function AssetsPage() {
                 type: undefined,
                 page: 0,
               }));
-              const next = new URLSearchParams(searchParams);
-              if (group === 'ALL') next.delete('group');
-              else next.set('group', group);
-              setSearchParams(next, { replace: true });
             }}
           >
             {t(`groups.${group}`)}
@@ -646,6 +651,14 @@ export default function AssetsPage() {
             onEdit={handleEdit}
             onDelete={handleDelete}
             onView={handleView}
+            onCompletePurchase={asset => {
+              if (asset.type === 'REAL_ESTATE')
+                navigate(`/real-estate?asset=${asset.id}&purchase=1`);
+              else {
+                setPurchasePlan(asset);
+                setBuying(true);
+              }
+            }}
             highlightedId={highlightId}
           />
 
@@ -668,11 +681,11 @@ export default function AssetsPage() {
         <AssetDetailModal
           key={viewingAsset.id}
           asset={allAssetsList?.find(asset => asset.id === viewingAsset.id) ?? viewingAsset}
-          onClose={() => setViewingAsset(null)}
+          onClose={() => setViewingAssetId(null)}
           onEdit={handleEdit}
           onDelete={handleDelete}
           onCompletePurchase={plan => {
-            setViewingAsset(null);
+            setViewingAssetId(null);
             setPurchasePlan(plan);
             setBuying(true);
           }}
