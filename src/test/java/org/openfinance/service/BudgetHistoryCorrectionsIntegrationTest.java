@@ -132,7 +132,34 @@ class BudgetHistoryCorrectionsIntegrationTest extends AuditApiTestSupport {
     @ValueSource(strings = {"", "EUR", "usd"})
     void suggestionsConvertTransactionsAndSplitsBeforeAveragingAndRounding(String currency)
             throws Exception {
-        long food = suggestionLedger();
+        // Keep both posting dates in one calendar month, including on the 1st/2nd of a month.
+        // A two-month lookback always includes the whole previous month.
+        LocalDate previousMonth = LocalDate.now().minusMonths(1).withDayOfMonth(1);
+        long food = suggestionLedger(previousMonth, previousMonth.plusDays(1));
+        JsonNode suggestion = suggestionFor(food, currency, 2);
+        boolean dollars = "usd".equals(currency);
+        money(suggestion, "averageSpent", dollars ? "30.90" : "18.60");
+        money(suggestion, "suggestedAmount", dollars ? "31" : "19");
+        assertThat(suggestion.path("currency").asText()).isEqualTo(dollars ? "USD" : "EUR");
+        assertThat(suggestion.path("transactionCount").asInt()).isEqualTo(2);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"EUR", "usd"})
+    void suggestionsAverageConvertedSpendingAcrossNonEmptyCalendarMonths(String currency)
+            throws Exception {
+        LocalDate currentMonth = LocalDate.now().withDayOfMonth(1);
+        long food = suggestionLedger(currentMonth.minusDays(1), currentMonth);
+        JsonNode suggestion = suggestionFor(food, currency, 1);
+        boolean dollars = "usd".equals(currency);
+        money(suggestion, "averageSpent", dollars ? "15.45" : "9.30");
+        money(suggestion, "suggestedAmount", dollars ? "16" : "10");
+        assertThat(suggestion.path("currency").asText()).isEqualTo(dollars ? "USD" : "EUR");
+        assertThat(suggestion.path("transactionCount").asInt()).isEqualTo(2);
+    }
+
+    private JsonNode suggestionFor(long categoryId, String currency, int lookbackMonths)
+            throws Exception {
         JsonNode result =
                 json(
                         "POST",
@@ -141,28 +168,21 @@ class BudgetHistoryCorrectionsIntegrationTest extends AuditApiTestSupport {
                                 "period",
                                 "MONTHLY",
                                 "lookbackMonths",
-                                1,
+                                lookbackMonths,
                                 "categoryIds",
-                                List.of(food),
+                                List.of(categoryId),
                                 "currency",
                                 currency),
                         owner,
                         200);
         assertThat(result).hasSize(1);
-        JsonNode suggestion = result.get(0);
-        boolean dollars = "usd".equals(currency);
-        money(suggestion, "averageSpent", dollars ? "30.90" : "18.60");
-        money(suggestion, "suggestedAmount", dollars ? "31" : "19");
-        assertThat(suggestion.path("currency").asText()).isEqualTo(dollars ? "USD" : "EUR");
-        assertThat(suggestion.path("transactionCount").asInt()).isEqualTo(2);
+        return result.get(0);
     }
 
-    private long suggestionLedger() throws Exception {
+    private long suggestionLedger(LocalDate older, LocalDate newer) throws Exception {
         long food = category("Suggestion food");
         long other = category("Other split");
         long cash = account(owner);
-        LocalDate older = LocalDate.now().minusDays(2);
-        LocalDate newer = LocalDate.now().minusDays(1);
         rate(older, "2");
         rate(newer, "1.25");
         Map<String, Object> expense = movement(cash, 1, older);
