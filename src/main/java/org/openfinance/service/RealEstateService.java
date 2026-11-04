@@ -703,7 +703,13 @@ public class RealEstateService {
                 pageable.getSort().stream()
                         .anyMatch(order -> encryptedSortFields.contains(order.getProperty()));
 
-        if (hasKeyword || hasSortOnEncryptedField) {
+        boolean hasValueFilter =
+                criteria.getValueMin() != null
+                        || criteria.getValueMax() != null
+                        || criteria.getPriceMin() != null
+                        || criteria.getPriceMax() != null
+                        || criteria.getRentalIncomeMin() != null;
+        if (hasKeyword || hasSortOnEncryptedField || hasValueFilter) {
             // Build criteria without keyword so other non-encrypted filters still apply at
             // DB level
             RealEstateSearchCriteria criteriaWithoutKeyword =
@@ -737,6 +743,7 @@ public class RealEstateService {
                                                             response.getAddress(),
                                                             keyword,
                                                             keywordRegex))
+                            .filter(response -> matchesPropertyAmounts(response, criteria))
                             .collect(Collectors.toList());
 
             // Apply in-memory sort (handles encrypted sort fields correctly)
@@ -755,7 +762,7 @@ public class RealEstateService {
                     }
                 }
                 if (comparator != null) {
-                    filtered.sort(comparator);
+                    filtered.sort(comparator.thenComparing(RealEstatePropertyResponse::getId));
                 }
             }
 
@@ -789,9 +796,23 @@ public class RealEstateService {
     }
 
     /**
-     * Builds a Comparator for in-memory sorting of RealEstatePropertyResponse by field name. Used
-     * when DB-level ORDER BY is not applicable (encrypted or derived fields).
+     * Applies numeric filters after entity decryption. SQL comparisons cannot be used against
+     * encrypted amounts, so these bounds must be checked before pagination.
      */
+    private boolean matchesPropertyAmounts(
+            RealEstatePropertyResponse property, RealEstateSearchCriteria criteria) {
+        return withinRange(
+                        property.getCurrentValue(), criteria.getValueMin(), criteria.getValueMax())
+                && withinRange(
+                        property.getPurchasePrice(), criteria.getPriceMin(), criteria.getPriceMax())
+                && withinRange(property.getRentalIncome(), criteria.getRentalIncomeMin(), null);
+    }
+
+    private boolean withinRange(BigDecimal value, BigDecimal minimum, BigDecimal maximum) {
+        return (minimum == null || (value != null && value.compareTo(minimum) >= 0))
+                && (maximum == null || (value != null && value.compareTo(maximum) <= 0));
+    }
+
     private Comparator<RealEstatePropertyResponse> buildPropertyComparator(String field) {
         switch (field) {
             case "name":

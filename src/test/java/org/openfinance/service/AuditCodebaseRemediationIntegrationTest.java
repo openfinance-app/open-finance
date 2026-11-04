@@ -32,7 +32,8 @@ class AuditCodebaseRemediationIntegrationTest extends AuditApiTestSupport {
     void configureAudit() {
         jdbc.update("UPDATE users SET base_currency = 'EUR' WHERE id = ?", owner.id());
         caches.getCacheNames().forEach(name -> caches.getCache(name).clear());
-        for (LocalDate date : List.of(START, LocalDate.now())) {
+        // Seed the snapshot date explicitly: this context shares historical rates with other tests.
+        for (LocalDate date : List.of(START, LocalDate.now().minusMonths(1), LocalDate.now())) {
             ExchangeRate rate =
                     rates.findByBaseCurrencyAndTargetCurrencyAndRateDate("EUR", "USD", date)
                             .orElse(

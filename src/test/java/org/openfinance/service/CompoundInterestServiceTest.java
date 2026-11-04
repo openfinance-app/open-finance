@@ -17,6 +17,31 @@ class CompoundInterestServiceTest {
 
     private CompoundInterestService service;
 
+    @Test
+    @DisplayName("A zero-year projection accrues neither interest nor scheduled contributions")
+    void zeroYearsRetainsOnlyTheOriginalPrincipal() {
+        CompoundInterestRequest input = requestWithContribution("12.345", "7", 12, 0, "50", true);
+        input.setCurrency("KWD");
+        CompoundInterestResult result = new CompoundInterestService().calculate(input);
+        org.assertj.core.api.Assertions.assertThat(result.getFinalBalance())
+                .isEqualByComparingTo("12.345");
+        org.assertj.core.api.Assertions.assertThat(result.getTotalInvested())
+                .isEqualByComparingTo("12.345");
+        org.assertj.core.api.Assertions.assertThat(result.getTotalContributions()).isZero();
+        org.assertj.core.api.Assertions.assertThat(result.getTotalInterest()).isZero();
+        org.assertj.core.api.Assertions.assertThat(result.getYearlyBreakdown())
+                .singleElement()
+                .satisfies(
+                        year -> {
+                            org.assertj.core.api.Assertions.assertThat(year.getYear()).isZero();
+                            org.assertj.core.api.Assertions.assertThat(year.getEndingBalance())
+                                    .isEqualByComparingTo("12.345");
+                            org.assertj.core.api.Assertions.assertThat(
+                                            year.getCumulativePrincipal())
+                                    .isEqualByComparingTo("12.345");
+                        });
+    }
+
     @BeforeEach
     void setUp() {
         service = new CompoundInterestService();

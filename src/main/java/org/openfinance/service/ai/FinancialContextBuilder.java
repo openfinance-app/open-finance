@@ -217,11 +217,11 @@ public class FinancialContextBuilder {
         if (matching.isEmpty() && query.hasUnresolvedSubject()) {
             return clarification(locale, "ai.scope.categoryUnknown");
         }
-        List<Transaction> transactions =
-                transactionRepository.findByUserIdAndDateBetween(
-                        userId, query.start(), query.end());
         String period = query.start() + " / " + query.end();
         try {
+            List<Transaction> transactions =
+                    transactionRepository.findByUserIdAndDateBetween(
+                            userId, query.start(), query.end());
             if (!matching.isEmpty()) {
                 List<Long> transactionIds =
                         transactions.stream()

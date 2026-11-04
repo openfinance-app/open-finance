@@ -268,4 +268,78 @@ class AICategorizationServiceTest {
     private Category category(Long id, String name) {
         return Category.builder().id(id).name(name).isSystem(false).build();
     }
+
+    @Test
+    void asynchronousCategorizationPreservesPreciseImportAmountsAndLedgerMetadata()
+            throws Exception {
+        org.openfinance.entity.ImportSession session =
+                org.openfinance.entity.ImportSession.builder()
+                        .id(31L)
+                        .userId(7L)
+                        .metadata(
+                                "{\"transactions\":[{\"payee\":\"Shop\",\"amount\":-0.123456789012345678}],\"ledgerBalance\":123.123456789012345678,\"fileCurrency\":\"BTC\"}")
+                        .build();
+        when(importSessionRepository.findById(31L)).thenReturn(java.util.Optional.of(session));
+        when(categoryRepository.findByUserId(7L)).thenReturn(List.of(category(1L, "Food")));
+        when(defaultCurrencyProvider.resolveForUser(7L)).thenReturn("EUR");
+        when(aiProvider.sendStructuredPrompt(anyString(), anyString(), any()))
+                .thenReturn(Mono.just("{\"results\":[{\"index\":1,\"category\":\"Food\"}]}"));
+        service.categorizeSessionAsync(31L, 7L);
+        verify(importSessionRepository).save(session);
+        com.fasterxml.jackson.databind.JsonNode saved =
+                new ObjectMapper()
+                        .enable(
+                                com.fasterxml.jackson.databind.DeserializationFeature
+                                        .USE_BIG_DECIMAL_FOR_FLOATS)
+                        .readTree(session.getMetadata());
+        assertThat(saved.path("transactions").get(0).path("category").asText()).isEqualTo("Food");
+        assertThat(new BigDecimal(saved.path("transactions").get(0).path("amount").asText()))
+                .isEqualByComparingTo("-0.123456789012345678");
+        assertThat(saved.path("ledgerBalance").decimalValue())
+                .isEqualByComparingTo("123.123456789012345678");
+        assertThat(saved.path("fileCurrency").asText()).isEqualTo("BTC");
+        assertThat(saved.path("count").asInt()).isEqualTo(1);
+    }
+
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.NullAndEmptySource
+    @org.junit.jupiter.params.provider.ValueSource(
+            strings = {"{}", "{invalid", "{\"transactions\":[]}"})
+    void missingOrMalformedSessionMetadataDoesNotInvokeTheProvider(String metadata) {
+        when(importSessionRepository.findById(31L))
+                .thenReturn(
+                        java.util.Optional.of(
+                                org.openfinance.entity.ImportSession.builder()
+                                        .id(31L)
+                                        .userId(7L)
+                                        .metadata(metadata)
+                                        .build()));
+        service.categorizeSessionAsync(31L, 7L);
+        verifyNoInteractions(categoryRepository, aiProvider);
+        verify(importSessionRepository, never()).save(any());
+    }
+
+    @Test
+    void asyncWorkCannotCategorizeAnotherUsersSession() {
+        when(importSessionRepository.findById(31L))
+                .thenReturn(
+                        java.util.Optional.of(
+                                org.openfinance.entity.ImportSession.builder()
+                                        .id(31L)
+                                        .userId(99L)
+                                        .metadata(
+                                                "{\"transactions\":[{\"payee\":\"Private merchant\",\"amount\":10}]}")
+                                        .build()));
+        service.categorizeSessionAsync(31L, 7L);
+        verifyNoInteractions(categoryRepository, aiProvider);
+        verify(importSessionRepository, never()).save(any());
+    }
+
+    @Test
+    void missingSessionsAndDatabaseFailuresDoNotEscapeTheBackgroundWorker() {
+        service.categorizeSessionAsync(31L, 7L);
+        when(importSessionRepository.findById(31L)).thenThrow(new IllegalStateException("offline"));
+        service.categorizeSessionAsync(31L, 7L);
+        verifyNoInteractions(categoryRepository, aiProvider);
+    }
 }

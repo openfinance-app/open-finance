@@ -181,6 +181,7 @@ export default function RecurringTransactionsPage() {
   const handleFilterChange = (key: keyof RecurringTransactionFilters, value: any) => {
     setFilters(prev => ({
       ...prev,
+      page: 0,
       [key]: value === 'all' ? undefined : value,
     }));
   };

@@ -4,6 +4,26 @@ import { useState } from 'react';
 import { renderWithProviders, mockAuthentication } from '@/test/test-utils';
 import { ImportReview } from '@/components/import/ImportReview';
 import type { ImportTransactionDTO } from '@/types/import';
+import i18n from '@/test/i18n-test';
+import type { ComponentProps } from 'react';
+
+const transactionDefaults: ImportTransactionDTO = {
+  transactionDate: null,
+  payee: '',
+  amount: null,
+  currency: 'EUR',
+  memo: null,
+  category: null,
+  clearedStatus: '',
+  referenceNumber: null,
+  accountName: null,
+  lineNumber: null,
+  splits: [],
+  validationErrors: [],
+  potentialDuplicate: false,
+  sourceFileName: 'statement.qif',
+  rawData: null,
+};
 
 vi.mock('@/hooks/useCategories', () => ({
   useCategories: () => ({
@@ -23,7 +43,20 @@ vi.mock('@/hooks/useCategories', () => ({
   }),
 }));
 vi.mock('@/components/ui/CategorySelect', () => ({
-  CategorySelect: () => <select aria-label="Category" />,
+  CategorySelect: ({
+    value,
+    onValueChange,
+  }: ComponentProps<typeof import('@/components/ui/CategorySelect').CategorySelect>) => (
+    <select
+      aria-label="Category"
+      value={value ?? ''}
+      onChange={event => onValueChange(event.target.value ? Number(event.target.value) : undefined)}
+    >
+      <option value="">Create new</option>
+      <option value="7">Fast Food</option>
+      <option value="8">Shopping</option>
+    </select>
+  ),
   CategoryCombobox: ({ onValueChange }: { onValueChange: (name: string, id?: number) => void }) => (
     <button onClick={() => onValueChange('Courses alimentaires', 308)}>
       Choose existing groceries
@@ -31,12 +64,176 @@ vi.mock('@/components/ui/CategorySelect', () => ({
   ),
 }));
 vi.mock('@/components/ui/PayeeSelector', () => ({
-  PayeeCombobox: () => <input aria-label="Payee" />,
+  PayeeCombobox: ({
+    value,
+    onValueChange,
+  }: {
+    value: string;
+    onValueChange: (value: string) => void;
+  }) => (
+    <input aria-label="Payee" value={value} onChange={event => onValueChange(event.target.value)} />
+  ),
 }));
 
 describe('ImportReview source categories', () => {
   beforeEach(() => {
     mockAuthentication();
+  });
+
+  it('can map a new source category to an existing category or keep it as a new category', () => {
+    function ReviewSession() {
+      const [mappings, setMappings] = useState<Record<string, number>>({});
+      const [names, setNames] = useState<string[]>(['Imported shopping']);
+      const rows = [
+        {
+          ...transactionDefaults,
+          transactionDate: '2026-01-01',
+          amount: '-25.50',
+          currency: 'EUR',
+          payee: 'Vendor',
+          category: 'Imported shopping',
+          validationErrors: [],
+          splits: [],
+        },
+      ] as ImportTransactionDTO[];
+      return (
+        <>
+          <ImportReview
+            transactions={rows}
+            onTransactionsChange={vi.fn()}
+            categoryMappings={mappings}
+            onCategoryMappingsChange={setMappings}
+            newCategoryNames={names}
+            onNewCategoryNamesChange={setNames}
+          />
+          <output aria-label="Mappings">{JSON.stringify(mappings)}</output>
+          <output aria-label="Categories to create">{names.join(',')}</output>
+        </>
+      );
+    }
+    renderWithProviders(<ReviewSession />);
+    fireEvent.click(
+      screen.getByText(i18n.t('import:review.categoryAssignments.title', { count: 1 }))
+    );
+    fireEvent.click(screen.getByTitle(i18n.t('import:review.actions.mapExisting')));
+    fireEvent.click(screen.getByTitle(i18n.t('import:review.actions.keepNew')));
+    expect(screen.getByLabelText('Categories to create')).toHaveTextContent('Imported shopping');
+    fireEvent.click(screen.getByTitle(i18n.t('import:review.actions.mapExisting')));
+    fireEvent.change(screen.getByRole('combobox', { name: 'Category' }), { target: { value: '' } });
+    expect(screen.getByLabelText('Mappings')).toHaveTextContent('{}');
+    fireEvent.click(screen.getByTitle(i18n.t('import:review.actions.mapExisting')));
+    fireEvent.change(screen.getByRole('combobox', { name: 'Category' }), {
+      target: { value: '8' },
+    });
+    expect(JSON.parse(screen.getByLabelText('Mappings').textContent!)).toEqual({
+      'Imported shopping': 8,
+    });
+    expect(screen.getByLabelText('Categories to create')).toBeEmptyDOMElement();
+    fireEvent.change(screen.getByRole('combobox', { name: 'Category' }), { target: { value: '' } });
+    expect(screen.getByLabelText('Mappings')).toHaveTextContent('{}');
+    expect(screen.getByLabelText('Categories to create')).toHaveTextContent('Imported shopping');
+  });
+
+  it('bulk edits only selected filtered rows and preserves exact imported amounts', () => {
+    const original = [
+      {
+        ...transactionDefaults,
+        transactionDate: '2026-10-01',
+        amount: '-0.123456789012345678',
+        currency: 'BTC',
+        payee: 'Keep me',
+        memo: '',
+        category: null,
+        validationErrors: [],
+        splits: [],
+      },
+      {
+        ...transactionDefaults,
+        transactionDate: '2026-10-02',
+        amount: '-2.000000000000000001',
+        currency: 'BTC',
+        payee: 'Duplicate',
+        memo: '',
+        category: null,
+        validationErrors: [],
+        splits: [],
+        potentialDuplicate: true,
+      },
+    ] as ImportTransactionDTO[];
+    const changed = vi.fn();
+    renderWithProviders(
+      <ImportReview
+        transactions={original}
+        onTransactionsChange={changed}
+        categoryMappings={{}}
+        onCategoryMappingsChange={vi.fn()}
+        newCategoryNames={[]}
+        onNewCategoryNamesChange={vi.fn()}
+      />
+    );
+    fireEvent.click(screen.getByRole('button', { name: /Duplicates/i }));
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Select all' }));
+    fireEvent.change(screen.getByRole('textbox', { name: 'Payee' }), {
+      target: { value: '  Reviewed merchant  ' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Choose existing groceries' }));
+    fireEvent.click(screen.getByRole('button', { name: /Apply to 1/i }));
+    expect(changed).toHaveBeenCalledWith([
+      original[0],
+      expect.objectContaining({
+        payee: 'Reviewed merchant',
+        category: 'Courses alimentaires',
+        amount: '-2.000000000000000001',
+      }),
+    ]);
+    expect(original[1].payee).toBe('Duplicate');
+    expect(screen.getByRole('checkbox', { name: 'Select all' })).not.toBeChecked();
+  });
+
+  it('removes selected rows without deleting hidden rows and can clear a selection', () => {
+    const rows = [
+      {
+        ...transactionDefaults,
+        transactionDate: '2026-10-01',
+        amount: '-1',
+        currency: 'EUR',
+        payee: 'Keep',
+        memo: '',
+        category: null,
+        validationErrors: [],
+        splits: [],
+      },
+      {
+        ...transactionDefaults,
+        transactionDate: '2026-10-02',
+        amount: '-2',
+        currency: 'EUR',
+        payee: 'Remove',
+        memo: '',
+        category: null,
+        validationErrors: [],
+        splits: [],
+        potentialDuplicate: true,
+      },
+    ] as ImportTransactionDTO[];
+    const changed = vi.fn();
+    renderWithProviders(
+      <ImportReview
+        transactions={rows}
+        onTransactionsChange={changed}
+        categoryMappings={{}}
+        onCategoryMappingsChange={vi.fn()}
+        newCategoryNames={[]}
+        onNewCategoryNamesChange={vi.fn()}
+      />
+    );
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Select transaction 1' }));
+    fireEvent.click(screen.getByTitle('Clear selection'));
+    expect(screen.getByRole('checkbox', { name: 'Select transaction 1' })).not.toBeChecked();
+    fireEvent.click(screen.getByRole('button', { name: /Duplicates/i }));
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Select all' }));
+    fireEvent.click(screen.getByTitle(i18n.t('review.actions.removeSelected', { ns: 'import' })));
+    expect(changed).toHaveBeenCalledWith([rows[0]]);
   });
 
   it('maps full paths without creating duplicates or guessing between identical leaf names', async () => {
@@ -47,6 +244,7 @@ describe('ImportReview source categories', () => {
         transactions={['Home:Insurance', 'Insurance', 'Vehicles:Insurance'].map(
           (category, i) =>
             ({
+              ...transactionDefaults,
               transactionDate: '2026-10-07',
               amount: i === 0 ? '-20' : '10',
               currency: 'EUR',
@@ -79,6 +277,7 @@ describe('ImportReview source categories', () => {
       <ImportReview
         transactions={[
           {
+            ...transactionDefaults,
             transactionDate: '2026-10-03',
             amount: '-20',
             currency: 'EUR',
@@ -105,6 +304,7 @@ describe('ImportReview source categories', () => {
       <ImportReview
         transactions={[
           {
+            ...transactionDefaults,
             transactionDate: '2026-10-03',
             amount: '-12.34',
             currency: '',
@@ -137,6 +337,7 @@ describe('ImportReview source categories', () => {
       <ImportReview
         transactions={[
           {
+            ...transactionDefaults,
             transactionDate: '2026-10-03',
             amount: '-37.82',
             currency: 'EUR',
@@ -163,6 +364,7 @@ describe('ImportReview source categories', () => {
       <ImportReview
         transactions={[
           {
+            ...transactionDefaults,
             transactionDate: '2026-09-29',
             amount: '-30',
             currency: 'EUR',
@@ -198,6 +400,7 @@ describe('ImportReview source categories', () => {
   it('preserves exact decimal strings when saving a category edit', () => {
     const onTransactionsChange = vi.fn();
     const transaction = {
+      ...transactionDefaults,
       transactionDate: '2026-09-15',
       amount: '-0.123456789012345679',
       currency: 'ETH',
@@ -240,6 +443,7 @@ describe('ImportReview source categories', () => {
       <ImportReview
         transactions={[
           {
+            ...transactionDefaults,
             transactionDate: '2026-08-20',
             amount: -54.8,
             currency: 'EUR',
@@ -265,6 +469,7 @@ describe('ImportReview source categories', () => {
     function ReviewSession() {
       const [transactions, setTransactions] = useState([
         {
+          ...transactionDefaults,
           transactionDate: '2026-08-20',
           amount: -54.8,
           currency: 'EUR',
@@ -311,6 +516,7 @@ describe('ImportReview source categories', () => {
       <ImportReview
         transactions={[
           {
+            ...transactionDefaults,
             transactionDate: '2026-08-20',
             amount: -54.8,
             currency: 'EUR',
@@ -337,6 +543,7 @@ describe('ImportReview source categories', () => {
     category => {
       const onTransactionsChange = vi.fn();
       const transaction = {
+        ...transactionDefaults,
         transactionDate: '2026-09-10',
         amount: -25.5,
         currency: 'EUR',

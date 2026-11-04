@@ -154,13 +154,24 @@ export function generatePDFContent(
 ): string {
   const lang = i18n.language?.startsWith('fr') ? 'fr-FR' : 'en-US';
   const date = new Date().toLocaleDateString(lang);
+  const escapedTitle = title.replace(
+    /[&<>"']/g,
+    char =>
+      ({
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#39;',
+      })[char]!
+  );
 
   let content = `
     <!DOCTYPE html>
     <html>
     <head>
       <meta charset="UTF-8">
-      <title>${title}</title>
+      <title>${escapedTitle}</title>
       <style>
         body { font-family: Arial, sans-serif; margin: 40px; }
         h1 { color: #333; border-bottom: 2px solid #333; padding-bottom: 10px; }
@@ -173,7 +184,7 @@ export function generatePDFContent(
       </style>
     </head>
     <body>
-      <h1>${title}</h1>
+      <h1>${escapedTitle}</h1>
       <p>Date: ${date}</p>
   `;
 

@@ -111,6 +111,8 @@ public class SearchService {
         // Apply limits
         int effectiveLimit =
                 (limit != null && limit > 0 && limit <= MAX_LIMIT) ? limit : DEFAULT_LIMIT;
+        // Look ahead one match so an exactly full page does not imply more results.
+        int fetchLimit = effectiveLimit + 1;
 
         log.debug("Performing global search for user {} with query: {}", userId, query);
 
@@ -125,43 +127,37 @@ public class SearchService {
                                         encKey,
                                         () ->
                                                 searchTransactions(
-                                                        userId, query, effectiveLimit, regex)));
+                                                        userId, query, fetchLimit, regex)));
         CompletableFuture<List<SearchResultDto>> accountsFuture =
                 CompletableFuture.supplyAsync(
                         () ->
                                 withEncryptionKey(
                                         encKey,
-                                        () ->
-                                                searchAccounts(
-                                                        userId, query, effectiveLimit, regex)));
+                                        () -> searchAccounts(userId, query, fetchLimit, regex)));
         CompletableFuture<List<SearchResultDto>> assetsFuture =
                 CompletableFuture.supplyAsync(
                         () ->
                                 withEncryptionKey(
                                         encKey,
-                                        () -> searchAssets(userId, query, effectiveLimit, regex)));
+                                        () -> searchAssets(userId, query, fetchLimit, regex)));
         CompletableFuture<List<SearchResultDto>> realEstateFuture =
                 CompletableFuture.supplyAsync(
                         () ->
                                 withEncryptionKey(
                                         encKey,
-                                        () ->
-                                                searchRealEstate(
-                                                        userId, query, effectiveLimit, regex)));
+                                        () -> searchRealEstate(userId, query, fetchLimit, regex)));
         CompletableFuture<List<SearchResultDto>> liabilitiesFuture =
                 CompletableFuture.supplyAsync(
                         () ->
                                 withEncryptionKey(
                                         encKey,
-                                        () ->
-                                                searchLiabilities(
-                                                        userId, query, effectiveLimit, regex)));
+                                        () -> searchLiabilities(userId, query, fetchLimit, regex)));
         CompletableFuture<List<SearchResultDto>> budgetsFuture =
                 CompletableFuture.supplyAsync(
                         () ->
                                 withEncryptionKey(
                                         encKey,
-                                        () -> searchBudgets(userId, query, effectiveLimit, regex)));
+                                        () -> searchBudgets(userId, query, fetchLimit, regex)));
         CompletableFuture<List<SearchResultDto>> recurringFuture =
                 CompletableFuture.supplyAsync(
                         () ->
@@ -169,15 +165,13 @@ public class SearchService {
                                         encKey,
                                         () ->
                                                 searchRecurringTransactions(
-                                                        userId, query, effectiveLimit, regex)));
+                                                        userId, query, fetchLimit, regex)));
         CompletableFuture<List<SearchResultDto>> categoriesFuture =
                 CompletableFuture.supplyAsync(
                         () ->
                                 withEncryptionKey(
                                         encKey,
-                                        () ->
-                                                searchCategories(
-                                                        userId, query, effectiveLimit, regex)));
+                                        () -> searchCategories(userId, query, fetchLimit, regex)));
 
         // Wait for all to complete
         CompletableFuture.allOf(
@@ -204,6 +198,11 @@ public class SearchService {
             allResults.addAll(categoriesFuture.get());
         } catch (Exception e) {
             log.error("Error gathering search results", e);
+        }
+
+        boolean hasMore = allResults.size() > effectiveLimit;
+        if (hasMore) {
+            allResults = allResults.stream().limit(effectiveLimit).collect(Collectors.toList());
         }
 
         // Group results by type
@@ -233,7 +232,7 @@ public class SearchService {
                 .resultsByType(resultsByType)
                 .countsPerType(countsPerType)
                 .executionTimeMs(executionTime)
-                .hasMore(allResults.size() >= effectiveLimit)
+                .hasMore(hasMore)
                 .limit(effectiveLimit)
                 .build();
     }
@@ -274,6 +273,7 @@ public class SearchService {
                                 && request.getLimit() <= MAX_LIMIT)
                         ? request.getLimit()
                         : DEFAULT_LIMIT;
+        int fetchLimit = effectiveLimit + 1;
 
         log.debug(
                 "Performing advanced search for user {} with query: {} and filters: {}",
@@ -294,61 +294,62 @@ public class SearchService {
         // Search transactions with filters
         if (entityTypesToSearch.contains(SearchResultType.TRANSACTION)) {
             List<SearchResultDto> transactionResults =
-                    searchTransactionsWithFilters(userId, request, effectiveLimit);
+                    searchTransactionsWithFilters(userId, request, fetchLimit);
             allResults.addAll(transactionResults);
         }
 
         // Search accounts with filters
         if (entityTypesToSearch.contains(SearchResultType.ACCOUNT)) {
             List<SearchResultDto> accountResults =
-                    searchAccountsWithFilters(userId, request, effectiveLimit);
+                    searchAccountsWithFilters(userId, request, fetchLimit);
             allResults.addAll(accountResults);
         }
 
         // Search assets with filters
         if (entityTypesToSearch.contains(SearchResultType.ASSET)) {
             List<SearchResultDto> assetResults =
-                    searchAssetsWithFilters(userId, request, effectiveLimit);
+                    searchAssetsWithFilters(userId, request, fetchLimit);
             allResults.addAll(assetResults);
         }
 
         // Search real estate (no additional filters)
         if (entityTypesToSearch.contains(SearchResultType.REAL_ESTATE)) {
             List<SearchResultDto> realEstateResults =
-                    searchRealEstate(userId, request.getQuery(), effectiveLimit, regex);
+                    searchRealEstate(userId, request.getQuery(), fetchLimit, regex);
             allResults.addAll(realEstateResults);
         }
 
         // Search liabilities (no additional filters)
         if (entityTypesToSearch.contains(SearchResultType.LIABILITY)) {
             List<SearchResultDto> liabilityResults =
-                    searchLiabilities(userId, request.getQuery(), effectiveLimit, regex);
+                    searchLiabilities(userId, request.getQuery(), fetchLimit, regex);
             allResults.addAll(liabilityResults);
         }
 
         // Search budgets
         if (entityTypesToSearch.contains(SearchResultType.BUDGET)) {
             List<SearchResultDto> budgetResults =
-                    searchBudgets(userId, request.getQuery(), effectiveLimit, regex);
+                    searchBudgets(userId, request.getQuery(), fetchLimit, regex);
             allResults.addAll(budgetResults);
         }
 
         // Search recurring transactions
         if (entityTypesToSearch.contains(SearchResultType.RECURRING_TRANSACTION)) {
             List<SearchResultDto> recurringResults =
-                    searchRecurringTransactions(userId, request.getQuery(), effectiveLimit, regex);
+                    searchRecurringTransactions(userId, request.getQuery(), fetchLimit, regex);
             allResults.addAll(recurringResults);
         }
 
         // Search categories
         if (entityTypesToSearch.contains(SearchResultType.CATEGORY)) {
             List<SearchResultDto> categoryResults =
-                    searchCategories(userId, request.getQuery(), effectiveLimit, regex);
+                    searchCategories(userId, request.getQuery(), fetchLimit, regex);
             allResults.addAll(categoryResults);
         }
 
         // Limit total results
-        if (allResults.size() > effectiveLimit) {
+        boolean hasMore = allResults.size() > effectiveLimit;
+        if (hasMore) {
             allResults = allResults.stream().limit(effectiveLimit).collect(Collectors.toList());
         }
 
@@ -375,7 +376,7 @@ public class SearchService {
                 .resultsByType(resultsByType)
                 .countsPerType(countsPerType)
                 .executionTimeMs(executionTime)
-                .hasMore(allResults.size() >= effectiveLimit)
+                .hasMore(hasMore)
                 .limit(effectiveLimit)
                 .build();
     }
@@ -401,7 +402,9 @@ public class SearchService {
                                 if (request.getAccountIds() != null
                                         && !request.getAccountIds().isEmpty()) {
                                     return request.getAccountIds().contains(t.getAccountId())
-                                            || request.getAccountIds().contains(t.getToAccountId());
+                                            || (t.getToAccountId() != null
+                                                    && request.getAccountIds()
+                                                            .contains(t.getToAccountId()));
                                 }
                                 return true;
                             })
@@ -620,8 +623,7 @@ public class SearchService {
                                     BigDecimal currentValue =
                                             asset.getCurrentPrice() != null
                                                             && asset.getQuantity() != null
-                                                    ? asset.getCurrentPrice()
-                                                            .multiply(asset.getQuantity())
+                                                    ? asset.getTotalValue()
                                                     : BigDecimal.ZERO;
 
                                     return SearchResultDto.builder()

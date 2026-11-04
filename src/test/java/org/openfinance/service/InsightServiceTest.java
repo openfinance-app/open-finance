@@ -300,6 +300,212 @@ class InsightServiceTest {
                 .build();
     }
 
+    @Test
+    @org.junit.jupiter.api.DisplayName(
+            "Spending alerts compare adjacent periods and ignore transfers and deleted rows")
+    void anomaliesUseOnlyRealExpensesAndDoNotOverlapPeriods() {
+        LocalDate today = LocalDate.now();
+        Category food = Category.builder().id(31L).name("Food").build();
+        when(categoryRepository.findByUserId(1L)).thenReturn(List.of(food));
+        Transaction deleted = tx("9000", "EUR", TransactionType.EXPENSE);
+        deleted.setIsDeleted(true);
+        Transaction transfer = tx("8000", "EUR", TransactionType.EXPENSE);
+        transfer.setTransferId("internal");
+        when(transactionRepository.findByCategoryIdAndDateRange(
+                        31L, today.minusDays(29), today, 1L))
+                .thenReturn(List.of(tx("160", "EUR", TransactionType.EXPENSE), deleted, transfer));
+        when(transactionRepository.findByCategoryIdAndDateRange(
+                        31L, today.minusDays(60), today.minusDays(30), 1L))
+                .thenReturn(List.of(tx("100", "EUR", TransactionType.EXPENSE)));
+        assertThat(service.generateInsights(1L))
+                .filteredOn(i -> i.getType() == InsightType.SPENDING_ANOMALY)
+                .singleElement()
+                .satisfies(
+                        i ->
+                                assertThat(i.getDescription())
+                                        .contains("60", "160", "100")
+                                        .doesNotContain("9000", "8000"));
+    }
+
+    @Test
+    @org.junit.jupiter.api.DisplayName(
+            "Budget warnings use the exact threshold and skip zero budgets")
+    void warnsAtBudgetThresholdAndSkipsZeroBudget() {
+        when(budgetRepository.findActiveByUserIdAndDate(1L, LocalDate.now()))
+                .thenReturn(
+                        List.of(
+                                Budget.builder().id(31L).build(),
+                                Budget.builder().id(32L).build()));
+        when(budgetService.calculateBudgetProgress(31L, 1L))
+                .thenReturn(
+                        BudgetProgressResponse.builder()
+                                .budgeted(new BigDecimal("100"))
+                                .spent(new BigDecimal("80"))
+                                .percentageSpent(new BigDecimal("80"))
+                                .currency("EUR")
+                                .build());
+        when(budgetService.calculateBudgetProgress(32L, 1L))
+                .thenReturn(
+                        BudgetProgressResponse.builder()
+                                .budgeted(BigDecimal.ZERO)
+                                .spent(BigDecimal.ZERO)
+                                .currency("EUR")
+                                .build());
+        assertThat(service.generateInsights(1L))
+                .filteredOn(i -> i.getType() == InsightType.BUDGET_WARNING)
+                .singleElement()
+                .satisfies(
+                        i -> {
+                            assertThat(i.getPriority())
+                                    .isEqualTo(org.openfinance.entity.InsightPriority.MEDIUM);
+                            assertThat(i.getDescription()).contains("80", "20");
+                        });
+    }
+
+    @Test
+    @org.junit.jupiter.api.DisplayName("Cash warnings apply only to low cash balances")
+    void cashWarningsExcludeInvestmentsAndThresholdBalances() {
+        BigDecimal threshold = businessRules.getInsights().getLowBalanceThreshold();
+        when(accountRepository.findByUserIdAndIsActive(1L, true))
+                .thenReturn(
+                        List.of(
+                                org.openfinance.entity.Account.builder()
+                                        .id(1L)
+                                        .name("Overdrawn")
+                                        .type(org.openfinance.entity.AccountType.CHECKING)
+                                        .balance(new BigDecimal("-10"))
+                                        .build(),
+                                org.openfinance.entity.Account.builder()
+                                        .id(2L)
+                                        .name("Savings")
+                                        .type(org.openfinance.entity.AccountType.SAVINGS)
+                                        .balance(BigDecimal.ZERO)
+                                        .build(),
+                                org.openfinance.entity.Account.builder()
+                                        .id(3L)
+                                        .name("Portfolio")
+                                        .type(org.openfinance.entity.AccountType.INVESTMENT)
+                                        .balance(BigDecimal.ZERO)
+                                        .build(),
+                                org.openfinance.entity.Account.builder()
+                                        .id(4L)
+                                        .name("At threshold")
+                                        .type(org.openfinance.entity.AccountType.CHECKING)
+                                        .balance(threshold)
+                                        .build()));
+        assertThat(service.generateInsights(1L))
+                .filteredOn(i -> i.getType() == InsightType.CASH_FLOW_WARNING)
+                .extracting(InsightResponse::getDescription)
+                .hasSize(2)
+                .anySatisfy(d -> assertThat(d).contains("Overdrawn", "-10"))
+                .anySatisfy(d -> assertThat(d).contains("Savings"));
+    }
+
+    @Test
+    @org.junit.jupiter.api.DisplayName(
+            "Recurring expenses normalize every frequency and use annual income fallback")
+    void recurringFrequenciesAndAnnualIncomeRemainComparable() {
+        List<RecurringTransaction> expenses = new java.util.ArrayList<>();
+        RecurringFrequency[] frequencies = {
+            RecurringFrequency.DAILY,
+            RecurringFrequency.WEEKLY,
+            RecurringFrequency.BIWEEKLY,
+            RecurringFrequency.QUARTERLY,
+            RecurringFrequency.YEARLY
+        };
+        String[] amounts = {"10", "10", "10", "120", "1200"};
+        for (int i = 0; i < frequencies.length; i++) {
+            RecurringTransaction expense = recurring((long) i + 1, "EUR");
+            expense.setAmount(new BigDecimal(amounts[i]));
+            expense.setFrequency(frequencies[i]);
+            expenses.add(expense);
+        }
+        when(recurringTransactionRepository.findByUserIdAndIsActive(1L)).thenReturn(expenses);
+        Transaction income = tx("1200", "EUR", TransactionType.INCOME);
+        income.setDate(LocalDate.now().minusMonths(2));
+        Transaction deleted = tx("99900", "EUR", TransactionType.INCOME);
+        deleted.setIsDeleted(true);
+        when(transactionRepository.findByUserIdAndType(1L, TransactionType.INCOME))
+                .thenReturn(List.of(income, deleted));
+        List<InsightResponse> result = service.generateInsights(1L);
+        assertThat(result)
+                .filteredOn(i -> i.getTitle().equals("Recurring Expenses Summary"))
+                .singleElement()
+                .satisfies(
+                        i ->
+                                assertThat(i.getDescription())
+                                        .contains("505 EUR/month", "6060 EUR/year", "505%"));
+        assertThat(result)
+                .filteredOn(
+                        i ->
+                                i.getType() == InsightType.RECURRING_BILLING
+                                        && i.getPriority()
+                                                == org.openfinance.entity.InsightPriority.HIGH)
+                .hasSize(1);
+    }
+
+    @Test
+    @org.junit.jupiter.api.DisplayName(
+            "Sourced competitor prices yield savings computed from the user's monthly cost")
+    void calculatesCompetitorSavingsFromValidatedPrices() {
+        when(recurringTransactionRepository.findByUserIdAndIsActive(1L))
+                .thenReturn(List.of(recurring(1L, "EUR")));
+        when(aiProvider.sendPrompt(startsWith("Review these"), anyString()))
+                .thenReturn(
+                        Mono.just(
+                                "```json\n[{\"originalServiceId\":1,\"competitorName\":\"Alternative\",\"competitorPrice\":72.25,\"period\":\"MONTHLY\""
+                                        + provenance()
+                                        + "]\n```"));
+        InsightService.GenerationResult result = service.generateInsightsDetailed(1L);
+        assertThat(result.unavailableSources()).doesNotContain(InsightType.RECURRING_BILLING);
+        assertThat(result.insights())
+                .filteredOn(i -> i.getDescription().contains("Alternative"))
+                .singleElement()
+                .satisfies(
+                        i ->
+                                assertThat(i.getDescription())
+                                        .contains(
+                                                "27.75",
+                                                "EUR",
+                                                "https://example.test/statistics",
+                                                "Unverified"));
+    }
+
+    @Test
+    void aboveMedianIncomeAndWealthAreComparedInReportingCurrency() {
+        when(transactionRepository.findByUserIdAndType(1L, TransactionType.INCOME))
+                .thenReturn(List.of(tx("5000", "EUR", TransactionType.INCOME)));
+        when(netWorthService.calculateTotalAssets(1L, "EUR")).thenReturn(new BigDecimal("300000"));
+        assertThat(service.generateInsights(1L))
+                .filteredOn(i -> i.getType() == InsightType.REGION_COMPARISON)
+                .hasSize(2)
+                .anySatisfy(i -> assertThat(i.getDescription()).contains("above", "5000"))
+                .anySatisfy(i -> assertThat(i.getDescription()).contains("above", "300000"));
+    }
+
+    @Test
+    void emptyIncomeDoesNotInventATaxBillOrIncomeRatio() {
+        when(transactionRepository.findByUserIdAndType(1L, TransactionType.INCOME))
+                .thenReturn(List.of());
+        assertThat(service.generateInsights(1L))
+                .noneMatch(i -> i.getType() == InsightType.TAX_OBLIGATION);
+    }
+
+    @Test
+    void cleanupDeletesOnlySnapshotsOlderThanSevenDays() {
+        when(insightRepository.deleteByCreatedAtBefore(any())).thenReturn(3L);
+        java.time.LocalDateTime before = java.time.LocalDateTime.now().minusDays(7);
+        assertThat(service.cleanupOldInsights()).isEqualTo(3L);
+        verify(insightRepository)
+                .deleteByCreatedAtBefore(
+                        argThat(
+                                cutoff ->
+                                        !cutoff.isBefore(before)
+                                                && !cutoff.isAfter(
+                                                        java.time.LocalDateTime.now()
+                                                                .minusDays(7))));
+    }
+
     private RecurringTransaction recurring(Long id, String currency) {
         return RecurringTransaction.builder()
                 .id(id)

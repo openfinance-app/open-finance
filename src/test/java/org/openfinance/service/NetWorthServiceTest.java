@@ -88,6 +88,66 @@ class NetWorthServiceTest {
     @InjectMocks private NetWorthService netWorthService;
 
     private Long testUserId;
+
+    @Test
+    @DisplayName("Period changes distinguish missing history from zero wealth")
+    void periodChangesWithoutHistoryDoNotInventPercentageGrowth() {
+        assertThat(netWorthService.calculateChangeForPeriod(1L, 90))
+                .isEqualTo(
+                        new NetWorthService.NetWorthChange(
+                                BigDecimal.ZERO, BigDecimal.ZERO, false));
+        NetWorth latest =
+                NetWorth.builder()
+                        .userId(1L)
+                        .snapshotDate(LocalDate.now())
+                        .currency("EUR")
+                        .netWorth(new BigDecimal("120"))
+                        .totalAssets(new BigDecimal("150"))
+                        .totalLiabilities(new BigDecimal("30"))
+                        .build();
+        when(netWorthRepository.findLatestByUserId(1L)).thenReturn(Optional.of(latest));
+        NetWorthService.NetWorthChange result = netWorthService.calculateChangeForPeriod(1L, 90);
+        assertThat(result.amount()).isEqualByComparingTo("120");
+        assertThat(result.percentage()).isNull();
+        assertThat(result.hasComparison()).isFalse();
+    }
+
+    @Test
+    @DisplayName("Period changes convert historical snapshots without rewriting their currency")
+    void periodChangesCompareSnapshotsInTheCurrentReportingCurrency() {
+        LocalDate previousDate = LocalDate.now().minusDays(90);
+        NetWorth latest =
+                NetWorth.builder()
+                        .userId(1L)
+                        .snapshotDate(LocalDate.now())
+                        .currency("EUR")
+                        .netWorth(new BigDecimal("120"))
+                        .totalAssets(new BigDecimal("150"))
+                        .totalLiabilities(new BigDecimal("30"))
+                        .build();
+        NetWorth previous =
+                NetWorth.builder()
+                        .userId(1L)
+                        .snapshotDate(previousDate)
+                        .currency("USD")
+                        .netWorth(new BigDecimal("100"))
+                        .totalAssets(new BigDecimal("200"))
+                        .totalLiabilities(new BigDecimal("100"))
+                        .build();
+        when(netWorthRepository.findLatestByUserId(1L)).thenReturn(Optional.of(latest));
+        when(netWorthRepository.findClosestToDate(1L, previousDate))
+                .thenReturn(Optional.of(previous));
+        when(exchangeRateService.convert(
+                        any(BigDecimal.class), eq("USD"), eq("EUR"), eq(previousDate)))
+                .thenAnswer(i -> ((BigDecimal) i.getArgument(0)).multiply(new BigDecimal("0.8")));
+        NetWorthService.NetWorthChange result = netWorthService.calculateChangeForPeriod(1L, 90);
+        assertThat(result.amount()).isEqualByComparingTo("40");
+        assertThat(result.percentage()).isEqualByComparingTo("50");
+        assertThat(result.hasComparison()).isTrue();
+        assertThat(previous.getCurrency()).isEqualTo("USD");
+        assertThat(previous.getNetWorth()).isEqualByComparingTo("100");
+    }
+
     private LocalDate testDate;
 
     @Test

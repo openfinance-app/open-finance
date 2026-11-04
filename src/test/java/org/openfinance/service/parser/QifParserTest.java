@@ -1645,4 +1645,98 @@ class QifParserTest {
         assertThat(transactions.get(1).isOpeningBalance()).isFalse();
         assertThat(transactions.get(1).isTransfer()).isTrue();
     }
+
+    @Test
+    @DisplayName(
+            "Implicit record boundaries preserve investment quantities and alternative amounts")
+    void missingTerminatorsDoNotMergeConsecutiveInvestmentTransactions() throws IOException {
+        List<ImportedTransaction> rows =
+                parseQif(
+                        """
+                !Account
+                NBrokerage
+                TInvst
+                ^
+                !Type:Invst
+                D01/02/2026
+                NBuy
+                YACME
+                Q2.5
+                I12.34
+                LInvestments
+                D01/03/2026
+                NDiv
+                U4.56789
+                LDividends
+                C?
+                ZUnknown extension
+                ^
+                """);
+        assertThat(rows).hasSize(2);
+        assertThat(rows.get(0).getTransactionDate()).isEqualTo(LocalDate.of(2026, 1, 2));
+        assertThat(rows.get(0).getAmount().abs()).isEqualByComparingTo("30.85");
+        assertThat(rows.get(1).getAmount().abs()).isEqualByComparingTo("4.56789");
+        assertThat(rows).extracting(ImportedTransaction::getAccountName).containsOnly("Brokerage");
+        assertThat(rows.get(1).getCategory()).isEqualTo("Dividends");
+        assertThat(rows.get(1).getClearedStatus()).isEqualTo("uncleared");
+    }
+
+    @Test
+    @DisplayName("Orphan fields cannot contaminate the next valid bank transaction")
+    void orphanFieldsAreIgnoredUntilARecordStarts() throws IOException {
+        List<ImportedTransaction> rows =
+                parseQif(
+                        """
+                !Type:Bank
+                !VendorExtension:ignored
+                POrphan payee
+                MOrphan memo
+                LOrphan category
+                NOrphan reference
+                Cc
+                SOrphan split
+                EOrphan split memo
+                $123
+                ZUnknown
+                D01-04-2026
+                T-12.50
+                PActual shop
+                C
+                D01/05/2026
+                T20
+                PActual employer
+                ^
+                """);
+        assertThat(rows).hasSize(2);
+        assertThat(rows.getFirst().getTransactionDate()).isEqualTo(LocalDate.of(2026, 1, 4));
+        assertThat(rows.getFirst().getPayee()).isEqualTo("Actual shop");
+        assertThat(rows.getFirst().getAmount()).isEqualByComparingTo("-12.50");
+        assertThat(rows.getFirst().getMemo()).isNull();
+        assertThat(rows.getFirst().getCategory()).isNull();
+        assertThat(rows.getFirst().getSplits()).isEmpty();
+        assertThat(rows.getLast().getAmount()).isEqualByComparingTo("20");
+    }
+
+    @Test
+    void amountFirstInvestmentRecordIsRetainedWithValidationErrorsInsteadOfSilentlyLost()
+            throws IOException {
+        List<ImportedTransaction> rows =
+                parseQif(
+                        """
+                !Account
+                NBrokerage
+                TInvst
+                ^
+                !Type:Invst
+                T-50
+                NBuy
+                YACME
+                $-50
+                ^
+                """);
+        assertThat(rows).hasSize(1);
+        assertThat(rows.getFirst().getAccountName()).isEqualTo("Brokerage");
+        assertThat(rows.getFirst().getAmount()).isEqualByComparingTo("-50");
+        assertThat(rows.getFirst().hasErrors()).isTrue();
+    }
 }

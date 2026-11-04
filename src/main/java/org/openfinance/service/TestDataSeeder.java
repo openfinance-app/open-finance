@@ -10,6 +10,7 @@ import java.util.Random;
 import javax.crypto.SecretKey;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.openfinance.config.EncryptionProperties;
 import org.openfinance.entity.Account;
 import org.openfinance.entity.AccountType;
 import org.openfinance.entity.Asset;
@@ -39,7 +40,8 @@ import org.openfinance.repository.RealEstateRepository;
 import org.openfinance.repository.RecurringTransactionRepository;
 import org.openfinance.repository.TransactionRepository;
 import org.openfinance.repository.UserRepository;
-import org.openfinance.security.EncryptionService;
+import org.openfinance.security.EncryptionContext;
+import org.openfinance.security.EncryptionKeyCache;
 import org.openfinance.security.KeyManagementService;
 import org.openfinance.security.PasswordService;
 import org.springframework.beans.factory.annotation.Value;
@@ -64,7 +66,8 @@ public class TestDataSeeder implements CommandLineRunner {
 
     private final PasswordService passwordService;
     private final KeyManagementService keyManagementService;
-    private final EncryptionService encryptionService;
+    private final EncryptionProperties encryptionProperties;
+    private final EncryptionKeyCache encryptionKeyCache;
     private final CategorySeeder categorySeeder;
     private final InstitutionSeeder institutionSeeder;
     private final RecurringTransactionRepository recurringTransactionRepository;
@@ -76,9 +79,6 @@ public class TestDataSeeder implements CommandLineRunner {
     private static final String TEST_MASTER_PASSWORD = "master123";
     private static final int MONTHS_PER_YEAR = 12;
     private static final int SEED_TRANSACTION_LOOKBACK_DAYS = 365;
-
-    private SecretKey cachedEncryptionKey;
-    private Long cachedUserId;
 
     @Value("${application.test-data-seed.enabled:true}")
     private boolean seedEnabled;
@@ -141,23 +141,28 @@ public class TestDataSeeder implements CommandLineRunner {
                         .build();
         user = userRepository.save(user);
         Long userId = user.getId();
-        cachedUserId = userId;
+        if (encryptionProperties.isEnabled()) {
+            SecretKey encryptionKey =
+                    keyManagementService.deriveKey(TEST_MASTER_PASSWORD.toCharArray(), salt);
+            EncryptionContext.setKey(encryptionKey);
+            encryptionKeyCache.cacheKey(userId, encryptionKey);
+        }
 
-        SecretKey encryptionKey =
-                keyManagementService.deriveKey(TEST_MASTER_PASSWORD.toCharArray(), salt);
-        cachedEncryptionKey = encryptionKey;
+        try {
+            institutionSeeder.seedDefaultInstitutions();
+            categorySeeder.seedDefaultCategories(userId);
 
-        institutionSeeder.seedDefaultInstitutions();
-        categorySeeder.seedDefaultCategories(userId);
-
-        seedAccounts(userId);
-        seedAssets(userId);
-        seedLiabilities(userId);
-        seedRealEstate(userId);
-        seedRecurringTransactions(userId);
-        seedTransactions(userId);
-        seedBudgets(userId);
-        seedPayees(userId);
+            seedAccounts(userId);
+            seedAssets(userId);
+            seedLiabilities(userId);
+            seedRealEstate(userId);
+            seedRecurringTransactions(userId);
+            seedTransactions(userId);
+            seedBudgets(userId);
+            seedPayees(userId);
+        } finally {
+            EncryptionContext.clear();
+        }
 
         log.info("Test data seeding completed for user: {}", TEST_USERNAME);
     }
@@ -656,13 +661,14 @@ public class TestDataSeeder implements CommandLineRunner {
         int base = Math.max(1, seedPayeesCount);
         for (int i = 0; i < base; i++) {
             Category c = categories.get(rnd.nextInt(categories.size()));
-            payees.add(createPayee("Payee " + (i + 1), c));
+            payees.add(createPayee(userId, "Payee " + (i + 1), c));
         }
         payeeRepository.saveAll(payees);
     }
 
-    private Payee createPayee(String name, Category defaultCategory) {
+    private Payee createPayee(Long userId, String name, Category defaultCategory) {
         return Payee.builder()
+                .userId(userId)
                 .name(name)
                 .defaultCategory(defaultCategory)
                 .isSystem(false)

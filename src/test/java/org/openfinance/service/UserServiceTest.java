@@ -70,6 +70,58 @@ class UserServiceTest {
     private User savedUser;
     private UserResponse expectedResponse;
 
+    @Test
+    @DisplayName("Reject unsafe image types and oversized uploads before changing the profile")
+    void invalidProfileImagesCannotOverwriteExistingData() {
+        org.springframework.mock.web.MockMultipartFile svg =
+                new org.springframework.mock.web.MockMultipartFile(
+                        "image",
+                        "avatar.svg",
+                        "image/svg+xml",
+                        "<svg/>".getBytes(java.nio.charset.StandardCharsets.UTF_8));
+        assertThatThrownBy(() -> userService.uploadProfileImage(1L, svg))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Unsupported image type");
+        org.springframework.mock.web.MockMultipartFile large =
+                new org.springframework.mock.web.MockMultipartFile(
+                        "image", "avatar.png", "image/png", new byte[2 * 1024 * 1024 + 1]);
+        assertThatThrownBy(() -> userService.uploadProfileImage(1L, large))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("2 MB");
+        verifyNoInteractions(userRepository);
+    }
+
+    @Test
+    @DisplayName("An unreadable image leaves the old avatar intact")
+    void unreadableProfileImageDoesNotPersistPartialData() throws Exception {
+        savedUser.setProfileImage("previous-avatar");
+        when(userRepository.findById(1L)).thenReturn(Optional.of(savedUser));
+        org.springframework.web.multipart.MultipartFile file =
+                mock(org.springframework.web.multipart.MultipartFile.class);
+        when(file.getContentType()).thenReturn("image/png");
+        when(file.getBytes()).thenThrow(new java.io.IOException("Unreadable upload"));
+        assertThatThrownBy(() -> userService.uploadProfileImage(1L, file))
+                .isInstanceOf(IllegalStateException.class)
+                .hasCauseInstanceOf(java.io.IOException.class);
+        assertThat(savedUser.getProfileImage()).isEqualTo("previous-avatar");
+        verify(userRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("Unknown users cannot upload or remove profile images")
+    void unknownUserImagesAreNotCreatedOrRemoved() {
+        org.springframework.mock.web.MockMultipartFile file =
+                new org.springframework.mock.web.MockMultipartFile(
+                        "image", "avatar.png", "image/png", new byte[] {1});
+        assertThatThrownBy(() -> userService.uploadProfileImage(999L, file))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("User not found");
+        assertThatThrownBy(() -> userService.deleteProfileImage(999L))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("User not found");
+        verify(userRepository, never()).save(any());
+    }
+
     @BeforeEach
     void setUp() {
         lenient().when(encryptionProperties.isEnabled()).thenReturn(true);

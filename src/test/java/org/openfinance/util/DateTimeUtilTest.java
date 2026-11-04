@@ -23,6 +23,46 @@ import org.junit.jupiter.api.Test;
 class DateTimeUtilTest {
 
     @Test
+    void parsesLeapDatesAndRejectsInvalidDatesWithoutSilentlyNormalizingThem() {
+        assertThat(DateTimeUtil.parseDate("2024-02-29")).contains(LocalDate.of(2024, 2, 29));
+        assertThat(DateTimeUtil.parseDate("2023-02-29")).isEmpty();
+        assertThat(DateTimeUtil.parseDateTime("2024-02-29T23:59:59"))
+                .contains(LocalDateTime.of(2024, 2, 29, 23, 59, 59));
+        assertThat(DateTimeUtil.parseDateTime("2024-02-30T23:59:59")).isEmpty();
+        assertThat(DateTimeUtil.parseDate("29/02/2024", "dd/MM/uuuu"))
+                .contains(LocalDate.of(2024, 2, 29));
+        assertThat(DateTimeUtil.parseDate("invalid", "dd/MM/uuuu")).isEmpty();
+        assertThat(DateTimeUtil.formatDate(LocalDate.of(2024, 2, 29))).isEqualTo("2024-02-29");
+        assertThat(DateTimeUtil.formatDateTime(LocalDateTime.of(2024, 2, 29, 23, 59)))
+                .isEqualTo("2024-02-29T23:59:00");
+    }
+
+    @Test
+    void calendarBoundariesHandleLeapMonthsAndInclusiveDateRanges() {
+        LocalDate leap = LocalDate.of(2024, 2, 29);
+        assertThat(DateTimeUtil.startOfMonth(leap)).isEqualTo(LocalDate.of(2024, 2, 1));
+        assertThat(DateTimeUtil.endOfMonth(leap)).isEqualTo(leap);
+        assertThat(DateTimeUtil.startOfDay(leap)).isEqualTo(leap.atStartOfDay());
+        assertThat(DateTimeUtil.endOfDay(leap)).isEqualTo(leap.atTime(java.time.LocalTime.MAX));
+        assertThat(DateTimeUtil.addDays(leap, 1)).isEqualTo(LocalDate.of(2024, 3, 1));
+        assertThat(DateTimeUtil.addMonths(LocalDate.of(2024, 1, 31), 1)).isEqualTo(leap);
+        assertThat(DateTimeUtil.daysBetween(leap, leap.plusDays(2))).isEqualTo(2);
+        assertThat(DateTimeUtil.monthsBetween(leap, leap.plusMonths(2))).isEqualTo(2);
+        assertThat(DateTimeUtil.isBetween(leap, leap, leap)).isTrue();
+        assertThat(DateTimeUtil.isBetween(leap.minusDays(1), leap, leap.plusDays(1))).isFalse();
+        assertThat(DateTimeUtil.isBetween(leap.plusDays(2), leap, leap.plusDays(1))).isFalse();
+    }
+
+    @Test
+    void defaultZoneEpochConversionsPreserveTheInstant() {
+        LocalDateTime local = DateTimeUtil.fromEpochMilli(1709164800000L);
+        assertThat(DateTimeUtil.toEpochMilli(local)).isEqualTo(1709164800000L);
+        ZonedDateTime utc = DateTimeUtil.toUtc(local);
+        assertThat(utc.toInstant().toEpochMilli()).isEqualTo(1709164800000L);
+        assertThat(DateTimeUtil.toLocalZone(utc).toLocalDateTime()).isEqualTo(local);
+    }
+
+    @Test
     @DisplayName("formatDateForDisplay defaults to English month abbreviations")
     void formatDateForDisplayDefaultsToEnglish() {
         assertThat(DateTimeUtil.formatDateForDisplay(LocalDate.of(2024, 1, 30)))

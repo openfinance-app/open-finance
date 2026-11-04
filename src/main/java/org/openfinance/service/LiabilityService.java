@@ -817,7 +817,7 @@ public class LiabilityService {
                     }
                 }
                 if (comparator != null) {
-                    responses.sort(comparator);
+                    responses.sort(comparator.thenComparing(LiabilityResponse::getId));
                 }
             }
 

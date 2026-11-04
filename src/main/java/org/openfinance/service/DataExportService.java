@@ -408,6 +408,7 @@ public class DataExportService {
                             data.put("id", budget.getId());
                             data.put("categoryId", budget.getCategoryId());
                             data.put("amount", budget.getAmount());
+                            data.put("currency", budget.getCurrency());
                             data.put("period", budget.getPeriod().name());
                             data.put(
                                     "startDate",

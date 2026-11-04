@@ -151,7 +151,7 @@ export function useFocusTrap(isActive: boolean, containerRef: React.RefObject<HT
 
     const container = containerRef.current;
     const focusableElements = container.querySelectorAll<HTMLElement>(
-      'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+      'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"]):not([disabled])'
     );
 
     const firstElement = focusableElements[0];

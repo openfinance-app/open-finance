@@ -1,10 +1,34 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { screen } from '@testing-library/react';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { screen, waitFor } from '@testing-library/react';
+import type { ComponentProps } from 'react';
+import i18n from '@/test/i18n-test';
 import userEvent from '@testing-library/user-event';
 import { renderWithProviders, mockAuthentication } from '@/test/test-utils';
 import { usePropertiesSearch } from '@/hooks/useRealEstate';
 
 vi.mock('@/hooks/useDocumentTitle', () => ({ useDocumentTitle: vi.fn() }));
+vi.mock('@/components/real-estate/BuyPropertyWizard', () => ({
+  BuyPropertyWizard: ({
+    plan,
+    onClose,
+    onPurchased,
+  }: ComponentProps<
+    typeof import('@/components/real-estate/BuyPropertyWizard').BuyPropertyWizard
+  >) => (
+    <div>
+      <p>Purchase plan {plan?.name ?? 'new'}</p>
+      <button
+        onClick={() => {
+          onPurchased?.(9);
+          onClose();
+        }}
+      >
+        Finish purchase
+      </button>
+      <button onClick={onClose}>Cancel purchase</button>
+    </div>
+  ),
+}));
 
 let mockData: any = undefined;
 let mockIsLoading = false;
@@ -80,6 +104,7 @@ import RealEstatePage from './RealEstatePage';
 
 describe('RealEstatePage', () => {
   beforeEach(() => {
+    window.history.replaceState({}, '', '/real-estate');
     vi.clearAllMocks();
     mockAuthentication();
     mockData = undefined;
@@ -88,6 +113,79 @@ describe('RealEstatePage', () => {
     mockCreateMutateAsync = vi.fn();
     mockUpdateMutateAsync = vi.fn();
     Element.prototype.scrollIntoView = vi.fn();
+  });
+  afterEach(() => window.history.replaceState({}, '', '/'));
+
+  it.each(['highlight=9', 'asset=4'])(
+    'opens a property from a %s deep link and removes consumed parameters',
+    async query => {
+      mockData = {
+        content: [
+          {
+            id: 9,
+            assetId: 4,
+            name: 'Linked home',
+            propertyType: 'RESIDENTIAL',
+            currentValue: 100000,
+            purchasePrice: 80000,
+            currency: 'EUR',
+            isActive: true,
+          },
+        ],
+        totalPages: 1,
+        totalElements: 1,
+        number: 0,
+      };
+      window.history.replaceState({}, '', `/real-estate?${query}`);
+      renderWithProviders(<RealEstatePage />);
+      expect(await screen.findByText('Detail 9')).toBeInTheDocument();
+      await waitFor(() => expect(window.location.search).toBe(''));
+    }
+  );
+
+  it('opens a planned purchase from a deep link and returns to the purchased property', async () => {
+    mockData = {
+      content: [
+        {
+          id: 9,
+          assetId: 4,
+          name: 'Planned home',
+          acquisitionType: 'PLANNED',
+          propertyType: 'RESIDENTIAL',
+          currentValue: 0,
+          purchasePrice: 80000,
+          currency: 'EUR',
+          isActive: true,
+        },
+      ],
+      totalPages: 1,
+      totalElements: 1,
+      number: 0,
+    };
+    window.history.replaceState({}, '', '/real-estate?highlight=9&purchase=1');
+    renderWithProviders(<RealEstatePage />);
+    expect(await screen.findByText('Purchase plan Planned home')).toBeInTheDocument();
+    expect(screen.queryByText('Detail 9')).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Finish purchase' }));
+    expect(screen.getByText('Detail 9')).toBeInTheDocument();
+    expect(screen.queryByText('Purchase plan Planned home')).not.toBeInTheDocument();
+  });
+
+  it('opens creation from a deep link, changes acquisition choices, and cancels the buy wizard', async () => {
+    window.history.replaceState({}, '', '/real-estate?create=1');
+    const user = userEvent.setup();
+    renderWithProviders(<RealEstatePage />);
+    const tr = (key: string) => i18n.t(`realEstate:createChoice.${key}`);
+    for (const choice of ['gift', 'planned']) {
+      await user.click(screen.getByRole('button', { name: new RegExp(tr(choice)) }));
+      expect(screen.getByRole('button', { name: 'Submit' })).toBeInTheDocument();
+      await user.click(screen.getByRole('button', { name: tr('back') }));
+    }
+    await user.click(screen.getByRole('button', { name: new RegExp(tr('buy')) }));
+    expect(screen.getByText('Purchase plan new')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Cancel purchase' }));
+    expect(screen.queryByText('Purchase plan new')).not.toBeInTheDocument();
+    expect(window.location.search).toBe('');
   });
 
   it('renders the page title', () => {
@@ -193,7 +291,7 @@ describe('RealEstatePage', () => {
     expect(usePropertiesSearch).toHaveBeenCalledWith(
       expect.objectContaining({ isActive: undefined, page: 0 })
     );
-    await user.click(screen.getByRole('button', { name: 'Clear', exact: true }));
+    await user.click(screen.getByRole('button', { name: 'Clear' }));
     expect(screen.getByLabelText('Status')).toHaveValue('active');
   });
 

@@ -18,6 +18,46 @@ class FinancialFreedomServiceTest {
 
     @org.junit.jupiter.params.ParameterizedTest
     @org.junit.jupiter.params.provider.CsvSource({
+        ",100,5,4", "-1,100,5,4", "100,,5,4", "100,-1,5,4", "100,100,,4",
+        "100,100,-101,4", "100,100,101,4", "100,100,5,0", "100,100,5,-1", "0,100,0,4"
+    })
+    @DisplayName(
+            "Invalid calculator requests fail explicitly instead of returning misleading projections")
+    void rejectsIncompleteOrImpossibleFreedomInputs(
+            String savings, String expenses, String rate, String withdrawal) {
+        FreedomCalculatorRequest request =
+                FreedomCalculatorRequest.builder()
+                        .currentSavings(savings == null ? null : new BigDecimal(savings))
+                        .monthlyExpenses(expenses == null ? null : new BigDecimal(expenses))
+                        .expectedAnnualReturn(rate == null ? null : new BigDecimal(rate))
+                        .withdrawalRate(new BigDecimal(withdrawal))
+                        .monthlyContribution(BigDecimal.ZERO)
+                        .build();
+        org.assertj.core.api.Assertions.assertThatThrownBy(
+                        () -> service.calculateTimeToFreedom(request))
+                .isInstanceOf(org.openfinance.exception.CalculationValidationException.class);
+    }
+
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.CsvSource({
+        ",100,5",
+        "-1,100,5",
+        "100,,5",
+        "100,-1,5",
+        "100,100,"
+    })
+    void longevityRejectsMissingInputs(String savings, String expenses, String rate) {
+        org.assertj.core.api.Assertions.assertThatThrownBy(
+                        () ->
+                                service.calculateSavingsLongevity(
+                                        savings == null ? null : new BigDecimal(savings),
+                                        expenses == null ? null : new BigDecimal(expenses),
+                                        rate == null ? null : new BigDecimal(rate)))
+                .isInstanceOf(org.openfinance.exception.CalculationValidationException.class);
+    }
+
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.CsvSource({
         "600000,10,true",
         "300000,4,true",
         "299999,4,false",

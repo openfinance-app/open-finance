@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { screen, waitFor } from '@testing-library/react';
+import { fireEvent, screen, waitFor } from '@testing-library/react';
+import i18n from '@/test/i18n-test';
 import {
   renderWithProviders,
   mockAuthentication,
@@ -85,6 +86,81 @@ describe('PayeeManagementSettings', () => {
     mockPayeeData = [...mockPayees];
     mockIsLoading = false;
     mockError = null;
+    mockCreateMutateAsync.mockReset().mockResolvedValue({});
+    mockUpdateMutateAsync.mockReset().mockResolvedValue({});
+    mockDeleteMutateAsync.mockReset().mockResolvedValue({});
+  });
+
+  it('uploads a logo, removes it, and saves the cleared value with the edited payee', async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<PayeeManagementSettings />);
+    await user.click(screen.getByRole('button', { name: /edit.*amazon/i }));
+    const fileInput = screen.getByLabelText(i18n.t('form.uploadLogo', { ns: 'payees' }));
+    fireEvent.change(fileInput, {
+      target: { files: [new File(['avatar'], 'logo.png', { type: 'image/png' })] },
+    });
+    await screen.findByAltText('Logo preview');
+    await user.click(
+      screen.getByRole('button', { name: i18n.t('form.removeLogo', { ns: 'payees' }) })
+    );
+    expect(screen.queryByAltText('Logo preview')).not.toBeInTheDocument();
+    const name = screen.getByDisplayValue('Amazon');
+    await user.clear(name);
+    await user.type(name, 'Updated merchant');
+    await user.click(screen.getByRole('button', { name: /^update$/i }));
+    await waitFor(() =>
+      expect(mockUpdateMutateAsync).toHaveBeenCalledWith({
+        id: 1,
+        data: { name: 'Updated merchant', logo: '', categoryId: 1 },
+      })
+    );
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  });
+
+  it.each([
+    ['document.txt', 'text/plain', 5, 'logoInvalidType'],
+    ['oversized.png', 'image/png', 500 * 1024 + 1, 'logoTooLarge'],
+  ] as const)('rejects the unusable logo %s', async (name, type, size, errorKey) => {
+    const user = userEvent.setup();
+    renderWithProviders(<PayeeManagementSettings />);
+    await user.click(screen.getByRole('button', { name: /add payee/i }));
+    fireEvent.change(screen.getByLabelText(i18n.t('form.uploadLogo', { ns: 'payees' })), {
+      target: { files: [new File([new Uint8Array(size)], name, { type })] },
+    });
+    expect(screen.getByText(i18n.t(`form.${errorKey}`, { ns: 'payees' }))).toBeInTheDocument();
+    expect(screen.queryByAltText('Logo preview')).not.toBeInTheDocument();
+    expect(mockCreateMutateAsync).not.toHaveBeenCalled();
+  });
+
+  it('reports a file read failure and leaves the form editable', async () => {
+    const user = userEvent.setup();
+    const read = vi.spyOn(FileReader.prototype, 'readAsDataURL').mockImplementation(function (
+      this: FileReader
+    ) {
+      this.dispatchEvent(new ProgressEvent('error'));
+    });
+    renderWithProviders(<PayeeManagementSettings />);
+    await user.click(screen.getByRole('button', { name: /add payee/i }));
+    fireEvent.change(screen.getByLabelText(i18n.t('form.uploadLogo', { ns: 'payees' })), {
+      target: { files: [new File(['x'], 'logo.png', { type: 'image/png' })] },
+    });
+    expect(screen.getByText(i18n.t('form.logoReadError', { ns: 'payees' }))).toBeInTheDocument();
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+    read.mockRestore();
+  });
+
+  it('retains the deletion dialog on failure and shows the server message', async () => {
+    const user = userEvent.setup();
+    const alert = vi.spyOn(window, 'alert').mockImplementation(() => {});
+    const log = vi.spyOn(console, 'error').mockImplementation(() => {});
+    mockDeleteMutateAsync.mockRejectedValue({ response: { data: { message: 'Payee is in use' } } });
+    renderWithProviders(<PayeeManagementSettings />);
+    await user.click(screen.getByRole('button', { name: /delete.*amazon/i }));
+    await user.click(screen.getByRole('button', { name: /^delete$/i }));
+    await waitFor(() => expect(alert).toHaveBeenCalledWith('Payee is in use'));
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+    alert.mockRestore();
+    log.mockRestore();
   });
 
   it('renders add payee button', () => {

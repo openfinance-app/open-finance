@@ -58,6 +58,8 @@ export default defineConfig({
     },
     coverage: {
       provider: 'v8',
+      include: ['src/**/*.{ts,tsx}'],
+      thresholds: { lines: 90 },
       reporter: ['text', 'json', 'html', 'lcov'],
       exclude: [
         'node_modules/',

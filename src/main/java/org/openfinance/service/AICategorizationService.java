@@ -2,6 +2,7 @@ package org.openfinance.service;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.math.BigDecimal;
 import java.time.Duration;
@@ -72,7 +73,7 @@ public class AICategorizationService {
 
         try {
             ImportSession session = importSessionRepository.findById(sessionId).orElse(null);
-            if (session == null) {
+            if (session == null || !java.util.Objects.equals(session.getUserId(), userId)) {
                 log.warn("Session {} not found for AI categorization", sessionId);
                 return;
             }
@@ -97,12 +98,12 @@ public class AICategorizationService {
                                                             .anyMatch(
                                                                     e ->
                                                                             e.startsWith(
-                                                                                    "AI-CATEGORIZED:")));
+                                                                                    "AI_MATCH:")));
 
             if (anyCategorized) {
                 // Re-read session to get fresh state before updating
                 session = importSessionRepository.findById(sessionId).orElse(null);
-                if (session == null) {
+                if (session == null || !java.util.Objects.equals(session.getUserId(), userId)) {
                     return;
                 }
 
@@ -111,9 +112,10 @@ public class AICategorizationService {
                 String fileCurrency = defaultCurrencyProvider.resolveForUser(session.getUserId());
                 try {
                     Map<String, Object> metadataMap =
-                            objectMapper.readValue(
-                                    session.getMetadata(),
-                                    new TypeReference<Map<String, Object>>() {});
+                            objectMapper
+                                    .readerFor(new TypeReference<Map<String, Object>>() {})
+                                    .with(DeserializationFeature.USE_BIG_DECIMAL_FOR_FLOATS)
+                                    .readValue(session.getMetadata());
                     if (metadataMap.containsKey("ledgerBalance")) {
                         ledgerBalance = new BigDecimal(metadataMap.get("ledgerBalance").toString());
                     }
@@ -494,7 +496,10 @@ public class AICategorizationService {
         }
         try {
             Map<String, Object> metadataMap =
-                    objectMapper.readValue(metadata, new TypeReference<Map<String, Object>>() {});
+                    objectMapper
+                            .readerFor(new TypeReference<Map<String, Object>>() {})
+                            .with(DeserializationFeature.USE_BIG_DECIMAL_FOR_FLOATS)
+                            .readValue(metadata);
             if (!metadataMap.containsKey("transactions")) {
                 return new ArrayList<>();
             }

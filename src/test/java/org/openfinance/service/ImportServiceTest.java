@@ -700,6 +700,81 @@ class ImportServiceTest {
     // Tests for confirmImport()
     // ========================================
 
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.CsvSource({
+        "Débit,DEBIT_CARD",
+        "Crédit,CREDIT_CARD",
+        "Virement,BANK_TRANSFER",
+        "Prélèvement,DIRECT_DEBIT",
+        "Chèque,CHEQUE",
+        "Espèces,CASH",
+        "Dépôt,DEPOSIT",
+        "En ligne,ONLINE"
+    })
+    @DisplayName("Imported French payment methods survive posting to the ledger")
+    void importsLocalizedPaymentMethods(
+            String source, org.openfinance.entity.PaymentMethod expected) throws Exception {
+        testSession.setStatus(ImportStatus.PARSED);
+        testSession.setMetadata("{\"transactions\":[]}");
+        ImportedTransaction payment =
+                ImportedTransaction.builder()
+                        .transactionDate(LocalDate.of(2026, 9, 1))
+                        .amount(new BigDecimal("-12.50"))
+                        .currency(testAccount.getCurrency())
+                        .paymentMethod(source)
+                        .build();
+        List<ImportedTransaction> rows = List.of(payment);
+        when(importSessionRepository.findById(1L)).thenReturn(Optional.of(testSession));
+        when(accountRepository.findByIdAndUserId(ACCOUNT_ID, USER_ID))
+                .thenReturn(Optional.of(testAccount));
+        when(objectMapper.readValue(
+                        anyString(), any(com.fasterxml.jackson.core.type.TypeReference.class)))
+                .thenReturn(Map.of("transactions", rows));
+        when(objectMapper.convertValue(
+                        any(), any(com.fasterxml.jackson.core.type.TypeReference.class)))
+                .thenReturn(rows);
+        when(transactionRepository.save(any(Transaction.class))).thenAnswer(i -> i.getArgument(0));
+        when(importSessionRepository.save(any(ImportSession.class))).thenReturn(testSession);
+        importService.confirmImport(1L, USER_ID, ACCOUNT_ID, Map.of(), true);
+        verify(transactionRepository)
+                .save(
+                        argThat(
+                                tx ->
+                                        tx.getPaymentMethod() == expected
+                                                && tx.getAmount().compareTo(new BigDecimal("12.50"))
+                                                        == 0));
+    }
+
+    @Test
+    @DisplayName("Worker failures are recorded once without overwriting completed imports")
+    void failedWorkerRecordsBoundedErrorAndPreservesTerminalState() {
+        testSession.setStatus(ImportStatus.IMPORTING);
+        when(importSessionRepository.findById(1L)).thenReturn(Optional.of(testSession));
+        importService.markImportFailed(1L, "x".repeat(1200));
+        assertThat(testSession.getStatus()).isEqualTo(ImportStatus.FAILED);
+        assertThat(testSession.getErrorMessage()).hasSize(1000);
+        assertThat(testSession.getCompletedAt()).isNotNull();
+        importService.markImportFailed(1L, "later failure");
+        assertThat(testSession.getErrorMessage()).hasSize(1000);
+        verify(importSessionRepository).save(testSession);
+        importService.markImportFailed(999L, "missing session");
+    }
+
+    @Test
+    @DisplayName("Cancellation ends a parsed session and pending-session queries stay user scoped")
+    void cancelsParsedSessionAndListsIncompleteSessionsForItsOwner() {
+        testSession.setStatus(ImportStatus.PARSED);
+        when(importSessionRepository.findById(1L)).thenReturn(Optional.of(testSession));
+        assertThat(importService.cancelImport(1L, USER_ID)).isSameAs(testSession);
+        assertThat(testSession.getStatus()).isEqualTo(ImportStatus.CANCELLED);
+        assertThat(testSession.getCompletedAt()).isNotNull();
+        verify(importSessionRepository).save(testSession);
+        when(importSessionRepository.findIncompleteByUserId(USER_ID))
+                .thenReturn(List.of(testSession));
+        assertThat(importService.getIncompleteSessions(USER_ID)).containsExactly(testSession);
+        verify(importSessionRepository).findIncompleteByUserId(USER_ID);
+    }
+
     @Test
     @DisplayName("Imports preserve crypto deposits, dust and expenses without rounding")
     void shouldPreserveCryptoImportPrecision() throws Exception {
@@ -848,6 +923,80 @@ class ImportServiceTest {
         // Then
         assertThat(result).isNotNull();
         verify(accountService).createAccount(eq(USER_ID), any());
+    }
+
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(booleans = {false, true})
+    @DisplayName("New accounts reconcile the opening balance with the statement ending balance")
+    void derivesOpeningBalanceWithoutCountingInvalidRows(boolean hasOriginalStatementNet)
+            throws Exception {
+        testSession.setStatus(ImportStatus.PARSED);
+        testSession.setAccountId(null);
+        testSession.setSuggestedAccountName(" ");
+        testSession.setFileName(" Holiday savings.ofx");
+        testSession.setMetadata("statement");
+        List<ImportedTransaction> rows =
+                List.of(
+                        ImportedTransaction.builder()
+                                .transactionDate(LocalDate.of(2026, 1, 1))
+                                .amount(new BigDecimal("1000.125"))
+                                .currency("KWD")
+                                .build(),
+                        ImportedTransaction.builder()
+                                .transactionDate(LocalDate.of(2026, 1, 2))
+                                .amount(new BigDecimal("-125.025"))
+                                .currency("KWD")
+                                .build(),
+                        ImportedTransaction.builder()
+                                .transactionDate(LocalDate.of(2026, 1, 3))
+                                .amount(new BigDecimal("-99.999"))
+                                .currency("KWD")
+                                .validationErrors(new ArrayList<>(List.of("Invalid date")))
+                                .build());
+        Map<String, Object> metadata =
+                new HashMap<>(
+                        Map.of(
+                                "transactions",
+                                rows,
+                                "ledgerBalance",
+                                "1000.123",
+                                "fileCurrency",
+                                "KWD"));
+        if (hasOriginalStatementNet) metadata.put("statementNetAmounts", Map.of("", "900.111"));
+        when(userRepository.findById(USER_ID))
+                .thenReturn(
+                        Optional.of(
+                                org.openfinance.entity.User.builder()
+                                        .id(USER_ID)
+                                        .baseCurrency("EUR")
+                                        .build()));
+        when(importSessionRepository.findById(1L)).thenReturn(Optional.of(testSession));
+        when(objectMapper.readValue(
+                        anyString(), any(com.fasterxml.jackson.core.type.TypeReference.class)))
+                .thenReturn(metadata);
+        when(objectMapper.convertValue(
+                        any(), any(com.fasterxml.jackson.core.type.TypeReference.class)))
+                .thenReturn(rows);
+        when(accountService.createAccount(eq(USER_ID), any()))
+                .thenReturn(org.openfinance.dto.AccountResponse.builder().id(99L).build());
+        testAccount.setCurrency("KWD");
+        when(accountRepository.findByIdAndUserId(99L, USER_ID))
+                .thenReturn(Optional.of(testAccount));
+        when(transactionRepository.save(any(Transaction.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+        when(importSessionRepository.save(any())).thenReturn(testSession);
+
+        ImportSession result = importService.confirmImport(1L, USER_ID, null, Map.of(), true);
+
+        org.mockito.ArgumentCaptor<org.openfinance.dto.AccountRequest> account =
+                org.mockito.ArgumentCaptor.forClass(org.openfinance.dto.AccountRequest.class);
+        verify(accountService).createAccount(eq(USER_ID), account.capture());
+        assertThat(account.getValue().getName()).isEqualTo("Holiday savings");
+        assertThat(account.getValue().getCurrency()).isEqualTo("KWD");
+        assertThat(account.getValue().getInitialBalance())
+                .isEqualByComparingTo(hasOriginalStatementNet ? "100.012" : "125.023");
+        assertThat(result.getImportedCount()).isEqualTo(2);
+        verify(transactionRepository, times(2)).save(any(Transaction.class));
     }
 
     @Test

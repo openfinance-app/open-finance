@@ -201,8 +201,12 @@ public class OllamaClient {
                 .bodyValue(request)
                 .retrieve()
                 .bodyToFlux(ChatResponse.class)
-                .map(response -> response.getMessage().getContent())
-                .filter(content -> content != null && !content.isEmpty())
+                .mapNotNull(
+                        response ->
+                                response.getMessage() == null
+                                        ? null
+                                        : response.getMessage().getContent())
+                .filter(content -> !content.isEmpty())
                 .timeout(Duration.ofSeconds(120))
                 .doOnComplete(() -> log.debug("Streaming response completed"))
                 .doOnError(

@@ -266,7 +266,7 @@ public class YahooFinanceProvider implements MarketDataProvider {
             JsonNode result = chart.get(0);
             String currency = result.path("meta").path("currency").asText(null);
             JsonNode timestamps = result.path("timestamp");
-            JsonNode indicators = result.path("indicators").path("quote").get(0);
+            JsonNode indicators = result.path("indicators").path("quote").path(0);
             JsonNode adjClose = result.path("indicators").path("adjclose");
 
             List<HistoricalPrice> prices = new ArrayList<>();
@@ -287,7 +287,7 @@ public class YahooFinanceProvider implements MarketDataProvider {
                 JsonNode adjCloses = adjClose.isEmpty() ? null : adjClose.get(0).path("adjclose");
 
                 // Skip if essential data is missing
-                if (opens.get(i).isNull() || closes.get(i).isNull()) {
+                if (!opens.path(i).isNumber() || !closes.path(i).isNumber()) {
                     continue;
                 }
 
@@ -302,7 +302,10 @@ public class YahooFinanceProvider implements MarketDataProvider {
                                 .close(getBigDecimal(closes.get(i)))
                                 .adjustedClose(
                                         adjCloses != null ? getBigDecimal(adjCloses.get(i)) : null)
-                                .volume(volumes.get(i).isNull() ? null : volumes.get(i).asLong())
+                                .volume(
+                                        volumes.path(i).isNumber()
+                                                ? volumes.path(i).asLong()
+                                                : null)
                                 .build();
 
                 prices.add(price);
@@ -413,9 +416,9 @@ public class YahooFinanceProvider implements MarketDataProvider {
                 .dayHigh(getBigDecimal(meta.path("regularMarketDayHigh")))
                 .dayLow(getBigDecimal(meta.path("regularMarketDayLow")))
                 .volume(
-                        meta.path("regularMarketVolume").isNull()
-                                ? null
-                                : meta.path("regularMarketVolume").asLong())
+                        meta.path("regularMarketVolume").isNumber()
+                                ? meta.path("regularMarketVolume").asLong()
+                                : null)
                 .currency(meta.path("currency").asText("USD"))
                 .exchange(
                         meta.path("fullExchangeName").asText(meta.path("exchangeName").asText("")))

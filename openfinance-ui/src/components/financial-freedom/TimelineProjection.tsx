@@ -29,6 +29,7 @@ export function TimelineProjection({
   const { t } = useTranslation();
   // Calculate progress percentage
   const calculateProgress = (savings: number) => {
+    if (targetAmount <= 0) return 100;
     return Math.min((savings / targetAmount) * 100, 100);
   };
 
@@ -60,8 +61,8 @@ export function TimelineProjection({
         <tbody>
           {projections.map(projection => {
             const progress = calculateProgress(projection.endingBalance);
-            const isFreedomYear = yearsToFreedom && projection.year <= yearsToFreedom;
-            const isBeyondFreedom = yearsToFreedom && projection.year > yearsToFreedom;
+            const isFreedomYear = yearsToFreedom != null && projection.year === yearsToFreedom;
+            const isBeyondFreedom = yearsToFreedom != null && projection.year > yearsToFreedom;
 
             return (
               <tr

@@ -4,6 +4,7 @@ import java.math.BigDecimal;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
@@ -73,7 +74,10 @@ public class PayeeService {
         return payeeRepository.findAllByUser(userId).stream()
                 .sorted(
                         Comparator.comparing(
-                                p -> p.getName() != null ? p.getName().toLowerCase() : ""))
+                                p ->
+                                        p.getName() != null
+                                                ? p.getName().toLowerCase(Locale.ROOT)
+                                                : ""))
                 .map(p -> toResponse(p, null, null))
                 .toList();
     }
@@ -92,7 +96,10 @@ public class PayeeService {
         return payeeRepository.findAllByUser(userId).stream()
                 .sorted(
                         Comparator.comparing(
-                                p -> p.getName() != null ? p.getName().toLowerCase() : ""))
+                                p ->
+                                        p.getName() != null
+                                                ? p.getName().toLowerCase(Locale.ROOT)
+                                                : ""))
                 .map(
                         payee -> {
                             PayeeStatsRecord stats = statsMap.get(payee.getName());
@@ -117,7 +124,10 @@ public class PayeeService {
                 .sorted(
                         Comparator.comparing((Payee p) -> !Boolean.TRUE.equals(p.getIsSystem()))
                                 .thenComparing(
-                                        p -> p.getName() != null ? p.getName().toLowerCase() : ""))
+                                        p ->
+                                                p.getName() != null
+                                                        ? p.getName().toLowerCase(Locale.ROOT)
+                                                        : ""))
                 .map(p -> toResponse(p, null, null))
                 .toList();
     }
@@ -150,7 +160,10 @@ public class PayeeService {
         return payeeRepository.findByIsSystemTrueOrderByNameAsc().stream()
                 .sorted(
                         Comparator.comparing(
-                                p -> p.getName() != null ? p.getName().toLowerCase() : ""))
+                                p ->
+                                        p.getName() != null
+                                                ? p.getName().toLowerCase(Locale.ROOT)
+                                                : ""))
                 .map(p -> toResponse(p, null, null))
                 .toList();
     }
@@ -167,7 +180,10 @@ public class PayeeService {
         return payeeRepository.findByIsSystemFalseAndUserIdOrderByNameAsc(userId).stream()
                 .sorted(
                         Comparator.comparing(
-                                p -> p.getName() != null ? p.getName().toLowerCase() : ""))
+                                p ->
+                                        p.getName() != null
+                                                ? p.getName().toLowerCase(Locale.ROOT)
+                                                : ""))
                 .map(p -> toResponse(p, null, null))
                 .toList();
     }
@@ -184,12 +200,20 @@ public class PayeeService {
         log.debug("Searching payees by name: {} for user: {}", query, userId);
         // Name is encrypted — LIKE queries on ciphertext won't work.
         // Fetch all active payees for user and filter in Java.
-        String lowerQuery = query.toLowerCase();
+        String lowerQuery = query.toLowerCase(Locale.ROOT);
         return payeeRepository.findAllActiveByUserOrderBySystemFirst(userId).stream()
-                .filter(p -> p.getName() != null && p.getName().toLowerCase().contains(lowerQuery))
+                .filter(
+                        p ->
+                                p.getName() != null
+                                        && p.getName()
+                                                .toLowerCase(Locale.ROOT)
+                                                .contains(lowerQuery))
                 .sorted(
                         Comparator.comparing(
-                                p -> p.getName() != null ? p.getName().toLowerCase() : ""))
+                                p ->
+                                        p.getName() != null
+                                                ? p.getName().toLowerCase(Locale.ROOT)
+                                                : ""))
                 .map(p -> toResponse(p, null, null))
                 .toList();
     }
@@ -600,10 +624,8 @@ public class PayeeService {
         // Include default category info if set
         if (payee.getDefaultCategory() != null) {
             builder.categoryId(payee.getDefaultCategory().getId());
-            // For system categories, name is not encrypted
-            if (Boolean.TRUE.equals(payee.getDefaultCategory().getIsSystem())) {
-                builder.categoryName(payee.getDefaultCategory().getName());
-            }
+            // JPA converters have already decrypted custom category names.
+            builder.categoryName(payee.getDefaultCategory().getName());
         }
 
         return builder.build();

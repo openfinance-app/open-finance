@@ -28,11 +28,18 @@ const mockAsset: Asset = {
   userId: 1,
   name: 'Apple Stock',
   symbol: 'AAPL',
-  assetType: 'STOCK',
+  type: 'STOCK',
   quantity: 10,
   purchasePrice: 150.0,
   currentPrice: 175.0,
-  currentValue: 1750.0,
+  totalValue: 1750.0,
+  totalCost: 1500,
+  unrealizedGain: 250,
+  gainPercentage: 16.6667,
+  holdingDays: 1,
+  purchaseDate: '2026-01-01',
+  lastUpdated: '2026-01-01T00:00:00Z',
+  updatedAt: '2026-01-01T00:00:00Z',
   accountId: 2,
   currency: 'USD',
   createdAt: '2026-01-01T00:00:00Z',
@@ -69,7 +76,7 @@ vi.mock('@/hooks/useAssets', () => ({
   useCreateAsset: () => ({ mutate: vi.fn(), mutateAsync: mockCreateFn, isPending: false }),
   useUpdateAsset: () => ({ mutate: vi.fn(), mutateAsync: mockUpdateFn, isPending: false }),
   useDeleteAsset: () => ({ mutate: vi.fn(), mutateAsync: mockDeleteFn, isPending: false }),
-  formatGainLoss: (unrealizedGain: number, gainPercentage: number) => ({
+  formatGainLoss: (unrealizedGain: number, _gainPercentage: number) => ({
     formatted: `${unrealizedGain >= 0 ? '+' : ''}${unrealizedGain.toFixed(2)}`,
     color: unrealizedGain >= 0 ? 'text-green-500' : 'text-red-500',
   }),
@@ -92,9 +99,7 @@ vi.mock('@/components/assets/AssetForm', () => ({
       <button onClick={onCancel}>Cancel</button>
       <button
         data-testid="form-submit"
-        onClick={() =>
-          onSubmit({ name: 'Test', assetType: 'STOCK', quantity: 1, purchasePrice: 100 })
-        }
+        onClick={() => onSubmit({ name: 'Test', type: 'STOCK', quantity: 1, purchasePrice: 100 })}
       >
         Submit
       </button>
@@ -161,6 +166,74 @@ describe('AssetsPage', () => {
     mockPagedData = mockPagedResponse;
     mockIsLoading = false;
     mockError = null;
+    mockCreateFn.mockReset().mockResolvedValue(mockAsset);
+    mockUpdateFn.mockReset().mockResolvedValue(mockAsset);
+    mockDeleteFn.mockReset().mockResolvedValue(undefined);
+  });
+
+  it('creates a financial asset and opens its details after a successful save', async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<AssetsPage />);
+    await user.click(screen.getByRole('button', { name: /add asset/i }));
+    await user.click(
+      screen.getByRole('button', {
+        name: new RegExp(i18n.t('createChoice.investment', { ns: 'assets' })),
+      })
+    );
+    await user.click(screen.getByRole('button', { name: 'Submit' }));
+    await waitFor(() =>
+      expect(mockCreateFn).toHaveBeenCalledWith({
+        name: 'Test',
+        type: 'STOCK',
+        quantity: 1,
+        purchasePrice: 100,
+      })
+    );
+    await screen.findByRole('button', { name: 'Close' });
+    expect(screen.queryByRole('button', { name: 'Submit' })).not.toBeInTheDocument();
+    expect(mockUpdateFn).not.toHaveBeenCalled();
+    await user.click(screen.getByRole('button', { name: 'Close' }));
+    expect(screen.queryByRole('button', { name: 'Close' })).not.toBeInTheDocument();
+  });
+
+  it('updates the selected asset and permits cancellation without a second write', async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<AssetsPage />);
+    await user.click(screen.getByRole('button', { name: 'Edit' }));
+    await user.click(screen.getByRole('button', { name: 'Submit' }));
+    await waitFor(() =>
+      expect(mockUpdateFn).toHaveBeenCalledWith({
+        id: 1,
+        data: { name: 'Test', type: 'STOCK', quantity: 1, purchasePrice: 100 },
+      })
+    );
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+    await user.click(screen.getByRole('button', { name: 'Edit' }));
+    await user.click(screen.getByRole('button', { name: 'Cancel' }));
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(mockUpdateFn).toHaveBeenCalledOnce();
+    expect(mockCreateFn).not.toHaveBeenCalled();
+  });
+
+  it('keeps rejected edits open and displays the server message', async () => {
+    mockUpdateFn.mockRejectedValue({
+      isAxiosError: true,
+      response: { data: { message: 'Cannot change a sold asset' } },
+    });
+    const user = userEvent.setup();
+    renderWithProviders(<AssetsPage />);
+    await user.click(screen.getByRole('button', { name: 'Edit' }));
+    await user.click(screen.getByRole('button', { name: 'Submit' }));
+    expect(await screen.findByText('Cannot change a sold asset')).toBeInTheDocument();
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+  });
+
+  it('deletes the asset selected from its detail view', async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<AssetsPage />);
+    await user.click(screen.getByRole('button', { name: 'View' }));
+    await user.click(screen.getByRole('button', { name: 'Delete' }));
+    expect(mockDeleteFn).toHaveBeenCalledWith(1);
   });
 
   it('requests physical items and their totals using the same server-side group', async () => {
@@ -216,17 +289,15 @@ describe('AssetsPage', () => {
     it('filters by ownership status and preserves it when changing asset groups', async () => {
       const user = userEvent.setup();
       renderWithProviders(<AssetsPage />);
-      expect(
-        screen.queryByRole('combobox', { name: 'Status', exact: true })
-      ).not.toBeInTheDocument();
-      await user.click(screen.getByRole('button', { name: 'Filters', exact: true }));
-      const status = screen.getByRole('combobox', { name: 'Status', exact: true });
+      expect(screen.queryByRole('combobox', { name: 'Status' })).not.toBeInTheDocument();
+      await user.click(screen.getByRole('button', { name: 'Filters' }));
+      const status = screen.getByRole('combobox', { name: 'Status' });
       expect(status).toHaveValue('OWNED');
       expect(useAssetsSearch).toHaveBeenCalledWith(
         expect.objectContaining({ ownershipStatus: 'OWNED', page: 0 })
       );
       await user.selectOptions(status, 'CLOSED');
-      await user.click(screen.getByRole('button', { name: 'Physical assets', exact: true }));
+      await user.click(screen.getByRole('button', { name: 'Physical assets' }));
       expect(useAssetsSearch).toHaveBeenCalledWith(
         expect.objectContaining({ ownershipStatus: 'CLOSED', group: 'PHYSICAL', page: 0 })
       );
@@ -238,22 +309,20 @@ describe('AssetsPage', () => {
       expect(useAssetsSearch).toHaveBeenCalledWith(
         expect.objectContaining({ ownershipStatus: undefined, group: 'PHYSICAL', page: 0 })
       );
-      await user.click(screen.getByRole('button', { name: 'Clear', exact: true }));
+      await user.click(screen.getByRole('button', { name: 'Clear' }));
       expect(status).toHaveValue('OWNED');
       expect(useAssetsSearch).toHaveBeenCalledWith(
         expect.objectContaining({ ownershipStatus: 'OWNED', group: 'PHYSICAL', page: 0 })
       );
-      await user.click(screen.getByRole('button', { name: 'Filters', exact: true }));
-      expect(
-        screen.queryByRole('combobox', { name: 'Status', exact: true })
-      ).not.toBeInTheDocument();
+      await user.click(screen.getByRole('button', { name: 'Filters' }));
+      expect(screen.queryByRole('combobox', { name: 'Status' })).not.toBeInTheDocument();
       window.history.replaceState({}, '', '/assets');
     });
 
     it('keeps one Add Asset entry point, including for an empty list', () => {
       mockPagedData = { ...mockPagedResponse, content: [], totalElements: 0, totalPages: 0 };
       renderWithProviders(<AssetsPage />);
-      expect(screen.getAllByRole('button', { name: 'Add Asset', exact: true })).toHaveLength(1);
+      expect(screen.getAllByRole('button', { name: 'Add Asset' })).toHaveLength(1);
       expect(
         screen.queryByRole('button', { name: 'Buy a physical asset' })
       ).not.toBeInTheDocument();

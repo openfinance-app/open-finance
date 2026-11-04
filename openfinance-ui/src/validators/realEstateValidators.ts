@@ -541,7 +541,7 @@ export function getFieldError(errors: ValidationError[], field: string): string 
  */
 export function getFieldErrors(errors: ValidationError[], field: string): string[] {
   if (field.includes('*')) {
-    const prefix = field.replace('.*', '');
+    const prefix = field.replace('.*', '.');
     return errors.filter(e => e.field.startsWith(prefix)).map(e => e.message);
   }
   return errors.filter(e => e.field === field).map(e => e.message);
@@ -571,7 +571,7 @@ export function formatValidationErrors(errors: ValidationError[]): string {
  * @returns Error message or null
  */
 export function validatePercentage(value: number, fieldName: string): string | null {
-  if (typeof value !== 'number' || isNaN(value)) {
+  if (!Number.isFinite(value)) {
     return `${fieldName} doit être un nombre`;
   }
   if (value < 0) {
@@ -591,7 +591,7 @@ export function validatePercentage(value: number, fieldName: string): string | n
  * @returns Error message or null
  */
 export function validatePositiveAmount(value: number, fieldName: string): string | null {
-  if (typeof value !== 'number' || isNaN(value)) {
+  if (!Number.isFinite(value)) {
     return `${fieldName} doit être un nombre`;
   }
   if (value < 0) {
@@ -625,13 +625,13 @@ export function validateLoanParameters(
   annualRate: number,
   years: number
 ): string | null {
-  if (principal <= 0) {
+  if (!Number.isFinite(principal) || principal <= 0) {
     return 'Le montant emprunté doit être positif';
   }
-  if (annualRate < 0) {
+  if (!Number.isFinite(annualRate) || annualRate < 0) {
     return 'Le taux ne peut pas être négatif';
   }
-  if (years <= 0) {
+  if (!Number.isFinite(years) || years <= 0) {
     return 'La durée doit être positive';
   }
   if (years > 40) {

@@ -43,6 +43,13 @@ export function useThrottle<T extends (...args: unknown[]) => unknown>(
   const lastCall = useRef<number>(0);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
+  useEffect(
+    () => () => {
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    },
+    [callback, delay]
+  );
+
   return useCallback(
     ((...args: unknown[]) => {
       const now = Date.now();
@@ -74,6 +81,7 @@ export function useMemoizedBuyRentInputs(inputs: BuyRentInputs): BuyRentInputs {
     () => inputs,
     [
       // Purchase inputs that affect calculations
+      inputs.currency,
       inputs.purchase.propertyPrice,
       inputs.purchase.renovationAmount,
       inputs.purchase.isNewProperty,
@@ -141,6 +149,11 @@ export function useMemoizedInvestmentInputs(inputs: InvestmentInputs): Investmen
       inputs.expenses.pnoInsurance,
       inputs.expenses.accountingFees,
       inputs.expenses.marginalTaxRate,
+      inputs.currency,
+      inputs.tax?.incomeYear,
+      inputs.tax?.otherHouseholdIncome,
+      inputs.tax?.otherFurnishedReceipts,
+      inputs.tax?.otherUnfurnishedRent,
     ]
   );
 }
@@ -278,40 +291,36 @@ export function useSlowCalculationWarning(threshold: number = 500) {
  * Hook to prefetch calculations in background
  */
 export function usePrefetchCalculations(inputs: BuyRentInputs, calculateFn: () => void) {
-  const [isPrefetched, setIsPrefetched] = useState(false);
-  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const [prefetchedInputs, setPrefetchedInputs] = useState<BuyRentInputs | null>(null);
+  const isPrefetched = prefetchedInputs === inputs;
 
   useEffect(() => {
-    // Clear previous timeout
-    if (timeoutRef.current) {
-      clearTimeout(timeoutRef.current);
-    }
-
-    // Prefetch after user stops typing for 2 seconds
-    timeoutRef.current = setTimeout(() => {
-      if (!isPrefetched) {
-        // Use requestIdleCallback for non-urgent prefetch
-        if ('requestIdleCallback' in window) {
-          (window as any).requestIdleCallback(() => {
-            calculateFn();
-            setIsPrefetched(true);
-          });
-        } else {
-          // Fallback for browsers without requestIdleCallback
-          setTimeout(calculateFn, PREFETCH_FALLBACK_DELAY_MS);
-          setIsPrefetched(true);
-        }
+    if (isPrefetched) return;
+    let idleId: number | undefined;
+    let fallbackId: ReturnType<typeof setTimeout> | undefined;
+    let cancelled = false;
+    const calculate = () => {
+      if (cancelled) return;
+      calculateFn();
+      setPrefetchedInputs(inputs);
+    };
+    const timeoutId = setTimeout(() => {
+      if ('requestIdleCallback' in window) {
+        idleId = window.requestIdleCallback(calculate);
+      } else {
+        fallbackId = setTimeout(calculate, PREFETCH_FALLBACK_DELAY_MS);
       }
     }, PREFETCH_IDLE_DELAY_MS);
 
     return () => {
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
-      }
+      cancelled = true;
+      clearTimeout(timeoutId);
+      clearTimeout(fallbackId);
+      if (idleId !== undefined) window.cancelIdleCallback(idleId);
     };
   }, [inputs, calculateFn, isPrefetched]);
 
-  return { isPrefetched, resetPrefetch: () => setIsPrefetched(false) };
+  return { isPrefetched, resetPrefetch: () => setPrefetchedInputs(null) };
 }
 
 export default {

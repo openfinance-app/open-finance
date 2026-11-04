@@ -426,10 +426,12 @@ public final class EncryptionUtil {
 
         try {
             for (int i = 0; i < len; i += 2) {
-                data[i / 2] =
-                        (byte)
-                                ((Character.digit(hex.charAt(i), 16) << 4)
-                                        + Character.digit(hex.charAt(i + 1), 16));
+                int high = Character.digit(hex.charAt(i), 16);
+                int low = Character.digit(hex.charAt(i + 1), 16);
+                if (high < 0 || low < 0) {
+                    throw new IllegalArgumentException("Invalid hexadecimal digit");
+                }
+                data[i / 2] = (byte) ((high << 4) + low);
             }
         } catch (Exception e) {
             throw new IllegalArgumentException("Invalid hexadecimal string", e);

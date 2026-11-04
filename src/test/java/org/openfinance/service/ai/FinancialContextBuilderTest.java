@@ -539,4 +539,116 @@ class FinancialContextBuilderTest {
                         })
                 .collect(Collectors.toMap(FinancialFact::id, Function.identity()));
     }
+
+    @Test
+    void detailedContextIncludesDatedTransactionsAndOwnedHoldingsInTheirOriginalCurrencies() {
+        Transaction expense = tx("0.123456789", "BTC", TransactionType.EXPENSE);
+        expense.setId(31L);
+        expense.setDescription("Crypto purchase");
+        Transaction income = tx("200", "EUR", TransactionType.INCOME);
+        income.setId(32L);
+        Transaction transfer = tx("40", "EUR", TransactionType.TRANSFER);
+        transfer.setId(33L);
+        when(transactionRepository.findByUserIdAndDateBetween(
+                        1L, LocalDate.now().minusMonths(3), LocalDate.now()))
+                .thenReturn(List.of(expense, income, transfer));
+        Asset asset =
+                Asset.builder()
+                        .id(41L)
+                        .name("Fractional holding")
+                        .currency("USD")
+                        .quantity(new BigDecimal("1.25"))
+                        .currentPrice(new BigDecimal("10.01"))
+                        .acquisitionType(AcquisitionType.PURCHASE)
+                        .build();
+        when(assetRepository.findByUserId(1L)).thenReturn(List.of(asset));
+        org.openfinance.entity.Liability debt = new org.openfinance.entity.Liability();
+        debt.setId(51L);
+        debt.setName("Mortgage");
+        debt.setCurrency("GBP");
+        debt.setCurrentBalance("1234.56789");
+        when(liabilityRepository.findByUserIdOrderByCreatedAtDesc(1L)).thenReturn(List.of(debt));
+        Map<String, FinancialFact> details = facts(builder.buildContext(1L, Locale.ENGLISH));
+        assertThat(details.get("transaction.31").amount()).isEqualTo("0.123456789");
+        assertThat(details.get("transaction.31").currency()).isEqualTo("BTC");
+        assertThat(details.get("transaction.32").label()).isEqualTo("Income");
+        assertThat(details.get("transaction.33").label()).isEqualTo("Transfer");
+        assertThat(details.get("asset.41").amount()).isEqualTo("12.5125");
+        assertThat(details.get("liability.51").amount()).isEqualTo("1234.56789");
+        assertThat(details.get("liability.51").currency()).isEqualTo("GBP");
+    }
+
+    @Test
+    void historicalCashFlowKeepsIncomeExpensesAndNetDistinct() {
+        when(transactionRepository.findByUserIdAndDateBetween(
+                        1L, LocalDate.of(2025, 9, 1), LocalDate.of(2025, 9, 30)))
+                .thenReturn(
+                        List.of(
+                                tx("200", "EUR", TransactionType.INCOME),
+                                tx("70", "USD", TransactionType.EXPENSE)));
+        Map<String, FinancialFact> selected =
+                facts(
+                        builder.forQuestion(
+                                1L,
+                                Locale.ENGLISH,
+                                "What was my cash flow in September 2025?",
+                                ""));
+        assertThat(selected)
+                .containsOnlyKeys("requested.income", "requested.expenses", "requested.surplus");
+        assertThat(selected.get("requested.income").amount()).isEqualTo("200.00");
+        assertThat(selected.get("requested.expenses").amount()).isEqualTo("35.00");
+        assertThat(selected.get("requested.surplus").amount()).isEqualTo("165.00");
+    }
+
+    @Test
+    void unavailableHistoricalDataDoesNotLeakPartialFacts() {
+        when(transactionRepository.findByUserIdAndDateBetween(
+                        1L, LocalDate.of(2025, 9, 1), LocalDate.of(2025, 9, 30)))
+                .thenThrow(new IllegalStateException("Database unavailable"));
+        String context =
+                builder.forQuestion(1L, Locale.ENGLISH, "What did I spend in September 2025?", "");
+        assertThat(context).contains("Requested period data unavailable").doesNotContain("[FACT]");
+    }
+
+    @Test
+    void balanceQuestionsSelectNamedAccountsAndUseTotalsOnlyWhenUnambiguous() {
+        when(accountRepository.findByUserIdAndIsActive(1L, true))
+                .thenReturn(
+                        List.of(
+                                Account.builder()
+                                        .id(1L)
+                                        .name("Travel fund")
+                                        .balance(new BigDecimal("100"))
+                                        .currency("EUR")
+                                        .build(),
+                                Account.builder()
+                                        .id(2L)
+                                        .name("Household")
+                                        .balance(new BigDecimal("500"))
+                                        .currency("EUR")
+                                        .build()));
+        String context = builder.buildMinimalContext(1L);
+        Map<String, FinancialFact> named =
+                facts(
+                        builder.forQuestion(
+                                1L,
+                                Locale.ENGLISH,
+                                "What is the balance in Travel fund?",
+                                context));
+        assertThat(named).containsOnlyKeys("account.1");
+        assertThat(named.get("account.1").amount()).isEqualTo("100.00");
+        assertThat(facts(builder.forQuestion(1L, Locale.ENGLISH, "What is my balance?", context)))
+                .containsOnlyKeys("accounts.total");
+    }
+
+    @Test
+    void failedBudgetProgressIsMarkedUnavailableWithoutLosingOtherFacts() {
+        when(budgetRepository.findActiveByUserIdAndDate(1L, LocalDate.now()))
+                .thenReturn(List.of(Budget.builder().id(99L).build()));
+        when(budgetService.calculateBudgetProgress(99L, 1L))
+                .thenThrow(new IllegalStateException("Missing rate"));
+        String context = builder.buildContext(1L, Locale.ENGLISH);
+        assertThat(context).contains("Budget 99 progress unavailable.");
+        assertThat(facts(context)).containsKey("net_worth").doesNotContainKey("budget.99.spent");
+    }
 }

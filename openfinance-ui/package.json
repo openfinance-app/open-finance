@@ -10,7 +10,7 @@
     "preview": "vite preview",
     "type-check": "tsc -b --pretty false",
     "test": "vitest",
-    "test-coverage": "vitest -- --coverage --run",
+    "test-coverage": "vitest run --coverage",
     "format:check": "prettier --check \"src/**/*.{ts,tsx,css}\"",
     "format:write": "prettier --write \"src/**/*.{ts,tsx,css}\"",
     "prepare": "husky"

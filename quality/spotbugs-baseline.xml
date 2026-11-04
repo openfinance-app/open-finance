@@ -17082,40 +17082,44 @@
       <Message>At TestDataSeeder.java:[line 171]</Message>
     </SourceLine>
   </BugInstance>
-  <BugInstance instanceOccurrenceNum="0" instanceHash="58ea944d45cbeb76e06047c009bfa3f8" cweid="374" rank="18" abbrev="EI2" category="MALICIOUS_CODE" priority="2" type="EI_EXPOSE_REP2" instanceOccurrenceMax="0">
+  <BugInstance instanceOccurrenceNum="0" instanceHash="39488e04890f308469fe14812f67dc65" cweid="374" rank="18" abbrev="EI2" category="MALICIOUS_CODE" priority="2" type="EI_EXPOSE_REP2" instanceOccurrenceMax="0">
+    <ShortMessage>May expose internal representation by incorporating reference to mutable object</ShortMessage>
+    <LongMessage>new org.openfinance.service.TestDataSeeder(UserRepository, CategoryRepository, AccountRepository, AssetRepository, LiabilityRepository, TransactionRepository, BudgetRepository, PayeeRepository, InstitutionRepository, PasswordService, KeyManagementService, EncryptionProperties, EncryptionKeyCache, CategorySeeder, InstitutionSeeder, RecurringTransactionRepository, RealEstateRepository, DefaultCurrencyProvider) may expose internal representation by storing an externally mutable object into TestDataSeeder.encryptionProperties</LongMessage>
     <Class classname="org.openfinance.service.TestDataSeeder" classAnnotationNames="org.springframework.stereotype.Service" primary="true">
-      <SourceLine classname="org.openfinance.service.TestDataSeeder" start="51" end="671" sourcepath="org/openfinance/service/TestDataSeeder.java" sourcefile="TestDataSeeder.java">
-        <Message>At TestDataSeeder.java:[lines 51-671]</Message>
+      <SourceLine classname="org.openfinance.service.TestDataSeeder" start="53" end="677" sourcepath="org/openfinance/service/TestDataSeeder.java" sourcefile="TestDataSeeder.java">
+        <Message>At TestDataSeeder.java:[lines 53-677]</Message>
       </SourceLine>
       <Message>In class org.openfinance.service.TestDataSeeder</Message>
     </Class>
-    <Method isStatic="false" classname="org.openfinance.service.TestDataSeeder" signature="(Lorg/openfinance/repository/UserRepository;Lorg/openfinance/repository/CategoryRepository;Lorg/openfinance/repository/AccountRepository;Lorg/openfinance/repository/AssetRepository;Lorg/openfinance/repository/LiabilityRepository;Lorg/openfinance/repository/TransactionRepository;Lorg/openfinance/repository/BudgetRepository;Lorg/openfinance/repository/PayeeRepository;Lorg/openfinance/repository/InstitutionRepository;Lorg/openfinance/security/PasswordService;Lorg/openfinance/security/KeyManagementService;Lorg/openfinance/security/EncryptionService;Lorg/openfinance/service/CategorySeeder;Lorg/openfinance/service/InstitutionSeeder;Lorg/openfinance/repository/RecurringTransactionRepository;Lorg/openfinance/repository/RealEstateRepository;Lorg/openfinance/service/DefaultCurrencyProvider;)V" name="&lt;init&gt;" classAnnotationNames="org.springframework.stereotype.Service" primary="true">
-      <SourceLine endBytecode="315" classname="org.openfinance.service.TestDataSeeder" start="51" end="51" sourcepath="org/openfinance/service/TestDataSeeder.java" sourcefile="TestDataSeeder.java" startBytecode="0" />
-      <Message>In method new org.openfinance.service.TestDataSeeder(UserRepository, CategoryRepository, AccountRepository, AssetRepository, LiabilityRepository, TransactionRepository, BudgetRepository, PayeeRepository, InstitutionRepository, PasswordService, KeyManagementService, EncryptionService, CategorySeeder, InstitutionSeeder, RecurringTransactionRepository, RealEstateRepository, DefaultCurrencyProvider)</Message>
+    <Method isStatic="false" classname="org.openfinance.service.TestDataSeeder" signature="(Lorg/openfinance/repository/UserRepository;Lorg/openfinance/repository/CategoryRepository;Lorg/openfinance/repository/AccountRepository;Lorg/openfinance/repository/AssetRepository;Lorg/openfinance/repository/LiabilityRepository;Lorg/openfinance/repository/TransactionRepository;Lorg/openfinance/repository/BudgetRepository;Lorg/openfinance/repository/PayeeRepository;Lorg/openfinance/repository/InstitutionRepository;Lorg/openfinance/security/PasswordService;Lorg/openfinance/security/KeyManagementService;Lorg/openfinance/config/EncryptionProperties;Lorg/openfinance/security/EncryptionKeyCache;Lorg/openfinance/service/CategorySeeder;Lorg/openfinance/service/InstitutionSeeder;Lorg/openfinance/repository/RecurringTransactionRepository;Lorg/openfinance/repository/RealEstateRepository;Lorg/openfinance/service/DefaultCurrencyProvider;)V" name="&lt;init&gt;" classAnnotationNames="org.springframework.stereotype.Service" primary="true">
+      <SourceLine endBytecode="331" classname="org.openfinance.service.TestDataSeeder" start="53" end="53" sourcepath="org/openfinance/service/TestDataSeeder.java" sourcefile="TestDataSeeder.java" startBytecode="0" />
+      <Message>In method new org.openfinance.service.TestDataSeeder(UserRepository, CategoryRepository, AccountRepository, AssetRepository, LiabilityRepository, TransactionRepository, BudgetRepository, PayeeRepository, InstitutionRepository, PasswordService, KeyManagementService, EncryptionProperties, EncryptionKeyCache, CategorySeeder, InstitutionSeeder, RecurringTransactionRepository, RealEstateRepository, DefaultCurrencyProvider)</Message>
     </Method>
-    <Field isStatic="false" classname="org.openfinance.service.TestDataSeeder" signature="Lorg/openfinance/security/EncryptionService;" name="encryptionService" classAnnotationNames="org.springframework.stereotype.Service" primary="true">
+    <Field isStatic="false" classname="org.openfinance.service.TestDataSeeder" signature="Lorg/openfinance/config/EncryptionProperties;" name="encryptionProperties" classAnnotationNames="org.springframework.stereotype.Service" primary="true">
       <SourceLine classname="org.openfinance.service.TestDataSeeder" sourcepath="org/openfinance/service/TestDataSeeder.java" sourcefile="TestDataSeeder.java">
         <Message>In TestDataSeeder.java</Message>
       </SourceLine>
-      <Message>Field org.openfinance.service.TestDataSeeder.encryptionService</Message>
+      <Message>Field org.openfinance.service.TestDataSeeder.encryptionProperties</Message>
     </Field>
-    <LocalVariable role="LOCAL_VARIABLE_NAMED" pc="70" name="encryptionService" register="12">
-      <Message>Local variable named encryptionService</Message>
+    <LocalVariable role="LOCAL_VARIABLE_NAMED" pc="70" name="encryptionProperties" register="12">
+      <Message>Local variable named encryptionProperties</Message>
     </LocalVariable>
-    <SourceLine endBytecode="70" classname="org.openfinance.service.TestDataSeeder" start="51" end="51" sourcepath="org/openfinance/service/TestDataSeeder.java" sourcefile="TestDataSeeder.java" startBytecode="70" primary="true">
-      <Message>At TestDataSeeder.java:[line 51]</Message>
+    <SourceLine endBytecode="70" classname="org.openfinance.service.TestDataSeeder" start="53" end="53" sourcepath="org/openfinance/service/TestDataSeeder.java" sourcefile="TestDataSeeder.java" startBytecode="70" primary="true">
+      <Message>At TestDataSeeder.java:[line 53]</Message>
     </SourceLine>
   </BugInstance>
-  <BugInstance instanceOccurrenceNum="0" instanceHash="32f53b3f56d3143a58a3250f6be19b98" cweid="374" rank="18" abbrev="EI2" category="MALICIOUS_CODE" priority="2" type="EI_EXPOSE_REP2" instanceOccurrenceMax="0">
+  <BugInstance instanceOccurrenceNum="0" instanceHash="8c3e001ef765814e2b0c335535f16b50" cweid="374" rank="18" abbrev="EI2" category="MALICIOUS_CODE" priority="2" type="EI_EXPOSE_REP2" instanceOccurrenceMax="0">
+    <ShortMessage>May expose internal representation by incorporating reference to mutable object</ShortMessage>
+    <LongMessage>new org.openfinance.service.TestDataSeeder(UserRepository, CategoryRepository, AccountRepository, AssetRepository, LiabilityRepository, TransactionRepository, BudgetRepository, PayeeRepository, InstitutionRepository, PasswordService, KeyManagementService, EncryptionProperties, EncryptionKeyCache, CategorySeeder, InstitutionSeeder, RecurringTransactionRepository, RealEstateRepository, DefaultCurrencyProvider) may expose internal representation by storing an externally mutable object into TestDataSeeder.keyManagementService</LongMessage>
     <Class classname="org.openfinance.service.TestDataSeeder" classAnnotationNames="org.springframework.stereotype.Service" primary="true">
-      <SourceLine classname="org.openfinance.service.TestDataSeeder" start="51" end="671" sourcepath="org/openfinance/service/TestDataSeeder.java" sourcefile="TestDataSeeder.java">
-        <Message>At TestDataSeeder.java:[lines 51-671]</Message>
+      <SourceLine classname="org.openfinance.service.TestDataSeeder" start="53" end="677" sourcepath="org/openfinance/service/TestDataSeeder.java" sourcefile="TestDataSeeder.java">
+        <Message>At TestDataSeeder.java:[lines 53-677]</Message>
       </SourceLine>
       <Message>In class org.openfinance.service.TestDataSeeder</Message>
     </Class>
-    <Method isStatic="false" classname="org.openfinance.service.TestDataSeeder" signature="(Lorg/openfinance/repository/UserRepository;Lorg/openfinance/repository/CategoryRepository;Lorg/openfinance/repository/AccountRepository;Lorg/openfinance/repository/AssetRepository;Lorg/openfinance/repository/LiabilityRepository;Lorg/openfinance/repository/TransactionRepository;Lorg/openfinance/repository/BudgetRepository;Lorg/openfinance/repository/PayeeRepository;Lorg/openfinance/repository/InstitutionRepository;Lorg/openfinance/security/PasswordService;Lorg/openfinance/security/KeyManagementService;Lorg/openfinance/security/EncryptionService;Lorg/openfinance/service/CategorySeeder;Lorg/openfinance/service/InstitutionSeeder;Lorg/openfinance/repository/RecurringTransactionRepository;Lorg/openfinance/repository/RealEstateRepository;Lorg/openfinance/service/DefaultCurrencyProvider;)V" name="&lt;init&gt;" classAnnotationNames="org.springframework.stereotype.Service" primary="true">
-      <SourceLine endBytecode="315" classname="org.openfinance.service.TestDataSeeder" start="51" end="51" sourcepath="org/openfinance/service/TestDataSeeder.java" sourcefile="TestDataSeeder.java" startBytecode="0" />
-      <Message>In method new org.openfinance.service.TestDataSeeder(UserRepository, CategoryRepository, AccountRepository, AssetRepository, LiabilityRepository, TransactionRepository, BudgetRepository, PayeeRepository, InstitutionRepository, PasswordService, KeyManagementService, EncryptionService, CategorySeeder, InstitutionSeeder, RecurringTransactionRepository, RealEstateRepository, DefaultCurrencyProvider)</Message>
+    <Method isStatic="false" classname="org.openfinance.service.TestDataSeeder" signature="(Lorg/openfinance/repository/UserRepository;Lorg/openfinance/repository/CategoryRepository;Lorg/openfinance/repository/AccountRepository;Lorg/openfinance/repository/AssetRepository;Lorg/openfinance/repository/LiabilityRepository;Lorg/openfinance/repository/TransactionRepository;Lorg/openfinance/repository/BudgetRepository;Lorg/openfinance/repository/PayeeRepository;Lorg/openfinance/repository/InstitutionRepository;Lorg/openfinance/security/PasswordService;Lorg/openfinance/security/KeyManagementService;Lorg/openfinance/config/EncryptionProperties;Lorg/openfinance/security/EncryptionKeyCache;Lorg/openfinance/service/CategorySeeder;Lorg/openfinance/service/InstitutionSeeder;Lorg/openfinance/repository/RecurringTransactionRepository;Lorg/openfinance/repository/RealEstateRepository;Lorg/openfinance/service/DefaultCurrencyProvider;)V" name="&lt;init&gt;" classAnnotationNames="org.springframework.stereotype.Service" primary="true">
+      <SourceLine endBytecode="331" classname="org.openfinance.service.TestDataSeeder" start="53" end="53" sourcepath="org/openfinance/service/TestDataSeeder.java" sourcefile="TestDataSeeder.java" startBytecode="0" />
+      <Message>In method new org.openfinance.service.TestDataSeeder(UserRepository, CategoryRepository, AccountRepository, AssetRepository, LiabilityRepository, TransactionRepository, BudgetRepository, PayeeRepository, InstitutionRepository, PasswordService, KeyManagementService, EncryptionProperties, EncryptionKeyCache, CategorySeeder, InstitutionSeeder, RecurringTransactionRepository, RealEstateRepository, DefaultCurrencyProvider)</Message>
     </Method>
     <Field isStatic="false" classname="org.openfinance.service.TestDataSeeder" signature="Lorg/openfinance/security/KeyManagementService;" name="keyManagementService" classAnnotationNames="org.springframework.stereotype.Service" primary="true">
       <SourceLine classname="org.openfinance.service.TestDataSeeder" sourcepath="org/openfinance/service/TestDataSeeder.java" sourcefile="TestDataSeeder.java">
@@ -17126,20 +17130,22 @@
     <LocalVariable role="LOCAL_VARIABLE_NAMED" pc="64" name="keyManagementService" register="11">
       <Message>Local variable named keyManagementService</Message>
     </LocalVariable>
-    <SourceLine endBytecode="64" classname="org.openfinance.service.TestDataSeeder" start="51" end="51" sourcepath="org/openfinance/service/TestDataSeeder.java" sourcefile="TestDataSeeder.java" startBytecode="64" primary="true">
-      <Message>At TestDataSeeder.java:[line 51]</Message>
+    <SourceLine endBytecode="64" classname="org.openfinance.service.TestDataSeeder" start="53" end="53" sourcepath="org/openfinance/service/TestDataSeeder.java" sourcefile="TestDataSeeder.java" startBytecode="64" primary="true">
+      <Message>At TestDataSeeder.java:[line 53]</Message>
     </SourceLine>
   </BugInstance>
-  <BugInstance instanceOccurrenceNum="0" instanceHash="fbcead986f01527d5512d0571374a4ca" cweid="374" rank="18" abbrev="EI2" category="MALICIOUS_CODE" priority="2" type="EI_EXPOSE_REP2" instanceOccurrenceMax="0">
+  <BugInstance instanceOccurrenceNum="0" instanceHash="759a3666a11c9be93e7a0e6370f63d05" cweid="374" rank="18" abbrev="EI2" category="MALICIOUS_CODE" priority="2" type="EI_EXPOSE_REP2" instanceOccurrenceMax="0">
+    <ShortMessage>May expose internal representation by incorporating reference to mutable object</ShortMessage>
+    <LongMessage>new org.openfinance.service.TestDataSeeder(UserRepository, CategoryRepository, AccountRepository, AssetRepository, LiabilityRepository, TransactionRepository, BudgetRepository, PayeeRepository, InstitutionRepository, PasswordService, KeyManagementService, EncryptionProperties, EncryptionKeyCache, CategorySeeder, InstitutionSeeder, RecurringTransactionRepository, RealEstateRepository, DefaultCurrencyProvider) may expose internal representation by storing an externally mutable object into TestDataSeeder.liabilityRepository</LongMessage>
     <Class classname="org.openfinance.service.TestDataSeeder" classAnnotationNames="org.springframework.stereotype.Service" primary="true">
-      <SourceLine classname="org.openfinance.service.TestDataSeeder" start="51" end="671" sourcepath="org/openfinance/service/TestDataSeeder.java" sourcefile="TestDataSeeder.java">
-        <Message>At TestDataSeeder.java:[lines 51-671]</Message>
+      <SourceLine classname="org.openfinance.service.TestDataSeeder" start="53" end="677" sourcepath="org/openfinance/service/TestDataSeeder.java" sourcefile="TestDataSeeder.java">
+        <Message>At TestDataSeeder.java:[lines 53-677]</Message>
       </SourceLine>
       <Message>In class org.openfinance.service.TestDataSeeder</Message>
     </Class>
-    <Method isStatic="false" classname="org.openfinance.service.TestDataSeeder" signature="(Lorg/openfinance/repository/UserRepository;Lorg/openfinance/repository/CategoryRepository;Lorg/openfinance/repository/AccountRepository;Lorg/openfinance/repository/AssetRepository;Lorg/openfinance/repository/LiabilityRepository;Lorg/openfinance/repository/TransactionRepository;Lorg/openfinance/repository/BudgetRepository;Lorg/openfinance/repository/PayeeRepository;Lorg/openfinance/repository/InstitutionRepository;Lorg/openfinance/security/PasswordService;Lorg/openfinance/security/KeyManagementService;Lorg/openfinance/security/EncryptionService;Lorg/openfinance/service/CategorySeeder;Lorg/openfinance/service/InstitutionSeeder;Lorg/openfinance/repository/RecurringTransactionRepository;Lorg/openfinance/repository/RealEstateRepository;Lorg/openfinance/service/DefaultCurrencyProvider;)V" name="&lt;init&gt;" classAnnotationNames="org.springframework.stereotype.Service" primary="true">
-      <SourceLine endBytecode="315" classname="org.openfinance.service.TestDataSeeder" start="51" end="51" sourcepath="org/openfinance/service/TestDataSeeder.java" sourcefile="TestDataSeeder.java" startBytecode="0" />
-      <Message>In method new org.openfinance.service.TestDataSeeder(UserRepository, CategoryRepository, AccountRepository, AssetRepository, LiabilityRepository, TransactionRepository, BudgetRepository, PayeeRepository, InstitutionRepository, PasswordService, KeyManagementService, EncryptionService, CategorySeeder, InstitutionSeeder, RecurringTransactionRepository, RealEstateRepository, DefaultCurrencyProvider)</Message>
+    <Method isStatic="false" classname="org.openfinance.service.TestDataSeeder" signature="(Lorg/openfinance/repository/UserRepository;Lorg/openfinance/repository/CategoryRepository;Lorg/openfinance/repository/AccountRepository;Lorg/openfinance/repository/AssetRepository;Lorg/openfinance/repository/LiabilityRepository;Lorg/openfinance/repository/TransactionRepository;Lorg/openfinance/repository/BudgetRepository;Lorg/openfinance/repository/PayeeRepository;Lorg/openfinance/repository/InstitutionRepository;Lorg/openfinance/security/PasswordService;Lorg/openfinance/security/KeyManagementService;Lorg/openfinance/config/EncryptionProperties;Lorg/openfinance/security/EncryptionKeyCache;Lorg/openfinance/service/CategorySeeder;Lorg/openfinance/service/InstitutionSeeder;Lorg/openfinance/repository/RecurringTransactionRepository;Lorg/openfinance/repository/RealEstateRepository;Lorg/openfinance/service/DefaultCurrencyProvider;)V" name="&lt;init&gt;" classAnnotationNames="org.springframework.stereotype.Service" primary="true">
+      <SourceLine endBytecode="331" classname="org.openfinance.service.TestDataSeeder" start="53" end="53" sourcepath="org/openfinance/service/TestDataSeeder.java" sourcefile="TestDataSeeder.java" startBytecode="0" />
+      <Message>In method new org.openfinance.service.TestDataSeeder(UserRepository, CategoryRepository, AccountRepository, AssetRepository, LiabilityRepository, TransactionRepository, BudgetRepository, PayeeRepository, InstitutionRepository, PasswordService, KeyManagementService, EncryptionProperties, EncryptionKeyCache, CategorySeeder, InstitutionSeeder, RecurringTransactionRepository, RealEstateRepository, DefaultCurrencyProvider)</Message>
     </Method>
     <Field isStatic="false" classname="org.openfinance.service.TestDataSeeder" signature="Lorg/openfinance/repository/LiabilityRepository;" name="liabilityRepository" classAnnotationNames="org.springframework.stereotype.Service" primary="true">
       <SourceLine classname="org.openfinance.service.TestDataSeeder" sourcepath="org/openfinance/service/TestDataSeeder.java" sourcefile="TestDataSeeder.java">
@@ -17150,20 +17156,22 @@
     <LocalVariable role="LOCAL_VARIABLE_NAMED" pc="28" name="liabilityRepository" register="5">
       <Message>Local variable named liabilityRepository</Message>
     </LocalVariable>
-    <SourceLine endBytecode="28" classname="org.openfinance.service.TestDataSeeder" start="51" end="51" sourcepath="org/openfinance/service/TestDataSeeder.java" sourcefile="TestDataSeeder.java" startBytecode="28" primary="true">
-      <Message>At TestDataSeeder.java:[line 51]</Message>
+    <SourceLine endBytecode="28" classname="org.openfinance.service.TestDataSeeder" start="53" end="53" sourcepath="org/openfinance/service/TestDataSeeder.java" sourcefile="TestDataSeeder.java" startBytecode="28" primary="true">
+      <Message>At TestDataSeeder.java:[line 53]</Message>
     </SourceLine>
   </BugInstance>
-  <BugInstance instanceOccurrenceNum="0" instanceHash="9e77a3ce43fdb462f5900f34aa930fdb" cweid="374" rank="18" abbrev="EI2" category="MALICIOUS_CODE" priority="2" type="EI_EXPOSE_REP2" instanceOccurrenceMax="0">
+  <BugInstance instanceOccurrenceNum="0" instanceHash="cb8a29ae089bde33ce46d1c7c0b10fcc" cweid="374" rank="18" abbrev="EI2" category="MALICIOUS_CODE" priority="2" type="EI_EXPOSE_REP2" instanceOccurrenceMax="0">
+    <ShortMessage>May expose internal representation by incorporating reference to mutable object</ShortMessage>
+    <LongMessage>new org.openfinance.service.TestDataSeeder(UserRepository, CategoryRepository, AccountRepository, AssetRepository, LiabilityRepository, TransactionRepository, BudgetRepository, PayeeRepository, InstitutionRepository, PasswordService, KeyManagementService, EncryptionProperties, EncryptionKeyCache, CategorySeeder, InstitutionSeeder, RecurringTransactionRepository, RealEstateRepository, DefaultCurrencyProvider) may expose internal representation by storing an externally mutable object into TestDataSeeder.realEstateRepository</LongMessage>
     <Class classname="org.openfinance.service.TestDataSeeder" classAnnotationNames="org.springframework.stereotype.Service" primary="true">
-      <SourceLine classname="org.openfinance.service.TestDataSeeder" start="51" end="671" sourcepath="org/openfinance/service/TestDataSeeder.java" sourcefile="TestDataSeeder.java">
-        <Message>At TestDataSeeder.java:[lines 51-671]</Message>
+      <SourceLine classname="org.openfinance.service.TestDataSeeder" start="53" end="677" sourcepath="org/openfinance/service/TestDataSeeder.java" sourcefile="TestDataSeeder.java">
+        <Message>At TestDataSeeder.java:[lines 53-677]</Message>
       </SourceLine>
       <Message>In class org.openfinance.service.TestDataSeeder</Message>
     </Class>
-    <Method isStatic="false" classname="org.openfinance.service.TestDataSeeder" signature="(Lorg/openfinance/repository/UserRepository;Lorg/openfinance/repository/CategoryRepository;Lorg/openfinance/repository/AccountRepository;Lorg/openfinance/repository/AssetRepository;Lorg/openfinance/repository/LiabilityRepository;Lorg/openfinance/repository/TransactionRepository;Lorg/openfinance/repository/BudgetRepository;Lorg/openfinance/repository/PayeeRepository;Lorg/openfinance/repository/InstitutionRepository;Lorg/openfinance/security/PasswordService;Lorg/openfinance/security/KeyManagementService;Lorg/openfinance/security/EncryptionService;Lorg/openfinance/service/CategorySeeder;Lorg/openfinance/service/InstitutionSeeder;Lorg/openfinance/repository/RecurringTransactionRepository;Lorg/openfinance/repository/RealEstateRepository;Lorg/openfinance/service/DefaultCurrencyProvider;)V" name="&lt;init&gt;" classAnnotationNames="org.springframework.stereotype.Service" primary="true">
-      <SourceLine endBytecode="315" classname="org.openfinance.service.TestDataSeeder" start="51" end="51" sourcepath="org/openfinance/service/TestDataSeeder.java" sourcefile="TestDataSeeder.java" startBytecode="0" />
-      <Message>In method new org.openfinance.service.TestDataSeeder(UserRepository, CategoryRepository, AccountRepository, AssetRepository, LiabilityRepository, TransactionRepository, BudgetRepository, PayeeRepository, InstitutionRepository, PasswordService, KeyManagementService, EncryptionService, CategorySeeder, InstitutionSeeder, RecurringTransactionRepository, RealEstateRepository, DefaultCurrencyProvider)</Message>
+    <Method isStatic="false" classname="org.openfinance.service.TestDataSeeder" signature="(Lorg/openfinance/repository/UserRepository;Lorg/openfinance/repository/CategoryRepository;Lorg/openfinance/repository/AccountRepository;Lorg/openfinance/repository/AssetRepository;Lorg/openfinance/repository/LiabilityRepository;Lorg/openfinance/repository/TransactionRepository;Lorg/openfinance/repository/BudgetRepository;Lorg/openfinance/repository/PayeeRepository;Lorg/openfinance/repository/InstitutionRepository;Lorg/openfinance/security/PasswordService;Lorg/openfinance/security/KeyManagementService;Lorg/openfinance/config/EncryptionProperties;Lorg/openfinance/security/EncryptionKeyCache;Lorg/openfinance/service/CategorySeeder;Lorg/openfinance/service/InstitutionSeeder;Lorg/openfinance/repository/RecurringTransactionRepository;Lorg/openfinance/repository/RealEstateRepository;Lorg/openfinance/service/DefaultCurrencyProvider;)V" name="&lt;init&gt;" classAnnotationNames="org.springframework.stereotype.Service" primary="true">
+      <SourceLine endBytecode="331" classname="org.openfinance.service.TestDataSeeder" start="53" end="53" sourcepath="org/openfinance/service/TestDataSeeder.java" sourcefile="TestDataSeeder.java" startBytecode="0" />
+      <Message>In method new org.openfinance.service.TestDataSeeder(UserRepository, CategoryRepository, AccountRepository, AssetRepository, LiabilityRepository, TransactionRepository, BudgetRepository, PayeeRepository, InstitutionRepository, PasswordService, KeyManagementService, EncryptionProperties, EncryptionKeyCache, CategorySeeder, InstitutionSeeder, RecurringTransactionRepository, RealEstateRepository, DefaultCurrencyProvider)</Message>
     </Method>
     <Field isStatic="false" classname="org.openfinance.service.TestDataSeeder" signature="Lorg/openfinance/repository/RealEstateRepository;" name="realEstateRepository" classAnnotationNames="org.springframework.stereotype.Service" primary="true">
       <SourceLine classname="org.openfinance.service.TestDataSeeder" sourcepath="org/openfinance/service/TestDataSeeder.java" sourcefile="TestDataSeeder.java">
@@ -17171,23 +17179,25 @@
       </SourceLine>
       <Message>Field org.openfinance.service.TestDataSeeder.realEstateRepository</Message>
     </Field>
-    <LocalVariable role="LOCAL_VARIABLE_NAMED" pc="94" name="realEstateRepository" register="16">
+    <LocalVariable role="LOCAL_VARIABLE_NAMED" pc="100" name="realEstateRepository" register="17">
       <Message>Local variable named realEstateRepository</Message>
     </LocalVariable>
-    <SourceLine endBytecode="94" classname="org.openfinance.service.TestDataSeeder" start="51" end="51" sourcepath="org/openfinance/service/TestDataSeeder.java" sourcefile="TestDataSeeder.java" startBytecode="94" primary="true">
-      <Message>At TestDataSeeder.java:[line 51]</Message>
+    <SourceLine endBytecode="100" classname="org.openfinance.service.TestDataSeeder" start="53" end="53" sourcepath="org/openfinance/service/TestDataSeeder.java" sourcefile="TestDataSeeder.java" startBytecode="100" primary="true">
+      <Message>At TestDataSeeder.java:[line 53]</Message>
     </SourceLine>
   </BugInstance>
-  <BugInstance instanceOccurrenceNum="0" instanceHash="9d028bf1bdfcc67c265f61283439a512" cweid="374" rank="18" abbrev="EI2" category="MALICIOUS_CODE" priority="2" type="EI_EXPOSE_REP2" instanceOccurrenceMax="0">
+  <BugInstance instanceOccurrenceNum="0" instanceHash="abd08a1116be80642bc5b8d5e3caaf84" cweid="374" rank="18" abbrev="EI2" category="MALICIOUS_CODE" priority="2" type="EI_EXPOSE_REP2" instanceOccurrenceMax="0">
+    <ShortMessage>May expose internal representation by incorporating reference to mutable object</ShortMessage>
+    <LongMessage>new org.openfinance.service.TestDataSeeder(UserRepository, CategoryRepository, AccountRepository, AssetRepository, LiabilityRepository, TransactionRepository, BudgetRepository, PayeeRepository, InstitutionRepository, PasswordService, KeyManagementService, EncryptionProperties, EncryptionKeyCache, CategorySeeder, InstitutionSeeder, RecurringTransactionRepository, RealEstateRepository, DefaultCurrencyProvider) may expose internal representation by storing an externally mutable object into TestDataSeeder.recurringTransactionRepository</LongMessage>
     <Class classname="org.openfinance.service.TestDataSeeder" classAnnotationNames="org.springframework.stereotype.Service" primary="true">
-      <SourceLine classname="org.openfinance.service.TestDataSeeder" start="51" end="671" sourcepath="org/openfinance/service/TestDataSeeder.java" sourcefile="TestDataSeeder.java">
-        <Message>At TestDataSeeder.java:[lines 51-671]</Message>
+      <SourceLine classname="org.openfinance.service.TestDataSeeder" start="53" end="677" sourcepath="org/openfinance/service/TestDataSeeder.java" sourcefile="TestDataSeeder.java">
+        <Message>At TestDataSeeder.java:[lines 53-677]</Message>
       </SourceLine>
       <Message>In class org.openfinance.service.TestDataSeeder</Message>
     </Class>
-    <Method isStatic="false" classname="org.openfinance.service.TestDataSeeder" signature="(Lorg/openfinance/repository/UserRepository;Lorg/openfinance/repository/CategoryRepository;Lorg/openfinance/repository/AccountRepository;Lorg/openfinance/repository/AssetRepository;Lorg/openfinance/repository/LiabilityRepository;Lorg/openfinance/repository/TransactionRepository;Lorg/openfinance/repository/BudgetRepository;Lorg/openfinance/repository/PayeeRepository;Lorg/openfinance/repository/InstitutionRepository;Lorg/openfinance/security/PasswordService;Lorg/openfinance/security/KeyManagementService;Lorg/openfinance/security/EncryptionService;Lorg/openfinance/service/CategorySeeder;Lorg/openfinance/service/InstitutionSeeder;Lorg/openfinance/repository/RecurringTransactionRepository;Lorg/openfinance/repository/RealEstateRepository;Lorg/openfinance/service/DefaultCurrencyProvider;)V" name="&lt;init&gt;" classAnnotationNames="org.springframework.stereotype.Service" primary="true">
-      <SourceLine endBytecode="315" classname="org.openfinance.service.TestDataSeeder" start="51" end="51" sourcepath="org/openfinance/service/TestDataSeeder.java" sourcefile="TestDataSeeder.java" startBytecode="0" />
-      <Message>In method new org.openfinance.service.TestDataSeeder(UserRepository, CategoryRepository, AccountRepository, AssetRepository, LiabilityRepository, TransactionRepository, BudgetRepository, PayeeRepository, InstitutionRepository, PasswordService, KeyManagementService, EncryptionService, CategorySeeder, InstitutionSeeder, RecurringTransactionRepository, RealEstateRepository, DefaultCurrencyProvider)</Message>
+    <Method isStatic="false" classname="org.openfinance.service.TestDataSeeder" signature="(Lorg/openfinance/repository/UserRepository;Lorg/openfinance/repository/CategoryRepository;Lorg/openfinance/repository/AccountRepository;Lorg/openfinance/repository/AssetRepository;Lorg/openfinance/repository/LiabilityRepository;Lorg/openfinance/repository/TransactionRepository;Lorg/openfinance/repository/BudgetRepository;Lorg/openfinance/repository/PayeeRepository;Lorg/openfinance/repository/InstitutionRepository;Lorg/openfinance/security/PasswordService;Lorg/openfinance/security/KeyManagementService;Lorg/openfinance/config/EncryptionProperties;Lorg/openfinance/security/EncryptionKeyCache;Lorg/openfinance/service/CategorySeeder;Lorg/openfinance/service/InstitutionSeeder;Lorg/openfinance/repository/RecurringTransactionRepository;Lorg/openfinance/repository/RealEstateRepository;Lorg/openfinance/service/DefaultCurrencyProvider;)V" name="&lt;init&gt;" classAnnotationNames="org.springframework.stereotype.Service" primary="true">
+      <SourceLine endBytecode="331" classname="org.openfinance.service.TestDataSeeder" start="53" end="53" sourcepath="org/openfinance/service/TestDataSeeder.java" sourcefile="TestDataSeeder.java" startBytecode="0" />
+      <Message>In method new org.openfinance.service.TestDataSeeder(UserRepository, CategoryRepository, AccountRepository, AssetRepository, LiabilityRepository, TransactionRepository, BudgetRepository, PayeeRepository, InstitutionRepository, PasswordService, KeyManagementService, EncryptionProperties, EncryptionKeyCache, CategorySeeder, InstitutionSeeder, RecurringTransactionRepository, RealEstateRepository, DefaultCurrencyProvider)</Message>
     </Method>
     <Field isStatic="false" classname="org.openfinance.service.TestDataSeeder" signature="Lorg/openfinance/repository/RecurringTransactionRepository;" name="recurringTransactionRepository" classAnnotationNames="org.springframework.stereotype.Service" primary="true">
       <SourceLine classname="org.openfinance.service.TestDataSeeder" sourcepath="org/openfinance/service/TestDataSeeder.java" sourcefile="TestDataSeeder.java">
@@ -17195,23 +17205,25 @@
       </SourceLine>
       <Message>Field org.openfinance.service.TestDataSeeder.recurringTransactionRepository</Message>
     </Field>
-    <LocalVariable role="LOCAL_VARIABLE_NAMED" pc="88" name="recurringTransactionRepository" register="15">
+    <LocalVariable role="LOCAL_VARIABLE_NAMED" pc="94" name="recurringTransactionRepository" register="16">
       <Message>Local variable named recurringTransactionRepository</Message>
     </LocalVariable>
-    <SourceLine endBytecode="88" classname="org.openfinance.service.TestDataSeeder" start="51" end="51" sourcepath="org/openfinance/service/TestDataSeeder.java" sourcefile="TestDataSeeder.java" startBytecode="88" primary="true">
-      <Message>At TestDataSeeder.java:[line 51]</Message>
+    <SourceLine endBytecode="94" classname="org.openfinance.service.TestDataSeeder" start="53" end="53" sourcepath="org/openfinance/service/TestDataSeeder.java" sourcefile="TestDataSeeder.java" startBytecode="94" primary="true">
+      <Message>At TestDataSeeder.java:[line 53]</Message>
     </SourceLine>
   </BugInstance>
-  <BugInstance instanceOccurrenceNum="0" instanceHash="9c272f5aab0e593d79c7081633af58ea" cweid="374" rank="18" abbrev="EI2" category="MALICIOUS_CODE" priority="2" type="EI_EXPOSE_REP2" instanceOccurrenceMax="0">
+  <BugInstance instanceOccurrenceNum="0" instanceHash="6ca6f9d63dfc94f9db3cdecf9e6a098" cweid="374" rank="18" abbrev="EI2" category="MALICIOUS_CODE" priority="2" type="EI_EXPOSE_REP2" instanceOccurrenceMax="0">
+    <ShortMessage>May expose internal representation by incorporating reference to mutable object</ShortMessage>
+    <LongMessage>new org.openfinance.service.TestDataSeeder(UserRepository, CategoryRepository, AccountRepository, AssetRepository, LiabilityRepository, TransactionRepository, BudgetRepository, PayeeRepository, InstitutionRepository, PasswordService, KeyManagementService, EncryptionProperties, EncryptionKeyCache, CategorySeeder, InstitutionSeeder, RecurringTransactionRepository, RealEstateRepository, DefaultCurrencyProvider) may expose internal representation by storing an externally mutable object into TestDataSeeder.transactionRepository</LongMessage>
     <Class classname="org.openfinance.service.TestDataSeeder" classAnnotationNames="org.springframework.stereotype.Service" primary="true">
-      <SourceLine classname="org.openfinance.service.TestDataSeeder" start="51" end="671" sourcepath="org/openfinance/service/TestDataSeeder.java" sourcefile="TestDataSeeder.java">
-        <Message>At TestDataSeeder.java:[lines 51-671]</Message>
+      <SourceLine classname="org.openfinance.service.TestDataSeeder" start="53" end="677" sourcepath="org/openfinance/service/TestDataSeeder.java" sourcefile="TestDataSeeder.java">
+        <Message>At TestDataSeeder.java:[lines 53-677]</Message>
       </SourceLine>
       <Message>In class org.openfinance.service.TestDataSeeder</Message>
     </Class>
-    <Method isStatic="false" classname="org.openfinance.service.TestDataSeeder" signature="(Lorg/openfinance/repository/UserRepository;Lorg/openfinance/repository/CategoryRepository;Lorg/openfinance/repository/AccountRepository;Lorg/openfinance/repository/AssetRepository;Lorg/openfinance/repository/LiabilityRepository;Lorg/openfinance/repository/TransactionRepository;Lorg/openfinance/repository/BudgetRepository;Lorg/openfinance/repository/PayeeRepository;Lorg/openfinance/repository/InstitutionRepository;Lorg/openfinance/security/PasswordService;Lorg/openfinance/security/KeyManagementService;Lorg/openfinance/security/EncryptionService;Lorg/openfinance/service/CategorySeeder;Lorg/openfinance/service/InstitutionSeeder;Lorg/openfinance/repository/RecurringTransactionRepository;Lorg/openfinance/repository/RealEstateRepository;Lorg/openfinance/service/DefaultCurrencyProvider;)V" name="&lt;init&gt;" classAnnotationNames="org.springframework.stereotype.Service" primary="true">
-      <SourceLine endBytecode="315" classname="org.openfinance.service.TestDataSeeder" start="51" end="51" sourcepath="org/openfinance/service/TestDataSeeder.java" sourcefile="TestDataSeeder.java" startBytecode="0" />
-      <Message>In method new org.openfinance.service.TestDataSeeder(UserRepository, CategoryRepository, AccountRepository, AssetRepository, LiabilityRepository, TransactionRepository, BudgetRepository, PayeeRepository, InstitutionRepository, PasswordService, KeyManagementService, EncryptionService, CategorySeeder, InstitutionSeeder, RecurringTransactionRepository, RealEstateRepository, DefaultCurrencyProvider)</Message>
+    <Method isStatic="false" classname="org.openfinance.service.TestDataSeeder" signature="(Lorg/openfinance/repository/UserRepository;Lorg/openfinance/repository/CategoryRepository;Lorg/openfinance/repository/AccountRepository;Lorg/openfinance/repository/AssetRepository;Lorg/openfinance/repository/LiabilityRepository;Lorg/openfinance/repository/TransactionRepository;Lorg/openfinance/repository/BudgetRepository;Lorg/openfinance/repository/PayeeRepository;Lorg/openfinance/repository/InstitutionRepository;Lorg/openfinance/security/PasswordService;Lorg/openfinance/security/KeyManagementService;Lorg/openfinance/config/EncryptionProperties;Lorg/openfinance/security/EncryptionKeyCache;Lorg/openfinance/service/CategorySeeder;Lorg/openfinance/service/InstitutionSeeder;Lorg/openfinance/repository/RecurringTransactionRepository;Lorg/openfinance/repository/RealEstateRepository;Lorg/openfinance/service/DefaultCurrencyProvider;)V" name="&lt;init&gt;" classAnnotationNames="org.springframework.stereotype.Service" primary="true">
+      <SourceLine endBytecode="331" classname="org.openfinance.service.TestDataSeeder" start="53" end="53" sourcepath="org/openfinance/service/TestDataSeeder.java" sourcefile="TestDataSeeder.java" startBytecode="0" />
+      <Message>In method new org.openfinance.service.TestDataSeeder(UserRepository, CategoryRepository, AccountRepository, AssetRepository, LiabilityRepository, TransactionRepository, BudgetRepository, PayeeRepository, InstitutionRepository, PasswordService, KeyManagementService, EncryptionProperties, EncryptionKeyCache, CategorySeeder, InstitutionSeeder, RecurringTransactionRepository, RealEstateRepository, DefaultCurrencyProvider)</Message>
     </Method>
     <Field isStatic="false" classname="org.openfinance.service.TestDataSeeder" signature="Lorg/openfinance/repository/TransactionRepository;" name="transactionRepository" classAnnotationNames="org.springframework.stereotype.Service" primary="true">
       <SourceLine classname="org.openfinance.service.TestDataSeeder" sourcepath="org/openfinance/service/TestDataSeeder.java" sourcefile="TestDataSeeder.java">
@@ -17222,8 +17234,8 @@
     <LocalVariable role="LOCAL_VARIABLE_NAMED" pc="34" name="transactionRepository" register="6">
       <Message>Local variable named transactionRepository</Message>
     </LocalVariable>
-    <SourceLine endBytecode="34" classname="org.openfinance.service.TestDataSeeder" start="51" end="51" sourcepath="org/openfinance/service/TestDataSeeder.java" sourcefile="TestDataSeeder.java" startBytecode="34" primary="true">
-      <Message>At TestDataSeeder.java:[line 51]</Message>
+    <SourceLine endBytecode="34" classname="org.openfinance.service.TestDataSeeder" start="53" end="53" sourcepath="org/openfinance/service/TestDataSeeder.java" sourcefile="TestDataSeeder.java" startBytecode="34" primary="true">
+      <Message>At TestDataSeeder.java:[line 53]</Message>
     </SourceLine>
   </BugInstance>
   <BugInstance instanceOccurrenceNum="0" instanceHash="161596558e3c0a1ade8bce4369922f84" rank="20" abbrev="UPM" category="PERFORMANCE" priority="3" type="UPM_UNCALLED_PRIVATE_METHOD" instanceOccurrenceMax="0">

@@ -207,4 +207,49 @@ class DataExportServiceTest {
                     .isEqualTo("Line one, \"quoted\"\nline two");
         }
     }
+
+    @Test
+    void liabilityAndBudgetExportsRetainExactAmountsDatesAndCurrency() throws Exception {
+        org.openfinance.entity.Liability liability = new org.openfinance.entity.Liability();
+        liability.setId(5L);
+        liability.setUserId(1L);
+        liability.setName("Mortgage");
+        liability.setType(org.openfinance.entity.LiabilityType.MORTGAGE);
+        liability.setPrincipal("150000.123456789012345678");
+        liability.setCurrentBalance("120000.25");
+        liability.setInterestRate("2.15");
+        liability.setMinimumPayment("825.99");
+        liability.setCurrency("EUR");
+        liability.setStartDate(java.time.LocalDate.of(2025, 1, 1));
+        liability.setEndDate(java.time.LocalDate.of(2045, 1, 1));
+        when(liabilities.findByUserIdOrderByCreatedAtDesc(1L)).thenReturn(List.of(liability));
+        when(budgets.findByUserId(1L))
+                .thenReturn(
+                        List.of(
+                                org.openfinance.entity.Budget.builder()
+                                        .id(7L)
+                                        .userId(1L)
+                                        .categoryId(9L)
+                                        .amount("123.456789012345678")
+                                        .currency("GBP")
+                                        .period(org.openfinance.entity.BudgetPeriod.MONTHLY)
+                                        .rollover(true)
+                                        .startDate(java.time.LocalDate.of(2026, 1, 1))
+                                        .endDate(java.time.LocalDate.of(2026, 1, 31))
+                                        .build()));
+        byte[] bytes =
+                service.exportUserData(1L, DataExportRequest.builder().format("JSON").build())
+                        .content();
+        com.fasterxml.jackson.databind.JsonNode json =
+                new com.fasterxml.jackson.databind.ObjectMapper().readTree(bytes);
+        assertThat(json.path("liabilities").get(0).path("principal").asText())
+                .isEqualTo("150000.123456789012345678");
+        assertThat(json.path("liabilities").get(0).path("currency").asText()).isEqualTo("EUR");
+        assertThat(json.path("liabilities").get(0).path("endDate").asText())
+                .isEqualTo("2045-01-01");
+        assertThat(json.path("budgets").get(0).path("amount").asText())
+                .isEqualTo("123.456789012345678");
+        assertThat(json.path("budgets").get(0).path("currency").asText()).isEqualTo("GBP");
+        assertThat(json.path("budgets").get(0).path("rollover").asBoolean()).isTrue();
+    }
 }

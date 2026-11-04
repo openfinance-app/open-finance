@@ -1,6 +1,8 @@
 import type { ReactNode } from 'react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { screen } from '@testing-library/react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { fireEvent, screen, waitFor, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import i18n from '@/test/i18n-test';
 import { renderWithProviders, mockAuthentication } from '@/test/test-utils';
 import { AssetDetailModal } from '@/components/assets/AssetDetailModal';
 import type { Asset } from '@/types/asset';
@@ -45,6 +47,7 @@ const bitcoin: Asset = {
 
 describe('Asset price history currencies', () => {
   beforeEach(() => {
+    window.history.replaceState({}, '', '/assets');
     mockAuthentication();
     history.mockReset();
     Element.prototype.scrollIntoView = vi.fn();
@@ -53,6 +56,73 @@ describe('Asset price history currencies', () => {
       isLoading: false,
       isError: false,
     });
+  });
+  afterEach(() => window.history.replaceState({}, '', '/'));
+
+  it('updates the historical request when the selected time period changes', async () => {
+    renderWithProviders(<AssetDetailModal asset={bitcoin} onClose={vi.fn()} />);
+    const end = new Date();
+    for (const [range, months] of [
+      ['1M', 1],
+      ['6M', 6],
+      ['1Y', 12],
+    ] as const) {
+      await userEvent.click(screen.getByRole('button', { name: range }));
+      const start = new Date(end);
+      start.setMonth(start.getMonth() - months);
+      expect(history).toHaveBeenLastCalledWith(
+        'BTC-USD',
+        start.toISOString().split('T')[0],
+        end.toISOString().split('T')[0],
+        'EUR'
+      );
+    }
+  });
+
+  it('edits the selected asset and closes the detail view', async () => {
+    const edit = vi.fn();
+    const close = vi.fn();
+    renderWithProviders(<AssetDetailModal asset={bitcoin} onClose={close} onEdit={edit} />);
+    await userEvent.click(
+      screen.getByRole('button', { name: i18n.t('assets:detail.actions.edit') })
+    );
+    expect(edit).toHaveBeenCalledWith(bitcoin);
+    expect(close).toHaveBeenCalledOnce();
+  });
+
+  it('requires deletion confirmation, retains the dialog after failure, and supports retry', async () => {
+    const remove = vi
+      .fn()
+      .mockRejectedValueOnce(new Error('Still referenced'))
+      .mockResolvedValueOnce(undefined);
+    const close = vi.fn();
+    const user = userEvent.setup();
+    renderWithProviders(<AssetDetailModal asset={bitcoin} onClose={close} onDelete={remove} />);
+    await user.click(screen.getByRole('button', { name: i18n.t('assets:detail.actions.delete') }));
+    expect(remove).not.toHaveBeenCalled();
+    const confirm = screen.getByRole('dialog', {
+      name: i18n.t('assets:detail.deleteConfirm.title'),
+    });
+    await user.click(
+      within(confirm).getByRole('button', { name: i18n.t('assets:detail.deleteConfirm.confirm') })
+    );
+    await waitFor(() => expect(screen.getByRole('alert')).toBeInTheDocument());
+    expect(close).not.toHaveBeenCalled();
+    await user.click(
+      within(confirm).getByRole('button', { name: i18n.t('assets:detail.deleteConfirm.confirm') })
+    );
+    await waitFor(() => expect(close).toHaveBeenCalledOnce());
+    expect(remove.mock.calls).toEqual([[bitcoin.id], [bitcoin.id]]);
+  });
+
+  it('closes on Escape and removes its keyboard listener after unmount', () => {
+    const close = vi.fn();
+    const view = renderWithProviders(<AssetDetailModal asset={bitcoin} onClose={close} />);
+    fireEvent.keyDown(window, { key: 'Escape' });
+    expect(close).toHaveBeenCalledOnce();
+    view.unmount();
+    fireEvent.keyDown(window, { key: 'Escape' });
+    expect(close).toHaveBeenCalledOnce();
   });
 
   it('requests BTC-USD prices in EUR and plots the returned EUR value', () => {

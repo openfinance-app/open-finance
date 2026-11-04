@@ -88,7 +88,7 @@ describe('Asset column labels', () => {
     const row = screen.getByRole('row', { name: /Bitcoin/ });
     expect(screen.queryByText('No holdings')).not.toBeInTheDocument();
     expect(screen.queryByText('Inactive')).not.toBeInTheDocument();
-    expect(within(row).getByRole('cell', { name: '0', exact: true })).toBeInTheDocument();
+    expect(within(row).getByRole('cell', { name: '0' })).toBeInTheDocument();
     expect(within(row).getByText('N/A')).toBeInTheDocument();
     fireEvent.click(row);
     expect(view).toHaveBeenCalledWith(closed);
@@ -104,14 +104,10 @@ describe('Asset column labels', () => {
       .mockResolvedValue(undefined);
     renderWithProviders(<AssetList assets={[bitcoin]} onEdit={vi.fn()} onDelete={remove} />);
     fireEvent.click(screen.getAllByRole('button', { name: /delete asset/i })[0]);
-    fireEvent.click(
-      within(screen.getByRole('dialog')).getByRole('button', { name: 'Delete', exact: true })
-    );
+    fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Delete' }));
     expect(await screen.findByRole('alert')).toHaveTextContent('Reverse linked movements');
     expect(screen.getByRole('dialog')).toBeInTheDocument();
-    fireEvent.click(
-      within(screen.getByRole('dialog')).getByRole('button', { name: 'Delete', exact: true })
-    );
+    fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Delete' }));
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
     expect(remove).toHaveBeenNthCalledWith(2, bitcoin.id);
   });
@@ -129,5 +125,57 @@ describe('Asset column labels', () => {
     expect(screen.getByRole('columnheader', { name: "Prix d'achat" })).toBeInTheDocument();
     expect(screen.queryByRole('columnheader', { name: 'Prix de revient' })).not.toBeInTheDocument();
     expect(screen.getByRole('row', { name: /Bitcoin/ })).toHaveTextContent(/140[,\s]?000/);
+  });
+  it.each(['name', 'type', 'currentValue', 'costBasis', 'gainLoss'])(
+    'sorts financial holdings by %s in both directions without changing the source array',
+    column => {
+      const first: Asset = {
+        ...bitcoin,
+        id: 11,
+        name: 'Alpha',
+        type: 'CRYPTO',
+        totalValue: 10,
+        totalCost: 5,
+        gainPercentage: 1,
+      };
+      const second: Asset = {
+        ...bitcoin,
+        id: 12,
+        name: 'Zulu',
+        type: 'STOCK',
+        totalValue: 100,
+        totalCost: 50,
+        gainPercentage: 2,
+      };
+      const assets = [second, first];
+      renderWithProviders(<AssetList assets={assets} onEdit={vi.fn()} onDelete={vi.fn()} />);
+      const header = screen.getByRole('columnheader', {
+        name: i18n.t(`table.${column}`, { ns: 'assets' }),
+      });
+      fireEvent.click(header);
+      expect(screen.getAllByRole('row')[1]).toHaveTextContent('Alpha');
+      fireEvent.click(header);
+      expect(screen.getAllByRole('row')[1]).toHaveTextContent('Zulu');
+      expect(assets).toEqual([second, first]);
+    }
+  );
+
+  it('opens details and edits without triggering each other', () => {
+    const view = vi.fn();
+    const edit = vi.fn();
+    renderWithProviders(
+      <AssetList assets={[bitcoin]} onEdit={edit} onDelete={vi.fn()} onView={view} />
+    );
+    fireEvent.click(screen.getAllByRole('button', { name: /edit asset/i })[0]);
+    expect(edit).toHaveBeenCalledWith(bitcoin);
+    expect(view).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('row', { name: /Bitcoin/ }));
+    expect(view).toHaveBeenCalledWith(bitcoin);
+  });
+
+  it('shows the empty-state message when there are no holdings', () => {
+    renderWithProviders(<AssetList assets={[]} onEdit={vi.fn()} onDelete={vi.fn()} />);
+    expect(screen.getByText(i18n.t('empty.noAssets', { ns: 'assets' }))).toBeInTheDocument();
+    expect(screen.queryByRole('table')).not.toBeInTheDocument();
   });
 });
