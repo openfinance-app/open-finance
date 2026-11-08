@@ -63,6 +63,39 @@ class ExchangeRateServiceTest {
     // ==================== getExchangeRate() Tests ====================
 
     @Test
+    @DisplayName("CFA parity takes precedence over inconsistent provider cross quotes")
+    void shouldUseCfaParityInsteadOfProviderCrossRate() {
+        when(currencyRepository.existsByCode("XOF")).thenReturn(true);
+        when(currencyRepository.existsByCode("EUR")).thenReturn(true);
+        lenient()
+                .when(
+                        exchangeRateRepository.findLatestByBaseCurrencyAndTargetCurrency(
+                                "XOF", "USD"))
+                .thenReturn(
+                        List.of(
+                                createRate(
+                                        "XOF",
+                                        "USD",
+                                        new BigDecimal("0.0017615502001717687"),
+                                        LocalDate.now())));
+        lenient()
+                .when(
+                        exchangeRateRepository.findLatestByBaseCurrencyAndTargetCurrency(
+                                "EUR", "USD"))
+                .thenReturn(
+                        List.of(
+                                createRate(
+                                        "EUR",
+                                        "USD",
+                                        new BigDecimal("1.1228259801864624"),
+                                        LocalDate.now())));
+
+        assertThat(exchangeRateService.convert(new BigDecimal("655957"), "XOF", "EUR"))
+                .isEqualByComparingTo("1000");
+        verifyNoInteractions(marketDataProvider);
+    }
+
+    @Test
     @DisplayName("Should return 1.0 for same currency conversion")
     void shouldReturnOneForSameCurrencyConversion() {
         // Arrange
@@ -445,12 +478,12 @@ class ExchangeRateServiceTest {
                 List.of(
                         createCurrency("USD", "US Dollar", true),
                         createCurrency("EUR", "Euro", true),
-                        createCurrency("XOF", "West African CFA franc", true));
+                        createCurrency("JPY", "Japanese yen", true));
         when(currencyRepository.findByIsActiveTrueOrderByCodeAsc()).thenReturn(currencies);
         when(marketDataProvider.getHistoricalPrices("EURUSD=X", pastDate.minusDays(7), pastDate))
                 .thenReturn(List.of(createHistoricalPrice("EURUSD=X", pastDate, "1.1700")));
-        when(marketDataProvider.getHistoricalPrices("XOFUSD=X", pastDate.minusDays(7), pastDate))
-                .thenReturn(List.of(createHistoricalPrice("XOFUSD=X", pastDate, "0.0018")));
+        when(marketDataProvider.getHistoricalPrices("JPYUSD=X", pastDate.minusDays(7), pastDate))
+                .thenReturn(List.of(createHistoricalPrice("JPYUSD=X", pastDate, "0.0018")));
 
         // Act
         int result = exchangeRateService.updateExchangeRatesForDate(pastDate);
@@ -465,8 +498,8 @@ class ExchangeRateServiceTest {
                 .containsExactlyInAnyOrder(
                         org.assertj.core.groups.Tuple.tuple("EUR", "USD"),
                         org.assertj.core.groups.Tuple.tuple("USD", "EUR"),
-                        org.assertj.core.groups.Tuple.tuple("XOF", "USD"),
-                        org.assertj.core.groups.Tuple.tuple("USD", "XOF"));
+                        org.assertj.core.groups.Tuple.tuple("JPY", "USD"),
+                        org.assertj.core.groups.Tuple.tuple("USD", "JPY"));
         assertThat(savedRates).allMatch(rate -> pastDate.equals(rate.getRateDate()));
     }
 
@@ -477,24 +510,24 @@ class ExchangeRateServiceTest {
         // Arrange
         LocalDate date = LocalDate.of(2025, 8, 19);
         when(currencyRepository.existsByCode("EUR")).thenReturn(true);
-        when(currencyRepository.existsByCode("XOF")).thenReturn(true);
+        when(currencyRepository.existsByCode("JPY")).thenReturn(true);
         when(exchangeRateRepository.findByBaseCurrencyAndTargetCurrencyAndRateDate(
-                        "EUR", "XOF", date))
+                        "EUR", "JPY", date))
                 .thenReturn(Optional.empty());
         when(exchangeRateRepository
                         .findByBaseCurrencyAndTargetCurrencyAndRateDateLessThanEqualOrderByRateDateDesc(
-                                "EUR", "XOF", date))
+                                "EUR", "JPY", date))
                 .thenReturn(List.of());
         when(exchangeRateRepository.findByBaseCurrencyAndTargetCurrencyAndRateDate(
-                        "XOF", "EUR", date))
+                        "JPY", "EUR", date))
                 .thenReturn(Optional.empty());
         when(exchangeRateRepository
                         .findByBaseCurrencyAndTargetCurrencyAndRateDateLessThanEqualOrderByRateDateDesc(
-                                "XOF", "EUR", date))
+                                "JPY", "EUR", date))
                 .thenReturn(List.of());
 
         ExchangeRate eurUsd = createRate("EUR", "USD", new BigDecimal("1.2000"), date);
-        ExchangeRate xofUsd = createRate("XOF", "USD", new BigDecimal("0.0018"), date);
+        ExchangeRate jpyUsd = createRate("JPY", "USD", new BigDecimal("0.0018"), date);
         when(exchangeRateRepository.findByBaseCurrencyAndTargetCurrencyAndRateDate(
                         "EUR", "USD", date))
                 .thenReturn(Optional.empty(), Optional.of(eurUsd));
@@ -503,11 +536,11 @@ class ExchangeRateServiceTest {
                                 "EUR", "USD", date))
                 .thenReturn(List.of());
         when(exchangeRateRepository.findByBaseCurrencyAndTargetCurrencyAndRateDate(
-                        "XOF", "USD", date))
-                .thenReturn(Optional.empty(), Optional.of(xofUsd));
+                        "JPY", "USD", date))
+                .thenReturn(Optional.empty(), Optional.of(jpyUsd));
         when(exchangeRateRepository
                         .findByBaseCurrencyAndTargetCurrencyAndRateDateLessThanEqualOrderByRateDateDesc(
-                                "XOF", "USD", date))
+                                "JPY", "USD", date))
                 .thenReturn(List.of());
         when(exchangeRateRepository.findByBaseCurrencyAndTargetCurrencyAndRateDate(
                         "USD", "EUR", date))
@@ -517,20 +550,20 @@ class ExchangeRateServiceTest {
                                 "USD", "EUR", date))
                 .thenReturn(List.of());
         when(exchangeRateRepository.findByBaseCurrencyAndTargetCurrencyAndRateDate(
-                        "USD", "XOF", date))
+                        "USD", "JPY", date))
                 .thenReturn(Optional.empty());
         when(exchangeRateRepository
                         .findByBaseCurrencyAndTargetCurrencyAndRateDateLessThanEqualOrderByRateDateDesc(
-                                "USD", "XOF", date))
+                                "USD", "JPY", date))
                 .thenReturn(List.of());
 
         when(marketDataProvider.getHistoricalPrices("EURUSD=X", date.minusDays(7), date))
                 .thenReturn(List.of(createHistoricalPrice("EURUSD=X", date, "1.2000")));
-        when(marketDataProvider.getHistoricalPrices("XOFUSD=X", date.minusDays(7), date))
-                .thenReturn(List.of(createHistoricalPrice("XOFUSD=X", date, "0.0018")));
+        when(marketDataProvider.getHistoricalPrices("JPYUSD=X", date.minusDays(7), date))
+                .thenReturn(List.of(createHistoricalPrice("JPYUSD=X", date, "0.0018")));
 
         // Act
-        BigDecimal result = exchangeRateService.convert(new BigDecimal("100"), "EUR", "XOF", date);
+        BigDecimal result = exchangeRateService.convert(new BigDecimal("100"), "EUR", "JPY", date);
 
         // Assert
         assertThat(result).isEqualByComparingTo("66666.666666666666666667");
@@ -538,7 +571,7 @@ class ExchangeRateServiceTest {
         ArgumentCaptor<String> symbolCaptor = ArgumentCaptor.forClass(String.class);
         verify(marketDataProvider, times(2))
                 .getHistoricalPrices(symbolCaptor.capture(), eq(date.minusDays(7)), eq(date));
-        assertThat(symbolCaptor.getAllValues()).containsExactlyInAnyOrder("EURUSD=X", "XOFUSD=X");
+        assertThat(symbolCaptor.getAllValues()).containsExactlyInAnyOrder("EURUSD=X", "JPYUSD=X");
         verifyNoMoreInteractions(marketDataProvider);
     }
 

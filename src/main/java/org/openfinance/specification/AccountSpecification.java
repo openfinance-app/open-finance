@@ -57,6 +57,7 @@ public class AccountSpecification {
 
             // Always filter by userId (security)
             predicates.add(criteriaBuilder.equal(root.get("userId"), userId));
+            predicates.add(criteriaBuilder.isNull(root.get("deletedDate")));
 
             // Keyword search on account name is intentionally omitted here because
             // the name field is encrypted.

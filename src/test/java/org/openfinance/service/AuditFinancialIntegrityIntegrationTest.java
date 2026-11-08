@@ -60,7 +60,7 @@ class AuditFinancialIntegrityIntegrationTest extends AuditApiTestSupport {
     }
 
     @Test
-    void accountInclusionFollowsCloseAndReopenIntervals() throws Exception {
+    void closureAndReopeningPreserveTheHistoricalFinancialPosition() throws Exception {
         long cash = account(owner);
         property(owner);
         LocalDate closed = START.plusMonths(1);
@@ -70,7 +70,7 @@ class AuditFinancialIntegrityIntegrationTest extends AuditApiTestSupport {
         json("POST", "/accounts/" + cash + "/reopen", null, owner, 204);
         dateLatestStatus(reopened);
         money(history(START, START).get(0), "netWorth", "2000");
-        money(history(closed, closed).get(0), "netWorth", "1000");
+        money(history(closed, closed).get(0), "netWorth", "2000");
         money(history(reopened, reopened).get(0), "netWorth", "2000");
     }
 
@@ -204,7 +204,7 @@ class AuditFinancialIntegrityIntegrationTest extends AuditApiTestSupport {
         money(
                 json("GET", "/dashboard/summary", null, owner, 200).path("netWorth"),
                 "netWorth",
-                "1000");
+                "2000");
         json("POST", "/accounts/" + cash + "/reopen", null, owner, 204);
         money(history(START, START).get(0), "netWorth", "2000");
         money(

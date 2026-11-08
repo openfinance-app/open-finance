@@ -1138,7 +1138,8 @@ class DashboardServiceTest {
 
         when(transactionRepository.findByUserId(userId))
                 .thenReturn(List.of(earlyIncome, transferSourceXof, transferDestEur));
-        when(accountRepository.findByUserIdWithInstitution(userId)).thenReturn(List.of(eur, xof));
+        when(accountRepository.findAllForHistoryWithInstitution(userId))
+                .thenReturn(List.of(eur, xof));
         when(netWorthService.getAccountBalancesAt(eq(userId), any(LocalDate.class), eq("EUR")))
                 .thenAnswer(
                         call ->
@@ -1417,8 +1418,7 @@ class DashboardServiceTest {
         Account card = createAccount(2L, "Credit card", new BigDecimal("-2500"));
         card.setType(AccountType.CREDIT_CARD);
         when(defaultCurrencyProvider.resolve("EUR")).thenReturn("EUR");
-        when(accountRepository.findByUserIdAndIsActive(userId, true))
-                .thenReturn(List.of(savings, card));
+        when(accountRepository.findByUserId(userId)).thenReturn(List.of(savings, card));
         when(assetRepository.findCurrentHoldingsByUserId(userId)).thenReturn(List.of());
         when(liabilityRepository.findByUserIdOrderByCreatedAtDesc(userId)).thenReturn(List.of());
 
@@ -1428,6 +1428,42 @@ class DashboardServiceTest {
         assertThat(allocations.get(0).getPercentage()).isEqualByComparingTo("80.00");
         assertThat(allocations.get(1).getPercentage()).isEqualByComparingTo("20.00");
         assertThat(allocations.get(1).getIsLiability()).isTrue();
+    }
+
+    @Test
+    void allocationIncludesClosedCashAndHoldingsButExcludesDeletedPositions() {
+        Account closed = createAccount(1L, "Closed", new BigDecimal("30"));
+        closed.setIsActive(false);
+        Account debt = createAccount(2L, "Closed debt", new BigDecimal("-10"));
+        debt.setIsActive(false);
+        Account deleted = createAccount(3L, "Deleted", new BigDecimal("100"));
+        deleted.setIsActive(false);
+        deleted.setDeletedDate(LocalDate.now());
+        Asset holding =
+                createAsset(
+                        1L,
+                        AssetType.STOCK,
+                        BigDecimal.ONE,
+                        new BigDecimal("70"),
+                        new BigDecimal("70"));
+        holding.setAccountId(1L);
+        Asset deletedHolding =
+                createAsset(
+                        2L,
+                        AssetType.STOCK,
+                        BigDecimal.ONE,
+                        new BigDecimal("500"),
+                        new BigDecimal("500"));
+        deletedHolding.setAccountId(3L);
+        when(defaultCurrencyProvider.resolve("EUR")).thenReturn("EUR");
+        when(accountRepository.findByUserId(userId)).thenReturn(List.of(closed, debt, deleted));
+        when(assetRepository.findCurrentHoldingsByUserId(userId))
+                .thenReturn(List.of(holding, deletedHolding));
+        assertThat(
+                        dashboardService.getNetWorthAllocation(userId).stream()
+                                .map(org.openfinance.dto.NetWorthAllocation::getValue)
+                                .reduce(BigDecimal.ZERO, BigDecimal::add))
+                .isEqualByComparingTo("90");
     }
 
     @Test

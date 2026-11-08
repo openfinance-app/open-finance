@@ -66,14 +66,20 @@ public record HistoryChangeSet(int format, List<Change> changes, List<Guard> gua
     public static boolean equal(
             Map<String, String> a, Map<String, String> b, boolean ignoreBalance) {
         if (a == null || b == null) return a == b;
-        return a.keySet().equals(b.keySet())
-                && a.entrySet().stream()
-                        .allMatch(
-                                entry ->
-                                        TECHNICAL.contains(entry.getKey())
-                                                || (ignoreBalance
-                                                        && entry.getKey().equals("balance"))
-                                                || Objects.equals(
-                                                        entry.getValue(), b.get(entry.getKey())));
+        Set<String> keys = new java.util.HashSet<>(a.keySet());
+        keys.addAll(b.keySet());
+        return keys.stream()
+                .allMatch(
+                        key ->
+                                // Older captured account rows predate the nullable marker.
+                                (key.equals("deleted_date")
+                                                && a.get(key) == null
+                                                && b.get(key) == null)
+                                        || (a.containsKey(key)
+                                                && b.containsKey(key)
+                                                && (TECHNICAL.contains(key)
+                                                        || (ignoreBalance && key.equals("balance"))
+                                                        || Objects.equals(
+                                                                a.get(key), b.get(key)))));
     }
 }

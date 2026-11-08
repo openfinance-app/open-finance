@@ -50,7 +50,7 @@ import org.springframework.transaction.annotation.Transactional;
  * <ul>
  *   <li>Creating new accounts with encrypted sensitive fields
  *   <li>Updating existing accounts
- *   <li>Soft-deleting accounts (setting isActive = false)
+ *   <li>Closing accounts and recording soft deletion separately
  *   <li>Retrieving accounts with decrypted data
  * </ul>
  *
@@ -565,9 +565,11 @@ public class AccountService {
             }
         }
 
-        // Soft delete
+        // Soft deletion is distinct from closing an account with a remaining position.
         account.setIsActive(false);
+        account.setDeletedDate(java.time.LocalDate.now());
         accountRepository.save(account);
+        recordAccountStatus(account, false);
         try {
             searchTokenService.removeEntity("ACCOUNT", accountId);
         } catch (Exception e) {
@@ -590,9 +592,8 @@ public class AccountService {
     /**
      * Closes an account by setting isActive = false.
      *
-     * <p>Closing an account is a soft delete that preserves all historical data including
-     * transactions. The account will no longer appear in active views but can be reopened later if
-     * needed.
+     * <p>Closing preserves its financial position and historical data, including transactions. The
+     * account no longer appears in active views and can be reopened later.
      *
      * <p>Unlike {@link #deleteAccount(Long, Long)}, this method allows closing accounts that have
      * transactions associated with them.
@@ -658,7 +659,7 @@ public class AccountService {
             return; // Already closed, no action needed
         }
 
-        // Close account (soft delete)
+        // Closing hides the account from active workflows but preserves its net-worth position.
         account.setIsActive(false);
         accountRepository.save(account);
         recordAccountStatus(account, false);
@@ -949,7 +950,7 @@ public class AccountService {
         List<Account> accounts;
         if (isActive == null) {
             // Fetch all accounts (both active and inactive)
-            accounts = accountRepository.findByUserId(userId);
+            accounts = accountRepository.findByUserIdAndDeletedDateIsNull(userId);
         } else {
             // Fetch accounts filtered by active status
             accounts = accountRepository.findByUserIdAndIsActive(userId, isActive);

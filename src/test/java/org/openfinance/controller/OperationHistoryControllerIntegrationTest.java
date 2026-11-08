@@ -551,6 +551,7 @@ class OperationHistoryControllerIntegrationTest {
         JsonNode account = createAccount("Closing");
         long id = account.get("id").asLong();
         call(post("/api/v1/accounts/" + id + "/close"), Map.of());
+        assertDashboardWorth("1000");
         long close = latest("ACCOUNT").get("id").asLong();
         reverse(close, false);
         assertThat(call(get("/api/v1/accounts/" + id), null).get("isActive").asBoolean()).isTrue();
@@ -562,6 +563,55 @@ class OperationHistoryControllerIntegrationTest {
         assertThat(call(get("/api/v1/accounts/" + id), null).get("isActive").asBoolean()).isFalse();
         reverse(reopen, true);
         assertThat(call(get("/api/v1/accounts/" + id), null).get("isActive").asBoolean()).isTrue();
+        assertDashboardWorth("1000");
+    }
+
+    @Test
+    void deletionHidesValueAndCannotBeReopenedButUndoAndBackupRestoreIt() throws Exception {
+        JsonNode account = createAccount("Deleted balance");
+        long id = account.get("id").asLong();
+        call(delete("/api/v1/accounts/" + id), null);
+        long deletion = latest("ACCOUNT").get("id").asLong();
+        assertDashboardWorth("0");
+        assertThat(
+                        jdbc.queryForObject(
+                                "SELECT deleted_date FROM accounts WHERE id = ?", String.class, id))
+                .isEqualTo(java.time.LocalDate.now().toString());
+        mockMvc.perform(
+                        post("/api/v1/accounts/" + id + "/reopen")
+                                .header("Authorization", "Bearer " + authToken)
+                                .header("X-Encryption-Session", encryptionSession))
+                .andExpect(status().isNotFound());
+        reverse(deletion, false);
+        assertBalance(account, "1000");
+        assertDashboardWorth("1000");
+        reverse(deletion, true);
+        assertDashboardWorth("0");
+        java.nio.file.Path backup =
+                java.nio.file.Files.createTempFile("deleted-account-history-", ".db");
+        try {
+            org.openfinance.security.EncryptionContext.setKey(historyKey());
+            archives.write(userId, backup);
+            archives.restore(userId, backup, "Password123!");
+        } finally {
+            org.openfinance.security.EncryptionContext.clear();
+            java.nio.file.Files.deleteIfExists(backup);
+        }
+        assertDashboardWorth("0");
+        JsonNode restored = latest("ACCOUNT");
+        reverse(restored.get("id").asLong(), false);
+        assertDashboardWorth("1000");
+        reverse(restored.get("id").asLong(), true);
+        assertDashboardWorth("0");
+    }
+
+    private void assertDashboardWorth(String expected) throws Exception {
+        assertThat(
+                        call(get("/api/v1/dashboard/summary"), null)
+                                .path("netWorth")
+                                .path("netWorth")
+                                .decimalValue())
+                .isEqualByComparingTo(expected);
     }
 
     @Test

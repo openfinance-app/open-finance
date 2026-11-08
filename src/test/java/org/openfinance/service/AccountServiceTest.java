@@ -422,6 +422,7 @@ class AccountServiceTest {
         accountService.deleteAccount(7L, 3L);
 
         assertThat(existing.getIsActive()).isFalse();
+        assertThat(existing.getDeletedDate()).isEqualTo(java.time.LocalDate.now());
         verify(accountRepository).save(existing);
         verify(transactionRepository).countByAccountId(7L);
     }
@@ -838,6 +839,7 @@ class AccountServiceTest {
 
         // Assert
         assertThat(activeAccount.getIsActive()).isFalse();
+        assertThat(activeAccount.getDeletedDate()).isNull();
         verify(accountRepository).findByIdAndUserId(10L, 1L);
         verify(accountRepository).save(activeAccount);
     }

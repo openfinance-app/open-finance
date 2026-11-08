@@ -83,6 +83,116 @@ class SkroogeJsonImportFlowE2ETest {
     @Autowired private DashboardService dashboard;
     @Autowired private AssetService assetService;
     @Autowired private org.openfinance.repository.InterestRateVariationRepository interestRates;
+    @Autowired private org.openfinance.repository.CurrencyRepository currencies;
+
+    @Test
+    void officialPegValuationPreservesNewlyImportedAmountsAndIncludesClosedPositions()
+            throws Exception {
+        useOfficialFx();
+        com.fasterxml.jackson.databind.ObjectMapper json =
+                new com.fasterxml.jackson.databind.ObjectMapper();
+        com.fasterxml.jackson.databind.JsonNode source = json.readTree(syntheticSkroogeJson());
+        for (com.fasterxml.jackson.databind.JsonNode account : source.path("account")) {
+            ((com.fasterxml.jackson.databind.node.ObjectNode) account).put("t_close", true);
+        }
+        ImportSession imported = importData("closed-parity.json", json.writeValueAsBytes(source));
+        assertThat(imported.getErrorCount()).isZero();
+        assertThat(accountRepository.findByUserId(userId))
+                .allSatisfy(
+                        account -> {
+                            assertThat(account.getIsActive()).isFalse();
+                            assertThat(account.getDeletedDate()).isNull();
+                        });
+        Account cfa =
+                accountRepository.findByUserId(userId).stream()
+                        .filter(account -> "XOF".equals(account.getCurrency()))
+                        .findFirst()
+                        .orElseThrow();
+        assertThat(cfa.getBalance()).isEqualByComparingTo("10000");
+        assertThat(transactionRepository.findActiveByAccountId(cfa.getId()))
+                .singleElement()
+                .satisfies(tx -> assertThat(tx.getAmount()).isEqualByComparingTo("10000"));
+        BigDecimal expected =
+                new BigDecimal("1450")
+                        .add(
+                                new BigDecimal("10000")
+                                        .divide(
+                                                new BigDecimal("655.957"),
+                                                18,
+                                                RoundingMode.HALF_UP));
+        assertThat(netWorth.calculateNetWorth(userId, java.time.LocalDate.now(), "EUR"))
+                .isEqualByComparingTo(expected);
+    }
+
+    @Test
+    void reconcilesLatestFourFixtureUsingOfficialParity() throws Exception {
+        java.nio.file.Path fixture = java.nio.file.Path.of("samples/latest_4.json");
+        org.junit.jupiter.api.Assumptions.assumeTrue(java.nio.file.Files.exists(fixture));
+        useOfficialFx();
+        ImportSession imported =
+                importData("latest_4.json", java.nio.file.Files.readAllBytes(fixture));
+        assertThat(imported.getErrorCount()).isZero();
+        assertThat(accountRepository.findByUserId(userId)).hasSize(34);
+        assertThat(
+                        netWorth.calculateNetWorth(userId, java.time.LocalDate.now(), "EUR")
+                                .setScale(2, RoundingMode.HALF_UP))
+                .isEqualByComparingTo("120234.66");
+    }
+
+    private void useOfficialFx() {
+        currencies
+                .findByCode("EUR")
+                .orElseGet(
+                        () ->
+                                currencies.save(
+                                        org.openfinance.entity.Currency.builder()
+                                                .code("EUR")
+                                                .name("Euro")
+                                                .symbol("€")
+                                                .build()));
+        currencies
+                .findByCode("XOF")
+                .orElseGet(
+                        () ->
+                                currencies.save(
+                                        org.openfinance.entity.Currency.builder()
+                                                .code("XOF")
+                                                .name("West African CFA franc")
+                                                .symbol("CFA")
+                                                .build()));
+        ExchangeRateService official =
+                new ExchangeRateService(
+                        org.mockito.Mockito.mock(
+                                org.openfinance.repository.ExchangeRateRepository.class),
+                        currencies,
+                        org.mockito.Mockito.mock(org.openfinance.provider.MarketDataProvider.class),
+                        org.mockito.Mockito.mock(CurrencyTypeResolver.class));
+        lenient()
+                .when(exchangeRateService.getExchangeRate(anyString(), anyString(), any()))
+                .thenAnswer(
+                        call ->
+                                official.getExchangeRate(
+                                        call.getArgument(0),
+                                        call.getArgument(1),
+                                        call.getArgument(2)));
+        lenient()
+                .when(exchangeRateService.convert(any(), anyString(), anyString()))
+                .thenAnswer(
+                        call ->
+                                official.convert(
+                                        call.getArgument(0),
+                                        call.getArgument(1),
+                                        call.getArgument(2)));
+        lenient()
+                .when(exchangeRateService.convert(any(), anyString(), anyString(), any()))
+                .thenAnswer(
+                        call ->
+                                official.convert(
+                                        call.getArgument(0),
+                                        call.getArgument(1),
+                                        call.getArgument(2),
+                                        call.getArgument(3)));
+    }
 
     @Test
     void importsInterestSettingsIdempotentlyAndReportsUnsupportedAndConflictingRows()

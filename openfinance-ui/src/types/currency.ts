@@ -35,6 +35,9 @@ export interface ExchangeRate {
     rate: number;
     rateDate: string;
     source: string;
+    sourceUrl?: string | null;
+    validFrom?: string | null;
+    validUntil?: string | null;
   }[];
 }
 

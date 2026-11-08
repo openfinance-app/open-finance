@@ -70,6 +70,21 @@ class AccountRepositoryTest {
     // === CRUD Operation Tests ===
 
     @Test
+    void deletedAccountsAreHiddenFromListsAndOwnershipLookupsButAvailableForHistory() {
+        testAccount.setIsActive(false);
+        Account closed = accountRepository.saveAndFlush(testAccount);
+        assertThat(accountRepository.findByUserIdAndIsActive(testUser.getId(), false)).hasSize(1);
+        closed.setDeletedDate(java.time.LocalDate.now());
+        accountRepository.saveAndFlush(closed);
+        assertThat(accountRepository.findByUserIdAndIsActive(testUser.getId(), false)).isEmpty();
+        assertThat(accountRepository.findByUserIdAndDeletedDateIsNull(testUser.getId())).isEmpty();
+        assertThat(accountRepository.findByIdAndUserId(closed.getId(), testUser.getId())).isEmpty();
+        assertThat(accountRepository.findByUserId(testUser.getId())).hasSize(1);
+        assertThat(accountRepository.findByUserIdWithInstitution(testUser.getId())).isEmpty();
+        assertThat(accountRepository.findAllForHistoryWithInstitution(testUser.getId())).hasSize(1);
+    }
+
+    @Test
     @DisplayName("Should save account and generate ID")
     void shouldSaveAccountAndGenerateId() {
         // When

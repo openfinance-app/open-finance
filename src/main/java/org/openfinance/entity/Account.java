@@ -193,8 +193,8 @@ public class Account {
     private String description;
 
     /**
-     * Flag indicating whether the account is active. Inactive accounts are soft-deleted (not shown
-     * in UI but preserved for historical data).
+     * Whether the account is open. Closed accounts retain their cash, holdings and debt in net
+     * worth. Deletion is recorded separately by {@link #deletedDate}.
      *
      * <p>Requirement REQ-2.2.4: Soft delete for accounts
      */
@@ -202,6 +202,15 @@ public class Account {
     @Column(name = "is_active", nullable = false)
     @Builder.Default
     private Boolean isActive = true;
+
+    /** Business date of soft deletion; null for both open and closed accounts. */
+    @Column(name = "deleted_date")
+    private java.time.LocalDate deletedDate;
+
+    /** Closure is a workflow state, while deletion removes value from this date onward. */
+    public boolean isPresentAt(java.time.LocalDate date) {
+        return deletedDate == null || date.isBefore(deletedDate);
+    }
 
     /** Flag indicating whether interest calculation is enabled for this account. */
     @NotNull(message = "{account.isInterestEnabled.notnull}")

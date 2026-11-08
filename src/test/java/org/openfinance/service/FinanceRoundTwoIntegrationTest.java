@@ -327,7 +327,19 @@ class FinanceRoundTwoIntegrationTest extends AuditApiTestSupport {
         JsonNode closed = json("GET", "/dashboard/yearly-balance", null, owner, 200);
         assertThat(closed.path("accounts")).hasSize(2);
         money(closed.path("netWorth").get(0), "amount", "1100");
-        money(closed.path("netWorth").get(1), "amount", "990");
+        money(closed.path("netWorth").get(1), "amount", "2090");
+        json("DELETE", "/accounts/" + euro, null, owner, 204);
+        JsonNode deleted = json("GET", "/dashboard/yearly-balance", null, owner, 200);
+        money(deleted.path("netWorth").get(0), "amount", "1100");
+        money(deleted.path("netWorth").get(1), "amount", "990");
+        for (JsonNode account : deleted.path("accounts")) {
+            if (account.path("id").asLong() == euro) {
+                money(account.path("data").get(0), "amount", "1100");
+                money(account.path("data").get(1), "amount", "0");
+            }
+        }
+        money(deleted.path("institutions").get(0).path("data").get(0), "amount", "1100");
+        money(deleted.path("institutions").get(0).path("data").get(1), "amount", "990");
     }
 
     @Test

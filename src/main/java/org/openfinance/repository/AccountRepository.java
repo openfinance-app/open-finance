@@ -23,7 +23,7 @@ public interface AccountRepository
         extends JpaRepository<Account, Long>, JpaSpecificationExecutor<Account> {
 
     /**
-     * Finds all accounts belonging to a specific user.
+     * Finds all accounts belonging to a specific user, including deleted rows for dated history.
      *
      * <p>Requirement REQ-2.2.1: Users can view all their accounts
      *
@@ -31,6 +31,9 @@ public interface AccountRepository
      * @return List of accounts owned by the user (may be empty)
      */
     List<Account> findByUserId(Long userId);
+
+    /** Open and closed accounts, excluding soft-deleted records. */
+    List<Account> findByUserIdAndDeletedDateIsNull(Long userId);
 
     @Query(
             "SELECT COUNT(l) > 0 FROM Liability l WHERE l.representedByAccountId = :accountId AND l.userId = :userId")
@@ -46,13 +49,18 @@ public interface AccountRepository
      * @param userId ID of the user
      * @return List of accounts owned by the user with institution loaded (may be empty)
      */
-    @Query("SELECT a FROM Account a LEFT JOIN FETCH a.institution WHERE a.userId = :userId")
+    @Query(
+            "SELECT a FROM Account a LEFT JOIN FETCH a.institution WHERE a.userId = :userId AND a.deletedDate IS NULL")
     List<Account> findByUserIdWithInstitution(@Param("userId") Long userId);
+
+    /** Dated reports also need deleted accounts and their institutions before deletion. */
+    @Query("SELECT a FROM Account a LEFT JOIN FETCH a.institution WHERE a.userId = :userId")
+    List<Account> findAllForHistoryWithInstitution(@Param("userId") Long userId);
 
     /**
      * Finds all active accounts for a specific user.
      *
-     * <p>Excludes soft-deleted (inactive) accounts from results.
+     * <p>Filters open/closed status separately from deletion. Deleted accounts are always excluded.
      *
      * <p>Requirement REQ-2.2.4: Soft delete - only show active accounts in UI
      *
@@ -60,7 +68,10 @@ public interface AccountRepository
      * @param isActive Flag indicating active status (typically true)
      * @return List of active accounts owned by the user (may be empty)
      */
-    List<Account> findByUserIdAndIsActive(Long userId, Boolean isActive);
+    @Query(
+            "SELECT a FROM Account a WHERE a.userId = :userId AND a.isActive = :isActive AND a.deletedDate IS NULL")
+    List<Account> findByUserIdAndIsActive(
+            @Param("userId") Long userId, @Param("isActive") Boolean isActive);
 
     /**
      * Finds all accounts of a specific type for a user.
@@ -73,7 +84,10 @@ public interface AccountRepository
      * @param type Account type to filter by
      * @return List of accounts matching the type (may be empty)
      */
-    List<Account> findByUserIdAndType(Long userId, AccountType type);
+    @Query(
+            "SELECT a FROM Account a WHERE a.userId = :userId AND a.type = :type AND a.deletedDate IS NULL")
+    List<Account> findByUserIdAndType(
+            @Param("userId") Long userId, @Param("type") AccountType type);
 
     /**
      * Finds an account by ID, ensuring it belongs to the specified user.
@@ -87,7 +101,9 @@ public interface AccountRepository
      * @param userId User ID (for ownership verification)
      * @return Optional containing the account if found and owned by user, empty otherwise
      */
-    Optional<Account> findByIdAndUserId(Long id, Long userId);
+    @Query(
+            "SELECT a FROM Account a WHERE a.id = :id AND a.userId = :userId AND a.deletedDate IS NULL")
+    Optional<Account> findByIdAndUserId(@Param("id") Long id, @Param("userId") Long userId);
 
     /**
      * Checks if an account with the given name already exists for the user.
@@ -135,7 +151,10 @@ public interface AccountRepository
      * @param accountNumber Account number to search for
      * @return Optional containing the account if found, empty otherwise
      */
-    Optional<Account> findByUserIdAndAccountNumber(Long userId, String accountNumber);
+    @Query(
+            "SELECT a FROM Account a WHERE a.userId = :userId AND a.accountNumber = :accountNumber AND a.deletedDate IS NULL")
+    Optional<Account> findByUserIdAndAccountNumber(
+            @Param("userId") Long userId, @Param("accountNumber") String accountNumber);
 
     /**
      * Finds all accounts whose IDs are in the given set.

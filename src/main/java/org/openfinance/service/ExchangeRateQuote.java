@@ -26,6 +26,7 @@ public record ExchangeRateQuote(BigDecimal rate, List<ExchangeRateLeg> legs) {
                 .inverseRate(BigDecimal.ONE.divide(rate, MathContext.DECIMAL128))
                 .rateDate(
                         legs.stream()
+                                .filter(leg -> leg.validFrom() == null)
                                 .map(ExchangeRateLeg::rateDate)
                                 .min(LocalDate::compareTo)
                                 .orElse(valuationDate))

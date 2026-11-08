@@ -1,0 +1,756 @@
+{
+  "reviewedOn": "2026-11-07",
+  "conventions": "currencyUnits units of currency = anchorUnits units of anchor. Decimal strings preserve exact stated ratios. [validFrom, validUntil) describes supported coverage, not necessarily the first historical day of the regime; conservative starts are documented. Null end means no announced end at review. Keep dated records when parities change; expire annual announcements. Market spreads and fees remain separate. Review official sources when updating this registry.",
+  "fixed": [
+    {
+      "currency": "XOF",
+      "anchor": "EUR",
+      "currencyUnits": "655.957",
+      "anchorUnits": "1",
+      "validFrom": "1999-01-01",
+      "validUntil": null,
+      "authority": "BCEAO",
+      "sourceUrl": "https://www.bceao.int/fr/content/histoire-du-franc-cfa"
+    },
+    {
+      "currency": "XAF",
+      "anchor": "EUR",
+      "currencyUnits": "655.957",
+      "anchorUnits": "1",
+      "validFrom": "1999-01-01",
+      "validUntil": null,
+      "authority": "BEAC",
+      "sourceUrl": "https://www.beac.int/beac/la-beac/1972-2012-40-ans-dhistoire-de-beac/"
+    },
+    {
+      "currency": "KMF",
+      "anchor": "EUR",
+      "currencyUnits": "491.96775",
+      "anchorUnits": "1",
+      "validFrom": "1999-01-01",
+      "validUntil": null,
+      "authority": "BCC",
+      "sourceUrl": "https://banque-comores.km/article/show/la-parite-fixe-entre-leuro-et-le-franc-comorien-na-pas-change"
+    },
+    {
+      "currency": "CVE",
+      "anchor": "EUR",
+      "currencyUnits": "110.265",
+      "anchorUnits": "1",
+      "validFrom": "1999-01-01",
+      "validUntil": null,
+      "authority": "BCV",
+      "sourceUrl": "https://www.bcv.cv/pt/O%20Banco/Sala%20de%20Imprensa/Arquivo/Paginas/ConferenciaAcordoCambial.aspx"
+    },
+    {
+      "currency": "XPF",
+      "anchor": "EUR",
+      "currencyUnits": "1000",
+      "anchorUnits": "8.38",
+      "validFrom": "1999-01-01",
+      "validUntil": null,
+      "authority": "IEOM",
+      "sourceUrl": "https://www.ieom.fr/IMG/pdf/ra_2004_wf.pdf"
+    },
+    {
+      "currency": "BAM",
+      "anchor": "EUR",
+      "currencyUnits": "1.95583",
+      "anchorUnits": "1",
+      "validFrom": "2002-01-01",
+      "validUntil": null,
+      "authority": "CBBH",
+      "sourceUrl": "https://www.cbbh.ba/press/ShowNews/1385?lang=en",
+      "notes": "EUR anchor following replacement of the Deutsche Mark; earlier DEM parity is not backdated."
+    },
+    {
+      "currency": "STN",
+      "anchor": "EUR",
+      "currencyUnits": "24.50",
+      "anchorUnits": "1",
+      "validFrom": "2018-01-01",
+      "validUntil": null,
+      "authority": "BCSTP",
+      "sourceUrl": "https://www.bcstp.st/upload/NAP/NAP.21.2017.PDF"
+    },
+    {
+      "currency": "STD",
+      "anchor": "EUR",
+      "currencyUnits": "24500",
+      "anchorUnits": "1",
+      "validFrom": "2010-01-01",
+      "validUntil": "2018-01-01",
+      "authority": "BCSTP",
+      "sourceUrl": "https://www.bcstp.st/upload/NAP/NAP.21.2017.PDF",
+      "notes": "Old dobra before the 1000:1 redenomination; never apply the new dobra rate to STD."
+    },
+    {
+      "currency": "STD",
+      "anchor": "STN",
+      "currencyUnits": "1000",
+      "anchorUnits": "1",
+      "validFrom": "2018-01-01",
+      "validUntil": null,
+      "authority": "BCSTP",
+      "sourceUrl": "https://www.bcstp.st/upload/NAP/NAP.21.2017.PDF",
+      "notes": "Irrevocable redenomination ratio for old-denomination balances."
+    },
+    {
+      "currency": "AED",
+      "anchor": "USD",
+      "currencyUnits": "3.6725",
+      "anchorUnits": "1",
+      "validFrom": "1997-11-25",
+      "validUntil": null,
+      "authority": "CBUAE / IMF",
+      "sourceUrl": "https://www.imf.org/external/pubs/ft/scr/1998/cr98134.pdf"
+    },
+    {
+      "currency": "SAR",
+      "anchor": "USD",
+      "currencyUnits": "3.75",
+      "anchorUnits": "1",
+      "validFrom": "1986-07-01",
+      "validUntil": null,
+      "authority": "SAMA",
+      "sourceUrl": "https://sama.gov.sa/en-US/MediaCenter/News/Pages/News14230708.aspx",
+      "notes": "Coverage starts after the establishment period documented by the source; earlier dates use market quotes."
+    },
+    {
+      "currency": "QAR",
+      "anchor": "USD",
+      "currencyUnits": "3.64",
+      "anchorUnits": "1",
+      "validFrom": "2001-07-09",
+      "validUntil": null,
+      "authority": "QCB",
+      "sourceUrl": "https://www.qcb.gov.qa/Documents/BankInstructions/EN/01-01.pdf"
+    },
+    {
+      "currency": "BHD",
+      "anchor": "USD",
+      "currencyUnits": "0.376",
+      "anchorUnits": "1",
+      "validFrom": "1981-01-01",
+      "validUntil": null,
+      "authority": "CBB / IMF",
+      "sourceUrl": "https://dsbb.imf.org/egdds/dqaf-base/country/BHR/category/EXR00",
+      "notes": "Coverage starts after the establishment period documented by the source; earlier dates use market quotes."
+    },
+    {
+      "currency": "OMR",
+      "anchor": "USD",
+      "currencyUnits": "1",
+      "anchorUnits": "2.6008",
+      "validFrom": "1986-02-01",
+      "validUntil": null,
+      "authority": "CBO",
+      "sourceUrl": "https://cbo.gov.om/sites/assets/Documents/English/Publications/AnnualReports/AnnualReport2014.pdf",
+      "notes": "Coverage starts after the establishment period documented by the source; earlier dates use market quotes."
+    },
+    {
+      "currency": "JOD",
+      "anchor": "USD",
+      "currencyUnits": "0.709",
+      "anchorUnits": "1",
+      "validFrom": "1996-01-01",
+      "validUntil": null,
+      "authority": "CBJ / IMF",
+      "sourceUrl": "https://www.cbj.gov.jo/EBV4.0/Root_Storage/AR/%D8%A7%D9%84%D9%85%D8%B1%D9%81%D9%82.pdf",
+      "notes": "Coverage starts after the establishment period documented by the source; earlier dates use market quotes."
+    },
+    {
+      "currency": "BBD",
+      "anchor": "USD",
+      "currencyUnits": "2",
+      "anchorUnits": "1",
+      "validFrom": "1975-07-05",
+      "validUntil": null,
+      "authority": "Central Bank of Barbados",
+      "sourceUrl": "https://www.centralbank.org.bb/news/general-press-release/fixed-for-forty-one-years"
+    },
+    {
+      "currency": "BZD",
+      "anchor": "USD",
+      "currencyUnits": "2",
+      "anchorUnits": "1",
+      "validFrom": "1976-05-11",
+      "validUntil": null,
+      "authority": "Central Bank of Belize",
+      "sourceUrl": "https://www.centralbank.org.bz/detail-pages/news/2026/05/11/belize-commemorates-50-years-of-exchange-rate-stability"
+    },
+    {
+      "currency": "BSD",
+      "anchor": "USD",
+      "currencyUnits": "1",
+      "anchorUnits": "1",
+      "validFrom": "1974-01-01",
+      "validUntil": null,
+      "authority": "Central Bank of The Bahamas",
+      "sourceUrl": "https://www.centralbankbahamas.com/viewPDF/documents/2019-06-20-05-30-57-Rawson-Square-Exhibit.pdf",
+      "notes": "Coverage starts after the establishment period documented by the source; earlier dates use market quotes."
+    },
+    {
+      "currency": "BMD",
+      "anchor": "USD",
+      "currencyUnits": "1",
+      "anchorUnits": "1",
+      "validFrom": "1972-07-31",
+      "validUntil": null,
+      "authority": "BMA",
+      "sourceUrl": "https://www.bma.bm/documents-centre/documents-news-and-press-releases/general-all-sectors/bermuda-monetary-authority-celebrating-50-years"
+    },
+    {
+      "currency": "KYD",
+      "anchor": "USD",
+      "currencyUnits": "1",
+      "anchorUnits": "1.20",
+      "validFrom": "2004-06-30",
+      "validUntil": null,
+      "authority": "CIMA",
+      "sourceUrl": "https://www.cima.ky/upimages/publicationdoc/AnnualReport-18M_1499165425.pdf",
+      "notes": "Conservative historical coverage begins at the cited report date."
+    },
+    {
+      "currency": "AWG",
+      "anchor": "USD",
+      "currencyUnits": "1.79",
+      "anchorUnits": "1",
+      "validFrom": "1986-01-01",
+      "validUntil": null,
+      "authority": "CBA",
+      "sourceUrl": "https://www.cbaruba.org/the-aruban-florin/"
+    },
+    {
+      "currency": "ANG",
+      "anchor": "USD",
+      "currencyUnits": "1.79",
+      "anchorUnits": "1",
+      "validFrom": "2000-01-01",
+      "validUntil": "2025-03-31",
+      "authority": "CBCS",
+      "sourceUrl": "https://www.centralbank.cw/functions/banknotes-coins/caribbean-guilder/frequently-asked-questions",
+      "notes": "Legacy guilder coverage; successor retains the same USD peg."
+    },
+    {
+      "currency": "ANG",
+      "anchor": "XCG",
+      "currencyUnits": "1",
+      "anchorUnits": "1",
+      "validFrom": "2025-03-31",
+      "validUntil": null,
+      "authority": "CBCS",
+      "sourceUrl": "https://www.centralbank.cw/functions/banknotes-coins/caribbean-guilder",
+      "notes": "Irrevocable 1:1 conversion to the Caribbean guilder."
+    },
+    {
+      "currency": "XCG",
+      "anchor": "USD",
+      "currencyUnits": "1.79",
+      "anchorUnits": "1",
+      "validFrom": "2025-03-31",
+      "validUntil": null,
+      "authority": "CBCS",
+      "sourceUrl": "https://www.centralbank.cw/functions/banknotes-coins/caribbean-guilder/frequently-asked-questions"
+    },
+    {
+      "currency": "XCD",
+      "anchor": "USD",
+      "currencyUnits": "2.70",
+      "anchorUnits": "1",
+      "validFrom": "1976-08-01",
+      "validUntil": null,
+      "authority": "ECCB",
+      "sourceUrl": "https://cdn.eccb-centralbank.org/documents/2023-10-18-02-17-12-Report-and-statement-of-accounts---ending-31-march-2015.PDF",
+      "notes": "Coverage starts after the establishment period documented by the source; earlier dates use market quotes."
+    },
+    {
+      "currency": "PAB",
+      "anchor": "USD",
+      "currencyUnits": "1",
+      "anchorUnits": "1",
+      "validFrom": "1904-07-05",
+      "validUntil": null,
+      "authority": "Panama",
+      "sourceUrl": "https://infojuridica.procuraduria-admon.gob.pa/norma_screen?numsec=26718"
+    },
+    {
+      "currency": "SVC",
+      "anchor": "USD",
+      "currencyUnits": "8.75",
+      "anchorUnits": "1",
+      "validFrom": "2001-01-01",
+      "validUntil": null,
+      "authority": "BCR",
+      "sourceUrl": "https://onec.bcr.gob.sv/metadatos/index.php/catalog/17/variable/F7/V5642?name=r70515b",
+      "notes": "Irrevocable monetary-integration conversion."
+    },
+    {
+      "currency": "DJF",
+      "anchor": "USD",
+      "currencyUnits": "177.721",
+      "anchorUnits": "1",
+      "validFrom": "1973-02-13",
+      "validUntil": null,
+      "authority": "BCD",
+      "sourceUrl": "https://banque-centrale.dj/historique-du-franc-djibouti/"
+    },
+    {
+      "currency": "ERN",
+      "anchor": "USD",
+      "currencyUnits": "15",
+      "anchorUnits": "1",
+      "validFrom": "2024-01-01",
+      "validUntil": null,
+      "authority": "IFAD",
+      "sourceUrl": "https://www.ifad.org/documents/48415603/49455874/Eritrea%2B2000001144%2BFReMP%2BSupervision%2BReport%2BJanuary%2B2024.pdf/25ad5960-8c62-8137-2a53-c2d0aa9cf19c",
+      "notes": "Official parity, excluding transaction fees and parallel-market rates. Conservative coverage begins with the cited primary report."
+    },
+    {
+      "currency": "TMT",
+      "anchor": "USD",
+      "currencyUnits": "2.85",
+      "anchorUnits": "1",
+      "validFrom": "2009-01-01",
+      "validUntil": "2015-01-01",
+      "authority": "CBT / IMF",
+      "sourceUrl": "https://www.imf.org/-/media/files/publications/areaer/areaer_2015_overview.pdf",
+      "notes": "New manat after redenomination; do not apply to TMM."
+    },
+    {
+      "currency": "TMT",
+      "anchor": "USD",
+      "currencyUnits": "3.50",
+      "anchorUnits": "1",
+      "validFrom": "2015-01-01",
+      "validUntil": null,
+      "authority": "CBT / IMF",
+      "sourceUrl": "https://www.imf.org/-/media/files/publications/areaer/areaer_2015_overview.pdf"
+    },
+    {
+      "currency": "NIO",
+      "anchor": "USD",
+      "currencyUnits": "36.6243",
+      "anchorUnits": "1",
+      "validFrom": "2024-01-01",
+      "validUntil": "2026-01-01",
+      "authority": "BCN",
+      "sourceUrl": "https://www.bcn.gob.ni/publicaciones/informe-de-politica-monetaria-y-cambiaria-enero-2025",
+      "notes": "Zero crawl confirmed for 2024 and 2025 only."
+    },
+    {
+      "currency": "NIO",
+      "anchor": "USD",
+      "currencyUnits": "36.6243",
+      "anchorUnits": "1",
+      "validFrom": "2026-01-01",
+      "validUntil": "2027-01-01",
+      "authority": "BCN",
+      "sourceUrl": "https://bcn.gob.ni/node/10376",
+      "notes": "Annual zero-crawl announcement expires at the end of 2026; later dates require a new announcement or market quotes."
+    },
+    {
+      "currency": "BND",
+      "anchor": "SGD",
+      "currencyUnits": "1",
+      "anchorUnits": "1",
+      "validFrom": "1968-01-01",
+      "validUntil": null,
+      "authority": "MAS / BDCB",
+      "sourceUrl": "https://www.mas.gov.sg/currency/brunei-singapore-currency-interchangeability-agreement",
+      "notes": "Coverage starts after the establishment period documented by the source; earlier dates use market quotes."
+    },
+    {
+      "currency": "BTN",
+      "anchor": "INR",
+      "currencyUnits": "1",
+      "anchorUnits": "1",
+      "validFrom": "1975-01-01",
+      "validUntil": null,
+      "authority": "RMA",
+      "sourceUrl": "https://www.rma.org.bt/mpolicy/",
+      "notes": "Coverage starts after the establishment period documented by the source; earlier dates use market quotes."
+    },
+    {
+      "currency": "NPR",
+      "anchor": "INR",
+      "currencyUnits": "1.60",
+      "anchorUnits": "1",
+      "validFrom": "1993-02-12",
+      "validUntil": null,
+      "authority": "NRB",
+      "sourceUrl": "https://www.nrb.org.np/red/nepal_rastra_bank_in_fifty_years__part-iii-macroeconomy/"
+    },
+    {
+      "currency": "MOP",
+      "anchor": "HKD",
+      "currencyUnits": "1.03",
+      "anchorUnits": "1",
+      "validFrom": "1984-01-01",
+      "validUntil": null,
+      "authority": "AMCM",
+      "sourceUrl": "https://cdn.amcm.gov.mo/uploads/files/research_and_stats/research_and_publication/quarterly_report/issue_no_30/mfs_en.pdf",
+      "notes": "Fixed against HKD, which still requires a market quote against USD. Coverage starts after the establishment period documented by the source; earlier dates use market quotes."
+    },
+    {
+      "currency": "LSL",
+      "anchor": "ZAR",
+      "currencyUnits": "1",
+      "anchorUnits": "1",
+      "validFrom": "1981-01-01",
+      "validUntil": null,
+      "authority": "CMA / IMF",
+      "sourceUrl": "https://www.imf.org/-/media/websites/imf/imported-full-text-pdf/external/pubs/ft/wp/2007/_wp07158.pdf",
+      "notes": "Coverage starts after the establishment period documented by the source; earlier dates use market quotes."
+    },
+    {
+      "currency": "NAD",
+      "anchor": "ZAR",
+      "currencyUnits": "1",
+      "anchorUnits": "1",
+      "validFrom": "1993-09-14",
+      "validUntil": null,
+      "authority": "Bank of Namibia",
+      "sourceUrl": "https://www.bon.com.na/CMSTemplates/Bon/Files/bon.com.na/d5/d559222a-969d-4fad-9ade-d73fa1eddc01.pdf"
+    },
+    {
+      "currency": "SZL",
+      "anchor": "ZAR",
+      "currencyUnits": "1",
+      "anchorUnits": "1",
+      "validFrom": "1974-09-06",
+      "validUntil": null,
+      "authority": "Central Bank of Eswatini",
+      "sourceUrl": "https://www.centralbank.org.sz/wp-content/uploads/2024/05/Untitled-150-min.pdf"
+    },
+    {
+      "currency": "FKP",
+      "anchor": "GBP",
+      "currencyUnits": "1",
+      "anchorUnits": "1",
+      "validFrom": "1971-02-15",
+      "validUntil": null,
+      "authority": "Falkland Islands Government",
+      "sourceUrl": "https://www.falklands.gov.fk/finance/currency",
+      "notes": "Coverage of decimal balances; sterling parity is longstanding."
+    },
+    {
+      "currency": "GIP",
+      "anchor": "GBP",
+      "currencyUnits": "1",
+      "anchorUnits": "1",
+      "validFrom": "2012-01-01",
+      "validUntil": null,
+      "authority": "Government of Gibraltar",
+      "sourceUrl": "https://www.gibraltarlaws.gov.gi/legislations/currency-notes-act-2011-2665/download",
+      "notes": "Coverage starts after the establishment period documented by the source; earlier dates use market quotes."
+    },
+    {
+      "currency": "SHP",
+      "anchor": "GBP",
+      "currencyUnits": "1",
+      "anchorUnits": "1",
+      "validFrom": "1977-01-01",
+      "validUntil": null,
+      "authority": "St Helena Government",
+      "sourceUrl": "https://www.sainthelena.gov.sh/wp-content/uploads/2013/01/Currency-Ordinance.pdf",
+      "notes": "Coverage starts after the establishment period documented by the source; earlier dates use market quotes."
+    },
+    {
+      "currency": "BGN",
+      "anchor": "EUR",
+      "currencyUnits": "1.95583",
+      "anchorUnits": "1",
+      "validFrom": "1999-07-05",
+      "validUntil": "2026-01-01",
+      "authority": "BNB / Bundesbank",
+      "sourceUrl": "https://statistiken.bundesbank.de/statistiken-en/timeseries/BBEX3/D.BGN.USD.CA.AC.000"
+    },
+    {
+      "currency": "BGN",
+      "anchor": "EUR",
+      "currencyUnits": "1.95583",
+      "anchorUnits": "1",
+      "validFrom": "2026-01-01",
+      "validUntil": null,
+      "authority": "ECB",
+      "sourceUrl": "https://www.ecb.europa.eu/press/pr/date/2026/html/ecb.pr260101~c830245e42.en.html",
+      "notes": "Irrevocable euro-adoption conversion; BGN is no longer a circulating currency."
+    },
+    {
+      "currency": "ATS",
+      "anchor": "EUR",
+      "currencyUnits": "13.7603",
+      "anchorUnits": "1",
+      "validFrom": "1999-01-01",
+      "validUntil": null,
+      "authority": "Eurosystem",
+      "sourceUrl": "https://www.suomenpankki.fi/en/statistics/interest-rates-and-exchange-rates/exchange-rates/euro-conversion-rates/",
+      "notes": "Irrevocable euro-adoption conversion; no assumption about the pre-adoption exchange regime."
+    },
+    {
+      "currency": "BEF",
+      "anchor": "EUR",
+      "currencyUnits": "40.3399",
+      "anchorUnits": "1",
+      "validFrom": "1999-01-01",
+      "validUntil": null,
+      "authority": "Eurosystem",
+      "sourceUrl": "https://www.suomenpankki.fi/en/statistics/interest-rates-and-exchange-rates/exchange-rates/euro-conversion-rates/",
+      "notes": "Irrevocable euro-adoption conversion; no assumption about the pre-adoption exchange regime."
+    },
+    {
+      "currency": "DEM",
+      "anchor": "EUR",
+      "currencyUnits": "1.95583",
+      "anchorUnits": "1",
+      "validFrom": "1999-01-01",
+      "validUntil": null,
+      "authority": "Eurosystem",
+      "sourceUrl": "https://www.suomenpankki.fi/en/statistics/interest-rates-and-exchange-rates/exchange-rates/euro-conversion-rates/",
+      "notes": "Irrevocable euro-adoption conversion; no assumption about the pre-adoption exchange regime."
+    },
+    {
+      "currency": "ESP",
+      "anchor": "EUR",
+      "currencyUnits": "166.386",
+      "anchorUnits": "1",
+      "validFrom": "1999-01-01",
+      "validUntil": null,
+      "authority": "Eurosystem",
+      "sourceUrl": "https://www.suomenpankki.fi/en/statistics/interest-rates-and-exchange-rates/exchange-rates/euro-conversion-rates/",
+      "notes": "Irrevocable euro-adoption conversion; no assumption about the pre-adoption exchange regime."
+    },
+    {
+      "currency": "FIM",
+      "anchor": "EUR",
+      "currencyUnits": "5.94573",
+      "anchorUnits": "1",
+      "validFrom": "1999-01-01",
+      "validUntil": null,
+      "authority": "Eurosystem",
+      "sourceUrl": "https://www.suomenpankki.fi/en/statistics/interest-rates-and-exchange-rates/exchange-rates/euro-conversion-rates/",
+      "notes": "Irrevocable euro-adoption conversion; no assumption about the pre-adoption exchange regime."
+    },
+    {
+      "currency": "FRF",
+      "anchor": "EUR",
+      "currencyUnits": "6.55957",
+      "anchorUnits": "1",
+      "validFrom": "1999-01-01",
+      "validUntil": null,
+      "authority": "Eurosystem",
+      "sourceUrl": "https://www.suomenpankki.fi/en/statistics/interest-rates-and-exchange-rates/exchange-rates/euro-conversion-rates/",
+      "notes": "Irrevocable euro-adoption conversion; no assumption about the pre-adoption exchange regime."
+    },
+    {
+      "currency": "IEP",
+      "anchor": "EUR",
+      "currencyUnits": "0.787564",
+      "anchorUnits": "1",
+      "validFrom": "1999-01-01",
+      "validUntil": null,
+      "authority": "Eurosystem",
+      "sourceUrl": "https://www.suomenpankki.fi/en/statistics/interest-rates-and-exchange-rates/exchange-rates/euro-conversion-rates/",
+      "notes": "Irrevocable euro-adoption conversion; no assumption about the pre-adoption exchange regime."
+    },
+    {
+      "currency": "ITL",
+      "anchor": "EUR",
+      "currencyUnits": "1936.27",
+      "anchorUnits": "1",
+      "validFrom": "1999-01-01",
+      "validUntil": null,
+      "authority": "Eurosystem",
+      "sourceUrl": "https://www.suomenpankki.fi/en/statistics/interest-rates-and-exchange-rates/exchange-rates/euro-conversion-rates/",
+      "notes": "Irrevocable euro-adoption conversion; no assumption about the pre-adoption exchange regime."
+    },
+    {
+      "currency": "LUF",
+      "anchor": "EUR",
+      "currencyUnits": "40.3399",
+      "anchorUnits": "1",
+      "validFrom": "1999-01-01",
+      "validUntil": null,
+      "authority": "Eurosystem",
+      "sourceUrl": "https://www.suomenpankki.fi/en/statistics/interest-rates-and-exchange-rates/exchange-rates/euro-conversion-rates/",
+      "notes": "Irrevocable euro-adoption conversion; no assumption about the pre-adoption exchange regime."
+    },
+    {
+      "currency": "NLG",
+      "anchor": "EUR",
+      "currencyUnits": "2.20371",
+      "anchorUnits": "1",
+      "validFrom": "1999-01-01",
+      "validUntil": null,
+      "authority": "Eurosystem",
+      "sourceUrl": "https://www.suomenpankki.fi/en/statistics/interest-rates-and-exchange-rates/exchange-rates/euro-conversion-rates/",
+      "notes": "Irrevocable euro-adoption conversion; no assumption about the pre-adoption exchange regime."
+    },
+    {
+      "currency": "PTE",
+      "anchor": "EUR",
+      "currencyUnits": "200.482",
+      "anchorUnits": "1",
+      "validFrom": "1999-01-01",
+      "validUntil": null,
+      "authority": "Eurosystem",
+      "sourceUrl": "https://www.suomenpankki.fi/en/statistics/interest-rates-and-exchange-rates/exchange-rates/euro-conversion-rates/",
+      "notes": "Irrevocable euro-adoption conversion; no assumption about the pre-adoption exchange regime."
+    },
+    {
+      "currency": "GRD",
+      "anchor": "EUR",
+      "currencyUnits": "340.750",
+      "anchorUnits": "1",
+      "validFrom": "2001-01-01",
+      "validUntil": null,
+      "authority": "Eurosystem",
+      "sourceUrl": "https://www.suomenpankki.fi/en/statistics/interest-rates-and-exchange-rates/exchange-rates/euro-conversion-rates/",
+      "notes": "Irrevocable euro-adoption conversion; no assumption about the pre-adoption exchange regime."
+    },
+    {
+      "currency": "SIT",
+      "anchor": "EUR",
+      "currencyUnits": "239.640",
+      "anchorUnits": "1",
+      "validFrom": "2007-01-01",
+      "validUntil": null,
+      "authority": "Eurosystem",
+      "sourceUrl": "https://www.suomenpankki.fi/en/statistics/interest-rates-and-exchange-rates/exchange-rates/euro-conversion-rates/",
+      "notes": "Irrevocable euro-adoption conversion; no assumption about the pre-adoption exchange regime."
+    },
+    {
+      "currency": "CYP",
+      "anchor": "EUR",
+      "currencyUnits": "0.585274",
+      "anchorUnits": "1",
+      "validFrom": "2008-01-01",
+      "validUntil": null,
+      "authority": "Eurosystem",
+      "sourceUrl": "https://www.suomenpankki.fi/en/statistics/interest-rates-and-exchange-rates/exchange-rates/euro-conversion-rates/",
+      "notes": "Irrevocable euro-adoption conversion; no assumption about the pre-adoption exchange regime."
+    },
+    {
+      "currency": "MTL",
+      "anchor": "EUR",
+      "currencyUnits": "0.429300",
+      "anchorUnits": "1",
+      "validFrom": "2008-01-01",
+      "validUntil": null,
+      "authority": "Eurosystem",
+      "sourceUrl": "https://www.suomenpankki.fi/en/statistics/interest-rates-and-exchange-rates/exchange-rates/euro-conversion-rates/",
+      "notes": "Irrevocable euro-adoption conversion; no assumption about the pre-adoption exchange regime."
+    },
+    {
+      "currency": "SKK",
+      "anchor": "EUR",
+      "currencyUnits": "30.1260",
+      "anchorUnits": "1",
+      "validFrom": "2009-01-01",
+      "validUntil": null,
+      "authority": "Eurosystem",
+      "sourceUrl": "https://www.suomenpankki.fi/en/statistics/interest-rates-and-exchange-rates/exchange-rates/euro-conversion-rates/",
+      "notes": "Irrevocable euro-adoption conversion; no assumption about the pre-adoption exchange regime."
+    },
+    {
+      "currency": "EEK",
+      "anchor": "EUR",
+      "currencyUnits": "15.6466",
+      "anchorUnits": "1",
+      "validFrom": "2011-01-01",
+      "validUntil": null,
+      "authority": "Eurosystem",
+      "sourceUrl": "https://www.suomenpankki.fi/en/statistics/interest-rates-and-exchange-rates/exchange-rates/euro-conversion-rates/",
+      "notes": "Irrevocable euro-adoption conversion; no assumption about the pre-adoption exchange regime."
+    },
+    {
+      "currency": "LVL",
+      "anchor": "EUR",
+      "currencyUnits": "0.702804",
+      "anchorUnits": "1",
+      "validFrom": "2014-01-01",
+      "validUntil": null,
+      "authority": "Eurosystem",
+      "sourceUrl": "https://www.suomenpankki.fi/en/statistics/interest-rates-and-exchange-rates/exchange-rates/euro-conversion-rates/",
+      "notes": "Irrevocable euro-adoption conversion; no assumption about the pre-adoption exchange regime."
+    },
+    {
+      "currency": "LTL",
+      "anchor": "EUR",
+      "currencyUnits": "3.45280",
+      "anchorUnits": "1",
+      "validFrom": "2015-01-01",
+      "validUntil": null,
+      "authority": "Eurosystem",
+      "sourceUrl": "https://www.suomenpankki.fi/en/statistics/interest-rates-and-exchange-rates/exchange-rates/euro-conversion-rates/",
+      "notes": "Irrevocable euro-adoption conversion; no assumption about the pre-adoption exchange regime."
+    },
+    {
+      "currency": "HRK",
+      "anchor": "EUR",
+      "currencyUnits": "7.53450",
+      "anchorUnits": "1",
+      "validFrom": "2023-01-01",
+      "validUntil": null,
+      "authority": "Eurosystem",
+      "sourceUrl": "https://www.suomenpankki.fi/en/statistics/interest-rates-and-exchange-rates/exchange-rates/euro-conversion-rates/",
+      "notes": "Irrevocable euro-adoption conversion; no assumption about the pre-adoption exchange regime."
+    }
+  ],
+  "marketQuoted": [
+    {
+      "currencies": [
+        "HKD"
+      ],
+      "reason": "USD-linked trading band, not an exact 7.80 parity. Use the observed rate.",
+      "sourceUrl": "https://www.hkma.gov.hk/media/eng/publication-and-research/reference-materials/monetary/HKMA_LERS_English_version.pdf"
+    },
+    {
+      "currencies": [
+        "DKK"
+      ],
+      "reason": "ERM II fluctuation band around the central parity; use the observed rate.",
+      "sourceUrl": "https://www.nationalbanken.dk/en/frequently-asked-questions/questions-regarding-fixed-exchange-rate-policy"
+    },
+    {
+      "currencies": [
+        "KWD",
+        "SGD",
+        "BWP",
+        "MAD",
+        "FJD",
+        "SBD",
+        "TOP",
+        "WST",
+        "VUV",
+        "CNY",
+        "MVR"
+      ],
+      "reason": "Basket, managed, crawling or band arrangements require dated market quotes, not a constant single-currency rate.",
+      "sourceUrl": "https://www.imf.org/external/pubs/ft/ar/2025/pdfs/imf-annual-report-2025-appendices.pdf"
+    },
+    {
+      "currencies": [
+        "AZN",
+        "BOB",
+        "LBP",
+        "IQD",
+        "IRR",
+        "MMK",
+        "CUP",
+        "YER"
+      ],
+      "reason": "Administered, stabilized or multiple exchange rates are not encoded as irrevocable fixed parities. Use provider quotes until a specific, sourced validity interval is established.",
+      "sourceUrl": "https://www.imf.org/external/pubs/ft/ar/2025/pdfs/imf-annual-report-2025-appendices.pdf"
+    },
+    {
+      "currencies": [
+        "USDT",
+        "USDC"
+      ],
+      "reason": "A token's redemption target is not a guaranteed market exchange rate; retain crypto market quotes.",
+      "sourceUrl": "https://www.bis.org/publ/bppdf/bispap141.htm"
+    }
+  ]
+}

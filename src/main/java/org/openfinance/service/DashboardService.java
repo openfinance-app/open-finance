@@ -1509,9 +1509,12 @@ public class DashboardService {
 
         Map<String, NetWorthAllocation.NetWorthAllocationBuilder> categoryMap = new HashMap<>();
 
-        // Keep positive cash and overdrafts in separate groups even when their account types match.
-        List<Account> accounts = accountRepository.findByUserIdAndIsActive(userId, true);
+        // Closed accounts retain value; use the same ownership boundary as NetWorthService.
+        List<Account> accounts = accountRepository.findByUserId(userId);
+        java.util.Set<Long> excludedAccounts =
+                org.openfinance.util.AccountValuation.excludedAccountIds(accounts, LocalDate.now());
         for (Account account : accounts) {
+            if (excludedAccounts.contains(account.getId())) continue;
             String category = categorizeAccount(account.getType());
             boolean liability = account.getBalance().signum() < 0;
             String key = category + (liability ? ":liability" : "");
@@ -1534,6 +1537,7 @@ public class DashboardService {
         // Process assets
         List<Asset> assets = assetRepository.findCurrentHoldingsByUserId(userId);
         for (Asset asset : assets) {
+            if (excludedAccounts.contains(asset.getAccountId())) continue;
             if (asset.getAcquisitionType() == org.openfinance.entity.AcquisitionType.PLANNED)
                 continue;
             String category = categorizeAsset(asset.getType());
@@ -1949,7 +1953,7 @@ public class DashboardService {
     public YearlyBalanceResponse getYearlyBalanceVariations(Long userId) {
         LocalDate today = LocalDate.now();
         String currency = getUserCurrency(userId);
-        List<Account> accounts = accountRepository.findByUserIdWithInstitution(userId);
+        List<Account> accounts = accountRepository.findAllForHistoryWithInstitution(userId);
         List<LocalDate> dates = new ArrayList<>();
         accounts.forEach(a -> dates.add(a.getOpeningDate()));
         transactionRepository.findByUserId(userId).stream()

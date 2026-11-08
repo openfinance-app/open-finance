@@ -7,6 +7,7 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -91,6 +92,7 @@ public class ExchangeRateService {
      *
      * <ol>
      *   <li>Check if source and target are the same (return 1.0)
+     *   <li>Resolve official fixed parities valid on the valuation date to their anchors
      *   <li>Query database for direct rate (base → target)
      *   <li>Query database for inverse rate (target → base) and calculate inverse
      *   <li>Throw exception if no rate found
@@ -111,7 +113,8 @@ public class ExchangeRateService {
     }
 
     /**
-     * Resolves the rate with the actual quote dates and sources, including both cross-rate legs.
+     * Resolves official dated parities before market quotes, retaining provenance for every fixed
+     * and floating leg. Imported booked amounts and source conversion rates are not rewritten.
      */
     public ExchangeRateQuote getExchangeRateQuote(
             String fromCurrency, String toCurrency, LocalDate date) {
@@ -121,12 +124,34 @@ public class ExchangeRateService {
         validateCurrency(fromCurrency);
         validateCurrency(toCurrency);
 
+        fromCurrency = fromCurrency.toUpperCase(Locale.ROOT);
+        toCurrency = toCurrency.toUpperCase(Locale.ROOT);
+
         // Same currency conversion
         if (fromCurrency.equalsIgnoreCase(toCurrency)) {
             log.debug("Same currency conversion, returning 1.0");
             return new ExchangeRateQuote(BigDecimal.ONE, List.of());
         }
 
+        LocalDate valuationDate = date == null ? LocalDate.now() : date;
+        CurrencyPegRegistry.Anchor from =
+                CurrencyPegRegistry.standard().resolve(fromCurrency, valuationDate);
+        CurrencyPegRegistry.Anchor to =
+                CurrencyPegRegistry.standard().resolve(toCurrency, valuationDate);
+        ExchangeRateQuote market =
+                from.currency().equals(to.currency())
+                        ? new ExchangeRateQuote(BigDecimal.ONE, List.of())
+                        : marketQuote(from.currency(), to.currency(), date);
+        if (from.legs().isEmpty() && to.legs().isEmpty()) return market;
+        List<ExchangeRateLeg> legs = new ArrayList<>(from.legs());
+        legs.addAll(market.legs());
+        legs.addAll(to.legs());
+        return new ExchangeRateQuote(
+                from.rate().multiply(market.rate()).divide(to.rate(), MathContext.DECIMAL128),
+                legs);
+    }
+
+    private ExchangeRateQuote marketQuote(String fromCurrency, String toCurrency, LocalDate date) {
         Optional<ExchangeRateQuote> storedRate =
                 findExchangeRate(fromCurrency, toCurrency, date, List.of());
         if (storedRate.isPresent()) {
@@ -240,7 +265,7 @@ public class ExchangeRateService {
         List<ExchangeRate> newRates = new ArrayList<>();
 
         // Fetch USD-based rates for all currencies except USD
-        List<String> symbols = buildYahooFinanceSymbols(activeCurrencies);
+        List<String> symbols = buildYahooFinanceSymbols(activeCurrencies, today);
         log.debug("Fetching {} exchange rate symbols from Yahoo Finance", symbols.size());
 
         try {
@@ -325,7 +350,7 @@ public class ExchangeRateService {
         }
 
         LocalDate from = date.minusDays(7);
-        List<String> symbols = buildYahooFinanceSymbols(activeCurrencies);
+        List<String> symbols = buildYahooFinanceSymbols(activeCurrencies, date);
         return fetchAndStoreHistoricalRates(symbols, from, date);
     }
 
@@ -651,10 +676,11 @@ public class ExchangeRateService {
      * @param currencies list of currencies to build symbols for
      * @return list of fiat Yahoo Finance symbols
      */
-    private List<String> buildYahooFinanceSymbols(List<Currency> currencies) {
+    private List<String> buildYahooFinanceSymbols(List<Currency> currencies, LocalDate date) {
         List<String> symbols = new ArrayList<>();
         for (Currency currency : currencies) {
-            String code = currency.getCode();
+            String code =
+                    CurrencyPegRegistry.standard().resolve(currency.getCode(), date).currency();
             if ("USD".equalsIgnoreCase(code)) {
                 continue; // USD is the quote currency
             }
@@ -663,7 +689,8 @@ public class ExchangeRateService {
             if (currency.getType() == CurrencyType.CRYPTO) {
                 continue; // crypto prices come from the crypto-list provider, not Yahoo
             }
-            symbols.add(code + "USD=X"); // fiat: EURUSD=X
+            String symbol = code + "USD=X";
+            if (!symbols.contains(symbol)) symbols.add(symbol);
         }
         return symbols;
     }

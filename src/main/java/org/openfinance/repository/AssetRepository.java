@@ -43,6 +43,8 @@ public interface AssetRepository
             "SELECT a FROM Asset a WHERE a.userId = :userId "
                     + "AND a.soldDate IS NULL "
                     + "AND a.acquisitionType <> org.openfinance.entity.AcquisitionType.PLANNED "
+                    + "AND NOT EXISTS (SELECT account.id FROM Account account "
+                    + "WHERE account.id = a.accountId AND account.deletedDate IS NOT NULL) "
                     + "AND NOT EXISTS (SELECT p.id FROM RealEstateProperty p "
                     + "WHERE p.userId = :userId AND p.assetId = a.id AND p.isActive = false)")
     List<Asset> findCurrentHoldingsByUserId(@Param("userId") Long userId);

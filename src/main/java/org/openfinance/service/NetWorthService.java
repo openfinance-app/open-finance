@@ -7,12 +7,12 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.openfinance.entity.Account;
-import org.openfinance.entity.AccountStatusHistory;
 import org.openfinance.entity.Asset;
 import org.openfinance.entity.Liability;
 import org.openfinance.entity.MovementType;
@@ -23,13 +23,13 @@ import org.openfinance.entity.Transaction;
 import org.openfinance.entity.TransactionType;
 import org.openfinance.exception.ExchangeRateUnavailableException;
 import org.openfinance.repository.AccountRepository;
-import org.openfinance.repository.AccountStatusHistoryRepository;
 import org.openfinance.repository.AssetRepository;
 import org.openfinance.repository.CurrencyRepository;
 import org.openfinance.repository.LiabilityRepository;
 import org.openfinance.repository.NetWorthRepository;
 import org.openfinance.repository.RealEstateValueHistoryRepository;
 import org.openfinance.repository.TransactionRepository;
+import org.openfinance.util.AccountValuation;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
@@ -79,7 +79,6 @@ public class NetWorthService {
 
     private final NetWorthRepository netWorthRepository;
     private final AccountRepository accountRepository;
-    private final AccountStatusHistoryRepository accountStatusHistoryRepository;
     private final CurrencyRepository currencyRepository;
     private final AssetRepository assetRepository;
     private final LiabilityRepository liabilityRepository;
@@ -214,10 +213,12 @@ public class NetWorthService {
      */
     public BigDecimal calculateTotalAssets(Long userId, String baseCurrency) {
         // Calculate account balances (already converted to base currency)
-        List<Account> accounts = accountRepository.findByUserIdAndIsActive(userId, true);
+        List<Account> accounts = accountRepository.findByUserId(userId);
+        Set<Long> excludedAccounts = AccountValuation.excludedAccountIds(accounts, LocalDate.now());
 
         BigDecimal accountAssets =
                 accounts.stream()
+                        .filter(account -> !excludedAccounts.contains(account.getId()))
                         .filter(account -> account.getBalance().compareTo(BigDecimal.ZERO) > 0)
                         .map(
                                 account ->
@@ -233,6 +234,7 @@ public class NetWorthService {
         // including it would double-count the property in total assets.
         BigDecimal investmentAssets =
                 assetRepository.findByUserId(userId).stream()
+                        .filter(asset -> !excludedAccounts.contains(asset.getAccountId()))
                         .filter(asset -> asset.getSoldDate() == null)
                         .filter(
                                 asset ->
@@ -338,11 +340,12 @@ public class NetWorthService {
      * @return total liabilities (positive number) in the specified base currency
      */
     public BigDecimal calculateTotalLiabilities(Long userId, String baseCurrency) {
-        List<Account> accounts = accountRepository.findByUserIdAndIsActive(userId, true);
+        List<Account> accounts = accountRepository.findByUserId(userId);
 
         // Sum of negative account balances, converted to positive and to base currency
         BigDecimal negativeBalances =
                 accounts.stream()
+                        .filter(account -> account.isPresentAt(LocalDate.now()))
                         .filter(account -> account.getBalance().compareTo(BigDecimal.ZERO) < 0)
                         .map(
                                 account ->
@@ -762,9 +765,6 @@ public class NetWorthService {
         }
 
         List<Account> accounts = accountRepository.findByUserId(userId);
-        Map<Long, List<AccountStatusHistory>> statusByAccount =
-                accountStatusHistoryRepository.findByUserId(userId).stream()
-                        .collect(Collectors.groupingBy(AccountStatusHistory::getAccountId));
         List<Asset> assets = assetRepository.findByUserId(userId);
         List<Transaction> allTransactions = transactionRepository.findByUserId(userId);
 
@@ -838,11 +838,11 @@ public class NetWorthService {
             if (netWorthRepository.findByUserIdAndSnapshotDate(userId, targetDate).isEmpty()) {
                 BigDecimal totalAssets = BigDecimal.ZERO;
                 BigDecimal totalLiabilities = BigDecimal.ZERO;
+                Set<Long> excludedAccounts =
+                        AccountValuation.excludedAccountIds(accounts, targetDate);
 
                 for (Account account : accounts) {
-                    if (!accountWasActive(
-                            statusByAccount.getOrDefault(account.getId(), List.of()), targetDate))
-                        continue;
+                    if (excludedAccounts.contains(account.getId())) continue;
                     LocalDate earliest = accountEarliestDate.get(account.getId());
                     if (earliest != null && earliest.isAfter(targetDate)) {
                         continue;
@@ -871,6 +871,7 @@ public class NetWorthService {
                 // gated by purchaseDate. Skip REAL_ESTATE type to avoid double-counting
                 // with RealEstateProperty entities below.
                 for (Asset asset : assets) {
+                    if (excludedAccounts.contains(asset.getAccountId())) continue;
                     if (asset.getSoldDate() != null && !asset.getSoldDate().isAfter(targetDate))
                         continue;
                     if (asset.getAcquisitionType()
@@ -1093,9 +1094,6 @@ public class NetWorthService {
                 transactionRepository.findByUserId(userId).stream()
                         .filter(t -> !Boolean.TRUE.equals(t.getIsDeleted()))
                         .collect(Collectors.groupingBy(Transaction::getAccountId));
-        Map<Long, List<AccountStatusHistory>> statuses =
-                accountStatusHistoryRepository.findByUserId(userId).stream()
-                        .collect(Collectors.groupingBy(AccountStatusHistory::getAccountId));
         Map<Long, BigDecimal> result = new java.util.HashMap<>();
         for (Account account : accountRepository.findByUserId(userId)) {
             LocalDate opening = account.getOpeningDate();
@@ -1103,9 +1101,7 @@ public class NetWorthService {
                 if (opening == null || movement.getDate().isBefore(opening))
                     opening = movement.getDate();
             }
-            if ((opening != null && opening.isAfter(date))
-                    || !accountWasActive(statuses.getOrDefault(account.getId(), List.of()), date))
-                continue;
+            if ((opening != null && opening.isAfter(date)) || !account.isPresentAt(date)) continue;
             BigDecimal balance =
                     date.equals(LocalDate.now())
                             ? account.getBalance()
@@ -1166,17 +1162,6 @@ public class NetWorthService {
                                     liability, date, movementsByLiability, tranches)));
         }
         return history;
-    }
-
-    /** A reversed direct draw stops contributing its valuation on the reversal date. */
-    private boolean accountWasActive(List<AccountStatusHistory> history, LocalDate date) {
-        return history.stream()
-                .filter(h -> !h.getEffectiveDate().isAfter(date))
-                .max(
-                        Comparator.comparing(AccountStatusHistory::getEffectiveDate)
-                                .thenComparing(AccountStatusHistory::getId))
-                .map(AccountStatusHistory::isActive)
-                .orElse(true);
     }
 
     private boolean propertyWasActive(

@@ -171,5 +171,4 @@ docs/wiki/demo/*
 !docs/wiki/demo/demo-tour.mp4
 !docs/wiki/demo/demo-tour-poster.jpg
 src/main/java/org/openfinance/service/history/README.md
-samples/latest_3.json
-samples/latest_3.sqlite
+samples/

@@ -384,6 +384,7 @@ public class ImportService {
                     List<Account> userAccounts =
                             accountRepository.findByUserId(session.getUserId());
                     for (Account acc : userAccounts) {
+                        if (acc.getDeletedDate() != null) continue;
                         String normalizedDetected =
                                 detectedAccountName.replaceAll("[^a-zA-Z0-9]", "").toLowerCase();
                         String normalizedAccName =
@@ -2340,6 +2341,7 @@ public class ImportService {
     private Account findMatchingAccount(
             List<Account> existingAccounts, SkroogeImportMetadata.SkroogeAccount importedAccount) {
         for (Account existingAccount : existingAccounts) {
+            if (existingAccount.getDeletedDate() != null) continue;
             if (matchesImportedAccount(
                     existingAccount,
                     importedAccount.getName(),
@@ -2600,6 +2602,7 @@ public class ImportService {
 
     private boolean matchesImportedAccount(
             Account existingAccount, String importedName, String importedAccountNumber) {
+        if (existingAccount.getDeletedDate() != null) return false;
         String existingName = existingAccount.getName();
         String existingAccountNumber = existingAccount.getAccountNumber();
         boolean sameName =

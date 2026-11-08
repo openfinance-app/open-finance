@@ -45,6 +45,88 @@ import org.openfinance.repository.NetWorthRepository;
 @MockitoSettings(strictness = Strictness.LENIENT)
 @DisplayName("NetWorthService Unit Tests")
 class NetWorthServiceTest {
+
+    @Test
+    @DisplayName("Closing an account preserves its residual cash in net worth")
+    void shouldIncludeResidualCashInClosedAccounts() {
+        Account closed =
+                Account.builder()
+                        .id(19L)
+                        .userId(testUserId)
+                        .name("Closed trading")
+                        .currency("EUR")
+                        .isActive(false)
+                        .balance(new BigDecimal("30.4651395"))
+                        .build();
+        org.mockito.Mockito.lenient()
+                .when(accountRepository.findByUserId(testUserId))
+                .thenReturn(List.of(closed));
+        assertThat(netWorthService.calculateNetWorth(testUserId, LocalDate.now(), "EUR"))
+                .isEqualByComparingTo("30.4651395");
+    }
+
+    @Test
+    @DisplayName("Closed accounts retain cash, debt and holdings; deleted accounts retain none")
+    void closedAndDeletedPositionsAreValuedConsistently() {
+        Account cash = createAccount(1L, AccountType.CHECKING, new BigDecimal("30"));
+        Account debt = createAccount(2L, AccountType.CREDIT_CARD, new BigDecimal("-10"));
+        Account deleted = createAccount(3L, AccountType.CHECKING, new BigDecimal("100"));
+        cash.setIsActive(false);
+        debt.setIsActive(false);
+        deleted.setIsActive(false);
+        deleted.setDeletedDate(LocalDate.now());
+        when(accountRepository.findByUserId(testUserId)).thenReturn(List.of(cash, debt, deleted));
+        when(assetRepository.findByUserId(testUserId))
+                .thenReturn(List.of(holding(1L, 1L, "70"), holding(2L, 3L, "500")));
+        assertThat(netWorthService.calculateTotalAssets(testUserId, "USD"))
+                .isEqualByComparingTo("100");
+        deleted.setBalance(new BigDecimal("-100"));
+        assertThat(netWorthService.calculateTotalLiabilities(testUserId, "USD"))
+                .isEqualByComparingTo("10");
+    }
+
+    @Test
+    @DisplayName("Historical cash and holdings remain present until the deletion date")
+    void historicalPositionsRespectDeletionButNotClosure() {
+        LocalDate deletion = LocalDate.of(2025, 1, 15);
+        Account closed = createAccount(1L, AccountType.CHECKING, new BigDecimal("30"));
+        Account deleted = createAccount(2L, AccountType.CHECKING, new BigDecimal("100"));
+        for (Account account : List.of(closed, deleted)) {
+            account.setIsActive(false);
+            account.setOpeningDate(deletion.minusYears(1));
+            account.setOpeningBalance(account.getBalance());
+        }
+        deleted.setDeletedDate(deletion);
+        when(accountRepository.findByUserId(testUserId)).thenReturn(List.of(closed, deleted));
+        when(assetRepository.findByUserId(testUserId))
+                .thenReturn(List.of(holding(1L, 1L, "70"), holding(2L, 2L, "500")));
+        when(netWorthRepository.findByUserIdAndSnapshotDate(any(), any()))
+                .thenReturn(Optional.empty());
+        assertThat(netWorthService.getAccountBalancesAt(testUserId, deletion.minusDays(1), "USD"))
+                .containsKeys(1L, 2L);
+        assertThat(netWorthService.getAccountBalancesAt(testUserId, deletion, "USD"))
+                .containsOnlyKeys(1L);
+        netWorthService.backfillNetWorthHistory(testUserId, deletion.minusDays(1), deletion, "USD");
+        org.mockito.ArgumentCaptor<NetWorth> saved =
+                org.mockito.ArgumentCaptor.forClass(NetWorth.class);
+        verify(netWorthRepository, times(2)).save(saved.capture());
+        assertThat(saved.getAllValues().get(0).getNetWorth()).isEqualByComparingTo("700");
+        assertThat(saved.getAllValues().get(1).getNetWorth()).isEqualByComparingTo("100");
+    }
+
+    private org.openfinance.entity.Asset holding(Long id, Long accountId, String value) {
+        return org.openfinance.entity.Asset.builder()
+                .id(id)
+                .userId(testUserId)
+                .accountId(accountId)
+                .type(org.openfinance.entity.AssetType.STOCK)
+                .currency("USD")
+                .quantity(BigDecimal.ONE)
+                .purchasePrice(new BigDecimal(value))
+                .currentPrice(new BigDecimal(value))
+                .build();
+    }
+
     @Mock private org.openfinance.repository.LiabilityTrancheRepository liabilityTrancheRepository;
 
     @Mock private AccountCurrencyService accountCurrencyService;
@@ -155,8 +237,7 @@ class NetWorthServiceTest {
         Account foreign = createAccount(100L, AccountType.CHECKING, new BigDecimal("100000"));
         foreign.setCurrency("JPY");
         foreign.setOpeningDate(testDate.minusMonths(1));
-        when(accountRepository.findByUserIdAndIsActive(testUserId, true))
-                .thenReturn(List.of(foreign));
+        when(accountRepository.findByUserId(testUserId)).thenReturn(List.of(foreign));
         when(accountRepository.findByUserId(testUserId)).thenReturn(List.of(foreign));
         doThrow(new IllegalStateException("Unavailable provider"))
                 .when(exchangeRateService)
@@ -252,14 +333,14 @@ class NetWorthServiceTest {
                         createAccount(101L, AccountType.SAVINGS, new BigDecimal("5000.00")),
                         createAccount(102L, AccountType.INVESTMENT, new BigDecimal("10000.00")));
 
-        when(accountRepository.findByUserIdAndIsActive(testUserId, true)).thenReturn(accounts);
+        when(accountRepository.findByUserId(testUserId)).thenReturn(accounts);
 
         // Act
         BigDecimal netWorth = netWorthService.calculateNetWorth(testUserId, testDate);
 
         // Assert
         assertThat(netWorth).isEqualByComparingTo(new BigDecimal("16000.00"));
-        verify(accountRepository, times(2)).findByUserIdAndIsActive(testUserId, true);
+        verify(accountRepository, times(2)).findByUserId(testUserId);
     }
 
     @Test
@@ -276,7 +357,7 @@ class NetWorthServiceTest {
                                 103L, AccountType.CREDIT_CARD, new BigDecimal("-500.00")) // Debt
                         );
 
-        when(accountRepository.findByUserIdAndIsActive(testUserId, true)).thenReturn(accounts);
+        when(accountRepository.findByUserId(testUserId)).thenReturn(accounts);
 
         // Act
         BigDecimal netWorth = netWorthService.calculateNetWorth(testUserId, testDate);
@@ -289,7 +370,7 @@ class NetWorthServiceTest {
     @DisplayName("Should calculate net worth as zero when no accounts exist")
     void shouldCalculateZeroNetWorthWhenNoAccounts() {
         // Arrange
-        when(accountRepository.findByUserIdAndIsActive(testUserId, true)).thenReturn(List.of());
+        when(accountRepository.findByUserId(testUserId)).thenReturn(List.of());
 
         // Act
         BigDecimal netWorth = netWorthService.calculateNetWorth(testUserId, testDate);
@@ -307,7 +388,7 @@ class NetWorthServiceTest {
                         createAccount(100L, AccountType.CHECKING, new BigDecimal("500.00")),
                         createAccount(101L, AccountType.CREDIT_CARD, new BigDecimal("-3000.00")));
 
-        when(accountRepository.findByUserIdAndIsActive(testUserId, true)).thenReturn(accounts);
+        when(accountRepository.findByUserId(testUserId)).thenReturn(accounts);
 
         // Act
         BigDecimal netWorth = netWorthService.calculateNetWorth(testUserId, testDate);
@@ -350,7 +431,7 @@ class NetWorthServiceTest {
                                 new BigDecimal("-1000.00")) // Should be excluded
                         );
 
-        when(accountRepository.findByUserIdAndIsActive(testUserId, true)).thenReturn(accounts);
+        when(accountRepository.findByUserId(testUserId)).thenReturn(accounts);
 
         // Act
         BigDecimal totalAssets = netWorthService.calculateTotalAssets(testUserId);
@@ -374,7 +455,7 @@ class NetWorthServiceTest {
                         createAccount(101L, AccountType.CREDIT_CARD, new BigDecimal("-1200.00")),
                         createAccount(102L, AccountType.CREDIT_CARD, new BigDecimal("-800.00")));
 
-        when(accountRepository.findByUserIdAndIsActive(testUserId, true)).thenReturn(accounts);
+        when(accountRepository.findByUserId(testUserId)).thenReturn(accounts);
 
         // Act
         BigDecimal totalLiabilities = netWorthService.calculateTotalLiabilities(testUserId);
@@ -392,7 +473,7 @@ class NetWorthServiceTest {
                         createAccount(100L, AccountType.CHECKING, new BigDecimal("1000.00")),
                         createAccount(101L, AccountType.SAVINGS, new BigDecimal("5000.00")));
 
-        when(accountRepository.findByUserIdAndIsActive(testUserId, true)).thenReturn(accounts);
+        when(accountRepository.findByUserId(testUserId)).thenReturn(accounts);
 
         // Act
         BigDecimal totalLiabilities = netWorthService.calculateTotalLiabilities(testUserId);
@@ -410,7 +491,7 @@ class NetWorthServiceTest {
         List<Account> accounts =
                 List.of(createAccount(100L, AccountType.CHECKING, new BigDecimal("5000.00")));
 
-        when(accountRepository.findByUserIdAndIsActive(testUserId, true)).thenReturn(accounts);
+        when(accountRepository.findByUserId(testUserId)).thenReturn(accounts);
         when(netWorthRepository.findByUserIdAndSnapshotDate(testUserId, testDate))
                 .thenReturn(Optional.empty());
 
@@ -513,7 +594,7 @@ class NetWorthServiceTest {
                         BigDecimal.ZERO,
                         new BigDecimal("5000.00"));
 
-        when(accountRepository.findByUserIdAndIsActive(testUserId, true)).thenReturn(accounts);
+        when(accountRepository.findByUserId(testUserId)).thenReturn(accounts);
         when(netWorthRepository.findByUserIdAndSnapshotDate(testUserId, testDate))
                 .thenReturn(Optional.of(existingSnapshot));
 
@@ -545,7 +626,7 @@ class NetWorthServiceTest {
         List<Account> accounts =
                 List.of(createAccount(100L, AccountType.CHECKING, new BigDecimal("3000.00")));
 
-        when(accountRepository.findByUserIdAndIsActive(testUserId, true)).thenReturn(accounts);
+        when(accountRepository.findByUserId(testUserId)).thenReturn(accounts);
         when(netWorthRepository.findByUserIdAndSnapshotDate(eq(testUserId), any(LocalDate.class)))
                 .thenReturn(Optional.empty());
 
