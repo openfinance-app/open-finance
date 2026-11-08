@@ -1,3 +1,4 @@
+import { waitFor } from '@testing-library/react';
 import type { ComponentProps } from 'react';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { screen } from '@testing-library/react';
@@ -128,5 +129,5 @@ it('lets the user close a failed detail request without showing stale property d
   expect(screen.getByText(tr('loadError'))).toBeInTheDocument();
   expect(screen.queryByText(property.name)).not.toBeInTheDocument();
   await userEvent.click(screen.getAllByRole('button', { name: tr('close') })[0]);
-  expect(close).toHaveBeenCalledOnce();
+  await waitFor(() => expect(close).toHaveBeenCalledOnce());
 });

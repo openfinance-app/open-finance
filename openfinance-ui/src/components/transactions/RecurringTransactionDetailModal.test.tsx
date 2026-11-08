@@ -1,3 +1,4 @@
+import { waitFor } from '@testing-library/react';
 /**
  * Unit tests for RecurringTransactionDetailModal component
  *
@@ -363,15 +364,15 @@ describe('RecurringTransactionDetailModal', () => {
   // ── Close behaviour ────────────────────────────────────────────────────────
 
   describe('Close behaviour', () => {
-    it('calls onClose when the X button is clicked', () => {
+    it('calls onClose when the X button is clicked', async () => {
       renderWithProviders(
         <RecurringTransactionDetailModal recurringTransaction={activeExpense} onClose={onClose} />
       );
       fireEvent.click(screen.getByLabelText('Close modal'));
-      expect(onClose).toHaveBeenCalledTimes(1);
+      await waitFor(() => expect(onClose).toHaveBeenCalledTimes(1));
     });
 
-    it('calls onClose when backdrop is clicked', () => {
+    it('calls onClose when backdrop is clicked', async () => {
       renderWithProviders(
         <RecurringTransactionDetailModal recurringTransaction={activeExpense} onClose={onClose} />
       );
@@ -379,17 +380,17 @@ describe('RecurringTransactionDetailModal', () => {
       act(() => {
         fireEvent.click(backdrop!);
       });
-      expect(onClose).toHaveBeenCalledTimes(1);
+      await waitFor(() => expect(onClose).toHaveBeenCalledTimes(1));
     });
 
-    it('calls onClose when Escape key is pressed', () => {
+    it('calls onClose when Escape key is pressed', async () => {
       renderWithProviders(
         <RecurringTransactionDetailModal recurringTransaction={activeExpense} onClose={onClose} />
       );
       act(() => {
         fireEvent.keyDown(window, { key: 'Escape' });
       });
-      expect(onClose).toHaveBeenCalledTimes(1);
+      await waitFor(() => expect(onClose).toHaveBeenCalledTimes(1));
     });
   });
 
@@ -414,7 +415,7 @@ describe('RecurringTransactionDetailModal', () => {
       expect(screen.queryByRole('button', { name: /Edit/i })).not.toBeInTheDocument();
     });
 
-    it('calls onClose and onEdit with the recurring transaction when Edit is clicked', () => {
+    it('calls onClose and onEdit with the recurring transaction when Edit is clicked', async () => {
       renderWithProviders(
         <RecurringTransactionDetailModal
           recurringTransaction={activeExpense}
@@ -425,7 +426,7 @@ describe('RecurringTransactionDetailModal', () => {
       act(() => {
         fireEvent.click(screen.getByRole('button', { name: /Edit/i }));
       });
-      expect(onClose).toHaveBeenCalledTimes(1);
+      await waitFor(() => expect(onClose).toHaveBeenCalledTimes(1));
       expect(onEdit).toHaveBeenCalledTimes(1);
       expect(onEdit).toHaveBeenCalledWith(activeExpense);
     });

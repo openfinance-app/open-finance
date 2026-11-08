@@ -87,7 +87,7 @@ describe('Asset price history currencies', () => {
       screen.getByRole('button', { name: i18n.t('assets:detail.actions.edit') })
     );
     expect(edit).toHaveBeenCalledWith(bitcoin);
-    expect(close).toHaveBeenCalledOnce();
+    await waitFor(() => expect(close).toHaveBeenCalledOnce());
   });
 
   it('requires deletion confirmation, retains the dialog after failure, and supports retry', async () => {
@@ -115,14 +115,14 @@ describe('Asset price history currencies', () => {
     expect(remove.mock.calls).toEqual([[bitcoin.id], [bitcoin.id]]);
   });
 
-  it('closes on Escape and removes its keyboard listener after unmount', () => {
+  it('closes on Escape and removes its keyboard listener after unmount', async () => {
     const close = vi.fn();
     const view = renderWithProviders(<AssetDetailModal asset={bitcoin} onClose={close} />);
     fireEvent.keyDown(window, { key: 'Escape' });
-    expect(close).toHaveBeenCalledOnce();
+    await waitFor(() => expect(close).toHaveBeenCalledOnce());
     view.unmount();
     fireEvent.keyDown(window, { key: 'Escape' });
-    expect(close).toHaveBeenCalledOnce();
+    await waitFor(() => expect(close).toHaveBeenCalledOnce());
   });
 
   it('requests BTC-USD prices in EUR and plots the returned EUR value', () => {

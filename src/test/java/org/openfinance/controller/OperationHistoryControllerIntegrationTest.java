@@ -63,6 +63,64 @@ class OperationHistoryControllerIntegrationTest {
     private Long userId;
 
     @Test
+    void historyDetailsIncludeChildChangesAndInterestEditsCanBeReversed() throws Exception {
+        JsonNode account = createAccount("Interest history");
+        String path = "/api/v1/accounts/" + account.get("id").asLong() + "/interest-variations";
+        Map<String, Object> request =
+                new java.util.HashMap<>(
+                        Map.of(
+                                "rate",
+                                "0.5",
+                                "taxRate",
+                                "30",
+                                "validFrom",
+                                "2026-01-01",
+                                "creditValueDateMode",
+                                "FORTNIGHT",
+                                "debitValueDateMode",
+                                "FORTNIGHT",
+                                "dayCountBasis",
+                                "ACTUAL_365"));
+        JsonNode rate = call(post(path), request);
+        long creation = latest("ACCOUNT").get("id").asLong();
+        JsonNode created = call(get("/api/v1/history/" + creation + "/details"), null);
+        assertThat(created.get("content").get(0).get("recordType").asText())
+                .isEqualTo("interest_rate_variations");
+        assertThat(created.toString()).contains("Interest history", "\"before\":null");
+        request.put("taxRate", "31.4");
+        call(put(path + "/" + rate.get("id").asLong()), request);
+        long update = latest("ACCOUNT").get("id").asLong();
+        JsonNode detail = call(get("/api/v1/history/" + update + "/details"), null);
+        JsonNode field = detail.get("content").get(0).get("fields").get(0);
+        assertThat(field.get("field").asText()).isEqualTo("tax_rate");
+        assertThat(field.get("before").asText()).isEqualTo("30");
+        assertThat(field.get("after").asText()).isEqualTo("31.4");
+        assertThat(detail.toString()).doesNotContain("user_id", "created_at", "updated_at");
+        reverse(update, false);
+        assertThat(call(get(path), null).get(0).get("taxRate").decimalValue())
+                .isEqualByComparingTo("30");
+        reverse(update, true);
+        assertThat(call(get(path), null).get(0).get("taxRate").decimalValue())
+                .isEqualByComparingTo("31.4");
+    }
+
+    @Test
+    void historyDetailsPageRelatedRecordsAndKeepRecordedValuesAfterLaterEdits() throws Exception {
+        JsonNode account = createAccount("Original account");
+        expense(account, "12.34");
+        long action = latest("TRANSACTION").get("id").asLong();
+        JsonNode first = call(get("/api/v1/history/" + action + "/details?size=1&page=0"), null);
+        assertThat(first.get("totalElements").asInt()).isGreaterThanOrEqualTo(2);
+        JsonNode second = call(get("/api/v1/history/" + action + "/details?size=1&page=1"), null);
+        assertThat(first.get("content").get(0).get("recordType").asText())
+                .isNotEqualTo(second.get("content").get(0).get("recordType").asText());
+        expense(account, "20");
+        JsonNode saved = call(get("/api/v1/history/" + action + "/details"), null);
+        assertThat(saved.toString()).contains("12.34", "987.66");
+        assertThat(saved.toString()).doesNotContain("967.66");
+    }
+
+    @Test
     void catalogCurrencyPersistsThroughBudgetCreationUpdateAndHistory() throws Exception {
         currencies
                 .findByCode("EUR")
@@ -1656,6 +1714,13 @@ class OperationHistoryControllerIntegrationTest {
                                 "Password123!"));
         mockMvc.perform(
                         post("/api/v1/history/" + creation + "/undo")
+                                .header("Authorization", "Bearer " + other.get("token").asText())
+                                .header(
+                                        "X-Encryption-Session",
+                                        other.path("encryptionKey").asText("")))
+                .andExpect(status().isNotFound());
+        mockMvc.perform(
+                        get("/api/v1/history/" + creation + "/details")
                                 .header("Authorization", "Bearer " + other.get("token").asText())
                                 .header(
                                         "X-Encryption-Session",

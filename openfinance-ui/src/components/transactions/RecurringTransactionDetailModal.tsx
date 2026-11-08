@@ -1,3 +1,4 @@
+import { useAnimatedClose } from '@/hooks/useAnimatedClose';
 import { useDateFormatter } from '@/hooks/useDateFormatter';
 /**
  * RecurringTransactionDetailModal Component
@@ -76,9 +77,10 @@ const TYPE_CONFIG = {
 
 export function RecurringTransactionDetailModal({
   recurringTransaction,
-  onClose,
+  onClose: onClosed,
   onEdit,
 }: RecurringTransactionDetailModalProps) {
+  const { onClose, closing, onAnimationEnd } = useAnimatedClose(onClosed);
   const { t } = useTranslation('common');
   const { date: formatDate } = useDateFormatter();
   const { t: tr } = useTranslation('recurring');
@@ -100,7 +102,7 @@ export function RecurringTransactionDetailModal({
   // Close on Escape
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
+      if (e.key === 'Escape' && !e.defaultPrevented) onClose();
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
@@ -133,10 +135,21 @@ export function RecurringTransactionDetailModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       {/* Backdrop */}
-      <div className="absolute inset-0 bg-background/80 backdrop-blur-sm" onClick={onClose} />
+      <div
+        data-state={closing ? 'closed' : 'open'}
+        className="detail-overlay absolute inset-0 bg-background/80 backdrop-blur-sm"
+        onClick={onClose}
+      />
 
       {/* Modal panel */}
-      <div className="relative bg-surface border border-border rounded-lg shadow-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto m-4">
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label={recurringTransaction.description || tr('detail.tabs.overview')}
+        data-state={closing ? 'closed' : 'open'}
+        onAnimationEnd={onAnimationEnd}
+        className="detail-panel relative bg-surface border border-border-strong rounded-[var(--radius-card)] shadow-plate-lift max-w-2xl w-full max-h-[90vh] overflow-y-auto m-4"
+      >
         {/* ── Header ── */}
         <div className="sticky top-0 z-10 bg-surface border-b border-border px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">

@@ -9,8 +9,11 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.openfinance.dto.InterestRateVariationRequest;
 import org.openfinance.dto.InterestRateVariationResponse;
+import org.openfinance.entity.EntityType;
 import org.openfinance.entity.InterestRateVariation;
+import org.openfinance.entity.OperationType;
 import org.openfinance.repository.InterestRateVariationRepository;
+import org.openfinance.service.history.ReversibleOperation;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -32,6 +35,11 @@ public class InterestRateVariationService {
                 .collect(Collectors.toList());
     }
 
+    @ReversibleOperation(
+            entity = EntityType.ACCOUNT,
+            operation = OperationType.UPDATE,
+            userArgument = 1,
+            idArgument = 0)
     @Transactional
     public InterestRateVariationResponse addVariation(
             Long accountId, Long userId, InterestRateVariationRequest request) {
@@ -57,6 +65,11 @@ public class InterestRateVariationService {
         return toResponse(variation);
     }
 
+    @ReversibleOperation(
+            entity = EntityType.ACCOUNT,
+            operation = OperationType.UPDATE,
+            userArgument = 2,
+            idArgument = 0)
     @Transactional
     public InterestRateVariationResponse updateVariation(
             Long accountId, Long variationId, Long userId, InterestRateVariationRequest request) {
@@ -87,6 +100,11 @@ public class InterestRateVariationService {
         }
     }
 
+    @ReversibleOperation(
+            entity = EntityType.ACCOUNT,
+            operation = OperationType.UPDATE,
+            userArgument = 2,
+            idArgument = 0)
     @Transactional
     public void deleteVariation(Long accountId, Long variationId, Long userId) {
         // Verify account ownership

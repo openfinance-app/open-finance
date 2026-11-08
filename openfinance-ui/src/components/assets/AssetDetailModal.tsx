@@ -1,3 +1,4 @@
+import { useAnimatedClose } from '@/hooks/useAnimatedClose';
 import { useViewScroll } from '@/hooks/useViewScroll';
 import { useViewState } from '@/hooks/useViewState';
 import { OwnershipActions } from '@/components/assets/OwnershipActions';
@@ -70,11 +71,12 @@ interface AssetDetailModalProps {
 
 export function AssetDetailModal({
   asset,
-  onClose,
+  onClose: onClosed,
   onEdit,
   onDelete,
   onCompletePurchase,
 }: AssetDetailModalProps) {
+  const { onClose, closing, onAnimationEnd } = useAnimatedClose(onClosed);
   const { format: formatCurrency } = useFormatCurrency();
   const {
     convert: convertChart,
@@ -141,7 +143,7 @@ export function AssetDetailModal({
   // Close modal on Escape key
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && !showDeleteConfirm) onClose();
+      if (e.key === 'Escape' && !e.defaultPrevented && !showDeleteConfirm) onClose();
     };
     window.addEventListener('keydown', handleEscape);
     return () => window.removeEventListener('keydown', handleEscape);
@@ -187,15 +189,21 @@ export function AssetDetailModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       {/* Backdrop */}
-      <div className="absolute inset-0 bg-background/80 backdrop-blur-sm" onClick={onClose} />
+      <div
+        data-state={closing ? 'closed' : 'open'}
+        className="detail-overlay absolute inset-0 bg-background/80 backdrop-blur-sm"
+        onClick={onClose}
+      />
 
       {/* Modal */}
       <div
         ref={detailScrollRef}
+        data-state={closing ? 'closed' : 'open'}
+        onAnimationEnd={onAnimationEnd}
         role="dialog"
         aria-modal="true"
         aria-label={asset.name}
-        className="relative bg-surface border border-border rounded-lg shadow-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto m-4"
+        className="detail-panel relative bg-surface border border-border-strong rounded-[var(--radius-card)] shadow-plate-lift max-w-4xl w-full max-h-[90vh] overflow-y-auto m-4"
       >
         {/* Header */}
         <div className="sticky top-0 z-10 bg-surface px-6 py-4 flex items-center justify-between">

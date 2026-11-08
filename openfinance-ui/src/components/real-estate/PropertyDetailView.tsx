@@ -1,6 +1,7 @@
 import { Link } from 'react-router';
 import { useViewScroll } from '@/hooks/useViewScroll';
 import { useViewState } from '@/hooks/useViewState';
+import { useAnimatedClose } from '@/hooks/useAnimatedClose';
 import { OwnershipActions } from '@/components/assets/OwnershipActions';
 import { decimalField } from '@/utils/exact-decimal';
 import type { RealEstateProperty } from '@/types/realEstate';
@@ -70,9 +71,10 @@ type TabType = 'overview' | 'costs' | 'financing' | 'equity' | 'roi' | 'gallery'
 
 export function PropertyDetailView({
   propertyId,
-  onClose,
+  onClose: onClosed,
   onCompletePurchase,
 }: PropertyDetailViewProps) {
+  const { onClose, closing, onAnimationEnd } = useAnimatedClose(onClosed);
   const { t } = useTranslation('realEstate');
   const { date: formatDate } = useDateFormatter();
   const detailScrollRef = useViewScroll(`property:${propertyId}:scroll`);
@@ -91,8 +93,8 @@ export function PropertyDetailView({
 
   if (propertyError) {
     return (
-      <Dialog open={true} onOpenChange={onClose}>
-        <DialogContent className="sm:max-w-4xl">
+      <Dialog open={!closing} onOpenChange={open => !open && onClose()}>
+        <DialogContent onAnimationEnd={onAnimationEnd} className="sm:max-w-4xl">
           <DialogHeader>
             <DialogTitle>{t('propertyDetail.title')}</DialogTitle>
           </DialogHeader>
@@ -109,8 +111,9 @@ export function PropertyDetailView({
 
   return (
     <>
-      <Dialog open={true} onOpenChange={onClose}>
+      <Dialog open={!closing} onOpenChange={open => !open && onClose()}>
         <DialogContent
+          onAnimationEnd={onAnimationEnd}
           ref={detailScrollRef}
           className="grid-cols-1 sm:max-w-4xl max-h-[90vh] overflow-y-auto"
         >

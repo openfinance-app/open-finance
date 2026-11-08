@@ -1,3 +1,4 @@
+import { useAnimatedClose } from '@/hooks/useAnimatedClose';
 import { formatDecimal } from '@/utils/format';
 /**
  * BudgetDetailModal Component
@@ -219,7 +220,8 @@ interface BudgetDetailModalProps {
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export function BudgetDetailModal({ budgetId, onClose }: BudgetDetailModalProps) {
+export function BudgetDetailModal({ budgetId, onClose: onClosed }: BudgetDetailModalProps) {
+  const { onClose, closing, onAnimationEnd } = useAnimatedClose(onClosed);
   const [isBreakdownExpanded, setIsBreakdownExpanded] = useState(false);
   const breakdownId = useId();
   const { isAmountsVisible } = useVisibility();
@@ -241,7 +243,7 @@ export function BudgetDetailModal({ budgetId, onClose }: BudgetDetailModalProps)
   // Close on Escape
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
+      if (e.key === 'Escape' && !e.defaultPrevented) onClose();
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
@@ -267,16 +269,22 @@ export function BudgetDetailModal({ budgetId, onClose }: BudgetDetailModalProps)
   return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       {/* Backdrop */}
-      <div className="absolute inset-0 bg-background/80 backdrop-blur-sm" onClick={onClose} />
+      <div
+        data-state={closing ? 'closed' : 'open'}
+        className="detail-overlay absolute inset-0 bg-background/80 backdrop-blur-sm"
+        onClick={onClose}
+      />
 
       {/* Modal panel */}
       <div
+        data-state={closing ? 'closed' : 'open'}
+        onAnimationEnd={onAnimationEnd}
         role="dialog"
         aria-modal="true"
         aria-label={t('detail.historyTitle', {
           category: historyData?.categoryName ?? budget?.categoryName ?? '',
         })}
-        className="relative bg-surface border border-border rounded-lg shadow-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto m-4"
+        className="detail-panel relative bg-surface border border-border-strong rounded-[var(--radius-card)] shadow-plate-lift max-w-4xl w-full max-h-[90vh] overflow-y-auto m-4"
       >
         {/* ── Header ── */}
         <div className="sticky top-0 z-10 bg-surface border-b border-border px-6 py-4 flex items-center justify-between">

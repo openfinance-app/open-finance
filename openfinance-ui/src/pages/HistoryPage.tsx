@@ -1,6 +1,6 @@
+import { HistoryEntryDetails } from '@/components/history/HistoryEntryDetails';
+import { historyFieldChanges } from '@/utils/history-changes';
 import { useViewState } from '@/hooks/useViewState';
-import { formatExactNumber } from '@/utils/format';
-import { useVisibility } from '@/context/VisibilityContext';
 import { Fragment, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -17,27 +17,6 @@ import type { EntityType, OperationType } from '@/types/history';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { DEFAULT_PAGE_SIZE, PAGE_SIZE_OPTIONS } from '@/constants/pagination';
 import { useDateFormatter } from '@/hooks/useDateFormatter';
-
-interface FieldChange {
-  field: string;
-  before: unknown;
-  after: unknown;
-}
-
-function changes(json?: string): FieldChange[] {
-  if (!json) return [];
-  try {
-    const parsed: unknown = JSON.parse(json);
-    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return [];
-    return Object.entries(parsed).flatMap(([field, value]) =>
-      value && typeof value === 'object' && 'before' in value && 'after' in value
-        ? [{ field, before: value.before, after: value.after }]
-        : []
-    );
-  } catch {
-    return [];
-  }
-}
 
 function dateBoundary(value: string, end = false): string | undefined {
   if (!value) return undefined;
@@ -66,7 +45,6 @@ const inputClass =
 export default function HistoryPage() {
   const { t } = useTranslation('history');
   const { dateTime } = useDateFormatter();
-  const { isAmountsVisible } = useVisibility();
   useDocumentTitle(t('title'));
   const queryClient = useQueryClient();
   const [currentPage, setCurrentPage] = useViewState('currentPage', 0);
@@ -123,26 +101,6 @@ export default function HistoryPage() {
     setUntil('');
     setCurrentPage(0);
   };
-  const valueLabel = (field: string, value: unknown): string =>
-    !isAmountsVisible &&
-    /amount|balance|price|value|principal|payment|income|expense|cost|allocation|interest|rate|deposit|withdraw|profit|loss|rent|splits/i.test(
-      field
-    )
-      ? '••••'
-      : value === null || value === undefined || value === ''
-        ? '—'
-        : typeof value === 'boolean'
-          ? t(value ? 'yes' : 'no')
-          : typeof value === 'object'
-            ? JSON.stringify(value)
-            : (typeof value === 'number' ||
-                  (typeof value === 'string' && /^-?\d+(\.\d+)?$/.test(value))) &&
-                !/id$/i.test(field) &&
-                /amount|balance|price|value|principal|payment|income|expense|cost|allocation|interest|rate|deposit|withdraw|profit|loss|rent|quantity|percentage/i.test(
-                  field
-                )
-              ? formatExactNumber(value)
-              : String(value);
 
   return (
     <div className="space-y-5">
@@ -251,8 +209,8 @@ export default function HistoryPage() {
       {!isLoading && historyPage && historyPage.content.length > 0 && (
         <div className="bg-surface rounded-xl border border-border shadow-plate overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="w-full text-sm text-left">
-              <thead className="plate-label bg-background border-b border-border">
+            <table className="block w-full text-sm text-left sm:table">
+              <thead className="hidden plate-label bg-background border-b border-border sm:table-header-group">
                 <tr>
                   <th className="px-4 py-3 font-semibold">{t('operation')}</th>
                   <th className="px-4 py-3 font-semibold">{t('name')}</th>
@@ -261,40 +219,51 @@ export default function HistoryPage() {
                   <th className="px-4 py-3 font-semibold text-right">{t('actions')}</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-border">
+              <tbody className="block divide-y divide-border sm:table-row-group">
                 {historyPage.content.map(item => {
                   const undone = !!item.undoneAt && !item.redoneAt;
                   const canAct = undone ? item.canRedo : item.canUndo;
-                  const fields = changes(item.changedFieldsJson);
+                  const fields = historyFieldChanges(item.changedFieldsJson);
                   const reason = item.unavailableReason
                     ? t(`unavailableReasons.${item.unavailableReason}`)
                     : t('unavailable');
                   return (
                     <Fragment key={item.id}>
-                      <tr className="hover:bg-surface-elevated transition-colors">
-                        <td className="px-4 py-4 font-medium whitespace-nowrap">
+                      <tr className="grid grid-cols-[minmax(0,1fr)_auto] hover:bg-surface-elevated transition-colors sm:table-row">
+                        <td className="col-start-1 row-start-1 px-4 pt-4 font-medium sm:py-4 sm:whitespace-nowrap">
                           {t(`operations.${item.operationType.toLowerCase()}`)}{' '}
                           {entityLabel(item.entityType)}
                         </td>
-                        <td className="px-4 py-4 min-w-40">
-                          {item.entityLabel || '—'}
-                          {(fields.length > 0 || (item.affectedRecords ?? 0) > 1) && (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="block mt-1 h-7 px-0"
-                              aria-expanded={expanded === item.id}
-                              aria-controls={`history-details-${item.id}`}
-                              onClick={() => setExpanded(expanded === item.id ? null : item.id)}
-                            >
-                              {t(expanded === item.id ? 'hideChanges' : 'showChanges')}
-                            </Button>
+                        <td className="col-start-1 row-start-2 min-w-0 break-words px-4 py-2 sm:min-w-40 sm:py-4">
+                          {item.entityLabel || `${entityLabel(item.entityType)} #${item.entityId}`}
+                          {fields.length > 0 && (
+                            <p className="mt-1 text-xs text-text-secondary">
+                              {fields
+                                .slice(0, 3)
+                                .map(field =>
+                                  t(`fields.${field.field}`, {
+                                    defaultValue: field.field.replaceAll('_', ' '),
+                                  })
+                                )
+                                .join(' · ')}
+                              {fields.length > 3 ? '…' : ''}
+                            </p>
                           )}
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="block mt-1 h-7 px-0"
+                            aria-expanded={expanded === item.id}
+                            aria-controls={`history-details-${item.id}`}
+                            onClick={() => setExpanded(expanded === item.id ? null : item.id)}
+                          >
+                            {t(expanded === item.id ? 'hideChanges' : 'showChanges')}
+                          </Button>
                         </td>
-                        <td className="px-4 py-4 text-text-secondary tabular-nums whitespace-nowrap">
+                        <td className="col-start-1 row-start-3 px-4 pb-4 text-text-secondary tabular-nums sm:py-4 sm:whitespace-nowrap">
                           {dateTime(item.createdAt)}
                         </td>
-                        <td className="px-4 py-4">
+                        <td className="col-start-2 row-start-1 px-4 pt-4 text-right sm:py-4 sm:text-left">
                           <Badge
                             size="sm"
                             variant={undone ? 'warning' : item.redoneAt ? 'info' : 'success'}
@@ -308,7 +277,7 @@ export default function HistoryPage() {
                             )}
                           </Badge>
                         </td>
-                        <td className="px-4 py-4 text-right">
+                        <td className="col-start-2 row-start-2 row-span-2 px-4 py-2 text-right sm:py-4">
                           <Button
                             variant="outline"
                             size="sm"
@@ -325,46 +294,19 @@ export default function HistoryPage() {
                             {t(undone ? 'redo' : 'undo')}
                           </Button>
                           {!canAct && (
-                            <p className="mt-2 text-xs text-text-secondary min-w-44 max-w-64 ml-auto">
+                            <p className="mt-2 text-xs text-text-secondary max-w-28 sm:min-w-44 sm:max-w-64 ml-auto">
                               {reason}
                             </p>
                           )}
                         </td>
                       </tr>
-                      {expanded === item.id &&
-                        (fields.length > 0 || (item.affectedRecords ?? 0) > 1) && (
-                          <tr id={`history-details-${item.id}`}>
-                            <td colSpan={5} className="px-4 py-4 bg-background">
-                              <dl className="space-y-2">
-                                {fields.map(field => (
-                                  <div
-                                    key={field.field}
-                                    className="grid gap-2 sm:grid-cols-[minmax(8rem,1fr)_2fr_2fr]"
-                                  >
-                                    <dt className="font-medium text-text-primary">
-                                      {t(`fields.${field.field}`, {
-                                        defaultValue: field.field.replaceAll('_', ' '),
-                                      })}
-                                    </dt>
-                                    <dd className="break-words tabular-nums">
-                                      <span className="text-text-secondary">{t('before')}: </span>
-                                      {valueLabel(field.field, field.before)}
-                                    </dd>
-                                    <dd className="break-words tabular-nums">
-                                      <span className="text-text-secondary">{t('after')}: </span>
-                                      {valueLabel(field.field, field.after)}
-                                    </dd>
-                                  </div>
-                                ))}
-                              </dl>
-                              {(item.affectedRecords ?? 0) > 1 && (
-                                <p className="mt-3 text-xs text-text-secondary">
-                                  {t('relatedRecords', { count: item.affectedRecords })}
-                                </p>
-                              )}
-                            </td>
-                          </tr>
-                        )}
+                      {expanded === item.id && (
+                        <tr id={`history-details-${item.id}`} className="block sm:table-row">
+                          <td colSpan={5} className="block px-4 py-4 bg-background sm:table-cell">
+                            <HistoryEntryDetails entry={item} />
+                          </td>
+                        </tr>
+                      )}
                     </Fragment>
                   );
                 })}

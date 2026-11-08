@@ -2,6 +2,7 @@ import { Link } from 'react-router';
 import { buildTransactionsLink } from '@/utils/navigation';
 import { useViewScroll } from '@/hooks/useViewScroll';
 import { useViewState } from '@/hooks/useViewState';
+import { useAnimatedClose } from '@/hooks/useAnimatedClose';
 import { RecordLoanPayment } from '@/components/liabilities/RecordLoanPayment';
 import { AssetFinancingSection } from '@/components/assets/AssetFinancingSection';
 /**
@@ -487,8 +488,9 @@ function OverviewDisburse({ liability }: { liability: Liability }) {
 export function LiabilityDetailDialog({
   liability,
   initialTab = 'overview',
-  onClose,
+  onClose: onClosed,
 }: LiabilityDetailDialogProps) {
+  const { onClose, closing, onAnimationEnd } = useAnimatedClose(onClosed);
   const { t } = useTranslation('liabilities');
   const detailScrollRef = useViewScroll(`liability:${liability?.id}:scroll`);
   const [activeTab, setActiveTab] = useViewState<DetailTab>(
@@ -521,8 +523,9 @@ export function LiabilityDetailDialog({
   if (!liability) return null;
 
   return (
-    <Dialog open={!!liability} onOpenChange={open => !open && onClose()}>
+    <Dialog open={!closing} onOpenChange={open => !open && onClose()}>
       <DialogContent
+        onAnimationEnd={onAnimationEnd}
         ref={detailScrollRef}
         className="max-w-[calc(100vw-2rem)] sm:max-w-[800px] max-h-[90vh] overflow-y-auto"
       >

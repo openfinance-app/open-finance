@@ -4,9 +4,17 @@ import type {
   PageableResponse,
   EntityType,
   OperationType,
+  HistoryRecordChange,
 } from '@/types/history';
 
 export const historyService = {
+  getDetails: async (id: number, page = 0): Promise<PageableResponse<HistoryRecordChange>> => {
+    const { data } = await apiClient.get<PageableResponse<HistoryRecordChange>>(
+      `/history/${id}/details`,
+      { params: { page, size: 20 } }
+    );
+    return data;
+  },
   /**
    * Retrieves a paginated list of operation history.
    *

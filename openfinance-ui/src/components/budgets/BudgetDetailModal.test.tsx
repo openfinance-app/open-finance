@@ -1,3 +1,4 @@
+import { waitFor } from '@testing-library/react';
 /**
  * Unit tests for BudgetDetailModal component
  *
@@ -408,30 +409,30 @@ describe('BudgetDetailModal', () => {
   // ── Close behaviour ────────────────────────────────────────────────────────
 
   describe('Close behaviour', () => {
-    it('calls onClose when X button is clicked', () => {
+    it('calls onClose when X button is clicked', async () => {
       const onClose = vi.fn();
       renderWithProviders(<BudgetDetailModal {...defaultProps} onClose={onClose} />);
       fireEvent.click(screen.getByLabelText('Close modal'));
-      expect(onClose).toHaveBeenCalledTimes(1);
+      await waitFor(() => expect(onClose).toHaveBeenCalledTimes(1));
     });
 
-    it('calls onClose when backdrop is clicked', () => {
+    it('calls onClose when backdrop is clicked', async () => {
       const onClose = vi.fn();
       renderWithProviders(<BudgetDetailModal {...defaultProps} onClose={onClose} />);
       const backdrop = document.querySelector('.absolute.inset-0');
       act(() => {
         fireEvent.click(backdrop!);
       });
-      expect(onClose).toHaveBeenCalledTimes(1);
+      await waitFor(() => expect(onClose).toHaveBeenCalledTimes(1));
     });
 
-    it('calls onClose when Escape key is pressed', () => {
+    it('calls onClose when Escape key is pressed', async () => {
       const onClose = vi.fn();
       renderWithProviders(<BudgetDetailModal {...defaultProps} onClose={onClose} />);
       act(() => {
         fireEvent.keyDown(window, { key: 'Escape' });
       });
-      expect(onClose).toHaveBeenCalledTimes(1);
+      await waitFor(() => expect(onClose).toHaveBeenCalledTimes(1));
     });
   });
 

@@ -48,6 +48,7 @@ const mockHistoryPage = {
 // ---------------------------------------------------------------------------
 vi.mock('@/services/historyService', () => ({
   historyService: {
+    getDetails: vi.fn().mockResolvedValue({ content: [], totalElements: 0, totalPages: 0 }),
     getHistory: vi.fn().mockResolvedValue({
       content: [
         {
@@ -198,6 +199,44 @@ describe('HistoryPage', () => {
     await user.click(screen.getByRole('button', { name: /show changes/i }));
     expect(screen.getByText('50.01')).toBeInTheDocument();
     expect(screen.getByText('65.02')).toBeInTheDocument();
+  });
+
+  it('loads child-record details even when the main entity has no display diff', async () => {
+    const { historyService } = await import('@/services/historyService');
+    vi.mocked(historyService.getDetails).mockResolvedValueOnce({
+      content: [
+        {
+          recordType: 'interest_rate_variations',
+          recordId: '4',
+          operationType: 'UPDATE',
+          context: { account_id: 'Savings', valid_from: '2026-01-01' },
+          fields: [{ field: 'tax_rate', before: '30', after: '31.4' }],
+        },
+      ],
+      totalElements: 1,
+      totalPages: 1,
+    } as Awaited<ReturnType<typeof historyService.getDetails>>);
+    const user = userEvent.setup();
+    renderWithProviders(<HistoryPage />);
+    await screen.findByText('Checking Account');
+    await user.click(screen.getAllByRole('button', { name: /show changes/i })[1]);
+    expect(await screen.findByText('Tax rate (%)')).toBeInTheDocument();
+    expect(screen.getByText('31.4')).toBeInTheDocument();
+    expect(screen.getByText('Savings')).toBeInTheDocument();
+    expect(historyService.getDetails).toHaveBeenCalledWith(2, 0);
+  });
+
+  it('shows creations whose older diff omitted the null before value', async () => {
+    const { historyService } = await import('@/services/historyService');
+    vi.mocked(historyService.getHistory).mockResolvedValueOnce({
+      ...mockHistoryPage,
+      content: [{ ...mockHistoryItems[0], changedFieldsJson: '{"notes":{"after":"MONTHLY"}}' }],
+    });
+    renderWithProviders(<HistoryPage />);
+    await userEvent.setup().click(await screen.findByRole('button', { name: /show changes/i }));
+    // Free text must remain exact even when it matches a translated enum value.
+    expect(screen.getByText('MONTHLY')).toBeInTheDocument();
+    expect(screen.getByText('Before:')).toBeInTheDocument();
   });
 
   describe('Filters', () => {

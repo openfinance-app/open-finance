@@ -1,3 +1,4 @@
+import { waitFor } from '@testing-library/react';
 /**
  * Unit tests for AccountDetailModal component
  *
@@ -305,14 +306,14 @@ describe('AccountDetailModal', () => {
   // ── Close button ───────────────────────────────────────────────────────────
 
   describe('Close behaviour', () => {
-    it('calls onClose when the X button is clicked', () => {
+    it('calls onClose when the X button is clicked', async () => {
       const onClose = vi.fn();
       renderWithProviders(<AccountDetailModal {...defaultProps} onClose={onClose} />);
       fireEvent.click(screen.getByLabelText('Close modal'));
-      expect(onClose).toHaveBeenCalledTimes(1);
+      await waitFor(() => expect(onClose).toHaveBeenCalledTimes(1));
     });
 
-    it('calls onClose when backdrop is clicked', () => {
+    it('calls onClose when backdrop is clicked', async () => {
       const onClose = vi.fn();
       renderWithProviders(<AccountDetailModal {...defaultProps} onClose={onClose} />);
       // Backdrop is the first child div of the fixed container
@@ -320,16 +321,16 @@ describe('AccountDetailModal', () => {
       act(() => {
         fireEvent.click(backdrop!);
       });
-      expect(onClose).toHaveBeenCalledTimes(1);
+      await waitFor(() => expect(onClose).toHaveBeenCalledTimes(1));
     });
 
-    it('calls onClose when Escape key is pressed', () => {
+    it('calls onClose when Escape key is pressed', async () => {
       const onClose = vi.fn();
       renderWithProviders(<AccountDetailModal {...defaultProps} onClose={onClose} />);
       act(() => {
         fireEvent.keyDown(window, { key: 'Escape' });
       });
-      expect(onClose).toHaveBeenCalledTimes(1);
+      await waitFor(() => expect(onClose).toHaveBeenCalledTimes(1));
     });
 
     it('does NOT call onClose on Escape when edit dialog is open', () => {
@@ -344,6 +345,16 @@ describe('AccountDetailModal', () => {
       act(() => {
         fireEvent.keyDown(window, { key: 'Escape' });
       });
+      expect(onClose).not.toHaveBeenCalled();
+    });
+
+    it('keeps details open when another dialog has already handled Escape', () => {
+      const onClose = vi.fn();
+      renderWithProviders(<AccountDetailModal {...defaultProps} onClose={onClose} />);
+      const event = new KeyboardEvent('keydown', { key: 'Escape', cancelable: true });
+      event.preventDefault();
+      fireEvent(window, event);
+      expect(screen.getByRole('dialog')).toHaveAttribute('data-state', 'open');
       expect(onClose).not.toHaveBeenCalled();
     });
   });

@@ -13,6 +13,21 @@ export type EntityType =
 
 export type OperationType = 'CREATE' | 'UPDATE' | 'DELETE';
 
+export interface HistoryFieldChange {
+  field: string;
+  before: unknown;
+  after: unknown;
+}
+
+export interface HistoryRecordChange {
+  recordType: string;
+  recordId: string;
+  entityLabel?: string | null;
+  operationType: OperationType;
+  context: Record<string, unknown>;
+  fields: HistoryFieldChange[];
+}
+
 export interface OperationHistoryResponse {
   canUndo: boolean;
   canRedo: boolean;

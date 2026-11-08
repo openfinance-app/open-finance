@@ -11,6 +11,7 @@ import { DecimalPlacesProvider } from './context/DecimalPlacesContext';
 import { CryptoCurrenciesProvider } from '@/context/CryptoCurrenciesProvider';
 import { LocaleProvider } from './context/LocaleContext';
 import { ProtectedRoute } from './components/ProtectedRoute';
+import { SelectionClickGuard } from '@/components/SelectionClickGuard';
 import './index.css';
 
 // ---------------------------------------------------------------------------
@@ -106,6 +107,7 @@ const queryClient: QueryClient = new QueryClient({
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
+      <SelectionClickGuard />
       <AuthProvider>
         <VisibilityProvider>
           <CurrencyDisplayProvider>

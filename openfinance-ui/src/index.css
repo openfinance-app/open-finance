@@ -330,6 +330,71 @@ h6 {
   animation: shimmer 1.8s var(--ease-out-quart) infinite;
 }
 
+/* Detail panels remain mounted through exit; transform/opacity keep charts stable. */
+@keyframes detail-panel-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes detail-panel-out {
+  from {
+    opacity: 1;
+    transform: none;
+  }
+  to {
+    opacity: 0;
+    transform: translateY(4px) scale(0.99);
+  }
+}
+
+@keyframes detail-overlay-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes detail-overlay-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+.detail-panel[data-state='open'] {
+  animation: detail-panel-in var(--duration-normal) var(--ease-out-expo) backwards;
+}
+.detail-panel[data-state='closed'] {
+  animation: detail-panel-out var(--duration-fast) ease-in both;
+  pointer-events: none;
+}
+.detail-overlay[data-state='open'] {
+  animation: detail-overlay-in var(--duration-normal) ease-out backwards;
+}
+.detail-overlay[data-state='closed'] {
+  animation: detail-overlay-out var(--duration-fast) ease-in both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .detail-panel[data-state='open'] {
+    animation: detail-overlay-in 1ms linear backwards;
+  }
+  .detail-panel[data-state='closed'] {
+    animation: detail-overlay-out 1ms linear both;
+  }
+  .detail-overlay[data-state] {
+    animation-duration: 1ms;
+  }
+}
+
 @keyframes shimmer {
   0% {
     background-position: -200% 0;

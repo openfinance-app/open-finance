@@ -5,6 +5,7 @@ import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.openfinance.dto.HistoryRecordChange;
 import org.openfinance.dto.OperationHistoryResponse;
 import org.openfinance.entity.EntityType;
 import org.openfinance.entity.OperationType;
@@ -31,6 +32,7 @@ import org.springframework.web.bind.annotation.RestController;
  *
  * <ul>
  *   <li>GET /api/v1/history — list history for the authenticated user (paged)
+ *   <li>GET /api/v1/history/{id}/details — readable captured record changes (paged)
  *   <li>POST /api/v1/history/{id}/undo — undo a recorded operation
  *   <li>POST /api/v1/history/{id}/redo — redo a previously undone operation
  * </ul>
@@ -79,6 +81,15 @@ public class OperationHistoryController {
                         until == null ? null : LocalDateTime.ofInstant(until, ZoneOffset.UTC),
                         pageable);
         return ResponseEntity.ok(page);
+    }
+
+    @GetMapping("/{id}/details")
+    public ResponseEntity<Page<HistoryRecordChange>> details(
+            @PathVariable("id") Long historyId,
+            @PageableDefault(size = 20) Pageable pageable,
+            Authentication authentication) {
+        User user = (User) authentication.getPrincipal();
+        return ResponseEntity.ok(historyService.getDetails(historyId, user.getId(), pageable));
     }
 
     @PostMapping("/{id}/undo")

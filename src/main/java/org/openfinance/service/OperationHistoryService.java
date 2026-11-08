@@ -9,6 +9,7 @@ import java.util.Map;
 import java.util.Set;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.openfinance.dto.HistoryRecordChange;
 import org.openfinance.dto.OperationHistoryResponse;
 import org.openfinance.entity.EntityType;
 import org.openfinance.entity.OperationHistory;
@@ -17,12 +18,14 @@ import org.openfinance.exception.HistoryConflictException;
 import org.openfinance.exception.ResourceNotFoundException;
 import org.openfinance.repository.OperationHistoryRepository;
 import org.openfinance.service.history.HistoryActionContext;
+import org.openfinance.service.history.HistoryChangePresenter;
 import org.openfinance.service.history.HistoryChangeSet;
 import org.openfinance.service.history.HistoryDomainRegistry;
 import org.openfinance.service.history.HistoryPayloadCodec;
 import org.openfinance.service.history.HistoryStateStore;
 import org.springframework.cache.CacheManager;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -45,6 +48,21 @@ public class OperationHistoryService {
     private final HistoryStateStore states;
     private final HistoryPayloadCodec payloads;
     private final CacheManager cacheManager;
+    private final HistoryChangePresenter changePresenter;
+
+    /** Details use immutable captured values, including child records, and stay owner-scoped. */
+    @Transactional(readOnly = true)
+    public Page<HistoryRecordChange> getDetails(Long historyId, Long userId, Pageable pageable) {
+        OperationHistory entry = requireOwned(historyId, userId);
+        HistoryChangeSet state =
+                entry.getActionStateJson() == null
+                        ? null
+                        : payloads.read(entry.getActionStateJson());
+        List<HistoryRecordChange> records = changePresenter.present(entry, state);
+        int from = (int) Math.min(pageable.getOffset(), records.size());
+        int to = Math.min(from + pageable.getPageSize(), records.size());
+        return new PageImpl<>(records.subList(from, to), pageable, records.size());
+    }
 
     // Use ThreadLocal to suppress recording during internal operations like Undo/Redo
     private static final ThreadLocal<Boolean> recordingSuppressed =
