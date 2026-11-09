@@ -44,6 +44,9 @@
     "allGroups": "Tous les groupes",
     "expandAll": "Tout développer",
     "collapseAll": "Tout réduire",
+    "hideEmpty": "Masquer les catégories vides",
+    "hideEmptyHint": "Masquer les catégories sans transactions, y compris dans leurs sous-catégories.",
+    "showEmpty": "Afficher les catégories vides",
     "directActivity": "Dans cette catégorie",
     "amountHint": "Les totaux incluent les sous-catégories. « Dans cette catégorie » ne compte que les transactions du parent."
   },
@@ -89,6 +92,8 @@
   "empty": {
     "noMatch": "Aucune catégorie correspondante",
     "noCategories": "Aucune catégorie pour l'instant",
+    "noActivity": "Aucune catégorie avec des transactions",
+    "hiddenEmpty": "Les catégories vides sont masquées. Affichez-les pour inclure les catégories sans transactions.",
     "adjustSearch": "Essayez d'ajuster votre recherche.",
     "addFirst": "Créez votre première catégorie pour organiser vos transactions."
   },

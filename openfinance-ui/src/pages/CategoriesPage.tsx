@@ -20,11 +20,14 @@ import {
   Tag,
   Search,
   MoreHorizontal,
+  ListFilter,
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Badge } from '@/components/ui/Badge';
 import { HelpTooltip } from '@/components/ui/HelpTooltip';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/Tooltip';
+import { cn } from '@/lib/utils';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -456,6 +459,7 @@ export default function CategoriesPage() {
   const [deletingCategory, setDeletingCategory] = useState<CategoryTreeNode | null>(null);
   const [searchQuery, setSearchQuery] = useViewState('searchQuery', '');
   const [searchRegex, setSearchRegex] = useViewState('searchRegex', false);
+  const [hideEmpty, setHideEmpty] = useViewState('hideEmpty', false);
   const [sortBy, setSortBy] = useViewState<SortOption>('sortBy', 'name');
   const [formError, setFormError] = useState<string | null>(null);
   const [selectedRoot, setSelectedRoot] = useViewState<number | 'all'>('selectedRoot', 'all');
@@ -599,10 +603,25 @@ export default function CategoriesPage() {
   ];
 
   const isSearching = searchTrimmed.length > 0;
-  const visibleCategories = useMemo(
-    () => (isSearching ? searchResults : selectedNode ? [selectedNode] : sortedTree),
-    [isSearching, searchResults, selectedNode, sortedTree]
-  );
+  const visibleCategories = useMemo(() => {
+    const nodes = isSearching ? searchResults : selectedNode ? [selectedNode] : sortedTree;
+    if (!hideEmpty) return nodes;
+    const withActivity = (branches: CategorySearchNode[]): CategorySearchNode[] =>
+      branches.flatMap(node => {
+        const subcategories = withActivity(node.subcategories || []);
+        // Counts, not net amounts: offsetting transactions still represent activity.
+        if (!(node.transactionCount || node.directTransactionCount) && subcategories.length === 0)
+          return [];
+        return [
+          {
+            ...node,
+            hasSubcategories: node.hasSubcategories || node.subcategories?.length > 0,
+            subcategories,
+          },
+        ];
+      });
+    return withActivity(nodes);
+  }, [isSearching, searchResults, selectedNode, sortedTree, hideEmpty]);
   const expandableIds = useMemo(() => {
     const result: number[] = [];
     const visit = (nodes: CategoryTreeNode[]): void => {
@@ -734,22 +753,52 @@ export default function CategoriesPage() {
               </select>
             </label>
           </div>
-          {!isLoading && !error && expandableIds.length > 0 && (
-            <Button
-              variant="ghost"
-              className="h-11 shrink-0 justify-self-end gap-2 text-sm text-text-secondary md:h-11"
-              aria-expanded={allExpanded}
-              aria-controls="category-tree"
-              onClick={() => setExpandedNodes(new Map(expandableIds.map(id => [id, !allExpanded])))}
-            >
-              {allExpanded ? (
-                <ChevronsDownUp size={16} aria-hidden="true" />
-              ) : (
-                <ChevronsUpDown size={16} aria-hidden="true" />
-              )}
-              {t(allExpanded ? 'list.collapseAll' : 'list.expandAll')}
-            </Button>
-          )}
+          <div className="flex items-center justify-self-end gap-1">
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className={cn(
+                      'h-11 w-11 shrink-0 md:h-11 md:w-11',
+                      hideEmpty
+                        ? 'bg-primary/10 text-primary hover:bg-primary/20'
+                        : 'text-text-secondary'
+                    )}
+                    aria-label={t('list.hideEmpty')}
+                    aria-pressed={hideEmpty}
+                    disabled={isLoading || !!error || sortedTree.length === 0}
+                    onClick={() => setHideEmpty(current => !current)}
+                  >
+                    <ListFilter size={18} aria-hidden="true" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent className="max-w-64">
+                  <p className="font-medium">{t('list.hideEmpty')}</p>
+                  <p className="mt-1 text-xs text-text-secondary">{t('list.hideEmptyHint')}</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+            {!isLoading && !error && expandableIds.length > 0 && (
+              <Button
+                variant="ghost"
+                className="h-11 shrink-0 justify-self-end gap-2 text-sm text-text-secondary md:h-11"
+                aria-expanded={allExpanded}
+                aria-controls="category-tree"
+                onClick={() =>
+                  setExpandedNodes(new Map(expandableIds.map(id => [id, !allExpanded])))
+                }
+              >
+                {allExpanded ? (
+                  <ChevronsDownUp size={16} aria-hidden="true" />
+                ) : (
+                  <ChevronsUpDown size={16} aria-hidden="true" />
+                )}
+                {t(allExpanded ? 'list.collapseAll' : 'list.expandAll')}
+              </Button>
+            )}
+          </div>
         </div>
 
         <BulkToolbar embedded />
@@ -778,6 +827,13 @@ export default function CategoriesPage() {
             title={t('empty.noCategories')}
             description={t('empty.addFirst')}
             action={{ label: t('addCategory'), onClick: handleCreate }}
+          />
+        ) : hideEmpty && visibleCategories.length === 0 ? (
+          <EmptyState
+            icon={ListFilter}
+            title={t('empty.noActivity')}
+            description={t('empty.hiddenEmpty')}
+            action={{ label: t('list.showEmpty'), onClick: () => setHideEmpty(false) }}
           />
         ) : (
           <CategoryTree

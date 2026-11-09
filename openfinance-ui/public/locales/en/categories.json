@@ -44,6 +44,9 @@
     "allGroups": "All groups",
     "expandAll": "Expand all",
     "collapseAll": "Collapse all",
+    "hideEmpty": "Hide empty categories",
+    "hideEmptyHint": "Hide categories with no transactions of their own or in their subcategories.",
+    "showEmpty": "Show empty categories",
     "directActivity": "In this category",
     "amountHint": "Parent totals include subcategories. “In this category” shows only the parent’s own transactions."
   },
@@ -89,6 +92,8 @@
   "empty": {
     "noMatch": "No matching categories",
     "noCategories": "No categories yet",
+    "noActivity": "No categories with transactions",
+    "hiddenEmpty": "Empty categories are hidden. Show them to include categories without transactions.",
     "adjustSearch": "Try adjusting your search query.",
     "addFirst": "Create your first category to organize your transactions."
   },

@@ -179,6 +179,114 @@ describe('CategoriesPage', () => {
     expect(screen.queryByText('Income')).not.toBeInTheDocument();
   });
 
+  it('hides empty branches while retaining active descendants and zero-net transactions', async () => {
+    const user = userEvent.setup();
+    const unused = {
+      id: 4,
+      name: 'Unused',
+      transactionCount: 0,
+      totalAmount: 0,
+      subcategories: [],
+    };
+    mockCategoryData = [
+      {
+        ...mockCategoryData[0],
+        directTransactionCount: 0,
+        totalAmount: 0,
+        subcategories: [
+          {
+            ...mockCategoryData[0].subcategories[0],
+            directTransactionCount: 0,
+            totalAmount: 0,
+            subcategories: [
+              { ...unused, id: 5, name: 'Offsetting transactions', transactionCount: 2 },
+            ],
+          },
+          { ...unused, id: 6, name: 'Unused child' },
+        ],
+      },
+      { ...unused, subcategories: [{ ...unused, id: 7, name: 'Unused descendant' }] },
+    ];
+    renderWithProviders(<CategoriesPage />);
+    const toggle = screen.getByRole('button', { name: 'Hide empty categories' });
+    expect(toggle).toHaveAttribute('aria-pressed', 'false');
+    await user.click(screen.getByRole('button', { name: 'Expand all' }));
+    const summary = screen.getByLabelText('Category summary').textContent;
+    await user.click(toggle);
+    expect(toggle).toHaveAttribute('aria-pressed', 'true');
+    for (const name of ['Unused', 'Unused child', 'Unused descendant']) {
+      expect(screen.queryByRole('button', { name: `Actions for ${name}` })).not.toBeInTheDocument();
+    }
+    for (const name of ['Food & Dining', 'Groceries', 'Offsetting transactions']) {
+      expect(screen.getByRole('button', { name: `Actions for ${name}` })).toBeInTheDocument();
+    }
+    expect(screen.getByLabelText('Category summary').textContent).toBe(summary);
+    await user.click(screen.getByRole('button', { name: 'Collapse all' }));
+    expect(screen.queryByText('Offsetting transactions')).not.toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Expand all' }));
+    expect(screen.getByText('Offsetting transactions')).toBeInTheDocument();
+    await user.click(toggle);
+    expect(screen.getByRole('button', { name: 'Actions for Unused child' })).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Expand Unused', exact: true }));
+    expect(
+      screen.getByRole('button', { name: 'Actions for Unused descendant' })
+    ).toBeInTheDocument();
+  });
+
+  it('retains subtree transaction links when only empty children are hidden', async () => {
+    const user = userEvent.setup();
+    mockCategoryData[0].subcategories[0].transactionCount = 0;
+    renderWithProviders(<CategoriesPage />);
+    await user.click(screen.getByRole('button', { name: 'Hide empty categories' }));
+    expect(screen.queryByRole('button', { name: 'Expand Food & Dining' })).not.toBeInTheDocument();
+    expect(
+      screen.getByRole('link', {
+        name: 'View transactions including subcategories for Food & Dining',
+      })
+    ).toHaveAttribute(
+      'href',
+      '/transactions?categoryId=1&includeSubcategories=true&excludeTransfers=true'
+    );
+    expect(
+      screen.getByRole('link', { name: 'View direct transactions for Food & Dining' })
+    ).toBeInTheDocument();
+  });
+
+  it('combines the filter with group and search filters and lets the user recover empty results', async () => {
+    const user = userEvent.setup();
+    mockCategoryData[0].transactionCount = 0;
+    mockCategoryData[0].directTransactionCount = 0;
+    mockCategoryData[0].subcategories[0].transactionCount = 0;
+    renderWithProviders(<CategoriesPage />);
+    const group = screen.getByRole('combobox', { name: 'Category group' });
+    await user.selectOptions(group, '1');
+    await user.type(screen.getByRole('textbox', { name: /search categories/i }), 'Grocer');
+    await user.click(screen.getByRole('button', { name: 'Hide empty categories' }));
+    expect(screen.getByText('No categories with transactions')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Actions for Groceries' })).not.toBeInTheDocument();
+    expect(group).toHaveValue('1');
+    await user.click(screen.getByRole('button', { name: 'Show empty categories' }));
+    expect(screen.getByRole('button', { name: 'Hide empty categories' })).toHaveAttribute(
+      'aria-pressed',
+      'false'
+    );
+    expect(screen.getByRole('button', { name: 'Actions for Groceries' })).toBeInTheDocument();
+    expect(screen.getByRole('textbox', { name: /search categories/i })).toHaveValue('Grocer');
+    expect(group).toHaveValue('1');
+  });
+
+  it('remembers the hide-empty preference when returning to the categories view', async () => {
+    const user = userEvent.setup();
+    const firstVisit = renderWithProviders(<CategoriesPage />);
+    await user.click(screen.getByRole('button', { name: 'Hide empty categories' }));
+    firstVisit.unmount();
+    renderWithProviders(<CategoriesPage />);
+    expect(screen.getByRole('button', { name: 'Hide empty categories' })).toHaveAttribute(
+      'aria-pressed',
+      'true'
+    );
+  });
+
   it('shows transaction counts', () => {
     renderWithProviders(<CategoriesPage />);
     expect(screen.getByText(/10 transactions/)).toBeInTheDocument();
