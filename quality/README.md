@@ -175,3 +175,11 @@ retain new Spring-managed loan/funding collaborators whose identity is required 
 transactional behavior. Two are the validated, request-scoped nested LiabilityRequest
 accessors used by a physical purchase. Only these individually reviewed identities
 are included; no category, package or quality gate is excluded.
+
+The 0.5.12-beta release review fixes the new public history DTO's mutable collection
+exposure by snapshotting its ordered context and field list. Fourteen exact constructor
+identities are reviewed separately: three retain managed Account associations/collections,
+nine retain existing NetWorthService and OperationHistoryService collaborators under
+changed constructor signatures, and two retain the new history presenter's Spring-managed
+state store and configured ObjectMapper. These references must preserve their managed
+identity. Only these fourteen identities are added; no broad filter or gate is changed.

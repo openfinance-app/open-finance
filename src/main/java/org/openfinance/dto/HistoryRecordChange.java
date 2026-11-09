@@ -1,6 +1,8 @@
 package org.openfinance.dto;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import org.openfinance.entity.OperationType;
@@ -13,6 +15,11 @@ public record HistoryRecordChange(
         OperationType operationType,
         Map<String, Object> context,
         List<FieldChange> fields) {
+    public HistoryRecordChange {
+        context = Collections.unmodifiableMap(new LinkedHashMap<>(context));
+        fields = List.copyOf(fields);
+    }
+
     @JsonInclude(JsonInclude.Include.ALWAYS)
     public record FieldChange(String field, Object before, Object after) {}
 }
