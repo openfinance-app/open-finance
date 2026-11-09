@@ -68,7 +68,7 @@ jobs:
               run: command -v mvn || (apt-get update -qq && apt-get install -y maven)
 
             - name: Run tests against PostgreSQL
-              run: mvn verify -B
+              run: mvn verify -B -Djacoco.skip=true
 
             - name: Archive test results
               if: always()

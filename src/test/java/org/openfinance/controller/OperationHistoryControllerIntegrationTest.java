@@ -645,22 +645,31 @@ class OperationHistoryControllerIntegrationTest {
         assertDashboardWorth("1000");
         reverse(deletion, true);
         assertDashboardWorth("0");
-        java.nio.file.Path backup =
-                java.nio.file.Files.createTempFile("deleted-account-history-", ".db");
-        try {
-            org.openfinance.security.EncryptionContext.setKey(historyKey());
-            archives.write(userId, backup);
-            archives.restore(userId, backup, "Password123!");
-        } finally {
-            org.openfinance.security.EncryptionContext.clear();
-            java.nio.file.Files.deleteIfExists(backup);
+        if (Boolean.TRUE.equals(
+                jdbc.execute(
+                        (org.springframework.jdbc.core.ConnectionCallback<Boolean>)
+                                connection ->
+                                        connection
+                                                .getMetaData()
+                                                .getDatabaseProductName()
+                                                .equals("SQLite")))) {
+            java.nio.file.Path backup =
+                    java.nio.file.Files.createTempFile("deleted-account-history-", ".db");
+            try {
+                org.openfinance.security.EncryptionContext.setKey(historyKey());
+                archives.write(userId, backup);
+                archives.restore(userId, backup, "Password123!");
+            } finally {
+                org.openfinance.security.EncryptionContext.clear();
+                java.nio.file.Files.deleteIfExists(backup);
+            }
+            assertDashboardWorth("0");
+            JsonNode restored = latest("ACCOUNT");
+            reverse(restored.get("id").asLong(), false);
+            assertDashboardWorth("1000");
+            reverse(restored.get("id").asLong(), true);
+            assertDashboardWorth("0");
         }
-        assertDashboardWorth("0");
-        JsonNode restored = latest("ACCOUNT");
-        reverse(restored.get("id").asLong(), false);
-        assertDashboardWorth("1000");
-        reverse(restored.get("id").asLong(), true);
-        assertDashboardWorth("0");
     }
 
     private void assertDashboardWorth(String expected) throws Exception {

@@ -126,6 +126,7 @@ for (const width of [1280, 390]) {
       page.getByRole('button', { name: 'Physical assets', exact: true })
     ).toHaveAttribute('aria-pressed', 'true');
     await page.getByRole('button', { name: 'Add Asset', exact: true }).click();
+    await page.getByRole('button', { name: /^Something I already own/ }).click();
     await expect(page.getByLabel(/Quantity/)).toHaveValue('1');
     await expect(page.getByLabel('Brand', { exact: true })).not.toBeVisible();
     await page.getByRole('dialog').evaluate(async el => {

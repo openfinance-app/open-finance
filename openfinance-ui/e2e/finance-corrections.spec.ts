@@ -166,10 +166,10 @@ test('lost purchase response retries once and the complete purchase can be undon
   await page.getByLabel('Purchase Price *', { exact: true }).fill('100000');
   await page.getByLabel('Current Value *', { exact: true }).fill('100000');
   await page.getByRole('button', { name: 'Next', exact: true }).click();
-  await page.getByLabel('Mortgage name *', { exact: true }).fill('Retry mortgage');
+  await page.getByLabel('Loan name *', { exact: true }).fill('Retry mortgage');
   await page.getByLabel('Loan amount *', { exact: true }).fill('80000');
   await page.getByLabel('Disbursement route', { exact: true }).selectOption('account');
-  await page.getByLabel('Down payment amount', { exact: true }).fill('20000');
+  await page.getByLabel('Own contribution', { exact: true }).fill('20000');
   await page
     .getByRole('combobox')
     .filter({ hasText: /^None$/ })
@@ -188,6 +188,9 @@ test('lost purchase response retries once and the complete purchase can be undon
   await expect(page.getByRole('alert')).toContainText('Network Error');
   await evidence(page, info, 'lost-committed-response');
   await page.getByRole('button', { name: 'Confirm purchase', exact: true }).click();
+  const purchased = page.getByRole('dialog', { name: 'Retry home', exact: true });
+  await expect(purchased).toBeVisible();
+  await purchased.getByRole('button', { name: 'Close', exact: true }).click();
   await expect(page.getByRole('dialog')).toHaveCount(0);
   expect(attempts).toHaveLength(2);
   expect(attempts[1]).toEqual(attempts[0]);
@@ -232,7 +235,7 @@ test('dedicated drawdown form preserves a small BTC amount', async ({ page }, in
   await loanCard(page, 'Bitcoin loan')
     .getByRole('button', { name: 'View liability details', exact: true })
     .click();
-  await page.getByRole('button', { name: 'Drawdowns', exact: true }).click();
+  await page.getByRole('button', { name: 'Staged funding', exact: true }).click();
   await page.getByRole('button', { name: 'Add tranche', exact: true }).click();
   await page.getByLabel('Planned amount *', { exact: true }).fill('0.001000000000000001');
   await page.getByRole('button', { name: 'Add', exact: true }).click();
@@ -303,12 +306,9 @@ test('payoff removes future insurance and the monthly payment from the loan card
     .filter({ hasText: /^Account$/ })
     .click();
   await page.getByRole('option', { name: /Payoff checking/ }).click();
-  await dialog.getByText('Linked liability and movement', { exact: true }).click();
-  await dialog
-    .getByRole('combobox')
-    .filter({ hasText: /^None$/ })
-    .last()
-    .click();
+  await dialog.getByText('Linked operation', { exact: true }).click();
+  await dialog.getByLabel('Operation', { exact: true }).selectOption('LOAN_PAYMENT');
+  await dialog.getByLabel('Loan', { exact: true }).click();
   await page.getByRole('option', { name: /Payoff loan/ }).click();
   await dialog.getByLabel('Description', { exact: true }).fill('Final loan payment');
   await dialog.getByRole('button', { name: 'Create Transaction', exact: true }).click();
@@ -390,7 +390,7 @@ test('interest-only payment card includes current interest without scheduled pri
   await loanCard(page, 'Interest-only mortgage')
     .getByRole('button', { name: 'View liability details', exact: true })
     .click();
-  await page.getByRole('button', { name: 'Drawdowns', exact: true }).click();
+  await page.getByRole('button', { name: 'Staged funding', exact: true }).click();
   await page.getByRole('button', { name: 'Add tranche', exact: true }).click();
   await page.getByLabel('Planned amount *', { exact: true }).fill('300000');
   await page.getByLabel('Interest-only', { exact: true }).check();

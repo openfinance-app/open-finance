@@ -41,6 +41,20 @@ for (const language of ['en', 'fr'] as const) {
     const b = language === 'fr' ? budgetFr : budgetEn;
     const d = language === 'fr' ? dashboardFr : dashboardEn;
     const c = language === 'fr' ? commonFr : commonEn;
+    // Anchor every fixture date to the run date: the current month is always
+    // the 11th monthly budget period and the current year always the interest
+    // projection year, so the expectations below hold on any run date.
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const isoDate = (date: Date) =>
+      `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(
+        date.getDate()
+      ).padStart(2, '0')}`;
+    const monthStart = (offset: number) =>
+      new Date(now.getFullYear(), now.getMonth() - 10 + offset, 1);
+    const monthEnd = (offset: number) =>
+      new Date(now.getFullYear(), now.getMonth() - 10 + offset + 1, 0);
+    const budgetStartDate = isoDate(monthStart(0));
     const username = `periods_${language}_${Date.now()}`;
     const credentials = { username, password: 'Password123!', masterPassword: 'RealMaster123!' };
     expect(
@@ -71,7 +85,7 @@ for (const language of ['en', 'fr'] as const) {
       type: 'CHECKING',
       currency: 'EUR',
       initialBalance: '10000',
-      openingDate: '2026-01-01',
+      openingDate: budgetStartDate,
     });
     const expiredCategory = await api<{ id: number }>(page, '/categories', 'POST', {
       name: 'Previous allowance',
@@ -81,8 +95,8 @@ for (const language of ['en', 'fr'] as const) {
       amount: '300',
       currency: 'EUR',
       period: 'MONTHLY',
-      startDate: '2025-12-01',
-      endDate: '2025-12-31',
+      startDate: isoDate(monthStart(-1)),
+      endDate: isoDate(monthEnd(-1)),
       rollover: false,
     });
     await page.goto('/budget');
@@ -125,7 +139,7 @@ for (const language of ['en', 'fr'] as const) {
         amount,
         currency: 'EUR',
         type: 'EXPENSE',
-        date: `2026-${String(month + 1).padStart(2, '0')}-01`,
+        date: isoDate(monthStart(month)),
       });
     }
     const budget = await api<{ id: number }>(page, '/budgets', 'POST', {
@@ -133,8 +147,8 @@ for (const language of ['en', 'fr'] as const) {
       amount: '300',
       currency: 'EUR',
       period: 'MONTHLY',
-      startDate: '2026-01-01',
-      endDate: '2026-12-31',
+      startDate: budgetStartDate,
+      endDate: isoDate(monthEnd(11)),
       rollover: true,
       recurring: true,
     });
@@ -151,7 +165,8 @@ for (const language of ['en', 'fr'] as const) {
         exact: true,
       })
     ).toBeVisible();
-    await expect(summaryAllowance).toContainText('€300.00');
+    // Current period allowance: €300 plus the 10th period's €145.56 rollover.
+    await expect(summaryAllowance).toContainText('€445.56');
     await page
       .getByRole('button', { name: b.card.viewHistory.replace('{{category}}', 'Alimentation') })
       .click();
@@ -166,8 +181,8 @@ for (const language of ['en', 'fr'] as const) {
     await expect(breakdown).toHaveAttribute('aria-expanded', 'false');
     await breakdown.focus();
     await expect(page.getByRole('tooltip')).not.toBeVisible();
-    // Recharts renders all twelve allowance bars in the real chart, not just a history table.
-    await expect(page.locator('.recharts-bar-rectangle')).toHaveCount(22);
+    // Twelve allowance bars plus spending bars for the eleven non-future periods.
+    await expect(page.locator('.recharts-bar-rectangle')).toHaveCount(23);
     await expect
       .poll(async () =>
         page
@@ -207,9 +222,14 @@ for (const language of ['en', 'fr'] as const) {
     const overBudgetPercent = b.detail.overBudgetPercent.replace('{{percent}}', '46.8');
     await expect(firstResult).toContainText(overBudgetPercent);
     await expect(firstResult).toContainText('€140.35');
-    const octoberResult = page.getByRole('table').getByRole('row').nth(10).getByRole('cell').nth(1);
-    await expect(octoberResult).toContainText(b.card.remaining);
-    await expect(octoberResult).toContainText('€145.56');
+    const tenthPeriodResult = page
+      .getByRole('table')
+      .getByRole('row')
+      .nth(10)
+      .getByRole('cell')
+      .nth(1);
+    await expect(tenthPeriodResult).toContainText(b.card.remaining);
+    await expect(tenthPeriodResult).toContainText('€145.56');
     await page.locator('.recharts-bar-rectangle').nth(12).hover();
     await expect(page.getByRole('tooltip')).toContainText(overBudgetPercent);
     await expect(page.getByRole('tooltip')).toContainText('€140.35');
@@ -244,18 +264,55 @@ for (const language of ['en', 'fr'] as const) {
     });
     await page.setViewportSize({ width: 1280, height: 1100 });
 
+    // The balance is fully eligible from Jan 1 of the projection year, so the
+    // annual projection is balance * sum(rate * segment days) / 365 (ACTUAL_365).
+    const projectionBalance = new Decimal('23445.16');
+    const rateSchedule = [
+      { from: `${currentYear - 1}-08-01`, rate: '0.017' },
+      { from: `${currentYear}-02-01`, rate: '0.015' },
+      { from: `${currentYear}-08-01`, rate: '0.017' },
+    ];
+    const daysBetween = (from: string, to: string) =>
+      Math.round((Date.parse(to) - Date.parse(from)) / 86_400_000);
+    const annualProjection = (extra?: { from: string; rate: string }) => {
+      const schedule = [...rateSchedule, ...(extra ? [extra] : [])].sort((x, y) =>
+        x.from.localeCompare(y.from)
+      );
+      const yearStart = `${currentYear}-01-01`;
+      const nextYearStart = `${currentYear + 1}-01-01`;
+      const boundaries = [
+        yearStart,
+        ...schedule.map(s => s.from).filter(f => f > yearStart && f < nextYearStart),
+        nextYearStart,
+      ];
+      let weighted = new Decimal(0);
+      for (let i = 0; i < boundaries.length - 1; i++) {
+        const rate = schedule.filter(s => s.from <= boundaries[i]).at(-1)!.rate;
+        weighted = weighted.plus(
+          new Decimal(rate).mul(daysBetween(boundaries[i], boundaries[i + 1]))
+        );
+      }
+      return `€${projectionBalance.mul(weighted).div(365).toFixed(2)}`;
+    };
+    const expectedProjection = annualProjection();
+    const flatCurrentRateProjection = `€${projectionBalance
+      .mul('0.017')
+      .mul(daysBetween(`${currentYear}-01-01`, `${currentYear + 1}-01-01`))
+      .div(365)
+      .toFixed(2)}`;
+
     const savings = await api<{ id: number }>(page, '/accounts', 'POST', {
       name: 'Fortnight savings',
       type: 'SAVINGS',
       currency: 'EUR',
       initialBalance: '0',
-      openingDate: '2024-12-20',
+      openingDate: `${currentYear - 2}-12-20`,
       isInterestEnabled: true,
       interestPeriod: 'ANNUAL',
     });
     for (const [date, amount] of [
-      ['2024-12-20', '22950'],
-      ['2025-12-31', '495.16'],
+      [`${currentYear - 2}-12-20`, '22950'],
+      [`${currentYear - 1}-12-31`, '495.16'],
     ]) {
       await api(page, '/transactions', 'POST', {
         accountId: savings.id,
@@ -266,17 +323,18 @@ for (const language of ['en', 'fr'] as const) {
       });
     }
     for (const [validFrom, rate] of [
-      ['2024-02-01', '3'],
-      ['2025-02-01', '2.4'],
-      ['2025-08-01', '1.7'],
-      ['2026-02-01', '1.5'],
-      ['2026-08-01', '1.7'],
+      [`${currentYear - 2}-02-01`, '3'],
+      [`${currentYear - 1}-02-01`, '2.4'],
+      [`${currentYear - 1}-08-01`, '1.7'],
+      [`${currentYear}-02-01`, '1.5'],
+      [`${currentYear}-08-01`, '1.7'],
     ]) {
       await api(page, `/accounts/${savings.id}/interest-variations`, 'POST', {
         rate,
         validFrom,
         taxRate: '0',
-        creditValueDateMode: validFrom === '2025-08-01' ? 'TRANSACTION_DATE' : 'FORTNIGHT',
+        creditValueDateMode:
+          validFrom === `${currentYear - 1}-08-01` ? 'TRANSACTION_DATE' : 'FORTNIGHT',
         debitValueDateMode: 'FORTNIGHT',
         dayCountBasis: 'ACTUAL_365',
       });
@@ -284,7 +342,7 @@ for (const language of ['en', 'fr'] as const) {
     await page.goto('/accounts');
     const card = page.getByText('Fortnight savings', { exact: true }).locator('../../../../..');
     await expect(card.getByText(a.card.totalEarned, { exact: true })).toBeVisible();
-    await expect(card.getByText('€375.32', { exact: true })).toBeVisible();
+    await expect(card.getByText(expectedProjection, { exact: true })).toBeVisible();
     await page.getByText('Fortnight savings', { exact: true }).click();
     await page.getByRole('button', { name: a.detail.interest, exact: true }).click();
     const interest = page
@@ -297,9 +355,9 @@ for (const language of ['en', 'fr'] as const) {
     const projection = interest.getByText(a.interest.projectedNet, { exact: true }).locator('..');
     const earned = interest.getByText(a.interest.earnedSoFar, { exact: true }).locator('..');
     const lifetime = interest.getByText(a.interest.totalEarned, { exact: true }).locator('..');
-    await expect(projection).toContainText('€375.32');
-    await expect(interest.getByText('€398.57', { exact: true })).toHaveCount(0);
-    // The August 2025 row is now visible in the complete rate history.
+    await expect(projection).toContainText(expectedProjection);
+    await expect(interest.getByText(flatCurrentRateProjection, { exact: true })).toHaveCount(0);
+    // The previous August row is now visible in the complete rate history.
     await interest.getByRole('button', { name: a.interest.editRate, exact: true }).nth(2).click();
     await page
       .getByRole('combobox', { name: a.interest.creditValueDateMode, exact: true })
@@ -313,7 +371,7 @@ for (const language of ['en', 'fr'] as const) {
       yearToDate: number;
       historicalAccumulated: number;
     }>(page, `/accounts/${savings.id}/interest-estimate`);
-    expect(summary.estimate).toBe(375.32);
+    expect(summary.estimate).toBe(Number(expectedProjection.slice(1)));
     expect(summary.historicalAccumulated).toBeGreaterThan(summary.yearToDate);
     const money = (value: number) => `€${value.toFixed(2)}`;
     await expect(earned).toContainText(money(summary.yearToDate));
@@ -328,7 +386,7 @@ for (const language of ['en', 'fr'] as const) {
       .locator('../../..');
     const annualLabel = d.estimatedInterest.projectedCurrentYear.replace(
       '{{year}}',
-      String(new Date().getFullYear())
+      String(currentYear)
     );
     const dashboardRow = dashboardCard.getByRole('button', {
       name: d.estimatedInterest.viewDetails.replace('{{account}}', 'Fortnight savings'),
@@ -349,7 +407,7 @@ for (const language of ['en', 'fr'] as const) {
       await page.getByRole('button', { name: a.detail.interest, exact: true }).click();
     };
     // Warm the dashboard cache before mutations; navigating in the app must show updated values.
-    await visitDashboard('€375.32');
+    await visitDashboard(expectedProjection);
     await dashboardCard.scrollIntoViewIfNeeded();
     await dashboardCard.screenshot({
       path: testInfo.outputPath(`dashboard-interest-${language}.png`),
@@ -358,56 +416,43 @@ for (const language of ['en', 'fr'] as const) {
       .getByRole('group', { name: c.periodSelector.label })
       .getByRole('button', { name: c.periodSelector.presets.MTD, exact: true })
       .click();
-    await expect(dashboardCard.getByText(`${annualLabel}:`)).toContainText('€375.32');
+    await expect(dashboardCard.getByText(`${annualLabel}:`)).toContainText(expectedProjection);
     const monthEarned = await api<{ totalEarned: number }>(
       page,
-      `/dashboard/estimated-interest?startDate=${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}-01&endDate=${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}-${String(new Date().getDate()).padStart(2, '0')}`
+      `/dashboard/estimated-interest?startDate=${isoDate(new Date(currentYear, now.getMonth(), 1))}&endDate=${isoDate(now)}`
     );
     await expect(dashboardRow).toContainText(money(monthEarned.totalEarned));
     await returnToInterest();
 
     // A future rate affects only the remaining calendar-year projection.
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
+    const tomorrow = new Date(currentYear, now.getMonth(), now.getDate() + 1);
+    // Keep the extra rate off scheduled Feb/Aug changeovers, where two
+    // variations would otherwise share one validFrom date.
+    while ([`${currentYear}-02-01`, `${currentYear}-08-01`].includes(isoDate(tomorrow))) {
+      tomorrow.setDate(tomorrow.getDate() + 1);
+    }
     const futureDate = `${String(tomorrow.getDate()).padStart(2, '0')}/${String(tomorrow.getMonth() + 1).padStart(2, '0')}/${tomorrow.getFullYear()}`;
-    const remainingDays = Math.max(
-      0,
-      Math.round(
-        (Date.UTC(2027, 0, 1) -
-          Date.UTC(tomorrow.getFullYear(), tomorrow.getMonth(), tomorrow.getDate())) /
-          86_400_000
-      )
-    );
-    const projectedWithExtraRate = (extraRate: string) =>
-      `€${new Decimal('23445.16')
-        .mul(
-          new Decimal('0.017')
-            .mul(31)
-            .plus(new Decimal('0.015').mul(181))
-            .plus(new Decimal('0.017').mul(153))
-        )
-        .plus(new Decimal('23445.16').mul(extraRate).mul(remainingDays))
-        .div(365)
-        .toFixed(2)}`;
+    const projectedWithExtraRate = (rate: string) =>
+      annualProjection({ from: isoDate(tomorrow), rate });
     await interest.getByRole('button', { name: a.interest.addRate, exact: true }).click();
     await page.getByLabel(a.interest.addDialog.effectiveDate, { exact: false }).fill(futureDate);
     await page.getByLabel(a.interest.addDialog.interestRate, { exact: false }).fill('2');
     await page.getByRole('button', { name: a.interest.addDialog.saveRate, exact: true }).click();
-    await expect(projection).toContainText(projectedWithExtraRate('0.003'));
-    await visitDashboard(projectedWithExtraRate('0.003'));
+    await expect(projection).toContainText(projectedWithExtraRate('0.02'));
+    await visitDashboard(projectedWithExtraRate('0.02'));
     await returnToInterest();
     await expect(earned).toContainText(money(summary.yearToDate));
     await expect(lifetime).toContainText(money(summary.historicalAccumulated));
     await interest.getByRole('button', { name: a.interest.editRate, exact: true }).last().click();
     await page.getByLabel(a.interest.addDialog.interestRate, { exact: false }).fill('2.5');
     await page.getByRole('button', { name: a.interest.addDialog.saveRate, exact: true }).click();
-    await expect(projection).toContainText(projectedWithExtraRate('0.008'));
-    await visitDashboard(projectedWithExtraRate('0.008'));
+    await expect(projection).toContainText(projectedWithExtraRate('0.025'));
+    await visitDashboard(projectedWithExtraRate('0.025'));
     await returnToInterest();
     page.once('dialog', dialog => dialog.accept());
     await interest.getByRole('button', { name: a.interest.deleteRate, exact: true }).last().click();
-    await expect(projection).toContainText('€375.32');
-    await visitDashboard('€375.32');
+    await expect(projection).toContainText(expectedProjection);
+    await visitDashboard(expectedProjection);
     await returnToInterest();
     await expect(earned).toContainText(money(summary.yearToDate));
     await expect(lifetime).toContainText(money(summary.historicalAccumulated));
@@ -423,7 +468,7 @@ for (const language of ['en', 'fr'] as const) {
     });
     await page.setViewportSize({ width: 390, height: 844 });
     await expect(interest.getByRole('combobox')).toHaveCount(0);
-    await expect(projection).toContainText('€375.32');
+    await expect(projection).toContainText(expectedProjection);
     expect(
       await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)
     ).toBe(true);
@@ -443,7 +488,7 @@ for (const language of ['en', 'fr'] as const) {
     await expect(
       card.getByText(money(summary.historicalAccumulated), { exact: true })
     ).toBeVisible();
-    await expect(card.getByText('€375.32', { exact: true })).toBeVisible();
+    await expect(card.getByText(expectedProjection, { exact: true })).toBeVisible();
     await page.screenshot({
       path: testInfo.outputPath(`interest-card-${language}.png`),
       fullPage: true,
@@ -455,7 +500,7 @@ for (const language of ['en', 'fr'] as const) {
       .getByRole('button', { name: c.periodSelector.presets.YTD, exact: true })
       .click();
     await page.setViewportSize({ width: 390, height: 844 });
-    await expect(dashboardRow).toContainText('€375.32');
+    await expect(dashboardRow).toContainText(expectedProjection);
     await dashboardCard.scrollIntoViewIfNeeded();
     await dashboardCard.screenshot({
       path: testInfo.outputPath(`dashboard-interest-mobile-${language}.png`),

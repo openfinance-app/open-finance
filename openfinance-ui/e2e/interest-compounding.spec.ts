@@ -111,9 +111,8 @@ test('form preview, saved account and dashboard share calendar compounding', asy
   await page.locator(`#transaction-${credit.id}`).hover();
   await page.getByRole('button', { name: 'Edit transaction', exact: true }).click();
   const dialog = page.getByRole('dialog');
-  await dialog
-    .getByRole('checkbox', { name: 'Interest credited by the bank', exact: true })
-    .check();
+  await dialog.getByText('Linked operation', { exact: true }).click();
+  await dialog.getByLabel('Operation', { exact: true }).selectOption('INTEREST');
   await dialog.getByRole('button', { name: 'Update Transaction', exact: true }).click();
   await expect(dialog).not.toBeVisible();
   expect(

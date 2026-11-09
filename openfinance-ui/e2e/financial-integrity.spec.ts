@@ -95,9 +95,14 @@ test('dated improvements entered through the form preserve wealth in either date
     [month(-2), '100'],
   ]) {
     const dialog = await expenseForm(page, date, amount);
-    await dialog.getByText('Linked liability and movement', { exact: true }).click();
-    await dialog.locator('#movementType').selectOption('CAPITAL_IMPROVEMENT');
-    await dialog.locator('#movement-realEstateId').selectOption(String(property.id));
+    await dialog.getByText('Linked operation', { exact: true }).click();
+    await dialog.getByLabel('Operation', { exact: true }).selectOption('CAPITAL_IMPROVEMENT');
+    await dialog
+      .getByLabel('Property or physical asset', { exact: true })
+      .selectOption(`property:${property.id}`);
+    await dialog
+      .getByRole('checkbox', { name: 'Also update the estimated market value', exact: true })
+      .check();
     await dialog.getByRole('button', { name: /^create transaction$/i }).click();
     await expect(dialog).not.toBeVisible();
   }
@@ -142,7 +147,7 @@ test('closing an account through its action preserves earlier history', async ({
     `/dashboard/networth-history?startDate=${month(-3)}&endDate=${month(-3)}&recalculate=true`
   );
   expect(rows[0].netWorth).toBe(2000);
-  expect((await api(page, '/dashboard/summary')).netWorth.netWorth).toBe(1000);
+  expect((await api(page, '/dashboard/summary')).netWorth.netWorth).toBe(2000);
 });
 
 test('a repayment before origination is rejected through the transaction form', async ({
@@ -164,13 +169,9 @@ test('a repayment before origination is rejected through the transaction form', 
     'POST'
   );
   const dialog = await expenseForm(page, month(-2), '100');
-  await dialog.getByText('Linked liability and movement', { exact: true }).click();
-  await dialog
-    .locator('label[for="liabilityId"]')
-    .locator('../..')
-    .getByRole('combobox')
-    .first()
-    .click();
+  await dialog.getByText('Linked operation', { exact: true }).click();
+  await dialog.getByLabel('Operation', { exact: true }).selectOption('LOAN_PAYMENT');
+  await dialog.getByLabel('Loan', { exact: true }).click();
   await page.getByRole('option', { name: /Audit loan/ }).click();
   await dialog.getByRole('checkbox', { name: /apply split/i }).uncheck();
   await dialog.locator('#principalAmount').fill('100');

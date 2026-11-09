@@ -1,5 +1,5 @@
 -- Closed accounts retain their financial position. Deletion has its own dated marker.
-ALTER TABLE accounts ADD COLUMN deleted_date DATE;
+ALTER TABLE accounts ADD COLUMN deleted_date VARCHAR(10);
 
 -- Recover only explicit deletions from the audit trail. Skrooge's closed flag is not deletion.
 UPDATE accounts
