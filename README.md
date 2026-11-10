@@ -17,11 +17,13 @@
 ## Features
 
 - **Core finance** — Accounts, transactions (splits, bulk edit, transfers), categories, payees, and financial institutions
-- **Automation** — Recurring transactions, transaction rules, and auto-categorization
+- **Automation** — Recurring transactions, transaction rules, and smart auto-categorization
 - **Budgets & planning** — Monthly/annual budgets with threshold alerts (75 / 90 / 100 %), plus loan, compound-interest, early-payoff, and FIRE / financial-freedom calculators
 - **Assets, liabilities & real estate** — Portfolio tracking (stocks, ETFs, crypto, bonds, commodities, vehicles), loans/mortgages with amortization, and property management with investment simulations
-- **Dashboard & reporting** — Net-worth summary, cashflow and Sankey diagrams, portfolio performance, global search, and operation history with undo/redo
-- **Import, export & backup** — QIF/OFX/QFX/CSV/JSON import with duplicate detection, CSV/JSON export, file attachments, and encrypted backup & restore
+- **Dashboard & reporting** — Net-worth summary, cashflow and Sankey diagrams, portfolio performance, global search
+- **Operation history** — Undo/redo functionality
+- **Import, export & backup** — QIF/OFX/QFX/CSV/JSON import with duplicate detection
+- **File attachments** — Support for attaching files to transactions
 - **AI & intelligence** — Local AI assistant (Ollama), automated financial insights, and anomaly detection
 - **Market data & news** — Live quotes and historical prices (Yahoo Finance), plus locale-aware financial news feeds
 - **Privacy, security & i18n** — Local-first with encryption at rest, JWT authentication, multi-currency support, and English/French interface
