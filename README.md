@@ -14,6 +14,36 @@
 
 ---
 
+## Features
+
+- **Core finance** — Accounts, transactions (splits, bulk edit, transfers), categories, payees, and financial institutions
+- **Automation** — Recurring transactions, transaction rules, and auto-categorization
+- **Budgets & planning** — Monthly/annual budgets with threshold alerts (75 / 90 / 100 %), plus loan, compound-interest, early-payoff, and FIRE / financial-freedom calculators
+- **Assets, liabilities & real estate** — Portfolio tracking (stocks, ETFs, crypto, bonds, commodities, vehicles), loans/mortgages with amortization, and property management with investment simulations
+- **Dashboard & reporting** — Net-worth summary, cashflow and Sankey diagrams, portfolio performance, global search, and operation history with undo/redo
+- **Import, export & backup** — QIF/OFX/QFX/CSV/JSON import with duplicate detection, CSV/JSON export, file attachments, and encrypted backup & restore
+- **AI & intelligence** — Local AI assistant (Ollama), automated financial insights, and anomaly detection
+- **Market data & news** — Live quotes and historical prices (Yahoo Finance), plus locale-aware financial news feeds
+- **Privacy, security & i18n** — Local-first with encryption at rest, JWT authentication, multi-currency support, and English/French interface
+
+Full feature User Guide → [Wiki](docs/wiki/HOME.md)
+
+---
+
+## Screenshots
+
+Click any thumbnail below to view it full-size.
+
+| Dashboard | Payees | Transactions |
+| --- | --- | --- |
+| [![Dashboard](docs/wiki/screenshots/dashboard.png)](docs/wiki/screenshots/dashboard.png) | [![Payees](docs/wiki/screenshots/payees.png)](docs/wiki/screenshots/payees.png) | [![Transactions](docs/wiki/screenshots/transactions.png)](docs/wiki/screenshots/transactions.png) |
+| **Assets** | **Accounts** | **AI Assistant** |
+| [![Assets](docs/wiki/screenshots/assets.png)](docs/wiki/screenshots/assets.png) | [![Accounts](docs/wiki/screenshots/accounts.png)](docs/wiki/screenshots/accounts.png) | [![AI Assistant](docs/wiki/screenshots/ai-assistant.png)](docs/wiki/screenshots/ai-assistant.png) |
+
+More views — budgets, liabilities, real estate, calculators, categories, import, recurring transactions, and settings — in [`docs/wiki/screenshots/`](docs/wiki/screenshots/).
+
+---
+
 ## Quick Start — Docker (Recommended)
 
 Requires [Docker](https://docs.docker.com/get-docker/) and [Docker Compose](https://docs.docker.com/compose/).
@@ -73,32 +103,6 @@ npm run type-check && npm run lint
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for architecture, API reference, coding standards, and how to submit changes.  
 See [docs/SECURITY.md](docs/SECURITY.md) for encryption, authentication, and responsible disclosure.
-
----
-
-## PFA Landscape
-
-| Feature                   | Open-Finance | Finary | Maybe/Sure | Wealthfolio | GnuCash | HomeBank | MMEX | KMyMoney | Skrooge |
-| ------------------------- | ------------ | ------ | ---------- | ----------- | ------- | -------- | ---- | -------- | ------- |
-| **Modern Interface**      | ✅           | ✅     | ✅         | ✅          | ⚠️      | ⚠️       | ⚠️   | ⚠️       | ⚠️      |
-| **Basic Finance Mgmt**    | ✅           | ✅     | ✅         | ⚠️          | ✅      | ✅       | ✅   | ✅       | ✅      |
-| **Rich Dashboards**       | ✅           | ✅     | ✅         | ✅          | ❌      | ⚠️       | ⚠️   | ⚠️       | ⚠️      |
-| **QIF/OFX Import**        | ✅           | ❌     | ❌         | ⚠️          | ✅      | ✅       | ⚠️   | ✅       | ✅      |
-| **Real Estate Mgmt**      | ✅           | ✅     | ⚠️         | ⚠️          | ⚠️      | ❌       | ❌   | ⚠️       | ❌      |
-| **File Attachments**      | ✅           | ❌     | ❌         | ❌          | ✅      | ⚠️       | ✅   | ✅       | ✅      |
-| **Auto Categorization**   | ✅           | ✅     | ✅         | ❌          | ⚠️      | ⚠️       | ⚠️   | ⚠️       | ⚠️      |
-| **Undo/Redo/Backup**      | ✅           | ⚠️     | ⚠️         | ⚠️          | ✅      | ⚠️       | ⚠️   | ✅       | ✅      |
-| **Financial Planning**    | ✅           | ✅     | ✅         | ✅          | ⚠️      | ⚠️       | ⚠️   | ⚠️       | ⚠️      |
-| **Financial News**        | ✅           | ❌     | ❌         | ❌          | ❌      | ❌       | ❌   | ❌       | ❌      |
-| **Multi-Currency**        | ✅           | ✅     | ✅         | ✅          | ✅      | ✅       | ✅   | ✅       | ✅      |
-| **AI Assistant**          | ✅           | ❌     | ✅         | ✅          | ❌      | ❌       | ❌   | ❌       | ❌      |
-| **Data Security/Privacy** | ✅           | ❌     | ⚠️         | ✅          | ✅      | ✅       | ✅   | ✅       | ✅      |
-| **FOSS**                  | ✅           | ❌     | ✅         | ✅          | ✅      | ✅       | ✅   | ✅       | ✅      |
-| **Multilingual (EN/FR)**  | ✅           | ✅     | ✅         | ❌          | ✅      | ✅       | ✅   | ✅       | ✅      |
-
-✅ Full support · ⚠️ Partial · ❌ Not supported
-
-Full feature User Guide → [Wiki](docs/wiki/HOME.md)
 
 ---
 
