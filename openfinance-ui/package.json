@@ -1,7 +1,7 @@
 {
   "name": "openfinance-ui",
   "private": true,
-  "version": "0.5.15-beta",
+  "version": "0.5.16-beta",
   "type": "module",
   "scripts": {
     "dev": "vite",
