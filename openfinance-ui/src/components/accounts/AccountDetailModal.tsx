@@ -102,6 +102,9 @@ export function AccountDetailModal({
   const { displayMode } = useCurrencyDisplay();
 
   const { data: account, isLoading: isLoadingAccount } = useAccount(accountId);
+  const institutionSettingsPath = `/institutions?${new URLSearchParams({
+    search: account?.institution?.name ?? '',
+  })}`;
   const updateAccount = useUpdateAccount();
   const { data: balanceHistory, isLoading: isLoadingHistory } = useAccountBalanceHistory(
     accountId,
@@ -205,7 +208,18 @@ export function AccountDetailModal({
                   <h2 className="text-xl font-bold text-foreground">{account?.name}</h2>
                   <p className="text-sm text-muted-foreground">
                     {account ? t('form.types.' + account.type) : ''} · {account?.currency}
-                    {account?.institution && ` · ${account.institution.name}`}
+                    {account?.institution && (
+                      <>
+                        {' · '}
+                        <Link
+                          to={institutionSettingsPath}
+                          onClick={onClose}
+                          className="rounded-sm text-primary underline underline-offset-4 hover:text-text-primary"
+                        >
+                          {account.institution.name}
+                        </Link>
+                      </>
+                    )}
                   </p>
                 </>
               )}
@@ -497,7 +511,13 @@ export function AccountDetailModal({
                             {t('detail.institution')}
                           </dt>
                           <dd className="text-sm font-medium text-foreground">
-                            {account.institution.name}
+                            <Link
+                              to={institutionSettingsPath}
+                              onClick={onClose}
+                              className="rounded-sm text-primary underline underline-offset-4 hover:text-text-primary"
+                            >
+                              {account.institution.name}
+                            </Link>
                           </dd>
                         </div>
                       )}

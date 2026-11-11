@@ -313,4 +313,12 @@ public class InsightController {
 
         return ResponseEntity.noContent().build();
     }
+
+    /** Clear all active insights for the authenticated user, retaining dismissal history. */
+    @PostMapping("/dismiss-all")
+    public ResponseEntity<Void> dismissAllInsights(Authentication authentication) {
+        User user = (User) authentication.getPrincipal();
+        insightService.dismissAllInsights(user.getId());
+        return ResponseEntity.noContent().build();
+    }
 }

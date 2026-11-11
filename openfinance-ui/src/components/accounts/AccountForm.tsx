@@ -251,7 +251,7 @@ export function AccountForm({
       balanceCurrency: account?.currency ?? data.currency,
       description: data.description || undefined,
       openingDate: data.openingDate || undefined,
-      institutionId: data.institutionId ? parseInt(data.institutionId, 10) : undefined,
+      institutionId: data.institutionId ? parseInt(data.institutionId, 10) : null,
       isInterestEnabled: data.isInterestEnabled,
       interestPeriod: data.interestPeriod,
       interestRate: data.interestRate,
@@ -271,8 +271,9 @@ export function AccountForm({
           control={control}
           render={({ field }) => (
             <InstitutionSelector
+              id="institution"
               value={field.value}
-              onValueChange={field.onChange}
+              onValueChange={value => field.onChange(value ?? '')}
               placeholder={t('form.selectBank')}
               className="w-full"
             />

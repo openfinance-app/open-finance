@@ -6,6 +6,7 @@
  */
 
 import { useState, useRef } from 'react';
+import { useSearchParams } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { Building2, Plus, Pencil, Trash2, Upload, X } from 'lucide-react';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
@@ -44,7 +45,19 @@ export function InstitutionManagementSettings() {
     country: 'FR',
     logo: '',
   });
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const searchQuery = searchParams.get('search') ?? '';
+  const setSearchQuery = (value: string): void => {
+    setSearchParams(
+      previous => {
+        const next = new URLSearchParams(previous);
+        if (value) next.set('search', value);
+        else next.delete('search');
+        return next;
+      },
+      { replace: true }
+    );
+  };
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const [logoError, setLogoError] = useState<string | null>(null);
   const [bicError, setBicError] = useState<string | null>(null);
@@ -245,6 +258,7 @@ export function InstitutionManagementSettings() {
         <Input
           type="text"
           placeholder={t('searchPlaceholder')}
+          aria-label={t('searchInstitution')}
           value={searchQuery}
           onChange={e => setSearchQuery(e.target.value)}
           className="pl-10"

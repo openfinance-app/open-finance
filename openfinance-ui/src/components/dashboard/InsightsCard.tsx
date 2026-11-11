@@ -28,8 +28,15 @@ import {
   Globe,
   Receipt,
   FileText,
+  ListX,
 } from 'lucide-react';
-import { useTopInsights, useGenerateInsights, useDismissInsight } from '@/hooks/useInsights';
+import {
+  useTopInsights,
+  useGenerateInsights,
+  useDismissInsight,
+  useDismissAllInsights,
+} from '@/hooks/useInsights';
+import { ConfirmationDialog } from '@/components/ConfirmationDialog';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
@@ -181,6 +188,10 @@ export default function InsightsCard() {
   const { data: insights, isLoading, error, refetch } = useTopInsights(3);
   const generateInsights = useGenerateInsights();
   const dismissInsight = useDismissInsight();
+  const dismissAllInsights = useDismissAllInsights();
+  const [confirmClear, setConfirmClear] = useState(false);
+  const isMutating =
+    generateInsights.isPending || dismissInsight.isPending || dismissAllInsights.isPending;
   const [selectedInsight, setSelectedInsight] = useState<Insight | null>(null);
 
   const [mutationError, setMutationError] = useState<string | null>(null);
@@ -207,6 +218,17 @@ export default function InsightsCard() {
 
   const handleRetry = () => {
     refetch();
+  };
+
+  const handleClearAll = async (): Promise<void> => {
+    setMutationError(null);
+    try {
+      await dismissAllInsights.mutateAsync();
+      setSelectedInsight(null);
+      setConfirmClear(false);
+    } catch {
+      setMutationError(t('insightsCard.clearFailed'));
+    }
   };
 
   // Loading state
@@ -336,8 +358,8 @@ export default function InsightsCard() {
   return (
     <Card className="h-full flex flex-col">
       <CardHeader>
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="flex min-w-0 flex-wrap items-center gap-2">
             <Sparkles className="h-5 w-5 text-primary" />
             <CardTitle>{t('insightsCard.title')}</CardTitle>
             <HelpTooltip text={t('insightsCard.tooltip')} side="right" />
@@ -345,21 +367,37 @@ export default function InsightsCard() {
               {t('insightsCard.active', { count: insights.length })}
             </span>
           </div>
-          <Button
-            onClick={handleGenerate}
-            disabled={generateInsights.isPending}
-            aria-busy={generateInsights.isPending}
-            aria-label={t('insightsCard.refresh')}
-            title={t('insightsCard.refresh')}
-            variant="ghost"
-            size="icon"
-            className="shrink-0 text-text-secondary hover:text-text-primary md:h-8 md:w-8"
-          >
-            <RefreshCw
-              className={`h-4 w-4 ${generateInsights.isPending ? 'animate-spin motion-reduce:animate-none' : ''}`}
-              aria-hidden="true"
-            />
-          </Button>
+          <div className="flex shrink-0 items-center gap-1">
+            <Button
+              onClick={() => {
+                setMutationError(null);
+                setConfirmClear(true);
+              }}
+              disabled={isMutating}
+              aria-label={t('insightsCard.clearAll')}
+              title={t('insightsCard.clearAll')}
+              variant="ghost"
+              size="icon"
+              className="text-text-secondary hover:text-error md:h-8 md:w-8"
+            >
+              <ListX className="h-4 w-4" aria-hidden="true" />
+            </Button>
+            <Button
+              onClick={handleGenerate}
+              disabled={isMutating}
+              aria-busy={generateInsights.isPending}
+              aria-label={t('insightsCard.refresh')}
+              title={t('insightsCard.refresh')}
+              variant="ghost"
+              size="icon"
+              className="shrink-0 text-text-secondary hover:text-text-primary md:h-8 md:w-8"
+            >
+              <RefreshCw
+                className={`h-4 w-4 ${generateInsights.isPending ? 'animate-spin motion-reduce:animate-none' : ''}`}
+                aria-hidden="true"
+              />
+            </Button>
+          </div>
         </div>
       </CardHeader>
       <CardContent className="flex-1 overflow-y-auto scrollbar-thin min-h-0 pr-2">
@@ -368,7 +406,7 @@ export default function InsightsCard() {
             {t('insightsCard.partialRefresh')}
           </p>
         )}
-        {mutationError && (
+        {mutationError && !confirmClear && (
           <p role="alert" className="mb-3 text-sm text-red-600">
             {mutationError}
           </p>
@@ -380,7 +418,7 @@ export default function InsightsCard() {
               insight={insight}
               onDismiss={handleDismiss}
               onClick={() => setSelectedInsight(insight)}
-              isDismissing={dismissInsight.isPending}
+              isDismissing={isMutating}
               t={t}
             />
           ))}
@@ -422,6 +460,23 @@ export default function InsightsCard() {
           </div>
         </DialogContent>
       </Dialog>
+      <ConfirmationDialog
+        open={confirmClear}
+        onOpenChange={open => {
+          if (!dismissAllInsights.isPending) setConfirmClear(open);
+        }}
+        onConfirm={handleClearAll}
+        title={t('insightsCard.clearTitle')}
+        description={t('insightsCard.clearDescription')}
+        confirmText={t('insightsCard.clearConfirm')}
+        loading={dismissAllInsights.isPending}
+      >
+        {mutationError && (
+          <p role="alert" className="text-sm text-error">
+            {mutationError}
+          </p>
+        )}
+      </ConfirmationDialog>
     </Card>
   );
 }

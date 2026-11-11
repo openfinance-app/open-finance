@@ -238,6 +238,13 @@ public class InsightService {
         insightRepository.save(insight);
     }
 
+    /** Dismiss all current insights, including those outside the dashboard's top-three list. */
+    @CacheEvict(value = "insights", key = "#userId")
+    public void dismissAllInsights(Long userId) {
+        int dismissed = insightRepository.dismissAllByUserId(userId);
+        log.info("Dismissed {} insights for user {}", dismissed, userId);
+    }
+
     /**
      * Delete old dismissed insights (cleanup task).
      *

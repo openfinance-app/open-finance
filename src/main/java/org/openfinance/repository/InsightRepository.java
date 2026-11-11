@@ -7,6 +7,7 @@ import org.openfinance.entity.Insight;
 import org.openfinance.entity.InsightPriority;
 import org.openfinance.entity.InsightType;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -31,6 +32,12 @@ import org.springframework.stereotype.Repository;
  */
 @Repository
 public interface InsightRepository extends JpaRepository<Insight, Long> {
+
+    /** Dismiss every active insight for one owner without loading encrypted content. */
+    @Modifying(flushAutomatically = true, clearAutomatically = true)
+    @Query(
+            "UPDATE Insight i SET i.dismissed = true WHERE i.user.id = :userId AND i.dismissed = false")
+    int dismissAllByUserId(@Param("userId") Long userId);
 
     /**
      * Find all insights for a user, ordered by priority (HIGH first) and creation date (newest

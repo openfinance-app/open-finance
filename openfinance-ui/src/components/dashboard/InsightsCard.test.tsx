@@ -1,51 +1,52 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import InsightsCard from './InsightsCard';
-import { MemoryRouter } from 'react-router';
-import { I18nextProvider } from 'react-i18next';
+import { screen, fireEvent, waitFor, within } from '@testing-library/react';
+import InsightsCard from '@/components/dashboard/InsightsCard';
+import { renderWithProviders, mockAuthentication } from '@/test/test-utils';
 import i18n from '@/test/i18n-test';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { InsightType, InsightPriority } from '@/types/insight';
+import { InsightType, InsightPriority, type Insight } from '@/types/insight';
 
 // Mock hooks
 const mockGenerateMutateAsync = vi.fn();
 const mockDismissMutateAsync = vi.fn();
+const mockDismissAllMutateAsync = vi.fn();
 const mockRefetch = vi.fn();
-let mockUseTopInsightsReturn: any;
+let mockDismissAllPending = false;
+let mockUseTopInsightsReturn: {
+  data: Insight[] | undefined;
+  isLoading: boolean;
+  error: Error | null;
+  refetch: typeof mockRefetch;
+};
 
 vi.mock('@/hooks/useInsights', () => ({
   useTopInsights: () => mockUseTopInsightsReturn,
   useGenerateInsights: () => ({ mutateAsync: mockGenerateMutateAsync, isPending: false }),
   useDismissInsight: () => ({ mutateAsync: mockDismissMutateAsync, isPending: false }),
+  useDismissAllInsights: () => ({
+    mutateAsync: mockDismissAllMutateAsync,
+    isPending: mockDismissAllPending,
+  }),
 }));
 
-const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-
-const renderWithProviders = (ui: React.ReactElement) => {
-  return render(
-    <QueryClientProvider client={queryClient}>
-      <I18nextProvider i18n={i18n}>
-        <MemoryRouter>{ui}</MemoryRouter>
-      </I18nextProvider>
-    </QueryClientProvider>
-  );
-};
-
-const makeInsight = (overrides: any = {}) => ({
+const makeInsight = (overrides: Partial<Insight> = {}): Insight => ({
   id: 1,
   title: 'High spending in Restaurants',
   description: 'You spent 40% more than usual this week.',
   priority: InsightPriority.HIGH,
   type: InsightType.SPENDING_ANOMALY,
+  dismissed: false,
   createdAt: new Date().toISOString(),
   ...overrides,
 });
 
 describe('InsightsCard', () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.clearAllMocks();
+    mockAuthentication();
+    mockDismissAllPending = false;
+    mockDismissAllMutateAsync.mockReset().mockResolvedValue(undefined);
     Element.prototype.scrollIntoView = vi.fn();
-    i18n.changeLanguage('en');
+    await i18n.changeLanguage('en');
     mockUseTopInsightsReturn = {
       data: [makeInsight()],
       isLoading: false,
@@ -91,6 +92,54 @@ describe('InsightsCard', () => {
     // "Generate Insights" is the translated text
     const generateBtn = screen.getByRole('button', { name: /generate insights/i });
     expect(generateBtn).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Clear all insights' })).not.toBeInTheDocument();
+  });
+
+  it('explains the scope of clearing and allows cancelling without changing insights', () => {
+    renderWithProviders(<InsightsCard />);
+    fireEvent.click(screen.getByRole('button', { name: 'Clear all insights' }));
+    const dialog = screen.getByRole('dialog', { name: 'Clear all insights?' });
+    expect(within(dialog).getByText(/including insights not shown on this card/)).toBeVisible();
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Cancel' }));
+    expect(mockDismissAllMutateAsync).not.toHaveBeenCalled();
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(screen.getByText('High spending in Restaurants')).toBeVisible();
+  });
+
+  it('clears all insights with one bulk request after confirmation', async () => {
+    renderWithProviders(<InsightsCard />);
+    fireEvent.click(screen.getByRole('button', { name: 'Clear all insights' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Clear all' }));
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+    expect(mockDismissAllMutateAsync).toHaveBeenCalledExactlyOnceWith();
+    expect(mockDismissMutateAsync).not.toHaveBeenCalled();
+  });
+
+  it('keeps insights on failure and lets the user retry clearing', async () => {
+    mockDismissAllMutateAsync.mockRejectedValueOnce(new Error('Network unavailable'));
+    renderWithProviders(<InsightsCard />);
+    fireEvent.click(screen.getByRole('button', { name: 'Clear all insights' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Clear all' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Could not clear insights. Please try again.'
+    );
+    expect(screen.getByText('High spending in Restaurants')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Clear all' }));
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+    expect(mockDismissAllMutateAsync).toHaveBeenCalledTimes(2);
+  });
+
+  it('prevents repeated requests or closing while clearing is pending', () => {
+    const { rerender } = renderWithProviders(<InsightsCard />);
+    fireEvent.click(screen.getByRole('button', { name: 'Clear all insights' }));
+    mockDismissAllPending = true;
+    rerender(<InsightsCard />);
+    const dialog = screen.getByRole('dialog');
+    expect(within(dialog).getByRole('button', { name: 'Cancel' })).toBeDisabled();
+    expect(within(dialog).getByRole('button', { name: /loading/i })).toBeDisabled();
+    fireEvent.keyDown(dialog, { key: 'Escape' });
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+    expect(mockDismissAllMutateAsync).not.toHaveBeenCalled();
   });
 
   it('clicking generate calls mutateAsync', async () => {

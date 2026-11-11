@@ -71,6 +71,7 @@ import { InstitutionManagementSettings } from './InstitutionManagementSettings';
 
 describe('InstitutionManagementSettings', () => {
   beforeEach(() => {
+    window.history.replaceState(null, '', '/institutions');
     clearAuthentication();
     mockAuthentication();
     vi.clearAllMocks();
@@ -114,6 +115,27 @@ describe('InstitutionManagementSettings', () => {
     await user.type(screen.getByPlaceholderText(/search/i), 'Chase');
     expect(screen.getByText('Chase Bank')).toBeInTheDocument();
     expect(screen.queryByText('BNP Paribas')).not.toBeInTheDocument();
+  });
+
+  it('opens the institution from the account link and lets the user clear that filter', async () => {
+    const user = userEvent.setup();
+    const institutionName = 'Bank & Trust';
+    mockData = [{ ...mockInstitutions[0], name: institutionName }, mockInstitutions[1]];
+    window.history.replaceState(
+      null,
+      '',
+      `/institutions?${new URLSearchParams({ search: institutionName })}`
+    );
+    renderWithProviders(<InstitutionManagementSettings />);
+    const search = screen.getByRole('textbox', { name: /search institution/i });
+    expect(search).toHaveValue(institutionName);
+    expect(screen.getByText(institutionName)).toBeInTheDocument();
+    expect(screen.queryByText('BNP Paribas')).not.toBeInTheDocument();
+
+    await user.clear(search);
+
+    expect(screen.getByText('BNP Paribas')).toBeInTheDocument();
+    expect(window.location.search).toBe('');
   });
 
   it('opens create form dialog', async () => {

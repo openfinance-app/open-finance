@@ -21,6 +21,7 @@ import { cn } from '@/lib/utils';
 import { handleSelectSearchKeyDown } from '@/utils/select-keyboard';
 
 interface InstitutionSelectorProps {
+  id?: string;
   value?: string;
   onValueChange: (value: string | undefined) => void;
   placeholder?: string;
@@ -45,11 +46,13 @@ const COUNTRY_NAMES: Record<string, string> = {
   AT: 'Austria',
   US: 'United States',
   UK: 'United Kingdom',
+  GB: 'United Kingdom',
   MT: 'Malta',
   PL: 'Poland',
 };
 
 export function InstitutionSelector({
+  id,
   value,
   onValueChange,
   placeholder = 'Select institution',
@@ -160,7 +163,7 @@ export function InstitutionSelector({
         }
       }}
     >
-      <SelectTrigger className={className}>
+      <SelectTrigger id={id} className={className}>
         <SelectValue placeholder={placeholder}>
           {value && selectedInstitution ? (
             <span className="flex items-center gap-2">
@@ -172,7 +175,7 @@ export function InstitutionSelector({
                 </span>
               )}
             </span>
-          ) : value === undefined && allowNone ? (
+          ) : !value && allowNone ? (
             <span className="text-text-muted">{t('common:none')}</span>
           ) : (
             placeholder

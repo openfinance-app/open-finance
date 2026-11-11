@@ -10,7 +10,7 @@ import { screen, fireEvent } from '@testing-library/react';
 import { vi, describe, it, expect, beforeEach } from 'vitest';
 import { act } from '@testing-library/react';
 import React from 'react';
-import { renderWithProviders } from '@/test/test-utils';
+import { renderWithProviders, mockAuthentication } from '@/test/test-utils';
 import { AccountDetailModal } from './AccountDetailModal';
 import * as useAccountsModule from '@/hooks/useAccounts';
 import * as useTransactionsModule from '@/hooks/useTransactions';
@@ -151,6 +151,7 @@ describe('AccountDetailModal', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    mockAuthentication();
     mockUseAccount.mockReturnValue({ data: mockAccount, isLoading: false } as any);
     mockUseAccountBalanceHistory.mockReturnValue({ data: [], isLoading: false } as any);
     mockUseTransactions.mockReturnValue({ data: undefined, isLoading: false } as any);
@@ -159,6 +160,25 @@ describe('AccountDetailModal', () => {
   // ── Rendering ──────────────────────────────────────────────────────────────
 
   describe('Rendering', () => {
+    it('links both institution labels to filtered institution settings and closes the card', async () => {
+      const institutionName = 'Bank & Trust';
+      mockUseAccount.mockReturnValue({
+        data: { ...mockAccount, institution: { id: 1, name: institutionName } },
+        isLoading: false,
+      } as ReturnType<typeof useAccountsModule.useAccount>);
+      renderWithProviders(<AccountDetailModal {...defaultProps} />);
+      const links = screen.getAllByRole('link', { name: institutionName });
+      expect(links).toHaveLength(2);
+      links.forEach(link =>
+        expect(link).toHaveAttribute(
+          'href',
+          `/institutions?${new URLSearchParams({ search: institutionName })}`
+        )
+      );
+      fireEvent.click(links[0]);
+      await waitFor(() => expect(defaultProps.onClose).toHaveBeenCalledOnce());
+    });
+
     it('renders account name in the header', () => {
       renderWithProviders(<AccountDetailModal {...defaultProps} />);
       expect(screen.getByText('My Checking Account')).toBeInTheDocument();
@@ -459,7 +479,7 @@ describe('AccountDetailModal', () => {
         isLoading: false,
       } as any);
       renderWithProviders(<AccountDetailModal {...defaultProps} />);
-      expect(screen.getByText('Chase Bank')).toBeInTheDocument();
+      expect(screen.getAllByRole('link', { name: 'Chase Bank' })).toHaveLength(2);
     });
   });
 });

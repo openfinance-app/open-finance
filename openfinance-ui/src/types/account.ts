@@ -129,7 +129,7 @@ export interface AccountRequest {
   description?: string;
   /** ISO date (yyyy-MM-dd) when the account was opened. */
   openingDate?: string;
-  institutionId?: number;
+  institutionId?: number | null;
   isInterestEnabled?: boolean;
   interestPeriod?: InterestPeriod;
   interestRate?: number | string;

@@ -37,6 +37,7 @@ vi.mock('@/components/ui/CurrencySelector', () => ({
 vi.mock('@/components/ui/InstitutionSelector', () => ({
   InstitutionSelector: ({ value, onValueChange, placeholder }: any) => (
     <select
+      aria-label="Institution"
       data-testid="institution-selector"
       value={value || ''}
       onChange={e => onValueChange(e.target.value || undefined)}
@@ -84,6 +85,26 @@ describe('AccountForm', () => {
     mockAuthentication();
     mockOnSubmit.mockClear();
     mockOnCancel.mockClear();
+  });
+
+  it('clears an existing institution and submits an explicit null', async () => {
+    const user = userEvent.setup();
+    renderWithProviders(
+      <AccountForm
+        account={{ ...mockAccount, institution: { id: 1, name: 'Bank A' } }}
+        onSubmit={mockOnSubmit}
+        onCancel={mockOnCancel}
+      />
+    );
+
+    const institution = screen.getByRole('combobox', { name: 'Institution' });
+    expect(institution).toHaveValue('1');
+    await user.selectOptions(institution, '');
+    expect(institution).toHaveValue('');
+    await user.click(screen.getByRole('button', { name: /update account/i }));
+    await waitFor(() =>
+      expect(mockOnSubmit).toHaveBeenCalledWith(expect.objectContaining({ institutionId: null }))
+    );
   });
 
   describe('Rendering', () => {

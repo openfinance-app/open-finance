@@ -97,3 +97,15 @@ export function useDismissInsight() {
     },
   });
 }
+
+/** Dismiss the user's complete active list, not just the card's top three insights. */
+export function useDismissAllInsights() {
+  const queryClient = useQueryClient();
+
+  return useMutation<void, Error, void>({
+    mutationFn: async () => {
+      await apiClient.post('/insights/dismiss-all');
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['insights'] }),
+  });
+}

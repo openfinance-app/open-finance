@@ -2,7 +2,13 @@ import { renderHook, waitFor, act } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import React from 'react';
-import { useTopInsights, useInsights, useGenerateInsights, useDismissInsight } from './useInsights';
+import {
+  useTopInsights,
+  useInsights,
+  useGenerateInsights,
+  useDismissInsight,
+  useDismissAllInsights,
+} from '@/hooks/useInsights';
 import apiClient from '@/services/apiClient';
 
 vi.mock('@/services/apiClient');
@@ -115,6 +121,36 @@ describe('useInsights hooks', () => {
   });
 
   // ── useDismissInsight ─────────────────────────────────────────────────
+  describe('useDismissAllInsights', () => {
+    it('dismisses in one request and invalidates every insights view', async () => {
+      vi.mocked(apiClient.post).mockResolvedValue({ status: 204 });
+      const keys = [['insights'], ['insights', 'top', 3], ['insights', 'top', 5]];
+      keys.forEach(key => queryClient.setQueryData(key, [mockInsight]));
+      queryClient.setQueryData(['accounts'], [{ id: 1 }]);
+      const { result } = renderHook(() => useDismissAllInsights(), { wrapper });
+
+      await act(async () => result.current.mutateAsync());
+
+      expect(apiClient.post).toHaveBeenCalledExactlyOnceWith('/insights/dismiss-all');
+      keys.forEach(key => expect(queryClient.getQueryState(key)?.isInvalidated).toBe(true));
+      expect(queryClient.getQueryState(['accounts'])?.isInvalidated).toBe(false);
+    });
+
+    it('preserves cached insights when clearing fails', async () => {
+      const error = new Error('Network unavailable');
+      vi.mocked(apiClient.post).mockRejectedValueOnce(error);
+      queryClient.setQueryData(['insights'], [mockInsight]);
+      const { result } = renderHook(() => useDismissAllInsights(), { wrapper });
+
+      await act(async () => {
+        await expect(result.current.mutateAsync()).rejects.toThrow(error);
+      });
+
+      expect(queryClient.getQueryData(['insights'])).toEqual([mockInsight]);
+      expect(queryClient.getQueryState(['insights'])?.isInvalidated).toBe(false);
+    });
+  });
+
   describe('useDismissInsight', () => {
     it('should dismiss an insight', async () => {
       mockedApiClient.post.mockResolvedValue({});
