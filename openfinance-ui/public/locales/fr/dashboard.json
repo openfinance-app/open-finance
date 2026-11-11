@@ -55,7 +55,7 @@
     },
     "budgetCard": {
       "title": "Avancement du budget",
-      "tooltip": "Suivez vos dépenses par rapport aux budgets définis pour la période en cours.",
+      "tooltip": "Suivez vos dépenses par rapport aux budgets définis pour le mois en cours.",
       "viewAll": "Voir tout",
       "overall": "Progression globale",
       "over": "en dépassement",

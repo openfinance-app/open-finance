@@ -55,7 +55,7 @@
     },
     "budgetCard": {
       "title": "Budget Progress",
-      "tooltip": "Track your spending against set budgets for the current period.",
+      "tooltip": "Track your spending against set budgets for the current month.",
       "viewAll": "View all",
       "overall": "Overall Progress",
       "over": "over",
