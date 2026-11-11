@@ -27,7 +27,15 @@ jobs:
           cache-dependency-path: openfinance-ui/package-lock.json
       - run: npm ci
         working-directory: openfinance-ui
+      - name: Use Ubuntu public mirrors for browser dependencies
+        run: |
+          # The Azure mirror can stall or fail DNS resolution before falling back.
+          # Keep the runner's archive.ubuntu.com and security.ubuntu.com entries.
+          if [ -f /etc/apt/apt-mirrors.txt ]; then
+            sudo sed -i '/azure\.archive\.ubuntu\.com/d' /etc/apt/apt-mirrors.txt
+          fi
       - run: npx playwright install --with-deps chromium
+        timeout-minutes: 5
         working-directory: openfinance-ui
       - name: Run browser tests against the packaged encrypted application
         run: python3 scripts/run-browser-tests.py
