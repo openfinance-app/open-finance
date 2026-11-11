@@ -2,6 +2,7 @@ name: Packaged Browser CI
 
 on:
   workflow_call:
+  workflow_dispatch:
   # push:
   #   branches: [main, develop]
   #   paths: ['src/**', 'openfinance-ui/**', 'pom.xml', 'scripts/run-browser-tests.py', '.github/workflows/browser-ci.yml']
@@ -27,15 +28,19 @@ jobs:
           cache-dependency-path: openfinance-ui/package-lock.json
       - run: npm ci
         working-directory: openfinance-ui
-      - name: Use Ubuntu public mirrors for browser dependencies
-        run: |
-          # The Azure mirror can stall or fail DNS resolution before falling back.
-          # Keep the runner's archive.ubuntu.com and security.ubuntu.com entries.
-          if [ -f /etc/apt/apt-mirrors.txt ]; then
-            sudo sed -i '/azure\.archive\.ubuntu\.com/d' /etc/apt/apt-mirrors.txt
-          fi
-      - run: npx playwright install --with-deps chromium
+      # The hosted Ubuntu image includes Chrome's system libraries. Install the
+      # locked Playwright browser without depending on Ubuntu's package mirrors.
+      - run: npx playwright install chromium
         timeout-minutes: 5
+        working-directory: openfinance-ui
+      - name: Verify Chromium can launch
+        run: |
+          node --input-type=module <<'JS'
+          import { chromium } from '@playwright/test';
+          const browser = await chromium.launch();
+          console.log(`Chromium ${browser.version()} is ready`);
+          await browser.close();
+          JS
         working-directory: openfinance-ui
       - name: Run browser tests against the packaged encrypted application
         run: python3 scripts/run-browser-tests.py
