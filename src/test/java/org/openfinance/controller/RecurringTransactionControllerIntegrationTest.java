@@ -368,8 +368,8 @@ class RecurringTransactionControllerIntegrationTest {
         }
 
         @Test
-        @DisplayName("Should return 403 when missing JWT token")
-        void shouldReturn403WhenMissingToken() throws Exception {
+        @DisplayName("Should return 401 when missing JWT token")
+        void shouldReturn401WhenMissingToken() throws Exception {
             // Given
             RecurringTransactionRequest request =
                     RecurringTransactionRequest.builder()
@@ -382,13 +382,13 @@ class RecurringTransactionControllerIntegrationTest {
                             .nextOccurrence(LocalDate.now().plusDays(1))
                             .build();
 
-            // When/Then - Spring Security returns 403 for missing JWT
+            // When/Then - Spring Security returns 401 for missing JWT
             mockMvc.perform(
                             post("/api/v1/recurring-transactions")
                                     .header("X-Encryption-Session", encKey)
                                     .contentType(MediaType.APPLICATION_JSON)
                                     .content(objectMapper.writeValueAsString(request)))
-                    .andExpect(status().isForbidden());
+                    .andExpect(status().isUnauthorized());
         }
     }
 

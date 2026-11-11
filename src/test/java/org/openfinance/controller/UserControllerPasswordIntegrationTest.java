@@ -148,12 +148,12 @@ class UserControllerPasswordIntegrationTest {
         // Arrange
         PasswordUpdateRequest request = new PasswordUpdateRequest(TEST_PASSWORD, "NewPassword789!");
 
-        // Act & Assert - Spring Security returns 403 for unauthenticated requests
+        // Act & Assert - Spring Security returns 401 for unauthenticated requests
         mockMvc.perform(
                         put("/api/v1/users/me/password")
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isForbidden());
+                .andExpect(status().isUnauthorized());
     }
 
     @Test
@@ -168,7 +168,7 @@ class UserControllerPasswordIntegrationTest {
                                 .header("Authorization", "Bearer invalid_token_12345")
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isForbidden());
+                .andExpect(status().isUnauthorized());
     }
 
     @Test

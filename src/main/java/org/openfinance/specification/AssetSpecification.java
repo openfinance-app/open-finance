@@ -4,6 +4,7 @@ import jakarta.persistence.criteria.Predicate;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
 import org.openfinance.dto.AssetGroup;
 import org.openfinance.dto.AssetSearchCriteria;
 import org.openfinance.entity.Asset;
@@ -91,7 +92,7 @@ public class AssetSpecification {
 
             // Filter by symbol (contains search)
             if (criteria.getSymbol() != null && !criteria.getSymbol().trim().isEmpty()) {
-                String symbol = "%" + criteria.getSymbol().toLowerCase() + "%";
+                String symbol = "%" + criteria.getSymbol().toLowerCase(Locale.ROOT) + "%";
                 predicates.add(
                         criteriaBuilder.like(criteriaBuilder.lower(root.get("symbol")), symbol));
             }

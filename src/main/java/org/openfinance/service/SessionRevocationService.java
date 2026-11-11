@@ -2,7 +2,9 @@ package org.openfinance.service;
 
 import org.openfinance.entity.User;
 
-/** Server-side invalidation of individual JWTs and all sessions belonging to a user. */
+/**
+ * Server-side invalidation of login sessions (including renewed JWTs) and all sessions of a user.
+ */
 public interface SessionRevocationService {
     boolean isRevoked(String token);
 

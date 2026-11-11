@@ -11,7 +11,9 @@ import static org.mockito.Mockito.when;
 
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.http.HttpServletResponse;
+import java.time.Duration;
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicLong;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
 import org.junit.jupiter.api.AfterEach;
@@ -37,6 +39,35 @@ class EncryptionKeyFilterTest {
     @AfterEach
     void tearDown() {
         EncryptionContext.clear();
+    }
+
+    @Test
+    @DisplayName("Authenticated activity refreshes scheduler keys but scheduler reads do not")
+    void activityKeepsSchedulerKeyAvailable() throws Exception {
+        AtomicLong elapsed = new AtomicLong();
+        EncryptionKeyCache cache =
+                new EncryptionKeyCache(Duration.ofDays(31).toMillis(), elapsed::get);
+        SecretKey key = new SecretKeySpec(new byte[32], "AES");
+        String session = cache.createSession(1L, key);
+        cache.cacheKey(1L, key);
+        EncryptionProperties properties = new EncryptionProperties();
+        properties.setEnabled(true);
+        EncryptionKeyFilter filter =
+                new EncryptionKeyFilter(cache, properties, new UserEncryptionLock());
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        request.setRequestURI("/api/v1/users/me/settings");
+        request.setAttribute("userId", 1L);
+        request.addHeader(SESSION_HEADER, session);
+        MockHttpServletResponse response = new MockHttpServletResponse();
+
+        elapsed.set(Duration.ofDays(30).toNanos());
+        filter.doFilter(request, response, filterChain);
+        assertThat(response.getStatus()).isEqualTo(200);
+        verify(filterChain).doFilter(request, response);
+        elapsed.set(Duration.ofDays(60).toNanos());
+        assertThat(cache.getKey(1L)).contains(key);
+        elapsed.set(Duration.ofDays(62).toNanos());
+        assertThat(cache.getKey(1L)).isEmpty();
     }
 
     @Test

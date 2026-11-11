@@ -724,5 +724,9 @@ public class RecurringTransactionController {
      * @param errors list of error messages
      */
     public record ProcessingResultResponse(
-            String message, int processedCount, int failedCount, List<String> errors) {}
+            String message, int processedCount, int failedCount, List<String> errors) {
+        public ProcessingResultResponse {
+            errors = List.copyOf(errors);
+        }
+    }
 }

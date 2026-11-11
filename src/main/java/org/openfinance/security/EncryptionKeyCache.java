@@ -4,12 +4,15 @@ package org.openfinance.security;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
+import com.github.benmanes.caffeine.cache.Ticker;
 import java.security.SecureRandom;
 import java.time.Duration;
 import java.util.Base64;
 import java.util.Optional;
 import java.util.Set;
 import javax.crypto.SecretKey;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 /**
@@ -21,8 +24,9 @@ import org.springframework.stereotype.Component;
  * <p>A secondary userId→key cache allows {@code @Scheduled} jobs to encrypt/decrypt data for
  * recently-active users without an HTTP context.
  *
- * <p>Users who have not logged in within 24 hours will not have a cached key; scheduled jobs must
- * skip those users gracefully.
+ * <p>HTTP sessions expire after the configured JWT inactivity period (31 days by default).
+ * Scheduler keys are refreshed by authenticated HTTP activity, using the same lifetime; background
+ * jobs cannot keep a session alive. All caches are cleared by a server restart.
  */
 @Component
 public class EncryptionKeyCache {
@@ -41,20 +45,32 @@ public class EncryptionKeyCache {
     private static final int SESSION_TOKEN_BYTES = 32; // 256-bit token
 
     public EncryptionKeyCache() {
+        this(Duration.ofDays(31).toMillis());
+    }
+
+    @Autowired
+    public EncryptionKeyCache(@Value("${jwt.expiration:2678400000}") long sessionTimeoutMs) {
+        this(sessionTimeoutMs, Ticker.systemTicker());
+    }
+
+    EncryptionKeyCache(long sessionTimeoutMs, Ticker ticker) {
         this.userKeyCache =
                 Caffeine.newBuilder()
                         .maximumSize(10_000)
-                        .expireAfterWrite(Duration.ofHours(24))
+                        .ticker(ticker)
+                        .expireAfterWrite(Duration.ofMillis(sessionTimeoutMs))
                         .build();
         this.sessionTokenCache =
                 Caffeine.newBuilder()
                         .maximumSize(50_000)
-                        .expireAfterAccess(Duration.ofHours(24))
+                        .ticker(ticker)
+                        .expireAfterAccess(Duration.ofMillis(sessionTimeoutMs))
                         .build();
         this.sessionTokenUserCache =
                 Caffeine.newBuilder()
                         .maximumSize(50_000)
-                        .expireAfterAccess(Duration.ofHours(24))
+                        .ticker(ticker)
+                        .expireAfterAccess(Duration.ofMillis(sessionTimeoutMs))
                         .build();
     }
 
@@ -138,8 +154,8 @@ public class EncryptionKeyCache {
     }
 
     /**
-     * Stores or refreshes the encryption key for a user (legacy/compatibility). Called by
-     * EncryptionKeyFilter for backward-compatible X-Encryption-Session header support.
+     * Stores or refreshes the scheduler key after login or authenticated HTTP activity. Background
+     * lookups deliberately do not refresh its expiration.
      *
      * @param userId the authenticated user's ID
      * @param key the user's AES-256 encryption key

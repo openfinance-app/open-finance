@@ -163,27 +163,26 @@ public class AsyncConfig implements AsyncConfigurer {
      */
     @Override
     public AsyncUncaughtExceptionHandler getAsyncUncaughtExceptionHandler() {
-        return new AsyncUncaughtExceptionHandler() {
-            @Override
-            public void handleUncaughtException(Throwable ex, Method method, Object... params) {
-                log.error(
-                        "!!! UNCAUGHT ASYNC EXCEPTION !!! in method '{}' with parameters {}: {}",
-                        method.getName(),
-                        params,
-                        ex.getMessage(),
-                        ex);
+        return AsyncConfig::handleUncaughtException;
+    }
 
-                // Log additional context for import operations
-                if ("parseFileAsync".equals(method.getName()) && params.length > 0) {
-                    log.error(
-                            "Import session {} failed with uncaught exception - session may be stuck in PARSING status",
-                            params[0]);
-                }
+    private static void handleUncaughtException(Throwable ex, Method method, Object... params) {
+        log.error(
+                "!!! UNCAUGHT ASYNC EXCEPTION !!! in method '{}' with parameters {}: {}",
+                method.getName(),
+                params,
+                ex.getMessage(),
+                ex);
 
-                // Note: Cannot inject repository here to update session status
-                // Method-level error handling (try-catch in parseFileAsync) should prevent this
-                // If this handler triggers, it indicates a bug in error handling
-            }
-        };
+        // Log additional context for import operations
+        if ("parseFileAsync".equals(method.getName()) && params.length > 0) {
+            log.error(
+                    "Import session {} failed with uncaught exception - session may be stuck in PARSING status",
+                    params[0]);
+        }
+
+        // Note: Cannot inject repository here to update session status
+        // Method-level error handling (try-catch in parseFileAsync) should prevent this
+        // If this handler triggers, it indicates a bug in error handling
     }
 }

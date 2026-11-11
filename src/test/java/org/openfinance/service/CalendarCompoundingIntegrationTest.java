@@ -26,7 +26,7 @@ class CalendarCompoundingIntegrationTest extends AuditApiTestSupport {
                         "currency",
                         "EUR");
         json("POST", "/accounts/interest-preview", request, owner, 200);
-        json("POST", "/accounts/interest-preview", request, null, 403);
+        json("POST", "/accounts/interest-preview", request, null, 401);
         request.put("balance", "100000000000000000000000000");
         json("POST", "/accounts/interest-preview", request, owner, 400);
         assertThat(

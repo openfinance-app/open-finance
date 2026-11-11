@@ -339,7 +339,7 @@ class ExchangeRateServiceTest {
         assertThat(count).isEqualTo(4); // 2 direct quotes + 2 inverse rates
         verify(currencyRepository).findByIsActiveTrueOrderByCodeAsc();
         verify(marketDataProvider).getQuotes(anyList());
-        verify(exchangeRateRepository, times(1)).upsertAll(any());
+        verify(exchangeRateRepository, times(1)).upsertAllIndependently(any());
     }
 
     @Test
@@ -388,7 +388,7 @@ class ExchangeRateServiceTest {
         exchangeRateService.updateExchangeRates();
 
         // Assert
-        verify(exchangeRateRepository, times(1)).upsertAll(any());
+        verify(exchangeRateRepository, times(1)).upsertAllIndependently(any());
     }
 
     @Test
@@ -426,7 +426,7 @@ class ExchangeRateServiceTest {
 
         // Assert
         assertThat(count).isEqualTo(2); // 1 valid quote + 1 inverse rate
-        verify(exchangeRateRepository, times(1)).upsertAll(any());
+        verify(exchangeRateRepository, times(1)).upsertAllIndependently(any());
     }
 
     @Test
@@ -491,7 +491,7 @@ class ExchangeRateServiceTest {
         // Assert
         assertThat(result).isEqualTo(4);
         ArgumentCaptor<List<ExchangeRate>> ratesCaptor = ArgumentCaptor.forClass(List.class);
-        verify(exchangeRateRepository).upsertAll(ratesCaptor.capture());
+        verify(exchangeRateRepository).upsertAllIndependently(ratesCaptor.capture());
         List<ExchangeRate> savedRates = ratesCaptor.getValue();
         assertThat(savedRates)
                 .extracting(ExchangeRate::getBaseCurrency, ExchangeRate::getTargetCurrency)
@@ -601,7 +601,7 @@ class ExchangeRateServiceTest {
         // Rate must be stored as USD -> BTC = 1/price (proves the parseQuoteToExchangeRate crypto
         // branch; fiat handling would store BTC -> USD = price instead).
         ArgumentCaptor<List<ExchangeRate>> ratesCaptor = ArgumentCaptor.forClass(List.class);
-        verify(exchangeRateRepository).upsertAll(ratesCaptor.capture());
+        verify(exchangeRateRepository).upsertAllIndependently(ratesCaptor.capture());
         BigDecimal expectedInverseRate =
                 BigDecimal.ONE.divide(new BigDecimal("95000"), java.math.MathContext.DECIMAL128);
         assertThat(ratesCaptor.getValue())

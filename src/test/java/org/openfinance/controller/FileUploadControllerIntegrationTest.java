@@ -261,8 +261,8 @@ class FileUploadControllerIntegrationTest {
     }
 
     @Test
-    @DisplayName("Should return 403 without authentication")
-    void shouldReturn403WithoutAuthentication() throws Exception {
+    @DisplayName("Should return 401 without authentication")
+    void shouldReturn401WithoutAuthentication() throws Exception {
         // Given
         MockMultipartFile file =
                 new MockMultipartFile(
@@ -270,12 +270,12 @@ class FileUploadControllerIntegrationTest {
 
         // When & Then
         mockMvc.perform(multipart("/api/v1/import/upload").file(file))
-                .andExpect(status().isForbidden());
+                .andExpect(status().isUnauthorized());
     }
 
     @Test
-    @DisplayName("Should return 403 with invalid token")
-    void shouldReturn403WithInvalidToken() throws Exception {
+    @DisplayName("Should return 401 with invalid token")
+    void shouldReturn401WithInvalidToken() throws Exception {
         // Given
         MockMultipartFile file =
                 new MockMultipartFile(
@@ -286,7 +286,7 @@ class FileUploadControllerIntegrationTest {
                         multipart("/api/v1/import/upload")
                                 .file(file)
                                 .header("Authorization", "Bearer invalid_token"))
-                .andExpect(status().isForbidden());
+                .andExpect(status().isUnauthorized());
     }
 
     @Test

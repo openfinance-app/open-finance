@@ -113,10 +113,9 @@ class UserControllerIntegrationTest {
     }
 
     @Test
-    @DisplayName("GET /api/v1/users/me - Should return 403 without token")
+    @DisplayName("GET /api/v1/users/me - Should return 401 without token")
     void testGetCurrentUserUnauthorized() throws Exception {
-        mockMvc.perform(get("/api/v1/users/me"))
-                .andExpect(status().isForbidden()); // Spring Security returns 403 not 401
+        mockMvc.perform(get("/api/v1/users/me")).andExpect(status().isUnauthorized());
     }
 
     @Test
@@ -198,7 +197,7 @@ class UserControllerIntegrationTest {
     }
 
     @Test
-    @DisplayName("PUT /api/v1/users/me/base-currency - Should return 403 without token")
+    @DisplayName("PUT /api/v1/users/me/base-currency - Should return 401 without token")
     void testUpdateBaseCurrencyUnauthorized() throws Exception {
         Map<String, String> request = Map.of("baseCurrency", "EUR");
 
@@ -206,7 +205,7 @@ class UserControllerIntegrationTest {
                         put("/api/v1/users/me/base-currency")
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isForbidden()); // Spring Security returns 403 not 401
+                .andExpect(status().isUnauthorized());
     }
 
     @Test

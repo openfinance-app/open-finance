@@ -870,9 +870,7 @@ class AuthControllerTest {
     @DisplayName("GET /auth/profile - should return 401 without authentication")
     void shouldReturn401WhenAccessingProfileWithoutAuth() throws Exception {
         // Act & Assert: Access profile without JWT token
-        mockMvc.perform(get("/api/v1/auth/profile"))
-                .andExpect(status().isForbidden()); // Spring Security returns 403 for missing
-        // authentication
+        mockMvc.perform(get("/api/v1/auth/profile")).andExpect(status().isUnauthorized());
     }
 
     @Test
@@ -882,7 +880,7 @@ class AuthControllerTest {
         mockMvc.perform(
                         get("/api/v1/auth/profile")
                                 .header("Authorization", "Bearer invalid.jwt.token"))
-                .andExpect(status().isForbidden()); // Spring Security returns 403 for invalid token
+                .andExpect(status().isUnauthorized());
     }
 
     @Test
@@ -1125,6 +1123,10 @@ class AuthControllerTest {
                                 .content(objectMapper.writeValueAsString(updateRequest)))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.status").value(401))
+                .andExpect(
+                        org.springframework.test.web.servlet.result.MockMvcResultMatchers.header()
+                                .doesNotExist(
+                                        org.springframework.http.HttpHeaders.WWW_AUTHENTICATE))
                 .andExpect(jsonPath("$.message").value(containsString("Invalid current password")));
 
         // Verify email was not updated
@@ -1211,8 +1213,7 @@ class AuthControllerTest {
                         put("/api/v1/auth/profile")
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(updateRequest)))
-                .andExpect(status().isForbidden()); // Spring Security returns 403 for missing
-        // authentication
+                .andExpect(status().isUnauthorized());
     }
 
     @Test

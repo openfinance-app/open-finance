@@ -16,6 +16,11 @@ import type { User } from '@/types/user';
 import { DEFAULT_CURRENCY } from '@/utils/currency';
 import { STORAGE_KEYS } from '@/constants/storage';
 import { useImportDraftStore } from '@/stores/importDraft';
+import {
+  AUTH_TOKEN_RENEWED_EVENT,
+  getStoredAuthToken,
+  isSameAuthSession,
+} from '@/utils/auth-session';
 
 interface AuthContextType {
   /** Current authenticated user, null if not authenticated */
@@ -105,6 +110,12 @@ export function AuthProvider({ children }: AuthProviderProps) {
     // Listen to storage events to sync auth state across tabs
     const handleStorageChange = (e: StorageEvent) => {
       if (e.key === STORAGE_KEYS.AUTH_TOKEN) {
+        if (isSameAuthSession(e.oldValue, e.newValue)) {
+          // Renewals preserve encryption keys, queries, drafts and session history.
+          // Ignore a queued event if another login or renewal already replaced it.
+          if (getStoredAuthToken() === e.newValue) setToken(e.newValue);
+          return;
+        }
         queryClient?.clear();
         useViewStateStore.getState().clear();
         sessionStorage.removeItem(STORAGE_KEYS.ENCRYPTION_SESSION);
@@ -125,8 +136,13 @@ export function AuthProvider({ children }: AuthProviderProps) {
       }
     };
 
+    const handleRenewal = () => setToken(getStoredAuthToken());
     window.addEventListener('storage', handleStorageChange);
-    return () => window.removeEventListener('storage', handleStorageChange);
+    window.addEventListener(AUTH_TOKEN_RENEWED_EVENT, handleRenewal);
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener(AUTH_TOKEN_RENEWED_EVENT, handleRenewal);
+    };
   }, [queryClient]);
 
   /**

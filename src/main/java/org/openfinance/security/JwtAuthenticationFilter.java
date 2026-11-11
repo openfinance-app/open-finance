@@ -46,6 +46,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private static final String AUTHORIZATION_HEADER = "Authorization";
     private static final String BEARER_PREFIX = "Bearer ";
+    public static final String RENEWED_TOKEN_HEADER = "X-Auth-Token";
 
     private final JwtService jwtService;
     private final UserRepository userRepository;
@@ -87,7 +88,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
             // If token exists and no authentication is already set
             if (token != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-                authenticateUser(token, request);
+                authenticateUser(token, request, response);
             }
         } catch (RuntimeException e) {
             // Log at debug to avoid leaking sensitive information and to reduce noise for
@@ -139,9 +140,10 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
      * @param token JWT token string
      * @param request HTTP request for setting authentication details
      */
-    private void authenticateUser(String token, HttpServletRequest request) {
+    private void authenticateUser(
+            String token, HttpServletRequest request, HttpServletResponse response) {
         // Validate token signature and expiration
-        if (!jwtService.validateToken(token) || sessionRevocationService.isRevoked(token)) {
+        if (!jwtService.validateToken(token)) {
             log.debug("JWT token validation failed");
             return;
         }
@@ -175,6 +177,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         if (jwtService.extractTokenVersion(token) != user.getTokenVersion()) return;
 
+        String renewedToken = jwtService.renewToken(token);
+        // Check revocation after minting so a delayed user lookup cannot renew a logged-out
+        // session.
+        if (sessionRevocationService.isRevoked(token)) return;
+
         // Create authentication token with user details
         UsernamePasswordAuthenticationToken authToken =
                 new UsernamePasswordAuthenticationToken(
@@ -192,6 +199,10 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         // Set userId as request attribute for @RequestAttribute annotations in
         // controllers
         request.setAttribute("userId", user.getId());
+
+        // Renewal is activity-driven; clients save the token without starting a new login.
+        // Logout and credential changes still revoke this token's session/version.
+        response.setHeader(RENEWED_TOKEN_HEADER, renewedToken);
 
         // Log at debug to avoid writing usernames at info level in production logs.
         log.debug("Successfully authenticated user: {}", username);

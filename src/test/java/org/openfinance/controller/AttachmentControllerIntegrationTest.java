@@ -241,8 +241,7 @@ class AttachmentControllerIntegrationTest {
                                 .param("entityType", "TRANSACTION")
                                 .param("entityId", "100")
                                 .header("X-Encryption-Session", encKey))
-                .andExpect(status().isForbidden()); // Spring Security returns 403 when token is
-        // missing
+                .andExpect(status().isUnauthorized());
     }
 
     // ========== DOWNLOAD TESTS ==========
@@ -362,9 +361,7 @@ class AttachmentControllerIntegrationTest {
     @DisplayName("DELETE /api/v1/attachments/{id} - missing JWT token")
     void shouldReturn401WhenDeletingWithoutToken() throws Exception {
         // When/Then
-        mockMvc.perform(delete("/api/v1/attachments/1"))
-                .andExpect(status().isForbidden()); // Spring Security returns 403 when token is
-        // missing
+        mockMvc.perform(delete("/api/v1/attachments/1")).andExpect(status().isUnauthorized());
     }
 
     // ========== LIST TESTS ==========

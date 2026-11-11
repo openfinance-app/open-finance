@@ -249,7 +249,7 @@ logging:
       max-history: 30
 jwt:
   secret: REPLACE_WITH_SECURE_SECRET_IN_PRODUCTION
-  expiration: 86400000
+  expiration: 2678400000 # 31 days; authenticated API activity renews the JWT
 management:
   endpoints:
     web:

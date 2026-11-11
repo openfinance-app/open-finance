@@ -236,9 +236,9 @@ class CurrencyControllerIntegrationTest {
     }
 
     @Test
-    @DisplayName("Should return 403 when not authenticated (active currencies)")
-    void shouldReturn403WhenNotAuthenticatedActiveCurrencies() throws Exception {
-        mockMvc.perform(get("/api/v1/currencies")).andExpect(status().isForbidden());
+    @DisplayName("Should return 401 when not authenticated (active currencies)")
+    void shouldReturn401WhenNotAuthenticatedActiveCurrencies() throws Exception {
+        mockMvc.perform(get("/api/v1/currencies")).andExpect(status().isUnauthorized());
     }
 
     // ========== GET /api/v1/currencies/all (List All Currencies) ==========
@@ -258,9 +258,9 @@ class CurrencyControllerIntegrationTest {
     }
 
     @Test
-    @DisplayName("Should return 403 when not authenticated (all currencies)")
-    void shouldReturn403WhenNotAuthenticatedAllCurrencies() throws Exception {
-        mockMvc.perform(get("/api/v1/currencies/all")).andExpect(status().isForbidden());
+    @DisplayName("Should return 401 when not authenticated (all currencies)")
+    void shouldReturn401WhenNotAuthenticatedAllCurrencies() throws Exception {
+        mockMvc.perform(get("/api/v1/currencies/all")).andExpect(status().isUnauthorized());
     }
 
     // ========== GET /api/v1/currencies/exchange-rates (Get Rate for Date) ==========
@@ -314,14 +314,14 @@ class CurrencyControllerIntegrationTest {
     }
 
     @Test
-    @DisplayName("Should return 403 when not authenticated (exchange rate by date)")
-    void shouldReturn403WhenNotAuthenticatedExchangeRateByDate() throws Exception {
+    @DisplayName("Should return 401 when not authenticated (exchange rate by date)")
+    void shouldReturn401WhenNotAuthenticatedExchangeRateByDate() throws Exception {
         mockMvc.perform(
                         get("/api/v1/currencies/exchange-rates")
                                 .param("from", "USD")
                                 .param("to", "EUR")
                                 .param("date", LocalDate.now().toString()))
-                .andExpect(status().isForbidden());
+                .andExpect(status().isUnauthorized());
     }
 
     // ========== GET /api/v1/currencies/exchange-rates/latest (Get Latest Rate) ==========
@@ -356,13 +356,13 @@ class CurrencyControllerIntegrationTest {
     }
 
     @Test
-    @DisplayName("Should return 403 when not authenticated (latest exchange rate)")
-    void shouldReturn403WhenNotAuthenticatedLatestExchangeRate() throws Exception {
+    @DisplayName("Should return 401 when not authenticated (latest exchange rate)")
+    void shouldReturn401WhenNotAuthenticatedLatestExchangeRate() throws Exception {
         mockMvc.perform(
                         get("/api/v1/currencies/exchange-rates/latest")
                                 .param("from", "USD")
                                 .param("to", "EUR"))
-                .andExpect(status().isForbidden());
+                .andExpect(status().isUnauthorized());
     }
 
     // ========== POST /api/v1/currencies/convert (Convert Currency) ==========
@@ -461,15 +461,15 @@ class CurrencyControllerIntegrationTest {
     }
 
     @Test
-    @DisplayName("Should return 403 when not authenticated (convert)")
-    void shouldReturn403WhenNotAuthenticatedConvert() throws Exception {
+    @DisplayName("Should return 401 when not authenticated (convert)")
+    void shouldReturn401WhenNotAuthenticatedConvert() throws Exception {
         ConvertRequest request = new ConvertRequest(new BigDecimal("100.00"), "USD", "EUR", null);
 
         mockMvc.perform(
                         post("/api/v1/currencies/convert")
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isForbidden());
+                .andExpect(status().isUnauthorized());
     }
 
     // ========== POST /api/v1/currencies/exchange-rates/update (Update Rates - Admin Only)
@@ -487,10 +487,10 @@ class CurrencyControllerIntegrationTest {
     }
 
     @Test
-    @DisplayName("Should return 403 when not authenticated (update rates)")
-    void shouldReturn403WhenNotAuthenticatedUpdateRates() throws Exception {
+    @DisplayName("Should return 401 when not authenticated (update rates)")
+    void shouldReturn401WhenNotAuthenticatedUpdateRates() throws Exception {
         mockMvc.perform(post("/api/v1/currencies/exchange-rates/update"))
-                .andExpect(status().isForbidden());
+                .andExpect(status().isUnauthorized());
     }
 
     // ========== POST /api/v1/currencies/crypto-list/refresh (Refresh Crypto List - Admin Only)
@@ -507,9 +507,9 @@ class CurrencyControllerIntegrationTest {
     }
 
     @Test
-    @DisplayName("Should return 403 when not authenticated (refresh crypto list)")
-    void shouldReturn403WhenNotAuthenticatedRefreshCryptoList() throws Exception {
+    @DisplayName("Should return 401 when not authenticated (refresh crypto list)")
+    void shouldReturn401WhenNotAuthenticatedRefreshCryptoList() throws Exception {
         mockMvc.perform(post("/api/v1/currencies/crypto-list/refresh"))
-                .andExpect(status().isForbidden());
+                .andExpect(status().isUnauthorized());
     }
 }

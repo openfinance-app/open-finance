@@ -139,7 +139,9 @@ public class FileStorageService {
             return paths.filter(path -> Files.isRegularFile(path, LinkOption.NOFOLLOW_LINKS))
                     .filter(
                             path -> {
-                                String filename = path.getFileName().toString();
+                                Path fileName = path.getFileName();
+                                if (fileName == null) return false;
+                                String filename = fileName.toString();
                                 int dot = filename.indexOf('.');
                                 return (dot < 0 ? filename : filename.substring(0, dot))
                                         .equals(uploadId);

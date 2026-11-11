@@ -2,6 +2,8 @@ package org.openfinance.security;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.time.Duration;
+import java.util.concurrent.atomic.AtomicLong;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
 import org.junit.jupiter.api.DisplayName;
@@ -9,6 +11,47 @@ import org.junit.jupiter.api.Test;
 
 @DisplayName("EncryptionKeyCache Unit Tests")
 class EncryptionKeyCacheTest {
+
+    @Test
+    @DisplayName("Session activity slides the configured 31-day encryption expiry")
+    void sessionActivityExtendsExpiry() {
+        AtomicLong elapsed = new AtomicLong();
+        EncryptionKeyCache cache =
+                new EncryptionKeyCache(Duration.ofDays(31).toMillis(), elapsed::get);
+        SecretKey key = new SecretKeySpec(new byte[32], "AES");
+        String active = cache.createSession(1L, key);
+        String idle = cache.createSession(1L, key);
+        cache.cacheKey(1L, key);
+
+        elapsed.set(Duration.ofDays(30).toNanos());
+        assertThat(cache.getKeyBySessionToken(active)).contains(key);
+        assertThat(cache.getUserIdBySessionToken(active)).contains(1L);
+        assertThat(cache.getKey(1L)).contains(key);
+
+        elapsed.set(Duration.ofDays(32).toNanos());
+        // Scheduler reads do not extend the key's lifetime.
+        assertThat(cache.getKey(1L)).isEmpty();
+        assertThat(cache.getKeyBySessionToken(idle)).isEmpty();
+        assertThat(cache.getUserIdBySessionToken(idle)).isEmpty();
+        assertThat(cache.getKeyBySessionToken(active)).contains(key);
+        assertThat(cache.getUserIdBySessionToken(active)).contains(1L);
+
+        elapsed.set(Duration.ofDays(64).toNanos());
+        assertThat(cache.getKeyBySessionToken(active)).isEmpty();
+        assertThat(cache.getUserIdBySessionToken(active)).isEmpty();
+    }
+
+    @Test
+    @DisplayName("Encryption expiry follows a customized JWT lifetime")
+    void honorsConfiguredExpiry() {
+        AtomicLong elapsed = new AtomicLong();
+        EncryptionKeyCache cache =
+                new EncryptionKeyCache(Duration.ofHours(1).toMillis(), elapsed::get);
+        String session = cache.createSession(1L, new SecretKeySpec(new byte[32], "AES"));
+        elapsed.set(Duration.ofHours(2).toNanos());
+        assertThat(cache.getKeyBySessionToken(session)).isEmpty();
+        assertThat(cache.getUserIdBySessionToken(session)).isEmpty();
+    }
 
     @Test
     @DisplayName("Should create session token mappings without caching scheduler key")

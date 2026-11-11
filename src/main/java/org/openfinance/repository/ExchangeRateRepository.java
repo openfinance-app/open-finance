@@ -57,7 +57,7 @@ public interface ExchangeRateRepository extends JpaRepository<ExchangeRate, Long
                                         rate.getSource()));
     }
 
-    /** Runs after the financial transaction commits, when its SQLite write lock is released. */
+    /** Starts a fresh batch transaction for retries and caching after a financial commit. */
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     default void upsertAllIndependently(List<ExchangeRate> rates) {
         upsertAll(rates);

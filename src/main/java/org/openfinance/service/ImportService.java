@@ -97,6 +97,11 @@ import org.springframework.transaction.annotation.Transactional;
 @Slf4j
 public class ImportService {
 
+    private static final TypeReference<Map<String, Object>> METADATA_TYPE =
+            new TypeReference<>() {};
+    private static final TypeReference<List<ImportedTransaction>> TRANSACTIONS_TYPE =
+            new TypeReference<>() {};
+
     private static final int TRANSACTION_DESCRIPTION_MAX_LENGTH = 255;
     private static final int TRANSACTION_NOTES_MAX_LENGTH = 1000;
     private static final int TRANSACTION_PAYEE_MAX_LENGTH = 100;
@@ -2952,7 +2957,7 @@ public class ImportService {
         // Untyped JSON otherwise becomes Double before convertValue can bind BigDecimal fields.
         // Use a local reader so transactions, splits and opening balances retain source precision.
         return objectMapper
-                .readerFor(new TypeReference<Map<String, Object>>() {})
+                .readerFor(METADATA_TYPE)
                 .with(DeserializationFeature.USE_BIG_DECIMAL_FOR_FLOATS)
                 .readValue(metadata);
     }
@@ -3383,8 +3388,7 @@ public class ImportService {
 
             // Deserialize transactions list
             Object transactionsObj = metadataMap.get("transactions");
-            return objectMapper.convertValue(
-                    transactionsObj, new TypeReference<List<ImportedTransaction>>() {});
+            return objectMapper.convertValue(transactionsObj, TRANSACTIONS_TYPE);
 
         } catch (JsonProcessingException e) {
             log.error("Error deserializing transactions: {}", e.getMessage(), e);

@@ -278,19 +278,19 @@ class DashboardControllerTest {
         }
 
         @Test
-        @DisplayName("Should return 403 when not authenticated")
-        void shouldReturn403WhenNotAuthenticated() throws Exception {
+        @DisplayName("Should return 401 when not authenticated")
+        void shouldReturn401WhenNotAuthenticated() throws Exception {
             mockMvc.perform(get("/api/v1/dashboard/asset-allocation"))
-                    .andExpect(status().isForbidden());
+                    .andExpect(status().isUnauthorized());
         }
 
         @Test
-        @DisplayName("Should return 403 when invalid token")
-        void shouldReturn403WhenInvalidToken() throws Exception {
+        @DisplayName("Should return 401 when invalid token")
+        void shouldReturn401WhenInvalidToken() throws Exception {
             mockMvc.perform(
                             get("/api/v1/dashboard/asset-allocation")
                                     .header("Authorization", "Bearer invalid_token"))
-                    .andExpect(status().isForbidden());
+                    .andExpect(status().isUnauthorized());
         }
 
         @Test
@@ -498,19 +498,19 @@ class DashboardControllerTest {
         }
 
         @Test
-        @DisplayName("Should return 403 when not authenticated")
-        void shouldReturn403WhenNotAuthenticated() throws Exception {
+        @DisplayName("Should return 401 when not authenticated")
+        void shouldReturn401WhenNotAuthenticated() throws Exception {
             mockMvc.perform(get("/api/v1/dashboard/portfolio-performance"))
-                    .andExpect(status().isForbidden());
+                    .andExpect(status().isUnauthorized());
         }
 
         @Test
-        @DisplayName("Should return 403 when invalid token")
-        void shouldReturn403WhenInvalidToken() throws Exception {
+        @DisplayName("Should return 401 when invalid token")
+        void shouldReturn401WhenInvalidToken() throws Exception {
             mockMvc.perform(
                             get("/api/v1/dashboard/portfolio-performance")
                                     .header("Authorization", "Bearer invalid_token"))
-                    .andExpect(status().isForbidden());
+                    .andExpect(status().isUnauthorized());
         }
 
         @Test
@@ -557,10 +557,10 @@ class DashboardControllerTest {
     @DisplayName("GET /api/v1/dashboard/daily-cashflow")
     class DailyCashFlowEndpointTests {
         @Test
-        @DisplayName("Should return 403 when not authenticated")
-        void shouldReturn403WhenNotAuthenticated() throws Exception {
+        @DisplayName("Should return 401 when not authenticated")
+        void shouldReturn401WhenNotAuthenticated() throws Exception {
             mockMvc.perform(get("/api/v1/dashboard/daily-cashflow?year=2024&month=2"))
-                    .andExpect(status().isForbidden());
+                    .andExpect(status().isUnauthorized());
         }
 
         @Test
@@ -647,10 +647,10 @@ class DashboardControllerTest {
         }
 
         @Test
-        @DisplayName("Should return 403 when not authenticated")
-        void shouldReturn403WhenNotAuthenticated() throws Exception {
+        @DisplayName("Should return 401 when not authenticated")
+        void shouldReturn401WhenNotAuthenticated() throws Exception {
             mockMvc.perform(get("/api/v1/dashboard/networth-history?period=365"))
-                    .andExpect(status().isForbidden());
+                    .andExpect(status().isUnauthorized());
         }
 
         @Test

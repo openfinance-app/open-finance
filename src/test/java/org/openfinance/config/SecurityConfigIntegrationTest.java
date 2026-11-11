@@ -1,13 +1,17 @@
 package org.openfinance.config;
 
-// no static assert imports needed here
+import static org.hamcrest.Matchers.containsString;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.openfinance.dto.UserRegistrationRequest;
 import org.openfinance.dto.UserResponse;
 import org.openfinance.entity.User;
@@ -21,6 +25,7 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Import;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.TestPropertySource;
@@ -49,6 +54,40 @@ class SecurityConfigIntegrationTest {
 
     @MockBean private UserService userService; // prevent real registration logic
     @MockBean private AuthService authService; // prevent real login logic
+
+    @ParameterizedTest
+    @ValueSource(
+            strings = {"/api/v1/users/me/settings", "/api/v1/auth/profile", "/api/v1/accounts"})
+    @DisplayName("Expired JWTs challenge the client to sign in again across protected views")
+    void shouldReturn401ForExpiredJwt(String path) throws Exception {
+        mockMvc.perform(
+                        get(path)
+                                .header(HttpHeaders.ORIGIN, "http://localhost:3000")
+                                .header(HttpHeaders.AUTHORIZATION, "Bearer " + expiredToken()))
+                .andExpect(status().isUnauthorized())
+                .andExpect(header().string(HttpHeaders.WWW_AUTHENTICATE, "Bearer"))
+                .andExpect(
+                        header().string(
+                                        HttpHeaders.ACCESS_CONTROL_EXPOSE_HEADERS,
+                                        containsString(HttpHeaders.WWW_AUTHENTICATE)));
+    }
+
+    @Test
+    @DisplayName("An expired profile-update session is distinguished from a wrong current password")
+    void shouldChallengeExpiredJwtOnProfileUpdate() throws Exception {
+        mockMvc.perform(
+                        put("/api/v1/auth/profile")
+                                .header(HttpHeaders.AUTHORIZATION, "Bearer " + expiredToken())
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content("{}"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(header().string(HttpHeaders.WWW_AUTHENTICATE, "Bearer"));
+    }
+
+    private String expiredToken() {
+        return new JwtService("01234567890123456789012345678901", -1000)
+                .generateToken(User.builder().id(123L).username("expired-session-user").build());
+    }
 
     @Test
     @DisplayName("Should allow public auth register endpoint without authentication")
@@ -80,8 +119,8 @@ class SecurityConfigIntegrationTest {
     @DisplayName("Should deny access to protected endpoint without authentication")
     void shouldDenyHealthWhenUnauthenticated() throws Exception {
         // Protected API endpoints require authentication.
-        // /api/v1/auth/profile is a protected endpoint, expect 403 Access Denied.
-        mockMvc.perform(get("/api/v1/auth/profile")).andExpect(status().isForbidden());
+        // /api/v1/auth/profile requires valid credentials, so challenge anonymous requests.
+        mockMvc.perform(get("/api/v1/auth/profile")).andExpect(status().isUnauthorized());
     }
 
     @Test

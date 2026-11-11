@@ -1,10 +1,14 @@
 package org.openfinance.service;
 
-import static org.assertj.core.api.Assertions.*;
-import static org.junit.jupiter.api.Assertions.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
+import java.time.Clock;
+import java.time.Duration;
+import java.time.Instant;
+import java.time.ZoneOffset;
 import java.util.Date;
 import javax.crypto.SecretKey;
 import org.junit.jupiter.api.BeforeEach;
@@ -29,14 +33,56 @@ class JwtServiceTest {
 
     @BeforeEach
     void setUp() {
-        jwtService = new JwtService(TEST_JWT_SECRET, 86400000L);
+        jwtService = new JwtService(TEST_JWT_SECRET, Duration.ofDays(31).toMillis());
+    }
+
+    @Test
+    @DisplayName("Activity extends expiry by 31 days while preserving the login session")
+    void activityExtendsSession() {
+        Instant loginTime = Instant.parse("2026-11-11T12:00:00Z");
+        JwtService login = serviceAt(loginTime);
+        String original = login.generateToken(createTestUser(1L, "john_doe"));
+        assertThat(login.extractExpiration(original).toInstant())
+                .isEqualTo(loginTime.plus(Duration.ofDays(31)));
+
+        JwtService active = serviceAt(loginTime.plus(Duration.ofDays(30)));
+        String renewed = active.renewToken(original);
+        assertThat(active.extractExpiration(renewed).toInstant())
+                .isEqualTo(loginTime.plus(Duration.ofDays(61)));
+        assertThat(active.extractSessionId(renewed)).isEqualTo(active.extractSessionId(original));
+        assertThat(active.extractUsername(renewed)).isEqualTo("john_doe");
+        assertThat(active.extractUserId(renewed)).isEqualTo(1L);
+        assertThat(active.extractTokenVersion(renewed))
+                .isEqualTo(active.extractTokenVersion(original));
+        assertThat(active.sessionRevocationExpiresAt(original))
+                .isEqualTo(
+                        active.extractExpiration(renewed).getTime()
+                                + Duration.ofDays(31).toMillis());
+
+        JwtService later = serviceAt(loginTime.plus(Duration.ofDays(32)));
+        assertThat(later.validateToken(original)).isFalse();
+        assertThat(later.validateToken(renewed)).isTrue();
+        assertThatThrownBy(() -> later.renewToken(original))
+                .isInstanceOf(IllegalArgumentException.class);
+        assertThat(serviceAt(loginTime.plus(Duration.ofDays(62))).validateToken(renewed)).isFalse();
+    }
+
+    private JwtService serviceAt(Instant instant) {
+        return JwtService.withClock(
+                TEST_JWT_SECRET,
+                Duration.ofDays(31).toMillis(),
+                Clock.fixed(instant, ZoneOffset.UTC));
     }
 
     @Test
     @DisplayName("Separate logins issue distinct tokens even within the same second")
     void distinctTokensForIndependentLogins() {
         User user = createTestUser(1L, "john_doe");
-        assertThat(jwtService.generateToken(user)).isNotEqualTo(jwtService.generateToken(user));
+        String first = jwtService.generateToken(user);
+        String second = jwtService.generateToken(user);
+        assertThat(first).isNotEqualTo(second);
+        assertThat(jwtService.extractSessionId(first))
+                .isNotEqualTo(jwtService.extractSessionId(second));
         user.setTokenVersion(7);
         assertThat(jwtService.extractTokenVersion(jwtService.generateToken(user))).isEqualTo(7);
     }
@@ -118,7 +164,7 @@ class JwtServiceTest {
         assertThat(expiration).isNotNull();
         assertThat(expiration).isAfter(new Date());
         assertThat(expiration)
-                .isBefore(new Date(System.currentTimeMillis() + 25 * 60 * 60 * 1000)); // < 25h
+                .isBefore(new Date(System.currentTimeMillis() + Duration.ofDays(32).toMillis()));
     }
 
     @Test

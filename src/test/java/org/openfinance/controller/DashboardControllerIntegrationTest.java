@@ -162,10 +162,10 @@ class DashboardControllerIntegrationTest {
     }
 
     @Test
-    @DisplayName("GET /api/v1/dashboard - should return 403 when not authenticated")
-    void shouldReturn403WhenNotAuthenticatedForDashboard() throws Exception {
+    @DisplayName("GET /api/v1/dashboard - should return 401 when not authenticated")
+    void shouldReturn401WhenNotAuthenticatedForDashboard() throws Exception {
         mockMvc.perform(get("/api/v1/dashboard").header("X-Encryption-Session", encKey))
-                .andExpect(status().isForbidden());
+                .andExpect(status().isUnauthorized());
     }
 
     @Test

@@ -1,6 +1,7 @@
-import axios, { AxiosError, type InternalAxiosRequestConfig } from 'axios';
-import i18n from '../i18n';
+import axios, { AxiosError, type AxiosResponse, type InternalAxiosRequestConfig } from 'axios';
+import i18n from '@/i18n';
 import { STORAGE_KEYS } from '@/constants/storage';
+import { acceptRenewedAuthToken, getStoredAuthToken } from '@/utils/auth-session';
 
 // API base URL - defaults to relative path for containerized deployments
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api/v1';
@@ -18,9 +19,7 @@ const apiClient = axios.create({
 apiClient.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
     // Add JWT token from localStorage or sessionStorage
-    const token =
-      localStorage.getItem(STORAGE_KEYS.AUTH_TOKEN) ||
-      sessionStorage.getItem(STORAGE_KEYS.AUTH_TOKEN);
+    const token = getStoredAuthToken();
     if (token && config.headers && !config.headers.Authorization) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -44,31 +43,50 @@ apiClient.interceptors.request.use(
   }
 );
 
-// Response interceptor - handle errors globally
+function acceptRenewal(response: AxiosResponse): void {
+  const renewedToken: unknown = response.headers?.['x-auth-token'];
+  if (typeof renewedToken !== 'string') return;
+  const authorization: unknown = response.config.headers.Authorization;
+  if (typeof authorization === 'string' && authorization.startsWith('Bearer ')) {
+    acceptRenewedAuthToken(authorization.slice(7).trim(), renewedToken);
+  }
+}
+
+// Response interceptor - renew active sessions and handle errors globally
 apiClient.interceptors.response.use(
   response => {
+    acceptRenewal(response);
     return response;
   },
   (error: AxiosError) => {
     if (error.response) {
       // Server responded with error status
       const status = error.response.status;
+      // Validation/permission errors still represent authenticated activity.
+      // A rejected authentication or encryption session must never be renewed locally.
+      if (status !== 401) acceptRenewal(error.response);
 
       if (status === 401) {
         // Unauthorized - clear token and redirect to login.
         // IMPORTANT: Do NOT redirect when the 401 comes from the login endpoint
         // itself (wrong credentials) — let the component handle that error.
         const isLoginRequest = error.config?.url?.includes('/auth/login');
-        // A 401 on profile update means the user supplied the wrong currentPassword,
-        // not an expired session — let the component handle that error.
+        // Profile password errors stay in the form. A Bearer challenge means the
+        // session itself is invalid, even when the request was a profile update.
         const isProfileUpdate =
-          error.config?.url?.includes('/auth/profile') && error.config?.method === 'put';
+          error.config?.url?.includes('/auth/profile') &&
+          error.config?.method === 'put' &&
+          !error.response.headers?.['www-authenticate'];
         if (!isLoginRequest && !isProfileUpdate) {
           // An authenticated request was rejected (expired/invalid token).
           // Clear stale tokens and send the user back to login.
           try {
             localStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN);
+            localStorage.removeItem(STORAGE_KEYS.AUTH_USER);
+            sessionStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN);
+            sessionStorage.removeItem(STORAGE_KEYS.AUTH_USER);
             sessionStorage.removeItem(STORAGE_KEYS.ENCRYPTION_SESSION);
+            sessionStorage.removeItem(STORAGE_KEYS.ENCRYPTION_ENABLED);
             sessionStorage.removeItem(STORAGE_KEYS.SESSION_START_TIME);
           } catch (e) {
             // ignore storage errors

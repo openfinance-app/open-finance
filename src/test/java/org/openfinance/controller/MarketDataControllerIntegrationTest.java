@@ -205,9 +205,9 @@ class MarketDataControllerIntegrationTest {
     @Test
     @DisplayName("GET /api/v1/market/quote - Should require authentication")
     void shouldRequireAuthenticationForQuote() throws Exception {
-        // When/Then: Request without token (Spring Security returns 403 Forbidden)
+        // When/Then: A request without a token requires authentication.
         mockMvc.perform(get("/api/v1/market/quote").param("symbol", "AAPL"))
-                .andExpect(status().isForbidden());
+                .andExpect(status().isUnauthorized());
     }
 
     // NOTE: Skipping parameter validation tests - Spring MVC handling of missing

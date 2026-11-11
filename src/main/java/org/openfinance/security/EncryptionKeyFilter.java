@@ -87,6 +87,7 @@ public class EncryptionKeyFilter extends OncePerRequestFilter {
                         return;
                     }
                     EncryptionContext.setKey(keyOpt.get());
+                    encryptionKeyCache.cacheKey(requestUserId, keyOpt.get());
                 } else {
                     log.warn("Invalid or expired encryption session token");
                     rejectInvalidSession(response);

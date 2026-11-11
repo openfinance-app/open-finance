@@ -6,7 +6,7 @@
 
 | Control                | Implementation                                             |
 | ---------------------- | ---------------------------------------------------------- |
-| **Authentication**     | Signed JWT, 24 h expiry, persisted revocation checks                         |
+| **Authentication**     | Signed JWT, 31-day sliding expiry, persisted session revocation checks |
 | **Password hashing**   | BCrypt (cost factor 10)                                    |
 | **Data encryption**    | Optional AES-256-GCM; disabled by default via `application.encryption.enabled=false` |
 | **Password policy**    | ≥ 8 chars: uppercase, lowercase, digit, special character  |
@@ -132,9 +132,13 @@ Login passwords up to 72 UTF-8 bytes are hashed with **BCrypt** (cost factor 10)
 | Property     | Value                                        |
 | ------------ | -------------------------------------------- |
 | Algorithm    | HMAC-SHA-256/384/512, selected by signing-key length                         |
-| Expiration   | 24 hours (configurable via `jwt.expiration`) |
-| Issuer claim | Included                                     |
-| Storage      | Browser `localStorage`                       |
+| Expiration   | 31 days from login or latest authenticated API request (`jwt.expiration=2678400000`, milliseconds) |
+| Session claim | Stable `sid` across renewals; each token has a unique `jti` |
+| Storage      | Browser `localStorage` with "remember me"; otherwise `sessionStorage` |
+
+Authenticated API requests return a renewed JWT in the `X-Auth-Token` response header, exposed through CORS. The frontend stores the token with the latest expiry in the original storage and keeps other tabs synchronized without resetting cached data, encryption sessions, or session history. API polling also counts as activity; simply leaving a page open without requests does not extend the session. Custom API clients must save the renewed token and use it for subsequent requests. An expired token cannot be renewed: after 31 days without activity, sign in again. Override `jwt.expiration` (or `JWT_EXPIRATION`) to change the lifetime.
+
+In encrypted mode, the server's encryption-session cache uses the same inactivity period. Encryption sessions remain in memory and the browser keeps their opaque tokens in `sessionStorage`, so a backend restart, cache eviction, or closing the browser can require another login even before the JWT expires. Authenticated requests also refresh the separate key cache used by scheduled jobs for the same period; background jobs do not extend either cache's lifetime or the login session.
 
 > **Production requirement**: set `jwt.secret` to a cryptographically random value of at least 256 bits. The repository default is for development only.
 
@@ -145,7 +149,7 @@ openssl rand -base64 64
 
 ### Force-Logout
 
-Logout persists a one-way JWT fingerprint until expiration, so replay remains rejected after a backend restart. Changing the login password increments the user’s credential version and invalidates all encryption sessions after the database change commits. Existing JWTs from every login are then rejected; users sign in again with the new password. Rotating `jwt.secret` invalidates all users’ existing JWTs.
+Logout persists the login session identifier until all its tokens can expire, invalidating both older and renewed JWTs from that login while leaving independent logins intact. Revocation remains effective after a backend restart. Changing the login password increments the user’s credential version and invalidates all encryption sessions after the database change commits. Existing JWTs from every login are then rejected; users sign in again with the new password. Rotating `jwt.secret` invalidates all users’ existing JWTs.
 
 ---
 

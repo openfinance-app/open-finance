@@ -2,6 +2,7 @@
 
 package org.openfinance.config;
 
+import jakarta.servlet.http.HttpServletResponse;
 import java.util.Arrays;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -11,6 +12,7 @@ import org.openfinance.security.JwtAuthenticationFilter;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpHeaders;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -161,6 +163,20 @@ public class SecurityConfig {
                 .sessionManagement(
                         session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 
+                // Missing or expired credentials must trigger the client's sign-in flow.
+                // Authenticated users without permission still receive 403 from the access-denied
+                // handler.
+                .exceptionHandling(
+                        exceptions ->
+                                exceptions.authenticationEntryPoint(
+                                        (request, response, failure) -> {
+                                            response.setHeader(
+                                                    HttpHeaders.WWW_AUTHENTICATE, "Bearer");
+                                            response.sendError(
+                                                    HttpServletResponse.SC_UNAUTHORIZED,
+                                                    "Authentication required");
+                                        }))
+
                 // Add JWT authentication filter before standard authentication
                 .addFilterBefore(
                         jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
@@ -211,7 +227,11 @@ public class SecurityConfig {
 
         // Allow all headers
         configuration.setAllowedHeaders(List.of("*"));
-        configuration.setExposedHeaders(List.of("X-Insights-Unavailable-Sources"));
+        configuration.setExposedHeaders(
+                List.of(
+                        "X-Insights-Unavailable-Sources",
+                        HttpHeaders.WWW_AUTHENTICATE,
+                        JwtAuthenticationFilter.RENEWED_TOKEN_HEADER));
 
         // Allow credentials (cookies, authorization headers)
         configuration.setAllowCredentials(true);

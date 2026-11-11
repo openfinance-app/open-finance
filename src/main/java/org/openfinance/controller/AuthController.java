@@ -142,7 +142,7 @@ public class AuthController {
      * <ol>
      *   <li>Verify username and login password with BCrypt
      *   <li>Derive encryption key from master password
-     *   <li>Generate JWT token with 24-hour expiration
+     *   <li>Generate JWT token with configurable expiration (31 days by default)
      *   <li>Return token and encrypted encryption key
      * </ol>
      *
@@ -157,7 +157,7 @@ public class AuthController {
      * <p><strong>Security:</strong>
      *
      * <ul>
-     *   <li>JWT token expires after 24 hours
+     *   <li>Authenticated API activity renews the JWT for another 31 days by default
      *   <li>Encryption key is encrypted before transport
      *   <li>Client should store token in localStorage and key in sessionStorage
      *   <li>Include token in Authorization header: "Bearer {token}"

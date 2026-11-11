@@ -7,13 +7,20 @@ import io.jsonwebtoken.MalformedJwtException;
 import io.jsonwebtoken.UnsupportedJwtException;
 import io.jsonwebtoken.security.Keys;
 import io.jsonwebtoken.security.SignatureException;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.time.Clock;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.HexFormat;
 import java.util.Map;
+import java.util.UUID;
 import java.util.function.Function;
 import javax.crypto.SecretKey;
 import lombok.extern.slf4j.Slf4j;
 import org.openfinance.entity.User;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -21,8 +28,8 @@ import org.springframework.stereotype.Service;
  * Service for JWT token generation and validation.
  *
  * <p>Provides methods to create JWTs with user claims, validate token signatures, and extract user
- * information from tokens. Token lifetime is configurable via {@code jwt.expiration} (default 24
- * hours).
+ * information from tokens. The sliding session lifetime is configurable via {@code jwt.expiration}
+ * (default 31 days). Authenticated requests receive a renewed token for the same login session.
  *
  * <p>Requirement REQ-2.1.3: JWT-based authentication with configurable token expiration
  *
@@ -36,6 +43,7 @@ public class JwtService {
 
     private final SecretKey signingKey;
     private final long jwtExpirationMs;
+    private final Clock clock;
 
     /**
      * Constructs JwtService with signing key and token lifetime from configuration.
@@ -46,14 +54,29 @@ public class JwtService {
      *
      * @param jwtSecret secret key string (raw, not automatically Base64-decoded)
      * @param jwtExpirationMs token lifetime in milliseconds, from {@code jwt.expiration} (defaults
-     *     to 24 hours if the property is absent)
+     *     to 31 days if the property is absent)
      */
+    @Autowired
     public JwtService(
             @Value("${jwt.secret}") String jwtSecret,
-            @Value("${jwt.expiration:86400000}") long jwtExpirationMs) {
-        this.signingKey =
-                Keys.hmacShaKeyFor(jwtSecret.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            @Value("${jwt.expiration:2678400000}") long jwtExpirationMs) {
+        this(
+                Keys.hmacShaKeyFor(jwtSecret.getBytes(StandardCharsets.UTF_8)),
+                jwtExpirationMs,
+                Clock.systemUTC());
+    }
+
+    static JwtService withClock(String jwtSecret, long jwtExpirationMs, Clock clock) {
+        return new JwtService(
+                Keys.hmacShaKeyFor(jwtSecret.getBytes(StandardCharsets.UTF_8)),
+                jwtExpirationMs,
+                clock);
+    }
+
+    private JwtService(SecretKey signingKey, long jwtExpirationMs, Clock clock) {
+        this.signingKey = signingKey;
         this.jwtExpirationMs = jwtExpirationMs;
+        this.clock = clock;
         // log at debug to avoid logging environment sensitive initialization in production logs
         log.debug("JwtService initialized with HS256 algorithm, expiration={}ms", jwtExpirationMs);
     }
@@ -62,7 +85,8 @@ public class JwtService {
      * Generates a JWT token for the given user.
      *
      * <p>Token includes claims: - sub (subject): username - userId: user's database ID - iat
-     * (issued at): current timestamp - exp (expiration): current timestamp + 24 hours
+     * (issued at): current timestamp - exp (expiration): current timestamp + configured lifetime -
+     * sid: stable login session identifier, retained across renewals
      *
      * @param user User entity to generate token for
      * @return JWT token string
@@ -82,22 +106,63 @@ public class JwtService {
         Map<String, Object> claims = new HashMap<>();
         claims.put("userId", user.getId());
         claims.put("tokenVersion", user.getTokenVersion());
+        claims.put("sid", UUID.randomUUID().toString());
 
-        Date now = new Date();
+        return issueToken(claims, user.getUsername());
+    }
+
+    /** Renew only a still-valid token, retaining its identity and credential version. */
+    public String renewToken(String token) {
+        Claims claims = extractClaim(token, Function.identity());
+        Map<String, Object> renewedClaims = new HashMap<>(claims);
+        renewedClaims.put("sid", sessionId(token, claims));
+        return issueToken(renewedClaims, claims.getSubject());
+    }
+
+    private String issueToken(Map<String, Object> claims, String username) {
+        Date now = Date.from(clock.instant());
         Date expiration = new Date(now.getTime() + jwtExpirationMs);
 
         String token =
                 Jwts.builder()
-                        .id(java.util.UUID.randomUUID().toString())
                         .claims(claims)
-                        .subject(user.getUsername())
+                        .id(UUID.randomUUID().toString())
+                        .subject(username)
                         .issuedAt(now)
                         .expiration(expiration)
                         .signWith(signingKey)
                         .compact();
 
-        log.debug("Generated JWT token for user: {}", user.getUsername());
+        log.debug("Generated JWT token for user: {}", username);
         return token;
+    }
+
+    /** All renewed tokens from one login share a revocation key. */
+    public String extractSessionId(String token) {
+        return extractClaim(token, claims -> sessionId(token, claims));
+    }
+
+    private String sessionId(String token, Claims claims) {
+        String sessionId = claims.get("sid", String.class);
+        if (sessionId != null && !sessionId.isBlank()) return sessionId;
+        // Preserve logout revocations for tokens issued before sliding sessions existed.
+        try {
+            return HexFormat.of()
+                    .formatHex(
+                            MessageDigest.getInstance("SHA-256")
+                                    .digest(token.getBytes(StandardCharsets.UTF_8)));
+        } catch (NoSuchAlgorithmException ex) {
+            throw new IllegalStateException("SHA-256 is required by the JVM", ex);
+        }
+    }
+
+    /**
+     * An older token can log out a session with newer tokens. Retain revocation for two lifetimes:
+     * an in-flight request may have validated just before logout and finish renewal afterwards.
+     */
+    public long sessionRevocationExpiresAt(String token) {
+        return Math.max(extractExpiration(token).getTime(), clock.millis() + jwtExpirationMs)
+                + jwtExpirationMs;
     }
 
     /**
@@ -113,7 +178,11 @@ public class JwtService {
         }
 
         try {
-            Jwts.parser().verifyWith(signingKey).build().parseSignedClaims(token);
+            Jwts.parser()
+                    .verifyWith(signingKey)
+                    .clock(() -> Date.from(clock.instant()))
+                    .build()
+                    .parseSignedClaims(token);
             log.debug("Token validation successful");
             return true;
         } catch (SignatureException e) {
@@ -202,7 +271,7 @@ public class JwtService {
     public boolean isTokenExpired(String token) {
         try {
             Date expiration = extractExpiration(token);
-            return expiration.before(new Date());
+            return !expiration.after(Date.from(clock.instant()));
         } catch (Exception e) {
             log.debug("Error checking token expiration: {}", e.getMessage());
             return true; // Treat invalid tokens as expired
@@ -227,6 +296,7 @@ public class JwtService {
             Claims claims =
                     Jwts.parser()
                             .verifyWith(signingKey)
+                            .clock(() -> Date.from(clock.instant()))
                             .build()
                             .parseSignedClaims(token)
                             .getPayload();

@@ -162,7 +162,7 @@ public class RealEstateService {
         if (request.getMortgageId() != null) {
             validateMortgageOwnership(request.getMortgageId(), userId);
             if (realEstateRepository.findByMortgageId(request.getMortgageId()).stream()
-                    .anyMatch(p -> p.isActive() && !java.util.Objects.equals(p.getId(), null))) {
+                    .anyMatch(p -> p.isActive() && p.getId() != null)) {
                 throw new org.openfinance.exception.InvalidTransactionException(
                         "This mortgage already has a primary property; use explicit asset financing allocations for shared debt");
             }

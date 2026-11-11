@@ -50,6 +50,9 @@ import reactor.core.publisher.Flux;
 @Slf4j
 public class AIService {
 
+    private static final TypeReference<List<AIDto.Message>> MESSAGES_TYPE =
+            new TypeReference<>() {};
+
     private final AIProvider aiProvider;
     private final AIConversationWriter conversationWriter;
     private final AIRequestLimits requestLimits;
@@ -344,8 +347,7 @@ public class AIService {
                     || messagesJson.equals("[]")) {
                 return new ArrayList<>();
             }
-            return objectMapper.readValue(
-                    messagesJson, new TypeReference<List<AIDto.Message>>() {});
+            return objectMapper.readValue(messagesJson, MESSAGES_TYPE);
         } catch (JsonProcessingException e) {
             throw new IllegalStateException("Could not read saved conversation history", e);
         }

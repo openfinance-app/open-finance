@@ -251,18 +251,18 @@ class BackupControllerIntegrationTest {
     }
 
     @Test
-    @DisplayName("POST /api/v1/backup/create - return 403 when not authenticated")
-    void shouldReturn403WhenNotAuthenticated() throws Exception {
+    @DisplayName("POST /api/v1/backup/create - return 401 when not authenticated")
+    void shouldReturn401WhenNotAuthenticated() throws Exception {
         // Given
         BackupRequest request = BackupRequest.builder().description("Test backup").build();
 
-        // When/Then - no Authorization header (Spring Security returns 403)
+        // When/Then - no Authorization header (Spring Security returns 401)
         mockMvc.perform(
                         post("/api/v1/backup/create")
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(request))
                                 .header("X-Encryption-Session", encKey))
-                .andExpect(status().isForbidden());
+                .andExpect(status().isUnauthorized());
     }
 
     @Test
@@ -527,8 +527,8 @@ class BackupControllerIntegrationTest {
     }
 
     @Test
-    @DisplayName("POST /api/v1/backup/restore/upload - return 403 when not authenticated")
-    void shouldReturn403WhenUploadingWithoutAuth() throws Exception {
+    @DisplayName("POST /api/v1/backup/restore/upload - return 401 when not authenticated")
+    void shouldReturn401WhenUploadingWithoutAuth() throws Exception {
         // Given
         byte[] gzippedContent;
         try (ByteArrayOutputStream baos = new ByteArrayOutputStream();
@@ -541,12 +541,12 @@ class BackupControllerIntegrationTest {
         MockMultipartFile file =
                 new MockMultipartFile("file", "test.ofbak", "application/gzip", gzippedContent);
 
-        // When/Then - no Authorization header (Spring Security returns 403)
+        // When/Then - no Authorization header (Spring Security returns 401)
         mockMvc.perform(
                         multipart("/api/v1/backup/restore/upload")
                                 .file(file)
                                 .header("X-Encryption-Session", encKey))
-                .andExpect(status().isForbidden());
+                .andExpect(status().isUnauthorized());
     }
 
     // ========== DELETE BACKUP TESTS ==========

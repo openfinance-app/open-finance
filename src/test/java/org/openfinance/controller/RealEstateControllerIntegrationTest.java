@@ -282,8 +282,7 @@ class RealEstateControllerIntegrationTest {
                                 .header("X-Encryption-Session", encKey)
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(req)))
-                .andExpect(status().isForbidden()); // 403 - Spring Security default for missing
-        // auth
+                .andExpect(status().isUnauthorized());
     }
 
     @Test

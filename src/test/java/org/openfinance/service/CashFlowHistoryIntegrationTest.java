@@ -118,7 +118,7 @@ class CashFlowHistoryIntegrationTest extends AuditApiTestSupport {
     @Test
     @DisplayName("Authentication and invalid period parameters are enforced")
     void rejectsInvalidRequests() throws Exception {
-        json("GET", "/dashboard/cashflow-history", null, null, 403);
+        json("GET", "/dashboard/cashflow-history", null, null, 401);
         for (String query :
                 new String[] {
                     "granularity=WEEK",

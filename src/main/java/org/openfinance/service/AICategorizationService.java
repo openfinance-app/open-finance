@@ -44,6 +44,11 @@ import org.springframework.stereotype.Service;
 @Slf4j
 public class AICategorizationService {
 
+    private static final TypeReference<Map<String, Object>> METADATA_TYPE =
+            new TypeReference<>() {};
+    private static final TypeReference<List<ImportedTransaction>> TRANSACTIONS_TYPE =
+            new TypeReference<>() {};
+
     private static final int BATCH_SIZE = 15;
     private static final double AI_CONFIDENCE = 0.75;
     private static final Duration BATCH_TIMEOUT = Duration.ofSeconds(120);
@@ -113,7 +118,7 @@ public class AICategorizationService {
                 try {
                     Map<String, Object> metadataMap =
                             objectMapper
-                                    .readerFor(new TypeReference<Map<String, Object>>() {})
+                                    .readerFor(METADATA_TYPE)
                                     .with(DeserializationFeature.USE_BIG_DECIMAL_FOR_FLOATS)
                                     .readValue(session.getMetadata());
                     if (metadataMap.containsKey("ledgerBalance")) {
@@ -497,15 +502,13 @@ public class AICategorizationService {
         try {
             Map<String, Object> metadataMap =
                     objectMapper
-                            .readerFor(new TypeReference<Map<String, Object>>() {})
+                            .readerFor(METADATA_TYPE)
                             .with(DeserializationFeature.USE_BIG_DECIMAL_FOR_FLOATS)
                             .readValue(metadata);
             if (!metadataMap.containsKey("transactions")) {
                 return new ArrayList<>();
             }
-            return objectMapper.convertValue(
-                    metadataMap.get("transactions"),
-                    new TypeReference<List<ImportedTransaction>>() {});
+            return objectMapper.convertValue(metadataMap.get("transactions"), TRANSACTIONS_TYPE);
         } catch (JsonProcessingException e) {
             log.error(
                     "Error deserializing transactions for AI categorization: {}",

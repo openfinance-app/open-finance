@@ -176,18 +176,18 @@ class AIControllerIntegrationTest {
         }
 
         @Test
-        @DisplayName("Should return 403 when JWT token is missing")
+        @DisplayName("Should return 401 when JWT token is missing")
         void shouldReturn401WhenNoToken() throws Exception {
             AIDto.ChatRequest request =
                     AIDto.ChatRequest.builder().question("What is my balance?").build();
 
-            // Spring Security returns 403 Forbidden for missing tokens (not 401)
+            // A missing JWT requires authentication.
             mockMvc.perform(
                             post("/api/v1/ai/chat")
                                     .header("X-Encryption-Session", encKey)
                                     .contentType(MediaType.APPLICATION_JSON)
                                     .content(objectMapper.writeValueAsString(request)))
-                    .andExpect(status().isForbidden());
+                    .andExpect(status().isUnauthorized());
         }
     }
 

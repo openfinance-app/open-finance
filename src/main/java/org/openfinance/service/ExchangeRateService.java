@@ -24,6 +24,7 @@ import org.openfinance.repository.CurrencyRepository;
 import org.openfinance.repository.ExchangeRateRepository;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
+import org.springframework.dao.CannotAcquireLockException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionSynchronization;
@@ -76,6 +77,9 @@ import org.springframework.transaction.support.TransactionSynchronizationManager
 @Service
 @RequiredArgsConstructor
 public class ExchangeRateService {
+
+    private static final int MAX_WRITE_ATTEMPTS = 3;
+    private static final long WRITE_RETRY_DELAY_MILLIS = 250;
 
     private final ExchangeRateRepository exchangeRateRepository;
     private final CurrencyRepository currencyRepository;
@@ -305,7 +309,7 @@ public class ExchangeRateService {
 
             // Save all rates to database
             if (!newRates.isEmpty()) {
-                exchangeRateRepository.upsertAll(newRates);
+                storeRatesWithRetry(newRates);
                 log.info(
                         "Successfully updated {} exchange rates for {} (including {} inverse rates)",
                         newRates.size(),
@@ -376,7 +380,7 @@ public class ExchangeRateService {
 
     private int fetchAndStoreHistoricalRates(List<String> symbols, LocalDate from, LocalDate date) {
         List<ExchangeRate> rates = filterExistingRates(fetchHistoricalRates(symbols, from, date));
-        if (!rates.isEmpty()) exchangeRateRepository.upsertAll(rates);
+        if (!rates.isEmpty()) storeRatesWithRetry(rates);
         return rates.size();
     }
 
@@ -523,7 +527,7 @@ public class ExchangeRateService {
                         @Override
                         public void afterCommit() {
                             try {
-                                exchangeRateRepository.upsertAllIndependently(pending);
+                                storeRatesWithRetry(pending);
                             } catch (RuntimeException failure) {
                                 log.warn(
                                         "Unable to cache fetched exchange rates after commit",
@@ -532,7 +536,38 @@ public class ExchangeRateService {
                         }
                     });
         } else {
-            exchangeRateRepository.upsertAll(rates);
+            storeRatesWithRetry(rates);
+        }
+    }
+
+    /**
+     * Retry only the fetched batch, after the repository proxy rolls back the failed attempt. Every
+     * attempt needs its own transaction, including calls from an after-commit callback.
+     */
+    private void storeRatesWithRetry(List<ExchangeRate> rates) {
+        for (int attempt = 1; ; attempt++) {
+            try {
+                exchangeRateRepository.upsertAllIndependently(rates);
+                return;
+            } catch (CannotAcquireLockException failure) {
+                if (attempt >= MAX_WRITE_ATTEMPTS) {
+                    throw failure;
+                }
+                long delayMillis = WRITE_RETRY_DELAY_MILLIS * attempt;
+                log.warn(
+                        "Exchange-rate write locked (attempt {}/{}); retrying {} rates in {} ms",
+                        attempt,
+                        MAX_WRITE_ATTEMPTS,
+                        rates.size(),
+                        delayMillis);
+                try {
+                    Thread.sleep(delayMillis);
+                } catch (InterruptedException interrupted) {
+                    Thread.currentThread().interrupt();
+                    failure.addSuppressed(interrupted);
+                    throw failure;
+                }
+            }
         }
     }
 

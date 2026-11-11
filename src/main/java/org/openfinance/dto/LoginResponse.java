@@ -21,8 +21,8 @@ import lombok.NoArgsConstructor;
 public class LoginResponse {
 
     /**
-     * JWT authentication token with 24-hour expiration. Client should include this in Authorization
-     * header for subsequent requests.
+     * JWT authentication token with a 31-day default lifetime. Client should include this in
+     * Authorization header for subsequent requests.
      */
     private String token;
 

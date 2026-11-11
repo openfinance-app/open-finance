@@ -3,6 +3,7 @@ package org.openfinance.specification;
 import jakarta.persistence.criteria.Predicate;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import org.openfinance.dto.AccountSearchCriteria;
 import org.openfinance.entity.Account;
 import org.springframework.data.jpa.domain.Specification;
@@ -81,7 +82,7 @@ public class AccountSpecification {
 
             // Filter by institution name (join with institution)
             if (criteria.getInstitution() != null && !criteria.getInstitution().trim().isEmpty()) {
-                String institution = "%" + criteria.getInstitution().toLowerCase() + "%";
+                String institution = "%" + criteria.getInstitution().toLowerCase(Locale.ROOT) + "%";
                 // Join with institution and filter by name
                 predicates.add(
                         criteriaBuilder.like(

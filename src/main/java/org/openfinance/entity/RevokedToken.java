@@ -8,7 +8,7 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
-/** One-way token fingerprints retained only until their JWT expiration. */
+/** Revoked login session identifiers, retained until all tokens in the session have expired. */
 @Entity
 @Table(name = "revoked_tokens")
 @Getter
