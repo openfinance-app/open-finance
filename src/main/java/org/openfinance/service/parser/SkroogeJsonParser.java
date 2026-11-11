@@ -394,6 +394,7 @@ public class SkroogeJsonParser {
         BigDecimal signedTotal = BigDecimal.ZERO;
         boolean sameUnit = true;
         boolean anyTransferCategory = false;
+        boolean hasHolding = false;
         Long firstUnitId = null;
         BigDecimal firstAmount = null;
         BigDecimal secondAmount = null;
@@ -417,9 +418,12 @@ public class SkroogeJsonParser {
                 secondAmount = amount;
             }
             Long unitId = longValue(operation, "rc_unit_id");
-            if (!isAccountTransferUnit(unitsById.get(unitId))) {
+            JsonNode unit = unitsById.get(unitId);
+            boolean holding = isInvestmentUnit(unit);
+            if (!isAccountTransferUnit(unit) && !holding) {
                 return false;
             }
+            hasHolding = hasHolding || holding;
             if (firstUnitId == null) {
                 firstUnitId = unitId;
             } else if (!java.util.Objects.equals(unitId, firstUnitId)) {
@@ -427,10 +431,8 @@ public class SkroogeJsonParser {
             }
         }
 
-        // Structural balance check: same-unit transfers net to zero; cross-currency transfers pair
-        // a debit with a credit. Share/object groups never reach here — their non-currency unit is
-        // already rejected by the isAccountTransferUnit guard above, so they stay source operations
-        // and the imported rows preserve Skrooge's own per-side amounts.
+        // A source-linked group pairs a debit with a credit. Different units cannot be added:
+        // cash funding and holding quantities retain their own amounts and historical valuations.
         boolean balanced;
         if (!sameUnit) {
             balanced =
@@ -444,19 +446,15 @@ public class SkroogeJsonParser {
             return false;
         }
 
-        // A balanced movement between two DISTINCT accounts is the language-independent signature
-        // of an account transfer, so structure alone classifies it — no category name required.
-        // This catches transfers that are uncategorised or whose category is named outside
-        // TRANSFER_CATEGORY_KEYWORDS (any language, or labels like "Between accounts"). The keyword
-        // is retained only as a soft signal that additionally rescues the rare same-account pair
-        // Skrooge itself labelled as a transfer, so no previously-detected transfer is lost.
+        // Holding groups must move between accounts. For cash-only groups, retain Skrooge's
+        // explicitly categorised same-account transfers too.
         Long firstAccountId = longValue(operations.get(0), "rd_account_id");
         Long secondAccountId = longValue(operations.get(1), "rd_account_id");
         boolean crossAccount =
                 firstAccountId != null
                         && secondAccountId != null
                         && !firstAccountId.equals(secondAccountId);
-        return crossAccount || anyTransferCategory;
+        return crossAccount || (!hasHolding && anyTransferCategory);
     }
 
     private boolean isAccountTransferUnit(JsonNode unitNode) {

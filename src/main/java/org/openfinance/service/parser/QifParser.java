@@ -334,14 +334,11 @@ public class QifParser {
                                 currentTransaction.clearedStatus(mapClearedStatus(value));
                             }
                             break;
-                        case '$': // amount transferred (cash leg) — stored as a single split
+                        case '$': // amount transferred (cash leg), not a category split
                             if (currentTransaction != null) {
                                 BigDecimal transferAmount = parseAmount(value, lineNumber, null);
                                 if (transferAmount != null) {
-                                    currentSplits.add(
-                                            ImportedTransaction.SplitEntry.builder()
-                                                    .amount(transferAmount)
-                                                    .build());
+                                    currentTransaction.transferAmount(transferAmount.abs());
                                 }
                             }
                             break;

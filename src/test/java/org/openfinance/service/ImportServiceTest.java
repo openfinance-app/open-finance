@@ -247,6 +247,13 @@ class ImportServiceTest {
                         skroogeRuleImportService,
                         org.mockito.Mockito.mock(SkroogeInterestImportService.class),
                         org.mockito.Mockito.mock(ImportedInvestmentService.class),
+                        new ImportedTransferServiceImpl(
+                                accountRepository,
+                                transactionRepository,
+                                org.mockito.Mockito.mock(ImportedInvestmentService.class),
+                                transactionService,
+                                accountCurrencyService,
+                                netWorthRepository),
                         transactionService,
                         exchangeRateService,
                         transactionSplitService,

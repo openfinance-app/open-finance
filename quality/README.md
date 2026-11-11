@@ -32,6 +32,13 @@ Run `mvn compile spotbugs:check`. A new identity fails the check. Review it agai
 source and fix real defects; do not regenerate this file from current output just
 to make CI pass.
 
+The import-transfer extraction reviews 18 exact constructor identities. Fifteen
+retain already-baselined `ImportService` collaborators under its new constructor
+signature. Three retain the transaction repository, net-worth repository and
+transaction service in `ImportedTransferServiceImpl`; these Spring-managed instances
+must be shared to participate in the owning import transaction. No package-wide or
+bug-type-wide exclusion was added, and existing baseline identities were retained.
+
 The investment movement editor reviewed 23 exact constructor identities after a
 clean Java 21 build. Twenty-one retain the same already-baselined DTO collections,
 JPA associations and Spring collaborators under changed constructor signatures.

@@ -20,18 +20,16 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import java.io.ByteArrayOutputStream;
-import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.LocalDateTime;
-import java.util.Comparator;
 import java.util.List;
 import java.util.zip.GZIPOutputStream;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 import org.openfinance.dto.BackupRequest;
 import org.openfinance.dto.LoginRequest;
 import org.openfinance.dto.UserRegistrationRequest;
@@ -50,6 +48,8 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockMultipartFile;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.transaction.PlatformTransactionManager;
@@ -80,6 +80,13 @@ import org.springframework.transaction.PlatformTransactionManager;
 @AutoConfigureMockMvc
 @DisplayName("BackupController Integration Tests")
 class BackupControllerIntegrationTest {
+
+    @TempDir static Path testBackups;
+
+    @DynamicPropertySource
+    static void isolateBackups(DynamicPropertyRegistry properties) {
+        properties.add("app.backup.directory", () -> testBackups.toString());
+    }
 
     @MockBean private OperationHistoryService operationHistoryService;
 
@@ -161,18 +168,6 @@ class BackupControllerIntegrationTest {
                         .findByUsername("alice")
                         .orElseThrow(() -> new RuntimeException("User not found"));
         userId = user.getId();
-    }
-
-    @AfterEach
-    void tearDown() throws Exception {
-        // Clean up backup files
-        Path backupPath = Paths.get(backupDirectory);
-        if (Files.exists(backupPath)) {
-            Files.walk(backupPath)
-                    .sorted(Comparator.reverseOrder())
-                    .map(Path::toFile)
-                    .forEach(File::delete);
-        }
     }
 
     // ========== CREATE BACKUP TESTS ==========

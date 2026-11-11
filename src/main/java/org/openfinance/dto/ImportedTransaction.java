@@ -25,7 +25,7 @@ import lombok.Singular;
  * @see org.openfinance.entity.Transaction
  */
 @Data
-@Builder
+@Builder(toBuilder = true)
 @NoArgsConstructor
 @AllArgsConstructor
 public class ImportedTransaction {
@@ -167,6 +167,22 @@ public class ImportedTransaction {
 
     /** Destination account name for imported transfer transactions. */
     private String toAccountName;
+
+    /** Resolved destination number, kept separate from its display name. */
+    private String toAccountNumber;
+
+    /** Native OFX transfer evidence; ownership is resolved before classifying it as internal. */
+    private boolean ofxTransfer;
+
+    private String ofxCounterpartyAccount;
+    private String ofxTransferReference;
+
+    /** True when the counter-leg also moves securities rather than cash. */
+    private boolean holdingTransfer;
+
+    /** QIF investment '$' field: cash transferred, not a category split. */
+    @JsonFormat(shape = JsonFormat.Shape.STRING)
+    private BigDecimal transferAmount;
 
     /** Destination account source ID for imported transfer transactions. */
     private Long toAccountSourceId;

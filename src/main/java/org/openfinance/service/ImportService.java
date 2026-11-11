@@ -1,5 +1,12 @@
 package org.openfinance.service;
 
+import static org.openfinance.service.ImportedAccountRouting.matchesImportedAccount;
+import static org.openfinance.service.ImportedAccountRouting.requireActiveImportAccount;
+import static org.openfinance.service.ImportedAccountRouting.requiresFallbackAccount;
+import static org.openfinance.service.ImportedAccountRouting.resolveImportedAccountId;
+import static org.openfinance.service.ImportedAccountRouting.resolveImportedDestinationAccountId;
+import static org.openfinance.service.ImportedAccountRouting.shouldUseImportedAccountRouting;
+
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.DeserializationFeature;
@@ -133,6 +140,7 @@ public class ImportService {
     private final SkroogeRuleImportService skroogeRuleImportService;
     private final SkroogeInterestImportService skroogeInterestImportService;
     private final ImportedInvestmentService investmentImportService;
+    private final ImportedTransferService transferImportService;
     private final TransactionService transactionService;
     private final ExchangeRateService exchangeRateService;
     private final TransactionSplitService transactionSplitService;
@@ -372,6 +380,8 @@ public class ImportService {
                     throw new IllegalArgumentException(
                             "Unsupported file format: " + session.getFileFormat());
             }
+
+            transferImportService.resolveOfxTransfers(session, transactions);
 
             // Attempt to detect account automatically if not provided
             if (session.getAccountId() == null && !transactions.isEmpty()) {
@@ -615,6 +625,7 @@ public class ImportService {
                     "Session is not ready for review. Current status: " + session.getStatus());
         }
 
+        transferImportService.resolveOfxTransfers(session, transactions);
         // Detect duplicates with the currently selected account
         validateImportedSplitAmounts(transactions, session.getAccountId(), userId);
         detectDuplicates(transactions, session.getAccountId(), session.getFileFormat(), userId);
@@ -798,6 +809,7 @@ public class ImportService {
             ImportProgressTracker.Task progress) {
         Long sessionId = session.getId();
         List<ImportedTransaction> transactions = deserializeTransactions(session.getMetadata());
+        transferImportService.resolveOfxTransfers(session, transactions);
         prepareUnreviewedTransactions(session, transactions, userId, progress);
         progress.update(Phase.PREPARING, 0, transactions.size());
         validateImportedSplitAmounts(
@@ -1949,7 +1961,8 @@ public class ImportService {
             affectedAccountIds.add(resolvedFallbackAccountId);
         }
         Set<String> processedTransferKeys = new java.util.HashSet<>();
-        ImportedTransferMatcher transferMatcher = new ImportedTransferMatcher();
+        ImportedTransferMatcher.Groups transferGroups =
+                ImportedTransferMatcher.group(validTxs, accountIdsByKey, resolvedFallbackAccountId);
 
         int processed = transactions.size() - toImport.size();
         progress.update(Phase.IMPORTING, processed, transactions.size());
@@ -1971,10 +1984,27 @@ public class ImportService {
                                 "Unable to resolve transfer accounts for imported transaction");
                     }
 
-                    String transferKey =
-                            transferMatcher.keyFor(
-                                    importedTx, sourceAccountId, destinationAccountId);
+                    String transferKey = transferGroups.keyFor(importedTx);
                     if (!processedTransferKeys.add(transferKey)) {
+                        continue;
+                    }
+                    List<ImportedTransaction> group = transferGroups.rowsFor(transferKey);
+                    if (group.stream()
+                            .anyMatch(
+                                    row ->
+                                            row.isOfxTransfer()
+                                                    || row.getInvestmentQuantity() != null)) {
+                        transferImportService.save(
+                                group,
+                                accountIdsByKey,
+                                resolvedFallbackAccountId,
+                                userId,
+                                (row, accountId) ->
+                                        convertToTransaction(
+                                                row, accountId, userId, Map.of(), Map.of(), false));
+                        affectedAccountIds.add(sourceAccountId);
+                        affectedAccountIds.add(destinationAccountId);
+                        imported++;
                         continue;
                     }
 
@@ -2417,26 +2447,6 @@ public class ImportService {
         }
     }
 
-    /** Reject closed accounts before import routing changes their balances or active state. */
-    private void requireActiveImportAccount(Account account) {
-        if (!Boolean.TRUE.equals(account.getIsActive())) {
-            throw new org.openfinance.exception.InvalidTransactionException(
-                    "Cannot import to inactive account: " + account.getId());
-        }
-    }
-
-    private boolean shouldUseImportedAccountRouting(List<ImportedTransaction> transactions) {
-        return transactions.stream().anyMatch(this::hasImportedAccountReference);
-    }
-
-    private boolean hasImportedAccountReference(ImportedTransaction transaction) {
-        return (transaction.getAccountName() != null && !transaction.getAccountName().isBlank())
-                || (transaction.getAccountNumber() != null
-                        && !transaction.getAccountNumber().isBlank())
-                || (transaction.getToAccountName() != null
-                        && !transaction.getToAccountName().isBlank());
-    }
-
     private Map<String, ImportedAccountDescriptor> collectImportedAccounts(
             List<ImportedTransaction> transactions, String defaultCurrency) {
         Map<String, ImportedAccountDescriptor> descriptors = new LinkedHashMap<>();
@@ -2454,11 +2464,11 @@ public class ImportService {
             registerImportedAccountDescriptor(
                     descriptors,
                     transaction.getToAccountName(),
-                    null,
+                    transaction.getToAccountNumber(),
                     null,
                     transaction.getTransactionDate(),
                     defaultCurrency,
-                    null,
+                    transaction.isHoldingTransfer() ? "Invst" : null,
                     null,
                     null);
         }
@@ -2603,59 +2613,6 @@ public class ImportService {
             }
         }
         return null;
-    }
-
-    private boolean matchesImportedAccount(
-            Account existingAccount, String importedName, String importedAccountNumber) {
-        if (existingAccount.getDeletedDate() != null) return false;
-        String existingName = existingAccount.getName();
-        String existingAccountNumber = existingAccount.getAccountNumber();
-        boolean sameName =
-                existingName != null
-                        && importedName != null
-                        && existingName.equalsIgnoreCase(importedName);
-        boolean sameNumber =
-                importedAccountNumber != null
-                        && !importedAccountNumber.isBlank()
-                        && existingAccountNumber != null
-                        && existingAccountNumber.equalsIgnoreCase(importedAccountNumber);
-        return sameName || sameNumber;
-    }
-
-    private Long resolveImportedAccountId(
-            ImportedTransaction importedTx,
-            Map<String, Long> accountIdsByKey,
-            Long fallbackAccountId) {
-        String descriptorKey =
-                ImportStatementPositions.accountKey(
-                        importedTx.getAccountName(), importedTx.getAccountNumber());
-        if (descriptorKey != null && accountIdsByKey.containsKey(descriptorKey)) {
-            return accountIdsByKey.get(descriptorKey);
-        }
-        return fallbackAccountId;
-    }
-
-    private Long resolveImportedDestinationAccountId(
-            ImportedTransaction importedTx,
-            Map<String, Long> accountIdsByKey,
-            Long fallbackAccountId) {
-        String descriptorKey =
-                ImportStatementPositions.accountKey(importedTx.getToAccountName(), null);
-        if (descriptorKey != null && accountIdsByKey.containsKey(descriptorKey)) {
-            return accountIdsByKey.get(descriptorKey);
-        }
-        return fallbackAccountId;
-    }
-
-    private boolean requiresFallbackAccount(List<ImportedTransaction> transactions) {
-        return transactions.stream()
-                .anyMatch(
-                        transaction ->
-                                !transaction.isTransfer()
-                                        && (transaction.getAccountName() == null
-                                                || transaction.getAccountName().isBlank())
-                                        && (transaction.getAccountNumber() == null
-                                                || transaction.getAccountNumber().isBlank()));
     }
 
     private String decryptQuietly(String value) {

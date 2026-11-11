@@ -37,12 +37,12 @@ import org.xml.sax.InputSource;
  * OFX 1.x
  *
  * <p>Transaction Fields parsed from STMTTRN / CCSTMTTRN: - TRNTYPE : Transaction type (DEBIT,
- * CREDIT, INT, DIV, FEE, …) — appended to memo - DTPOSTED : Date posted (YYYYMMDDHHMMSS) - DTUSER :
- * User-initiated date — used as fallback when DTPOSTED is absent - TRNAMT : Transaction amount
- * (negative for debits) - FITID : Financial Institution Transaction ID - CHECKNUM : Check number
- * (fallback when FITID is absent) - REFNUM : Reference number (used when both FITID and CHECKNUM
- * are absent) - NAME : Payee/description - MEMO : Additional memo/notes - CURRENCY / CURSYM :
- * Currency code
+ * CREDIT, XFER, INT, DIV, FEE, …) — XFER supplies transfer evidence - DTPOSTED : Date posted
+ * (YYYYMMDDHHMMSS) - DTUSER : User-initiated date — used as fallback when DTPOSTED is absent -
+ * TRNAMT : Transaction amount (negative for debits) - FITID : Financial Institution Transaction ID
+ * - CHECKNUM : Check number (fallback when FITID is absent) - REFNUM : Reference number (used when
+ * both FITID and CHECKNUM are absent) - NAME : Payee/description - MEMO : Additional memo/notes -
+ * CURRENCY / CURSYM : Currency code
  *
  * <p>Investment transactions (INVBUY, INVSELL, REINVEST, INCOME, INVEXPENSE, etc.) are parsed from
  * INVSTMTTRNRS / INVTRANLIST using minimal field extraction: - DTSETTLE or DTTRADE as date - TOTAL
@@ -469,6 +469,17 @@ public class OfxParser {
         }
         builder.memo(memo);
 
+        if ("XFER".equalsIgnoreCase(getDirectChildText(stmtTrn, "TRNTYPE"))) {
+            builder.ofxTransfer(true);
+            String otherAccount = extractAccountId(stmtTrn, "BANKACCTTO");
+            if (otherAccount == null) otherAccount = extractAccountId(stmtTrn, "CCACCTTO");
+            builder.ofxCounterpartyAccount(otherAccount);
+            String serverId = getDirectChildText(stmtTrn, "SRVRTID");
+            if (serverId != null && !serverId.isBlank()) {
+                builder.ofxTransferReference(transferInstitution(stmtTrn) + ":" + serverId);
+            }
+        }
+
         // CURRENCY / CURSYM — currency code
         String currency = getElementText(stmtTrn, "CURRENCY");
         if (currency == null || currency.isEmpty()) {
@@ -643,7 +654,12 @@ public class OfxParser {
                 optionalInvestmentDecimal(invEl, "UNITPRICE"),
                 secId,
                 getElementText(invEl, "UNIQUEIDTYPE"),
+                getDirectChildText(invEl, "TFERACTION"),
                 locale);
+        if ("TRANSFER".equals(typeName)) {
+            builder.ofxTransfer(true)
+                    .ofxCounterpartyAccount(extractAccountId(invEl, "INVACCTFROM"));
+        }
         ImportedTransaction transaction = builder.build();
         validateTransaction(transaction, locale);
         return transaction;
@@ -652,6 +668,15 @@ public class OfxParser {
     private BigDecimal optionalInvestmentDecimal(Element element, String tag) {
         String value = getElementText(element, tag);
         return value == null || value.isBlank() ? null : parseAmount(value);
+    }
+
+    private String transferInstitution(Element transaction) {
+        Element root = transaction.getOwnerDocument().getDocumentElement();
+        String institution = getElementText(root, "FID");
+        if (institution != null && !institution.isBlank()) return "fid:" + institution;
+        // The same FI can report both bank and credit-card accounts; BANKID isn't
+        // present on the card side and must not split their shared server reference.
+        return java.util.Objects.toString(getElementText(root, "ORG"), "");
     }
 
     // -------------------------------------------------------------------------

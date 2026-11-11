@@ -28,8 +28,9 @@ final class InvestmentParseSupport {
                 builder.amount(debit ? row.getAmount().abs().negate() : row.getAmount().abs());
             return;
         }
-        boolean buy = "buy".equals(action);
-        boolean sell = "sell".equals(action);
+        boolean externalCash = Set.of("buyx", "sellx").contains(action);
+        boolean buy = Set.of("buy", "buyx").contains(action);
+        boolean sell = Set.of("sell", "sellx").contains(action);
         boolean reinvest =
                 Set.of("reinvdiv", "reinvint", "reinvlg", "reinvmd", "reinvsh").contains(action);
         boolean shares = Set.of("shrsin", "shrsout").contains(action);
@@ -37,6 +38,11 @@ final class InvestmentParseSupport {
             error(builder, "import.validation.investment.unsupported", locale);
             return;
         }
+        if (externalCash && (!row.isTransfer() || row.getToAccountName() == null)) {
+            error(builder, "import.validation.investment.incomplete", locale);
+            return;
+        }
+        builder.holdingTransfer(shares);
         apply(
                 builder,
                 quantity,
@@ -45,8 +51,8 @@ final class InvestmentParseSupport {
                 "qif:" + row.getInvestmentName(),
                 AssetType.OTHER,
                 sell || "shrsout".equals(action),
-                buy || sell,
-                buy || "shrsout".equals(action),
+                (buy || sell) && !externalCash,
+                externalCash ? sell : buy || "shrsout".equals(action),
                 locale);
     }
 
@@ -57,14 +63,22 @@ final class InvestmentParseSupport {
             BigDecimal price,
             String security,
             String securityType,
+            String transferAction,
             Locale locale) {
         if (Set.of("INCOME", "INVEXPENSE").contains(action)) return;
         boolean buy = Set.of("BUYSTOCK", "BUYMF", "BUYOTHER").contains(action);
         boolean sell = Set.of("SELLSTOCK", "SELLMF", "SELLOTHER").contains(action);
-        if (!buy && !sell && !"REINVEST".equals(action)) {
+        boolean transfer = "TRANSFER".equals(action);
+        if (!buy && !sell && !"REINVEST".equals(action) && !transfer) {
             error(builder, "import.validation.investment.unsupported", locale);
             return;
         }
+        if (transfer
+                && !Set.of("IN", "OUT").contains(transferAction == null ? "" : transferAction)) {
+            error(builder, "import.validation.investment.incomplete", locale);
+            return;
+        }
+        builder.holdingTransfer(transfer);
         AssetType type =
                 action.endsWith("MF")
                         ? AssetType.MUTUAL_FUND
@@ -76,9 +90,9 @@ final class InvestmentParseSupport {
                 security,
                 "ofx:" + securityType + ":" + security,
                 type,
-                sell,
+                sell || (transfer && "OUT".equals(transferAction)),
                 buy || sell,
-                buy,
+                buy || (transfer && "OUT".equals(transferAction)),
                 locale);
     }
 

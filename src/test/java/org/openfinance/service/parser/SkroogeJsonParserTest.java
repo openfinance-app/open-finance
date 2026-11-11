@@ -323,8 +323,8 @@ class SkroogeJsonParserTest {
     }
 
     @Test
-    @DisplayName("Should keep share purchase groups as source operations, not account transfers")
-    void shouldKeepSharePurchaseGroupsAsSourceOperations() throws IOException {
+    @DisplayName("Should link share funding across accounts without changing source amounts")
+    void shouldClassifyShareFundingAsTransfer() throws IOException {
         SkroogeImportParseResult result =
                 parser.parseFile(
                         new ByteArrayInputStream(
@@ -333,7 +333,16 @@ class SkroogeJsonParserTest {
 
         List<ImportedTransaction> transfers =
                 result.getTransactions().stream().filter(ImportedTransaction::isTransfer).toList();
-        assertThat(transfers).isEmpty();
+        assertThat(transfers).hasSize(2);
+        assertThat(transfers)
+                .extracting(ImportedTransaction::getTransferGroupKey)
+                .containsOnly("skrooge:transfer-group:42");
+        assertThat(transfers)
+                .extracting(ImportedTransaction::getToAccountSourceId)
+                .containsExactly(20L, 10L);
+        assertThat(transfers.get(0).getInvestmentQuantity()).isNull();
+        assertThat(transfers.get(1).getInvestmentQuantity()).isEqualByComparingTo("0.02");
+        assertThat(transfers.get(1).isInvestmentCash()).isFalse();
         assertThat(result.getTransactions())
                 .extracting(ImportedTransaction::getAccountName)
                 .containsExactly("Checking", "Investment");
@@ -344,8 +353,8 @@ class SkroogeJsonParserTest {
     }
 
     @Test
-    @DisplayName("Should keep object crypto purchase groups as source operations")
-    void shouldKeepObjectCryptoPurchaseGroupsAsSourceOperations() throws IOException {
+    @DisplayName("Should link crypto funding across accounts without turning units into cash")
+    void shouldClassifyCryptoFundingAsTransfer() throws IOException {
         SkroogeImportParseResult result =
                 parser.parseFile(
                         new ByteArrayInputStream(
@@ -354,7 +363,12 @@ class SkroogeJsonParserTest {
 
         List<ImportedTransaction> transfers =
                 result.getTransactions().stream().filter(ImportedTransaction::isTransfer).toList();
-        assertThat(transfers).isEmpty();
+        assertThat(transfers).hasSize(2);
+        assertThat(transfers)
+                .extracting(ImportedTransaction::getTransferGroupKey)
+                .containsOnly("skrooge:transfer-group:43");
+        assertThat(transfers.get(1).getInvestmentQuantity()).isEqualByComparingTo("0.5");
+        assertThat(transfers.get(1).isInvestmentCash()).isFalse();
         assertThat(result.getTransactions())
                 .extracting(ImportedTransaction::getAccountName)
                 .containsExactly("Checking", "Crypto Wallet");
@@ -362,6 +376,58 @@ class SkroogeJsonParserTest {
                 result.getTransactions().stream().map(ImportedTransaction::getAmount).toList();
         assertThat(amounts.get(0)).isEqualByComparingTo(new BigDecimal("-1000.00"));
         assertThat(amounts.get(1)).isEqualByComparingTo(new BigDecimal("1000.00"));
+    }
+
+    @Test
+    @DisplayName("Should link a holding withdrawal by its signs, preserving unequal valuations")
+    void shouldClassifyHoldingWithdrawalAsTransfer() throws IOException {
+        String json =
+                crossUnitTransferJson()
+                        .replace("\"-1000.00\"", "\"1050.00\"")
+                        .replace("\"0.02\"", "\"-0.02\"")
+                        .replace("Transfer", "Unrelated category");
+        List<ImportedTransaction> transfers =
+                parser.parseFile(
+                                new ByteArrayInputStream(json.getBytes(StandardCharsets.UTF_8)),
+                                "withdrawal.json")
+                        .getTransactions();
+
+        assertThat(transfers).hasSize(2).allMatch(ImportedTransaction::isTransfer);
+        assertThat(transfers)
+                .extracting(ImportedTransaction::getAccountName)
+                .containsExactly("Investment", "Checking");
+        assertThat(transfers.get(0).getAmount()).isEqualByComparingTo("-1000");
+        assertThat(transfers.get(0).getInvestmentQuantity()).isEqualByComparingTo("-0.02");
+        assertThat(transfers.get(1).getAmount()).isEqualByComparingTo("1050");
+        assertThat(transfers.get(1).getInvestmentQuantity()).isNull();
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"same-account", "same-direction", "unlinked", "unknown-unit", "split"})
+    @DisplayName("Should keep ambiguous holding groups as independent source operations")
+    void shouldNotInferHoldingTransfersFromAmountsOrCategory(String scenario) throws IOException {
+        String json = crossUnitTransferJson();
+        json =
+                switch (scenario) {
+                    case "same-account" -> json.replace(
+                            "\"rd_account_id\": 20", "\"rd_account_id\": 10");
+                    case "same-direction" -> json.replace("\"-1000.00\"", "\"1000.00\"");
+                    case "unlinked" -> json.replace("\"i_group_id\": 42", "\"i_group_id\": 0");
+                    case "unknown-unit" -> json.replace("\"t_type\": \"S\"", "\"t_type\": \"?\"");
+                    case "split" -> json.replace(
+                            "{ \"id\": 11,",
+                            "{ \"id\": 12, \"rd_operation_id\": 1, \"f_value\": \"-10\" }, { \"id\": 11,");
+                    default -> throw new IllegalArgumentException(scenario);
+                };
+
+        assertThat(
+                        parser.parseFile(
+                                        new ByteArrayInputStream(
+                                                json.getBytes(StandardCharsets.UTF_8)),
+                                        "ambiguous.json")
+                                .getTransactions())
+                .hasSize(2)
+                .noneMatch(ImportedTransaction::isTransfer);
     }
 
     @Test

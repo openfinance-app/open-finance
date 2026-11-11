@@ -9,6 +9,7 @@ import static org.mockito.Mockito.lenient;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.nio.charset.StandardCharsets;
+import java.time.LocalDate;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -18,12 +19,17 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.openfinance.config.TestDatabaseConfig;
+import org.openfinance.dto.CashFlowGranularity;
+import org.openfinance.dto.CashFlowPeriod;
 import org.openfinance.dto.LoginRequest;
 import org.openfinance.dto.LoginResponse;
+import org.openfinance.dto.TransferUpdateRequest;
 import org.openfinance.dto.UserRegistrationRequest;
 import org.openfinance.entity.Account;
+import org.openfinance.entity.Asset;
 import org.openfinance.entity.ImportSession;
 import org.openfinance.entity.ImportSession.ImportStatus;
+import org.openfinance.entity.Transaction;
 import org.openfinance.entity.User;
 import org.openfinance.repository.AccountRepository;
 import org.openfinance.repository.CategoryRepository;
@@ -137,6 +143,127 @@ class SkroogeJsonImportFlowE2ETest {
                         netWorth.calculateNetWorth(userId, java.time.LocalDate.now(), "EUR")
                                 .setScale(2, RoundingMode.HALF_UP))
                 .isEqualByComparingTo("120234.66");
+
+        List<CashFlowPeriod> history =
+                dashboard.getCashFlowHistory(userId, CashFlowGranularity.MONTH, 2026, 9);
+        assertCashFlow(history.get(8), "4040.11", "3492.80", "547.32");
+        assertCashFlow(history.get(9), "244.00", "1926.18", "-1682.18");
+    }
+
+    @Test
+    @DisplayName("Linked cash and holding movements stay transfers through import, edit and delete")
+    void classifiesHoldingFundingWithoutChangingCashOrUnits() throws Exception {
+        byte[] source = holdingFundingJson().getBytes(StandardCharsets.UTF_8);
+        assertThat(importData("funding.json", source).getErrorCount()).isZero();
+        Transaction cash = importedTransaction(4);
+        Transaction holding = importedTransaction(5);
+        assertThat(cash.getTransferId()).isNotBlank().isEqualTo(holding.getTransferId());
+        assertThat(cash.getToAccountId()).isEqualTo(holding.getAccountId());
+        assertThat(holding.getToAccountId()).isEqualTo(cash.getAccountId());
+        assertThat(cash.getAmount()).isEqualByComparingTo("2550");
+        assertThat(holding.getAmount()).isEqualByComparingTo("2549.99925");
+        assertThat(holding.getInvestmentQuantity()).isEqualByComparingTo("0.01133333");
+        assertThat(holding.getBalanceAmount()).isZero();
+        assertThat(holding.isCashMovement()).isFalse();
+        assertThat(cash.getCategoryId()).isNull();
+        assertThat(holding.getCategoryId()).isNull();
+        assertFundingBalances(cash, holding, "10950", "0.01133333");
+        assertFundingCashFlow();
+
+        transactions.updateTransfer(
+                cash.getTransferId(),
+                userId,
+                TransferUpdateRequest.builder()
+                        .fromAccountId(cash.getAccountId())
+                        .toAccountId(holding.getAccountId())
+                        .amount(cash.getAmount())
+                        .currency(cash.getCurrency())
+                        .date(cash.getDate())
+                        .description("Renamed funding")
+                        .build());
+        assertThat(importData("funding-again.json", source).getErrorCount()).isZero();
+        assertThat(transactionRepository.countByUserId(userId)).isEqualTo(4);
+        assertThat(transactionRepository.findById(holding.getId()).orElseThrow().getAmount())
+                .isEqualByComparingTo("2549.99925");
+        assertFundingBalances(cash, holding, "10950", "0.01133333");
+        assertFundingCashFlow();
+
+        transactions.deleteTransaction(holding.getId(), userId);
+        assertThat(transactionRepository.findAllById(List.of(cash.getId(), holding.getId())))
+                .hasSize(2)
+                .allMatch(Transaction::getIsDeleted);
+        assertFundingBalances(cash, holding, "13500", "0");
+        assertFundingCashFlow();
+    }
+
+    private Transaction importedTransaction(long sourceId) {
+        return transactionRepository.findByUserId(userId).stream()
+                .filter(tx -> ("skrooge:operation:" + sourceId).equals(tx.getExternalReference()))
+                .findFirst()
+                .orElseThrow();
+    }
+
+    private void assertFundingBalances(
+            Transaction cash, Transaction holding, String cashBalance, String quantity) {
+        assertThat(accountRepository.findById(cash.getAccountId()).orElseThrow().getBalance())
+                .isEqualByComparingTo(cashBalance);
+        assertThat(accountRepository.findById(holding.getAccountId()).orElseThrow().getBalance())
+                .isZero();
+        Asset asset = assets.findById(holding.getAssetId()).orElseThrow();
+        assertThat(asset.getQuantity()).isEqualByComparingTo(quantity);
+    }
+
+    private void assertFundingCashFlow() {
+        Map<String, BigDecimal> totals =
+                dashboard.getCashFlow(userId, LocalDate.of(2026, 9, 1), LocalDate.of(2026, 9, 30));
+        assertThat(totals.get("income")).isEqualByComparingTo("4000");
+        assertThat(totals.get("expenses")).isEqualByComparingTo("500");
+        assertThat(totals.get("netCashFlow")).isEqualByComparingTo("3500");
+        CashFlowPeriod september =
+                dashboard.getCashFlowHistory(userId, CashFlowGranularity.MONTH, 2026, 9).get(8);
+        assertCashFlow(september, "4000", "500", "3500");
+    }
+
+    private void assertCashFlow(CashFlowPeriod period, String income, String expense, String net) {
+        assertThat(period.getIncome().setScale(2, RoundingMode.HALF_UP))
+                .isEqualByComparingTo(income);
+        assertThat(period.getExpense().setScale(2, RoundingMode.HALF_UP))
+                .isEqualByComparingTo(expense);
+        assertThat(
+                        period.getIncome()
+                                .subtract(period.getExpense())
+                                .setScale(2, RoundingMode.HALF_UP))
+                .isEqualByComparingTo(net);
+    }
+
+    private String holdingFundingJson() {
+        return """
+                {
+                  "account": [
+                    {"id":10,"t_name":"Funding cash","t_type":"C","t_close":false},
+                    {"id":20,"t_name":"Property holding","t_type":"A","t_close":false}
+                  ],
+                  "unit": [
+                    {"id":1,"t_name":"Euro (EUR)","t_symbol":"EUR","t_type":"1"},
+                    {"id":2,"t_name":"Property","t_symbol":"PROPERTY","t_type":"S","rd_unit_id":1}
+                  ],
+                  "operation": [
+                    {"id":1,"rd_account_id":10,"d_date":"0000-00-00","rc_unit_id":1},
+                    {"id":2,"rd_account_id":10,"d_date":"2026-09-01","rc_unit_id":1,"t_comment":"Salary"},
+                    {"id":3,"rd_account_id":10,"d_date":"2026-09-02","rc_unit_id":1,"t_comment":"Rent"},
+                    {"id":4,"rd_account_id":10,"d_date":"2026-09-28","rc_unit_id":1,"i_group_id":42,"t_comment":"Funding"},
+                    {"id":5,"rd_account_id":20,"d_date":"2026-09-28","rc_unit_id":2,"i_group_id":42,"t_comment":"Funding"}
+                  ],
+                  "suboperation": [
+                    {"id":1,"rd_operation_id":1,"f_value":"10000"},
+                    {"id":2,"rd_operation_id":2,"f_value":"4000"},
+                    {"id":3,"rd_operation_id":3,"f_value":"-500"},
+                    {"id":4,"rd_operation_id":4,"f_value":"-2550"},
+                    {"id":5,"rd_operation_id":5,"f_value":"0.01133333"}
+                  ],
+                  "unitvalue": [{"id":1,"rd_unit_id":2,"d_date":"2026-01-01","f_quantity":"225000"}]
+                }
+                """;
     }
 
     private void useOfficialFx() {

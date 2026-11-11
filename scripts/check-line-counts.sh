@@ -15,8 +15,8 @@ if command -v tokei &>/dev/null; then
 elif command -v cloc &>/dev/null; then
     TOOL="cloc"
 else
-    echo "[WARN] Neither tokei nor cloc found. Skipping line count checks."
-    exit 0
+    TOOL="wc"
+    echo "[WARN] Neither tokei nor cloc found. Enforcing file limits with wc; detailed statistics unavailable."
 fi
 
 BACKEND_SRC="$PROJECT_DIR/src/main"
@@ -51,7 +51,7 @@ for lang in ('TypeScript', 'TSX', 'JavaScript'):
         t = j['code'] + j['comments'] + j['blanks']
         print(f'  {lang}: {n} files, {j[\"code\"]} code, {j[\"comments\"]} comments, {j[\"blanks\"]} blanks, {t} total')
 "
-else
+elif [ "$TOOL" = "cloc" ]; then
     echo "--- Backend (Java) ---"
     cloc "$BACKEND_SRC" --include-lang=Java --quiet 2>/dev/null | tail -3
     echo "--- Frontend (TypeScript / JavaScript) ---"
@@ -63,7 +63,7 @@ echo ""
 # ── Top 3 biggest files ───────────────────────────────────────────
 echo "--- Top 3 Biggest Backend Files (Java) ---"
 find "$BACKEND_SRC" -name '*.java' ! -path '*/test/*' -exec wc -l {} + 2>/dev/null \
-    | grep -v ' total$' | sort -rn | head -3 | awk '{printf "  %6d  %s\n", $1, $2}' \
+    | grep -v ' total$' | sort -rn | awk 'NR <= 3 {printf "  %6d  %s\n", $1, $2}' \
     | sed "s|$PROJECT_DIR/||g"
 echo ""
 
@@ -71,7 +71,7 @@ echo "--- Top 3 Biggest Frontend Files (TS/JS) ---"
 find "$FRONTEND_SRC" \( -name '*.ts' -o -name '*.tsx' -o -name '*.js' -o -name '*.jsx' \) \
     ! -path '*/test/*' ! -name '*.test.*' ! -name '*.spec.*' \
     -exec wc -l {} + 2>/dev/null \
-    | grep -v ' total$' | sort -rn | head -3 | awk '{printf "  %6d  %s\n", $1, $2}' \
+    | grep -v ' total$' | sort -rn | awk 'NR <= 3 {printf "  %6d  %s\n", $1, $2}' \
     | sed "s|$PROJECT_DIR/||g"
 echo ""
 
