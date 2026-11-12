@@ -101,6 +101,12 @@ public interface InsightRepository extends JpaRepository<Insight, Long> {
      */
     List<Insight> findByUser_IdAndType(Long userId, InsightType type);
 
+    /** Checks detector identities without loading encrypted insight content. */
+    @Query(
+            "SELECT i.sourceKey FROM Insight i WHERE i.user.id = :userId AND i.sourceKey IN :sourceKeys")
+    List<String> findExistingSourceKeys(
+            @Param("userId") Long userId, @Param("sourceKeys") List<String> sourceKeys);
+
     /**
      * Find insights by user and priority level.
      *

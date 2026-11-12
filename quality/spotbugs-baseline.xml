@@ -28711,4 +28711,108 @@
       <Message>At InsightService.java:[line 70]</Message>
     </SourceLine>
   </BugInstance>
+  <BugInstance instanceOccurrenceNum="0" instanceHash="d25bb2566b4aa6c21a1a692c806abdf2" cweid="374" rank="18" abbrev="EI2" category="MALICIOUS_CODE" priority="2" type="EI_EXPOSE_REP2" instanceOccurrenceMax="0">
+    <ShortMessage>May expose internal representation by incorporating reference to mutable object</ShortMessage>
+    <LongMessage>new org.openfinance.service.UnusualTransactionDetectionService(TransactionRepository, InsightRepository, InsightWriter, UserRepository, MessageSource, ExchangeRateService) may expose internal representation by storing an externally mutable object into UnusualTransactionDetectionService.exchangeRateService</LongMessage>
+    <Class classname="org.openfinance.service.UnusualTransactionDetectionService" classAnnotationNames="org.springframework.stereotype.Service" primary="true">
+      <SourceLine classname="org.openfinance.service.UnusualTransactionDetectionService" start="57" end="311" sourcepath="org/openfinance/service/UnusualTransactionDetectionService.java" sourcefile="UnusualTransactionDetectionService.java">
+        <Message>At UnusualTransactionDetectionService.java:[lines 57-311]</Message>
+      </SourceLine>
+      <Message>In class org.openfinance.service.UnusualTransactionDetectionService</Message>
+    </Class>
+    <Method isStatic="false" classname="org.openfinance.service.UnusualTransactionDetectionService" signature="(Lorg/openfinance/repository/TransactionRepository;Lorg/openfinance/repository/InsightRepository;Lorg/openfinance/service/InsightWriter;Lorg/openfinance/repository/UserRepository;Lorg/springframework/context/MessageSource;Lorg/openfinance/service/ExchangeRateService;)V" name="&lt;init&gt;" classAnnotationNames="org.springframework.stereotype.Service" primary="true">
+      <SourceLine endBytecode="139" classname="org.openfinance.service.UnusualTransactionDetectionService" start="57" end="57" sourcepath="org/openfinance/service/UnusualTransactionDetectionService.java" sourcefile="UnusualTransactionDetectionService.java" startBytecode="0" />
+      <Message>In method new org.openfinance.service.UnusualTransactionDetectionService(TransactionRepository, InsightRepository, InsightWriter, UserRepository, MessageSource, ExchangeRateService)</Message>
+    </Method>
+    <Field isStatic="false" classname="org.openfinance.service.UnusualTransactionDetectionService" signature="Lorg/openfinance/service/ExchangeRateService;" name="exchangeRateService" classAnnotationNames="org.springframework.stereotype.Service" primary="true">
+      <SourceLine classname="org.openfinance.service.UnusualTransactionDetectionService" sourcepath="org/openfinance/service/UnusualTransactionDetectionService.java" sourcefile="UnusualTransactionDetectionService.java">
+        <Message>In UnusualTransactionDetectionService.java</Message>
+      </SourceLine>
+      <Message>Field org.openfinance.service.UnusualTransactionDetectionService.exchangeRateService</Message>
+    </Field>
+    <LocalVariable role="LOCAL_VARIABLE_NAMED" pc="34" name="exchangeRateService" register="6">
+      <Message>Local variable named exchangeRateService</Message>
+    </LocalVariable>
+    <SourceLine endBytecode="34" classname="org.openfinance.service.UnusualTransactionDetectionService" start="57" end="57" sourcepath="org/openfinance/service/UnusualTransactionDetectionService.java" sourcefile="UnusualTransactionDetectionService.java" startBytecode="34" primary="true">
+      <Message>At UnusualTransactionDetectionService.java:[line 57]</Message>
+    </SourceLine>
+  </BugInstance>
+  <BugInstance instanceOccurrenceNum="0" instanceHash="b3cee80b3157019e813986c72a679602" cweid="374" rank="18" abbrev="EI2" category="MALICIOUS_CODE" priority="2" type="EI_EXPOSE_REP2" instanceOccurrenceMax="0">
+    <ShortMessage>May expose internal representation by incorporating reference to mutable object</ShortMessage>
+    <LongMessage>new org.openfinance.service.UnusualTransactionDetectionService(TransactionRepository, InsightRepository, InsightWriter, UserRepository, MessageSource, ExchangeRateService) may expose internal representation by storing an externally mutable object into UnusualTransactionDetectionService.insightRepository</LongMessage>
+    <Class classname="org.openfinance.service.UnusualTransactionDetectionService" classAnnotationNames="org.springframework.stereotype.Service" primary="true">
+      <SourceLine classname="org.openfinance.service.UnusualTransactionDetectionService" start="57" end="311" sourcepath="org/openfinance/service/UnusualTransactionDetectionService.java" sourcefile="UnusualTransactionDetectionService.java">
+        <Message>At UnusualTransactionDetectionService.java:[lines 57-311]</Message>
+      </SourceLine>
+      <Message>In class org.openfinance.service.UnusualTransactionDetectionService</Message>
+    </Class>
+    <Method isStatic="false" classname="org.openfinance.service.UnusualTransactionDetectionService" signature="(Lorg/openfinance/repository/TransactionRepository;Lorg/openfinance/repository/InsightRepository;Lorg/openfinance/service/InsightWriter;Lorg/openfinance/repository/UserRepository;Lorg/springframework/context/MessageSource;Lorg/openfinance/service/ExchangeRateService;)V" name="&lt;init&gt;" classAnnotationNames="org.springframework.stereotype.Service" primary="true">
+      <SourceLine endBytecode="139" classname="org.openfinance.service.UnusualTransactionDetectionService" start="57" end="57" sourcepath="org/openfinance/service/UnusualTransactionDetectionService.java" sourcefile="UnusualTransactionDetectionService.java" startBytecode="0" />
+      <Message>In method new org.openfinance.service.UnusualTransactionDetectionService(TransactionRepository, InsightRepository, InsightWriter, UserRepository, MessageSource, ExchangeRateService)</Message>
+    </Method>
+    <Field isStatic="false" classname="org.openfinance.service.UnusualTransactionDetectionService" signature="Lorg/openfinance/repository/InsightRepository;" name="insightRepository" classAnnotationNames="org.springframework.stereotype.Service" primary="true">
+      <SourceLine classname="org.openfinance.service.UnusualTransactionDetectionService" sourcepath="org/openfinance/service/UnusualTransactionDetectionService.java" sourcefile="UnusualTransactionDetectionService.java">
+        <Message>In UnusualTransactionDetectionService.java</Message>
+      </SourceLine>
+      <Message>Field org.openfinance.service.UnusualTransactionDetectionService.insightRepository</Message>
+    </Field>
+    <LocalVariable role="LOCAL_VARIABLE_NAMED" pc="11" name="insightRepository" register="2">
+      <Message>Local variable named insightRepository</Message>
+    </LocalVariable>
+    <SourceLine endBytecode="11" classname="org.openfinance.service.UnusualTransactionDetectionService" start="57" end="57" sourcepath="org/openfinance/service/UnusualTransactionDetectionService.java" sourcefile="UnusualTransactionDetectionService.java" startBytecode="11" primary="true">
+      <Message>At UnusualTransactionDetectionService.java:[line 57]</Message>
+    </SourceLine>
+  </BugInstance>
+  <BugInstance instanceOccurrenceNum="0" instanceHash="dd1ae30bf72bcfeeea1ea31372f90525" cweid="374" rank="18" abbrev="EI2" category="MALICIOUS_CODE" priority="2" type="EI_EXPOSE_REP2" instanceOccurrenceMax="0">
+    <ShortMessage>May expose internal representation by incorporating reference to mutable object</ShortMessage>
+    <LongMessage>new org.openfinance.service.UnusualTransactionDetectionService(TransactionRepository, InsightRepository, InsightWriter, UserRepository, MessageSource, ExchangeRateService) may expose internal representation by storing an externally mutable object into UnusualTransactionDetectionService.insightWriter</LongMessage>
+    <Class classname="org.openfinance.service.UnusualTransactionDetectionService" classAnnotationNames="org.springframework.stereotype.Service" primary="true">
+      <SourceLine classname="org.openfinance.service.UnusualTransactionDetectionService" start="57" end="311" sourcepath="org/openfinance/service/UnusualTransactionDetectionService.java" sourcefile="UnusualTransactionDetectionService.java">
+        <Message>At UnusualTransactionDetectionService.java:[lines 57-311]</Message>
+      </SourceLine>
+      <Message>In class org.openfinance.service.UnusualTransactionDetectionService</Message>
+    </Class>
+    <Method isStatic="false" classname="org.openfinance.service.UnusualTransactionDetectionService" signature="(Lorg/openfinance/repository/TransactionRepository;Lorg/openfinance/repository/InsightRepository;Lorg/openfinance/service/InsightWriter;Lorg/openfinance/repository/UserRepository;Lorg/springframework/context/MessageSource;Lorg/openfinance/service/ExchangeRateService;)V" name="&lt;init&gt;" classAnnotationNames="org.springframework.stereotype.Service" primary="true">
+      <SourceLine endBytecode="139" classname="org.openfinance.service.UnusualTransactionDetectionService" start="57" end="57" sourcepath="org/openfinance/service/UnusualTransactionDetectionService.java" sourcefile="UnusualTransactionDetectionService.java" startBytecode="0" />
+      <Message>In method new org.openfinance.service.UnusualTransactionDetectionService(TransactionRepository, InsightRepository, InsightWriter, UserRepository, MessageSource, ExchangeRateService)</Message>
+    </Method>
+    <Field isStatic="false" classname="org.openfinance.service.UnusualTransactionDetectionService" signature="Lorg/openfinance/service/InsightWriter;" name="insightWriter" classAnnotationNames="org.springframework.stereotype.Service" primary="true">
+      <SourceLine classname="org.openfinance.service.UnusualTransactionDetectionService" sourcepath="org/openfinance/service/UnusualTransactionDetectionService.java" sourcefile="UnusualTransactionDetectionService.java">
+        <Message>In UnusualTransactionDetectionService.java</Message>
+      </SourceLine>
+      <Message>Field org.openfinance.service.UnusualTransactionDetectionService.insightWriter</Message>
+    </Field>
+    <LocalVariable role="LOCAL_VARIABLE_NAMED" pc="16" name="insightWriter" register="3">
+      <Message>Local variable named insightWriter</Message>
+    </LocalVariable>
+    <SourceLine endBytecode="16" classname="org.openfinance.service.UnusualTransactionDetectionService" start="57" end="57" sourcepath="org/openfinance/service/UnusualTransactionDetectionService.java" sourcefile="UnusualTransactionDetectionService.java" startBytecode="16" primary="true">
+      <Message>At UnusualTransactionDetectionService.java:[line 57]</Message>
+    </SourceLine>
+  </BugInstance>
+  <BugInstance instanceOccurrenceNum="0" instanceHash="1326976d73adf41f03bae3dd99a309cc" cweid="374" rank="18" abbrev="EI2" category="MALICIOUS_CODE" priority="2" type="EI_EXPOSE_REP2" instanceOccurrenceMax="0">
+    <ShortMessage>May expose internal representation by incorporating reference to mutable object</ShortMessage>
+    <LongMessage>new org.openfinance.service.UnusualTransactionDetectionService(TransactionRepository, InsightRepository, InsightWriter, UserRepository, MessageSource, ExchangeRateService) may expose internal representation by storing an externally mutable object into UnusualTransactionDetectionService.transactionRepository</LongMessage>
+    <Class classname="org.openfinance.service.UnusualTransactionDetectionService" classAnnotationNames="org.springframework.stereotype.Service" primary="true">
+      <SourceLine classname="org.openfinance.service.UnusualTransactionDetectionService" start="57" end="311" sourcepath="org/openfinance/service/UnusualTransactionDetectionService.java" sourcefile="UnusualTransactionDetectionService.java">
+        <Message>At UnusualTransactionDetectionService.java:[lines 57-311]</Message>
+      </SourceLine>
+      <Message>In class org.openfinance.service.UnusualTransactionDetectionService</Message>
+    </Class>
+    <Method isStatic="false" classname="org.openfinance.service.UnusualTransactionDetectionService" signature="(Lorg/openfinance/repository/TransactionRepository;Lorg/openfinance/repository/InsightRepository;Lorg/openfinance/service/InsightWriter;Lorg/openfinance/repository/UserRepository;Lorg/springframework/context/MessageSource;Lorg/openfinance/service/ExchangeRateService;)V" name="&lt;init&gt;" classAnnotationNames="org.springframework.stereotype.Service" primary="true">
+      <SourceLine endBytecode="139" classname="org.openfinance.service.UnusualTransactionDetectionService" start="57" end="57" sourcepath="org/openfinance/service/UnusualTransactionDetectionService.java" sourcefile="UnusualTransactionDetectionService.java" startBytecode="0" />
+      <Message>In method new org.openfinance.service.UnusualTransactionDetectionService(TransactionRepository, InsightRepository, InsightWriter, UserRepository, MessageSource, ExchangeRateService)</Message>
+    </Method>
+    <Field isStatic="false" classname="org.openfinance.service.UnusualTransactionDetectionService" signature="Lorg/openfinance/repository/TransactionRepository;" name="transactionRepository" classAnnotationNames="org.springframework.stereotype.Service" primary="true">
+      <SourceLine classname="org.openfinance.service.UnusualTransactionDetectionService" sourcepath="org/openfinance/service/UnusualTransactionDetectionService.java" sourcefile="UnusualTransactionDetectionService.java">
+        <Message>In UnusualTransactionDetectionService.java</Message>
+      </SourceLine>
+      <Message>Field org.openfinance.service.UnusualTransactionDetectionService.transactionRepository</Message>
+    </Field>
+    <LocalVariable role="LOCAL_VARIABLE_NAMED" pc="6" name="transactionRepository" register="1">
+      <Message>Local variable named transactionRepository</Message>
+    </LocalVariable>
+    <SourceLine endBytecode="6" classname="org.openfinance.service.UnusualTransactionDetectionService" start="57" end="57" sourcepath="org/openfinance/service/UnusualTransactionDetectionService.java" sourcefile="UnusualTransactionDetectionService.java" startBytecode="6" primary="true">
+      <Message>At UnusualTransactionDetectionService.java:[line 57]</Message>
+    </SourceLine>
+  </BugInstance>
 </BugCollection>

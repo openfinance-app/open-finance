@@ -196,3 +196,10 @@ from a clean Java 21 build. Nine retain already-baselined Spring collaborators u
 changed constructor signature; one retains the split repository needed to calculate category
 spending. These managed references must be shared. Existing identities remain in place;
 no package-wide or bug-type-wide filter is added.
+
+The overnight SQLite lock correction reviews four exact
+`UnusualTransactionDetectionService` constructor identities from a clean Java 21 build.
+Three retain already-baselined collaborators under the changed signature; one retains
+the existing Spring-managed insight writer used for short, deduplicated batches. These
+references must preserve their managed identity. Existing baseline entries and all
+quality gates remain in place.

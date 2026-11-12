@@ -20,13 +20,37 @@ public class InsightWriterImpl implements InsightWriter {
 
     @Override
     @Transactional
+    public int appendUnusual(Long userId, List<Insight> detected) {
+        requireEncryptionSession();
+        if (detected.isEmpty()) return 0;
+        if (detected.stream()
+                .anyMatch(
+                        insight ->
+                                insight.getUser() == null
+                                        || !userId.equals(insight.getUser().getId())
+                                        || insight.getType() != InsightType.UNUSUAL_TRANSACTION
+                                        || insight.getSourceKey() == null
+                                        || insight.getSourceKey().isBlank())) {
+            throw new IllegalArgumentException(
+                    "Detector alerts require an owned user and a source key");
+        }
+        // FinancialWriteIsolation locks this owner before the read. Recheck after analysis so
+        // overlapping jobs cannot insert duplicates or overwrite a dismissed alert.
+        Set<String> existing =
+                new HashSet<>(
+                        repository.findExistingSourceKeys(
+                                userId, detected.stream().map(Insight::getSourceKey).toList()));
+        List<Insight> pending =
+                detected.stream().filter(insight -> existing.add(insight.getSourceKey())).toList();
+        if (!pending.isEmpty()) repository.saveAll(pending);
+        return pending.size();
+    }
+
+    @Override
+    @Transactional
     public List<Insight> replaceGenerated(
             Long userId, List<Insight> generated, Set<InsightType> unavailableTypes) {
-        if (encryptionProperties.isEnabled()
-                && org.openfinance.security.EncryptionContext.getKey() == null) {
-            throw new org.springframework.security.access.AccessDeniedException(
-                    "Encryption session required");
-        }
+        requireEncryptionSession();
         List<Insight> previous = repository.findByUser_IdOrderByPriorityAscCreatedAtDesc(userId);
         Set<Long> retained = new HashSet<>();
         boolean recurringTotalsAvailable =
@@ -66,6 +90,14 @@ public class InsightWriterImpl implements InsightWriter {
                         .toList());
         repository.flush();
         return repository.findByUser_IdAndDismissedFalse(userId);
+    }
+
+    private void requireEncryptionSession() {
+        if (encryptionProperties.isEnabled()
+                && org.openfinance.security.EncryptionContext.getKey() == null) {
+            throw new org.springframework.security.access.AccessDeniedException(
+                    "Encryption session required");
+        }
     }
 
     private boolean sameSource(Insight old, Insight next) {

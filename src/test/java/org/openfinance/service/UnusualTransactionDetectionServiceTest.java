@@ -50,6 +50,7 @@ class UnusualTransactionDetectionServiceTest {
     @Mock private TransactionRepository transactionRepository;
 
     @Mock private InsightRepository insightRepository;
+    @Mock private InsightWriter insightWriter;
 
     @Mock private UserRepository userRepository;
 
@@ -67,6 +68,8 @@ class UnusualTransactionDetectionServiceTest {
     void setUp() {
         testUser = User.builder().id(1L).username("testuser").email("test@example.com").build();
         since = LocalDateTime.now().minusHours(25);
+        when(insightWriter.appendUnusual(eq(1L), anyList()))
+                .thenAnswer(inv -> ((List<?>) inv.getArgument(1)).size());
         when(exchangeRateService.convert(any(), anyString(), anyString(), any()))
                 .thenAnswer(i -> i.getArgument(0));
 
@@ -87,7 +90,7 @@ class UnusualTransactionDetectionServiceTest {
                                 .toList());
         assertThat(service.detectAndPersist(1L, since)).isEqualTo(1);
         ArgumentCaptor<List<Insight>> saved = ArgumentCaptor.forClass(List.class);
-        verify(insightRepository).saveAll(saved.capture());
+        verify(insightWriter).appendUnusual(eq(1L), saved.capture());
         assertThat(saved.getValue().get(0).getSourceKey()).isEqualTo("unusual:amount:1");
     }
 
@@ -103,7 +106,22 @@ class UnusualTransactionDetectionServiceTest {
                                         .dismissed(true)
                                         .build()));
         assertThat(service.detectAndPersist(1L, since)).isZero();
-        verify(insightRepository, never()).saveAll(anyList());
+        verify(insightWriter, never()).appendUnusual(anyLong(), anyList());
+    }
+
+    @Test
+    void persistsLargeDetectionRunsInBoundedBatches() {
+        stubUserFound();
+        stubRecentTx(
+                java.util.stream.LongStream.rangeClosed(1, 205)
+                        .mapToObj(id -> expenseTx(id, "Merchant " + id, 10, null))
+                        .toList());
+
+        assertThat(service.detectAndPersist(1L, since)).isEqualTo(205);
+
+        ArgumentCaptor<List<Insight>> batches = ArgumentCaptor.forClass(List.class);
+        verify(insightWriter, times(3)).appendUnusual(eq(1L), batches.capture());
+        assertThat(batches.getAllValues()).extracting(List::size).containsExactly(100, 100, 5);
     }
 
     // ------------------------------------------------------------------
@@ -163,7 +181,7 @@ class UnusualTransactionDetectionServiceTest {
             int result = service.detectAndPersist(1L, since);
 
             assertThat(result).isZero();
-            verifyNoInteractions(transactionRepository, insightRepository);
+            verifyNoInteractions(transactionRepository, insightRepository, insightWriter);
         }
 
         @Test
@@ -175,7 +193,7 @@ class UnusualTransactionDetectionServiceTest {
             int result = service.detectAndPersist(1L, since);
 
             assertThat(result).isZero();
-            verify(insightRepository, never()).saveAll(anyList());
+            verify(insightWriter, never()).appendUnusual(anyLong(), anyList());
         }
 
         @Test
@@ -198,7 +216,7 @@ class UnusualTransactionDetectionServiceTest {
             int result = service.detectAndPersist(1L, since);
 
             assertThat(result).isZero();
-            verify(insightRepository, never()).saveAll(anyList());
+            verify(insightWriter, never()).appendUnusual(anyLong(), anyList());
         }
 
         @Test
@@ -224,7 +242,7 @@ class UnusualTransactionDetectionServiceTest {
             int result = service.detectAndPersist(1L, since);
 
             assertThat(result).isZero();
-            verify(insightRepository, never()).saveAll(anyList());
+            verify(insightWriter, never()).appendUnusual(anyLong(), anyList());
         }
     }
 
@@ -243,14 +261,12 @@ class UnusualTransactionDetectionServiceTest {
             Transaction tx = expenseTx(1L, "ACME Corp", 300.0, null);
             stubRecentTx(List.of(tx));
 
-            when(insightRepository.saveAll(anyList())).thenAnswer(inv -> inv.getArgument(0));
-
             int result = service.detectAndPersist(1L, since);
 
             assertThat(result).isEqualTo(1);
 
             ArgumentCaptor<List<Insight>> captor = ArgumentCaptor.forClass(List.class);
-            verify(insightRepository).saveAll(captor.capture());
+            verify(insightWriter).appendUnusual(eq(1L), captor.capture());
             List<Insight> saved = captor.getValue();
             assertThat(saved).hasSize(1);
             Insight insight = saved.get(0);
@@ -267,8 +283,6 @@ class UnusualTransactionDetectionServiceTest {
             Transaction tx = expenseTx(1L, "NewMerchant", 100.0, null);
             stubRecentTx(List.of(tx));
 
-            when(insightRepository.saveAll(anyList())).thenAnswer(inv -> inv.getArgument(0));
-
             service.detectAndPersist(1L, since);
 
             // findByUserIdAndPayeeAndCreatedAtBefore must not be called for new payee
@@ -283,8 +297,6 @@ class UnusualTransactionDetectionServiceTest {
             Transaction tx1 = expenseTx(1L, "ShopA", 100.0, null);
             Transaction tx2 = expenseTx(2L, "ShopB", 200.0, null);
             stubRecentTx(List.of(tx1, tx2));
-
-            when(insightRepository.saveAll(anyList())).thenAnswer(inv -> inv.getArgument(0));
 
             int result = service.detectAndPersist(1L, since);
 
@@ -318,14 +330,12 @@ class UnusualTransactionDetectionServiceTest {
                             historicExpenseTx(15L, "Netflix", 50.5));
             when(transactionRepository.findByUserIdAndCreatedAtBefore(eq(1L), any()))
                     .thenReturn(history);
-            when(insightRepository.saveAll(anyList())).thenAnswer(inv -> inv.getArgument(0));
-
             int result = service.detectAndPersist(1L, since);
 
             assertThat(result).isEqualTo(1);
 
             ArgumentCaptor<List<Insight>> captor = ArgumentCaptor.forClass(List.class);
-            verify(insightRepository).saveAll(captor.capture());
+            verify(insightWriter).appendUnusual(eq(1L), captor.capture());
             Insight insight = captor.getValue().get(0);
             assertThat(insight.getPriority()).isEqualTo(InsightPriority.HIGH);
             assertThat(insight.getType()).isEqualTo(InsightType.UNUSUAL_TRANSACTION);
@@ -353,7 +363,7 @@ class UnusualTransactionDetectionServiceTest {
             int result = service.detectAndPersist(1L, since);
 
             assertThat(result).isZero();
-            verify(insightRepository, never()).saveAll(anyList());
+            verify(insightWriter, never()).appendUnusual(anyLong(), anyList());
         }
     }
 
@@ -380,14 +390,12 @@ class UnusualTransactionDetectionServiceTest {
                             historicExpenseTx(12L, "Amazon", 42.0));
             when(transactionRepository.findByUserIdAndCreatedAtBefore(eq(1L), any()))
                     .thenReturn(history);
-            when(insightRepository.saveAll(anyList())).thenAnswer(inv -> inv.getArgument(0));
-
             int result = service.detectAndPersist(1L, since);
 
             assertThat(result).isEqualTo(1);
 
             ArgumentCaptor<List<Insight>> captor = ArgumentCaptor.forClass(List.class);
-            verify(insightRepository).saveAll(captor.capture());
+            verify(insightWriter).appendUnusual(eq(1L), captor.capture());
             assertThat(captor.getValue().get(0).getPriority()).isEqualTo(InsightPriority.HIGH);
         }
 
@@ -409,7 +417,7 @@ class UnusualTransactionDetectionServiceTest {
             int result = service.detectAndPersist(1L, since);
 
             assertThat(result).isZero();
-            verify(insightRepository, never()).saveAll(anyList());
+            verify(insightWriter, never()).appendUnusual(anyLong(), anyList());
         }
     }
 
@@ -436,14 +444,12 @@ class UnusualTransactionDetectionServiceTest {
                             expenseTx(12L, null, 30.0, 99L));
             when(transactionRepository.findByUserIdAndCreatedAtBefore(eq(1L), any()))
                     .thenReturn(history);
-            when(insightRepository.saveAll(anyList())).thenAnswer(inv -> inv.getArgument(0));
-
             int result = service.detectAndPersist(1L, since);
 
             assertThat(result).isEqualTo(1);
 
             ArgumentCaptor<List<Insight>> captor = ArgumentCaptor.forClass(List.class);
-            verify(insightRepository).saveAll(captor.capture());
+            verify(insightWriter).appendUnusual(eq(1L), captor.capture());
             assertThat(captor.getValue().get(0).getPriority()).isEqualTo(InsightPriority.MEDIUM);
         }
 
@@ -460,7 +466,7 @@ class UnusualTransactionDetectionServiceTest {
             int result = service.detectAndPersist(1L, since);
 
             assertThat(result).isZero();
-            verify(insightRepository, never()).saveAll(anyList());
+            verify(insightWriter, never()).appendUnusual(anyLong(), anyList());
         }
 
         @Test
@@ -482,7 +488,7 @@ class UnusualTransactionDetectionServiceTest {
             int result = service.detectAndPersist(1L, since);
 
             assertThat(result).isZero();
-            verify(insightRepository, never()).saveAll(anyList());
+            verify(insightWriter, never()).appendUnusual(anyLong(), anyList());
         }
 
         @Test
@@ -510,7 +516,7 @@ class UnusualTransactionDetectionServiceTest {
             verify(transactionRepository, never())
                     .findExpensesByUserIdAndCategoryIdAndCreatedAtBefore(
                             anyLong(), anyLong(), any());
-            verify(insightRepository, never()).saveAll(anyList());
+            verify(insightWriter, never()).appendUnusual(anyLong(), anyList());
         }
     }
 
@@ -529,12 +535,10 @@ class UnusualTransactionDetectionServiceTest {
             Transaction tx = expenseTx(1L, "NewShop", 100.0, null);
             stubRecentTx(List.of(tx));
 
-            when(insightRepository.saveAll(anyList())).thenAnswer(inv -> inv.getArgument(0));
-
             service.detectAndPersist(1L, since);
 
             ArgumentCaptor<List<Insight>> captor = ArgumentCaptor.forClass(List.class);
-            verify(insightRepository).saveAll(captor.capture());
+            verify(insightWriter).appendUnusual(eq(1L), captor.capture());
             Insight insight = captor.getValue().get(0);
             assertThat(insight.getDismissed()).isFalse();
             assertThat(insight.getUser().getId()).isEqualTo(1L);

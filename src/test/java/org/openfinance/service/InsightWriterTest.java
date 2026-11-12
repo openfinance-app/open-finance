@@ -1,7 +1,9 @@
 package org.openfinance.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import java.util.List;
@@ -14,12 +16,75 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.openfinance.config.EncryptionProperties;
 import org.openfinance.entity.Insight;
 import org.openfinance.entity.InsightType;
+import org.openfinance.entity.User;
 import org.openfinance.repository.InsightRepository;
+import org.openfinance.security.EncryptionContext;
 import org.openfinance.service.impl.InsightWriterImpl;
+import org.springframework.security.access.AccessDeniedException;
 
 @ExtendWith(MockitoExtension.class)
 class InsightWriterTest {
     @Mock InsightRepository repository;
+
+    @Test
+    void appendingDetectorAlertsPreservesExistingDismissalsAndDeduplicatesTheBatch() {
+        Insight existing = detectorAlert("unusual:new-payee:1");
+        Insight fresh = detectorAlert("unusual:new-payee:2");
+        Insight duplicate = detectorAlert(fresh.getSourceKey());
+        when(repository.findExistingSourceKeys(
+                        1L,
+                        List.of(
+                                existing.getSourceKey(),
+                                fresh.getSourceKey(),
+                                duplicate.getSourceKey())))
+                .thenReturn(List.of(existing.getSourceKey()));
+        EncryptionProperties encryption = new EncryptionProperties();
+        encryption.setEnabled(false);
+
+        assertThat(
+                        new InsightWriterImpl(repository, encryption)
+                                .appendUnusual(1L, List.of(existing, fresh, duplicate)))
+                .isEqualTo(1);
+
+        verify(repository).saveAll(List.of(fresh));
+    }
+
+    @Test
+    void refusesDetectorAlertsBelongingToAnotherUser() {
+        Insight alert = detectorAlert("unusual:new-payee:1");
+        alert.setUser(User.builder().id(2L).build());
+        EncryptionProperties encryption = new EncryptionProperties();
+        encryption.setEnabled(false);
+
+        assertThatThrownBy(
+                        () ->
+                                new InsightWriterImpl(repository, encryption)
+                                        .appendUnusual(1L, List.of(alert)))
+                .isInstanceOf(IllegalArgumentException.class);
+        verifyNoInteractions(repository);
+    }
+
+    @Test
+    void requiresAnEncryptionSessionToPublishDetectorAlerts() {
+        EncryptionContext.clear();
+        EncryptionProperties encryption = new EncryptionProperties();
+        encryption.setEnabled(true);
+        assertThatThrownBy(
+                        () ->
+                                new InsightWriterImpl(repository, encryption)
+                                        .appendUnusual(
+                                                1L, List.of(detectorAlert("unusual:new-payee:1"))))
+                .isInstanceOf(AccessDeniedException.class);
+        verifyNoInteractions(repository);
+    }
+
+    private Insight detectorAlert(String key) {
+        return Insight.builder()
+                .user(User.builder().id(1L).build())
+                .type(InsightType.UNUSUAL_TRANSACTION)
+                .sourceKey(key)
+                .build();
+    }
 
     @Test
     void failedCompetitorRefreshKeepsOffersButRemovesAnObsoleteLocalRatio() {

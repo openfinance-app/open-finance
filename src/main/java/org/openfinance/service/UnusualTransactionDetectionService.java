@@ -22,6 +22,7 @@ import org.openfinance.repository.UserRepository;
 import org.springframework.context.MessageSource;
 import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
@@ -53,7 +54,6 @@ import org.springframework.transaction.annotation.Transactional;
  * @since Sprint 12 – Unusual Transaction Detection
  */
 @Service
-@Transactional
 @RequiredArgsConstructor
 @Slf4j
 public class UnusualTransactionDetectionService {
@@ -61,9 +61,11 @@ public class UnusualTransactionDetectionService {
     private static final BigDecimal Z_SCORE_THRESHOLD = new BigDecimal("2.5");
     private static final int MIN_HISTORY_FOR_STDDEV = 5;
     private static final BigDecimal RELATIVE_THRESHOLD_FACTOR = new BigDecimal("3");
+    private static final int INSIGHT_WRITE_BATCH_SIZE = 100;
 
     private final TransactionRepository transactionRepository;
     private final InsightRepository insightRepository;
+    private final InsightWriter insightWriter;
     private final UserRepository userRepository;
     private final MessageSource messageSource;
     private final ExchangeRateService exchangeRateService;
@@ -76,6 +78,8 @@ public class UnusualTransactionDetectionService {
      * @param since lower-bound timestamp for "newly created" transactions
      * @return number of unusual-transaction insights generated
      */
+    // Analysis can take minutes and fetch missing rates. It must not reserve SQLite's writer.
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
     public int detectAndPersist(Long userId, LocalDateTime since) {
         log.debug("Detecting unusual transactions for user {} since {}", userId, since);
 
@@ -130,15 +134,24 @@ public class UnusualTransactionDetectionService {
             }
         }
 
-        if (!insights.isEmpty()) {
-            insightRepository.saveAll(insights);
-            log.info(
-                    "Persisted {} unusual-transaction insight(s) for user {}",
-                    insights.size(),
-                    userId);
-        }
+        return persistInsights(userId, insights);
+    }
 
-        return insights.size();
+    private int persistInsights(Long userId, List<Insight> insights) {
+        int saved = 0;
+        for (int offset = 0; offset < insights.size(); offset += INSIGHT_WRITE_BATCH_SIZE) {
+            // Each proxy call commits a bounded batch before the next one starts.
+            saved +=
+                    insightWriter.appendUnusual(
+                            userId,
+                            insights.subList(
+                                    offset,
+                                    Math.min(offset + INSIGHT_WRITE_BATCH_SIZE, insights.size())));
+        }
+        if (saved > 0) {
+            log.info("Persisted {} unusual-transaction insight(s) for user {}", saved, userId);
+        }
+        return saved;
     }
 
     // -------------------------------------------------------------------------
