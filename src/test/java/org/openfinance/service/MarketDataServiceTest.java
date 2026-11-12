@@ -38,6 +38,8 @@ class MarketDataServiceTest {
 
     @Mock private OperationHistoryService operationHistoryService;
 
+    @Mock private AssetPriceHistoryWriter priceHistory;
+
     @InjectMocks private MarketDataService marketDataService;
 
     @Test

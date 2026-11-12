@@ -93,6 +93,7 @@ public class NetWorthService {
     private final org.openfinance.repository.LiabilityTrancheRepository liabilityTrancheRepository;
     private final DefaultCurrencyProvider defaultCurrencyProvider;
     private final NetWorthSnapshotWriter snapshotWriter;
+    private final HistoricalAssetValuationService historicalAssetValuation;
 
     /**
      * Per-user monitors serializing the read-modify-write in {@link #saveNetWorthSnapshot} so two
@@ -684,6 +685,7 @@ public class NetWorthService {
         return NetWorth.builder()
                 .userId(snapshot.getUserId())
                 .snapshotDate(snapshot.getSnapshotDate())
+                .reconstructed(snapshot.isReconstructed())
                 .currency(currency)
                 .totalAssets(
                         convertToBaseCurrency(
@@ -716,7 +718,7 @@ public class NetWorthService {
      * @param baseCurrency the user's base currency
      * @return the number of new snapshots created
      */
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
     public int backfillNetWorthHistory(
             Long userId, LocalDate startDate, LocalDate endDate, String baseCurrency) {
         return backfillNetWorthHistory(userId, startDate, endDate, baseCurrency, false);
@@ -742,7 +744,7 @@ public class NetWorthService {
      * @param force when true, delete and recompute existing snapshots
      * @return the number of snapshots created
      */
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
     public int backfillNetWorthHistory(
             Long userId,
             LocalDate startDate,
@@ -753,9 +755,7 @@ public class NetWorthService {
         if (startDate.isAfter(effectiveEnd)) return 0;
 
         if (force) {
-            int deleted =
-                    netWorthRepository.deleteByUserIdAndSnapshotDateBetween(
-                            userId, startDate, effectiveEnd);
+            int deleted = snapshotWriter.deleteRange(userId, startDate, effectiveEnd);
             log.info(
                     "Force-recalculate: deleted {} existing net worth snapshots for user {} in range {} to {}",
                     deleted,
@@ -767,6 +767,17 @@ public class NetWorthService {
         List<Account> accounts = accountRepository.findByUserId(userId);
         List<Asset> assets = assetRepository.findByUserId(userId);
         List<Transaction> allTransactions = transactionRepository.findByUserId(userId);
+
+        // New quotes invalidate derived snapshots. Finish those writes before deciding which
+        // dates to rebuild, including dates when a holding's quantity was still zero.
+        for (Asset asset : assets) {
+            if (!asset.isPhysical()
+                    && asset.getType() != org.openfinance.entity.AssetType.REAL_ESTATE
+                    && asset.getAcquisitionType() != org.openfinance.entity.AcquisitionType.PLANNED
+                    && (asset.getSoldDate() == null || asset.getSoldDate().isAfter(startDate))) {
+                historicalAssetValuation.preparePrices(asset, startDate, effectiveEnd);
+            }
+        }
 
         // Group transactions by source account and destination account
         Map<Long, List<Transaction>> txBySourceAccount =
@@ -867,7 +878,7 @@ public class NetWorthService {
                     }
                 }
 
-                // Include investment assets using cost basis (purchasePrice Ã— quantity),
+                // Value financial holdings using dated market prices and historical quantities,
                 // gated by purchaseDate. Skip REAL_ESTATE type to avoid double-counting
                 // with RealEstateProperty entities below.
                 for (Asset asset : assets) {
@@ -897,49 +908,10 @@ public class NetWorthService {
                                                 targetDate));
                         continue;
                     }
-                    BigDecimal costBasis = asset.getPurchasePrice().multiply(asset.getQuantity());
-                    if (asset.getImportSource() != null
-                            || asset.getImportOpeningQuantity() != null) {
-                        costBasis =
-                                org.openfinance.util.InvestmentHoldings.at(
-                                                asset, allTransactions, targetDate)
-                                        .cost();
-                    }
-                    // Capitalized movements carry their instrument-currency amount and date.
-                    // Reversals/edits are reflected by the active ledger, never by today's unit
-                    // price.
-                    costBasis =
-                            costBasis.add(
-                                    allTransactions.stream()
-                                            .filter(
-                                                    t ->
-                                                            asset.getId().equals(t.getAssetId())
-                                                                    && !Boolean.TRUE.equals(
-                                                                            t.getIsDeleted())
-                                                                    && t.getMovementType()
-                                                                            == org.openfinance
-                                                                                    .entity
-                                                                                    .MovementType
-                                                                                    .CAPITAL_IMPROVEMENT
-                                                                    && t.getType()
-                                                                            == TransactionType
-                                                                                    .EXPENSE
-                                                                    && !t.getDate()
-                                                                            .isAfter(targetDate))
-                                            .map(
-                                                    t ->
-                                                            t.getOriginalCurrency() != null
-                                                                            && t.getConversionRate()
-                                                                                    != null
-                                                                    ? t.getOriginalAmount()
-                                                                    : t.getAmount())
-                                            .reduce(BigDecimal.ZERO, BigDecimal::add));
-                    BigDecimal convertedCostBasis =
-                            convertToBaseCurrency(
-                                    costBasis, asset.getCurrency(), baseCurrency, targetDate);
-                    if (convertedCostBasis.compareTo(BigDecimal.ZERO) > 0) {
-                        totalAssets = totalAssets.add(convertedCostBasis);
-                    }
+                    BigDecimal marketValue =
+                            historicalAssetValuation.valueAt(
+                                    asset, allTransactions, targetDate, baseCurrency);
+                    totalAssets = totalAssets.add(marketValue);
                 }
 
                 // Include real estate and liabilities.
@@ -1064,7 +1036,9 @@ public class NetWorthService {
                                     .currency(baseCurrency)
                                     .currencyId(resolveCurrencyId(baseCurrency))
                                     .build();
-                    netWorthRepository.save(snapshot);
+                    synchronized (snapshotLocks.computeIfAbsent(userId, ignored -> new Object())) {
+                        snapshotWriter.saveReconstructed(userId, snapshot);
+                    }
                     savedCount++;
                     log.debug(
                             "Backfilled net worth snapshot for user {} on {}: assets={}, liabilities={}, net={}",

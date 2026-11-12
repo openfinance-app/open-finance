@@ -16,6 +16,7 @@ public final class HistoryDomainRegistry {
                     "account_currency_changes",
                     "account_status_history",
                     "assets",
+                    "asset_price_history",
                     "liabilities",
                     "real_estate_properties",
                     "property_status_history",

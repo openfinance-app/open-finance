@@ -116,6 +116,7 @@ class AssetImprovementSyncTest {
                         userRepository,
                         exchangeRateService,
                         netWorthRepository,
+                        org.mockito.Mockito.mock(AssetPriceHistoryWriter.class),
                         operationHistoryService,
                         searchTokenService,
                         org.mockito.Mockito.mock(AttachmentService.class),

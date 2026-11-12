@@ -138,7 +138,41 @@ public class SkroogeImportMetadata {
             BigDecimal openingPrice,
             LocalDate openingDate,
             BigDecimal currentPrice,
-            LocalDate priceDate) {}
+            LocalDate priceDate,
+            List<SkroogePrice> prices) {
+        public SkroogeHolding {
+            prices = prices == null ? List.of() : List.copyOf(prices);
+        }
+
+        public SkroogeHolding(
+                Long sourceAccountId,
+                Long sourceUnitId,
+                String name,
+                String symbol,
+                AssetType type,
+                String currency,
+                BigDecimal openingQuantity,
+                BigDecimal openingPrice,
+                LocalDate openingDate,
+                BigDecimal currentPrice,
+                LocalDate priceDate) {
+            this(
+                    sourceAccountId,
+                    sourceUnitId,
+                    name,
+                    symbol,
+                    type,
+                    currency,
+                    openingQuantity,
+                    openingPrice,
+                    openingDate,
+                    currentPrice,
+                    priceDate,
+                    List.of());
+        }
+    }
+
+    public record SkroogePrice(LocalDate date, BigDecimal price, String currency) {}
 
     @Data
     @Builder

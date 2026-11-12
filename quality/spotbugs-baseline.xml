@@ -8408,16 +8408,18 @@
       <Message>At NetWorth.java:[line 108]</Message>
     </SourceLine>
   </BugInstance>
-  <BugInstance instanceOccurrenceNum="0" instanceHash="76fabc5eaa3c31e4b67ba80835d41f79" cweid="374" rank="18" abbrev="EI2" category="MALICIOUS_CODE" priority="2" type="EI_EXPOSE_REP2" instanceOccurrenceMax="0">
+  <BugInstance instanceOccurrenceNum="0" instanceHash="216960e63a07a7c74f9764cfe498968f" cweid="374" rank="18" abbrev="EI2" category="MALICIOUS_CODE" priority="2" type="EI_EXPOSE_REP2" instanceOccurrenceMax="0">
+    <ShortMessage>May expose internal representation by incorporating reference to mutable object</ShortMessage>
+    <LongMessage>new org.openfinance.entity.NetWorth(Long, Long, LocalDate, boolean, BigDecimal, BigDecimal, BigDecimal, String, Long, Currency, LocalDateTime) may expose internal representation by storing an externally mutable object into NetWorth.currencyEntity</LongMessage>
     <Class classname="org.openfinance.entity.NetWorth" classAnnotationNames="jakarta.persistence.Entity,jakarta.persistence.Table" primary="true">
-      <SourceLine classname="org.openfinance.entity.NetWorth" start="43" end="148" sourcepath="org/openfinance/entity/NetWorth.java" sourcefile="NetWorth.java">
-        <Message>At NetWorth.java:[lines 43-148]</Message>
+      <SourceLine classname="org.openfinance.entity.NetWorth" start="43" end="155" sourcepath="org/openfinance/entity/NetWorth.java" sourcefile="NetWorth.java">
+        <Message>At NetWorth.java:[lines 43-155]</Message>
       </SourceLine>
       <Message>In class org.openfinance.entity.NetWorth</Message>
     </Class>
-    <Method isStatic="false" classname="org.openfinance.entity.NetWorth" signature="(Ljava/lang/Long;Ljava/lang/Long;Ljava/time/LocalDate;Ljava/math/BigDecimal;Ljava/math/BigDecimal;Ljava/math/BigDecimal;Ljava/lang/String;Ljava/lang/Long;Lorg/openfinance/entity/Currency;Ljava/time/LocalDateTime;)V" name="&lt;init&gt;" classAnnotationNames="jakarta.persistence.Entity,jakarta.persistence.Table" primary="true">
-      <SourceLine endBytecode="203" classname="org.openfinance.entity.NetWorth" start="46" end="46" sourcepath="org/openfinance/entity/NetWorth.java" sourcefile="NetWorth.java" startBytecode="0" />
-      <Message>In method new org.openfinance.entity.NetWorth(Long, Long, LocalDate, BigDecimal, BigDecimal, BigDecimal, String, Long, Currency, LocalDateTime)</Message>
+    <Method isStatic="false" classname="org.openfinance.entity.NetWorth" signature="(Ljava/lang/Long;Ljava/lang/Long;Ljava/time/LocalDate;ZLjava/math/BigDecimal;Ljava/math/BigDecimal;Ljava/math/BigDecimal;Ljava/lang/String;Ljava/lang/Long;Lorg/openfinance/entity/Currency;Ljava/time/LocalDateTime;)V" name="&lt;init&gt;" classAnnotationNames="jakarta.persistence.Entity,jakarta.persistence.Table" primary="true">
+      <SourceLine endBytecode="219" classname="org.openfinance.entity.NetWorth" start="46" end="46" sourcepath="org/openfinance/entity/NetWorth.java" sourcefile="NetWorth.java" startBytecode="0" />
+      <Message>In method new org.openfinance.entity.NetWorth(Long, Long, LocalDate, boolean, BigDecimal, BigDecimal, BigDecimal, String, Long, Currency, LocalDateTime)</Message>
     </Method>
     <Field isStatic="false" classname="org.openfinance.entity.NetWorth" signature="Lorg/openfinance/entity/Currency;" name="currencyEntity" classAnnotationNames="jakarta.persistence.Entity,jakarta.persistence.Table" primary="true">
       <SourceLine classname="org.openfinance.entity.NetWorth" sourcepath="org/openfinance/entity/NetWorth.java" sourcefile="NetWorth.java">
@@ -8425,10 +8427,10 @@
       </SourceLine>
       <Message>Field org.openfinance.entity.NetWorth.currencyEntity</Message>
     </Field>
-    <LocalVariable role="LOCAL_VARIABLE_NAMED" pc="52" name="currencyEntity" register="9">
+    <LocalVariable role="LOCAL_VARIABLE_NAMED" pc="58" name="currencyEntity" register="10">
       <Message>Local variable named currencyEntity</Message>
     </LocalVariable>
-    <SourceLine endBytecode="52" classname="org.openfinance.entity.NetWorth" start="46" end="46" sourcepath="org/openfinance/entity/NetWorth.java" sourcefile="NetWorth.java" startBytecode="52" primary="true">
+    <SourceLine endBytecode="58" classname="org.openfinance.entity.NetWorth" start="46" end="46" sourcepath="org/openfinance/entity/NetWorth.java" sourcefile="NetWorth.java" startBytecode="58" primary="true">
       <Message>At NetWorth.java:[line 46]</Message>
     </SourceLine>
   </BugInstance>
@@ -15436,16 +15438,18 @@
       <Message>At MarketDataService.java:[line 376]</Message>
     </SourceLine>
   </BugInstance>
-  <BugInstance instanceOccurrenceNum="0" instanceHash="e4abd74992897af1ee82823514db8fd9" cweid="374" rank="18" abbrev="EI2" category="MALICIOUS_CODE" priority="2" type="EI_EXPOSE_REP2" instanceOccurrenceMax="0">
+  <BugInstance instanceOccurrenceNum="0" instanceHash="3f3d1f15d06a8d562a0de6950ab99d62" cweid="374" rank="18" abbrev="EI2" category="MALICIOUS_CODE" priority="2" type="EI_EXPOSE_REP2" instanceOccurrenceMax="0">
+    <ShortMessage>May expose internal representation by incorporating reference to mutable object</ShortMessage>
+    <LongMessage>new org.openfinance.service.MarketDataService(MarketDataProvider, AssetRepository, ExchangeRateService, AssetPriceHistoryWriter) may expose internal representation by storing an externally mutable object into MarketDataService.exchangeRateService</LongMessage>
     <Class classname="org.openfinance.service.MarketDataService" classAnnotationNames="org.springframework.stereotype.Service" primary="true">
-      <SourceLine classname="org.openfinance.service.MarketDataService" start="46" end="378" sourcepath="org/openfinance/service/MarketDataService.java" sourcefile="MarketDataService.java">
-        <Message>At MarketDataService.java:[lines 46-378]</Message>
+      <SourceLine classname="org.openfinance.service.MarketDataService" start="49" end="467" sourcepath="org/openfinance/service/MarketDataService.java" sourcefile="MarketDataService.java">
+        <Message>At MarketDataService.java:[lines 49-467]</Message>
       </SourceLine>
       <Message>In class org.openfinance.service.MarketDataService</Message>
     </Class>
-    <Method isStatic="false" classname="org.openfinance.service.MarketDataService" signature="(Lorg/openfinance/provider/MarketDataProvider;Lorg/openfinance/repository/AssetRepository;Lorg/openfinance/service/ExchangeRateService;)V" name="&lt;init&gt;" classAnnotationNames="org.springframework.stereotype.Service" primary="true">
-      <SourceLine endBytecode="91" classname="org.openfinance.service.MarketDataService" start="48" end="48" sourcepath="org/openfinance/service/MarketDataService.java" sourcefile="MarketDataService.java" startBytecode="0" />
-      <Message>In method new org.openfinance.service.MarketDataService(MarketDataProvider, AssetRepository, ExchangeRateService)</Message>
+    <Method isStatic="false" classname="org.openfinance.service.MarketDataService" signature="(Lorg/openfinance/provider/MarketDataProvider;Lorg/openfinance/repository/AssetRepository;Lorg/openfinance/service/ExchangeRateService;Lorg/openfinance/service/AssetPriceHistoryWriter;)V" name="&lt;init&gt;" classAnnotationNames="org.springframework.stereotype.Service" primary="true">
+      <SourceLine endBytecode="107" classname="org.openfinance.service.MarketDataService" start="51" end="51" sourcepath="org/openfinance/service/MarketDataService.java" sourcefile="MarketDataService.java" startBytecode="0" />
+      <Message>In method new org.openfinance.service.MarketDataService(MarketDataProvider, AssetRepository, ExchangeRateService, AssetPriceHistoryWriter)</Message>
     </Method>
     <Field isStatic="false" classname="org.openfinance.service.MarketDataService" signature="Lorg/openfinance/service/ExchangeRateService;" name="exchangeRateService" classAnnotationNames="org.springframework.stereotype.Service" primary="true">
       <SourceLine classname="org.openfinance.service.MarketDataService" sourcepath="org/openfinance/service/MarketDataService.java" sourcefile="MarketDataService.java">
@@ -15456,8 +15460,8 @@
     <LocalVariable role="LOCAL_VARIABLE_NAMED" pc="16" name="exchangeRateService" register="3">
       <Message>Local variable named exchangeRateService</Message>
     </LocalVariable>
-    <SourceLine endBytecode="16" classname="org.openfinance.service.MarketDataService" start="48" end="48" sourcepath="org/openfinance/service/MarketDataService.java" sourcefile="MarketDataService.java" startBytecode="16" primary="true">
-      <Message>At MarketDataService.java:[line 48]</Message>
+    <SourceLine endBytecode="16" classname="org.openfinance.service.MarketDataService" start="51" end="51" sourcepath="org/openfinance/service/MarketDataService.java" sourcefile="MarketDataService.java" startBytecode="16" primary="true">
+      <Message>At MarketDataService.java:[line 51]</Message>
     </SourceLine>
   </BugInstance>
   <BugInstance instanceOccurrenceNum="0" instanceHash="9a42f8d1b9b2ab6c76e546565ab0be0c" cweid="374" rank="18" abbrev="EI2" category="MALICIOUS_CODE" priority="2" type="EI_EXPOSE_REP2" instanceOccurrenceMax="0">
@@ -19684,18 +19688,18 @@
       <Message>At AccountService.java:[line 72]</Message>
     </SourceLine>
   </BugInstance>
-  <BugInstance instanceOccurrenceNum="0" instanceHash="80aa4602c259481e1aad0bd622d9ed36" cweid="374" rank="18" abbrev="EI2" category="MALICIOUS_CODE" priority="2" type="EI_EXPOSE_REP2" instanceOccurrenceMax="0">
+  <BugInstance instanceOccurrenceNum="0" instanceHash="23b8c724639cd618112484b87d15c1af" cweid="374" rank="18" abbrev="EI2" category="MALICIOUS_CODE" priority="2" type="EI_EXPOSE_REP2" instanceOccurrenceMax="0">
     <ShortMessage>May expose internal representation by incorporating reference to mutable object</ShortMessage>
-    <LongMessage>new org.openfinance.service.AssetService(AssetRepository, RealEstateRepository, TransactionRepository, AccountRepository, CurrencyRepository, AssetMapper, EncryptionService, UserRepository, ExchangeRateService, NetWorthRepository, OperationHistoryService, SearchTokenService, AttachmentService, DefaultCurrencyProvider, EncryptionProperties, CurrencyConversionHelper) may expose internal representation by storing an externally mutable object into AssetService.attachmentService</LongMessage>
+    <LongMessage>new org.openfinance.service.AssetService(AssetRepository, RealEstateRepository, TransactionRepository, AccountRepository, CurrencyRepository, AssetMapper, EncryptionService, UserRepository, ExchangeRateService, NetWorthRepository, AssetPriceHistoryWriter, OperationHistoryService, SearchTokenService, AttachmentService, DefaultCurrencyProvider, EncryptionProperties, CurrencyConversionHelper) may expose internal representation by storing an externally mutable object into AssetService.attachmentService</LongMessage>
     <Class classname="org.openfinance.service.AssetService" classAnnotationNames="org.springframework.stereotype.Service,org.springframework.transaction.annotation.Transactional" primary="true">
-      <SourceLine classname="org.openfinance.service.AssetService" start="82" end="1337" sourcepath="org/openfinance/service/AssetService.java" sourcefile="AssetService.java">
-        <Message>At AssetService.java:[lines 82-1337]</Message>
+      <SourceLine classname="org.openfinance.service.AssetService" start="86" end="1634" sourcepath="org/openfinance/service/AssetService.java" sourcefile="AssetService.java">
+        <Message>At AssetService.java:[lines 86-1634]</Message>
       </SourceLine>
       <Message>In class org.openfinance.service.AssetService</Message>
     </Class>
-    <Method isStatic="false" classname="org.openfinance.service.AssetService" signature="(Lorg/openfinance/repository/AssetRepository;Lorg/openfinance/repository/RealEstateRepository;Lorg/openfinance/repository/TransactionRepository;Lorg/openfinance/repository/AccountRepository;Lorg/openfinance/repository/CurrencyRepository;Lorg/openfinance/mapper/AssetMapper;Lorg/openfinance/security/EncryptionService;Lorg/openfinance/repository/UserRepository;Lorg/openfinance/service/ExchangeRateService;Lorg/openfinance/repository/NetWorthRepository;Lorg/openfinance/service/OperationHistoryService;Lorg/openfinance/service/SearchTokenService;Lorg/openfinance/service/AttachmentService;Lorg/openfinance/service/DefaultCurrencyProvider;Lorg/openfinance/config/EncryptionProperties;Lorg/openfinance/service/CurrencyConversionHelper;)V" name="&lt;init&gt;" classAnnotationNames="org.springframework.stereotype.Service,org.springframework.transaction.annotation.Transactional" primary="true">
-      <SourceLine endBytecode="299" classname="org.openfinance.service.AssetService" start="82" end="82" sourcepath="org/openfinance/service/AssetService.java" sourcefile="AssetService.java" startBytecode="0" />
-      <Message>In method new org.openfinance.service.AssetService(AssetRepository, RealEstateRepository, TransactionRepository, AccountRepository, CurrencyRepository, AssetMapper, EncryptionService, UserRepository, ExchangeRateService, NetWorthRepository, OperationHistoryService, SearchTokenService, AttachmentService, DefaultCurrencyProvider, EncryptionProperties, CurrencyConversionHelper)</Message>
+    <Method isStatic="false" classname="org.openfinance.service.AssetService" signature="(Lorg/openfinance/repository/AssetRepository;Lorg/openfinance/repository/RealEstateRepository;Lorg/openfinance/repository/TransactionRepository;Lorg/openfinance/repository/AccountRepository;Lorg/openfinance/repository/CurrencyRepository;Lorg/openfinance/mapper/AssetMapper;Lorg/openfinance/security/EncryptionService;Lorg/openfinance/repository/UserRepository;Lorg/openfinance/service/ExchangeRateService;Lorg/openfinance/repository/NetWorthRepository;Lorg/openfinance/service/AssetPriceHistoryWriter;Lorg/openfinance/service/OperationHistoryService;Lorg/openfinance/service/SearchTokenService;Lorg/openfinance/service/AttachmentService;Lorg/openfinance/service/DefaultCurrencyProvider;Lorg/openfinance/config/EncryptionProperties;Lorg/openfinance/service/CurrencyConversionHelper;)V" name="&lt;init&gt;" classAnnotationNames="org.springframework.stereotype.Service,org.springframework.transaction.annotation.Transactional" primary="true">
+      <SourceLine endBytecode="315" classname="org.openfinance.service.AssetService" start="86" end="86" sourcepath="org/openfinance/service/AssetService.java" sourcefile="AssetService.java" startBytecode="0" />
+      <Message>In method new org.openfinance.service.AssetService(AssetRepository, RealEstateRepository, TransactionRepository, AccountRepository, CurrencyRepository, AssetMapper, EncryptionService, UserRepository, ExchangeRateService, NetWorthRepository, AssetPriceHistoryWriter, OperationHistoryService, SearchTokenService, AttachmentService, DefaultCurrencyProvider, EncryptionProperties, CurrencyConversionHelper)</Message>
     </Method>
     <Field isStatic="false" classname="org.openfinance.service.AssetService" signature="Lorg/openfinance/service/AttachmentService;" name="attachmentService" classAnnotationNames="org.springframework.stereotype.Service,org.springframework.transaction.annotation.Transactional" primary="true">
       <SourceLine classname="org.openfinance.service.AssetService" sourcepath="org/openfinance/service/AssetService.java" sourcefile="AssetService.java">
@@ -19703,25 +19707,25 @@
       </SourceLine>
       <Message>Field org.openfinance.service.AssetService.attachmentService</Message>
     </Field>
-    <LocalVariable role="LOCAL_VARIABLE_NAMED" pc="76" name="attachmentService" register="13">
+    <LocalVariable role="LOCAL_VARIABLE_NAMED" pc="82" name="attachmentService" register="14">
       <Message>Local variable named attachmentService</Message>
     </LocalVariable>
-    <SourceLine endBytecode="76" classname="org.openfinance.service.AssetService" start="82" end="82" sourcepath="org/openfinance/service/AssetService.java" sourcefile="AssetService.java" startBytecode="76" primary="true">
-      <Message>At AssetService.java:[line 82]</Message>
+    <SourceLine endBytecode="82" classname="org.openfinance.service.AssetService" start="86" end="86" sourcepath="org/openfinance/service/AssetService.java" sourcefile="AssetService.java" startBytecode="82" primary="true">
+      <Message>At AssetService.java:[line 86]</Message>
     </SourceLine>
   </BugInstance>
-  <BugInstance instanceOccurrenceNum="0" instanceHash="20b4194350c832a14d4cf10c2bb6392d" cweid="374" rank="18" abbrev="EI2" category="MALICIOUS_CODE" priority="2" type="EI_EXPOSE_REP2" instanceOccurrenceMax="0">
+  <BugInstance instanceOccurrenceNum="0" instanceHash="c203bbcd770af5524d7c0a57a8efdb16" cweid="374" rank="18" abbrev="EI2" category="MALICIOUS_CODE" priority="2" type="EI_EXPOSE_REP2" instanceOccurrenceMax="0">
     <ShortMessage>May expose internal representation by incorporating reference to mutable object</ShortMessage>
-    <LongMessage>new org.openfinance.service.AssetService(AssetRepository, RealEstateRepository, TransactionRepository, AccountRepository, CurrencyRepository, AssetMapper, EncryptionService, UserRepository, ExchangeRateService, NetWorthRepository, OperationHistoryService, SearchTokenService, AttachmentService, DefaultCurrencyProvider, EncryptionProperties, CurrencyConversionHelper) may expose internal representation by storing an externally mutable object into AssetService.encryptionProperties</LongMessage>
+    <LongMessage>new org.openfinance.service.AssetService(AssetRepository, RealEstateRepository, TransactionRepository, AccountRepository, CurrencyRepository, AssetMapper, EncryptionService, UserRepository, ExchangeRateService, NetWorthRepository, AssetPriceHistoryWriter, OperationHistoryService, SearchTokenService, AttachmentService, DefaultCurrencyProvider, EncryptionProperties, CurrencyConversionHelper) may expose internal representation by storing an externally mutable object into AssetService.encryptionProperties</LongMessage>
     <Class classname="org.openfinance.service.AssetService" classAnnotationNames="org.springframework.stereotype.Service,org.springframework.transaction.annotation.Transactional" primary="true">
-      <SourceLine classname="org.openfinance.service.AssetService" start="82" end="1337" sourcepath="org/openfinance/service/AssetService.java" sourcefile="AssetService.java">
-        <Message>At AssetService.java:[lines 82-1337]</Message>
+      <SourceLine classname="org.openfinance.service.AssetService" start="86" end="1634" sourcepath="org/openfinance/service/AssetService.java" sourcefile="AssetService.java">
+        <Message>At AssetService.java:[lines 86-1634]</Message>
       </SourceLine>
       <Message>In class org.openfinance.service.AssetService</Message>
     </Class>
-    <Method isStatic="false" classname="org.openfinance.service.AssetService" signature="(Lorg/openfinance/repository/AssetRepository;Lorg/openfinance/repository/RealEstateRepository;Lorg/openfinance/repository/TransactionRepository;Lorg/openfinance/repository/AccountRepository;Lorg/openfinance/repository/CurrencyRepository;Lorg/openfinance/mapper/AssetMapper;Lorg/openfinance/security/EncryptionService;Lorg/openfinance/repository/UserRepository;Lorg/openfinance/service/ExchangeRateService;Lorg/openfinance/repository/NetWorthRepository;Lorg/openfinance/service/OperationHistoryService;Lorg/openfinance/service/SearchTokenService;Lorg/openfinance/service/AttachmentService;Lorg/openfinance/service/DefaultCurrencyProvider;Lorg/openfinance/config/EncryptionProperties;Lorg/openfinance/service/CurrencyConversionHelper;)V" name="&lt;init&gt;" classAnnotationNames="org.springframework.stereotype.Service,org.springframework.transaction.annotation.Transactional" primary="true">
-      <SourceLine endBytecode="299" classname="org.openfinance.service.AssetService" start="82" end="82" sourcepath="org/openfinance/service/AssetService.java" sourcefile="AssetService.java" startBytecode="0" />
-      <Message>In method new org.openfinance.service.AssetService(AssetRepository, RealEstateRepository, TransactionRepository, AccountRepository, CurrencyRepository, AssetMapper, EncryptionService, UserRepository, ExchangeRateService, NetWorthRepository, OperationHistoryService, SearchTokenService, AttachmentService, DefaultCurrencyProvider, EncryptionProperties, CurrencyConversionHelper)</Message>
+    <Method isStatic="false" classname="org.openfinance.service.AssetService" signature="(Lorg/openfinance/repository/AssetRepository;Lorg/openfinance/repository/RealEstateRepository;Lorg/openfinance/repository/TransactionRepository;Lorg/openfinance/repository/AccountRepository;Lorg/openfinance/repository/CurrencyRepository;Lorg/openfinance/mapper/AssetMapper;Lorg/openfinance/security/EncryptionService;Lorg/openfinance/repository/UserRepository;Lorg/openfinance/service/ExchangeRateService;Lorg/openfinance/repository/NetWorthRepository;Lorg/openfinance/service/AssetPriceHistoryWriter;Lorg/openfinance/service/OperationHistoryService;Lorg/openfinance/service/SearchTokenService;Lorg/openfinance/service/AttachmentService;Lorg/openfinance/service/DefaultCurrencyProvider;Lorg/openfinance/config/EncryptionProperties;Lorg/openfinance/service/CurrencyConversionHelper;)V" name="&lt;init&gt;" classAnnotationNames="org.springframework.stereotype.Service,org.springframework.transaction.annotation.Transactional" primary="true">
+      <SourceLine endBytecode="315" classname="org.openfinance.service.AssetService" start="86" end="86" sourcepath="org/openfinance/service/AssetService.java" sourcefile="AssetService.java" startBytecode="0" />
+      <Message>In method new org.openfinance.service.AssetService(AssetRepository, RealEstateRepository, TransactionRepository, AccountRepository, CurrencyRepository, AssetMapper, EncryptionService, UserRepository, ExchangeRateService, NetWorthRepository, AssetPriceHistoryWriter, OperationHistoryService, SearchTokenService, AttachmentService, DefaultCurrencyProvider, EncryptionProperties, CurrencyConversionHelper)</Message>
     </Method>
     <Field isStatic="false" classname="org.openfinance.service.AssetService" signature="Lorg/openfinance/config/EncryptionProperties;" name="encryptionProperties" classAnnotationNames="org.springframework.stereotype.Service,org.springframework.transaction.annotation.Transactional" primary="true">
       <SourceLine classname="org.openfinance.service.AssetService" sourcepath="org/openfinance/service/AssetService.java" sourcefile="AssetService.java">
@@ -19729,25 +19733,25 @@
       </SourceLine>
       <Message>Field org.openfinance.service.AssetService.encryptionProperties</Message>
     </Field>
-    <LocalVariable role="LOCAL_VARIABLE_NAMED" pc="88" name="encryptionProperties" register="15">
+    <LocalVariable role="LOCAL_VARIABLE_NAMED" pc="94" name="encryptionProperties" register="16">
       <Message>Local variable named encryptionProperties</Message>
     </LocalVariable>
-    <SourceLine endBytecode="88" classname="org.openfinance.service.AssetService" start="82" end="82" sourcepath="org/openfinance/service/AssetService.java" sourcefile="AssetService.java" startBytecode="88" primary="true">
-      <Message>At AssetService.java:[line 82]</Message>
+    <SourceLine endBytecode="94" classname="org.openfinance.service.AssetService" start="86" end="86" sourcepath="org/openfinance/service/AssetService.java" sourcefile="AssetService.java" startBytecode="94" primary="true">
+      <Message>At AssetService.java:[line 86]</Message>
     </SourceLine>
   </BugInstance>
-  <BugInstance instanceOccurrenceNum="0" instanceHash="5ed193f619bb2e3194a7d0245920d151" cweid="374" rank="18" abbrev="EI2" category="MALICIOUS_CODE" priority="2" type="EI_EXPOSE_REP2" instanceOccurrenceMax="0">
+  <BugInstance instanceOccurrenceNum="0" instanceHash="112957e0ceedb9f1cccb1f100ea6da" cweid="374" rank="18" abbrev="EI2" category="MALICIOUS_CODE" priority="2" type="EI_EXPOSE_REP2" instanceOccurrenceMax="0">
     <ShortMessage>May expose internal representation by incorporating reference to mutable object</ShortMessage>
-    <LongMessage>new org.openfinance.service.AssetService(AssetRepository, RealEstateRepository, TransactionRepository, AccountRepository, CurrencyRepository, AssetMapper, EncryptionService, UserRepository, ExchangeRateService, NetWorthRepository, OperationHistoryService, SearchTokenService, AttachmentService, DefaultCurrencyProvider, EncryptionProperties, CurrencyConversionHelper) may expose internal representation by storing an externally mutable object into AssetService.encryptionService</LongMessage>
+    <LongMessage>new org.openfinance.service.AssetService(AssetRepository, RealEstateRepository, TransactionRepository, AccountRepository, CurrencyRepository, AssetMapper, EncryptionService, UserRepository, ExchangeRateService, NetWorthRepository, AssetPriceHistoryWriter, OperationHistoryService, SearchTokenService, AttachmentService, DefaultCurrencyProvider, EncryptionProperties, CurrencyConversionHelper) may expose internal representation by storing an externally mutable object into AssetService.encryptionService</LongMessage>
     <Class classname="org.openfinance.service.AssetService" classAnnotationNames="org.springframework.stereotype.Service,org.springframework.transaction.annotation.Transactional" primary="true">
-      <SourceLine classname="org.openfinance.service.AssetService" start="82" end="1337" sourcepath="org/openfinance/service/AssetService.java" sourcefile="AssetService.java">
-        <Message>At AssetService.java:[lines 82-1337]</Message>
+      <SourceLine classname="org.openfinance.service.AssetService" start="86" end="1634" sourcepath="org/openfinance/service/AssetService.java" sourcefile="AssetService.java">
+        <Message>At AssetService.java:[lines 86-1634]</Message>
       </SourceLine>
       <Message>In class org.openfinance.service.AssetService</Message>
     </Class>
-    <Method isStatic="false" classname="org.openfinance.service.AssetService" signature="(Lorg/openfinance/repository/AssetRepository;Lorg/openfinance/repository/RealEstateRepository;Lorg/openfinance/repository/TransactionRepository;Lorg/openfinance/repository/AccountRepository;Lorg/openfinance/repository/CurrencyRepository;Lorg/openfinance/mapper/AssetMapper;Lorg/openfinance/security/EncryptionService;Lorg/openfinance/repository/UserRepository;Lorg/openfinance/service/ExchangeRateService;Lorg/openfinance/repository/NetWorthRepository;Lorg/openfinance/service/OperationHistoryService;Lorg/openfinance/service/SearchTokenService;Lorg/openfinance/service/AttachmentService;Lorg/openfinance/service/DefaultCurrencyProvider;Lorg/openfinance/config/EncryptionProperties;Lorg/openfinance/service/CurrencyConversionHelper;)V" name="&lt;init&gt;" classAnnotationNames="org.springframework.stereotype.Service,org.springframework.transaction.annotation.Transactional" primary="true">
-      <SourceLine endBytecode="299" classname="org.openfinance.service.AssetService" start="82" end="82" sourcepath="org/openfinance/service/AssetService.java" sourcefile="AssetService.java" startBytecode="0" />
-      <Message>In method new org.openfinance.service.AssetService(AssetRepository, RealEstateRepository, TransactionRepository, AccountRepository, CurrencyRepository, AssetMapper, EncryptionService, UserRepository, ExchangeRateService, NetWorthRepository, OperationHistoryService, SearchTokenService, AttachmentService, DefaultCurrencyProvider, EncryptionProperties, CurrencyConversionHelper)</Message>
+    <Method isStatic="false" classname="org.openfinance.service.AssetService" signature="(Lorg/openfinance/repository/AssetRepository;Lorg/openfinance/repository/RealEstateRepository;Lorg/openfinance/repository/TransactionRepository;Lorg/openfinance/repository/AccountRepository;Lorg/openfinance/repository/CurrencyRepository;Lorg/openfinance/mapper/AssetMapper;Lorg/openfinance/security/EncryptionService;Lorg/openfinance/repository/UserRepository;Lorg/openfinance/service/ExchangeRateService;Lorg/openfinance/repository/NetWorthRepository;Lorg/openfinance/service/AssetPriceHistoryWriter;Lorg/openfinance/service/OperationHistoryService;Lorg/openfinance/service/SearchTokenService;Lorg/openfinance/service/AttachmentService;Lorg/openfinance/service/DefaultCurrencyProvider;Lorg/openfinance/config/EncryptionProperties;Lorg/openfinance/service/CurrencyConversionHelper;)V" name="&lt;init&gt;" classAnnotationNames="org.springframework.stereotype.Service,org.springframework.transaction.annotation.Transactional" primary="true">
+      <SourceLine endBytecode="315" classname="org.openfinance.service.AssetService" start="86" end="86" sourcepath="org/openfinance/service/AssetService.java" sourcefile="AssetService.java" startBytecode="0" />
+      <Message>In method new org.openfinance.service.AssetService(AssetRepository, RealEstateRepository, TransactionRepository, AccountRepository, CurrencyRepository, AssetMapper, EncryptionService, UserRepository, ExchangeRateService, NetWorthRepository, AssetPriceHistoryWriter, OperationHistoryService, SearchTokenService, AttachmentService, DefaultCurrencyProvider, EncryptionProperties, CurrencyConversionHelper)</Message>
     </Method>
     <Field isStatic="false" classname="org.openfinance.service.AssetService" signature="Lorg/openfinance/security/EncryptionService;" name="encryptionService" classAnnotationNames="org.springframework.stereotype.Service,org.springframework.transaction.annotation.Transactional" primary="true">
       <SourceLine classname="org.openfinance.service.AssetService" sourcepath="org/openfinance/service/AssetService.java" sourcefile="AssetService.java">
@@ -19758,22 +19762,22 @@
     <LocalVariable role="LOCAL_VARIABLE_NAMED" pc="40" name="encryptionService" register="7">
       <Message>Local variable named encryptionService</Message>
     </LocalVariable>
-    <SourceLine endBytecode="40" classname="org.openfinance.service.AssetService" start="82" end="82" sourcepath="org/openfinance/service/AssetService.java" sourcefile="AssetService.java" startBytecode="40" primary="true">
-      <Message>At AssetService.java:[line 82]</Message>
+    <SourceLine endBytecode="40" classname="org.openfinance.service.AssetService" start="86" end="86" sourcepath="org/openfinance/service/AssetService.java" sourcefile="AssetService.java" startBytecode="40" primary="true">
+      <Message>At AssetService.java:[line 86]</Message>
     </SourceLine>
   </BugInstance>
-  <BugInstance instanceOccurrenceNum="0" instanceHash="d63f5a456f2b6f7c0f826a318dd1c3a5" cweid="374" rank="18" abbrev="EI2" category="MALICIOUS_CODE" priority="2" type="EI_EXPOSE_REP2" instanceOccurrenceMax="0">
+  <BugInstance instanceOccurrenceNum="0" instanceHash="e34a164e31188197c059541584fc4103" cweid="374" rank="18" abbrev="EI2" category="MALICIOUS_CODE" priority="2" type="EI_EXPOSE_REP2" instanceOccurrenceMax="0">
     <ShortMessage>May expose internal representation by incorporating reference to mutable object</ShortMessage>
-    <LongMessage>new org.openfinance.service.AssetService(AssetRepository, RealEstateRepository, TransactionRepository, AccountRepository, CurrencyRepository, AssetMapper, EncryptionService, UserRepository, ExchangeRateService, NetWorthRepository, OperationHistoryService, SearchTokenService, AttachmentService, DefaultCurrencyProvider, EncryptionProperties, CurrencyConversionHelper) may expose internal representation by storing an externally mutable object into AssetService.exchangeRateService</LongMessage>
+    <LongMessage>new org.openfinance.service.AssetService(AssetRepository, RealEstateRepository, TransactionRepository, AccountRepository, CurrencyRepository, AssetMapper, EncryptionService, UserRepository, ExchangeRateService, NetWorthRepository, AssetPriceHistoryWriter, OperationHistoryService, SearchTokenService, AttachmentService, DefaultCurrencyProvider, EncryptionProperties, CurrencyConversionHelper) may expose internal representation by storing an externally mutable object into AssetService.exchangeRateService</LongMessage>
     <Class classname="org.openfinance.service.AssetService" classAnnotationNames="org.springframework.stereotype.Service,org.springframework.transaction.annotation.Transactional" primary="true">
-      <SourceLine classname="org.openfinance.service.AssetService" start="82" end="1337" sourcepath="org/openfinance/service/AssetService.java" sourcefile="AssetService.java">
-        <Message>At AssetService.java:[lines 82-1337]</Message>
+      <SourceLine classname="org.openfinance.service.AssetService" start="86" end="1634" sourcepath="org/openfinance/service/AssetService.java" sourcefile="AssetService.java">
+        <Message>At AssetService.java:[lines 86-1634]</Message>
       </SourceLine>
       <Message>In class org.openfinance.service.AssetService</Message>
     </Class>
-    <Method isStatic="false" classname="org.openfinance.service.AssetService" signature="(Lorg/openfinance/repository/AssetRepository;Lorg/openfinance/repository/RealEstateRepository;Lorg/openfinance/repository/TransactionRepository;Lorg/openfinance/repository/AccountRepository;Lorg/openfinance/repository/CurrencyRepository;Lorg/openfinance/mapper/AssetMapper;Lorg/openfinance/security/EncryptionService;Lorg/openfinance/repository/UserRepository;Lorg/openfinance/service/ExchangeRateService;Lorg/openfinance/repository/NetWorthRepository;Lorg/openfinance/service/OperationHistoryService;Lorg/openfinance/service/SearchTokenService;Lorg/openfinance/service/AttachmentService;Lorg/openfinance/service/DefaultCurrencyProvider;Lorg/openfinance/config/EncryptionProperties;Lorg/openfinance/service/CurrencyConversionHelper;)V" name="&lt;init&gt;" classAnnotationNames="org.springframework.stereotype.Service,org.springframework.transaction.annotation.Transactional" primary="true">
-      <SourceLine endBytecode="299" classname="org.openfinance.service.AssetService" start="82" end="82" sourcepath="org/openfinance/service/AssetService.java" sourcefile="AssetService.java" startBytecode="0" />
-      <Message>In method new org.openfinance.service.AssetService(AssetRepository, RealEstateRepository, TransactionRepository, AccountRepository, CurrencyRepository, AssetMapper, EncryptionService, UserRepository, ExchangeRateService, NetWorthRepository, OperationHistoryService, SearchTokenService, AttachmentService, DefaultCurrencyProvider, EncryptionProperties, CurrencyConversionHelper)</Message>
+    <Method isStatic="false" classname="org.openfinance.service.AssetService" signature="(Lorg/openfinance/repository/AssetRepository;Lorg/openfinance/repository/RealEstateRepository;Lorg/openfinance/repository/TransactionRepository;Lorg/openfinance/repository/AccountRepository;Lorg/openfinance/repository/CurrencyRepository;Lorg/openfinance/mapper/AssetMapper;Lorg/openfinance/security/EncryptionService;Lorg/openfinance/repository/UserRepository;Lorg/openfinance/service/ExchangeRateService;Lorg/openfinance/repository/NetWorthRepository;Lorg/openfinance/service/AssetPriceHistoryWriter;Lorg/openfinance/service/OperationHistoryService;Lorg/openfinance/service/SearchTokenService;Lorg/openfinance/service/AttachmentService;Lorg/openfinance/service/DefaultCurrencyProvider;Lorg/openfinance/config/EncryptionProperties;Lorg/openfinance/service/CurrencyConversionHelper;)V" name="&lt;init&gt;" classAnnotationNames="org.springframework.stereotype.Service,org.springframework.transaction.annotation.Transactional" primary="true">
+      <SourceLine endBytecode="315" classname="org.openfinance.service.AssetService" start="86" end="86" sourcepath="org/openfinance/service/AssetService.java" sourcefile="AssetService.java" startBytecode="0" />
+      <Message>In method new org.openfinance.service.AssetService(AssetRepository, RealEstateRepository, TransactionRepository, AccountRepository, CurrencyRepository, AssetMapper, EncryptionService, UserRepository, ExchangeRateService, NetWorthRepository, AssetPriceHistoryWriter, OperationHistoryService, SearchTokenService, AttachmentService, DefaultCurrencyProvider, EncryptionProperties, CurrencyConversionHelper)</Message>
     </Method>
     <Field isStatic="false" classname="org.openfinance.service.AssetService" signature="Lorg/openfinance/service/ExchangeRateService;" name="exchangeRateService" classAnnotationNames="org.springframework.stereotype.Service,org.springframework.transaction.annotation.Transactional" primary="true">
       <SourceLine classname="org.openfinance.service.AssetService" sourcepath="org/openfinance/service/AssetService.java" sourcefile="AssetService.java">
@@ -19784,22 +19788,22 @@
     <LocalVariable role="LOCAL_VARIABLE_NAMED" pc="52" name="exchangeRateService" register="9">
       <Message>Local variable named exchangeRateService</Message>
     </LocalVariable>
-    <SourceLine endBytecode="52" classname="org.openfinance.service.AssetService" start="82" end="82" sourcepath="org/openfinance/service/AssetService.java" sourcefile="AssetService.java" startBytecode="52" primary="true">
-      <Message>At AssetService.java:[line 82]</Message>
+    <SourceLine endBytecode="52" classname="org.openfinance.service.AssetService" start="86" end="86" sourcepath="org/openfinance/service/AssetService.java" sourcefile="AssetService.java" startBytecode="52" primary="true">
+      <Message>At AssetService.java:[line 86]</Message>
     </SourceLine>
   </BugInstance>
-  <BugInstance instanceOccurrenceNum="0" instanceHash="d800136b7c9c231b0dc3054f70954df0" cweid="374" rank="18" abbrev="EI2" category="MALICIOUS_CODE" priority="2" type="EI_EXPOSE_REP2" instanceOccurrenceMax="0">
+  <BugInstance instanceOccurrenceNum="0" instanceHash="63d93df9f2aaea45ac4bbd1e210e2785" cweid="374" rank="18" abbrev="EI2" category="MALICIOUS_CODE" priority="2" type="EI_EXPOSE_REP2" instanceOccurrenceMax="0">
     <ShortMessage>May expose internal representation by incorporating reference to mutable object</ShortMessage>
-    <LongMessage>new org.openfinance.service.AssetService(AssetRepository, RealEstateRepository, TransactionRepository, AccountRepository, CurrencyRepository, AssetMapper, EncryptionService, UserRepository, ExchangeRateService, NetWorthRepository, OperationHistoryService, SearchTokenService, AttachmentService, DefaultCurrencyProvider, EncryptionProperties, CurrencyConversionHelper) may expose internal representation by storing an externally mutable object into AssetService.netWorthRepository</LongMessage>
+    <LongMessage>new org.openfinance.service.AssetService(AssetRepository, RealEstateRepository, TransactionRepository, AccountRepository, CurrencyRepository, AssetMapper, EncryptionService, UserRepository, ExchangeRateService, NetWorthRepository, AssetPriceHistoryWriter, OperationHistoryService, SearchTokenService, AttachmentService, DefaultCurrencyProvider, EncryptionProperties, CurrencyConversionHelper) may expose internal representation by storing an externally mutable object into AssetService.netWorthRepository</LongMessage>
     <Class classname="org.openfinance.service.AssetService" classAnnotationNames="org.springframework.stereotype.Service,org.springframework.transaction.annotation.Transactional" primary="true">
-      <SourceLine classname="org.openfinance.service.AssetService" start="82" end="1337" sourcepath="org/openfinance/service/AssetService.java" sourcefile="AssetService.java">
-        <Message>At AssetService.java:[lines 82-1337]</Message>
+      <SourceLine classname="org.openfinance.service.AssetService" start="86" end="1634" sourcepath="org/openfinance/service/AssetService.java" sourcefile="AssetService.java">
+        <Message>At AssetService.java:[lines 86-1634]</Message>
       </SourceLine>
       <Message>In class org.openfinance.service.AssetService</Message>
     </Class>
-    <Method isStatic="false" classname="org.openfinance.service.AssetService" signature="(Lorg/openfinance/repository/AssetRepository;Lorg/openfinance/repository/RealEstateRepository;Lorg/openfinance/repository/TransactionRepository;Lorg/openfinance/repository/AccountRepository;Lorg/openfinance/repository/CurrencyRepository;Lorg/openfinance/mapper/AssetMapper;Lorg/openfinance/security/EncryptionService;Lorg/openfinance/repository/UserRepository;Lorg/openfinance/service/ExchangeRateService;Lorg/openfinance/repository/NetWorthRepository;Lorg/openfinance/service/OperationHistoryService;Lorg/openfinance/service/SearchTokenService;Lorg/openfinance/service/AttachmentService;Lorg/openfinance/service/DefaultCurrencyProvider;Lorg/openfinance/config/EncryptionProperties;Lorg/openfinance/service/CurrencyConversionHelper;)V" name="&lt;init&gt;" classAnnotationNames="org.springframework.stereotype.Service,org.springframework.transaction.annotation.Transactional" primary="true">
-      <SourceLine endBytecode="299" classname="org.openfinance.service.AssetService" start="82" end="82" sourcepath="org/openfinance/service/AssetService.java" sourcefile="AssetService.java" startBytecode="0" />
-      <Message>In method new org.openfinance.service.AssetService(AssetRepository, RealEstateRepository, TransactionRepository, AccountRepository, CurrencyRepository, AssetMapper, EncryptionService, UserRepository, ExchangeRateService, NetWorthRepository, OperationHistoryService, SearchTokenService, AttachmentService, DefaultCurrencyProvider, EncryptionProperties, CurrencyConversionHelper)</Message>
+    <Method isStatic="false" classname="org.openfinance.service.AssetService" signature="(Lorg/openfinance/repository/AssetRepository;Lorg/openfinance/repository/RealEstateRepository;Lorg/openfinance/repository/TransactionRepository;Lorg/openfinance/repository/AccountRepository;Lorg/openfinance/repository/CurrencyRepository;Lorg/openfinance/mapper/AssetMapper;Lorg/openfinance/security/EncryptionService;Lorg/openfinance/repository/UserRepository;Lorg/openfinance/service/ExchangeRateService;Lorg/openfinance/repository/NetWorthRepository;Lorg/openfinance/service/AssetPriceHistoryWriter;Lorg/openfinance/service/OperationHistoryService;Lorg/openfinance/service/SearchTokenService;Lorg/openfinance/service/AttachmentService;Lorg/openfinance/service/DefaultCurrencyProvider;Lorg/openfinance/config/EncryptionProperties;Lorg/openfinance/service/CurrencyConversionHelper;)V" name="&lt;init&gt;" classAnnotationNames="org.springframework.stereotype.Service,org.springframework.transaction.annotation.Transactional" primary="true">
+      <SourceLine endBytecode="315" classname="org.openfinance.service.AssetService" start="86" end="86" sourcepath="org/openfinance/service/AssetService.java" sourcefile="AssetService.java" startBytecode="0" />
+      <Message>In method new org.openfinance.service.AssetService(AssetRepository, RealEstateRepository, TransactionRepository, AccountRepository, CurrencyRepository, AssetMapper, EncryptionService, UserRepository, ExchangeRateService, NetWorthRepository, AssetPriceHistoryWriter, OperationHistoryService, SearchTokenService, AttachmentService, DefaultCurrencyProvider, EncryptionProperties, CurrencyConversionHelper)</Message>
     </Method>
     <Field isStatic="false" classname="org.openfinance.service.AssetService" signature="Lorg/openfinance/repository/NetWorthRepository;" name="netWorthRepository" classAnnotationNames="org.springframework.stereotype.Service,org.springframework.transaction.annotation.Transactional" primary="true">
       <SourceLine classname="org.openfinance.service.AssetService" sourcepath="org/openfinance/service/AssetService.java" sourcefile="AssetService.java">
@@ -19810,22 +19814,22 @@
     <LocalVariable role="LOCAL_VARIABLE_NAMED" pc="58" name="netWorthRepository" register="10">
       <Message>Local variable named netWorthRepository</Message>
     </LocalVariable>
-    <SourceLine endBytecode="58" classname="org.openfinance.service.AssetService" start="82" end="82" sourcepath="org/openfinance/service/AssetService.java" sourcefile="AssetService.java" startBytecode="58" primary="true">
-      <Message>At AssetService.java:[line 82]</Message>
+    <SourceLine endBytecode="58" classname="org.openfinance.service.AssetService" start="86" end="86" sourcepath="org/openfinance/service/AssetService.java" sourcefile="AssetService.java" startBytecode="58" primary="true">
+      <Message>At AssetService.java:[line 86]</Message>
     </SourceLine>
   </BugInstance>
-  <BugInstance instanceOccurrenceNum="0" instanceHash="24bad46181d84ce76384d316cd592262" cweid="374" rank="18" abbrev="EI2" category="MALICIOUS_CODE" priority="2" type="EI_EXPOSE_REP2" instanceOccurrenceMax="0">
+  <BugInstance instanceOccurrenceNum="0" instanceHash="ce07ca520fd146af18acb05d9e6c184c" cweid="374" rank="18" abbrev="EI2" category="MALICIOUS_CODE" priority="2" type="EI_EXPOSE_REP2" instanceOccurrenceMax="0">
     <ShortMessage>May expose internal representation by incorporating reference to mutable object</ShortMessage>
-    <LongMessage>new org.openfinance.service.AssetService(AssetRepository, RealEstateRepository, TransactionRepository, AccountRepository, CurrencyRepository, AssetMapper, EncryptionService, UserRepository, ExchangeRateService, NetWorthRepository, OperationHistoryService, SearchTokenService, AttachmentService, DefaultCurrencyProvider, EncryptionProperties, CurrencyConversionHelper) may expose internal representation by storing an externally mutable object into AssetService.realEstateRepository</LongMessage>
+    <LongMessage>new org.openfinance.service.AssetService(AssetRepository, RealEstateRepository, TransactionRepository, AccountRepository, CurrencyRepository, AssetMapper, EncryptionService, UserRepository, ExchangeRateService, NetWorthRepository, AssetPriceHistoryWriter, OperationHistoryService, SearchTokenService, AttachmentService, DefaultCurrencyProvider, EncryptionProperties, CurrencyConversionHelper) may expose internal representation by storing an externally mutable object into AssetService.realEstateRepository</LongMessage>
     <Class classname="org.openfinance.service.AssetService" classAnnotationNames="org.springframework.stereotype.Service,org.springframework.transaction.annotation.Transactional" primary="true">
-      <SourceLine classname="org.openfinance.service.AssetService" start="82" end="1337" sourcepath="org/openfinance/service/AssetService.java" sourcefile="AssetService.java">
-        <Message>At AssetService.java:[lines 82-1337]</Message>
+      <SourceLine classname="org.openfinance.service.AssetService" start="86" end="1634" sourcepath="org/openfinance/service/AssetService.java" sourcefile="AssetService.java">
+        <Message>At AssetService.java:[lines 86-1634]</Message>
       </SourceLine>
       <Message>In class org.openfinance.service.AssetService</Message>
     </Class>
-    <Method isStatic="false" classname="org.openfinance.service.AssetService" signature="(Lorg/openfinance/repository/AssetRepository;Lorg/openfinance/repository/RealEstateRepository;Lorg/openfinance/repository/TransactionRepository;Lorg/openfinance/repository/AccountRepository;Lorg/openfinance/repository/CurrencyRepository;Lorg/openfinance/mapper/AssetMapper;Lorg/openfinance/security/EncryptionService;Lorg/openfinance/repository/UserRepository;Lorg/openfinance/service/ExchangeRateService;Lorg/openfinance/repository/NetWorthRepository;Lorg/openfinance/service/OperationHistoryService;Lorg/openfinance/service/SearchTokenService;Lorg/openfinance/service/AttachmentService;Lorg/openfinance/service/DefaultCurrencyProvider;Lorg/openfinance/config/EncryptionProperties;Lorg/openfinance/service/CurrencyConversionHelper;)V" name="&lt;init&gt;" classAnnotationNames="org.springframework.stereotype.Service,org.springframework.transaction.annotation.Transactional" primary="true">
-      <SourceLine endBytecode="299" classname="org.openfinance.service.AssetService" start="82" end="82" sourcepath="org/openfinance/service/AssetService.java" sourcefile="AssetService.java" startBytecode="0" />
-      <Message>In method new org.openfinance.service.AssetService(AssetRepository, RealEstateRepository, TransactionRepository, AccountRepository, CurrencyRepository, AssetMapper, EncryptionService, UserRepository, ExchangeRateService, NetWorthRepository, OperationHistoryService, SearchTokenService, AttachmentService, DefaultCurrencyProvider, EncryptionProperties, CurrencyConversionHelper)</Message>
+    <Method isStatic="false" classname="org.openfinance.service.AssetService" signature="(Lorg/openfinance/repository/AssetRepository;Lorg/openfinance/repository/RealEstateRepository;Lorg/openfinance/repository/TransactionRepository;Lorg/openfinance/repository/AccountRepository;Lorg/openfinance/repository/CurrencyRepository;Lorg/openfinance/mapper/AssetMapper;Lorg/openfinance/security/EncryptionService;Lorg/openfinance/repository/UserRepository;Lorg/openfinance/service/ExchangeRateService;Lorg/openfinance/repository/NetWorthRepository;Lorg/openfinance/service/AssetPriceHistoryWriter;Lorg/openfinance/service/OperationHistoryService;Lorg/openfinance/service/SearchTokenService;Lorg/openfinance/service/AttachmentService;Lorg/openfinance/service/DefaultCurrencyProvider;Lorg/openfinance/config/EncryptionProperties;Lorg/openfinance/service/CurrencyConversionHelper;)V" name="&lt;init&gt;" classAnnotationNames="org.springframework.stereotype.Service,org.springframework.transaction.annotation.Transactional" primary="true">
+      <SourceLine endBytecode="315" classname="org.openfinance.service.AssetService" start="86" end="86" sourcepath="org/openfinance/service/AssetService.java" sourcefile="AssetService.java" startBytecode="0" />
+      <Message>In method new org.openfinance.service.AssetService(AssetRepository, RealEstateRepository, TransactionRepository, AccountRepository, CurrencyRepository, AssetMapper, EncryptionService, UserRepository, ExchangeRateService, NetWorthRepository, AssetPriceHistoryWriter, OperationHistoryService, SearchTokenService, AttachmentService, DefaultCurrencyProvider, EncryptionProperties, CurrencyConversionHelper)</Message>
     </Method>
     <Field isStatic="false" classname="org.openfinance.service.AssetService" signature="Lorg/openfinance/repository/RealEstateRepository;" name="realEstateRepository" classAnnotationNames="org.springframework.stereotype.Service,org.springframework.transaction.annotation.Transactional" primary="true">
       <SourceLine classname="org.openfinance.service.AssetService" sourcepath="org/openfinance/service/AssetService.java" sourcefile="AssetService.java">
@@ -19836,22 +19840,22 @@
     <LocalVariable role="LOCAL_VARIABLE_NAMED" pc="11" name="realEstateRepository" register="2">
       <Message>Local variable named realEstateRepository</Message>
     </LocalVariable>
-    <SourceLine endBytecode="11" classname="org.openfinance.service.AssetService" start="82" end="82" sourcepath="org/openfinance/service/AssetService.java" sourcefile="AssetService.java" startBytecode="11" primary="true">
-      <Message>At AssetService.java:[line 82]</Message>
+    <SourceLine endBytecode="11" classname="org.openfinance.service.AssetService" start="86" end="86" sourcepath="org/openfinance/service/AssetService.java" sourcefile="AssetService.java" startBytecode="11" primary="true">
+      <Message>At AssetService.java:[line 86]</Message>
     </SourceLine>
   </BugInstance>
-  <BugInstance instanceOccurrenceNum="0" instanceHash="cacc9af3f232dc8129a1d91ecde3d054" cweid="374" rank="18" abbrev="EI2" category="MALICIOUS_CODE" priority="2" type="EI_EXPOSE_REP2" instanceOccurrenceMax="0">
+  <BugInstance instanceOccurrenceNum="0" instanceHash="d7314cdb89eb0afb896b1794e363ea36" cweid="374" rank="18" abbrev="EI2" category="MALICIOUS_CODE" priority="2" type="EI_EXPOSE_REP2" instanceOccurrenceMax="0">
     <ShortMessage>May expose internal representation by incorporating reference to mutable object</ShortMessage>
-    <LongMessage>new org.openfinance.service.AssetService(AssetRepository, RealEstateRepository, TransactionRepository, AccountRepository, CurrencyRepository, AssetMapper, EncryptionService, UserRepository, ExchangeRateService, NetWorthRepository, OperationHistoryService, SearchTokenService, AttachmentService, DefaultCurrencyProvider, EncryptionProperties, CurrencyConversionHelper) may expose internal representation by storing an externally mutable object into AssetService.searchTokenService</LongMessage>
+    <LongMessage>new org.openfinance.service.AssetService(AssetRepository, RealEstateRepository, TransactionRepository, AccountRepository, CurrencyRepository, AssetMapper, EncryptionService, UserRepository, ExchangeRateService, NetWorthRepository, AssetPriceHistoryWriter, OperationHistoryService, SearchTokenService, AttachmentService, DefaultCurrencyProvider, EncryptionProperties, CurrencyConversionHelper) may expose internal representation by storing an externally mutable object into AssetService.searchTokenService</LongMessage>
     <Class classname="org.openfinance.service.AssetService" classAnnotationNames="org.springframework.stereotype.Service,org.springframework.transaction.annotation.Transactional" primary="true">
-      <SourceLine classname="org.openfinance.service.AssetService" start="82" end="1337" sourcepath="org/openfinance/service/AssetService.java" sourcefile="AssetService.java">
-        <Message>At AssetService.java:[lines 82-1337]</Message>
+      <SourceLine classname="org.openfinance.service.AssetService" start="86" end="1634" sourcepath="org/openfinance/service/AssetService.java" sourcefile="AssetService.java">
+        <Message>At AssetService.java:[lines 86-1634]</Message>
       </SourceLine>
       <Message>In class org.openfinance.service.AssetService</Message>
     </Class>
-    <Method isStatic="false" classname="org.openfinance.service.AssetService" signature="(Lorg/openfinance/repository/AssetRepository;Lorg/openfinance/repository/RealEstateRepository;Lorg/openfinance/repository/TransactionRepository;Lorg/openfinance/repository/AccountRepository;Lorg/openfinance/repository/CurrencyRepository;Lorg/openfinance/mapper/AssetMapper;Lorg/openfinance/security/EncryptionService;Lorg/openfinance/repository/UserRepository;Lorg/openfinance/service/ExchangeRateService;Lorg/openfinance/repository/NetWorthRepository;Lorg/openfinance/service/OperationHistoryService;Lorg/openfinance/service/SearchTokenService;Lorg/openfinance/service/AttachmentService;Lorg/openfinance/service/DefaultCurrencyProvider;Lorg/openfinance/config/EncryptionProperties;Lorg/openfinance/service/CurrencyConversionHelper;)V" name="&lt;init&gt;" classAnnotationNames="org.springframework.stereotype.Service,org.springframework.transaction.annotation.Transactional" primary="true">
-      <SourceLine endBytecode="299" classname="org.openfinance.service.AssetService" start="82" end="82" sourcepath="org/openfinance/service/AssetService.java" sourcefile="AssetService.java" startBytecode="0" />
-      <Message>In method new org.openfinance.service.AssetService(AssetRepository, RealEstateRepository, TransactionRepository, AccountRepository, CurrencyRepository, AssetMapper, EncryptionService, UserRepository, ExchangeRateService, NetWorthRepository, OperationHistoryService, SearchTokenService, AttachmentService, DefaultCurrencyProvider, EncryptionProperties, CurrencyConversionHelper)</Message>
+    <Method isStatic="false" classname="org.openfinance.service.AssetService" signature="(Lorg/openfinance/repository/AssetRepository;Lorg/openfinance/repository/RealEstateRepository;Lorg/openfinance/repository/TransactionRepository;Lorg/openfinance/repository/AccountRepository;Lorg/openfinance/repository/CurrencyRepository;Lorg/openfinance/mapper/AssetMapper;Lorg/openfinance/security/EncryptionService;Lorg/openfinance/repository/UserRepository;Lorg/openfinance/service/ExchangeRateService;Lorg/openfinance/repository/NetWorthRepository;Lorg/openfinance/service/AssetPriceHistoryWriter;Lorg/openfinance/service/OperationHistoryService;Lorg/openfinance/service/SearchTokenService;Lorg/openfinance/service/AttachmentService;Lorg/openfinance/service/DefaultCurrencyProvider;Lorg/openfinance/config/EncryptionProperties;Lorg/openfinance/service/CurrencyConversionHelper;)V" name="&lt;init&gt;" classAnnotationNames="org.springframework.stereotype.Service,org.springframework.transaction.annotation.Transactional" primary="true">
+      <SourceLine endBytecode="315" classname="org.openfinance.service.AssetService" start="86" end="86" sourcepath="org/openfinance/service/AssetService.java" sourcefile="AssetService.java" startBytecode="0" />
+      <Message>In method new org.openfinance.service.AssetService(AssetRepository, RealEstateRepository, TransactionRepository, AccountRepository, CurrencyRepository, AssetMapper, EncryptionService, UserRepository, ExchangeRateService, NetWorthRepository, AssetPriceHistoryWriter, OperationHistoryService, SearchTokenService, AttachmentService, DefaultCurrencyProvider, EncryptionProperties, CurrencyConversionHelper)</Message>
     </Method>
     <Field isStatic="false" classname="org.openfinance.service.AssetService" signature="Lorg/openfinance/service/SearchTokenService;" name="searchTokenService" classAnnotationNames="org.springframework.stereotype.Service,org.springframework.transaction.annotation.Transactional" primary="true">
       <SourceLine classname="org.openfinance.service.AssetService" sourcepath="org/openfinance/service/AssetService.java" sourcefile="AssetService.java">
@@ -19859,25 +19863,25 @@
       </SourceLine>
       <Message>Field org.openfinance.service.AssetService.searchTokenService</Message>
     </Field>
-    <LocalVariable role="LOCAL_VARIABLE_NAMED" pc="70" name="searchTokenService" register="12">
+    <LocalVariable role="LOCAL_VARIABLE_NAMED" pc="76" name="searchTokenService" register="13">
       <Message>Local variable named searchTokenService</Message>
     </LocalVariable>
-    <SourceLine endBytecode="70" classname="org.openfinance.service.AssetService" start="82" end="82" sourcepath="org/openfinance/service/AssetService.java" sourcefile="AssetService.java" startBytecode="70" primary="true">
-      <Message>At AssetService.java:[line 82]</Message>
+    <SourceLine endBytecode="76" classname="org.openfinance.service.AssetService" start="86" end="86" sourcepath="org/openfinance/service/AssetService.java" sourcefile="AssetService.java" startBytecode="76" primary="true">
+      <Message>At AssetService.java:[line 86]</Message>
     </SourceLine>
   </BugInstance>
-  <BugInstance instanceOccurrenceNum="0" instanceHash="95e939523e7ba4efdedffef7a74a8ed7" cweid="374" rank="18" abbrev="EI2" category="MALICIOUS_CODE" priority="2" type="EI_EXPOSE_REP2" instanceOccurrenceMax="0">
+  <BugInstance instanceOccurrenceNum="0" instanceHash="534a8466350a86a288ad7584f11035c1" cweid="374" rank="18" abbrev="EI2" category="MALICIOUS_CODE" priority="2" type="EI_EXPOSE_REP2" instanceOccurrenceMax="0">
     <ShortMessage>May expose internal representation by incorporating reference to mutable object</ShortMessage>
-    <LongMessage>new org.openfinance.service.AssetService(AssetRepository, RealEstateRepository, TransactionRepository, AccountRepository, CurrencyRepository, AssetMapper, EncryptionService, UserRepository, ExchangeRateService, NetWorthRepository, OperationHistoryService, SearchTokenService, AttachmentService, DefaultCurrencyProvider, EncryptionProperties, CurrencyConversionHelper) may expose internal representation by storing an externally mutable object into AssetService.transactionRepository</LongMessage>
+    <LongMessage>new org.openfinance.service.AssetService(AssetRepository, RealEstateRepository, TransactionRepository, AccountRepository, CurrencyRepository, AssetMapper, EncryptionService, UserRepository, ExchangeRateService, NetWorthRepository, AssetPriceHistoryWriter, OperationHistoryService, SearchTokenService, AttachmentService, DefaultCurrencyProvider, EncryptionProperties, CurrencyConversionHelper) may expose internal representation by storing an externally mutable object into AssetService.transactionRepository</LongMessage>
     <Class classname="org.openfinance.service.AssetService" classAnnotationNames="org.springframework.stereotype.Service,org.springframework.transaction.annotation.Transactional" primary="true">
-      <SourceLine classname="org.openfinance.service.AssetService" start="82" end="1337" sourcepath="org/openfinance/service/AssetService.java" sourcefile="AssetService.java">
-        <Message>At AssetService.java:[lines 82-1337]</Message>
+      <SourceLine classname="org.openfinance.service.AssetService" start="86" end="1634" sourcepath="org/openfinance/service/AssetService.java" sourcefile="AssetService.java">
+        <Message>At AssetService.java:[lines 86-1634]</Message>
       </SourceLine>
       <Message>In class org.openfinance.service.AssetService</Message>
     </Class>
-    <Method isStatic="false" classname="org.openfinance.service.AssetService" signature="(Lorg/openfinance/repository/AssetRepository;Lorg/openfinance/repository/RealEstateRepository;Lorg/openfinance/repository/TransactionRepository;Lorg/openfinance/repository/AccountRepository;Lorg/openfinance/repository/CurrencyRepository;Lorg/openfinance/mapper/AssetMapper;Lorg/openfinance/security/EncryptionService;Lorg/openfinance/repository/UserRepository;Lorg/openfinance/service/ExchangeRateService;Lorg/openfinance/repository/NetWorthRepository;Lorg/openfinance/service/OperationHistoryService;Lorg/openfinance/service/SearchTokenService;Lorg/openfinance/service/AttachmentService;Lorg/openfinance/service/DefaultCurrencyProvider;Lorg/openfinance/config/EncryptionProperties;Lorg/openfinance/service/CurrencyConversionHelper;)V" name="&lt;init&gt;" classAnnotationNames="org.springframework.stereotype.Service,org.springframework.transaction.annotation.Transactional" primary="true">
-      <SourceLine endBytecode="299" classname="org.openfinance.service.AssetService" start="82" end="82" sourcepath="org/openfinance/service/AssetService.java" sourcefile="AssetService.java" startBytecode="0" />
-      <Message>In method new org.openfinance.service.AssetService(AssetRepository, RealEstateRepository, TransactionRepository, AccountRepository, CurrencyRepository, AssetMapper, EncryptionService, UserRepository, ExchangeRateService, NetWorthRepository, OperationHistoryService, SearchTokenService, AttachmentService, DefaultCurrencyProvider, EncryptionProperties, CurrencyConversionHelper)</Message>
+    <Method isStatic="false" classname="org.openfinance.service.AssetService" signature="(Lorg/openfinance/repository/AssetRepository;Lorg/openfinance/repository/RealEstateRepository;Lorg/openfinance/repository/TransactionRepository;Lorg/openfinance/repository/AccountRepository;Lorg/openfinance/repository/CurrencyRepository;Lorg/openfinance/mapper/AssetMapper;Lorg/openfinance/security/EncryptionService;Lorg/openfinance/repository/UserRepository;Lorg/openfinance/service/ExchangeRateService;Lorg/openfinance/repository/NetWorthRepository;Lorg/openfinance/service/AssetPriceHistoryWriter;Lorg/openfinance/service/OperationHistoryService;Lorg/openfinance/service/SearchTokenService;Lorg/openfinance/service/AttachmentService;Lorg/openfinance/service/DefaultCurrencyProvider;Lorg/openfinance/config/EncryptionProperties;Lorg/openfinance/service/CurrencyConversionHelper;)V" name="&lt;init&gt;" classAnnotationNames="org.springframework.stereotype.Service,org.springframework.transaction.annotation.Transactional" primary="true">
+      <SourceLine endBytecode="315" classname="org.openfinance.service.AssetService" start="86" end="86" sourcepath="org/openfinance/service/AssetService.java" sourcefile="AssetService.java" startBytecode="0" />
+      <Message>In method new org.openfinance.service.AssetService(AssetRepository, RealEstateRepository, TransactionRepository, AccountRepository, CurrencyRepository, AssetMapper, EncryptionService, UserRepository, ExchangeRateService, NetWorthRepository, AssetPriceHistoryWriter, OperationHistoryService, SearchTokenService, AttachmentService, DefaultCurrencyProvider, EncryptionProperties, CurrencyConversionHelper)</Message>
     </Method>
     <Field isStatic="false" classname="org.openfinance.service.AssetService" signature="Lorg/openfinance/repository/TransactionRepository;" name="transactionRepository" classAnnotationNames="org.springframework.stereotype.Service,org.springframework.transaction.annotation.Transactional" primary="true">
       <SourceLine classname="org.openfinance.service.AssetService" sourcepath="org/openfinance/service/AssetService.java" sourcefile="AssetService.java">
@@ -19888,8 +19892,8 @@
     <LocalVariable role="LOCAL_VARIABLE_NAMED" pc="16" name="transactionRepository" register="3">
       <Message>Local variable named transactionRepository</Message>
     </LocalVariable>
-    <SourceLine endBytecode="16" classname="org.openfinance.service.AssetService" start="82" end="82" sourcepath="org/openfinance/service/AssetService.java" sourcefile="AssetService.java" startBytecode="16" primary="true">
-      <Message>At AssetService.java:[line 82]</Message>
+    <SourceLine endBytecode="16" classname="org.openfinance.service.AssetService" start="86" end="86" sourcepath="org/openfinance/service/AssetService.java" sourcefile="AssetService.java" startBytecode="16" primary="true">
+      <Message>At AssetService.java:[line 86]</Message>
     </SourceLine>
   </BugInstance>
   <BugInstance instanceOccurrenceNum="0" instanceHash="c253ed81d7818db120859a8938c1449a" cweid="374" rank="18" abbrev="EI2" category="MALICIOUS_CODE" priority="2" type="EI_EXPOSE_REP2" instanceOccurrenceMax="0">
@@ -25347,18 +25351,18 @@
     </SourceLine>
   </BugInstance>
   <!-- Spring injects a shared TransactionRepository; copying that dependency is invalid. -->
-  <BugInstance instanceOccurrenceNum="0" instanceHash="17c72924e17ea832c485096eb8fe8d8c" cweid="374" rank="18" abbrev="EI2" category="MALICIOUS_CODE" priority="2" type="EI_EXPOSE_REP2" instanceOccurrenceMax="0">
+  <BugInstance instanceOccurrenceNum="0" instanceHash="f4e962eda65225ed076646e9516a36be" cweid="374" rank="18" abbrev="EI2" category="MALICIOUS_CODE" priority="2" type="EI_EXPOSE_REP2" instanceOccurrenceMax="0">
     <ShortMessage>May expose internal representation by incorporating reference to mutable object</ShortMessage>
-    <LongMessage>new org.openfinance.service.ImportedInvestmentServiceImpl(AssetRepository, TransactionRepository, AccountCurrencyService) may expose internal representation by storing an externally mutable object into ImportedInvestmentServiceImpl.transactions</LongMessage>
+    <LongMessage>new org.openfinance.service.ImportedInvestmentServiceImpl(AssetRepository, TransactionRepository, AccountCurrencyService, AssetPriceHistoryWriter) may expose internal representation by storing an externally mutable object into ImportedInvestmentServiceImpl.transactions</LongMessage>
     <Class classname="org.openfinance.service.ImportedInvestmentServiceImpl" classAnnotationNames="org.springframework.stereotype.Service,org.springframework.transaction.annotation.Transactional" primary="true">
-      <SourceLine classname="org.openfinance.service.ImportedInvestmentServiceImpl" start="23" end="196" sourcepath="org/openfinance/service/ImportedInvestmentServiceImpl.java" sourcefile="ImportedInvestmentServiceImpl.java">
-        <Message>At ImportedInvestmentServiceImpl.java:[lines 23-196]</Message>
+      <SourceLine classname="org.openfinance.service.ImportedInvestmentServiceImpl" start="23" end="224" sourcepath="org/openfinance/service/ImportedInvestmentServiceImpl.java" sourcefile="ImportedInvestmentServiceImpl.java">
+        <Message>At ImportedInvestmentServiceImpl.java:[lines 23-224]</Message>
       </SourceLine>
       <Message>In class org.openfinance.service.ImportedInvestmentServiceImpl</Message>
     </Class>
-    <Method isStatic="false" classname="org.openfinance.service.ImportedInvestmentServiceImpl" signature="(Lorg/openfinance/repository/AssetRepository;Lorg/openfinance/repository/TransactionRepository;Lorg/openfinance/service/AccountCurrencyService;)V" name="&lt;init&gt;" classAnnotationNames="org.springframework.stereotype.Service,org.springframework.transaction.annotation.Transactional" primary="true">
-      <SourceLine endBytecode="91" classname="org.openfinance.service.ImportedInvestmentServiceImpl" start="23" end="23" sourcepath="org/openfinance/service/ImportedInvestmentServiceImpl.java" sourcefile="ImportedInvestmentServiceImpl.java" startBytecode="0" />
-      <Message>In method new org.openfinance.service.ImportedInvestmentServiceImpl(AssetRepository, TransactionRepository, AccountCurrencyService)</Message>
+    <Method isStatic="false" classname="org.openfinance.service.ImportedInvestmentServiceImpl" signature="(Lorg/openfinance/repository/AssetRepository;Lorg/openfinance/repository/TransactionRepository;Lorg/openfinance/service/AccountCurrencyService;Lorg/openfinance/service/AssetPriceHistoryWriter;)V" name="&lt;init&gt;" classAnnotationNames="org.springframework.stereotype.Service,org.springframework.transaction.annotation.Transactional" primary="true">
+      <SourceLine endBytecode="107" classname="org.openfinance.service.ImportedInvestmentServiceImpl" start="23" end="23" sourcepath="org/openfinance/service/ImportedInvestmentServiceImpl.java" sourcefile="ImportedInvestmentServiceImpl.java" startBytecode="0" />
+      <Message>In method new org.openfinance.service.ImportedInvestmentServiceImpl(AssetRepository, TransactionRepository, AccountCurrencyService, AssetPriceHistoryWriter)</Message>
     </Method>
     <Field isStatic="false" classname="org.openfinance.service.ImportedInvestmentServiceImpl" signature="Lorg/openfinance/repository/TransactionRepository;" name="transactions" classAnnotationNames="org.springframework.stereotype.Service,org.springframework.transaction.annotation.Transactional" primary="true">
       <SourceLine classname="org.openfinance.service.ImportedInvestmentServiceImpl" sourcepath="org/openfinance/service/ImportedInvestmentServiceImpl.java" sourcefile="ImportedInvestmentServiceImpl.java">
@@ -27658,18 +27662,18 @@
       <Message>At Account.java:[line 59]</Message>
     </SourceLine>
   </BugInstance>
-  <BugInstance instanceOccurrenceNum="0" instanceHash="1571105a47fb4d43c59a9ebb37f93f3d" cweid="374" rank="18" abbrev="EI2" category="MALICIOUS_CODE" priority="2" type="EI_EXPOSE_REP2" instanceOccurrenceMax="0">
+  <BugInstance instanceOccurrenceNum="0" instanceHash="c2d2e775662ac5b3ccf79fb1bb92d22a" cweid="374" rank="18" abbrev="EI2" category="MALICIOUS_CODE" priority="2" type="EI_EXPOSE_REP2" instanceOccurrenceMax="0">
     <ShortMessage>May expose internal representation by incorporating reference to mutable object</ShortMessage>
-    <LongMessage>new org.openfinance.service.NetWorthService(NetWorthRepository, AccountRepository, CurrencyRepository, AssetRepository, LiabilityRepository, RealEstateRepository, RealEstateValueHistoryRepository, PropertyStatusHistoryRepository, EncryptionService, ExchangeRateService, AccountCurrencyService, TransactionRepository, LiabilityTrancheRepository, DefaultCurrencyProvider, NetWorthSnapshotWriter) may expose internal representation by storing an externally mutable object into NetWorthService.encryptionService</LongMessage>
+    <LongMessage>new org.openfinance.service.NetWorthService(NetWorthRepository, AccountRepository, CurrencyRepository, AssetRepository, LiabilityRepository, RealEstateRepository, RealEstateValueHistoryRepository, PropertyStatusHistoryRepository, EncryptionService, ExchangeRateService, AccountCurrencyService, TransactionRepository, LiabilityTrancheRepository, DefaultCurrencyProvider, NetWorthSnapshotWriter, HistoricalAssetValuationService) may expose internal representation by storing an externally mutable object into NetWorthService.encryptionService</LongMessage>
     <Class classname="org.openfinance.service.NetWorthService" classAnnotationNames="org.springframework.stereotype.Service,org.springframework.transaction.annotation.Transactional" primary="true">
-      <SourceLine classname="org.openfinance.service.NetWorthService" start="76" end="1323" sourcepath="org/openfinance/service/NetWorthService.java" sourcefile="NetWorthService.java">
-        <Message>At NetWorthService.java:[lines 76-1323]</Message>
+      <SourceLine classname="org.openfinance.service.NetWorthService" start="76" end="1297" sourcepath="org/openfinance/service/NetWorthService.java" sourcefile="NetWorthService.java">
+        <Message>At NetWorthService.java:[lines 76-1297]</Message>
       </SourceLine>
       <Message>In class org.openfinance.service.NetWorthService</Message>
     </Class>
-    <Method isStatic="false" classname="org.openfinance.service.NetWorthService" signature="(Lorg/openfinance/repository/NetWorthRepository;Lorg/openfinance/repository/AccountRepository;Lorg/openfinance/repository/CurrencyRepository;Lorg/openfinance/repository/AssetRepository;Lorg/openfinance/repository/LiabilityRepository;Lorg/openfinance/repository/RealEstateRepository;Lorg/openfinance/repository/RealEstateValueHistoryRepository;Lorg/openfinance/repository/PropertyStatusHistoryRepository;Lorg/openfinance/security/EncryptionService;Lorg/openfinance/service/ExchangeRateService;Lorg/openfinance/service/AccountCurrencyService;Lorg/openfinance/repository/TransactionRepository;Lorg/openfinance/repository/LiabilityTrancheRepository;Lorg/openfinance/service/DefaultCurrencyProvider;Lorg/openfinance/service/NetWorthSnapshotWriter;)V" name="&lt;init&gt;" classAnnotationNames="org.springframework.stereotype.Service,org.springframework.transaction.annotation.Transactional" primary="true">
-      <SourceLine endBytecode="302" classname="org.openfinance.service.NetWorthService" start="76" end="76" sourcepath="org/openfinance/service/NetWorthService.java" sourcefile="NetWorthService.java" startBytecode="0" />
-      <Message>In method new org.openfinance.service.NetWorthService(NetWorthRepository, AccountRepository, CurrencyRepository, AssetRepository, LiabilityRepository, RealEstateRepository, RealEstateValueHistoryRepository, PropertyStatusHistoryRepository, EncryptionService, ExchangeRateService, AccountCurrencyService, TransactionRepository, LiabilityTrancheRepository, DefaultCurrencyProvider, NetWorthSnapshotWriter)</Message>
+    <Method isStatic="false" classname="org.openfinance.service.NetWorthService" signature="(Lorg/openfinance/repository/NetWorthRepository;Lorg/openfinance/repository/AccountRepository;Lorg/openfinance/repository/CurrencyRepository;Lorg/openfinance/repository/AssetRepository;Lorg/openfinance/repository/LiabilityRepository;Lorg/openfinance/repository/RealEstateRepository;Lorg/openfinance/repository/RealEstateValueHistoryRepository;Lorg/openfinance/repository/PropertyStatusHistoryRepository;Lorg/openfinance/security/EncryptionService;Lorg/openfinance/service/ExchangeRateService;Lorg/openfinance/service/AccountCurrencyService;Lorg/openfinance/repository/TransactionRepository;Lorg/openfinance/repository/LiabilityTrancheRepository;Lorg/openfinance/service/DefaultCurrencyProvider;Lorg/openfinance/service/NetWorthSnapshotWriter;Lorg/openfinance/service/HistoricalAssetValuationService;)V" name="&lt;init&gt;" classAnnotationNames="org.springframework.stereotype.Service,org.springframework.transaction.annotation.Transactional" primary="true">
+      <SourceLine endBytecode="318" classname="org.openfinance.service.NetWorthService" start="76" end="76" sourcepath="org/openfinance/service/NetWorthService.java" sourcefile="NetWorthService.java" startBytecode="0" />
+      <Message>In method new org.openfinance.service.NetWorthService(NetWorthRepository, AccountRepository, CurrencyRepository, AssetRepository, LiabilityRepository, RealEstateRepository, RealEstateValueHistoryRepository, PropertyStatusHistoryRepository, EncryptionService, ExchangeRateService, AccountCurrencyService, TransactionRepository, LiabilityTrancheRepository, DefaultCurrencyProvider, NetWorthSnapshotWriter, HistoricalAssetValuationService)</Message>
     </Method>
     <Field isStatic="false" classname="org.openfinance.service.NetWorthService" signature="Lorg/openfinance/security/EncryptionService;" name="encryptionService" classAnnotationNames="org.springframework.stereotype.Service,org.springframework.transaction.annotation.Transactional" primary="true">
       <SourceLine classname="org.openfinance.service.NetWorthService" sourcepath="org/openfinance/service/NetWorthService.java" sourcefile="NetWorthService.java">
@@ -27684,18 +27688,18 @@
       <Message>At NetWorthService.java:[line 76]</Message>
     </SourceLine>
   </BugInstance>
-  <BugInstance instanceOccurrenceNum="0" instanceHash="60880d429b790655fadd2ca93c5ae453" cweid="374" rank="18" abbrev="EI2" category="MALICIOUS_CODE" priority="2" type="EI_EXPOSE_REP2" instanceOccurrenceMax="0">
+  <BugInstance instanceOccurrenceNum="0" instanceHash="8b892e9eb554c7ea6c86085155647068" cweid="374" rank="18" abbrev="EI2" category="MALICIOUS_CODE" priority="2" type="EI_EXPOSE_REP2" instanceOccurrenceMax="0">
     <ShortMessage>May expose internal representation by incorporating reference to mutable object</ShortMessage>
-    <LongMessage>new org.openfinance.service.NetWorthService(NetWorthRepository, AccountRepository, CurrencyRepository, AssetRepository, LiabilityRepository, RealEstateRepository, RealEstateValueHistoryRepository, PropertyStatusHistoryRepository, EncryptionService, ExchangeRateService, AccountCurrencyService, TransactionRepository, LiabilityTrancheRepository, DefaultCurrencyProvider, NetWorthSnapshotWriter) may expose internal representation by storing an externally mutable object into NetWorthService.exchangeRateService</LongMessage>
+    <LongMessage>new org.openfinance.service.NetWorthService(NetWorthRepository, AccountRepository, CurrencyRepository, AssetRepository, LiabilityRepository, RealEstateRepository, RealEstateValueHistoryRepository, PropertyStatusHistoryRepository, EncryptionService, ExchangeRateService, AccountCurrencyService, TransactionRepository, LiabilityTrancheRepository, DefaultCurrencyProvider, NetWorthSnapshotWriter, HistoricalAssetValuationService) may expose internal representation by storing an externally mutable object into NetWorthService.exchangeRateService</LongMessage>
     <Class classname="org.openfinance.service.NetWorthService" classAnnotationNames="org.springframework.stereotype.Service,org.springframework.transaction.annotation.Transactional" primary="true">
-      <SourceLine classname="org.openfinance.service.NetWorthService" start="76" end="1323" sourcepath="org/openfinance/service/NetWorthService.java" sourcefile="NetWorthService.java">
-        <Message>At NetWorthService.java:[lines 76-1323]</Message>
+      <SourceLine classname="org.openfinance.service.NetWorthService" start="76" end="1297" sourcepath="org/openfinance/service/NetWorthService.java" sourcefile="NetWorthService.java">
+        <Message>At NetWorthService.java:[lines 76-1297]</Message>
       </SourceLine>
       <Message>In class org.openfinance.service.NetWorthService</Message>
     </Class>
-    <Method isStatic="false" classname="org.openfinance.service.NetWorthService" signature="(Lorg/openfinance/repository/NetWorthRepository;Lorg/openfinance/repository/AccountRepository;Lorg/openfinance/repository/CurrencyRepository;Lorg/openfinance/repository/AssetRepository;Lorg/openfinance/repository/LiabilityRepository;Lorg/openfinance/repository/RealEstateRepository;Lorg/openfinance/repository/RealEstateValueHistoryRepository;Lorg/openfinance/repository/PropertyStatusHistoryRepository;Lorg/openfinance/security/EncryptionService;Lorg/openfinance/service/ExchangeRateService;Lorg/openfinance/service/AccountCurrencyService;Lorg/openfinance/repository/TransactionRepository;Lorg/openfinance/repository/LiabilityTrancheRepository;Lorg/openfinance/service/DefaultCurrencyProvider;Lorg/openfinance/service/NetWorthSnapshotWriter;)V" name="&lt;init&gt;" classAnnotationNames="org.springframework.stereotype.Service,org.springframework.transaction.annotation.Transactional" primary="true">
-      <SourceLine endBytecode="302" classname="org.openfinance.service.NetWorthService" start="76" end="76" sourcepath="org/openfinance/service/NetWorthService.java" sourcefile="NetWorthService.java" startBytecode="0" />
-      <Message>In method new org.openfinance.service.NetWorthService(NetWorthRepository, AccountRepository, CurrencyRepository, AssetRepository, LiabilityRepository, RealEstateRepository, RealEstateValueHistoryRepository, PropertyStatusHistoryRepository, EncryptionService, ExchangeRateService, AccountCurrencyService, TransactionRepository, LiabilityTrancheRepository, DefaultCurrencyProvider, NetWorthSnapshotWriter)</Message>
+    <Method isStatic="false" classname="org.openfinance.service.NetWorthService" signature="(Lorg/openfinance/repository/NetWorthRepository;Lorg/openfinance/repository/AccountRepository;Lorg/openfinance/repository/CurrencyRepository;Lorg/openfinance/repository/AssetRepository;Lorg/openfinance/repository/LiabilityRepository;Lorg/openfinance/repository/RealEstateRepository;Lorg/openfinance/repository/RealEstateValueHistoryRepository;Lorg/openfinance/repository/PropertyStatusHistoryRepository;Lorg/openfinance/security/EncryptionService;Lorg/openfinance/service/ExchangeRateService;Lorg/openfinance/service/AccountCurrencyService;Lorg/openfinance/repository/TransactionRepository;Lorg/openfinance/repository/LiabilityTrancheRepository;Lorg/openfinance/service/DefaultCurrencyProvider;Lorg/openfinance/service/NetWorthSnapshotWriter;Lorg/openfinance/service/HistoricalAssetValuationService;)V" name="&lt;init&gt;" classAnnotationNames="org.springframework.stereotype.Service,org.springframework.transaction.annotation.Transactional" primary="true">
+      <SourceLine endBytecode="318" classname="org.openfinance.service.NetWorthService" start="76" end="76" sourcepath="org/openfinance/service/NetWorthService.java" sourcefile="NetWorthService.java" startBytecode="0" />
+      <Message>In method new org.openfinance.service.NetWorthService(NetWorthRepository, AccountRepository, CurrencyRepository, AssetRepository, LiabilityRepository, RealEstateRepository, RealEstateValueHistoryRepository, PropertyStatusHistoryRepository, EncryptionService, ExchangeRateService, AccountCurrencyService, TransactionRepository, LiabilityTrancheRepository, DefaultCurrencyProvider, NetWorthSnapshotWriter, HistoricalAssetValuationService)</Message>
     </Method>
     <Field isStatic="false" classname="org.openfinance.service.NetWorthService" signature="Lorg/openfinance/service/ExchangeRateService;" name="exchangeRateService" classAnnotationNames="org.springframework.stereotype.Service,org.springframework.transaction.annotation.Transactional" primary="true">
       <SourceLine classname="org.openfinance.service.NetWorthService" sourcepath="org/openfinance/service/NetWorthService.java" sourcefile="NetWorthService.java">
@@ -27710,18 +27714,18 @@
       <Message>At NetWorthService.java:[line 76]</Message>
     </SourceLine>
   </BugInstance>
-  <BugInstance instanceOccurrenceNum="0" instanceHash="1b2e5ade4117e24ea3418af70531f591" cweid="374" rank="18" abbrev="EI2" category="MALICIOUS_CODE" priority="2" type="EI_EXPOSE_REP2" instanceOccurrenceMax="0">
+  <BugInstance instanceOccurrenceNum="0" instanceHash="9960e9a2ffaaf7bff7a8192930b2e207" cweid="374" rank="18" abbrev="EI2" category="MALICIOUS_CODE" priority="2" type="EI_EXPOSE_REP2" instanceOccurrenceMax="0">
     <ShortMessage>May expose internal representation by incorporating reference to mutable object</ShortMessage>
-    <LongMessage>new org.openfinance.service.NetWorthService(NetWorthRepository, AccountRepository, CurrencyRepository, AssetRepository, LiabilityRepository, RealEstateRepository, RealEstateValueHistoryRepository, PropertyStatusHistoryRepository, EncryptionService, ExchangeRateService, AccountCurrencyService, TransactionRepository, LiabilityTrancheRepository, DefaultCurrencyProvider, NetWorthSnapshotWriter) may expose internal representation by storing an externally mutable object into NetWorthService.liabilityRepository</LongMessage>
+    <LongMessage>new org.openfinance.service.NetWorthService(NetWorthRepository, AccountRepository, CurrencyRepository, AssetRepository, LiabilityRepository, RealEstateRepository, RealEstateValueHistoryRepository, PropertyStatusHistoryRepository, EncryptionService, ExchangeRateService, AccountCurrencyService, TransactionRepository, LiabilityTrancheRepository, DefaultCurrencyProvider, NetWorthSnapshotWriter, HistoricalAssetValuationService) may expose internal representation by storing an externally mutable object into NetWorthService.liabilityRepository</LongMessage>
     <Class classname="org.openfinance.service.NetWorthService" classAnnotationNames="org.springframework.stereotype.Service,org.springframework.transaction.annotation.Transactional" primary="true">
-      <SourceLine classname="org.openfinance.service.NetWorthService" start="76" end="1323" sourcepath="org/openfinance/service/NetWorthService.java" sourcefile="NetWorthService.java">
-        <Message>At NetWorthService.java:[lines 76-1323]</Message>
+      <SourceLine classname="org.openfinance.service.NetWorthService" start="76" end="1297" sourcepath="org/openfinance/service/NetWorthService.java" sourcefile="NetWorthService.java">
+        <Message>At NetWorthService.java:[lines 76-1297]</Message>
       </SourceLine>
       <Message>In class org.openfinance.service.NetWorthService</Message>
     </Class>
-    <Method isStatic="false" classname="org.openfinance.service.NetWorthService" signature="(Lorg/openfinance/repository/NetWorthRepository;Lorg/openfinance/repository/AccountRepository;Lorg/openfinance/repository/CurrencyRepository;Lorg/openfinance/repository/AssetRepository;Lorg/openfinance/repository/LiabilityRepository;Lorg/openfinance/repository/RealEstateRepository;Lorg/openfinance/repository/RealEstateValueHistoryRepository;Lorg/openfinance/repository/PropertyStatusHistoryRepository;Lorg/openfinance/security/EncryptionService;Lorg/openfinance/service/ExchangeRateService;Lorg/openfinance/service/AccountCurrencyService;Lorg/openfinance/repository/TransactionRepository;Lorg/openfinance/repository/LiabilityTrancheRepository;Lorg/openfinance/service/DefaultCurrencyProvider;Lorg/openfinance/service/NetWorthSnapshotWriter;)V" name="&lt;init&gt;" classAnnotationNames="org.springframework.stereotype.Service,org.springframework.transaction.annotation.Transactional" primary="true">
-      <SourceLine endBytecode="302" classname="org.openfinance.service.NetWorthService" start="76" end="76" sourcepath="org/openfinance/service/NetWorthService.java" sourcefile="NetWorthService.java" startBytecode="0" />
-      <Message>In method new org.openfinance.service.NetWorthService(NetWorthRepository, AccountRepository, CurrencyRepository, AssetRepository, LiabilityRepository, RealEstateRepository, RealEstateValueHistoryRepository, PropertyStatusHistoryRepository, EncryptionService, ExchangeRateService, AccountCurrencyService, TransactionRepository, LiabilityTrancheRepository, DefaultCurrencyProvider, NetWorthSnapshotWriter)</Message>
+    <Method isStatic="false" classname="org.openfinance.service.NetWorthService" signature="(Lorg/openfinance/repository/NetWorthRepository;Lorg/openfinance/repository/AccountRepository;Lorg/openfinance/repository/CurrencyRepository;Lorg/openfinance/repository/AssetRepository;Lorg/openfinance/repository/LiabilityRepository;Lorg/openfinance/repository/RealEstateRepository;Lorg/openfinance/repository/RealEstateValueHistoryRepository;Lorg/openfinance/repository/PropertyStatusHistoryRepository;Lorg/openfinance/security/EncryptionService;Lorg/openfinance/service/ExchangeRateService;Lorg/openfinance/service/AccountCurrencyService;Lorg/openfinance/repository/TransactionRepository;Lorg/openfinance/repository/LiabilityTrancheRepository;Lorg/openfinance/service/DefaultCurrencyProvider;Lorg/openfinance/service/NetWorthSnapshotWriter;Lorg/openfinance/service/HistoricalAssetValuationService;)V" name="&lt;init&gt;" classAnnotationNames="org.springframework.stereotype.Service,org.springframework.transaction.annotation.Transactional" primary="true">
+      <SourceLine endBytecode="318" classname="org.openfinance.service.NetWorthService" start="76" end="76" sourcepath="org/openfinance/service/NetWorthService.java" sourcefile="NetWorthService.java" startBytecode="0" />
+      <Message>In method new org.openfinance.service.NetWorthService(NetWorthRepository, AccountRepository, CurrencyRepository, AssetRepository, LiabilityRepository, RealEstateRepository, RealEstateValueHistoryRepository, PropertyStatusHistoryRepository, EncryptionService, ExchangeRateService, AccountCurrencyService, TransactionRepository, LiabilityTrancheRepository, DefaultCurrencyProvider, NetWorthSnapshotWriter, HistoricalAssetValuationService)</Message>
     </Method>
     <Field isStatic="false" classname="org.openfinance.service.NetWorthService" signature="Lorg/openfinance/repository/LiabilityRepository;" name="liabilityRepository" classAnnotationNames="org.springframework.stereotype.Service,org.springframework.transaction.annotation.Transactional" primary="true">
       <SourceLine classname="org.openfinance.service.NetWorthService" sourcepath="org/openfinance/service/NetWorthService.java" sourcefile="NetWorthService.java">
@@ -27736,18 +27740,18 @@
       <Message>At NetWorthService.java:[line 76]</Message>
     </SourceLine>
   </BugInstance>
-  <BugInstance instanceOccurrenceNum="0" instanceHash="8cc0bffa80b2bd20ee8039cd2da6e1c2" cweid="374" rank="18" abbrev="EI2" category="MALICIOUS_CODE" priority="2" type="EI_EXPOSE_REP2" instanceOccurrenceMax="0">
+  <BugInstance instanceOccurrenceNum="0" instanceHash="cece7e4e96ecce311d214f7e10f0d76a" cweid="374" rank="18" abbrev="EI2" category="MALICIOUS_CODE" priority="2" type="EI_EXPOSE_REP2" instanceOccurrenceMax="0">
     <ShortMessage>May expose internal representation by incorporating reference to mutable object</ShortMessage>
-    <LongMessage>new org.openfinance.service.NetWorthService(NetWorthRepository, AccountRepository, CurrencyRepository, AssetRepository, LiabilityRepository, RealEstateRepository, RealEstateValueHistoryRepository, PropertyStatusHistoryRepository, EncryptionService, ExchangeRateService, AccountCurrencyService, TransactionRepository, LiabilityTrancheRepository, DefaultCurrencyProvider, NetWorthSnapshotWriter) may expose internal representation by storing an externally mutable object into NetWorthService.netWorthRepository</LongMessage>
+    <LongMessage>new org.openfinance.service.NetWorthService(NetWorthRepository, AccountRepository, CurrencyRepository, AssetRepository, LiabilityRepository, RealEstateRepository, RealEstateValueHistoryRepository, PropertyStatusHistoryRepository, EncryptionService, ExchangeRateService, AccountCurrencyService, TransactionRepository, LiabilityTrancheRepository, DefaultCurrencyProvider, NetWorthSnapshotWriter, HistoricalAssetValuationService) may expose internal representation by storing an externally mutable object into NetWorthService.netWorthRepository</LongMessage>
     <Class classname="org.openfinance.service.NetWorthService" classAnnotationNames="org.springframework.stereotype.Service,org.springframework.transaction.annotation.Transactional" primary="true">
-      <SourceLine classname="org.openfinance.service.NetWorthService" start="76" end="1323" sourcepath="org/openfinance/service/NetWorthService.java" sourcefile="NetWorthService.java">
-        <Message>At NetWorthService.java:[lines 76-1323]</Message>
+      <SourceLine classname="org.openfinance.service.NetWorthService" start="76" end="1297" sourcepath="org/openfinance/service/NetWorthService.java" sourcefile="NetWorthService.java">
+        <Message>At NetWorthService.java:[lines 76-1297]</Message>
       </SourceLine>
       <Message>In class org.openfinance.service.NetWorthService</Message>
     </Class>
-    <Method isStatic="false" classname="org.openfinance.service.NetWorthService" signature="(Lorg/openfinance/repository/NetWorthRepository;Lorg/openfinance/repository/AccountRepository;Lorg/openfinance/repository/CurrencyRepository;Lorg/openfinance/repository/AssetRepository;Lorg/openfinance/repository/LiabilityRepository;Lorg/openfinance/repository/RealEstateRepository;Lorg/openfinance/repository/RealEstateValueHistoryRepository;Lorg/openfinance/repository/PropertyStatusHistoryRepository;Lorg/openfinance/security/EncryptionService;Lorg/openfinance/service/ExchangeRateService;Lorg/openfinance/service/AccountCurrencyService;Lorg/openfinance/repository/TransactionRepository;Lorg/openfinance/repository/LiabilityTrancheRepository;Lorg/openfinance/service/DefaultCurrencyProvider;Lorg/openfinance/service/NetWorthSnapshotWriter;)V" name="&lt;init&gt;" classAnnotationNames="org.springframework.stereotype.Service,org.springframework.transaction.annotation.Transactional" primary="true">
-      <SourceLine endBytecode="302" classname="org.openfinance.service.NetWorthService" start="76" end="76" sourcepath="org/openfinance/service/NetWorthService.java" sourcefile="NetWorthService.java" startBytecode="0" />
-      <Message>In method new org.openfinance.service.NetWorthService(NetWorthRepository, AccountRepository, CurrencyRepository, AssetRepository, LiabilityRepository, RealEstateRepository, RealEstateValueHistoryRepository, PropertyStatusHistoryRepository, EncryptionService, ExchangeRateService, AccountCurrencyService, TransactionRepository, LiabilityTrancheRepository, DefaultCurrencyProvider, NetWorthSnapshotWriter)</Message>
+    <Method isStatic="false" classname="org.openfinance.service.NetWorthService" signature="(Lorg/openfinance/repository/NetWorthRepository;Lorg/openfinance/repository/AccountRepository;Lorg/openfinance/repository/CurrencyRepository;Lorg/openfinance/repository/AssetRepository;Lorg/openfinance/repository/LiabilityRepository;Lorg/openfinance/repository/RealEstateRepository;Lorg/openfinance/repository/RealEstateValueHistoryRepository;Lorg/openfinance/repository/PropertyStatusHistoryRepository;Lorg/openfinance/security/EncryptionService;Lorg/openfinance/service/ExchangeRateService;Lorg/openfinance/service/AccountCurrencyService;Lorg/openfinance/repository/TransactionRepository;Lorg/openfinance/repository/LiabilityTrancheRepository;Lorg/openfinance/service/DefaultCurrencyProvider;Lorg/openfinance/service/NetWorthSnapshotWriter;Lorg/openfinance/service/HistoricalAssetValuationService;)V" name="&lt;init&gt;" classAnnotationNames="org.springframework.stereotype.Service,org.springframework.transaction.annotation.Transactional" primary="true">
+      <SourceLine endBytecode="318" classname="org.openfinance.service.NetWorthService" start="76" end="76" sourcepath="org/openfinance/service/NetWorthService.java" sourcefile="NetWorthService.java" startBytecode="0" />
+      <Message>In method new org.openfinance.service.NetWorthService(NetWorthRepository, AccountRepository, CurrencyRepository, AssetRepository, LiabilityRepository, RealEstateRepository, RealEstateValueHistoryRepository, PropertyStatusHistoryRepository, EncryptionService, ExchangeRateService, AccountCurrencyService, TransactionRepository, LiabilityTrancheRepository, DefaultCurrencyProvider, NetWorthSnapshotWriter, HistoricalAssetValuationService)</Message>
     </Method>
     <Field isStatic="false" classname="org.openfinance.service.NetWorthService" signature="Lorg/openfinance/repository/NetWorthRepository;" name="netWorthRepository" classAnnotationNames="org.springframework.stereotype.Service,org.springframework.transaction.annotation.Transactional" primary="true">
       <SourceLine classname="org.openfinance.service.NetWorthService" sourcepath="org/openfinance/service/NetWorthService.java" sourcefile="NetWorthService.java">
@@ -27762,18 +27766,18 @@
       <Message>At NetWorthService.java:[line 76]</Message>
     </SourceLine>
   </BugInstance>
-  <BugInstance instanceOccurrenceNum="0" instanceHash="e3495757496a1d672c938b8dd0b7fd03" cweid="374" rank="18" abbrev="EI2" category="MALICIOUS_CODE" priority="2" type="EI_EXPOSE_REP2" instanceOccurrenceMax="0">
+  <BugInstance instanceOccurrenceNum="0" instanceHash="b08026513822911a0a53ae868f3d8c98" cweid="374" rank="18" abbrev="EI2" category="MALICIOUS_CODE" priority="2" type="EI_EXPOSE_REP2" instanceOccurrenceMax="0">
     <ShortMessage>May expose internal representation by incorporating reference to mutable object</ShortMessage>
-    <LongMessage>new org.openfinance.service.NetWorthService(NetWorthRepository, AccountRepository, CurrencyRepository, AssetRepository, LiabilityRepository, RealEstateRepository, RealEstateValueHistoryRepository, PropertyStatusHistoryRepository, EncryptionService, ExchangeRateService, AccountCurrencyService, TransactionRepository, LiabilityTrancheRepository, DefaultCurrencyProvider, NetWorthSnapshotWriter) may expose internal representation by storing an externally mutable object into NetWorthService.realEstateRepository</LongMessage>
+    <LongMessage>new org.openfinance.service.NetWorthService(NetWorthRepository, AccountRepository, CurrencyRepository, AssetRepository, LiabilityRepository, RealEstateRepository, RealEstateValueHistoryRepository, PropertyStatusHistoryRepository, EncryptionService, ExchangeRateService, AccountCurrencyService, TransactionRepository, LiabilityTrancheRepository, DefaultCurrencyProvider, NetWorthSnapshotWriter, HistoricalAssetValuationService) may expose internal representation by storing an externally mutable object into NetWorthService.realEstateRepository</LongMessage>
     <Class classname="org.openfinance.service.NetWorthService" classAnnotationNames="org.springframework.stereotype.Service,org.springframework.transaction.annotation.Transactional" primary="true">
-      <SourceLine classname="org.openfinance.service.NetWorthService" start="76" end="1323" sourcepath="org/openfinance/service/NetWorthService.java" sourcefile="NetWorthService.java">
-        <Message>At NetWorthService.java:[lines 76-1323]</Message>
+      <SourceLine classname="org.openfinance.service.NetWorthService" start="76" end="1297" sourcepath="org/openfinance/service/NetWorthService.java" sourcefile="NetWorthService.java">
+        <Message>At NetWorthService.java:[lines 76-1297]</Message>
       </SourceLine>
       <Message>In class org.openfinance.service.NetWorthService</Message>
     </Class>
-    <Method isStatic="false" classname="org.openfinance.service.NetWorthService" signature="(Lorg/openfinance/repository/NetWorthRepository;Lorg/openfinance/repository/AccountRepository;Lorg/openfinance/repository/CurrencyRepository;Lorg/openfinance/repository/AssetRepository;Lorg/openfinance/repository/LiabilityRepository;Lorg/openfinance/repository/RealEstateRepository;Lorg/openfinance/repository/RealEstateValueHistoryRepository;Lorg/openfinance/repository/PropertyStatusHistoryRepository;Lorg/openfinance/security/EncryptionService;Lorg/openfinance/service/ExchangeRateService;Lorg/openfinance/service/AccountCurrencyService;Lorg/openfinance/repository/TransactionRepository;Lorg/openfinance/repository/LiabilityTrancheRepository;Lorg/openfinance/service/DefaultCurrencyProvider;Lorg/openfinance/service/NetWorthSnapshotWriter;)V" name="&lt;init&gt;" classAnnotationNames="org.springframework.stereotype.Service,org.springframework.transaction.annotation.Transactional" primary="true">
-      <SourceLine endBytecode="302" classname="org.openfinance.service.NetWorthService" start="76" end="76" sourcepath="org/openfinance/service/NetWorthService.java" sourcefile="NetWorthService.java" startBytecode="0" />
-      <Message>In method new org.openfinance.service.NetWorthService(NetWorthRepository, AccountRepository, CurrencyRepository, AssetRepository, LiabilityRepository, RealEstateRepository, RealEstateValueHistoryRepository, PropertyStatusHistoryRepository, EncryptionService, ExchangeRateService, AccountCurrencyService, TransactionRepository, LiabilityTrancheRepository, DefaultCurrencyProvider, NetWorthSnapshotWriter)</Message>
+    <Method isStatic="false" classname="org.openfinance.service.NetWorthService" signature="(Lorg/openfinance/repository/NetWorthRepository;Lorg/openfinance/repository/AccountRepository;Lorg/openfinance/repository/CurrencyRepository;Lorg/openfinance/repository/AssetRepository;Lorg/openfinance/repository/LiabilityRepository;Lorg/openfinance/repository/RealEstateRepository;Lorg/openfinance/repository/RealEstateValueHistoryRepository;Lorg/openfinance/repository/PropertyStatusHistoryRepository;Lorg/openfinance/security/EncryptionService;Lorg/openfinance/service/ExchangeRateService;Lorg/openfinance/service/AccountCurrencyService;Lorg/openfinance/repository/TransactionRepository;Lorg/openfinance/repository/LiabilityTrancheRepository;Lorg/openfinance/service/DefaultCurrencyProvider;Lorg/openfinance/service/NetWorthSnapshotWriter;Lorg/openfinance/service/HistoricalAssetValuationService;)V" name="&lt;init&gt;" classAnnotationNames="org.springframework.stereotype.Service,org.springframework.transaction.annotation.Transactional" primary="true">
+      <SourceLine endBytecode="318" classname="org.openfinance.service.NetWorthService" start="76" end="76" sourcepath="org/openfinance/service/NetWorthService.java" sourcefile="NetWorthService.java" startBytecode="0" />
+      <Message>In method new org.openfinance.service.NetWorthService(NetWorthRepository, AccountRepository, CurrencyRepository, AssetRepository, LiabilityRepository, RealEstateRepository, RealEstateValueHistoryRepository, PropertyStatusHistoryRepository, EncryptionService, ExchangeRateService, AccountCurrencyService, TransactionRepository, LiabilityTrancheRepository, DefaultCurrencyProvider, NetWorthSnapshotWriter, HistoricalAssetValuationService)</Message>
     </Method>
     <Field isStatic="false" classname="org.openfinance.service.NetWorthService" signature="Lorg/openfinance/repository/RealEstateRepository;" name="realEstateRepository" classAnnotationNames="org.springframework.stereotype.Service,org.springframework.transaction.annotation.Transactional" primary="true">
       <SourceLine classname="org.openfinance.service.NetWorthService" sourcepath="org/openfinance/service/NetWorthService.java" sourcefile="NetWorthService.java">
@@ -27788,18 +27792,18 @@
       <Message>At NetWorthService.java:[line 76]</Message>
     </SourceLine>
   </BugInstance>
-  <BugInstance instanceOccurrenceNum="0" instanceHash="c193a95988b215b8493a223e23d1696b" cweid="374" rank="18" abbrev="EI2" category="MALICIOUS_CODE" priority="2" type="EI_EXPOSE_REP2" instanceOccurrenceMax="0">
+  <BugInstance instanceOccurrenceNum="0" instanceHash="6a58054760d68404daadb90784519c9d" cweid="374" rank="18" abbrev="EI2" category="MALICIOUS_CODE" priority="2" type="EI_EXPOSE_REP2" instanceOccurrenceMax="0">
     <ShortMessage>May expose internal representation by incorporating reference to mutable object</ShortMessage>
-    <LongMessage>new org.openfinance.service.NetWorthService(NetWorthRepository, AccountRepository, CurrencyRepository, AssetRepository, LiabilityRepository, RealEstateRepository, RealEstateValueHistoryRepository, PropertyStatusHistoryRepository, EncryptionService, ExchangeRateService, AccountCurrencyService, TransactionRepository, LiabilityTrancheRepository, DefaultCurrencyProvider, NetWorthSnapshotWriter) may expose internal representation by storing an externally mutable object into NetWorthService.transactionRepository</LongMessage>
+    <LongMessage>new org.openfinance.service.NetWorthService(NetWorthRepository, AccountRepository, CurrencyRepository, AssetRepository, LiabilityRepository, RealEstateRepository, RealEstateValueHistoryRepository, PropertyStatusHistoryRepository, EncryptionService, ExchangeRateService, AccountCurrencyService, TransactionRepository, LiabilityTrancheRepository, DefaultCurrencyProvider, NetWorthSnapshotWriter, HistoricalAssetValuationService) may expose internal representation by storing an externally mutable object into NetWorthService.transactionRepository</LongMessage>
     <Class classname="org.openfinance.service.NetWorthService" classAnnotationNames="org.springframework.stereotype.Service,org.springframework.transaction.annotation.Transactional" primary="true">
-      <SourceLine classname="org.openfinance.service.NetWorthService" start="76" end="1323" sourcepath="org/openfinance/service/NetWorthService.java" sourcefile="NetWorthService.java">
-        <Message>At NetWorthService.java:[lines 76-1323]</Message>
+      <SourceLine classname="org.openfinance.service.NetWorthService" start="76" end="1297" sourcepath="org/openfinance/service/NetWorthService.java" sourcefile="NetWorthService.java">
+        <Message>At NetWorthService.java:[lines 76-1297]</Message>
       </SourceLine>
       <Message>In class org.openfinance.service.NetWorthService</Message>
     </Class>
-    <Method isStatic="false" classname="org.openfinance.service.NetWorthService" signature="(Lorg/openfinance/repository/NetWorthRepository;Lorg/openfinance/repository/AccountRepository;Lorg/openfinance/repository/CurrencyRepository;Lorg/openfinance/repository/AssetRepository;Lorg/openfinance/repository/LiabilityRepository;Lorg/openfinance/repository/RealEstateRepository;Lorg/openfinance/repository/RealEstateValueHistoryRepository;Lorg/openfinance/repository/PropertyStatusHistoryRepository;Lorg/openfinance/security/EncryptionService;Lorg/openfinance/service/ExchangeRateService;Lorg/openfinance/service/AccountCurrencyService;Lorg/openfinance/repository/TransactionRepository;Lorg/openfinance/repository/LiabilityTrancheRepository;Lorg/openfinance/service/DefaultCurrencyProvider;Lorg/openfinance/service/NetWorthSnapshotWriter;)V" name="&lt;init&gt;" classAnnotationNames="org.springframework.stereotype.Service,org.springframework.transaction.annotation.Transactional" primary="true">
-      <SourceLine endBytecode="302" classname="org.openfinance.service.NetWorthService" start="76" end="76" sourcepath="org/openfinance/service/NetWorthService.java" sourcefile="NetWorthService.java" startBytecode="0" />
-      <Message>In method new org.openfinance.service.NetWorthService(NetWorthRepository, AccountRepository, CurrencyRepository, AssetRepository, LiabilityRepository, RealEstateRepository, RealEstateValueHistoryRepository, PropertyStatusHistoryRepository, EncryptionService, ExchangeRateService, AccountCurrencyService, TransactionRepository, LiabilityTrancheRepository, DefaultCurrencyProvider, NetWorthSnapshotWriter)</Message>
+    <Method isStatic="false" classname="org.openfinance.service.NetWorthService" signature="(Lorg/openfinance/repository/NetWorthRepository;Lorg/openfinance/repository/AccountRepository;Lorg/openfinance/repository/CurrencyRepository;Lorg/openfinance/repository/AssetRepository;Lorg/openfinance/repository/LiabilityRepository;Lorg/openfinance/repository/RealEstateRepository;Lorg/openfinance/repository/RealEstateValueHistoryRepository;Lorg/openfinance/repository/PropertyStatusHistoryRepository;Lorg/openfinance/security/EncryptionService;Lorg/openfinance/service/ExchangeRateService;Lorg/openfinance/service/AccountCurrencyService;Lorg/openfinance/repository/TransactionRepository;Lorg/openfinance/repository/LiabilityTrancheRepository;Lorg/openfinance/service/DefaultCurrencyProvider;Lorg/openfinance/service/NetWorthSnapshotWriter;Lorg/openfinance/service/HistoricalAssetValuationService;)V" name="&lt;init&gt;" classAnnotationNames="org.springframework.stereotype.Service,org.springframework.transaction.annotation.Transactional" primary="true">
+      <SourceLine endBytecode="318" classname="org.openfinance.service.NetWorthService" start="76" end="76" sourcepath="org/openfinance/service/NetWorthService.java" sourcefile="NetWorthService.java" startBytecode="0" />
+      <Message>In method new org.openfinance.service.NetWorthService(NetWorthRepository, AccountRepository, CurrencyRepository, AssetRepository, LiabilityRepository, RealEstateRepository, RealEstateValueHistoryRepository, PropertyStatusHistoryRepository, EncryptionService, ExchangeRateService, AccountCurrencyService, TransactionRepository, LiabilityTrancheRepository, DefaultCurrencyProvider, NetWorthSnapshotWriter, HistoricalAssetValuationService)</Message>
     </Method>
     <Field isStatic="false" classname="org.openfinance.service.NetWorthService" signature="Lorg/openfinance/repository/TransactionRepository;" name="transactionRepository" classAnnotationNames="org.springframework.stereotype.Service,org.springframework.transaction.annotation.Transactional" primary="true">
       <SourceLine classname="org.openfinance.service.NetWorthService" sourcepath="org/openfinance/service/NetWorthService.java" sourcefile="NetWorthService.java">
@@ -28774,6 +28778,85 @@
     </LocalVariable>
     <SourceLine endBytecode="6" classname="org.openfinance.service.UnusualTransactionDetectionService" start="57" end="57" sourcepath="org/openfinance/service/UnusualTransactionDetectionService.java" sourcefile="UnusualTransactionDetectionService.java" startBytecode="6" primary="true">
       <Message>At UnusualTransactionDetectionService.java:[line 57]</Message>
+    </SourceLine>
+  </BugInstance>
+  <!-- Spring-managed repositories and services are intentionally shared constructor dependencies. -->
+  <BugInstance instanceOccurrenceNum="0" instanceHash="b32126a03ef694aa7d48ef6fd77f580a" cweid="374" rank="18" abbrev="EI2" category="MALICIOUS_CODE" priority="2" type="EI_EXPOSE_REP2" instanceOccurrenceMax="0">
+    <ShortMessage>May expose internal representation by incorporating reference to mutable object</ShortMessage>
+    <LongMessage>new org.openfinance.service.AssetPriceHistoryWriter(AssetPriceHistoryRepository, NetWorthRepository) may expose internal representation by storing an externally mutable object into AssetPriceHistoryWriter.snapshots</LongMessage>
+    <Class classname="org.openfinance.service.AssetPriceHistoryWriter" classAnnotationNames="org.springframework.stereotype.Service" primary="true">
+      <SourceLine classname="org.openfinance.service.AssetPriceHistoryWriter" start="20" end="101" sourcepath="org/openfinance/service/AssetPriceHistoryWriter.java" sourcefile="AssetPriceHistoryWriter.java">
+        <Message>At AssetPriceHistoryWriter.java:[lines 20-101]</Message>
+      </SourceLine>
+      <Message>In class org.openfinance.service.AssetPriceHistoryWriter</Message>
+    </Class>
+    <Method isStatic="false" classname="org.openfinance.service.AssetPriceHistoryWriter" signature="(Lorg/openfinance/repository/AssetPriceHistoryRepository;Lorg/openfinance/repository/NetWorthRepository;)V" name="&lt;init&gt;" classAnnotationNames="org.springframework.stereotype.Service" primary="true">
+      <SourceLine endBytecode="76" classname="org.openfinance.service.AssetPriceHistoryWriter" start="20" end="20" sourcepath="org/openfinance/service/AssetPriceHistoryWriter.java" sourcefile="AssetPriceHistoryWriter.java" startBytecode="0" />
+      <Message>In method new org.openfinance.service.AssetPriceHistoryWriter(AssetPriceHistoryRepository, NetWorthRepository)</Message>
+    </Method>
+    <Field isStatic="false" classname="org.openfinance.service.AssetPriceHistoryWriter" signature="Lorg/openfinance/repository/NetWorthRepository;" name="snapshots" classAnnotationNames="org.springframework.stereotype.Service" primary="true">
+      <SourceLine classname="org.openfinance.service.AssetPriceHistoryWriter" sourcepath="org/openfinance/service/AssetPriceHistoryWriter.java" sourcefile="AssetPriceHistoryWriter.java">
+        <Message>In AssetPriceHistoryWriter.java</Message>
+      </SourceLine>
+      <Message>Field org.openfinance.service.AssetPriceHistoryWriter.snapshots</Message>
+    </Field>
+    <LocalVariable role="LOCAL_VARIABLE_NAMED" pc="11" name="snapshots" register="2">
+      <Message>Local variable named snapshots</Message>
+    </LocalVariable>
+    <SourceLine endBytecode="11" classname="org.openfinance.service.AssetPriceHistoryWriter" start="20" end="20" sourcepath="org/openfinance/service/AssetPriceHistoryWriter.java" sourcefile="AssetPriceHistoryWriter.java" startBytecode="11" primary="true">
+      <Message>At AssetPriceHistoryWriter.java:[line 20]</Message>
+    </SourceLine>
+  </BugInstance>
+  <BugInstance instanceOccurrenceNum="0" instanceHash="7ebb1c52659c0aa4a0a21da5403552c1" cweid="374" rank="18" abbrev="EI2" category="MALICIOUS_CODE" priority="2" type="EI_EXPOSE_REP2" instanceOccurrenceMax="0">
+    <ShortMessage>May expose internal representation by incorporating reference to mutable object</ShortMessage>
+    <LongMessage>new org.openfinance.service.HistoricalAssetValuationServiceImpl(AssetPriceHistoryRepository, AssetPriceHistoryWriter, MarketDataService, ExchangeRateService) may expose internal representation by storing an externally mutable object into HistoricalAssetValuationServiceImpl.exchangeRates</LongMessage>
+    <Class classname="org.openfinance.service.HistoricalAssetValuationServiceImpl" classAnnotationNames="org.springframework.stereotype.Service,org.springframework.transaction.annotation.Transactional" primary="true">
+      <SourceLine classname="org.openfinance.service.HistoricalAssetValuationServiceImpl" start="27" end="161" sourcepath="org/openfinance/service/HistoricalAssetValuationServiceImpl.java" sourcefile="HistoricalAssetValuationServiceImpl.java">
+        <Message>At HistoricalAssetValuationServiceImpl.java:[lines 27-161]</Message>
+      </SourceLine>
+      <Message>In class org.openfinance.service.HistoricalAssetValuationServiceImpl</Message>
+    </Class>
+    <Method isStatic="false" classname="org.openfinance.service.HistoricalAssetValuationServiceImpl" signature="(Lorg/openfinance/repository/AssetPriceHistoryRepository;Lorg/openfinance/service/AssetPriceHistoryWriter;Lorg/openfinance/service/MarketDataService;Lorg/openfinance/service/ExchangeRateService;)V" name="&lt;init&gt;" classAnnotationNames="org.springframework.stereotype.Service,org.springframework.transaction.annotation.Transactional" primary="true">
+      <SourceLine endBytecode="144" classname="org.openfinance.service.HistoricalAssetValuationServiceImpl" start="27" end="27" sourcepath="org/openfinance/service/HistoricalAssetValuationServiceImpl.java" sourcefile="HistoricalAssetValuationServiceImpl.java" startBytecode="0" />
+      <Message>In method new org.openfinance.service.HistoricalAssetValuationServiceImpl(AssetPriceHistoryRepository, AssetPriceHistoryWriter, MarketDataService, ExchangeRateService)</Message>
+    </Method>
+    <Field isStatic="false" classname="org.openfinance.service.HistoricalAssetValuationServiceImpl" signature="Lorg/openfinance/service/ExchangeRateService;" name="exchangeRates" classAnnotationNames="org.springframework.stereotype.Service,org.springframework.transaction.annotation.Transactional" primary="true">
+      <SourceLine classname="org.openfinance.service.HistoricalAssetValuationServiceImpl" sourcepath="org/openfinance/service/HistoricalAssetValuationServiceImpl.java" sourcefile="HistoricalAssetValuationServiceImpl.java">
+        <Message>In HistoricalAssetValuationServiceImpl.java</Message>
+      </SourceLine>
+      <Message>Field org.openfinance.service.HistoricalAssetValuationServiceImpl.exchangeRates</Message>
+    </Field>
+    <LocalVariable role="LOCAL_VARIABLE_NAMED" pc="47" name="exchangeRates" register="4">
+      <Message>Local variable named exchangeRates</Message>
+    </LocalVariable>
+    <SourceLine endBytecode="47" classname="org.openfinance.service.HistoricalAssetValuationServiceImpl" start="27" end="27" sourcepath="org/openfinance/service/HistoricalAssetValuationServiceImpl.java" sourcefile="HistoricalAssetValuationServiceImpl.java" startBytecode="47" primary="true">
+      <Message>At HistoricalAssetValuationServiceImpl.java:[line 27]</Message>
+    </SourceLine>
+  </BugInstance>
+  <BugInstance instanceOccurrenceNum="0" instanceHash="ffc755f2e11344071ec45f1af131a756" cweid="374" rank="18" abbrev="EI2" category="MALICIOUS_CODE" priority="2" type="EI_EXPOSE_REP2" instanceOccurrenceMax="0">
+    <ShortMessage>May expose internal representation by incorporating reference to mutable object</ShortMessage>
+    <LongMessage>new org.openfinance.service.NetWorthService(NetWorthRepository, AccountRepository, CurrencyRepository, AssetRepository, LiabilityRepository, RealEstateRepository, RealEstateValueHistoryRepository, PropertyStatusHistoryRepository, EncryptionService, ExchangeRateService, AccountCurrencyService, TransactionRepository, LiabilityTrancheRepository, DefaultCurrencyProvider, NetWorthSnapshotWriter, HistoricalAssetValuationService) may expose internal representation by storing an externally mutable object into NetWorthService.snapshotWriter</LongMessage>
+    <Class classname="org.openfinance.service.NetWorthService" classAnnotationNames="org.springframework.stereotype.Service,org.springframework.transaction.annotation.Transactional" primary="true">
+      <SourceLine classname="org.openfinance.service.NetWorthService" start="76" end="1285" sourcepath="org/openfinance/service/NetWorthService.java" sourcefile="NetWorthService.java">
+        <Message>At NetWorthService.java:[lines 76-1285]</Message>
+      </SourceLine>
+      <Message>In class org.openfinance.service.NetWorthService</Message>
+    </Class>
+    <Method isStatic="false" classname="org.openfinance.service.NetWorthService" signature="(Lorg/openfinance/repository/NetWorthRepository;Lorg/openfinance/repository/AccountRepository;Lorg/openfinance/repository/CurrencyRepository;Lorg/openfinance/repository/AssetRepository;Lorg/openfinance/repository/LiabilityRepository;Lorg/openfinance/repository/RealEstateRepository;Lorg/openfinance/repository/RealEstateValueHistoryRepository;Lorg/openfinance/repository/PropertyStatusHistoryRepository;Lorg/openfinance/security/EncryptionService;Lorg/openfinance/service/ExchangeRateService;Lorg/openfinance/service/AccountCurrencyService;Lorg/openfinance/repository/TransactionRepository;Lorg/openfinance/repository/LiabilityTrancheRepository;Lorg/openfinance/service/DefaultCurrencyProvider;Lorg/openfinance/service/NetWorthSnapshotWriter;Lorg/openfinance/service/HistoricalAssetValuationService;)V" name="&lt;init&gt;" classAnnotationNames="org.springframework.stereotype.Service,org.springframework.transaction.annotation.Transactional" primary="true">
+      <SourceLine endBytecode="318" classname="org.openfinance.service.NetWorthService" start="76" end="76" sourcepath="org/openfinance/service/NetWorthService.java" sourcefile="NetWorthService.java" startBytecode="0" />
+      <Message>In method new org.openfinance.service.NetWorthService(NetWorthRepository, AccountRepository, CurrencyRepository, AssetRepository, LiabilityRepository, RealEstateRepository, RealEstateValueHistoryRepository, PropertyStatusHistoryRepository, EncryptionService, ExchangeRateService, AccountCurrencyService, TransactionRepository, LiabilityTrancheRepository, DefaultCurrencyProvider, NetWorthSnapshotWriter, HistoricalAssetValuationService)</Message>
+    </Method>
+    <Field isStatic="false" classname="org.openfinance.service.NetWorthService" signature="Lorg/openfinance/service/NetWorthSnapshotWriter;" name="snapshotWriter" classAnnotationNames="org.springframework.stereotype.Service,org.springframework.transaction.annotation.Transactional" primary="true">
+      <SourceLine classname="org.openfinance.service.NetWorthService" sourcepath="org/openfinance/service/NetWorthService.java" sourcefile="NetWorthService.java">
+        <Message>In NetWorthService.java</Message>
+      </SourceLine>
+      <Message>Field org.openfinance.service.NetWorthService.snapshotWriter</Message>
+    </Field>
+    <LocalVariable role="LOCAL_VARIABLE_NAMED" pc="99" name="snapshotWriter" register="15">
+      <Message>Local variable named snapshotWriter</Message>
+    </LocalVariable>
+    <SourceLine endBytecode="99" classname="org.openfinance.service.NetWorthService" start="76" end="76" sourcepath="org/openfinance/service/NetWorthService.java" sourcefile="NetWorthService.java" startBytecode="99" primary="true">
+      <Message>At NetWorthService.java:[line 76]</Message>
     </SourceLine>
   </BugInstance>
 </BugCollection>

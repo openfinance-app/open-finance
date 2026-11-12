@@ -59,6 +59,10 @@ public class NetWorth {
     @Column(name = "snapshot_date", nullable = false)
     private LocalDate snapshotDate;
 
+    /** Rebuilt from dated records, rather than observed on the snapshot date. */
+    @Column(nullable = false)
+    private boolean reconstructed;
+
     /**
      * Total value of all assets at snapshot date. Includes cash, investments, property, etc.
      * converted to base currency.

@@ -25,6 +25,7 @@ public class ImportedInvestmentServiceImpl implements ImportedInvestmentService 
     private final AssetRepository assets;
     private final TransactionRepository transactions;
     private final AccountCurrencyService accountCurrency;
+    private final AssetPriceHistoryWriter priceHistory;
 
     @Override
     public void prepare(Transaction transaction, ImportedTransaction source) {
@@ -53,6 +54,13 @@ public class ImportedInvestmentServiceImpl implements ImportedInvestmentService 
             asset.setLastUpdated(transaction.getDate().atStartOfDay());
         }
         transaction.setAssetId(assets.save(asset).getId());
+        priceHistory.record(
+                asset.getUserId(),
+                asset,
+                transaction.getDate(),
+                source.getInvestmentPrice(),
+                currency,
+                "TRADE");
     }
 
     private Asset newSecurityAsset(
@@ -108,6 +116,19 @@ public class ImportedInvestmentServiceImpl implements ImportedInvestmentService 
                             .toList();
             if (persisted.isEmpty() && source.openingQuantity().signum() == 0) continue;
             Asset asset = findOrCreate(source, accountId, userId);
+            priceHistory.recordAll(
+                    userId,
+                    asset,
+                    source.prices().stream()
+                            .map(
+                                    price ->
+                                            org.openfinance.dto.HistoricalPrice.builder()
+                                                    .date(price.date())
+                                                    .close(price.price())
+                                                    .currency(price.currency())
+                                                    .build())
+                            .toList(),
+                    "SKROOGE");
             for (Transaction transaction : persisted) {
                 ImportedTransaction sourceRow = sourceRows.get(transaction.getExternalReference());
                 transaction.setAssetId(asset.getId());

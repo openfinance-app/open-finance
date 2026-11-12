@@ -54,6 +54,7 @@ public class MarketDataService {
     private final MarketDataProvider marketDataProvider;
     private final AssetRepository assetRepository;
     private final ExchangeRateService exchangeRateService;
+    private final AssetPriceHistoryWriter priceHistory;
 
     /**
      * Converts a quote's price into the asset's own currency.
@@ -206,6 +207,15 @@ public class MarketDataService {
             asset.setSymbol(symbol);
             asset.setLastUpdated(LocalDateTime.now());
             assetRepository.save(asset);
+            priceHistory.record(
+                    asset.getUserId(),
+                    asset,
+                    quote.getTimestamp() == null
+                            ? LocalDate.now()
+                            : quote.getTimestamp().toLocalDate(),
+                    quote.getPrice(),
+                    quote.getCurrency(),
+                    "MARKET");
 
             log.info(
                     "Updated asset {} ({}) price: {} -> {}",
@@ -316,6 +326,15 @@ public class MarketDataService {
                     asset.setCurrentPrice(convertedPrice);
                     asset.setValuationRemainder(BigDecimal.ZERO);
                     asset.setLastUpdated(now);
+                    priceHistory.record(
+                            userId,
+                            asset,
+                            quote.getTimestamp() == null
+                                    ? LocalDate.now()
+                                    : quote.getTimestamp().toLocalDate(),
+                            quote.getPrice(),
+                            quote.getCurrency(),
+                            "MARKET");
                     // Persist the normalized symbol so future lookups work correctly
                     if (!normalizedSymbol.equals(asset.getSymbol())) {
                         asset.setSymbol(normalizedSymbol);

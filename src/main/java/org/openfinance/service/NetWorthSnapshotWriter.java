@@ -70,6 +70,7 @@ public class NetWorthSnapshotWriter {
             snapshot.setNetWorth(netWorth);
             snapshot.setCurrency(baseCurrency);
             snapshot.setCurrencyId(currencyId);
+            snapshot.setReconstructed(false);
             log.debug("Updating existing net worth snapshot: id={}", snapshot.getId());
         } else {
             snapshot =
@@ -94,5 +95,23 @@ public class NetWorthSnapshotWriter {
                 saved.getNetWorth(),
                 baseCurrency);
         return saved;
+    }
+
+    @Transactional
+    public NetWorth saveReconstructed(Long userId, NetWorth snapshot) {
+        if (!userId.equals(snapshot.getUserId()))
+            throw new IllegalArgumentException("Snapshot owner mismatch");
+        Optional<NetWorth> existing =
+                netWorthRepository.findByUserIdAndSnapshotDate(
+                        snapshot.getUserId(), snapshot.getSnapshotDate());
+        if (existing.isPresent() && !existing.get().isReconstructed()) return existing.get();
+        existing.ifPresent(value -> snapshot.setId(value.getId()));
+        snapshot.setReconstructed(!snapshot.getSnapshotDate().equals(LocalDate.now()));
+        return netWorthRepository.save(snapshot);
+    }
+
+    @Transactional
+    public int deleteRange(Long userId, LocalDate from, LocalDate to) {
+        return netWorthRepository.deleteByUserIdAndSnapshotDateBetween(userId, from, to);
     }
 }

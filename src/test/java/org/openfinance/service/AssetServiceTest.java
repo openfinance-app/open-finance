@@ -81,6 +81,8 @@ class AssetServiceTest {
 
     @Mock private org.openfinance.repository.TransactionRepository transactionRepository;
 
+    @Mock private AssetPriceHistoryWriter priceHistory;
+
     @InjectMocks private AssetService assetService;
 
     private LocalDate purchaseDate;

@@ -137,4 +137,9 @@ public interface NetWorthRepository extends JpaRepository<NetWorth, Long> {
      * @return total number of snapshots
      */
     long countByUserId(Long userId);
+
+    @Modifying
+    @Query(
+            "DELETE FROM NetWorth nw WHERE nw.userId = :userId AND nw.reconstructed = true AND nw.snapshotDate >= :date")
+    int deleteReconstructedFrom(@Param("userId") Long userId, @Param("date") LocalDate date);
 }

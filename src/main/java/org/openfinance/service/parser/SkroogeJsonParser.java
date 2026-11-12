@@ -1480,6 +1480,20 @@ public class SkroogeJsonParser {
                         || textValue(unit, "t_source").toLowerCase(Locale.ROOT).contains("coin");
         String symbol = textValue(unit, "t_internet_code");
         if (symbol.isBlank()) symbol = textValue(unit, "t_symbol");
+        List<SkroogeImportMetadata.SkroogePrice> history =
+                quotes.keySet().stream()
+                        .filter(date -> !date.isAfter(LocalDate.now()))
+                        .map(
+                                date ->
+                                        historicalUnitPrice(
+                                                unitId,
+                                                date,
+                                                account.getCurrency(),
+                                                units,
+                                                prices,
+                                                new HashSet<>()))
+                        .filter(Objects::nonNull)
+                        .toList();
         return new SkroogeImportMetadata.SkroogeHolding(
                 account.getSourceId(),
                 unitId,
@@ -1493,7 +1507,37 @@ public class SkroogeJsonParser {
                 openingPrice,
                 account.getOpeningDate(),
                 price,
-                latest == null ? null : latest.getKey());
+                latest == null ? null : latest.getKey(),
+                history);
+    }
+
+    /** Preserve dated quotes in their native fiat currency, including crypto-type units. */
+    private SkroogeImportMetadata.SkroogePrice historicalUnitPrice(
+            Long unitId,
+            LocalDate date,
+            String fallbackCurrency,
+            Map<Long, JsonNode> units,
+            Map<Long, TreeMap<LocalDate, BigDecimal>> prices,
+            Set<Long> visited) {
+        JsonNode unit = units.get(unitId);
+        if (unit == null || !visited.add(unitId)) return null;
+        String currency = resolveCurrencyCode(unit, units);
+        if (!isInvestmentUnit(unit) && currency != null) {
+            return new SkroogeImportMetadata.SkroogePrice(date, BigDecimal.ONE, currency);
+        }
+        Map.Entry<LocalDate, BigDecimal> quote =
+                prices.getOrDefault(unitId, new TreeMap<>()).floorEntry(date);
+        if (quote == null) return null;
+        Long parentId = longValue(unit, "rd_unit_id");
+        if (parentId == null || parentId == 0L) {
+            return new SkroogeImportMetadata.SkroogePrice(date, quote.getValue(), fallbackCurrency);
+        }
+        SkroogeImportMetadata.SkroogePrice parent =
+                historicalUnitPrice(parentId, date, fallbackCurrency, units, prices, visited);
+        return parent == null
+                ? null
+                : new SkroogeImportMetadata.SkroogePrice(
+                        date, quote.getValue().multiply(parent.price()), parent.currency());
     }
 
     /**

@@ -31,6 +31,46 @@ class SkroogeJsonParserTest {
     }
 
     @ParameterizedTest
+    @ValueSource(strings = {"S", "C", "O"})
+    @DisplayName("Historical share and crypto quotes retain their dates and native currency")
+    void preservesDatedQuotesWithoutUsingLatestCryptoOrFxRates(String unitType) throws IOException {
+        String json =
+                """
+                {"account":[{"id":1,"t_name":"Investments","t_type":"A"}],
+                 "unit":[{"id":1,"t_name":"Euro (EUR)","t_type":"1"},
+                         {"id":2,"t_name":"Dollar (USD)","t_type":"2","rd_unit_id":1},
+                         {"id":3,"t_name":"Coin","t_symbol":"COIN","t_type":"%s","rd_unit_id":2}],
+                 "operation":[{"id":1,"rd_account_id":1,"rc_unit_id":3,"d_date":"2024-11-13","t_mode":"Buy"}],
+                 "suboperation":[{"id":1,"rd_operation_id":1,"f_value":"10"}],
+                 "unitvalue":[{"id":1,"rd_unit_id":2,"d_date":"2024-11-13","f_quantity":"0.90"},
+                              {"id":2,"rd_unit_id":2,"d_date":"2025-01-01","f_quantity":"0.95"},
+                              {"id":3,"rd_unit_id":3,"d_date":"2024-11-13","f_quantity":"1.25"},
+                              {"id":4,"rd_unit_id":3,"d_date":"2025-01-01","f_quantity":"0.30"},
+                              {"id":5,"rd_unit_id":3,"d_date":"2099-01-01","f_quantity":"999"}]}
+                """
+                        .formatted(unitType);
+        SkroogeImportParseResult result =
+                parser.parseFile(
+                        new ByteArrayInputStream(json.getBytes(StandardCharsets.UTF_8)),
+                        "history.json");
+        assertThat(result.getSkroogeMetadata().getHoldings())
+                .singleElement()
+                .satisfies(
+                        holding -> {
+                            assertThat(holding.prices())
+                                    .containsExactly(
+                                            new SkroogeImportMetadata.SkroogePrice(
+                                                    LocalDate.of(2024, 11, 13),
+                                                    new BigDecimal("1.25"),
+                                                    "USD"),
+                                            new SkroogeImportMetadata.SkroogePrice(
+                                                    LocalDate.of(2025, 1, 1),
+                                                    new BigDecimal("0.30"),
+                                                    "USD"));
+                        });
+    }
+
+    @ParameterizedTest
     @ValueSource(strings = {"0.123456789012345678", "\"0.123456789012345678\""})
     @DisplayName("Skrooge numeric and quoted quantities retain eighteen decimals")
     void shouldPreserveExactJsonAmounts(String value) throws IOException {

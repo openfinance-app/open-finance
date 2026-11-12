@@ -70,6 +70,7 @@ class NetWorthServiceBackfillTest {
     @Mock private CurrencyRepository currencyRepository;
     @Mock private DefaultCurrencyProvider defaultCurrencyProvider;
     @Mock private NetWorthSnapshotWriter snapshotWriter;
+    @Mock private HistoricalAssetValuationService historicalAssetValuation;
 
     @Mock
     private org.openfinance.repository.PropertyStatusHistoryRepository
@@ -81,6 +82,25 @@ class NetWorthServiceBackfillTest {
 
     @BeforeEach
     void setUp() {
+        org.mockito.Mockito.lenient()
+                .when(snapshotWriter.saveReconstructed(any(), any()))
+                .thenAnswer(call -> netWorthRepository.save(call.getArgument(1)));
+        org.mockito.Mockito.lenient()
+                .when(snapshotWriter.deleteRange(any(), any(), any()))
+                .thenAnswer(
+                        call ->
+                                netWorthRepository.deleteByUserIdAndSnapshotDateBetween(
+                                        call.getArgument(0),
+                                        call.getArgument(1),
+                                        call.getArgument(2)));
+        org.mockito.Mockito.lenient()
+                .when(historicalAssetValuation.valueAt(any(), any(), any(), any()))
+                .thenAnswer(
+                        call -> {
+                            org.openfinance.entity.Asset asset = call.getArgument(0);
+                            return asset.getQuantity().multiply(asset.getPurchasePrice());
+                        });
+
         org.mockito.Mockito.lenient()
                 .when(accountCurrencyService.historicalPosition(any(), any(), any(), any()))
                 .thenAnswer(

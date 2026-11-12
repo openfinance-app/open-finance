@@ -97,6 +97,7 @@ public class AssetService {
     private final UserRepository userRepository;
     private final ExchangeRateService exchangeRateService;
     private final NetWorthRepository netWorthRepository;
+    private final AssetPriceHistoryWriter priceHistory;
     private final OperationHistoryService operationHistoryService;
     private final SearchTokenService searchTokenService;
     private final AttachmentService attachmentService;
@@ -196,6 +197,13 @@ public class AssetService {
 
         // Save to database
         Asset savedAsset = assetRepository.save(asset);
+        priceHistory.record(
+                userId,
+                savedAsset,
+                LocalDate.now(),
+                savedAsset.getCurrentPrice(),
+                savedAsset.getCurrency(),
+                "MANUAL");
         indexAssetSearchTokens(savedAsset, request.getName());
         log.info(
                 "Asset created successfully: id={}, userId={}, type={}, symbol={}",
@@ -512,9 +520,19 @@ public class AssetService {
 
         // Save changes
         Asset updatedAsset = assetRepository.save(asset);
+        if (request.getCurrentPrice() != null) {
+            priceHistory.record(
+                    userId,
+                    updatedAsset,
+                    LocalDate.now(),
+                    updatedAsset.getCurrentPrice(),
+                    updatedAsset.getCurrency(),
+                    "MANUAL");
+        }
         indexAssetSearchTokens(updatedAsset, request.getName());
         log.info("Asset updated successfully: id={}, userId={}", assetId, userId);
-        // Invalidate snapshots from the earliest affected purchase date onward
+        // Today's financial quote must not erase previously observed valuations.
+        // Changes to holdings/acquisition inputs still require historical reconstruction.
         LocalDate newPurchaseDate = updatedAsset.getPurchaseDate();
         LocalDate cutoff =
                 (oldPurchaseDate != null
@@ -522,7 +540,12 @@ public class AssetService {
                                         || oldPurchaseDate.isBefore(newPurchaseDate)))
                         ? oldPurchaseDate
                         : newPurchaseDate;
-        invalidateSnapshotsFrom(userId, cutoff);
+        if (historicalInputsChanged(beforeAssetSnapshot, updatedAsset)) {
+            invalidateSnapshotsFrom(userId, cutoff);
+        } else {
+            netWorthRepository.deleteByUserIdAndSnapshotDateBetween(
+                    userId, LocalDate.now(), LocalDate.now());
+        }
 
         // Decrypt and return response with calculated fields
         AssetResponse assetUpdateResponse = toResponseWithDecryption(updatedAsset);
@@ -1540,6 +1563,19 @@ public class AssetService {
      */
     private String resolveBaseCurrency(Long userId) {
         return defaultCurrencyProvider.resolveForUser(userId);
+    }
+
+    private boolean historicalInputsChanged(AssetResponse before, Asset after) {
+        return after.isPhysical()
+                || after.getType() == AssetType.REAL_ESTATE
+                || before.getType() != after.getType()
+                || before.getAcquisitionType() != after.getAcquisitionType()
+                || !java.util.Objects.equals(before.getAccountId(), after.getAccountId())
+                || !java.util.Objects.equals(before.getCurrency(), after.getCurrency())
+                || !java.util.Objects.equals(before.getSymbol(), after.getSymbol())
+                || !java.util.Objects.equals(before.getPurchaseDate(), after.getPurchaseDate())
+                || before.getQuantity().compareTo(after.getQuantity()) != 0
+                || before.getPurchasePrice().compareTo(after.getPurchasePrice()) != 0;
     }
 
     /**

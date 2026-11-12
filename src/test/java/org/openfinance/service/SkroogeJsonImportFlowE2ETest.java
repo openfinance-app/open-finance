@@ -68,6 +68,9 @@ class SkroogeJsonImportFlowE2ETest {
     private static final BigDecimal TOLERANCE = new BigDecimal("0.01");
 
     @MockBean private ExchangeRateService exchangeRateService;
+    @MockBean private org.openfinance.provider.MarketDataProvider marketData;
+    // Scheduled refreshes must not race fixture cleanup and registration at the top of the hour.
+    @MockBean private org.openfinance.scheduler.MarketDataScheduler marketDataScheduler;
     @MockBean private OperationHistoryService operationHistoryService;
 
     @Autowired private UserService userService;
@@ -90,6 +93,151 @@ class SkroogeJsonImportFlowE2ETest {
     @Autowired private AssetService assetService;
     @Autowired private org.openfinance.repository.InterestRateVariationRepository interestRates;
     @Autowired private org.openfinance.repository.CurrencyRepository currencies;
+    @Autowired private org.openfinance.repository.AssetPriceHistoryRepository priceHistory;
+    @Autowired private AssetPriceHistoryWriter priceWriter;
+    @Autowired private org.openfinance.repository.NetWorthRepository snapshots;
+
+    @Test
+    void reconstructsDatedMarketValueWithoutChangingOpeningDatesOrUsingLaterSalesAndPrices()
+            throws Exception {
+        ImportSession session =
+                importData(
+                        "dated-holdings.json",
+                        datedHoldingsJson().getBytes(StandardCharsets.UTF_8));
+        assertThat(session.getStatus()).isEqualTo(ImportStatus.COMPLETED);
+        assertThat(session.getErrorCount()).isZero();
+        Asset doge = assets.findByUserId(userId).getFirst();
+        assertThat(doge.getQuantity()).isEqualByComparingTo("48.3529383");
+        assertThat(doge.getPurchaseDate()).isEqualTo(LocalDate.of(2024, 11, 13));
+        assertThat(priceHistory.findByAssetIdAndUserIdOrderByPriceDateAsc(doge.getId(), userId))
+                .hasSize(4);
+        Account undated =
+                accountRepository.findByUserId(userId).stream()
+                        .filter(account -> account.getName().equals("Undated loan"))
+                        .findFirst()
+                        .orElseThrow();
+        assertThat(undated.getOpeningDate()).isEqualTo(LocalDate.now());
+        assertThat(undated.getOpeningBalance()).isEqualByComparingTo("744.95");
+
+        LocalDate yearEnd = LocalDate.of(2024, 12, 31);
+        netWorth.backfillNetWorthHistory(userId, yearEnd, yearEnd, "EUR", true);
+        assertThat(
+                        snapshots
+                                .findByUserIdAndSnapshotDate(userId, yearEnd)
+                                .orElseThrow()
+                                .getNetWorth())
+                .isEqualByComparingTo("62.522240163947");
+
+        assetService.updateAsset(
+                doge.getId(),
+                userId,
+                org.openfinance.dto.AssetRequest.builder()
+                        .currentPrice(new BigDecimal("999"))
+                        .build());
+        assertThat(snapshots.findByUserIdAndSnapshotDate(userId, yearEnd)).isPresent();
+        netWorth.backfillNetWorthHistory(userId, yearEnd, yearEnd, "EUR", true);
+        assertThat(
+                        snapshots
+                                .findByUserIdAndSnapshotDate(userId, yearEnd)
+                                .orElseThrow()
+                                .getNetWorth())
+                .isEqualByComparingTo("62.522240163947");
+        assertThat(accountRepository.findById(undated.getId()).orElseThrow().getOpeningDate())
+                .isEqualTo(LocalDate.now());
+    }
+
+    @Test
+    void historicalQuoteCorrectionsRebuildDerivedSnapshotsAndPreserveObservedSnapshots()
+            throws Exception {
+        importData("dated-holdings.json", datedHoldingsJson().getBytes(StandardCharsets.UTF_8));
+        Asset doge = assets.findByUserId(userId).getFirst();
+        LocalDate yearEnd = LocalDate.of(2024, 12, 31);
+        netWorth.backfillNetWorthHistory(userId, yearEnd, yearEnd, "EUR", true);
+        org.openfinance.entity.NetWorth observed =
+                org.openfinance.entity.NetWorth.builder()
+                        .userId(userId)
+                        .snapshotDate(yearEnd.minusDays(1))
+                        .totalAssets(new BigDecimal("80"))
+                        .totalLiabilities(BigDecimal.ZERO)
+                        .netWorth(new BigDecimal("80"))
+                        .currency("EUR")
+                        .build();
+        snapshots.saveAndFlush(observed);
+        priceWriter.record(
+                userId, doge, yearEnd.minusDays(4), new BigDecimal("0.30"), "EUR", "MANUAL");
+        assertThat(snapshots.findByUserIdAndSnapshotDate(userId, yearEnd)).isEmpty();
+        assertThat(snapshots.findByUserIdAndSnapshotDate(userId, yearEnd.minusDays(1))).isPresent();
+        netWorth.backfillNetWorthHistory(userId, yearEnd, yearEnd, "EUR");
+        assertThat(
+                        snapshots
+                                .findByUserIdAndSnapshotDate(userId, yearEnd)
+                                .orElseThrow()
+                                .getNetWorth())
+                .isEqualByComparingTo("62.913");
+    }
+
+    private String datedHoldingsJson() {
+        return """
+                {"account":[{"id":1,"t_name":"Doge","t_type":"A","t_close":true},
+                            {"id":2,"t_name":"Undated loan","t_type":"C","t_close":false}],
+                 "unit":[{"id":1,"t_name":"Euro (EUR)","t_symbol":"EUR","t_type":"1"},
+                         {"id":2,"t_name":"Dogecoin","t_symbol":"DOGE","t_type":"S","rd_unit_id":1}],
+                 "payee":[{"id":1,"t_name":"Broker"}],
+                 "operation":[{"id":1,"rd_account_id":1,"rc_unit_id":2,"d_date":"0000-00-00"},
+                              {"id":2,"rd_account_id":1,"rc_unit_id":2,"d_date":"2024-11-13","r_payee_id":1,"t_mode":"Buy"},
+                              {"id":3,"rd_account_id":1,"rc_unit_id":2,"d_date":"2025-01-01","r_payee_id":1,"t_mode":"Sell"},
+                              {"id":4,"rd_account_id":2,"rc_unit_id":1,"d_date":"0000-00-00"}],
+                 "suboperation":[{"id":1,"rd_operation_id":1,"f_value":"0"},
+                                 {"id":2,"rd_operation_id":2,"f_value":"209.71"},
+                                 {"id":3,"rd_operation_id":3,"f_value":"-161.3570617"},
+                                 {"id":4,"rd_operation_id":4,"f_value":"744.95"}],
+                 "unitvalue":[{"id":1,"rd_unit_id":2,"d_date":"2024-11-13","f_quantity":"0.3561283785"},
+                              {"id":2,"rd_unit_id":2,"d_date":"2024-12-27","f_quantity":"0.2981366657"},
+                              {"id":3,"rd_unit_id":2,"d_date":"2025-01-01","f_quantity":"0.20"},
+                              {"id":4,"rd_unit_id":2,"d_date":"2026-01-01","f_quantity":"0.06443275927"}]}
+                """;
+    }
+
+    @Test
+    void loadsQuotesBeforeRebuildingPreviouslyCachedDatesWithZeroHoldings() throws Exception {
+        importData("dated-holdings.json", datedHoldingsJson().getBytes(StandardCharsets.UTF_8));
+        Asset doge = assets.findByUserId(userId).getFirst();
+        doge.setPurchaseDate(LocalDate.of(2022, 1, 1));
+        assets.saveAndFlush(doge);
+        priceHistory.deleteAllInBatch();
+        LocalDate start = LocalDate.of(2023, 12, 31);
+        LocalDate end = LocalDate.of(2024, 12, 31);
+        snapshots.saveAndFlush(
+                org.openfinance.entity.NetWorth.builder()
+                        .userId(userId)
+                        .snapshotDate(start)
+                        .totalAssets(BigDecimal.TEN)
+                        .totalLiabilities(BigDecimal.ZERO)
+                        .netWorth(BigDecimal.TEN)
+                        .currency("EUR")
+                        .reconstructed(true)
+                        .build());
+        org.mockito.Mockito.when(marketData.getHistoricalPrices(anyString(), any(), any()))
+                .thenReturn(
+                        List.of(
+                                org.openfinance.dto.HistoricalPrice.builder()
+                                        .date(start.minusDays(1))
+                                        .close(new BigDecimal("0.1"))
+                                        .currency("EUR")
+                                        .build(),
+                                org.openfinance.dto.HistoricalPrice.builder()
+                                        .date(end.minusDays(4))
+                                        .close(new BigDecimal("0.2981366657"))
+                                        .currency("EUR")
+                                        .build()));
+
+        netWorth.backfillNetWorthHistory(userId, start, end, "EUR");
+
+        assertThat(snapshots.findByUserIdAndSnapshotDate(userId, start).orElseThrow().getNetWorth())
+                .isZero();
+        assertThat(snapshots.findByUserIdAndSnapshotDate(userId, end).orElseThrow().getNetWorth())
+                .isEqualByComparingTo("62.522240163947");
+    }
 
     @Test
     void officialPegValuationPreservesNewlyImportedAmountsAndIncludesClosedPositions()
