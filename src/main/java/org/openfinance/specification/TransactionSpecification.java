@@ -159,8 +159,8 @@ public class TransactionSpecification {
                                 root.get("isReconciled"), criteria.getIsReconciled()));
             }
 
-            // Filter for uncategorized transactions (categoryId IS NULL)
-            if (Boolean.TRUE.equals(criteria.getNoCategory())) {
+            // Split-aware category filtering is already applied when matched IDs are provided.
+            if (matchedIds == null && Boolean.TRUE.equals(criteria.getNoCategory())) {
                 predicates.add(criteriaBuilder.isNull(root.get("categoryId")));
             }
 

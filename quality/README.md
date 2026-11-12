@@ -190,3 +190,9 @@ nine retain existing NetWorthService and OperationHistoryService collaborators u
 changed constructor signatures, and two retain the new history presenter's Spring-managed
 state store and configured ObjectMapper. These references must preserve their managed
 identity. Only these fourteen identities are added; no broad filter or gate is changed.
+
+The split-aggregation correction reviews ten exact `InsightService` constructor identities
+from a clean Java 21 build. Nine retain already-baselined Spring collaborators under the
+changed constructor signature; one retains the split repository needed to calculate category
+spending. These managed references must be shared. Existing identities remain in place;
+no package-wide or bug-type-wide filter is added.

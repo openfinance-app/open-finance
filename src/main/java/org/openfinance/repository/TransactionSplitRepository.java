@@ -89,7 +89,7 @@ public interface TransactionSplitRepository extends JpaRepository<TransactionSpl
      * @return list of matching splits
      */
     @Query(
-            "SELECT s FROM TransactionSplit s JOIN Transaction t ON s.transactionId = t.id "
+            "SELECT s FROM TransactionSplit s JOIN FETCH s.transaction t "
                     + "WHERE s.categoryId IN :categoryIds AND t.userId = :userId "
                     + "AND t.date BETWEEN :startDate AND :endDate AND t.isDeleted = false "
                     + "AND t.transferId IS NULL AND t.type IN (org.openfinance.entity.TransactionType.EXPENSE, org.openfinance.entity.TransactionType.INCOME)")

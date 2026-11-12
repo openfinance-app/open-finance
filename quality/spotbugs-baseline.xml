@@ -28451,4 +28451,264 @@
       <Message>At ImportedTransferServiceImpl.java:[line 36]</Message>
     </SourceLine>
   </BugInstance>
+  <BugInstance instanceOccurrenceNum="0" instanceHash="d426f2af351c137e4e1234c3e39cee0b" cweid="374" rank="18" abbrev="EI2" category="MALICIOUS_CODE" priority="2" type="EI_EXPOSE_REP2" instanceOccurrenceMax="0">
+    <ShortMessage>May expose internal representation by incorporating reference to mutable object</ShortMessage>
+    <LongMessage>new org.openfinance.service.InsightService(InsightRepository, InsightWriter, NetWorthService, BudgetService, AIRequestLimits, TransactionRepository, TransactionSplitRepository, BudgetRepository, AccountRepository, CategoryRepository, UserRepository, UserSettingsRepository, RecurringTransactionRepository, MessageSource, DefaultCurrencyProvider, AIProvider, ObjectMapper, ExchangeRateService, BusinessRulesProperties) may expose internal representation by storing an externally mutable object into InsightService.budgetService</LongMessage>
+    <Class classname="org.openfinance.service.InsightService" classAnnotationNames="org.springframework.stereotype.Service,org.springframework.transaction.annotation.Transactional" primary="true">
+      <SourceLine classname="org.openfinance.service.InsightService" start="70" end="1259" sourcepath="org/openfinance/service/InsightService.java" sourcefile="InsightService.java">
+        <Message>At InsightService.java:[lines 70-1259]</Message>
+      </SourceLine>
+      <Message>In class org.openfinance.service.InsightService</Message>
+    </Class>
+    <Method isStatic="false" classname="org.openfinance.service.InsightService" signature="(Lorg/openfinance/repository/InsightRepository;Lorg/openfinance/service/InsightWriter;Lorg/openfinance/service/NetWorthService;Lorg/openfinance/service/BudgetService;Lorg/openfinance/service/ai/AIRequestLimits;Lorg/openfinance/repository/TransactionRepository;Lorg/openfinance/repository/TransactionSplitRepository;Lorg/openfinance/repository/BudgetRepository;Lorg/openfinance/repository/AccountRepository;Lorg/openfinance/repository/CategoryRepository;Lorg/openfinance/repository/UserRepository;Lorg/openfinance/repository/UserSettingsRepository;Lorg/openfinance/repository/RecurringTransactionRepository;Lorg/springframework/context/MessageSource;Lorg/openfinance/service/DefaultCurrencyProvider;Lorg/openfinance/service/ai/AIProvider;Lcom/fasterxml/jackson/databind/ObjectMapper;Lorg/openfinance/service/ExchangeRateService;Lorg/openfinance/config/BusinessRulesProperties;)V" name="&lt;init&gt;" classAnnotationNames="org.springframework.stereotype.Service,org.springframework.transaction.annotation.Transactional" primary="true">
+      <SourceLine endBytecode="347" classname="org.openfinance.service.InsightService" start="70" end="70" sourcepath="org/openfinance/service/InsightService.java" sourcefile="InsightService.java" startBytecode="0" />
+      <Message>In method new org.openfinance.service.InsightService(InsightRepository, InsightWriter, NetWorthService, BudgetService, AIRequestLimits, TransactionRepository, TransactionSplitRepository, BudgetRepository, AccountRepository, CategoryRepository, UserRepository, UserSettingsRepository, RecurringTransactionRepository, MessageSource, DefaultCurrencyProvider, AIProvider, ObjectMapper, ExchangeRateService, BusinessRulesProperties)</Message>
+    </Method>
+    <Field isStatic="false" classname="org.openfinance.service.InsightService" signature="Lorg/openfinance/service/BudgetService;" name="budgetService" classAnnotationNames="org.springframework.stereotype.Service,org.springframework.transaction.annotation.Transactional" primary="true">
+      <SourceLine classname="org.openfinance.service.InsightService" sourcepath="org/openfinance/service/InsightService.java" sourcefile="InsightService.java">
+        <Message>In InsightService.java</Message>
+      </SourceLine>
+      <Message>Field org.openfinance.service.InsightService.budgetService</Message>
+    </Field>
+    <LocalVariable role="LOCAL_VARIABLE_NAMED" pc="22" name="budgetService" register="4">
+      <Message>Local variable named budgetService</Message>
+    </LocalVariable>
+    <SourceLine endBytecode="22" classname="org.openfinance.service.InsightService" start="70" end="70" sourcepath="org/openfinance/service/InsightService.java" sourcefile="InsightService.java" startBytecode="22" primary="true">
+      <Message>At InsightService.java:[line 70]</Message>
+    </SourceLine>
+  </BugInstance>
+  <BugInstance instanceOccurrenceNum="0" instanceHash="623e6e2f434596b24bf64183f0695ce2" cweid="374" rank="18" abbrev="EI2" category="MALICIOUS_CODE" priority="2" type="EI_EXPOSE_REP2" instanceOccurrenceMax="0">
+    <ShortMessage>May expose internal representation by incorporating reference to mutable object</ShortMessage>
+    <LongMessage>new org.openfinance.service.InsightService(InsightRepository, InsightWriter, NetWorthService, BudgetService, AIRequestLimits, TransactionRepository, TransactionSplitRepository, BudgetRepository, AccountRepository, CategoryRepository, UserRepository, UserSettingsRepository, RecurringTransactionRepository, MessageSource, DefaultCurrencyProvider, AIProvider, ObjectMapper, ExchangeRateService, BusinessRulesProperties) may expose internal representation by storing an externally mutable object into InsightService.businessRules</LongMessage>
+    <Class classname="org.openfinance.service.InsightService" classAnnotationNames="org.springframework.stereotype.Service,org.springframework.transaction.annotation.Transactional" primary="true">
+      <SourceLine classname="org.openfinance.service.InsightService" start="70" end="1259" sourcepath="org/openfinance/service/InsightService.java" sourcefile="InsightService.java">
+        <Message>At InsightService.java:[lines 70-1259]</Message>
+      </SourceLine>
+      <Message>In class org.openfinance.service.InsightService</Message>
+    </Class>
+    <Method isStatic="false" classname="org.openfinance.service.InsightService" signature="(Lorg/openfinance/repository/InsightRepository;Lorg/openfinance/service/InsightWriter;Lorg/openfinance/service/NetWorthService;Lorg/openfinance/service/BudgetService;Lorg/openfinance/service/ai/AIRequestLimits;Lorg/openfinance/repository/TransactionRepository;Lorg/openfinance/repository/TransactionSplitRepository;Lorg/openfinance/repository/BudgetRepository;Lorg/openfinance/repository/AccountRepository;Lorg/openfinance/repository/CategoryRepository;Lorg/openfinance/repository/UserRepository;Lorg/openfinance/repository/UserSettingsRepository;Lorg/openfinance/repository/RecurringTransactionRepository;Lorg/springframework/context/MessageSource;Lorg/openfinance/service/DefaultCurrencyProvider;Lorg/openfinance/service/ai/AIProvider;Lcom/fasterxml/jackson/databind/ObjectMapper;Lorg/openfinance/service/ExchangeRateService;Lorg/openfinance/config/BusinessRulesProperties;)V" name="&lt;init&gt;" classAnnotationNames="org.springframework.stereotype.Service,org.springframework.transaction.annotation.Transactional" primary="true">
+      <SourceLine endBytecode="347" classname="org.openfinance.service.InsightService" start="70" end="70" sourcepath="org/openfinance/service/InsightService.java" sourcefile="InsightService.java" startBytecode="0" />
+      <Message>In method new org.openfinance.service.InsightService(InsightRepository, InsightWriter, NetWorthService, BudgetService, AIRequestLimits, TransactionRepository, TransactionSplitRepository, BudgetRepository, AccountRepository, CategoryRepository, UserRepository, UserSettingsRepository, RecurringTransactionRepository, MessageSource, DefaultCurrencyProvider, AIProvider, ObjectMapper, ExchangeRateService, BusinessRulesProperties)</Message>
+    </Method>
+    <Field isStatic="false" classname="org.openfinance.service.InsightService" signature="Lorg/openfinance/config/BusinessRulesProperties;" name="businessRules" classAnnotationNames="org.springframework.stereotype.Service,org.springframework.transaction.annotation.Transactional" primary="true">
+      <SourceLine classname="org.openfinance.service.InsightService" sourcepath="org/openfinance/service/InsightService.java" sourcefile="InsightService.java">
+        <Message>In InsightService.java</Message>
+      </SourceLine>
+      <Message>Field org.openfinance.service.InsightService.businessRules</Message>
+    </Field>
+    <LocalVariable role="LOCAL_VARIABLE_NAMED" pc="112" name="businessRules" register="19">
+      <Message>Local variable named businessRules</Message>
+    </LocalVariable>
+    <SourceLine endBytecode="112" classname="org.openfinance.service.InsightService" start="70" end="70" sourcepath="org/openfinance/service/InsightService.java" sourcefile="InsightService.java" startBytecode="112" primary="true">
+      <Message>At InsightService.java:[line 70]</Message>
+    </SourceLine>
+  </BugInstance>
+  <BugInstance instanceOccurrenceNum="0" instanceHash="d42f533a0432a8b28c9bec73c3f0e93b" cweid="374" rank="18" abbrev="EI2" category="MALICIOUS_CODE" priority="2" type="EI_EXPOSE_REP2" instanceOccurrenceMax="0">
+    <ShortMessage>May expose internal representation by incorporating reference to mutable object</ShortMessage>
+    <LongMessage>new org.openfinance.service.InsightService(InsightRepository, InsightWriter, NetWorthService, BudgetService, AIRequestLimits, TransactionRepository, TransactionSplitRepository, BudgetRepository, AccountRepository, CategoryRepository, UserRepository, UserSettingsRepository, RecurringTransactionRepository, MessageSource, DefaultCurrencyProvider, AIProvider, ObjectMapper, ExchangeRateService, BusinessRulesProperties) may expose internal representation by storing an externally mutable object into InsightService.exchangeRateService</LongMessage>
+    <Class classname="org.openfinance.service.InsightService" classAnnotationNames="org.springframework.stereotype.Service,org.springframework.transaction.annotation.Transactional" primary="true">
+      <SourceLine classname="org.openfinance.service.InsightService" start="70" end="1259" sourcepath="org/openfinance/service/InsightService.java" sourcefile="InsightService.java">
+        <Message>At InsightService.java:[lines 70-1259]</Message>
+      </SourceLine>
+      <Message>In class org.openfinance.service.InsightService</Message>
+    </Class>
+    <Method isStatic="false" classname="org.openfinance.service.InsightService" signature="(Lorg/openfinance/repository/InsightRepository;Lorg/openfinance/service/InsightWriter;Lorg/openfinance/service/NetWorthService;Lorg/openfinance/service/BudgetService;Lorg/openfinance/service/ai/AIRequestLimits;Lorg/openfinance/repository/TransactionRepository;Lorg/openfinance/repository/TransactionSplitRepository;Lorg/openfinance/repository/BudgetRepository;Lorg/openfinance/repository/AccountRepository;Lorg/openfinance/repository/CategoryRepository;Lorg/openfinance/repository/UserRepository;Lorg/openfinance/repository/UserSettingsRepository;Lorg/openfinance/repository/RecurringTransactionRepository;Lorg/springframework/context/MessageSource;Lorg/openfinance/service/DefaultCurrencyProvider;Lorg/openfinance/service/ai/AIProvider;Lcom/fasterxml/jackson/databind/ObjectMapper;Lorg/openfinance/service/ExchangeRateService;Lorg/openfinance/config/BusinessRulesProperties;)V" name="&lt;init&gt;" classAnnotationNames="org.springframework.stereotype.Service,org.springframework.transaction.annotation.Transactional" primary="true">
+      <SourceLine endBytecode="347" classname="org.openfinance.service.InsightService" start="70" end="70" sourcepath="org/openfinance/service/InsightService.java" sourcefile="InsightService.java" startBytecode="0" />
+      <Message>In method new org.openfinance.service.InsightService(InsightRepository, InsightWriter, NetWorthService, BudgetService, AIRequestLimits, TransactionRepository, TransactionSplitRepository, BudgetRepository, AccountRepository, CategoryRepository, UserRepository, UserSettingsRepository, RecurringTransactionRepository, MessageSource, DefaultCurrencyProvider, AIProvider, ObjectMapper, ExchangeRateService, BusinessRulesProperties)</Message>
+    </Method>
+    <Field isStatic="false" classname="org.openfinance.service.InsightService" signature="Lorg/openfinance/service/ExchangeRateService;" name="exchangeRateService" classAnnotationNames="org.springframework.stereotype.Service,org.springframework.transaction.annotation.Transactional" primary="true">
+      <SourceLine classname="org.openfinance.service.InsightService" sourcepath="org/openfinance/service/InsightService.java" sourcefile="InsightService.java">
+        <Message>In InsightService.java</Message>
+      </SourceLine>
+      <Message>Field org.openfinance.service.InsightService.exchangeRateService</Message>
+    </Field>
+    <LocalVariable role="LOCAL_VARIABLE_NAMED" pc="106" name="exchangeRateService" register="18">
+      <Message>Local variable named exchangeRateService</Message>
+    </LocalVariable>
+    <SourceLine endBytecode="106" classname="org.openfinance.service.InsightService" start="70" end="70" sourcepath="org/openfinance/service/InsightService.java" sourcefile="InsightService.java" startBytecode="106" primary="true">
+      <Message>At InsightService.java:[line 70]</Message>
+    </SourceLine>
+  </BugInstance>
+  <BugInstance instanceOccurrenceNum="0" instanceHash="7fb5dc9f7b574cd6fa7b857c16bfa953" cweid="374" rank="18" abbrev="EI2" category="MALICIOUS_CODE" priority="2" type="EI_EXPOSE_REP2" instanceOccurrenceMax="0">
+    <ShortMessage>May expose internal representation by incorporating reference to mutable object</ShortMessage>
+    <LongMessage>new org.openfinance.service.InsightService(InsightRepository, InsightWriter, NetWorthService, BudgetService, AIRequestLimits, TransactionRepository, TransactionSplitRepository, BudgetRepository, AccountRepository, CategoryRepository, UserRepository, UserSettingsRepository, RecurringTransactionRepository, MessageSource, DefaultCurrencyProvider, AIProvider, ObjectMapper, ExchangeRateService, BusinessRulesProperties) may expose internal representation by storing an externally mutable object into InsightService.insightRepository</LongMessage>
+    <Class classname="org.openfinance.service.InsightService" classAnnotationNames="org.springframework.stereotype.Service,org.springframework.transaction.annotation.Transactional" primary="true">
+      <SourceLine classname="org.openfinance.service.InsightService" start="70" end="1259" sourcepath="org/openfinance/service/InsightService.java" sourcefile="InsightService.java">
+        <Message>At InsightService.java:[lines 70-1259]</Message>
+      </SourceLine>
+      <Message>In class org.openfinance.service.InsightService</Message>
+    </Class>
+    <Method isStatic="false" classname="org.openfinance.service.InsightService" signature="(Lorg/openfinance/repository/InsightRepository;Lorg/openfinance/service/InsightWriter;Lorg/openfinance/service/NetWorthService;Lorg/openfinance/service/BudgetService;Lorg/openfinance/service/ai/AIRequestLimits;Lorg/openfinance/repository/TransactionRepository;Lorg/openfinance/repository/TransactionSplitRepository;Lorg/openfinance/repository/BudgetRepository;Lorg/openfinance/repository/AccountRepository;Lorg/openfinance/repository/CategoryRepository;Lorg/openfinance/repository/UserRepository;Lorg/openfinance/repository/UserSettingsRepository;Lorg/openfinance/repository/RecurringTransactionRepository;Lorg/springframework/context/MessageSource;Lorg/openfinance/service/DefaultCurrencyProvider;Lorg/openfinance/service/ai/AIProvider;Lcom/fasterxml/jackson/databind/ObjectMapper;Lorg/openfinance/service/ExchangeRateService;Lorg/openfinance/config/BusinessRulesProperties;)V" name="&lt;init&gt;" classAnnotationNames="org.springframework.stereotype.Service,org.springframework.transaction.annotation.Transactional" primary="true">
+      <SourceLine endBytecode="347" classname="org.openfinance.service.InsightService" start="70" end="70" sourcepath="org/openfinance/service/InsightService.java" sourcefile="InsightService.java" startBytecode="0" />
+      <Message>In method new org.openfinance.service.InsightService(InsightRepository, InsightWriter, NetWorthService, BudgetService, AIRequestLimits, TransactionRepository, TransactionSplitRepository, BudgetRepository, AccountRepository, CategoryRepository, UserRepository, UserSettingsRepository, RecurringTransactionRepository, MessageSource, DefaultCurrencyProvider, AIProvider, ObjectMapper, ExchangeRateService, BusinessRulesProperties)</Message>
+    </Method>
+    <Field isStatic="false" classname="org.openfinance.service.InsightService" signature="Lorg/openfinance/repository/InsightRepository;" name="insightRepository" classAnnotationNames="org.springframework.stereotype.Service,org.springframework.transaction.annotation.Transactional" primary="true">
+      <SourceLine classname="org.openfinance.service.InsightService" sourcepath="org/openfinance/service/InsightService.java" sourcefile="InsightService.java">
+        <Message>In InsightService.java</Message>
+      </SourceLine>
+      <Message>Field org.openfinance.service.InsightService.insightRepository</Message>
+    </Field>
+    <LocalVariable role="LOCAL_VARIABLE_NAMED" pc="6" name="insightRepository" register="1">
+      <Message>Local variable named insightRepository</Message>
+    </LocalVariable>
+    <SourceLine endBytecode="6" classname="org.openfinance.service.InsightService" start="70" end="70" sourcepath="org/openfinance/service/InsightService.java" sourcefile="InsightService.java" startBytecode="6" primary="true">
+      <Message>At InsightService.java:[line 70]</Message>
+    </SourceLine>
+  </BugInstance>
+  <BugInstance instanceOccurrenceNum="0" instanceHash="2b418e6f015f7757cfd8a03c2d132a15" cweid="374" rank="18" abbrev="EI2" category="MALICIOUS_CODE" priority="2" type="EI_EXPOSE_REP2" instanceOccurrenceMax="0">
+    <ShortMessage>May expose internal representation by incorporating reference to mutable object</ShortMessage>
+    <LongMessage>new org.openfinance.service.InsightService(InsightRepository, InsightWriter, NetWorthService, BudgetService, AIRequestLimits, TransactionRepository, TransactionSplitRepository, BudgetRepository, AccountRepository, CategoryRepository, UserRepository, UserSettingsRepository, RecurringTransactionRepository, MessageSource, DefaultCurrencyProvider, AIProvider, ObjectMapper, ExchangeRateService, BusinessRulesProperties) may expose internal representation by storing an externally mutable object into InsightService.insightWriter</LongMessage>
+    <Class classname="org.openfinance.service.InsightService" classAnnotationNames="org.springframework.stereotype.Service,org.springframework.transaction.annotation.Transactional" primary="true">
+      <SourceLine classname="org.openfinance.service.InsightService" start="70" end="1259" sourcepath="org/openfinance/service/InsightService.java" sourcefile="InsightService.java">
+        <Message>At InsightService.java:[lines 70-1259]</Message>
+      </SourceLine>
+      <Message>In class org.openfinance.service.InsightService</Message>
+    </Class>
+    <Method isStatic="false" classname="org.openfinance.service.InsightService" signature="(Lorg/openfinance/repository/InsightRepository;Lorg/openfinance/service/InsightWriter;Lorg/openfinance/service/NetWorthService;Lorg/openfinance/service/BudgetService;Lorg/openfinance/service/ai/AIRequestLimits;Lorg/openfinance/repository/TransactionRepository;Lorg/openfinance/repository/TransactionSplitRepository;Lorg/openfinance/repository/BudgetRepository;Lorg/openfinance/repository/AccountRepository;Lorg/openfinance/repository/CategoryRepository;Lorg/openfinance/repository/UserRepository;Lorg/openfinance/repository/UserSettingsRepository;Lorg/openfinance/repository/RecurringTransactionRepository;Lorg/springframework/context/MessageSource;Lorg/openfinance/service/DefaultCurrencyProvider;Lorg/openfinance/service/ai/AIProvider;Lcom/fasterxml/jackson/databind/ObjectMapper;Lorg/openfinance/service/ExchangeRateService;Lorg/openfinance/config/BusinessRulesProperties;)V" name="&lt;init&gt;" classAnnotationNames="org.springframework.stereotype.Service,org.springframework.transaction.annotation.Transactional" primary="true">
+      <SourceLine endBytecode="347" classname="org.openfinance.service.InsightService" start="70" end="70" sourcepath="org/openfinance/service/InsightService.java" sourcefile="InsightService.java" startBytecode="0" />
+      <Message>In method new org.openfinance.service.InsightService(InsightRepository, InsightWriter, NetWorthService, BudgetService, AIRequestLimits, TransactionRepository, TransactionSplitRepository, BudgetRepository, AccountRepository, CategoryRepository, UserRepository, UserSettingsRepository, RecurringTransactionRepository, MessageSource, DefaultCurrencyProvider, AIProvider, ObjectMapper, ExchangeRateService, BusinessRulesProperties)</Message>
+    </Method>
+    <Field isStatic="false" classname="org.openfinance.service.InsightService" signature="Lorg/openfinance/service/InsightWriter;" name="insightWriter" classAnnotationNames="org.springframework.stereotype.Service,org.springframework.transaction.annotation.Transactional" primary="true">
+      <SourceLine classname="org.openfinance.service.InsightService" sourcepath="org/openfinance/service/InsightService.java" sourcefile="InsightService.java">
+        <Message>In InsightService.java</Message>
+      </SourceLine>
+      <Message>Field org.openfinance.service.InsightService.insightWriter</Message>
+    </Field>
+    <LocalVariable role="LOCAL_VARIABLE_NAMED" pc="11" name="insightWriter" register="2">
+      <Message>Local variable named insightWriter</Message>
+    </LocalVariable>
+    <SourceLine endBytecode="11" classname="org.openfinance.service.InsightService" start="70" end="70" sourcepath="org/openfinance/service/InsightService.java" sourcefile="InsightService.java" startBytecode="11" primary="true">
+      <Message>At InsightService.java:[line 70]</Message>
+    </SourceLine>
+  </BugInstance>
+  <BugInstance instanceOccurrenceNum="0" instanceHash="3e43a4aa775919588a4a81a53401d9fd" cweid="374" rank="18" abbrev="EI2" category="MALICIOUS_CODE" priority="2" type="EI_EXPOSE_REP2" instanceOccurrenceMax="0">
+    <ShortMessage>May expose internal representation by incorporating reference to mutable object</ShortMessage>
+    <LongMessage>new org.openfinance.service.InsightService(InsightRepository, InsightWriter, NetWorthService, BudgetService, AIRequestLimits, TransactionRepository, TransactionSplitRepository, BudgetRepository, AccountRepository, CategoryRepository, UserRepository, UserSettingsRepository, RecurringTransactionRepository, MessageSource, DefaultCurrencyProvider, AIProvider, ObjectMapper, ExchangeRateService, BusinessRulesProperties) may expose internal representation by storing an externally mutable object into InsightService.objectMapper</LongMessage>
+    <Class classname="org.openfinance.service.InsightService" classAnnotationNames="org.springframework.stereotype.Service,org.springframework.transaction.annotation.Transactional" primary="true">
+      <SourceLine classname="org.openfinance.service.InsightService" start="70" end="1259" sourcepath="org/openfinance/service/InsightService.java" sourcefile="InsightService.java">
+        <Message>At InsightService.java:[lines 70-1259]</Message>
+      </SourceLine>
+      <Message>In class org.openfinance.service.InsightService</Message>
+    </Class>
+    <Method isStatic="false" classname="org.openfinance.service.InsightService" signature="(Lorg/openfinance/repository/InsightRepository;Lorg/openfinance/service/InsightWriter;Lorg/openfinance/service/NetWorthService;Lorg/openfinance/service/BudgetService;Lorg/openfinance/service/ai/AIRequestLimits;Lorg/openfinance/repository/TransactionRepository;Lorg/openfinance/repository/TransactionSplitRepository;Lorg/openfinance/repository/BudgetRepository;Lorg/openfinance/repository/AccountRepository;Lorg/openfinance/repository/CategoryRepository;Lorg/openfinance/repository/UserRepository;Lorg/openfinance/repository/UserSettingsRepository;Lorg/openfinance/repository/RecurringTransactionRepository;Lorg/springframework/context/MessageSource;Lorg/openfinance/service/DefaultCurrencyProvider;Lorg/openfinance/service/ai/AIProvider;Lcom/fasterxml/jackson/databind/ObjectMapper;Lorg/openfinance/service/ExchangeRateService;Lorg/openfinance/config/BusinessRulesProperties;)V" name="&lt;init&gt;" classAnnotationNames="org.springframework.stereotype.Service,org.springframework.transaction.annotation.Transactional" primary="true">
+      <SourceLine endBytecode="347" classname="org.openfinance.service.InsightService" start="70" end="70" sourcepath="org/openfinance/service/InsightService.java" sourcefile="InsightService.java" startBytecode="0" />
+      <Message>In method new org.openfinance.service.InsightService(InsightRepository, InsightWriter, NetWorthService, BudgetService, AIRequestLimits, TransactionRepository, TransactionSplitRepository, BudgetRepository, AccountRepository, CategoryRepository, UserRepository, UserSettingsRepository, RecurringTransactionRepository, MessageSource, DefaultCurrencyProvider, AIProvider, ObjectMapper, ExchangeRateService, BusinessRulesProperties)</Message>
+    </Method>
+    <Field isStatic="false" classname="org.openfinance.service.InsightService" signature="Lcom/fasterxml/jackson/databind/ObjectMapper;" name="objectMapper" classAnnotationNames="org.springframework.stereotype.Service,org.springframework.transaction.annotation.Transactional" primary="true">
+      <SourceLine classname="org.openfinance.service.InsightService" sourcepath="org/openfinance/service/InsightService.java" sourcefile="InsightService.java">
+        <Message>In InsightService.java</Message>
+      </SourceLine>
+      <Message>Field org.openfinance.service.InsightService.objectMapper</Message>
+    </Field>
+    <LocalVariable role="LOCAL_VARIABLE_NAMED" pc="100" name="objectMapper" register="17">
+      <Message>Local variable named objectMapper</Message>
+    </LocalVariable>
+    <SourceLine endBytecode="100" classname="org.openfinance.service.InsightService" start="70" end="70" sourcepath="org/openfinance/service/InsightService.java" sourcefile="InsightService.java" startBytecode="100" primary="true">
+      <Message>At InsightService.java:[line 70]</Message>
+    </SourceLine>
+  </BugInstance>
+  <BugInstance instanceOccurrenceNum="0" instanceHash="8d47fe6eb0a7ea892ea7fcdd0bd44b5e" cweid="374" rank="18" abbrev="EI2" category="MALICIOUS_CODE" priority="2" type="EI_EXPOSE_REP2" instanceOccurrenceMax="0">
+    <ShortMessage>May expose internal representation by incorporating reference to mutable object</ShortMessage>
+    <LongMessage>new org.openfinance.service.InsightService(InsightRepository, InsightWriter, NetWorthService, BudgetService, AIRequestLimits, TransactionRepository, TransactionSplitRepository, BudgetRepository, AccountRepository, CategoryRepository, UserRepository, UserSettingsRepository, RecurringTransactionRepository, MessageSource, DefaultCurrencyProvider, AIProvider, ObjectMapper, ExchangeRateService, BusinessRulesProperties) may expose internal representation by storing an externally mutable object into InsightService.recurringTransactionRepository</LongMessage>
+    <Class classname="org.openfinance.service.InsightService" classAnnotationNames="org.springframework.stereotype.Service,org.springframework.transaction.annotation.Transactional" primary="true">
+      <SourceLine classname="org.openfinance.service.InsightService" start="70" end="1259" sourcepath="org/openfinance/service/InsightService.java" sourcefile="InsightService.java">
+        <Message>At InsightService.java:[lines 70-1259]</Message>
+      </SourceLine>
+      <Message>In class org.openfinance.service.InsightService</Message>
+    </Class>
+    <Method isStatic="false" classname="org.openfinance.service.InsightService" signature="(Lorg/openfinance/repository/InsightRepository;Lorg/openfinance/service/InsightWriter;Lorg/openfinance/service/NetWorthService;Lorg/openfinance/service/BudgetService;Lorg/openfinance/service/ai/AIRequestLimits;Lorg/openfinance/repository/TransactionRepository;Lorg/openfinance/repository/TransactionSplitRepository;Lorg/openfinance/repository/BudgetRepository;Lorg/openfinance/repository/AccountRepository;Lorg/openfinance/repository/CategoryRepository;Lorg/openfinance/repository/UserRepository;Lorg/openfinance/repository/UserSettingsRepository;Lorg/openfinance/repository/RecurringTransactionRepository;Lorg/springframework/context/MessageSource;Lorg/openfinance/service/DefaultCurrencyProvider;Lorg/openfinance/service/ai/AIProvider;Lcom/fasterxml/jackson/databind/ObjectMapper;Lorg/openfinance/service/ExchangeRateService;Lorg/openfinance/config/BusinessRulesProperties;)V" name="&lt;init&gt;" classAnnotationNames="org.springframework.stereotype.Service,org.springframework.transaction.annotation.Transactional" primary="true">
+      <SourceLine endBytecode="347" classname="org.openfinance.service.InsightService" start="70" end="70" sourcepath="org/openfinance/service/InsightService.java" sourcefile="InsightService.java" startBytecode="0" />
+      <Message>In method new org.openfinance.service.InsightService(InsightRepository, InsightWriter, NetWorthService, BudgetService, AIRequestLimits, TransactionRepository, TransactionSplitRepository, BudgetRepository, AccountRepository, CategoryRepository, UserRepository, UserSettingsRepository, RecurringTransactionRepository, MessageSource, DefaultCurrencyProvider, AIProvider, ObjectMapper, ExchangeRateService, BusinessRulesProperties)</Message>
+    </Method>
+    <Field isStatic="false" classname="org.openfinance.service.InsightService" signature="Lorg/openfinance/repository/RecurringTransactionRepository;" name="recurringTransactionRepository" classAnnotationNames="org.springframework.stereotype.Service,org.springframework.transaction.annotation.Transactional" primary="true">
+      <SourceLine classname="org.openfinance.service.InsightService" sourcepath="org/openfinance/service/InsightService.java" sourcefile="InsightService.java">
+        <Message>In InsightService.java</Message>
+      </SourceLine>
+      <Message>Field org.openfinance.service.InsightService.recurringTransactionRepository</Message>
+    </Field>
+    <LocalVariable role="LOCAL_VARIABLE_NAMED" pc="76" name="recurringTransactionRepository" register="13">
+      <Message>Local variable named recurringTransactionRepository</Message>
+    </LocalVariable>
+    <SourceLine endBytecode="76" classname="org.openfinance.service.InsightService" start="70" end="70" sourcepath="org/openfinance/service/InsightService.java" sourcefile="InsightService.java" startBytecode="76" primary="true">
+      <Message>At InsightService.java:[line 70]</Message>
+    </SourceLine>
+  </BugInstance>
+  <BugInstance instanceOccurrenceNum="0" instanceHash="6ccd40147c2579bd2026ad4c927e31b7" cweid="374" rank="18" abbrev="EI2" category="MALICIOUS_CODE" priority="2" type="EI_EXPOSE_REP2" instanceOccurrenceMax="0">
+    <ShortMessage>May expose internal representation by incorporating reference to mutable object</ShortMessage>
+    <LongMessage>new org.openfinance.service.InsightService(InsightRepository, InsightWriter, NetWorthService, BudgetService, AIRequestLimits, TransactionRepository, TransactionSplitRepository, BudgetRepository, AccountRepository, CategoryRepository, UserRepository, UserSettingsRepository, RecurringTransactionRepository, MessageSource, DefaultCurrencyProvider, AIProvider, ObjectMapper, ExchangeRateService, BusinessRulesProperties) may expose internal representation by storing an externally mutable object into InsightService.transactionRepository</LongMessage>
+    <Class classname="org.openfinance.service.InsightService" classAnnotationNames="org.springframework.stereotype.Service,org.springframework.transaction.annotation.Transactional" primary="true">
+      <SourceLine classname="org.openfinance.service.InsightService" start="70" end="1259" sourcepath="org/openfinance/service/InsightService.java" sourcefile="InsightService.java">
+        <Message>At InsightService.java:[lines 70-1259]</Message>
+      </SourceLine>
+      <Message>In class org.openfinance.service.InsightService</Message>
+    </Class>
+    <Method isStatic="false" classname="org.openfinance.service.InsightService" signature="(Lorg/openfinance/repository/InsightRepository;Lorg/openfinance/service/InsightWriter;Lorg/openfinance/service/NetWorthService;Lorg/openfinance/service/BudgetService;Lorg/openfinance/service/ai/AIRequestLimits;Lorg/openfinance/repository/TransactionRepository;Lorg/openfinance/repository/TransactionSplitRepository;Lorg/openfinance/repository/BudgetRepository;Lorg/openfinance/repository/AccountRepository;Lorg/openfinance/repository/CategoryRepository;Lorg/openfinance/repository/UserRepository;Lorg/openfinance/repository/UserSettingsRepository;Lorg/openfinance/repository/RecurringTransactionRepository;Lorg/springframework/context/MessageSource;Lorg/openfinance/service/DefaultCurrencyProvider;Lorg/openfinance/service/ai/AIProvider;Lcom/fasterxml/jackson/databind/ObjectMapper;Lorg/openfinance/service/ExchangeRateService;Lorg/openfinance/config/BusinessRulesProperties;)V" name="&lt;init&gt;" classAnnotationNames="org.springframework.stereotype.Service,org.springframework.transaction.annotation.Transactional" primary="true">
+      <SourceLine endBytecode="347" classname="org.openfinance.service.InsightService" start="70" end="70" sourcepath="org/openfinance/service/InsightService.java" sourcefile="InsightService.java" startBytecode="0" />
+      <Message>In method new org.openfinance.service.InsightService(InsightRepository, InsightWriter, NetWorthService, BudgetService, AIRequestLimits, TransactionRepository, TransactionSplitRepository, BudgetRepository, AccountRepository, CategoryRepository, UserRepository, UserSettingsRepository, RecurringTransactionRepository, MessageSource, DefaultCurrencyProvider, AIProvider, ObjectMapper, ExchangeRateService, BusinessRulesProperties)</Message>
+    </Method>
+    <Field isStatic="false" classname="org.openfinance.service.InsightService" signature="Lorg/openfinance/repository/TransactionRepository;" name="transactionRepository" classAnnotationNames="org.springframework.stereotype.Service,org.springframework.transaction.annotation.Transactional" primary="true">
+      <SourceLine classname="org.openfinance.service.InsightService" sourcepath="org/openfinance/service/InsightService.java" sourcefile="InsightService.java">
+        <Message>In InsightService.java</Message>
+      </SourceLine>
+      <Message>Field org.openfinance.service.InsightService.transactionRepository</Message>
+    </Field>
+    <LocalVariable role="LOCAL_VARIABLE_NAMED" pc="34" name="transactionRepository" register="6">
+      <Message>Local variable named transactionRepository</Message>
+    </LocalVariable>
+    <SourceLine endBytecode="34" classname="org.openfinance.service.InsightService" start="70" end="70" sourcepath="org/openfinance/service/InsightService.java" sourcefile="InsightService.java" startBytecode="34" primary="true">
+      <Message>At InsightService.java:[line 70]</Message>
+    </SourceLine>
+  </BugInstance>
+  <BugInstance instanceOccurrenceNum="0" instanceHash="3231007eb92fc0d8e07a6bfc30556dff" cweid="374" rank="18" abbrev="EI2" category="MALICIOUS_CODE" priority="2" type="EI_EXPOSE_REP2" instanceOccurrenceMax="0">
+    <ShortMessage>May expose internal representation by incorporating reference to mutable object</ShortMessage>
+    <LongMessage>new org.openfinance.service.InsightService(InsightRepository, InsightWriter, NetWorthService, BudgetService, AIRequestLimits, TransactionRepository, TransactionSplitRepository, BudgetRepository, AccountRepository, CategoryRepository, UserRepository, UserSettingsRepository, RecurringTransactionRepository, MessageSource, DefaultCurrencyProvider, AIProvider, ObjectMapper, ExchangeRateService, BusinessRulesProperties) may expose internal representation by storing an externally mutable object into InsightService.transactionSplitRepository</LongMessage>
+    <Class classname="org.openfinance.service.InsightService" classAnnotationNames="org.springframework.stereotype.Service,org.springframework.transaction.annotation.Transactional" primary="true">
+      <SourceLine classname="org.openfinance.service.InsightService" start="70" end="1259" sourcepath="org/openfinance/service/InsightService.java" sourcefile="InsightService.java">
+        <Message>At InsightService.java:[lines 70-1259]</Message>
+      </SourceLine>
+      <Message>In class org.openfinance.service.InsightService</Message>
+    </Class>
+    <Method isStatic="false" classname="org.openfinance.service.InsightService" signature="(Lorg/openfinance/repository/InsightRepository;Lorg/openfinance/service/InsightWriter;Lorg/openfinance/service/NetWorthService;Lorg/openfinance/service/BudgetService;Lorg/openfinance/service/ai/AIRequestLimits;Lorg/openfinance/repository/TransactionRepository;Lorg/openfinance/repository/TransactionSplitRepository;Lorg/openfinance/repository/BudgetRepository;Lorg/openfinance/repository/AccountRepository;Lorg/openfinance/repository/CategoryRepository;Lorg/openfinance/repository/UserRepository;Lorg/openfinance/repository/UserSettingsRepository;Lorg/openfinance/repository/RecurringTransactionRepository;Lorg/springframework/context/MessageSource;Lorg/openfinance/service/DefaultCurrencyProvider;Lorg/openfinance/service/ai/AIProvider;Lcom/fasterxml/jackson/databind/ObjectMapper;Lorg/openfinance/service/ExchangeRateService;Lorg/openfinance/config/BusinessRulesProperties;)V" name="&lt;init&gt;" classAnnotationNames="org.springframework.stereotype.Service,org.springframework.transaction.annotation.Transactional" primary="true">
+      <SourceLine endBytecode="347" classname="org.openfinance.service.InsightService" start="70" end="70" sourcepath="org/openfinance/service/InsightService.java" sourcefile="InsightService.java" startBytecode="0" />
+      <Message>In method new org.openfinance.service.InsightService(InsightRepository, InsightWriter, NetWorthService, BudgetService, AIRequestLimits, TransactionRepository, TransactionSplitRepository, BudgetRepository, AccountRepository, CategoryRepository, UserRepository, UserSettingsRepository, RecurringTransactionRepository, MessageSource, DefaultCurrencyProvider, AIProvider, ObjectMapper, ExchangeRateService, BusinessRulesProperties)</Message>
+    </Method>
+    <Field isStatic="false" classname="org.openfinance.service.InsightService" signature="Lorg/openfinance/repository/TransactionSplitRepository;" name="transactionSplitRepository" classAnnotationNames="org.springframework.stereotype.Service,org.springframework.transaction.annotation.Transactional" primary="true">
+      <SourceLine classname="org.openfinance.service.InsightService" sourcepath="org/openfinance/service/InsightService.java" sourcefile="InsightService.java">
+        <Message>In InsightService.java</Message>
+      </SourceLine>
+      <Message>Field org.openfinance.service.InsightService.transactionSplitRepository</Message>
+    </Field>
+    <LocalVariable role="LOCAL_VARIABLE_NAMED" pc="40" name="transactionSplitRepository" register="7">
+      <Message>Local variable named transactionSplitRepository</Message>
+    </LocalVariable>
+    <SourceLine endBytecode="40" classname="org.openfinance.service.InsightService" start="70" end="70" sourcepath="org/openfinance/service/InsightService.java" sourcefile="InsightService.java" startBytecode="40" primary="true">
+      <Message>At InsightService.java:[line 70]</Message>
+    </SourceLine>
+  </BugInstance>
+  <BugInstance instanceOccurrenceNum="0" instanceHash="3e7c5c5e1efde10d0f04b5a6d3f3c49c" cweid="374" rank="18" abbrev="EI2" category="MALICIOUS_CODE" priority="2" type="EI_EXPOSE_REP2" instanceOccurrenceMax="0">
+    <ShortMessage>May expose internal representation by incorporating reference to mutable object</ShortMessage>
+    <LongMessage>new org.openfinance.service.InsightService(InsightRepository, InsightWriter, NetWorthService, BudgetService, AIRequestLimits, TransactionRepository, TransactionSplitRepository, BudgetRepository, AccountRepository, CategoryRepository, UserRepository, UserSettingsRepository, RecurringTransactionRepository, MessageSource, DefaultCurrencyProvider, AIProvider, ObjectMapper, ExchangeRateService, BusinessRulesProperties) may expose internal representation by storing an externally mutable object into InsightService.userSettingsRepository</LongMessage>
+    <Class classname="org.openfinance.service.InsightService" classAnnotationNames="org.springframework.stereotype.Service,org.springframework.transaction.annotation.Transactional" primary="true">
+      <SourceLine classname="org.openfinance.service.InsightService" start="70" end="1259" sourcepath="org/openfinance/service/InsightService.java" sourcefile="InsightService.java">
+        <Message>At InsightService.java:[lines 70-1259]</Message>
+      </SourceLine>
+      <Message>In class org.openfinance.service.InsightService</Message>
+    </Class>
+    <Method isStatic="false" classname="org.openfinance.service.InsightService" signature="(Lorg/openfinance/repository/InsightRepository;Lorg/openfinance/service/InsightWriter;Lorg/openfinance/service/NetWorthService;Lorg/openfinance/service/BudgetService;Lorg/openfinance/service/ai/AIRequestLimits;Lorg/openfinance/repository/TransactionRepository;Lorg/openfinance/repository/TransactionSplitRepository;Lorg/openfinance/repository/BudgetRepository;Lorg/openfinance/repository/AccountRepository;Lorg/openfinance/repository/CategoryRepository;Lorg/openfinance/repository/UserRepository;Lorg/openfinance/repository/UserSettingsRepository;Lorg/openfinance/repository/RecurringTransactionRepository;Lorg/springframework/context/MessageSource;Lorg/openfinance/service/DefaultCurrencyProvider;Lorg/openfinance/service/ai/AIProvider;Lcom/fasterxml/jackson/databind/ObjectMapper;Lorg/openfinance/service/ExchangeRateService;Lorg/openfinance/config/BusinessRulesProperties;)V" name="&lt;init&gt;" classAnnotationNames="org.springframework.stereotype.Service,org.springframework.transaction.annotation.Transactional" primary="true">
+      <SourceLine endBytecode="347" classname="org.openfinance.service.InsightService" start="70" end="70" sourcepath="org/openfinance/service/InsightService.java" sourcefile="InsightService.java" startBytecode="0" />
+      <Message>In method new org.openfinance.service.InsightService(InsightRepository, InsightWriter, NetWorthService, BudgetService, AIRequestLimits, TransactionRepository, TransactionSplitRepository, BudgetRepository, AccountRepository, CategoryRepository, UserRepository, UserSettingsRepository, RecurringTransactionRepository, MessageSource, DefaultCurrencyProvider, AIProvider, ObjectMapper, ExchangeRateService, BusinessRulesProperties)</Message>
+    </Method>
+    <Field isStatic="false" classname="org.openfinance.service.InsightService" signature="Lorg/openfinance/repository/UserSettingsRepository;" name="userSettingsRepository" classAnnotationNames="org.springframework.stereotype.Service,org.springframework.transaction.annotation.Transactional" primary="true">
+      <SourceLine classname="org.openfinance.service.InsightService" sourcepath="org/openfinance/service/InsightService.java" sourcefile="InsightService.java">
+        <Message>In InsightService.java</Message>
+      </SourceLine>
+      <Message>Field org.openfinance.service.InsightService.userSettingsRepository</Message>
+    </Field>
+    <LocalVariable role="LOCAL_VARIABLE_NAMED" pc="70" name="userSettingsRepository" register="12">
+      <Message>Local variable named userSettingsRepository</Message>
+    </LocalVariable>
+    <SourceLine endBytecode="70" classname="org.openfinance.service.InsightService" start="70" end="70" sourcepath="org/openfinance/service/InsightService.java" sourcefile="InsightService.java" startBytecode="70" primary="true">
+      <Message>At InsightService.java:[line 70]</Message>
+    </SourceLine>
+  </BugInstance>
 </BugCollection>

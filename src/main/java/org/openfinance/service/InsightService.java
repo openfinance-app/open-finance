@@ -23,6 +23,7 @@ import org.openfinance.repository.CategoryRepository;
 import org.openfinance.repository.InsightRepository;
 import org.openfinance.repository.RecurringTransactionRepository;
 import org.openfinance.repository.TransactionRepository;
+import org.openfinance.repository.TransactionSplitRepository;
 import org.openfinance.repository.UserRepository;
 import org.openfinance.repository.UserSettingsRepository;
 import org.openfinance.service.ai.AIInsightDataValidator;
@@ -76,6 +77,7 @@ public class InsightService {
     private final BudgetService budgetService;
     private final AIRequestLimits requestLimits;
     private final TransactionRepository transactionRepository;
+    private final TransactionSplitRepository transactionSplitRepository;
     private final BudgetRepository budgetRepository;
     private final AccountRepository accountRepository;
     private final CategoryRepository categoryRepository;
@@ -556,24 +558,43 @@ public class InsightService {
     private BigDecimal calculateCategorySpending(
             Long userId, Long categoryId, LocalDate startDate, LocalDate endDate) {
         List<Transaction> transactions =
-                transactionRepository.findByCategoryIdAndDateRange(
-                        categoryId, startDate, endDate, userId);
+                transactionRepository.findByCategoryIdInAndDateRange(
+                        List.of(categoryId), startDate, endDate, userId);
+        String currency = defaultCurrencyProvider.resolveForUser(userId);
 
-        return transactions.stream()
-                .filter(
-                        t ->
-                                t.getType() == TransactionType.EXPENSE
-                                        && !Boolean.TRUE.equals(t.getIsDeleted())
-                                        && t.isCashMovement()
-                                        && t.getTransferId() == null)
-                .map(
-                        t ->
-                                exchangeRateService.convert(
-                                        t.getAmount(),
-                                        t.getCurrency(),
-                                        defaultCurrencyProvider.resolveForUser(userId),
-                                        t.getDate()))
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        BigDecimal ordinary =
+                transactions.stream()
+                        .filter(this::isSpending)
+                        .map(
+                                t ->
+                                        exchangeRateService.convert(
+                                                t.getAmount(),
+                                                t.getCurrency(),
+                                                currency,
+                                                t.getDate()))
+                        .reduce(BigDecimal.ZERO, BigDecimal::add);
+        BigDecimal allocated =
+                transactionSplitRepository
+                        .findByCategoryIdInAndDateRange(
+                                List.of(categoryId), startDate, endDate, userId)
+                        .stream()
+                        .filter(split -> isSpending(split.getTransaction()))
+                        .map(
+                                split ->
+                                        exchangeRateService.convert(
+                                                split.getAmount(),
+                                                split.getTransaction().getCurrency(),
+                                                currency,
+                                                split.getTransaction().getDate()))
+                        .reduce(BigDecimal.ZERO, BigDecimal::add);
+        return ordinary.add(allocated);
+    }
+
+    private boolean isSpending(Transaction transaction) {
+        return transaction.getType() == TransactionType.EXPENSE
+                && !Boolean.TRUE.equals(transaction.getIsDeleted())
+                && transaction.isCashMovement()
+                && transaction.getTransferId() == null;
     }
 
     // ============================================

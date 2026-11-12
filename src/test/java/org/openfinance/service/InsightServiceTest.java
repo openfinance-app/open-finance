@@ -26,6 +26,7 @@ import org.openfinance.entity.InsightType;
 import org.openfinance.entity.RecurringFrequency;
 import org.openfinance.entity.RecurringTransaction;
 import org.openfinance.entity.Transaction;
+import org.openfinance.entity.TransactionSplit;
 import org.openfinance.entity.TransactionType;
 import org.openfinance.entity.User;
 import org.openfinance.repository.AccountRepository;
@@ -34,6 +35,7 @@ import org.openfinance.repository.CategoryRepository;
 import org.openfinance.repository.InsightRepository;
 import org.openfinance.repository.RecurringTransactionRepository;
 import org.openfinance.repository.TransactionRepository;
+import org.openfinance.repository.TransactionSplitRepository;
 import org.openfinance.repository.UserRepository;
 import org.openfinance.repository.UserSettingsRepository;
 import org.openfinance.service.ai.AIProvider;
@@ -48,6 +50,7 @@ class InsightServiceTest {
     @Mock InsightRepository insightRepository;
     @Mock InsightWriter insightWriter;
     @Mock TransactionRepository transactionRepository;
+    @Mock TransactionSplitRepository transactionSplitRepository;
     @Mock BudgetRepository budgetRepository;
     @Mock AccountRepository accountRepository;
     @Mock CategoryRepository categoryRepository;
@@ -214,9 +217,11 @@ class InsightServiceTest {
                 Category.builder().id(2L).name("Donations").nameKey("category.donations").build();
 
         when(categoryRepository.findByUserId(1L)).thenReturn(List.of(subscriptions, donations));
-        when(transactionRepository.findByCategoryIdAndDateRange(eq(1L), any(), any(), eq(1L)))
+        when(transactionRepository.findByCategoryIdInAndDateRange(
+                        eq(List.of(1L)), any(), any(), eq(1L)))
                 .thenReturn(List.of(tx("80", "EUR", TransactionType.EXPENSE)));
-        when(transactionRepository.findByCategoryIdAndDateRange(eq(2L), any(), any(), eq(1L)))
+        when(transactionRepository.findByCategoryIdInAndDateRange(
+                        eq(List.of(2L)), any(), any(), eq(1L)))
                 .thenReturn(List.of(tx("50", "EUR", TransactionType.EXPENSE)));
         List<InsightResponse> results = service.generateInsights(1L);
         assertThat(results)
@@ -301,6 +306,52 @@ class InsightServiceTest {
     }
 
     @Test
+    void spendingInsightsUseOnlyCategorySplitsAndTheirHistoricalExchangeRates() {
+        LocalDate today = LocalDate.now();
+        when(categoryRepository.findByUserId(1L))
+                .thenReturn(List.of(Category.builder().id(31L).name("Food").build()));
+        Transaction current = tx("1000", "USD", TransactionType.EXPENSE);
+        Transaction previous = tx("800", "USD", TransactionType.EXPENSE);
+        previous.setDate(today.minusDays(40));
+        Transaction refund = tx("5000", "EUR", TransactionType.INCOME);
+        Transaction transfer = tx("9000", "EUR", TransactionType.EXPENSE);
+        transfer.setTransferId("internal");
+        Transaction deleted = tx("9000", "EUR", TransactionType.EXPENSE);
+        deleted.setIsDeleted(true);
+        when(transactionSplitRepository.findByCategoryIdInAndDateRange(
+                        List.of(31L), today.minusDays(29), today, 1L))
+                .thenReturn(
+                        List.of(
+                                split(current, "120"),
+                                split(current, "200"),
+                                split(refund, "5000"),
+                                split(transfer, "9000"),
+                                split(deleted, "9000")));
+        when(transactionSplitRepository.findByCategoryIdInAndDateRange(
+                        List.of(31L), today.minusDays(60), today.minusDays(30), 1L))
+                .thenReturn(List.of(split(previous, "200")));
+
+        assertThat(service.generateInsights(1L))
+                .filteredOn(i -> i.getType() == InsightType.SPENDING_ANOMALY)
+                .singleElement()
+                .satisfies(
+                        i ->
+                                assertThat(i.getDescription())
+                                        .contains("60", "160", "100")
+                                        .doesNotContain("1000", "800", "5000", "9000"));
+        verify(exchangeRateService)
+                .convert(new BigDecimal("200"), "USD", "EUR", previous.getDate());
+    }
+
+    private TransactionSplit split(Transaction transaction, String amount) {
+        return TransactionSplit.builder()
+                .transaction(transaction)
+                .categoryId(31L)
+                .amount(new BigDecimal(amount))
+                .build();
+    }
+
+    @Test
     @org.junit.jupiter.api.DisplayName(
             "Spending alerts compare adjacent periods and ignore transfers and deleted rows")
     void anomaliesUseOnlyRealExpensesAndDoNotOverlapPeriods() {
@@ -311,11 +362,11 @@ class InsightServiceTest {
         deleted.setIsDeleted(true);
         Transaction transfer = tx("8000", "EUR", TransactionType.EXPENSE);
         transfer.setTransferId("internal");
-        when(transactionRepository.findByCategoryIdAndDateRange(
-                        31L, today.minusDays(29), today, 1L))
+        when(transactionRepository.findByCategoryIdInAndDateRange(
+                        List.of(31L), today.minusDays(29), today, 1L))
                 .thenReturn(List.of(tx("160", "EUR", TransactionType.EXPENSE), deleted, transfer));
-        when(transactionRepository.findByCategoryIdAndDateRange(
-                        31L, today.minusDays(60), today.minusDays(30), 1L))
+        when(transactionRepository.findByCategoryIdInAndDateRange(
+                        List.of(31L), today.minusDays(60), today.minusDays(30), 1L))
                 .thenReturn(List.of(tx("100", "EUR", TransactionType.EXPENSE)));
         assertThat(service.generateInsights(1L))
                 .filteredOn(i -> i.getType() == InsightType.SPENDING_ANOMALY)

@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { Link, Route, Routes } from 'react-router';
 import { mockAuthentication, renderWithProviders } from '@/test/test-utils';
 import i18n from '@/test/i18n-test';
 import { useCashFlowHistory } from '@/hooks/useDashboard';
@@ -80,6 +81,35 @@ describe('CashFlowCalendar', () => {
     await user.click(screen.getByRole('button', { name: 'Today' }));
     expect(useCashFlowHistory).toHaveBeenLastCalledWith('DAY', 2024, 2);
   });
+
+  it.each([
+    ['DAY', 'Previous month', 2024, 1],
+    ['MONTH', 'Previous year', 2023, 2],
+    ['YEAR', 'Previous 10 years', 2014, 2],
+  ] as const)(
+    'restores the %s period after leaving the dashboard',
+    async (mode, previous, year, month) => {
+      window.history.replaceState({}, '', '/dashboard');
+      const user = userEvent.setup();
+      renderWithProviders(
+        <>
+          <Link to="/accounts">Accounts</Link>
+          <Link to="/dashboard">Dashboard</Link>
+          <Routes>
+            <Route path="/dashboard" element={<CashFlowCalendar />} />
+            <Route path="/accounts" element={<p>Account list</p>} />
+          </Routes>
+        </>
+      );
+      await user.selectOptions(screen.getByRole('combobox'), mode);
+      await user.click(screen.getByRole('button', { name: previous }));
+      await user.click(screen.getByRole('link', { name: 'Accounts' }));
+      expect(screen.queryByRole('combobox')).not.toBeInTheDocument();
+      await user.click(screen.getByRole('link', { name: 'Dashboard' }));
+      expect(screen.getByRole('combobox')).toHaveValue(mode);
+      expect(useCashFlowHistory).toHaveBeenLastCalledWith(mode, year, month);
+    }
+  );
 
   it('opens daily transactions with transfers excluded to match the totals', async () => {
     const user = userEvent.setup();

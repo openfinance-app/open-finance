@@ -20,6 +20,7 @@ import ch.qos.logback.core.read.ListAppender;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -217,6 +218,44 @@ class TransactionServiceTest {
         assertThat(summary.transferNetAmount()).isZero();
         assertThat(summary.netAmount()).isEqualByComparingTo("85");
         verify(exchangeRateService).convert(expense.getAmount(), "GBP", "USD", expense.getDate());
+        verify(exchangeRateService, never()).getExchangeRate(eq("EUR"), anyString(), any());
+    }
+
+    @Test
+    @DisplayName("Tagged split summary apportions the booked base-currency amount")
+    void taggedSplitSummaryUsesBookedConversion() {
+        Transaction expense = transactionEntity(1L, 1L, baseRequest());
+        expense.setCurrency("EUR");
+        expense.setAmount(new BigDecimal("100"));
+        expense.setAccountCurrency("USD");
+        expense.setAccountAmount(new BigDecimal("123.45"));
+        when(transactionRepository.findByUserId(1L)).thenReturn(List.of(expense));
+        when(transactionSplitService.getSplitsForTransactions(List.of(1L)))
+                .thenReturn(
+                        Map.of(
+                                1L,
+                                List.of(
+                                        org.openfinance.dto.TransactionSplitResponse.builder()
+                                                .amount(new BigDecimal("40"))
+                                                .tag("trip")
+                                                .build(),
+                                        org.openfinance.dto.TransactionSplitResponse.builder()
+                                                .amount(new BigDecimal("60"))
+                                                .tag("daily")
+                                                .build())));
+        when(transactionRepository.findAll(
+                        org.mockito.ArgumentMatchers
+                                .<org.springframework.data.jpa.domain.Specification<Transaction>>
+                                        any()))
+                .thenReturn(List.of(expense));
+
+        TransactionSummaryResponse summary =
+                transactionService.summarizeTransactions(
+                        1L, TransactionSearchCriteria.builder().tag("trip").build());
+
+        assertThat(summary.transactionCount()).isEqualTo(1);
+        assertThat(summary.expenseAmount()).isEqualByComparingTo("49.38");
+        assertThat(summary.netAmount()).isEqualByComparingTo("-49.38");
         verify(exchangeRateService, never()).getExchangeRate(eq("EUR"), anyString(), any());
     }
 

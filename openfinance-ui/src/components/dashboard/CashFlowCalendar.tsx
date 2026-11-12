@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { addMonths, addYears, format, isSameMonth, isSameYear, startOfMonth } from 'date-fns';
 import { enUS, fr } from 'date-fns/locale';
 import { Calendar, ChevronLeft, ChevronRight } from 'lucide-react';
@@ -9,6 +8,7 @@ import { Skeleton } from '@/components/ui/Skeleton';
 import DailyCashFlowGrid from '@/components/dashboard/DailyCashFlowGrid';
 import CashFlowPeriodView from '@/components/dashboard/CashFlowPeriodView';
 import { useCashFlowHistory } from '@/hooks/useDashboard';
+import { useViewState } from '@/hooks/useViewState';
 import type { CashFlowGranularity } from '@/types/dashboard';
 import { DEFAULT_CURRENCY } from '@/utils/currency';
 import { cn } from '@/lib/utils';
@@ -23,8 +23,13 @@ export default function CashFlowCalendar({
   baseCurrency = DEFAULT_CURRENCY,
 }: CashFlowCalendarProps) {
   const { t, i18n } = useTranslation('dashboard');
-  const [currentDate, setCurrentDate] = useState(() => startOfMonth(new Date()));
-  const [granularity, setGranularity] = useState<CashFlowGranularity>('DAY');
+  const [currentDate, setCurrentDate] = useViewState('cashFlow:date', () =>
+    startOfMonth(new Date())
+  );
+  const [granularity, setGranularity] = useViewState<CashFlowGranularity>(
+    'cashFlow:granularity',
+    'DAY'
+  );
   const year = currentDate.getFullYear();
   const {
     data = [],

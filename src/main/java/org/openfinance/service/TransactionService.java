@@ -1829,9 +1829,7 @@ public class TransactionService {
                 (criteria.getKeyword() != null && !criteria.getKeyword().trim().isEmpty())
                         || criteria.getAmountMin() != null
                         || criteria.getAmountMax() != null
-                        || (criteria.getTags() != null && !criteria.getTags().isBlank())
-                        || criteria.getTag() != null
-                        || criteria.getCategoryId() != null
+                        || TransactionSummaryAmounts.filtersAllocations(criteria)
                         || Boolean.TRUE.equals(criteria.getNoPayee())
                         || (criteria.getPayee() != null && !criteria.getPayee().isBlank());
 
@@ -1845,10 +1843,10 @@ public class TransactionService {
                             .toList();
 
             java.util.stream.Stream<Transaction> stream = allUserTransactions.stream();
-            Map<Long, List<String>> splitTags = splitTagsFor(allUserTransactions);
 
             // Keyword filter (description, notes, payee, tags)
             if (criteria.getKeyword() != null && !criteria.getKeyword().trim().isEmpty()) {
+                Map<Long, List<String>> splitTags = splitTagsFor(allUserTransactions);
                 String keyword = criteria.getKeyword();
                 boolean keywordRegex = criteria.isKeywordRegex();
                 stream =
@@ -1875,26 +1873,20 @@ public class TransactionService {
                                                                                         keywordRegex)));
             }
 
-            if (criteria.getTags() != null && !criteria.getTags().isBlank()) {
-                String tagFilter = criteria.getTags().trim().toLowerCase(java.util.Locale.ROOT);
+            if (TransactionSummaryAmounts.filtersAllocations(criteria)) {
+                java.util.Set<Long> categoryIds = matchingCategoryIds(userId, criteria);
+                Map<Long, List<TransactionSplitResponse>> allocations =
+                        transactionSplitService.getSplitsForTransactions(
+                                allUserTransactions.stream().map(Transaction::getId).toList());
                 stream =
                         stream.filter(
-                                t ->
-                                        transactionTags(t, splitTags)
-                                                .collect(Collectors.joining(","))
-                                                .toLowerCase(java.util.Locale.ROOT)
-                                                .contains(tagFilter));
-            }
-
-            if (criteria.getTag() != null && !criteria.getTag().isBlank()) {
-                stream =
-                        stream.filter(
-                                t ->
-                                        transactionTags(t, splitTags)
-                                                .anyMatch(
-                                                        tag ->
-                                                                tag.equalsIgnoreCase(
-                                                                        criteria.getTag().trim())));
+                                transaction ->
+                                        TransactionSummaryAmounts.matches(
+                                                transaction,
+                                                allocations.getOrDefault(
+                                                        transaction.getId(), List.of()),
+                                                criteria,
+                                                categoryIds));
             }
             if (criteria.getPayee() != null && !criteria.getPayee().isBlank()) {
                 String payee = criteria.getPayee().trim().toLowerCase(java.util.Locale.ROOT);
@@ -1913,26 +1905,6 @@ public class TransactionService {
             if (Boolean.TRUE.equals(criteria.getNoPayee())) {
                 stream = stream.filter(t -> t.getPayee() == null || t.getPayee().isBlank());
             }
-            if (criteria.getCategoryId() != null) {
-                java.util.Set<Long> categoryIds = matchingCategoryIds(userId, criteria);
-                Map<Long, List<TransactionSplitResponse>> allocations =
-                        transactionSplitService.getSplitsForTransactions(
-                                allUserTransactions.stream().map(Transaction::getId).toList());
-                stream =
-                        stream.filter(
-                                t -> {
-                                    List<TransactionSplitResponse> lines =
-                                            allocations.getOrDefault(t.getId(), List.of());
-                                    return lines.isEmpty()
-                                            ? categoryIds.contains(t.getCategoryId())
-                                            : lines.stream()
-                                                    .anyMatch(
-                                                            line ->
-                                                                    categoryIds.contains(
-                                                                            line.getCategoryId()));
-                                });
-            }
-
             // Amount range filter (amount is encrypted, SQL comparison is meaningless)
             if (criteria.getAmountMin() != null) {
                 stream =
@@ -1958,6 +1930,7 @@ public class TransactionService {
 
     private java.util.Set<Long> matchingCategoryIds(
             Long userId, org.openfinance.dto.TransactionSearchCriteria criteria) {
+        if (criteria.getCategoryId() == null) return java.util.Set.of();
         List<org.openfinance.entity.Category> categories = categoryRepository.findByUserId(userId);
         java.util.Set<Long> ids = new java.util.HashSet<>();
         if (categories.stream().noneMatch(c -> c.getId().equals(criteria.getCategoryId())))
@@ -1993,6 +1966,12 @@ public class TransactionService {
         BigDecimal transfers = BigDecimal.ZERO;
         boolean complete = true;
         Map<String, List<Transaction>> transfersById = transferLegs(matching, userId);
+        java.util.Set<Long> categoryIds = matchingCategoryIds(userId, criteria);
+        Map<Long, List<TransactionSplitResponse>> splits =
+                TransactionSummaryAmounts.filtersAllocations(criteria)
+                        ? transactionSplitService.getSplitsForTransactions(
+                                matching.stream().map(Transaction::getId).toList())
+                        : Map.of();
         for (Transaction transaction : matching) {
             TransactionResponse converted = new TransactionResponse();
             populateTransferFields(
@@ -2011,6 +1990,14 @@ public class TransactionService {
                     currency.equalsIgnoreCase(transaction.getCurrency())
                             ? transaction.getAmount()
                             : converted.getAmountInBaseCurrency();
+            amount =
+                    TransactionSummaryAmounts.filteredAmount(
+                            transaction,
+                            splits.getOrDefault(transaction.getId(), List.of()),
+                            criteria,
+                            categoryIds,
+                            amount,
+                            currency);
             if (transaction.getTransferId() != null) {
                 transfers =
                         transfers.add(
