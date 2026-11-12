@@ -34,6 +34,35 @@ class YahooFinanceProviderTest {
     }
 
     @Test
+    void requestsAndParsesProviderLogoMetadata() {
+        WebClient client =
+                WebClient.builder()
+                        .exchangeFunction(
+                                request -> {
+                                    assertThat(request.url().getQuery())
+                                            .contains("enableLogoUrl=true");
+                                    return Mono.just(
+                                            ClientResponse.create(HttpStatus.OK)
+                                                    .header("Content-Type", "application/json")
+                                                    .body(
+                                                            """
+                                            {"quotes":[{"symbol":"NEWCO","quoteType":"EQUITY",
+                                            "logoUrl":"https://s.yimg.com/lb/brands/new-company.png"},
+                                            {"symbol":"NEWETF","quoteType":"ETF"}]}
+                                            """)
+                                                    .build());
+                                })
+                        .build();
+        ReflectionTestUtils.setField(provider, "webClient", client);
+
+        List<SymbolSearchResult> results = provider.searchSymbol("NEWCO");
+
+        assertThat(results.getFirst().getLogoUrl())
+                .isEqualTo("https://s.yimg.com/lb/brands/new-company.png");
+        assertThat(results.get(1).getLogoUrl()).isNull();
+    }
+
+    @Test
     void historicalPricesRetainTheirQuoteCurrency() {
         String response =
                 """

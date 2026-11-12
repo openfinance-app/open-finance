@@ -3,6 +3,7 @@ package org.openfinance.provider;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.math.BigDecimal;
+import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -340,6 +341,8 @@ public class YahooFinanceProvider implements MarketDataProvider {
                                             uriBuilder
                                                     .path(SEARCH_ENDPOINT)
                                                     .queryParam("q", query)
+                                                    .queryParam("enableLogoUrl", true)
+                                                    .queryParam("newsCount", 0)
                                                     .build())
                             .retrieve()
                             .onStatus(
@@ -351,7 +354,7 @@ public class YahooFinanceProvider implements MarketDataProvider {
                                                             null,
                                                             clientResponse.statusCode().value())))
                             .bodyToMono(String.class)
-                            .block();
+                            .block(Duration.ofSeconds(5));
 
             JsonNode root = objectMapper.readTree(response);
             JsonNode quotes = root.path("quotes");
@@ -379,6 +382,7 @@ public class YahooFinanceProvider implements MarketDataProvider {
                                     .exchangeDisplay(quoteNode.path("exchDisp").asText(""))
                                     .sector(quoteNode.path("sector").asText(null))
                                     .industry(quoteNode.path("industry").asText(null))
+                                    .logoUrl(quoteNode.path("logoUrl").asText(null))
                                     .build();
                     results.add(result);
                 } catch (Exception e) {

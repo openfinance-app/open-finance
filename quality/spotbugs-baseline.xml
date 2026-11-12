@@ -28859,4 +28859,57 @@
       <Message>At NetWorthService.java:[line 76]</Message>
     </SourceLine>
   </BugInstance>
+  <!-- Spring constructor injection intentionally retains these shared service/config beans. -->
+  <BugInstance instanceOccurrenceNum="0" instanceHash="c129950844873ed52c0c58c97283fd7e" cweid="374" rank="18" abbrev="EI2" category="MALICIOUS_CODE" priority="2" type="EI_EXPOSE_REP2" instanceOccurrenceMax="0">
+    <ShortMessage>May expose internal representation by incorporating reference to mutable object</ShortMessage>
+    <LongMessage>new org.openfinance.controller.AssetLogoController(AssetService, AssetLogoService) may expose internal representation by storing an externally mutable object into AssetLogoController.assetService</LongMessage>
+    <Class classname="org.openfinance.controller.AssetLogoController" classAnnotationNames="org.springframework.web.bind.annotation.RestController,org.springframework.web.bind.annotation.RequestMapping" primary="true">
+      <SourceLine classname="org.openfinance.controller.AssetLogoController" start="17" end="28" sourcepath="org/openfinance/controller/AssetLogoController.java" sourcefile="AssetLogoController.java">
+        <Message>At AssetLogoController.java:[lines 17-28]</Message>
+      </SourceLine>
+      <Message>In class org.openfinance.controller.AssetLogoController</Message>
+    </Class>
+    <Method isStatic="false" classname="org.openfinance.controller.AssetLogoController" signature="(Lorg/openfinance/service/AssetService;Lorg/openfinance/service/AssetLogoService;)V" name="&lt;init&gt;" classAnnotationNames="org.springframework.web.bind.annotation.RestController,org.springframework.web.bind.annotation.RequestMapping" primary="true">
+      <SourceLine endBytecode="76" classname="org.openfinance.controller.AssetLogoController" start="17" end="17" sourcepath="org/openfinance/controller/AssetLogoController.java" sourcefile="AssetLogoController.java" startBytecode="0" />
+      <Message>In method new org.openfinance.controller.AssetLogoController(AssetService, AssetLogoService)</Message>
+    </Method>
+    <Field isStatic="false" classname="org.openfinance.controller.AssetLogoController" signature="Lorg/openfinance/service/AssetService;" name="assetService" classAnnotationNames="org.springframework.web.bind.annotation.RestController,org.springframework.web.bind.annotation.RequestMapping" primary="true">
+      <SourceLine classname="org.openfinance.controller.AssetLogoController" sourcepath="org/openfinance/controller/AssetLogoController.java" sourcefile="AssetLogoController.java">
+        <Message>In AssetLogoController.java</Message>
+      </SourceLine>
+      <Message>Field org.openfinance.controller.AssetLogoController.assetService</Message>
+    </Field>
+    <LocalVariable role="LOCAL_VARIABLE_NAMED" pc="6" name="assetService" register="1">
+      <Message>Local variable named assetService</Message>
+    </LocalVariable>
+    <SourceLine endBytecode="6" classname="org.openfinance.controller.AssetLogoController" start="17" end="17" sourcepath="org/openfinance/controller/AssetLogoController.java" sourcefile="AssetLogoController.java" startBytecode="6" primary="true">
+      <Message>At AssetLogoController.java:[line 17]</Message>
+    </SourceLine>
+  </BugInstance>
+  <BugInstance instanceOccurrenceNum="0" instanceHash="4d319e9771f3292a6b732bcc34a392ad" cweid="374" rank="18" abbrev="EI2" category="MALICIOUS_CODE" priority="2" type="EI_EXPOSE_REP2" instanceOccurrenceMax="0">
+    <ShortMessage>May expose internal representation by incorporating reference to mutable object</ShortMessage>
+    <LongMessage>new org.openfinance.service.AssetLogoServiceImpl(MarketDataProvider, LogoFetchService, LogoFetchProperties) may expose internal representation by storing an externally mutable object into AssetLogoServiceImpl.properties</LongMessage>
+    <Class classname="org.openfinance.service.AssetLogoServiceImpl" classAnnotationNames="org.springframework.stereotype.Service" primary="true">
+      <SourceLine classname="org.openfinance.service.AssetLogoServiceImpl" start="14" end="71" sourcepath="org/openfinance/service/AssetLogoServiceImpl.java" sourcefile="AssetLogoServiceImpl.java">
+        <Message>At AssetLogoServiceImpl.java:[lines 14-71]</Message>
+      </SourceLine>
+      <Message>In class org.openfinance.service.AssetLogoServiceImpl</Message>
+    </Class>
+    <Method isStatic="false" classname="org.openfinance.service.AssetLogoServiceImpl" signature="(Lorg/openfinance/provider/MarketDataProvider;Lorg/openfinance/service/LogoFetchService;Lorg/openfinance/config/LogoFetchProperties;)V" name="&lt;init&gt;" classAnnotationNames="org.springframework.stereotype.Service" primary="true">
+      <SourceLine endBytecode="91" classname="org.openfinance.service.AssetLogoServiceImpl" start="14" end="14" sourcepath="org/openfinance/service/AssetLogoServiceImpl.java" sourcefile="AssetLogoServiceImpl.java" startBytecode="0" />
+      <Message>In method new org.openfinance.service.AssetLogoServiceImpl(MarketDataProvider, LogoFetchService, LogoFetchProperties)</Message>
+    </Method>
+    <Field isStatic="false" classname="org.openfinance.service.AssetLogoServiceImpl" signature="Lorg/openfinance/config/LogoFetchProperties;" name="properties" classAnnotationNames="org.springframework.stereotype.Service" primary="true">
+      <SourceLine classname="org.openfinance.service.AssetLogoServiceImpl" sourcepath="org/openfinance/service/AssetLogoServiceImpl.java" sourcefile="AssetLogoServiceImpl.java">
+        <Message>In AssetLogoServiceImpl.java</Message>
+      </SourceLine>
+      <Message>Field org.openfinance.service.AssetLogoServiceImpl.properties</Message>
+    </Field>
+    <LocalVariable role="LOCAL_VARIABLE_NAMED" pc="16" name="properties" register="3">
+      <Message>Local variable named properties</Message>
+    </LocalVariable>
+    <SourceLine endBytecode="16" classname="org.openfinance.service.AssetLogoServiceImpl" start="14" end="14" sourcepath="org/openfinance/service/AssetLogoServiceImpl.java" sourcefile="AssetLogoServiceImpl.java" startBytecode="16" primary="true">
+      <Message>At AssetLogoServiceImpl.java:[line 14]</Message>
+    </SourceLine>
+  </BugInstance>
 </BugCollection>

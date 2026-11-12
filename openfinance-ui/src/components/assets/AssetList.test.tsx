@@ -4,6 +4,8 @@ import { AssetList } from '@/components/assets/AssetList';
 import type { Asset } from '@/types/asset';
 import { mockAuthentication, renderWithProviders } from '@/test/test-utils';
 import i18n from '@/test/i18n-test';
+import { http, HttpResponse } from 'msw';
+import { server } from '@/test/mocks/server';
 
 const bitcoin: Asset = {
   id: 1,
@@ -34,6 +36,28 @@ describe('Asset column labels', () => {
 
   afterEach(async () => {
     await i18n.changeLanguage('en');
+  });
+
+  it('shows decorative logos in table rows and mobile cards while preserving detail actions', async () => {
+    const logoSource = 'data:image/png;base64,cHJvdmlkZXI=';
+    server.use(http.get('/api/v1/assets/1/logo', () => HttpResponse.json({ logo: logoSource })));
+    const view = vi.fn();
+    renderWithProviders(
+      <AssetList assets={[bitcoin]} onEdit={vi.fn()} onDelete={vi.fn()} onView={view} />
+    );
+    const logos = await screen.findAllByAltText('');
+    expect(logos).toHaveLength(2);
+    for (const logo of logos) {
+      expect(logo).toHaveAttribute('src', logoSource);
+      view.mockClear();
+      fireEvent.click(logo);
+      expect(view).toHaveBeenCalledExactlyOnceWith(bitcoin);
+    }
+    for (const name of screen.getAllByRole('button', { name: 'Bitcoin', exact: true })) {
+      view.mockClear();
+      fireEvent.click(name);
+      expect(view).toHaveBeenCalledExactlyOnceWith(bitcoin);
+    }
   });
 
   it('links the account from both table rows and mobile cards without opening asset details', () => {

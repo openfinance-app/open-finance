@@ -5,6 +5,7 @@ import { apiErrorMessage } from '@/utils/api-error';
 import { PropertyAssetCard } from '@/components/assets/PropertyAssetCard';
 import { getGainLossColor } from '@/utils/portfolio';
 import { AssetReturn } from '@/components/assets/AssetReturn';
+import { AssetLogo } from '@/components/assets/AssetLogo';
 import { SelectionCheckbox } from '@/components/bulk/BulkSelection';
 import { formatExactNumber } from '@/utils/format';
 /**
@@ -286,20 +287,23 @@ export function AssetList({
                       onClick={() => onView?.(asset)}
                     >
                       <td className="py-3 px-4 text-sm font-medium text-text-primary">
-                        {onView ? (
-                          <button
-                            type="button"
-                            className="text-left rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-                            onClick={event => {
-                              event.stopPropagation();
-                              onView(asset);
-                            }}
-                          >
-                            {asset.name}
-                          </button>
-                        ) : (
-                          asset.name
-                        )}
+                        <div className="flex items-center gap-3">
+                          <AssetLogo asset={asset} />
+                          {onView ? (
+                            <button
+                              type="button"
+                              className="min-w-0 text-left rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                              onClick={event => {
+                                event.stopPropagation();
+                                onView(asset);
+                              }}
+                            >
+                              {asset.name}
+                            </button>
+                          ) : (
+                            asset.name
+                          )}
+                        </div>
                       </td>
                       <td className="py-3 px-4">
                         <Badge variant={getAssetTypeBadgeVariant(asset.type)} size="sm">
@@ -446,26 +450,29 @@ export function AssetList({
                 >
                   {/* Header */}
                   <div className="flex flex-wrap items-start justify-between gap-2">
-                    <div className="min-w-0 flex-1 basis-full">
-                      <h3 className="font-display text-base uppercase tracking-[0.06em] text-text-primary truncate">
-                        {onView ? (
-                          <button
-                            type="button"
-                            className="max-w-full truncate text-left uppercase rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-                            onClick={event => {
-                              event.stopPropagation();
-                              onView(asset);
-                            }}
-                          >
-                            {asset.name}
-                          </button>
-                        ) : (
-                          asset.name
+                    <div className="min-w-0 flex-1 basis-full flex items-center gap-3">
+                      <AssetLogo asset={asset} />
+                      <div className="min-w-0">
+                        <h3 className="font-display text-base uppercase tracking-[0.06em] text-text-primary truncate">
+                          {onView ? (
+                            <button
+                              type="button"
+                              className="max-w-full truncate text-left uppercase rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                              onClick={event => {
+                                event.stopPropagation();
+                                onView(asset);
+                              }}
+                            >
+                              {asset.name}
+                            </button>
+                          ) : (
+                            asset.name
+                          )}
+                        </h3>
+                        {asset.symbol && (
+                          <p className="text-sm text-text-secondary font-mono">{asset.symbol}</p>
                         )}
-                      </h3>
-                      {asset.symbol && (
-                        <p className="text-sm text-text-secondary font-mono">{asset.symbol}</p>
-                      )}
+                      </div>
                     </div>
                     <Badge variant={getAssetTypeBadgeVariant(asset.type)} size="sm">
                       {getAssetTypeName(asset.type)}

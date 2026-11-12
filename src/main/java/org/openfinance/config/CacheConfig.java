@@ -70,6 +70,7 @@ public class CacheConfig {
         CaffeineCacheManager cacheManager =
                 new CaffeineCacheManager(
                         "marketQuotes",
+                        "assetLogos",
                         "exchangeRates",
                         "dashboardSummary",
                         "netWorthSummary",

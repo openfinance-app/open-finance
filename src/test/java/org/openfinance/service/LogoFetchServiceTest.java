@@ -6,8 +6,10 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
+import java.net.URI;
 import java.util.Arrays;
 import java.util.Map;
 import java.util.Optional;
@@ -17,10 +19,13 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.openfinance.config.LogoFetchProperties;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 
@@ -60,6 +65,53 @@ class LogoFetchServiceTest {
 
         assertThat(result).isEmpty();
         verify(restTemplate, never()).getForObject(anyString(), eq(byte[].class));
+    }
+
+    @Test
+    void marketLogoUsesSharedSettingsAndPreservesImageType() {
+        when(properties.isEnabled()).thenReturn(true);
+        when(properties.getMinResponseBytes()).thenReturn(100);
+        URI uri = URI.create("https://s.yimg.com/lb/brands/new-company.jpeg");
+        when(restTemplate.getForEntity(uri, byte[].class))
+                .thenReturn(
+                        ResponseEntity.ok().contentType(MediaType.IMAGE_JPEG).body(new byte[200]));
+        assertThat(logoFetchService.fetchMarketLogo(uri.toString()).orElseThrow())
+                .startsWith("data:image/jpeg;base64,");
+    }
+
+    @ParameterizedTest
+    @ValueSource(
+            strings = {
+                "http://s.yimg.com/lb/brands/company.png",
+                "https://s.yimg.com.attacker.invalid/lb/brands/company.png",
+                "https://localhost/logo.png",
+                "https://s.yimg.com:8080/lb/brands/company.png",
+                "https://s.yimg.com/redirect?url=https://localhost",
+                "data:image/png;base64,AAAA"
+            })
+    void rejectsUntrustedProviderImageLocations(String url) {
+        when(properties.isEnabled()).thenReturn(true);
+        assertThat(logoFetchService.fetchMarketLogo(url)).isEmpty();
+        verifyNoInteractions(restTemplate);
+    }
+
+    @Test
+    void skipsMarketLogoWhenDisabled() {
+        assertThat(logoFetchService.fetchMarketLogo("https://s.yimg.com/lb/brands/company.png"))
+                .isEmpty();
+        verifyNoInteractions(restTemplate);
+    }
+
+    @Test
+    void rejectsNonImageMarketResponsesAndHandlesUnavailableImages() {
+        when(properties.isEnabled()).thenReturn(true);
+        URI uri = URI.create("https://s2.coinmarketcap.com/static/img/coins/64x64/74.png");
+        when(restTemplate.getForEntity(uri, byte[].class))
+                .thenReturn(
+                        ResponseEntity.ok().contentType(MediaType.TEXT_HTML).body(new byte[200]))
+                .thenThrow(new RestClientException("timeout"));
+        assertThat(logoFetchService.fetchMarketLogo(uri.toString())).isEmpty();
+        assertThat(logoFetchService.fetchMarketLogo(uri.toString())).isEmpty();
     }
 
     // -------------------------------------------------------------------------

@@ -39,4 +39,7 @@ public class SymbolSearchResult {
 
     /** Industry category (e.g., "Consumer Electronics", "Biotechnology"). */
     private String industry;
+
+    /** Provider-supplied issuer or coin logo, when available. */
+    private String logoUrl;
 }

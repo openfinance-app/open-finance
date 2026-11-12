@@ -1,11 +1,16 @@
 package org.openfinance.service;
 
+import java.net.URI;
 import java.text.Normalizer;
 import java.util.Base64;
+import java.util.Locale;
 import java.util.Optional;
+import java.util.Set;
 import lombok.extern.slf4j.Slf4j;
 import org.openfinance.config.LogoFetchProperties;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
@@ -79,6 +84,58 @@ public class LogoFetchService {
             log.warn("Unexpected error fetching logo for '{}': {}", name, e.getMessage());
             return Optional.empty();
         }
+    }
+
+    /** Fetch provider logo metadata through the same switch, timeouts and size checks as brands. */
+    public Optional<String> fetchMarketLogo(String logoUrl) {
+        if (!properties.isEnabled() || logoUrl == null || logoUrl.isBlank()) {
+            return Optional.empty();
+        }
+        try {
+            URI uri = URI.create(logoUrl);
+            if (!isMarketLogoUrl(uri)) {
+                return Optional.empty();
+            }
+            ResponseEntity<byte[]> response = restTemplate.getForEntity(uri, byte[].class);
+            byte[] bytes = response.getBody();
+            MediaType mediaType = response.getHeaders().getContentType();
+            if (bytes == null
+                    || bytes.length < properties.getMinResponseBytes()
+                    || bytes.length > 512_000
+                    || mediaType == null
+                    || !isRasterImage(mediaType)) {
+                return Optional.empty();
+            }
+            return Optional.of(
+                    "data:"
+                            + mediaType.getType()
+                            + "/"
+                            + mediaType.getSubtype()
+                            + ";base64,"
+                            + Base64.getEncoder().encodeToString(bytes));
+        } catch (Exception e) {
+            log.debug("Could not fetch market logo: {}", e.getMessage());
+            return Optional.empty();
+        }
+    }
+
+    private boolean isMarketLogoUrl(URI uri) {
+        if (!"https".equalsIgnoreCase(uri.getScheme())
+                || uri.getUserInfo() != null
+                || (uri.getPort() != -1 && uri.getPort() != 443)
+                || uri.getPath() == null) {
+            return false;
+        }
+        return ("s.yimg.com".equalsIgnoreCase(uri.getHost())
+                        && uri.getPath().startsWith("/lb/brands/"))
+                || ("s2.coinmarketcap.com".equalsIgnoreCase(uri.getHost())
+                        && uri.getPath().startsWith("/static/img/coins/"));
+    }
+
+    private boolean isRasterImage(MediaType mediaType) {
+        return "image".equalsIgnoreCase(mediaType.getType())
+                && Set.of("png", "jpeg", "gif", "webp", "x-icon", "vnd.microsoft.icon")
+                        .contains(mediaType.getSubtype().toLowerCase(Locale.ROOT));
     }
 
     /**

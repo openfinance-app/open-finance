@@ -697,6 +697,7 @@ export const dashboardHandlers = [
  * Request handlers for assets
  */
 export const assetHandlers = [
+  http.get(`${API_BASE_URL}/assets/:id/logo`, () => HttpResponse.json({ logo: null })),
   // Get all assets
   http.get(`${API_BASE_URL}/assets`, () => {
     return HttpResponse.json(mockAssets);

@@ -32,6 +32,7 @@ export interface SymbolSearchResult {
   name: string;
   type: string;
   exchange?: string;
+  logoUrl?: string | null;
 }
 
 export interface UpdatePriceResponse {

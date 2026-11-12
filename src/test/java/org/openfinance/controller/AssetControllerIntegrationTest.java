@@ -1,6 +1,9 @@
 package org.openfinance.controller;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.*;
+import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -27,6 +30,7 @@ import org.openfinance.repository.UserRepository;
 import org.openfinance.security.EncryptionContext;
 import org.openfinance.security.EncryptionKeyCache;
 import org.openfinance.security.KeyManagementService;
+import org.openfinance.service.AssetLogoService;
 import org.openfinance.service.OperationHistoryService;
 import org.openfinance.service.UserService;
 import org.openfinance.util.DatabaseCleanupService;
@@ -38,6 +42,7 @@ import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 /**
  * Integration tests for AssetController REST endpoints.
@@ -55,6 +60,8 @@ import org.springframework.test.web.servlet.MockMvc;
 class AssetControllerIntegrationTest {
 
     @MockBean private OperationHistoryService operationHistoryService;
+
+    @MockBean private AssetLogoService assetLogoService;
 
     @Autowired private MockMvc mockMvc;
 
@@ -601,6 +608,12 @@ class AssetControllerIntegrationTest {
 
         // Bob tries to access Alice's asset
         mockMvc.perform(
+                        get("/api/v1/assets/" + aliceAssetId + "/logo")
+                                .header("Authorization", "Bearer " + bobToken)
+                                .header("X-Encryption-Session", bobEncKey))
+                .andExpect(status().isNotFound());
+        verifyNoInteractions(assetLogoService);
+        mockMvc.perform(
                         get("/api/v1/assets/" + aliceAssetId)
                                 .header("Authorization", "Bearer " + bobToken)
                                 .header("X-Encryption-Session", bobEncKey))
@@ -918,6 +931,37 @@ class AssetControllerIntegrationTest {
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.warrantyExpiration").isEmpty())
                 .andExpect(jsonPath("$.isWarrantyValid").value(false));
+    }
+
+    @Test
+    void resolvesLogoForOwnedAssetOutsideTheReadTransaction() throws Exception {
+        Long id = createAsset("New company", AssetType.STOCK, "NEWCO");
+        when(assetLogoService.resolveLogo(AssetType.STOCK, "NEWCO", "New company"))
+                .thenAnswer(
+                        invocation -> {
+                            assertThat(
+                                            TransactionSynchronizationManager
+                                                    .isActualTransactionActive())
+                                    .isFalse();
+                            return "data:image/png;base64,cHJvdmlkZXI=";
+                        });
+        mockMvc.perform(
+                        get("/api/v1/assets/{id}/logo", id)
+                                .header("Authorization", "Bearer " + token)
+                                .header("X-Encryption-Session", encKey))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.logo").value("data:image/png;base64,cHJvdmlkZXI="));
+    }
+
+    @Test
+    void logoRequiresAuthenticationAndAnExistingOwnedAsset() throws Exception {
+        mockMvc.perform(get("/api/v1/assets/999999/logo")).andExpect(status().is4xxClientError());
+        mockMvc.perform(
+                        get("/api/v1/assets/999999/logo")
+                                .header("Authorization", "Bearer " + token)
+                                .header("X-Encryption-Session", encKey))
+                .andExpect(status().isNotFound());
+        verifyNoInteractions(assetLogoService);
     }
 
     /** Helper method to create an asset and return its ID. */
