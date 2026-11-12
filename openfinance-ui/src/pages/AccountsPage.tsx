@@ -50,6 +50,7 @@ function hasActiveFilters(filters: Filters): boolean {
     filters.isActive !== undefined ||
     filters.balanceMin !== undefined ||
     filters.balanceMax !== undefined ||
+    filters.balanceExact !== undefined ||
     filters.lowBalance
   );
 }

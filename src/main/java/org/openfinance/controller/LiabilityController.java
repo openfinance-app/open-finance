@@ -300,6 +300,8 @@ public class LiabilityController {
             @RequestParam(value = "searchRegex", required = false, defaultValue = "false")
                     boolean searchRegex,
             @RequestParam(value = "sort", defaultValue = "createdAt,desc") String sort,
+            @org.springframework.web.bind.annotation.ModelAttribute
+                    org.openfinance.dto.LiabilitySearchCriteria amountCriteria,
             Authentication authentication) {
 
         log.info(
@@ -322,7 +324,7 @@ public class LiabilityController {
 
         Page<LiabilityResponse> liabilitiesPage =
                 liabilityService.getLiabilitiesWithFilters(
-                        user.getId(), type, search, searchRegex, pageable);
+                        user.getId(), type, search, searchRegex, amountCriteria, pageable);
 
         log.info(
                 "Retrieved liabilities page {} of {} (total: {}) for user",

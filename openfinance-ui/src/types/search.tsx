@@ -1,3 +1,4 @@
+import type { AmountCurrencyMode } from '@/types/amount-filter';
 /**
  * Search-related types for global search functionality
  */
@@ -62,6 +63,8 @@ export interface AdvancedSearchRequest {
   categoryIds?: number[];
   minAmount?: number;
   maxAmount?: number;
+  exactAmount?: number;
+  amountCurrencyMode?: AmountCurrencyMode;
   dateFrom?: string;
   dateTo?: string;
   tags?: string[];

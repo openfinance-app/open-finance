@@ -347,5 +347,13 @@
     "apply_other": "Appliquer à {{count}} éléments",
     "editShort": "Modifier",
     "deleteShort": "Supprimer ({{count}})"
+  },
+  "amountFilter": {
+    "compareIn": "Comparer les montants en",
+    "baseCurrency": "Devise de base ({{currency}})",
+    "nativeCurrency": "Devise d’origine",
+    "minimum": "Montant min.",
+    "maximum": "Montant max.",
+    "exact": "Montant exact"
   }
 }

@@ -4,6 +4,7 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.openfinance.entity.Transaction;
 import org.openfinance.entity.User;
 import org.openfinance.repository.UserRepository;
 import org.springframework.stereotype.Component;
@@ -49,6 +50,39 @@ public class CurrencyConversionHelper {
             String secondaryCurrency,
             BigDecimal amountInSecondaryCurrency,
             BigDecimal secondaryExchangeRate) {}
+
+    /** Uses the same booked or dated base amount for transaction display, filters and summaries. */
+    public ConversionResult convertTransaction(
+            Transaction transaction, BigDecimal transferAmount, String transferCurrency) {
+        String baseCurrency = defaultCurrencyProvider.resolveForUser(transaction.getUserId());
+        if (baseCurrency.equalsIgnoreCase(transaction.getCurrency())) {
+            return new ConversionResult(
+                    baseCurrency, transaction.getAmount(), null, false, null, null, null);
+        }
+        BigDecimal booked = null;
+        if (baseCurrency.equalsIgnoreCase(transaction.getAccountCurrency())) {
+            booked = transaction.getAccountAmount();
+        } else if (baseCurrency.equalsIgnoreCase(transaction.getOriginalCurrency())) {
+            booked = transaction.getOriginalAmount();
+        } else if (baseCurrency.equalsIgnoreCase(transferCurrency)) {
+            booked = transferAmount;
+        }
+        if (booked != null) {
+            BigDecimal rate =
+                    transaction.getAmount().signum() == 0
+                            ? null
+                            : booked.divide(transaction.getAmount(), 18, RoundingMode.HALF_UP);
+            return new ConversionResult(baseCurrency, booked, rate, true, null, null, null);
+        }
+        return convert(
+                transaction.getUserId(),
+                transaction.getCurrency(),
+                transaction.getAmount(),
+                false,
+                null,
+                "transaction",
+                transaction.getDate());
+    }
 
     /**
      * Converts {@code nativeAmount} from {@code nativeCurrency} to the user's base (and optionally

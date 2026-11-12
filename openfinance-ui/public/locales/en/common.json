@@ -347,5 +347,13 @@
     "apply_other": "Apply to {{count}} records",
     "editShort": "Edit",
     "deleteShort": "Delete ({{count}})"
+  },
+  "amountFilter": {
+    "compareIn": "Compare amounts in",
+    "baseCurrency": "Base currency ({{currency}})",
+    "nativeCurrency": "Native currency",
+    "minimum": "Min amount",
+    "maximum": "Max amount",
+    "exact": "Exact amount"
   }
 }

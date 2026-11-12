@@ -1,3 +1,4 @@
+import type { AmountCurrencyMode } from '@/types/amount-filter';
 /**
  * Liability Type Definitions
  * Task 6.2: Frontend implementation for Liability Management
@@ -129,6 +130,10 @@ export interface LiabilityTotals {
 
 // UI Filter state
 export interface LiabilityFilters {
+  balanceMin?: number;
+  balanceMax?: number;
+  balanceExact?: number;
+  amountCurrencyMode?: AmountCurrencyMode;
   type?: LiabilityType;
   search?: string;
   /** When true, `search` is treated as a regular expression instead of a plain substring. */

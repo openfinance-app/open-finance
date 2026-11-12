@@ -310,6 +310,9 @@ public class AssetController {
                     LocalDate purchaseDateTo,
             @RequestParam(required = false) BigDecimal valueMin,
             @RequestParam(required = false) BigDecimal valueMax,
+            @RequestParam(required = false) java.math.BigDecimal valueExact,
+            @RequestParam(defaultValue = "BASE")
+                    org.openfinance.dto.AmountCurrencyMode amountCurrencyMode,
             @RequestParam(required = false, defaultValue = "false") boolean keywordRegex,
             @PageableDefault(size = 20, sort = "name", direction = Sort.Direction.ASC)
                     Pageable pageable,
@@ -338,6 +341,8 @@ public class AssetController {
                         .purchaseDateTo(purchaseDateTo)
                         .valueMin(valueMin)
                         .valueMax(valueMax)
+                        .valueExact(valueExact)
+                        .amountCurrencyMode(amountCurrencyMode)
                         .build();
 
         // Execute search with pagination

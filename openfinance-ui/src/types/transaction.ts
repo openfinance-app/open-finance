@@ -1,3 +1,4 @@
+import type { AmountCurrencyMode } from '@/types/amount-filter';
 /**
  * Transaction-related types
  */
@@ -284,6 +285,8 @@ export interface TransactionFilters {
   tag?: string;
   minAmount?: number;
   maxAmount?: number;
+  exactAmount?: number;
+  amountCurrencyMode?: AmountCurrencyMode;
   page?: number;
   size?: number;
   sort?: string; // e.g., "date,desc" or "amount,asc"

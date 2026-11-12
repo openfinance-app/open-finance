@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
@@ -17,6 +18,7 @@ import javax.crypto.SecretKey;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.openfinance.dto.AdvancedSearchRequest;
+import org.openfinance.dto.AmountCurrencyMode;
 import org.openfinance.dto.GlobalSearchResponse;
 import org.openfinance.dto.SearchResultDto;
 import org.openfinance.dto.SearchResultDto.SearchResultType;
@@ -38,6 +40,7 @@ import org.openfinance.repository.LiabilityRepository;
 import org.openfinance.repository.RealEstateRepository;
 import org.openfinance.repository.RecurringTransactionRepository;
 import org.openfinance.repository.TransactionRepository;
+import org.openfinance.util.AmountComparison;
 import org.springframework.stereotype.Service;
 
 /**
@@ -81,6 +84,7 @@ public class SearchService {
     private final RecurringTransactionRepository recurringTransactionRepository;
     private final CategoryRepository categoryRepository;
     private final SearchTokenService searchTokenService;
+    private final CurrencyConversionHelper currencyConversionHelper;
 
     private static final int DEFAULT_LIMIT = 50;
     private static final int MAX_LIMIT = 100;
@@ -312,38 +316,72 @@ public class SearchService {
             allResults.addAll(assetResults);
         }
 
-        // Search real estate (no additional filters)
+        // Search real estate, applying amount filters before result limits
         if (entityTypesToSearch.contains(SearchResultType.REAL_ESTATE)) {
             List<SearchResultDto> realEstateResults =
-                    searchRealEstate(userId, request.getQuery(), fetchLimit, regex);
+                    filterAmounts(
+                            userId,
+                            request,
+                            searchRealEstate(
+                                    userId,
+                                    request.getQuery(),
+                                    request.hasAmountFilter() ? Integer.MAX_VALUE : fetchLimit,
+                                    regex),
+                            fetchLimit);
             allResults.addAll(realEstateResults);
         }
 
-        // Search liabilities (no additional filters)
+        // Search liabilities, applying amount filters before result limits
         if (entityTypesToSearch.contains(SearchResultType.LIABILITY)) {
             List<SearchResultDto> liabilityResults =
-                    searchLiabilities(userId, request.getQuery(), fetchLimit, regex);
+                    filterAmounts(
+                            userId,
+                            request,
+                            searchLiabilities(
+                                    userId,
+                                    request.getQuery(),
+                                    request.hasAmountFilter() ? Integer.MAX_VALUE : fetchLimit,
+                                    regex),
+                            fetchLimit);
             allResults.addAll(liabilityResults);
         }
 
         // Search budgets
         if (entityTypesToSearch.contains(SearchResultType.BUDGET)) {
             List<SearchResultDto> budgetResults =
-                    searchBudgets(userId, request.getQuery(), fetchLimit, regex);
+                    filterAmounts(
+                            userId,
+                            request,
+                            searchBudgets(
+                                    userId,
+                                    request.getQuery(),
+                                    request.hasAmountFilter() ? Integer.MAX_VALUE : fetchLimit,
+                                    regex),
+                            fetchLimit);
             allResults.addAll(budgetResults);
         }
 
         // Search recurring transactions
         if (entityTypesToSearch.contains(SearchResultType.RECURRING_TRANSACTION)) {
             List<SearchResultDto> recurringResults =
-                    searchRecurringTransactions(userId, request.getQuery(), fetchLimit, regex);
+                    filterAmounts(
+                            userId,
+                            request,
+                            searchRecurringTransactions(
+                                    userId,
+                                    request.getQuery(),
+                                    request.hasAmountFilter() ? Integer.MAX_VALUE : fetchLimit,
+                                    regex),
+                            fetchLimit);
             allResults.addAll(recurringResults);
         }
 
         // Search categories
         if (entityTypesToSearch.contains(SearchResultType.CATEGORY)) {
             List<SearchResultDto> categoryResults =
-                    searchCategories(userId, request.getQuery(), fetchLimit, regex);
+                    request.hasAmountFilter()
+                            ? List.of()
+                            : searchCategories(userId, request.getQuery(), fetchLimit, regex);
             allResults.addAll(categoryResults);
         }
 
@@ -419,20 +457,6 @@ public class SearchService {
                             })
                     .filter(
                             t -> {
-                                if (request.getMinAmount() != null && t.getAmount() != null) {
-                                    return t.getAmount().compareTo(request.getMinAmount()) >= 0;
-                                }
-                                return true;
-                            })
-                    .filter(
-                            t -> {
-                                if (request.getMaxAmount() != null && t.getAmount() != null) {
-                                    return t.getAmount().compareTo(request.getMaxAmount()) <= 0;
-                                }
-                                return true;
-                            })
-                    .filter(
-                            t -> {
                                 if (request.getDateFrom() != null && t.getDate() != null) {
                                     return !t.getDate().isBefore(request.getDateFrom());
                                 }
@@ -453,8 +477,10 @@ public class SearchService {
                                     return request.getTags().stream()
                                             .anyMatch(
                                                     tag ->
-                                                            tags.toLowerCase()
-                                                                    .contains(tag.toLowerCase()));
+                                                            tags.toLowerCase(Locale.ROOT)
+                                                                    .contains(
+                                                                            tag.toLowerCase(
+                                                                                    Locale.ROOT)));
                                 }
                                 return true;
                             })
@@ -472,6 +498,14 @@ public class SearchService {
                                 }
                                 return true;
                             })
+                    .filter(
+                            TransactionAmountFilter.matching(
+                                    transactions,
+                                    request.getMinAmount(),
+                                    request.getMaxAmount(),
+                                    request.getExactAmount(),
+                                    request.getAmountCurrencyMode(),
+                                    currencyConversionHelper))
                     .limit(limit)
                     .map(t -> buildTransactionSearchResult(t, lowerQuery))
                     .filter(Objects::nonNull)
@@ -481,6 +515,39 @@ public class SearchService {
             log.error("Error searching transactions with filters for user {}", userId, e);
             return Collections.emptyList();
         }
+    }
+
+    private List<SearchResultDto> filterAmounts(
+            Long userId, AdvancedSearchRequest request, List<SearchResultDto> results, int limit) {
+        return results.stream()
+                .filter(result -> matchesAmount(userId, request, result))
+                .limit(limit)
+                .toList();
+    }
+
+    private boolean matchesAmount(
+            Long userId, AdvancedSearchRequest request, SearchResultDto result) {
+        if (!request.hasAmountFilter()) return true;
+        BigDecimal amount = result.getAmount();
+        if (amount == null) return false;
+        if (request.getAmountCurrencyMode() != AmountCurrencyMode.NATIVE) {
+            CurrencyConversionHelper.ConversionResult conversion =
+                    currencyConversionHelper.convert(
+                            userId, result.getCurrency(), amount, false, null, "search result");
+            amount =
+                    AmountComparison.select(
+                            amount,
+                            result.getCurrency(),
+                            conversion.amountInBaseCurrency(),
+                            conversion.baseCurrency(),
+                            conversion.converted(),
+                            request.getAmountCurrencyMode());
+        }
+        if (amount != null && result.getResultType() == SearchResultType.RECURRING_TRANSACTION) {
+            amount = amount.abs();
+        }
+        return AmountComparison.matches(
+                amount, request.getMinAmount(), request.getMaxAmount(), request.getExactAmount());
     }
 
     /** Searches accounts with advanced filters applied. */
@@ -544,6 +611,7 @@ public class SearchService {
                                 }
                             })
                     .filter(Objects::nonNull)
+                    .filter(result -> matchesAmount(userId, request, result))
                     .limit(limit)
                     .collect(Collectors.toList());
 
@@ -569,23 +637,6 @@ public class SearchService {
                                     if (asset.getAccountId() == null
                                             || !request.getAccountIds()
                                                     .contains(asset.getAccountId())) {
-                                        return false;
-                                    }
-                                }
-
-                                // Apply amount filter (currentPrice)
-                                if (request.getMinAmount() != null
-                                        && asset.getCurrentPrice() != null) {
-                                    if (asset.getCurrentPrice().compareTo(request.getMinAmount())
-                                            < 0) {
-                                        return false;
-                                    }
-                                }
-
-                                if (request.getMaxAmount() != null
-                                        && asset.getCurrentPrice() != null) {
-                                    if (asset.getCurrentPrice().compareTo(request.getMaxAmount())
-                                            > 0) {
                                         return false;
                                     }
                                 }
@@ -646,6 +697,7 @@ public class SearchService {
                                 }
                             })
                     .filter(Objects::nonNull)
+                    .filter(result -> matchesAmount(userId, request, result))
                     .limit(limit)
                     .collect(Collectors.toList());
 

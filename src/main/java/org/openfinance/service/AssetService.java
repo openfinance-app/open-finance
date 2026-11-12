@@ -13,6 +13,7 @@ import javax.crypto.SecretKey;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.openfinance.config.EncryptionProperties;
+import org.openfinance.dto.AmountCurrencyMode;
 import org.openfinance.dto.AssetRequest;
 import org.openfinance.dto.AssetResponse;
 import org.openfinance.dto.AssetSearchCriteria;
@@ -38,6 +39,7 @@ import org.openfinance.security.EncryptionContext;
 import org.openfinance.security.EncryptionService;
 import org.openfinance.service.history.ReversibleOperation;
 import org.openfinance.specification.AssetSpecification;
+import org.openfinance.util.AmountComparison;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Caching;
 import org.springframework.data.domain.Page;
@@ -915,7 +917,10 @@ public class AssetService {
 
         boolean hasKeyword =
                 criteria.getKeyword() != null && !criteria.getKeyword().trim().isEmpty();
-        boolean hasValueFilter = criteria.getValueMin() != null || criteria.getValueMax() != null;
+        boolean hasValueFilter =
+                criteria.getValueMin() != null
+                        || criteria.getValueMax() != null
+                        || criteria.getValueExact() != null;
         boolean hasOwnershipFilter = criteria.getOwnershipStatus() != null;
         boolean sortInMemory =
                 pageable.getSort().stream()
@@ -952,25 +957,21 @@ public class AssetService {
                                 .collect(Collectors.toList());
             }
 
-            // Value filters compare the effective value in the user's base currency so assets in
-            // different currencies are comparable and match the displayed portfolio values.
-            if (criteria.getValueMin() != null) {
-                BigDecimal min = criteria.getValueMin();
-                results =
-                        results.stream()
-                                .filter(res -> effectiveBaseValue(res).compareTo(min) >= 0)
-                                .collect(Collectors.toList());
-            }
-            if (criteria.getValueMax() != null) {
-                BigDecimal max = criteria.getValueMax();
-                results =
-                        results.stream()
-                                .filter(res -> effectiveBaseValue(res).compareTo(max) <= 0)
-                                .collect(Collectors.toList());
-            }
+            results =
+                    results.stream()
+                            .filter(
+                                    res ->
+                                            AmountComparison.matches(
+                                                    comparisonValue(
+                                                            res, criteria.getAmountCurrencyMode()),
+                                                    criteria.getValueMin(),
+                                                    criteria.getValueMax(),
+                                                    criteria.getValueExact()))
+                            .collect(Collectors.toList());
 
             // Sort in-memory (name/value are encrypted or computed; other fields handled too).
-            Comparator<AssetResponse> comparator = buildAssetComparator(pageable.getSort());
+            Comparator<AssetResponse> comparator =
+                    buildAssetComparator(pageable.getSort(), criteria.getAmountCurrencyMode());
             if (comparator != null) {
                 results = new ArrayList<>(results);
                 results.sort(
@@ -1026,22 +1027,35 @@ public class AssetService {
                     "unrealizedGain",
                     "gainPercentage");
 
-    /**
-     * Returns the asset's effective total value in the user's base currency, used for value
-     * filtering and sorting. Falls back to the native total value when no conversion is available.
-     */
-    private static BigDecimal effectiveBaseValue(AssetResponse res) {
-        return res.getValueInBaseCurrency() != null
-                ? res.getValueInBaseCurrency()
-                : res.getTotalValue();
+    private static BigDecimal comparisonValue(AssetResponse res, AmountCurrencyMode mode) {
+        return AmountComparison.select(
+                res.getTotalValue(),
+                res.getCurrency(),
+                res.getValueInBaseCurrency(),
+                res.getBaseCurrency(),
+                res.getIsConverted(),
+                mode);
+    }
+
+    private static BigDecimal comparisonAmount(
+            AssetResponse res, BigDecimal amount, AmountCurrencyMode mode) {
+        return AmountComparison.atRate(
+                amount,
+                res.getCurrency(),
+                res.getBaseCurrency(),
+                res.getExchangeRate(),
+                res.getIsConverted(),
+                mode);
     }
 
     /**
      * Builds an in-memory comparator from the requested sort orders. Supports value (compared in
-     * base currency), {@code name} (case-insensitive), {@code unrealizedGain}, {@code purchaseDate}
-     * and {@code createdAt}. Returns {@code null} when no supported sort order is present.
+     * the selected currency), {@code name} (case-insensitive), {@code unrealizedGain}, {@code
+     * purchaseDate} and {@code createdAt}. Returns {@code null} when no supported sort order is
+     * present.
      */
-    private static Comparator<AssetResponse> buildAssetComparator(Sort sort) {
+    private static Comparator<AssetResponse> buildAssetComparator(
+            Sort sort, AmountCurrencyMode mode) {
         Comparator<AssetResponse> comparator = null;
         for (Sort.Order order : sort) {
             Comparator<AssetResponse> next;
@@ -1053,22 +1067,41 @@ public class AssetService {
                                     Comparator.nullsLast(Comparator.naturalOrder()));
                     break;
                 case "currentPrice":
+                case "purchasePrice":
+                case "unrealizedGain":
                     next =
-                            Comparator.comparing(
-                                    AssetResponse::getCurrentPrice,
-                                    Comparator.nullsLast(Comparator.naturalOrder()));
-                    break;
+                            AmountComparison.comparator(
+                                    res ->
+                                            comparisonAmount(
+                                                    res,
+                                                    switch (order.getProperty()) {
+                                                        case "currentPrice" -> res
+                                                                .getCurrentPrice();
+                                                        case "purchasePrice" -> res
+                                                                .getPurchasePrice();
+                                                        default -> res.getUnrealizedGain();
+                                                    },
+                                                    mode),
+                                    order.isAscending());
+                    comparator = comparator == null ? next : comparator.thenComparing(next);
+                    continue;
                 case "totalValue":
                 case "valueInBaseCurrency":
                     next =
-                            Comparator.comparing(
-                                    AssetService::effectiveBaseValue,
-                                    Comparator.nullsLast(Comparator.naturalOrder()));
-                    break;
-                case "unrealizedGain":
+                            AmountComparison.comparator(
+                                    res -> comparisonValue(res, mode), order.isAscending());
+                    comparator = comparator == null ? next : comparator.thenComparing(next);
+                    continue;
+                case "quantity":
                     next =
                             Comparator.comparing(
-                                    AssetResponse::getUnrealizedGain,
+                                    AssetResponse::getQuantity,
+                                    Comparator.nullsLast(Comparator.naturalOrder()));
+                    break;
+                case "gainPercentage":
+                    next =
+                            Comparator.comparing(
+                                    AssetResponse::getGainPercentage,
                                     Comparator.nullsLast(Comparator.naturalOrder()));
                     break;
                 case "name":

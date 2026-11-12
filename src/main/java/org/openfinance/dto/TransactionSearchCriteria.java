@@ -99,18 +99,25 @@ public class TransactionSearchCriteria {
     private LocalDate dateTo;
 
     /**
-     * Filter transactions with amount greater than or equal to this value.
+     * Filter transactions with amount magnitude in the selected currency greater than or equal to
+     * this value.
      *
      * <p>If null, no lower amount bound.
      */
     private BigDecimal amountMin;
 
     /**
-     * Filter transactions with amount less than or equal to this value.
+     * Filter transactions with amount magnitude in the selected currency less than or equal to this
+     * value.
      *
      * <p>If null, no upper amount bound.
      */
     private BigDecimal amountMax;
+
+    /** Exact amount in the selected comparison currency (numeric equality, no rounding). */
+    private BigDecimal amountExact;
+
+    @Builder.Default private AmountCurrencyMode amountCurrencyMode = AmountCurrencyMode.BASE;
 
     /**
      * Search for transactions containing specific tags (comma-separated).
@@ -197,6 +204,7 @@ public class TransactionSearchCriteria {
                 || dateTo != null
                 || amountMin != null
                 || amountMax != null
+                || amountExact != null
                 || tags != null
                 || tag != null
                 || payee != null

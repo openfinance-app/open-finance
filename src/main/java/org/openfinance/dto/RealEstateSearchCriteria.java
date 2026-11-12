@@ -123,6 +123,11 @@ public class RealEstateSearchCriteria {
      */
     private BigDecimal valueMax;
 
+    /** Exact amount in the selected comparison currency (numeric equality, no rounding). */
+    private BigDecimal valueExact;
+
+    @Builder.Default private AmountCurrencyMode amountCurrencyMode = AmountCurrencyMode.BASE;
+
     /**
      * Filter properties with purchase price greater than or equal to this value.
      *
@@ -159,6 +164,7 @@ public class RealEstateSearchCriteria {
                 || purchaseDateTo != null
                 || valueMin != null
                 || valueMax != null
+                || valueExact != null
                 || priceMin != null
                 || priceMax != null
                 || rentalIncomeMin != null;

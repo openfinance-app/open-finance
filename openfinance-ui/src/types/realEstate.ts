@@ -1,3 +1,4 @@
+import type { AmountCurrencyMode } from '@/types/amount-filter';
 /**
  * Real Estate TypeScript Type Definitions
  *
@@ -171,6 +172,8 @@ export interface PropertySearchFilters {
   purchaseDateTo?: string;
   valueMin?: number;
   valueMax?: number;
+  valueExact?: number;
+  amountCurrencyMode?: AmountCurrencyMode;
   priceMin?: number;
   priceMax?: number;
   rentalIncomeMin?: number;

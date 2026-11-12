@@ -44,19 +44,32 @@ export function useLiabilities(filters?: LiabilityFilters) {
 /**
  * Fetch liabilities with pagination for the current user
  */
-export function useLiabilitiesPaged(filters: LiabilityFilters = {}) {
+export function useLiabilitiesPaged(
+  filters: LiabilityFilters = {},
+  fetchAll = false,
+  enabled = true
+) {
   const { page = 0, size = 20, type, search, searchRegex, sort = 'createdAt,desc' } = filters;
 
   return useQuery({
-    queryKey: ['liabilities', 'paged', filters],
+    queryKey: fetchAll
+      ? ['liabilities', 'paged', filters, 'all-pages']
+      : ['liabilities', 'paged', filters],
+    enabled,
     queryFn: async () => {
       const params = new URLSearchParams();
-      params.append('page', String(page));
+      params.append('page', String(fetchAll ? 0 : page));
       params.append('size', String(size));
       params.append('sort', sort);
       if (type) params.append('type', type);
       if (search) params.append('search', search);
       if (search && searchRegex) params.append('searchRegex', 'true');
+      if (filters.balanceMin !== undefined) params.append('balanceMin', String(filters.balanceMin));
+      if (filters.balanceMax !== undefined) params.append('balanceMax', String(filters.balanceMax));
+      if (filters.balanceExact !== undefined)
+        params.append('balanceExact', String(filters.balanceExact));
+      if (filters.amountCurrencyMode)
+        params.append('amountCurrencyMode', filters.amountCurrencyMode);
 
       const response = await apiClient.get<{
         content: Liability[];
@@ -67,7 +80,16 @@ export function useLiabilitiesPaged(filters: LiabilityFilters = {}) {
       }>(`/liabilities/paged?${params.toString()}`, {
         headers: buildEncryptionHeaders(),
       });
-      return response.data;
+      if (!fetchAll || response.data.totalPages <= 1) return response.data;
+      const content = [...response.data.content];
+      for (let nextPage = 1; nextPage < response.data.totalPages; nextPage++) {
+        params.set('page', String(nextPage));
+        const next = await apiClient.get<typeof response.data>(`/liabilities/paged?${params}`, {
+          headers: buildEncryptionHeaders(),
+        });
+        content.push(...next.data.content);
+      }
+      return { ...response.data, content };
     },
   });
 }

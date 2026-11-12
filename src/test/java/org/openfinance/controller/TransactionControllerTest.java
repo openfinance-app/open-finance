@@ -215,6 +215,9 @@ class TransactionControllerTest {
                 userRepository
                         .findByUsername("alice")
                         .orElseThrow(() -> new RuntimeException("User not found"));
+        // These fixtures and their amount bounds are all in the user's base currency, USD.
+        user.setBaseCurrency("USD");
+        userRepository.save(user);
         encKey = objectMapper.readTree(resp).get("encryptionKey").asText();
 
         // Set security context for MockMvc

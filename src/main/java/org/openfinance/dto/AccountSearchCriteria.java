@@ -91,6 +91,11 @@ public class AccountSearchCriteria {
      */
     private BigDecimal balanceMax;
 
+    /** Exact amount in the selected comparison currency (numeric equality, no rounding). */
+    private BigDecimal balanceExact;
+
+    @Builder.Default private AmountCurrencyMode amountCurrencyMode = AmountCurrencyMode.BASE;
+
     /**
      * Filter by institution name (case-insensitive).
      *
@@ -120,6 +125,7 @@ public class AccountSearchCriteria {
                 || isActive != null
                 || balanceMin != null
                 || balanceMax != null
+                || balanceExact != null
                 || institution != null
                 || Boolean.TRUE.equals(lowBalance);
     }

@@ -9,7 +9,7 @@ import { Search, X } from 'lucide-react';
 import { Input, Button, Badge } from '@/components/ui';
 import { RegexToggle } from '@/components/ui/RegexToggle';
 import { CurrencySelector } from '@/components/ui/CurrencySelector';
-import { NumberInput } from '@/components/ui/NumberInput';
+import { AmountFilterControls } from '@/components/ui/AmountFilterControls';
 import type { AccountFilters, AccountType } from '@/types/account';
 
 interface AccountFiltersProps {
@@ -188,41 +188,25 @@ export function AccountFilters({ filters, onFiltersChange }: AccountFiltersProps
           </select>
         </div>
 
-        {/* Balance Range */}
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label
-              htmlFor="balanceMin"
-              className="block text-sm font-medium text-text-primary mb-1.5"
-            >
-              {t('filters.minBalance')}
-            </label>
-            <NumberInput
-              id="balanceMin"
-              data-testid="filter-min-balance"
-              value={filters.balanceMin !== undefined ? String(filters.balanceMin) : ''}
-              onChange={val => handleChange('balanceMin', val ? parseFloat(val) : undefined)}
-              placeholder="0.00"
-              min="0"
-            />
-          </div>
-          <div>
-            <label
-              htmlFor="balanceMax"
-              className="block text-sm font-medium text-text-primary mb-1.5"
-            >
-              {t('filters.maxBalance')}
-            </label>
-            <NumberInput
-              id="balanceMax"
-              data-testid="filter-max-balance"
-              value={filters.balanceMax !== undefined ? String(filters.balanceMax) : ''}
-              onChange={val => handleChange('balanceMax', val ? parseFloat(val) : undefined)}
-              placeholder="0.00"
-              min="0"
-            />
-          </div>
-        </div>
+        <AmountFilterControls
+          min={filters.balanceMin}
+          max={filters.balanceMax}
+          exact={filters.balanceExact}
+          amountCurrencyMode={filters.amountCurrencyMode}
+          minLabel={t('filters.minBalance')}
+          maxLabel={t('filters.maxBalance')}
+          allowNegative
+          testIdSuffix="balance"
+          onChange={value =>
+            onFiltersChange({
+              ...filters,
+              balanceMin: value.min,
+              balanceMax: value.max,
+              balanceExact: value.exact,
+              amountCurrencyMode: value.amountCurrencyMode,
+            })
+          }
+        />
 
         {/* Institution filter */}
         <div>

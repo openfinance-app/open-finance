@@ -9,7 +9,7 @@ import { Input, Button } from '@/components/ui';
 import { RegexToggle } from '@/components/ui/RegexToggle';
 import { CurrencySelector } from '@/components/ui/CurrencySelector';
 import { DateInput } from '@/components/ui/DateInput';
-import { NumberInput } from '@/components/ui/NumberInput';
+import { AmountFilterControls } from '@/components/ui/AmountFilterControls';
 import type { AssetFilters, AssetType } from '@/types/asset';
 
 interface AssetFiltersProps {
@@ -210,41 +210,24 @@ export function AssetFilters({ filters, onFiltersChange }: AssetFiltersProps) {
           </select>
         </div>
 
-        {/* Value Range */}
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label
-              htmlFor="valueMin"
-              className="block text-sm font-medium text-text-primary mb-1.5"
-            >
-              {t('filtersPanel.minValue')}
-            </label>
-            <NumberInput
-              id="valueMin"
-              data-testid="filter-min-value"
-              value={filters.valueMin !== undefined ? String(filters.valueMin) : ''}
-              onChange={val => handleChange('valueMin', val ? parseFloat(val) : undefined)}
-              placeholder="0.00"
-              min="0"
-            />
-          </div>
-          <div>
-            <label
-              htmlFor="valueMax"
-              className="block text-sm font-medium text-text-primary mb-1.5"
-            >
-              {t('filtersPanel.maxValue')}
-            </label>
-            <NumberInput
-              id="valueMax"
-              data-testid="filter-max-value"
-              value={filters.valueMax !== undefined ? String(filters.valueMax) : ''}
-              onChange={val => handleChange('valueMax', val ? parseFloat(val) : undefined)}
-              placeholder="0.00"
-              min="0"
-            />
-          </div>
-        </div>
+        <AmountFilterControls
+          min={filters.valueMin}
+          max={filters.valueMax}
+          exact={filters.valueExact}
+          amountCurrencyMode={filters.amountCurrencyMode}
+          minLabel={t('filtersPanel.minValue')}
+          maxLabel={t('filtersPanel.maxValue')}
+          testIdSuffix="value"
+          onChange={value =>
+            onFiltersChange({
+              ...filters,
+              valueMin: value.min,
+              valueMax: value.max,
+              valueExact: value.exact,
+              amountCurrencyMode: value.amountCurrencyMode,
+            })
+          }
+        />
 
         {/* Purchase Date Range */}
         <div className="grid grid-cols-2 gap-4">

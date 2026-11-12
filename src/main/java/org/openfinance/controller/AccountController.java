@@ -272,6 +272,9 @@ public class AccountController {
             @RequestParam(required = false) Boolean isActive,
             @RequestParam(required = false) java.math.BigDecimal balanceMin,
             @RequestParam(required = false) java.math.BigDecimal balanceMax,
+            @RequestParam(required = false) java.math.BigDecimal balanceExact,
+            @RequestParam(defaultValue = "BASE")
+                    org.openfinance.dto.AmountCurrencyMode amountCurrencyMode,
             @RequestParam(required = false) String institution,
             @RequestParam(required = false) Boolean lowBalance,
             @RequestParam(required = false, defaultValue = "false") boolean keywordRegex,
@@ -298,6 +301,8 @@ public class AccountController {
                         .isActive(isActive)
                         .balanceMin(balanceMin)
                         .balanceMax(balanceMax)
+                        .balanceExact(balanceExact)
+                        .amountCurrencyMode(amountCurrencyMode)
                         .institution(institution)
                         .lowBalance(lowBalance)
                         .build();

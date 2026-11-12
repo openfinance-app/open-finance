@@ -10,7 +10,7 @@ import { ChevronDown, ChevronUp, X, Filter, Save } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/Button';
 import { DateInput } from '@/components/ui/DateInput';
-import { NumberInput } from '@/components/ui/NumberInput';
+import { AmountFilterControls } from '@/components/ui/AmountFilterControls';
 import { Badge } from '@/components/ui/Badge';
 import { Card } from '@/components/ui/Card';
 import { useAccounts } from '@/hooks/useAccounts';
@@ -171,38 +171,23 @@ export function AdvancedFilterPanel({
             </div>
           </div>
 
-          {/* Amount Range */}
-          <div>
-            <label className="block text-sm font-medium text-text-primary mb-3">
-              {t('navigation:search.filters.amountRange')}
-            </label>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label htmlFor="minAmount" className="block text-xs text-text-secondary mb-1.5">
-                  {t('navigation:search.filters.minimum')}
-                </label>
-                <NumberInput
-                  id="minAmount"
-                  value={filters.minAmount !== undefined ? String(filters.minAmount) : ''}
-                  onChange={val => updateFilter('minAmount', val ? parseFloat(val) : undefined)}
-                  placeholder="0.00"
-                  min="0"
-                />
-              </div>
-              <div>
-                <label htmlFor="maxAmount" className="block text-xs text-text-secondary mb-1.5">
-                  {t('navigation:search.filters.maximum')}
-                </label>
-                <NumberInput
-                  id="maxAmount"
-                  value={filters.maxAmount !== undefined ? String(filters.maxAmount) : ''}
-                  onChange={val => updateFilter('maxAmount', val ? parseFloat(val) : undefined)}
-                  placeholder="0.00"
-                  min="0"
-                />
-              </div>
-            </div>
-          </div>
+          <AmountFilterControls
+            min={filters.minAmount}
+            max={filters.maxAmount}
+            exact={filters.exactAmount}
+            amountCurrencyMode={filters.amountCurrencyMode}
+            minLabel={t('navigation:search.filters.minimum')}
+            maxLabel={t('navigation:search.filters.maximum')}
+            onChange={value =>
+              onFiltersChange({
+                ...filters,
+                minAmount: value.min,
+                maxAmount: value.max,
+                exactAmount: value.exact,
+                amountCurrencyMode: value.amountCurrencyMode,
+              })
+            }
+          />
 
           {/* Date Range */}
           <div>
@@ -376,8 +361,8 @@ export function AdvancedFilterPanel({
           </div>
 
           {/* Action Buttons */}
-          <div className="flex items-center justify-between pt-4 border-t border-border">
-            <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center justify-between gap-3 pt-4 border-t border-border">
+            <div className="flex min-w-0 flex-wrap items-center gap-2">
               <Button
                 variant="outline"
                 size="sm"

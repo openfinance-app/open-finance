@@ -2076,16 +2076,16 @@
       <Message>At AdvancedSearchRequest.java:[line 203]</Message>
     </SourceLine>
   </BugInstance>
-  <BugInstance instanceOccurrenceNum="0" instanceHash="76ab5837af53366e35e9ab1b55e8cff0" cweid="374" rank="18" abbrev="EI2" category="MALICIOUS_CODE" priority="2" type="EI_EXPOSE_REP2" instanceOccurrenceMax="0">
+  <BugInstance instanceOccurrenceNum="0" instanceHash="30bad8bbf9e965d49e717d30d2478179" cweid="374" rank="18" abbrev="EI2" category="MALICIOUS_CODE" priority="2" type="EI_EXPOSE_REP2" instanceOccurrenceMax="0">
     <Class classname="org.openfinance.dto.AdvancedSearchRequest" primary="true">
       <SourceLine classname="org.openfinance.dto.AdvancedSearchRequest" start="64" end="274" sourcepath="org/openfinance/dto/AdvancedSearchRequest.java" sourcefile="AdvancedSearchRequest.java">
         <Message>At AdvancedSearchRequest.java:[lines 64-274]</Message>
       </SourceLine>
       <Message>In class org.openfinance.dto.AdvancedSearchRequest</Message>
     </Class>
-    <Method isStatic="false" classname="org.openfinance.dto.AdvancedSearchRequest" signature="(Ljava/lang/String;ZLjava/util/List;Ljava/util/List;Ljava/util/List;Ljava/math/BigDecimal;Ljava/math/BigDecimal;Ljava/time/LocalDate;Ljava/time/LocalDate;Ljava/util/List;Ljava/lang/Boolean;Lorg/openfinance/entity/TransactionType;Ljava/lang/Integer;)V" name="&lt;init&gt;" primary="true">
+    <Method isStatic="false" classname="org.openfinance.dto.AdvancedSearchRequest" signature="(Ljava/lang/String;ZLjava/util/List;Ljava/util/List;Ljava/util/List;Ljava/math/BigDecimal;Ljava/math/BigDecimal;Ljava/math/BigDecimal;Lorg/openfinance/dto/AmountCurrencyMode;Ljava/time/LocalDate;Ljava/time/LocalDate;Ljava/util/List;Ljava/lang/Boolean;Lorg/openfinance/entity/TransactionType;Ljava/lang/Integer;)V" name="&lt;init&gt;" primary="true">
       <SourceLine endBytecode="299" classname="org.openfinance.dto.AdvancedSearchRequest" start="67" end="67" sourcepath="org/openfinance/dto/AdvancedSearchRequest.java" sourcefile="AdvancedSearchRequest.java" startBytecode="0" />
-      <Message>In method new org.openfinance.dto.AdvancedSearchRequest(String, boolean, List, List, List, BigDecimal, BigDecimal, LocalDate, LocalDate, List, Boolean, TransactionType, Integer)</Message>
+      <Message>In method new org.openfinance.dto.AdvancedSearchRequest(String, boolean, List, List, List, BigDecimal, BigDecimal, BigDecimal, AmountCurrencyMode, LocalDate, LocalDate, List, Boolean, TransactionType, Integer)</Message>
     </Method>
     <Field isStatic="false" classname="org.openfinance.dto.AdvancedSearchRequest" signature="Ljava/util/List;" name="accountIds" primary="true">
       <SourceLine classname="org.openfinance.dto.AdvancedSearchRequest" sourcepath="org/openfinance/dto/AdvancedSearchRequest.java" sourcefile="AdvancedSearchRequest.java">
@@ -2100,16 +2100,16 @@
       <Message>At AdvancedSearchRequest.java:[line 67]</Message>
     </SourceLine>
   </BugInstance>
-  <BugInstance instanceOccurrenceNum="0" instanceHash="596bee2cc6b2eee0fc2fe86500de5114" cweid="374" rank="18" abbrev="EI2" category="MALICIOUS_CODE" priority="2" type="EI_EXPOSE_REP2" instanceOccurrenceMax="0">
+  <BugInstance instanceOccurrenceNum="0" instanceHash="9595ec35443062484169fe615d885d30" cweid="374" rank="18" abbrev="EI2" category="MALICIOUS_CODE" priority="2" type="EI_EXPOSE_REP2" instanceOccurrenceMax="0">
     <Class classname="org.openfinance.dto.AdvancedSearchRequest" primary="true">
       <SourceLine classname="org.openfinance.dto.AdvancedSearchRequest" start="64" end="274" sourcepath="org/openfinance/dto/AdvancedSearchRequest.java" sourcefile="AdvancedSearchRequest.java">
         <Message>At AdvancedSearchRequest.java:[lines 64-274]</Message>
       </SourceLine>
       <Message>In class org.openfinance.dto.AdvancedSearchRequest</Message>
     </Class>
-    <Method isStatic="false" classname="org.openfinance.dto.AdvancedSearchRequest" signature="(Ljava/lang/String;ZLjava/util/List;Ljava/util/List;Ljava/util/List;Ljava/math/BigDecimal;Ljava/math/BigDecimal;Ljava/time/LocalDate;Ljava/time/LocalDate;Ljava/util/List;Ljava/lang/Boolean;Lorg/openfinance/entity/TransactionType;Ljava/lang/Integer;)V" name="&lt;init&gt;" primary="true">
+    <Method isStatic="false" classname="org.openfinance.dto.AdvancedSearchRequest" signature="(Ljava/lang/String;ZLjava/util/List;Ljava/util/List;Ljava/util/List;Ljava/math/BigDecimal;Ljava/math/BigDecimal;Ljava/math/BigDecimal;Lorg/openfinance/dto/AmountCurrencyMode;Ljava/time/LocalDate;Ljava/time/LocalDate;Ljava/util/List;Ljava/lang/Boolean;Lorg/openfinance/entity/TransactionType;Ljava/lang/Integer;)V" name="&lt;init&gt;" primary="true">
       <SourceLine endBytecode="299" classname="org.openfinance.dto.AdvancedSearchRequest" start="67" end="67" sourcepath="org/openfinance/dto/AdvancedSearchRequest.java" sourcefile="AdvancedSearchRequest.java" startBytecode="0" />
-      <Message>In method new org.openfinance.dto.AdvancedSearchRequest(String, boolean, List, List, List, BigDecimal, BigDecimal, LocalDate, LocalDate, List, Boolean, TransactionType, Integer)</Message>
+      <Message>In method new org.openfinance.dto.AdvancedSearchRequest(String, boolean, List, List, List, BigDecimal, BigDecimal, BigDecimal, AmountCurrencyMode, LocalDate, LocalDate, List, Boolean, TransactionType, Integer)</Message>
     </Method>
     <Field isStatic="false" classname="org.openfinance.dto.AdvancedSearchRequest" signature="Ljava/util/List;" name="categoryIds" primary="true">
       <SourceLine classname="org.openfinance.dto.AdvancedSearchRequest" sourcepath="org/openfinance/dto/AdvancedSearchRequest.java" sourcefile="AdvancedSearchRequest.java">
@@ -2124,16 +2124,16 @@
       <Message>At AdvancedSearchRequest.java:[line 67]</Message>
     </SourceLine>
   </BugInstance>
-  <BugInstance instanceOccurrenceNum="0" instanceHash="7db492d4545f4d634743b1e8074586ba" cweid="374" rank="18" abbrev="EI2" category="MALICIOUS_CODE" priority="2" type="EI_EXPOSE_REP2" instanceOccurrenceMax="0">
+  <BugInstance instanceOccurrenceNum="0" instanceHash="8155212a9584a19d5d435c379c33e215" cweid="374" rank="18" abbrev="EI2" category="MALICIOUS_CODE" priority="2" type="EI_EXPOSE_REP2" instanceOccurrenceMax="0">
     <Class classname="org.openfinance.dto.AdvancedSearchRequest" primary="true">
       <SourceLine classname="org.openfinance.dto.AdvancedSearchRequest" start="64" end="274" sourcepath="org/openfinance/dto/AdvancedSearchRequest.java" sourcefile="AdvancedSearchRequest.java">
         <Message>At AdvancedSearchRequest.java:[lines 64-274]</Message>
       </SourceLine>
       <Message>In class org.openfinance.dto.AdvancedSearchRequest</Message>
     </Class>
-    <Method isStatic="false" classname="org.openfinance.dto.AdvancedSearchRequest" signature="(Ljava/lang/String;ZLjava/util/List;Ljava/util/List;Ljava/util/List;Ljava/math/BigDecimal;Ljava/math/BigDecimal;Ljava/time/LocalDate;Ljava/time/LocalDate;Ljava/util/List;Ljava/lang/Boolean;Lorg/openfinance/entity/TransactionType;Ljava/lang/Integer;)V" name="&lt;init&gt;" primary="true">
+    <Method isStatic="false" classname="org.openfinance.dto.AdvancedSearchRequest" signature="(Ljava/lang/String;ZLjava/util/List;Ljava/util/List;Ljava/util/List;Ljava/math/BigDecimal;Ljava/math/BigDecimal;Ljava/math/BigDecimal;Lorg/openfinance/dto/AmountCurrencyMode;Ljava/time/LocalDate;Ljava/time/LocalDate;Ljava/util/List;Ljava/lang/Boolean;Lorg/openfinance/entity/TransactionType;Ljava/lang/Integer;)V" name="&lt;init&gt;" primary="true">
       <SourceLine endBytecode="299" classname="org.openfinance.dto.AdvancedSearchRequest" start="67" end="67" sourcepath="org/openfinance/dto/AdvancedSearchRequest.java" sourcefile="AdvancedSearchRequest.java" startBytecode="0" />
-      <Message>In method new org.openfinance.dto.AdvancedSearchRequest(String, boolean, List, List, List, BigDecimal, BigDecimal, LocalDate, LocalDate, List, Boolean, TransactionType, Integer)</Message>
+      <Message>In method new org.openfinance.dto.AdvancedSearchRequest(String, boolean, List, List, List, BigDecimal, BigDecimal, BigDecimal, AmountCurrencyMode, LocalDate, LocalDate, List, Boolean, TransactionType, Integer)</Message>
     </Method>
     <Field isStatic="false" classname="org.openfinance.dto.AdvancedSearchRequest" signature="Ljava/util/List;" name="entityTypes" primary="true">
       <SourceLine classname="org.openfinance.dto.AdvancedSearchRequest" sourcepath="org/openfinance/dto/AdvancedSearchRequest.java" sourcefile="AdvancedSearchRequest.java">
@@ -2148,16 +2148,16 @@
       <Message>At AdvancedSearchRequest.java:[line 67]</Message>
     </SourceLine>
   </BugInstance>
-  <BugInstance instanceOccurrenceNum="0" instanceHash="1dcbb9e03d7c944426729f44d990ab26" cweid="374" rank="18" abbrev="EI2" category="MALICIOUS_CODE" priority="2" type="EI_EXPOSE_REP2" instanceOccurrenceMax="0">
+  <BugInstance instanceOccurrenceNum="0" instanceHash="a103fab5d680a7d5e9cb73a47e88f4b6" cweid="374" rank="18" abbrev="EI2" category="MALICIOUS_CODE" priority="2" type="EI_EXPOSE_REP2" instanceOccurrenceMax="0">
     <Class classname="org.openfinance.dto.AdvancedSearchRequest" primary="true">
       <SourceLine classname="org.openfinance.dto.AdvancedSearchRequest" start="64" end="274" sourcepath="org/openfinance/dto/AdvancedSearchRequest.java" sourcefile="AdvancedSearchRequest.java">
         <Message>At AdvancedSearchRequest.java:[lines 64-274]</Message>
       </SourceLine>
       <Message>In class org.openfinance.dto.AdvancedSearchRequest</Message>
     </Class>
-    <Method isStatic="false" classname="org.openfinance.dto.AdvancedSearchRequest" signature="(Ljava/lang/String;ZLjava/util/List;Ljava/util/List;Ljava/util/List;Ljava/math/BigDecimal;Ljava/math/BigDecimal;Ljava/time/LocalDate;Ljava/time/LocalDate;Ljava/util/List;Ljava/lang/Boolean;Lorg/openfinance/entity/TransactionType;Ljava/lang/Integer;)V" name="&lt;init&gt;" primary="true">
+    <Method isStatic="false" classname="org.openfinance.dto.AdvancedSearchRequest" signature="(Ljava/lang/String;ZLjava/util/List;Ljava/util/List;Ljava/util/List;Ljava/math/BigDecimal;Ljava/math/BigDecimal;Ljava/math/BigDecimal;Lorg/openfinance/dto/AmountCurrencyMode;Ljava/time/LocalDate;Ljava/time/LocalDate;Ljava/util/List;Ljava/lang/Boolean;Lorg/openfinance/entity/TransactionType;Ljava/lang/Integer;)V" name="&lt;init&gt;" primary="true">
       <SourceLine endBytecode="299" classname="org.openfinance.dto.AdvancedSearchRequest" start="67" end="67" sourcepath="org/openfinance/dto/AdvancedSearchRequest.java" sourcefile="AdvancedSearchRequest.java" startBytecode="0" />
-      <Message>In method new org.openfinance.dto.AdvancedSearchRequest(String, boolean, List, List, List, BigDecimal, BigDecimal, LocalDate, LocalDate, List, Boolean, TransactionType, Integer)</Message>
+      <Message>In method new org.openfinance.dto.AdvancedSearchRequest(String, boolean, List, List, List, BigDecimal, BigDecimal, BigDecimal, AmountCurrencyMode, LocalDate, LocalDate, List, Boolean, TransactionType, Integer)</Message>
     </Method>
     <Field isStatic="false" classname="org.openfinance.dto.AdvancedSearchRequest" signature="Ljava/util/List;" name="tags" primary="true">
       <SourceLine classname="org.openfinance.dto.AdvancedSearchRequest" sourcepath="org/openfinance/dto/AdvancedSearchRequest.java" sourcefile="AdvancedSearchRequest.java">
@@ -15061,27 +15061,6 @@
       <Message>At LiabilityService.java:[line 2487]</Message>
     </SourceLine>
   </BugInstance>
-  <BugInstance instanceOccurrenceNum="0" instanceHash="72baf05fb225d7305d4b9b757fb171b8" cweid="476" rank="11" abbrev="RCN" category="CORRECTNESS" priority="2" type="RCN_REDUNDANT_NULLCHECK_WOULD_HAVE_BEEN_A_NPE" instanceOccurrenceMax="0">
-    <Class classname="org.openfinance.service.LiabilityService" classAnnotationNames="org.springframework.stereotype.Service,org.springframework.transaction.annotation.Transactional" primary="true">
-      <SourceLine classname="org.openfinance.service.LiabilityService" start="97" end="2623" sourcepath="org/openfinance/service/LiabilityService.java" sourcefile="LiabilityService.java">
-        <Message>At LiabilityService.java:[lines 97-2623]</Message>
-      </SourceLine>
-      <Message>In class org.openfinance.service.LiabilityService</Message>
-    </Class>
-    <Method isStatic="false" classname="org.openfinance.service.LiabilityService" signature="(Ljava/lang/Long;Lorg/openfinance/entity/LiabilityType;Ljava/lang/String;ZLorg/springframework/data/domain/Pageable;)Lorg/springframework/data/domain/Page;" name="getLiabilitiesWithFilters" classAnnotationNames="org.springframework.stereotype.Service,org.springframework.transaction.annotation.Transactional" primary="true">
-      <SourceLine endBytecode="1177" classname="org.openfinance.service.LiabilityService" start="684" end="767" sourcepath="org/openfinance/service/LiabilityService.java" sourcefile="LiabilityService.java" startBytecode="0" />
-      <Message>In method org.openfinance.service.LiabilityService.getLiabilitiesWithFilters(Long, LiabilityType, String, boolean, Pageable)</Message>
-    </Method>
-    <LocalVariable role="LOCAL_VARIABLE_VALUE_OF" pc="67" name="pageable" register="5">
-      <Message>Value loaded from pageable</Message>
-    </LocalVariable>
-    <SourceLine endBytecode="26" classname="org.openfinance.service.LiabilityService" start="689" end="689" sourcepath="org/openfinance/service/LiabilityService.java" sourcefile="LiabilityService.java" startBytecode="26" primary="true">
-      <Message>At LiabilityService.java:[line 689]</Message>
-    </SourceLine>
-    <SourceLine role="SOURCE_REDUNDANT_NULL_CHECK" endBytecode="69" classname="org.openfinance.service.LiabilityService" start="695" end="695" sourcepath="org/openfinance/service/LiabilityService.java" sourcefile="LiabilityService.java" startBytecode="69">
-      <Message>Redundant null check at LiabilityService.java:[line 695]</Message>
-    </SourceLine>
-  </BugInstance>
   <BugInstance instanceOccurrenceNum="0" instanceHash="9e9b2616c28fa6f92c6fb3da0987d6a8" cweid="374" rank="18" abbrev="EI2" category="MALICIOUS_CODE" priority="2" type="EI_EXPOSE_REP2" instanceOccurrenceMax="0">
     <Class classname="org.openfinance.service.LiabilityTrancheService" classAnnotationNames="org.springframework.stereotype.Service,org.springframework.transaction.annotation.Transactional" primary="true">
       <SourceLine classname="org.openfinance.service.LiabilityTrancheService" start="26" end="172" sourcepath="org/openfinance/service/LiabilityTrancheService.java" sourcefile="LiabilityTrancheService.java">
@@ -16811,24 +16790,6 @@
       <Message>Another occurrence at SearchService.java:[line 1167]</Message>
     </SourceLine>
   </BugInstance>
-  <BugInstance instanceOccurrenceNum="0" instanceHash="d40a9a631a4ab9dd888d52af8a6d8cf8" rank="20" abbrev="Dm" category="I18N" priority="3" type="DM_CONVERT_CASE" instanceOccurrenceMax="0">
-    <Class classname="org.openfinance.service.SearchService" classAnnotationNames="org.springframework.stereotype.Service" primary="true">
-      <SourceLine classname="org.openfinance.service.SearchService" start="71" end="1236" sourcepath="org/openfinance/service/SearchService.java" sourcefile="SearchService.java">
-        <Message>At SearchService.java:[lines 71-1236]</Message>
-      </SourceLine>
-      <Message>In class org.openfinance.service.SearchService</Message>
-    </Class>
-    <Method isStatic="true" classname="org.openfinance.service.SearchService" signature="(Ljava/lang/String;Ljava/lang/String;)Z" name="lambda$searchTransactionsWithFilters$28" classAnnotationNames="org.springframework.stereotype.Service" primary="true">
-      <SourceLine endBytecode="71" classname="org.openfinance.service.SearchService" start="453" end="453" sourcepath="org/openfinance/service/SearchService.java" sourcefile="SearchService.java" startBytecode="0" />
-      <Message>In method org.openfinance.service.SearchService.lambda$searchTransactionsWithFilters$28(String, String)</Message>
-    </Method>
-    <SourceLine endBytecode="1" classname="org.openfinance.service.SearchService" start="453" end="453" sourcepath="org/openfinance/service/SearchService.java" sourcefile="SearchService.java" startBytecode="1" primary="true">
-      <Message>At SearchService.java:[line 453]</Message>
-    </SourceLine>
-    <SourceLine role="SOURCE_LINE_ANOTHER_INSTANCE" endBytecode="5" classname="org.openfinance.service.SearchService" start="454" end="454" sourcepath="org/openfinance/service/SearchService.java" sourcefile="SearchService.java" startBytecode="5">
-      <Message>Another occurrence at SearchService.java:[line 454]</Message>
-    </SourceLine>
-  </BugInstance>
   <BugInstance instanceOccurrenceNum="0" instanceHash="921bfc83098725ef44b6fcdbe3ed3b3" rank="20" abbrev="Dm" category="I18N" priority="3" type="DM_CONVERT_CASE" instanceOccurrenceMax="0">
     <Class classname="org.openfinance.service.SearchService" classAnnotationNames="org.springframework.stereotype.Service" primary="true">
       <SourceLine classname="org.openfinance.service.SearchService" start="71" end="1236" sourcepath="org/openfinance/service/SearchService.java" sourcefile="SearchService.java">
@@ -16859,16 +16820,16 @@
       <Message>At SearchService.java:[line 394]</Message>
     </SourceLine>
   </BugInstance>
-  <BugInstance instanceOccurrenceNum="0" instanceHash="3cd9aa951c59a524bda778eb61520362" cweid="374" rank="18" abbrev="EI2" category="MALICIOUS_CODE" priority="2" type="EI_EXPOSE_REP2" instanceOccurrenceMax="0">
+  <BugInstance instanceOccurrenceNum="0" instanceHash="9617e64c745d4dd7a6ebd7988c044be9" cweid="374" rank="18" abbrev="EI2" category="MALICIOUS_CODE" priority="2" type="EI_EXPOSE_REP2" instanceOccurrenceMax="0">
     <Class classname="org.openfinance.service.SearchService" classAnnotationNames="org.springframework.stereotype.Service" primary="true">
       <SourceLine classname="org.openfinance.service.SearchService" start="71" end="1236" sourcepath="org/openfinance/service/SearchService.java" sourcefile="SearchService.java">
         <Message>At SearchService.java:[lines 71-1236]</Message>
       </SourceLine>
       <Message>In class org.openfinance.service.SearchService</Message>
     </Class>
-    <Method isStatic="false" classname="org.openfinance.service.SearchService" signature="(Lorg/openfinance/repository/TransactionRepository;Lorg/openfinance/repository/AccountRepository;Lorg/openfinance/repository/AssetRepository;Lorg/openfinance/repository/RealEstateRepository;Lorg/openfinance/repository/LiabilityRepository;Lorg/openfinance/repository/BudgetRepository;Lorg/openfinance/repository/RecurringTransactionRepository;Lorg/openfinance/repository/CategoryRepository;Lorg/openfinance/service/SearchTokenService;)V" name="&lt;init&gt;" classAnnotationNames="org.springframework.stereotype.Service" primary="true">
+    <Method isStatic="false" classname="org.openfinance.service.SearchService" signature="(Lorg/openfinance/repository/TransactionRepository;Lorg/openfinance/repository/AccountRepository;Lorg/openfinance/repository/AssetRepository;Lorg/openfinance/repository/RealEstateRepository;Lorg/openfinance/repository/LiabilityRepository;Lorg/openfinance/repository/BudgetRepository;Lorg/openfinance/repository/RecurringTransactionRepository;Lorg/openfinance/repository/CategoryRepository;Lorg/openfinance/service/SearchTokenService;Lorg/openfinance/service/CurrencyConversionHelper;)V" name="&lt;init&gt;" classAnnotationNames="org.springframework.stereotype.Service" primary="true">
       <SourceLine endBytecode="187" classname="org.openfinance.service.SearchService" start="71" end="71" sourcepath="org/openfinance/service/SearchService.java" sourcefile="SearchService.java" startBytecode="0" />
-      <Message>In method new org.openfinance.service.SearchService(TransactionRepository, AccountRepository, AssetRepository, RealEstateRepository, LiabilityRepository, BudgetRepository, RecurringTransactionRepository, CategoryRepository, SearchTokenService)</Message>
+      <Message>In method new org.openfinance.service.SearchService(TransactionRepository, AccountRepository, AssetRepository, RealEstateRepository, LiabilityRepository, BudgetRepository, RecurringTransactionRepository, CategoryRepository, SearchTokenService, CurrencyConversionHelper)</Message>
     </Method>
     <Field isStatic="false" classname="org.openfinance.service.SearchService" signature="Lorg/openfinance/repository/LiabilityRepository;" name="liabilityRepository" classAnnotationNames="org.springframework.stereotype.Service" primary="true">
       <SourceLine classname="org.openfinance.service.SearchService" sourcepath="org/openfinance/service/SearchService.java" sourcefile="SearchService.java">
@@ -16883,16 +16844,16 @@
       <Message>At SearchService.java:[line 71]</Message>
     </SourceLine>
   </BugInstance>
-  <BugInstance instanceOccurrenceNum="0" instanceHash="2a2af1dfb445e4004c4268331b168e47" cweid="374" rank="18" abbrev="EI2" category="MALICIOUS_CODE" priority="2" type="EI_EXPOSE_REP2" instanceOccurrenceMax="0">
+  <BugInstance instanceOccurrenceNum="0" instanceHash="4fe7a3d3cce403201ddd9c382052500c" cweid="374" rank="18" abbrev="EI2" category="MALICIOUS_CODE" priority="2" type="EI_EXPOSE_REP2" instanceOccurrenceMax="0">
     <Class classname="org.openfinance.service.SearchService" classAnnotationNames="org.springframework.stereotype.Service" primary="true">
       <SourceLine classname="org.openfinance.service.SearchService" start="71" end="1236" sourcepath="org/openfinance/service/SearchService.java" sourcefile="SearchService.java">
         <Message>At SearchService.java:[lines 71-1236]</Message>
       </SourceLine>
       <Message>In class org.openfinance.service.SearchService</Message>
     </Class>
-    <Method isStatic="false" classname="org.openfinance.service.SearchService" signature="(Lorg/openfinance/repository/TransactionRepository;Lorg/openfinance/repository/AccountRepository;Lorg/openfinance/repository/AssetRepository;Lorg/openfinance/repository/RealEstateRepository;Lorg/openfinance/repository/LiabilityRepository;Lorg/openfinance/repository/BudgetRepository;Lorg/openfinance/repository/RecurringTransactionRepository;Lorg/openfinance/repository/CategoryRepository;Lorg/openfinance/service/SearchTokenService;)V" name="&lt;init&gt;" classAnnotationNames="org.springframework.stereotype.Service" primary="true">
+    <Method isStatic="false" classname="org.openfinance.service.SearchService" signature="(Lorg/openfinance/repository/TransactionRepository;Lorg/openfinance/repository/AccountRepository;Lorg/openfinance/repository/AssetRepository;Lorg/openfinance/repository/RealEstateRepository;Lorg/openfinance/repository/LiabilityRepository;Lorg/openfinance/repository/BudgetRepository;Lorg/openfinance/repository/RecurringTransactionRepository;Lorg/openfinance/repository/CategoryRepository;Lorg/openfinance/service/SearchTokenService;Lorg/openfinance/service/CurrencyConversionHelper;)V" name="&lt;init&gt;" classAnnotationNames="org.springframework.stereotype.Service" primary="true">
       <SourceLine endBytecode="187" classname="org.openfinance.service.SearchService" start="71" end="71" sourcepath="org/openfinance/service/SearchService.java" sourcefile="SearchService.java" startBytecode="0" />
-      <Message>In method new org.openfinance.service.SearchService(TransactionRepository, AccountRepository, AssetRepository, RealEstateRepository, LiabilityRepository, BudgetRepository, RecurringTransactionRepository, CategoryRepository, SearchTokenService)</Message>
+      <Message>In method new org.openfinance.service.SearchService(TransactionRepository, AccountRepository, AssetRepository, RealEstateRepository, LiabilityRepository, BudgetRepository, RecurringTransactionRepository, CategoryRepository, SearchTokenService, CurrencyConversionHelper)</Message>
     </Method>
     <Field isStatic="false" classname="org.openfinance.service.SearchService" signature="Lorg/openfinance/repository/RealEstateRepository;" name="realEstateRepository" classAnnotationNames="org.springframework.stereotype.Service" primary="true">
       <SourceLine classname="org.openfinance.service.SearchService" sourcepath="org/openfinance/service/SearchService.java" sourcefile="SearchService.java">
@@ -16907,16 +16868,16 @@
       <Message>At SearchService.java:[line 71]</Message>
     </SourceLine>
   </BugInstance>
-  <BugInstance instanceOccurrenceNum="0" instanceHash="972d157c33d060c455288980d229e39a" cweid="374" rank="18" abbrev="EI2" category="MALICIOUS_CODE" priority="2" type="EI_EXPOSE_REP2" instanceOccurrenceMax="0">
+  <BugInstance instanceOccurrenceNum="0" instanceHash="97d6ce91be166d89d19d7d2873a19e8c" cweid="374" rank="18" abbrev="EI2" category="MALICIOUS_CODE" priority="2" type="EI_EXPOSE_REP2" instanceOccurrenceMax="0">
     <Class classname="org.openfinance.service.SearchService" classAnnotationNames="org.springframework.stereotype.Service" primary="true">
       <SourceLine classname="org.openfinance.service.SearchService" start="71" end="1236" sourcepath="org/openfinance/service/SearchService.java" sourcefile="SearchService.java">
         <Message>At SearchService.java:[lines 71-1236]</Message>
       </SourceLine>
       <Message>In class org.openfinance.service.SearchService</Message>
     </Class>
-    <Method isStatic="false" classname="org.openfinance.service.SearchService" signature="(Lorg/openfinance/repository/TransactionRepository;Lorg/openfinance/repository/AccountRepository;Lorg/openfinance/repository/AssetRepository;Lorg/openfinance/repository/RealEstateRepository;Lorg/openfinance/repository/LiabilityRepository;Lorg/openfinance/repository/BudgetRepository;Lorg/openfinance/repository/RecurringTransactionRepository;Lorg/openfinance/repository/CategoryRepository;Lorg/openfinance/service/SearchTokenService;)V" name="&lt;init&gt;" classAnnotationNames="org.springframework.stereotype.Service" primary="true">
+    <Method isStatic="false" classname="org.openfinance.service.SearchService" signature="(Lorg/openfinance/repository/TransactionRepository;Lorg/openfinance/repository/AccountRepository;Lorg/openfinance/repository/AssetRepository;Lorg/openfinance/repository/RealEstateRepository;Lorg/openfinance/repository/LiabilityRepository;Lorg/openfinance/repository/BudgetRepository;Lorg/openfinance/repository/RecurringTransactionRepository;Lorg/openfinance/repository/CategoryRepository;Lorg/openfinance/service/SearchTokenService;Lorg/openfinance/service/CurrencyConversionHelper;)V" name="&lt;init&gt;" classAnnotationNames="org.springframework.stereotype.Service" primary="true">
       <SourceLine endBytecode="187" classname="org.openfinance.service.SearchService" start="71" end="71" sourcepath="org/openfinance/service/SearchService.java" sourcefile="SearchService.java" startBytecode="0" />
-      <Message>In method new org.openfinance.service.SearchService(TransactionRepository, AccountRepository, AssetRepository, RealEstateRepository, LiabilityRepository, BudgetRepository, RecurringTransactionRepository, CategoryRepository, SearchTokenService)</Message>
+      <Message>In method new org.openfinance.service.SearchService(TransactionRepository, AccountRepository, AssetRepository, RealEstateRepository, LiabilityRepository, BudgetRepository, RecurringTransactionRepository, CategoryRepository, SearchTokenService, CurrencyConversionHelper)</Message>
     </Method>
     <Field isStatic="false" classname="org.openfinance.service.SearchService" signature="Lorg/openfinance/repository/RecurringTransactionRepository;" name="recurringTransactionRepository" classAnnotationNames="org.springframework.stereotype.Service" primary="true">
       <SourceLine classname="org.openfinance.service.SearchService" sourcepath="org/openfinance/service/SearchService.java" sourcefile="SearchService.java">
@@ -16931,16 +16892,16 @@
       <Message>At SearchService.java:[line 71]</Message>
     </SourceLine>
   </BugInstance>
-  <BugInstance instanceOccurrenceNum="0" instanceHash="4a59516b04044de4fd26601d2df45f68" cweid="374" rank="18" abbrev="EI2" category="MALICIOUS_CODE" priority="2" type="EI_EXPOSE_REP2" instanceOccurrenceMax="0">
+  <BugInstance instanceOccurrenceNum="0" instanceHash="bfd8bc82c2f8daa4f47689801a7b9e11" cweid="374" rank="18" abbrev="EI2" category="MALICIOUS_CODE" priority="2" type="EI_EXPOSE_REP2" instanceOccurrenceMax="0">
     <Class classname="org.openfinance.service.SearchService" classAnnotationNames="org.springframework.stereotype.Service" primary="true">
       <SourceLine classname="org.openfinance.service.SearchService" start="71" end="1236" sourcepath="org/openfinance/service/SearchService.java" sourcefile="SearchService.java">
         <Message>At SearchService.java:[lines 71-1236]</Message>
       </SourceLine>
       <Message>In class org.openfinance.service.SearchService</Message>
     </Class>
-    <Method isStatic="false" classname="org.openfinance.service.SearchService" signature="(Lorg/openfinance/repository/TransactionRepository;Lorg/openfinance/repository/AccountRepository;Lorg/openfinance/repository/AssetRepository;Lorg/openfinance/repository/RealEstateRepository;Lorg/openfinance/repository/LiabilityRepository;Lorg/openfinance/repository/BudgetRepository;Lorg/openfinance/repository/RecurringTransactionRepository;Lorg/openfinance/repository/CategoryRepository;Lorg/openfinance/service/SearchTokenService;)V" name="&lt;init&gt;" classAnnotationNames="org.springframework.stereotype.Service" primary="true">
+    <Method isStatic="false" classname="org.openfinance.service.SearchService" signature="(Lorg/openfinance/repository/TransactionRepository;Lorg/openfinance/repository/AccountRepository;Lorg/openfinance/repository/AssetRepository;Lorg/openfinance/repository/RealEstateRepository;Lorg/openfinance/repository/LiabilityRepository;Lorg/openfinance/repository/BudgetRepository;Lorg/openfinance/repository/RecurringTransactionRepository;Lorg/openfinance/repository/CategoryRepository;Lorg/openfinance/service/SearchTokenService;Lorg/openfinance/service/CurrencyConversionHelper;)V" name="&lt;init&gt;" classAnnotationNames="org.springframework.stereotype.Service" primary="true">
       <SourceLine endBytecode="187" classname="org.openfinance.service.SearchService" start="71" end="71" sourcepath="org/openfinance/service/SearchService.java" sourcefile="SearchService.java" startBytecode="0" />
-      <Message>In method new org.openfinance.service.SearchService(TransactionRepository, AccountRepository, AssetRepository, RealEstateRepository, LiabilityRepository, BudgetRepository, RecurringTransactionRepository, CategoryRepository, SearchTokenService)</Message>
+      <Message>In method new org.openfinance.service.SearchService(TransactionRepository, AccountRepository, AssetRepository, RealEstateRepository, LiabilityRepository, BudgetRepository, RecurringTransactionRepository, CategoryRepository, SearchTokenService, CurrencyConversionHelper)</Message>
     </Method>
     <Field isStatic="false" classname="org.openfinance.service.SearchService" signature="Lorg/openfinance/service/SearchTokenService;" name="searchTokenService" classAnnotationNames="org.springframework.stereotype.Service" primary="true">
       <SourceLine classname="org.openfinance.service.SearchService" sourcepath="org/openfinance/service/SearchService.java" sourcefile="SearchService.java">
@@ -16955,16 +16916,16 @@
       <Message>At SearchService.java:[line 71]</Message>
     </SourceLine>
   </BugInstance>
-  <BugInstance instanceOccurrenceNum="0" instanceHash="a2aaebe4207baeb5420741d827d0f2a6" cweid="374" rank="18" abbrev="EI2" category="MALICIOUS_CODE" priority="2" type="EI_EXPOSE_REP2" instanceOccurrenceMax="0">
+  <BugInstance instanceOccurrenceNum="0" instanceHash="59b49c488b6dbe265928199ccc8c8650" cweid="374" rank="18" abbrev="EI2" category="MALICIOUS_CODE" priority="2" type="EI_EXPOSE_REP2" instanceOccurrenceMax="0">
     <Class classname="org.openfinance.service.SearchService" classAnnotationNames="org.springframework.stereotype.Service" primary="true">
       <SourceLine classname="org.openfinance.service.SearchService" start="71" end="1236" sourcepath="org/openfinance/service/SearchService.java" sourcefile="SearchService.java">
         <Message>At SearchService.java:[lines 71-1236]</Message>
       </SourceLine>
       <Message>In class org.openfinance.service.SearchService</Message>
     </Class>
-    <Method isStatic="false" classname="org.openfinance.service.SearchService" signature="(Lorg/openfinance/repository/TransactionRepository;Lorg/openfinance/repository/AccountRepository;Lorg/openfinance/repository/AssetRepository;Lorg/openfinance/repository/RealEstateRepository;Lorg/openfinance/repository/LiabilityRepository;Lorg/openfinance/repository/BudgetRepository;Lorg/openfinance/repository/RecurringTransactionRepository;Lorg/openfinance/repository/CategoryRepository;Lorg/openfinance/service/SearchTokenService;)V" name="&lt;init&gt;" classAnnotationNames="org.springframework.stereotype.Service" primary="true">
+    <Method isStatic="false" classname="org.openfinance.service.SearchService" signature="(Lorg/openfinance/repository/TransactionRepository;Lorg/openfinance/repository/AccountRepository;Lorg/openfinance/repository/AssetRepository;Lorg/openfinance/repository/RealEstateRepository;Lorg/openfinance/repository/LiabilityRepository;Lorg/openfinance/repository/BudgetRepository;Lorg/openfinance/repository/RecurringTransactionRepository;Lorg/openfinance/repository/CategoryRepository;Lorg/openfinance/service/SearchTokenService;Lorg/openfinance/service/CurrencyConversionHelper;)V" name="&lt;init&gt;" classAnnotationNames="org.springframework.stereotype.Service" primary="true">
       <SourceLine endBytecode="187" classname="org.openfinance.service.SearchService" start="71" end="71" sourcepath="org/openfinance/service/SearchService.java" sourcefile="SearchService.java" startBytecode="0" />
-      <Message>In method new org.openfinance.service.SearchService(TransactionRepository, AccountRepository, AssetRepository, RealEstateRepository, LiabilityRepository, BudgetRepository, RecurringTransactionRepository, CategoryRepository, SearchTokenService)</Message>
+      <Message>In method new org.openfinance.service.SearchService(TransactionRepository, AccountRepository, AssetRepository, RealEstateRepository, LiabilityRepository, BudgetRepository, RecurringTransactionRepository, CategoryRepository, SearchTokenService, CurrencyConversionHelper)</Message>
     </Method>
     <Field isStatic="false" classname="org.openfinance.service.SearchService" signature="Lorg/openfinance/repository/TransactionRepository;" name="transactionRepository" classAnnotationNames="org.springframework.stereotype.Service" primary="true">
       <SourceLine classname="org.openfinance.service.SearchService" sourcepath="org/openfinance/service/SearchService.java" sourcefile="SearchService.java">

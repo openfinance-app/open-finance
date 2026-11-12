@@ -1,3 +1,4 @@
+import type { AmountCurrencyMode } from '@/types/amount-filter';
 /**
  * Asset-related types
  * Task 5.2.10: Asset type definitions
@@ -40,6 +41,8 @@ export interface AssetFilters {
   purchaseDateTo?: string;
   valueMin?: number;
   valueMax?: number;
+  valueExact?: number;
+  amountCurrencyMode?: AmountCurrencyMode;
   // Pagination
   page?: number;
   size?: number;

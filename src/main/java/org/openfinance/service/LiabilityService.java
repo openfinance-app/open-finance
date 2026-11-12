@@ -3,13 +3,11 @@ package org.openfinance.service;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -18,10 +16,12 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.openfinance.dto.AccountResponse;
 import org.openfinance.dto.AmortizationScheduleEntry;
+import org.openfinance.dto.AmountCurrencyMode;
 import org.openfinance.dto.DisbursementRequest;
 import org.openfinance.dto.LiabilityBreakdownResponse;
 import org.openfinance.dto.LiabilityRequest;
 import org.openfinance.dto.LiabilityResponse;
+import org.openfinance.dto.LiabilitySearchCriteria;
 import org.openfinance.dto.LiabilityTrancheRequest;
 import org.openfinance.dto.LiabilityTrancheResponse;
 import org.openfinance.dto.MetadataUpdateRequest;
@@ -55,6 +55,7 @@ import org.openfinance.repository.TransactionRepository;
 import org.openfinance.repository.UserRepository;
 import org.openfinance.security.EncryptionService;
 import org.openfinance.service.history.ReversibleOperation;
+import org.openfinance.util.AmountComparison;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Caching;
 import org.springframework.data.domain.Page;
@@ -765,7 +766,25 @@ public class LiabilityService {
             String search,
             boolean searchRegex,
             Pageable pageable) {
+        return getLiabilitiesWithFilters(
+                userId, type, search, searchRegex, new LiabilitySearchCriteria(), pageable);
+    }
 
+    @Transactional(readOnly = true)
+    public Page<LiabilityResponse> getLiabilitiesWithFilters(
+            Long userId,
+            LiabilityType type,
+            String search,
+            boolean searchRegex,
+            LiabilitySearchCriteria criteria,
+            Pageable pageable) {
+
+        if (userId == null) {
+            throw new IllegalArgumentException("User ID cannot be null");
+        }
+        if (pageable == null) {
+            throw new IllegalArgumentException("Pageable cannot be null");
+        }
         log.debug(
                 "Retrieving liabilities for user {} with filters: type={}, search={}, page={}, size={}",
                 userId,
@@ -774,18 +793,12 @@ public class LiabilityService {
                 pageable.getPageNumber(),
                 pageable.getPageSize());
 
-        if (userId == null) {
-            throw new IllegalArgumentException("User ID cannot be null");
-        }
-        if (pageable == null) {
-            throw new IllegalArgumentException("Pageable cannot be null");
-        }
         boolean hasSearch = search != null && !search.isBlank();
         boolean sortOnEncrypted =
                 pageable.getSort().stream()
                         .anyMatch(order -> ENCRYPTED_SORT_FIELDS.contains(order.getProperty()));
 
-        if (hasSearch || sortOnEncrypted) {
+        if (hasSearch || sortOnEncrypted || criteria.hasAmountFilter()) {
             // In-memory path: fetch ALL matching liabilities, decrypt, filter, sort, page
             List<Liability> all = liabilityRepository.findAllByUserIdAndType(userId, type);
 
@@ -803,16 +816,28 @@ public class LiabilityService {
                                 .collect(Collectors.toList());
             }
 
+            responses =
+                    responses.stream()
+                            .filter(
+                                    response ->
+                                            AmountComparison.matches(
+                                                    liabilityAmount(
+                                                            response,
+                                                            "currentBalance",
+                                                            criteria.getAmountCurrencyMode()),
+                                                    criteria.getBalanceMin(),
+                                                    criteria.getBalanceMax(),
+                                                    criteria.getBalanceExact()))
+                            .collect(Collectors.toList());
+
             // Sort in memory
             Sort sort = pageable.getSort();
             if (sort.isSorted()) {
                 Comparator<LiabilityResponse> comparator = null;
                 for (Sort.Order order : sort) {
-                    Comparator<LiabilityResponse> fc = buildResponseComparator(order.getProperty());
+                    Comparator<LiabilityResponse> fc =
+                            buildResponseComparator(order, criteria.getAmountCurrencyMode());
                     if (fc != null) {
-                        if (order.isDescending()) {
-                            fc = fc.reversed();
-                        }
                         comparator = (comparator == null) ? fc : comparator.thenComparing(fc);
                     }
                 }
@@ -856,52 +881,58 @@ public class LiabilityService {
      * Returns a {@link Comparator} for the given {@link LiabilityResponse} field. Returns {@code
      * null} for unknown field names (the sort is silently ignored).
      */
-    @SuppressWarnings("unchecked")
-    private Comparator<LiabilityResponse> buildResponseComparator(String field) {
-        return switch (field) {
-            case "name" -> Comparator.comparing(
-                    r -> r.getName() != null ? r.getName().toLowerCase(Locale.ROOT) : "",
-                    Comparator.naturalOrder());
-            case "currentBalance" -> (Comparator<LiabilityResponse>)
-                    Comparator.comparing(
-                            (LiabilityResponse r) ->
-                                    r.getCurrentBalance() != null
-                                            ? r.getCurrentBalance()
-                                            : BigDecimal.ZERO);
-            case "principal" -> (Comparator<LiabilityResponse>)
-                    Comparator.comparing(
-                            (LiabilityResponse r) ->
-                                    r.getPrincipal() != null ? r.getPrincipal() : BigDecimal.ZERO);
-            case "interestRate" -> (Comparator<LiabilityResponse>)
-                    Comparator.comparing(
-                            (LiabilityResponse r) ->
-                                    r.getInterestRate() != null
-                                            ? r.getInterestRate()
-                                            : BigDecimal.ZERO);
-            case "minimumPayment" -> (Comparator<LiabilityResponse>)
-                    Comparator.comparing(
-                            (LiabilityResponse r) ->
-                                    r.getMinimumPayment() != null
-                                            ? r.getMinimumPayment()
-                                            : BigDecimal.ZERO);
-            case "startDate" -> (Comparator<LiabilityResponse>)
-                    Comparator.comparing(
-                            (LiabilityResponse r) ->
-                                    r.getStartDate() != null ? r.getStartDate() : LocalDate.MIN);
-            case "endDate" -> (Comparator<LiabilityResponse>)
-                    Comparator.comparing(
-                            (LiabilityResponse r) ->
-                                    r.getEndDate() != null ? r.getEndDate() : LocalDate.MAX);
-            case "createdAt" -> (Comparator<LiabilityResponse>)
-                    Comparator.comparing(
-                            (LiabilityResponse r) ->
-                                    r.getCreatedAt() != null
-                                            ? r.getCreatedAt()
-                                            : LocalDateTime.MIN);
-            case "type" -> Comparator.comparing(
-                    r -> r.getType() != null ? r.getType().name() : "", Comparator.naturalOrder());
-            default -> null;
-        };
+    private BigDecimal liabilityAmount(
+            LiabilityResponse response, String field, AmountCurrencyMode mode) {
+        if (field.equals("currentBalance")) {
+            return AmountComparison.select(
+                    response.getCurrentBalance(),
+                    response.getCurrency(),
+                    response.getBalanceInBaseCurrency(),
+                    response.getBaseCurrency(),
+                    response.getIsConverted(),
+                    mode);
+        }
+        BigDecimal nativeAmount =
+                field.equals("principal") ? response.getPrincipal() : response.getMinimumPayment();
+        return AmountComparison.atRate(
+                nativeAmount,
+                response.getCurrency(),
+                response.getBaseCurrency(),
+                response.getExchangeRate(),
+                response.getIsConverted(),
+                mode);
+    }
+
+    private Comparator<LiabilityResponse> buildResponseComparator(
+            Sort.Order order, AmountCurrencyMode mode) {
+        String field = order.getProperty();
+        if (Set.of("currentBalance", "principal", "minimumPayment").contains(field)) {
+            return AmountComparison.comparator(
+                    response -> liabilityAmount(response, field, mode), order.isAscending());
+        }
+        Comparator<LiabilityResponse> comparator =
+                switch (field) {
+                    case "name" -> Comparator.comparing(
+                            r -> r.getName() == null ? "" : r.getName(),
+                            String.CASE_INSENSITIVE_ORDER);
+                    case "interestRate" -> Comparator.comparing(
+                            LiabilityResponse::getInterestRate,
+                            Comparator.nullsLast(Comparator.naturalOrder()));
+                    case "startDate" -> Comparator.comparing(
+                            LiabilityResponse::getStartDate,
+                            Comparator.nullsLast(Comparator.naturalOrder()));
+                    case "endDate" -> Comparator.comparing(
+                            LiabilityResponse::getEndDate,
+                            Comparator.nullsLast(Comparator.naturalOrder()));
+                    case "createdAt" -> Comparator.comparing(
+                            LiabilityResponse::getCreatedAt,
+                            Comparator.nullsLast(Comparator.naturalOrder()));
+                    case "type" -> Comparator.comparing(
+                            r -> r.getType() == null ? "" : r.getType().name());
+                    case "id" -> Comparator.comparing(LiabilityResponse::getId);
+                    default -> null;
+                };
+        return comparator != null && order.isDescending() ? comparator.reversed() : comparator;
     }
 
     /**

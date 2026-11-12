@@ -592,8 +592,10 @@ public class TransactionController {
      *   <li>type - TransactionType - Filter by INCOME, EXPENSE, or TRANSFER
      *   <li>dateFrom - LocalDate (ISO-8601) - Start date (inclusive)
      *   <li>dateTo - LocalDate (ISO-8601) - End date (inclusive)
-     *   <li>amountMin - BigDecimal - Minimum amount (inclusive)
-     *   <li>amountMax - BigDecimal - Maximum amount (inclusive)
+     *   <li>amountMin - BigDecimal - Minimum amount magnitude in the selected comparison currency
+     *       (inclusive)
+     *   <li>amountMax - BigDecimal - Maximum amount magnitude in the selected comparison currency
+     *       (inclusive)
      *   <li>tags - String - Search for transactions containing these tags
      *   <li>isReconciled - Boolean - Filter by reconciliation status (true/false)
      *   <li>noCategory - Boolean - When true, return only uncategorized transactions
@@ -682,6 +684,9 @@ public class TransactionController {
                     LocalDate dateTo,
             @RequestParam(required = false) java.math.BigDecimal amountMin,
             @RequestParam(required = false) java.math.BigDecimal amountMax,
+            @RequestParam(required = false) java.math.BigDecimal amountExact,
+            @RequestParam(defaultValue = "BASE")
+                    org.openfinance.dto.AmountCurrencyMode amountCurrencyMode,
             @RequestParam(required = false) String tags,
             @RequestParam(required = false) String tag,
             @RequestParam(required = false) Boolean isReconciled,
@@ -719,6 +724,8 @@ public class TransactionController {
                         .dateTo(dateTo)
                         .amountMin(amountMin)
                         .amountMax(amountMax)
+                        .amountExact(amountExact)
+                        .amountCurrencyMode(amountCurrencyMode)
                         .tags(tags)
                         .tag(tag)
                         .isReconciled(isReconciled)

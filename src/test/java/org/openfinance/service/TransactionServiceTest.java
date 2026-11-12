@@ -1584,6 +1584,7 @@ class TransactionServiceTest {
                                 .id(1L)
                                 .userId(userId)
                                 .amount(new BigDecimal("50.00"))
+                                .currency("USD")
                                 .description("test")
                                 .build());
 

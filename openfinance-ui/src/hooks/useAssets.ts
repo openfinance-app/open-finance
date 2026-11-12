@@ -46,10 +46,11 @@ export function useAssets(filters?: AssetFilters) {
  * Fetch assets with filters and pagination
  * Uses the /assets/search endpoint for proper pagination support
  */
-export function useAssetsSearch(filters?: AssetFilters) {
+export function useAssetsSearch(filters?: AssetFilters, fetchAll = false, enabled = true) {
   return useQuery<PaginatedResponse<Asset>>({
     refetchInterval: 60 * 1000,
-    queryKey: ['assets', 'search', filters],
+    queryKey: fetchAll ? ['assets', 'search', filters, 'all-pages'] : ['assets', 'search', filters],
+    enabled,
     queryFn: async () => {
       const params = new URLSearchParams();
       if (filters?.keyword) params.append('keyword', filters.keyword);
@@ -64,7 +65,12 @@ export function useAssetsSearch(filters?: AssetFilters) {
       if (filters?.purchaseDateTo) params.append('purchaseDateTo', filters.purchaseDateTo);
       if (filters?.valueMin !== undefined) params.append('valueMin', filters.valueMin.toString());
       if (filters?.valueMax !== undefined) params.append('valueMax', filters.valueMax.toString());
+      if (filters?.valueExact !== undefined)
+        params.append('valueExact', filters.valueExact.toString());
+      if (filters?.amountCurrencyMode)
+        params.append('amountCurrencyMode', filters.amountCurrencyMode);
       if (filters?.page !== undefined) params.append('page', filters.page.toString());
+      if (fetchAll) params.set('page', '0');
       if (filters?.size) params.append('size', filters.size.toString());
       // Add sorting (default to name ascending)
       if (filters?.sort) {
@@ -79,7 +85,16 @@ export function useAssetsSearch(filters?: AssetFilters) {
           headers: buildEncryptionHeaders(),
         }
       );
-      return response.data;
+      if (!fetchAll || response.data.totalPages <= 1) return response.data;
+      const content = [...response.data.content];
+      for (let page = 1; page < response.data.totalPages; page++) {
+        params.set('page', String(page));
+        const next = await apiClient.get<PaginatedResponse<Asset>>(`/assets/search?${params}`, {
+          headers: buildEncryptionHeaders(),
+        });
+        content.push(...next.data.content);
+      }
+      return { ...response.data, content };
     },
   });
 }

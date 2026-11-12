@@ -1799,6 +1799,27 @@ public class TransactionService {
                 org.openfinance.specification.TransactionSpecification.buildSpecification(
                         userId, criteria, matchedTransactionIds);
 
+        if (pageable.getSort().getOrderFor("amount") != null) {
+            List<Transaction> all = transactionRepository.findAll(spec);
+            Map<String, List<Transaction>> allTransfers = transferLegs(all, userId);
+            List<TransactionResponse> responses =
+                    all.stream()
+                            .map(
+                                    transaction ->
+                                            toResponseWithDecryption(
+                                                    transaction,
+                                                    transaction.getTransferId() == null
+                                                            ? List.of()
+                                                            : allTransfers.getOrDefault(
+                                                                    transaction.getTransferId(),
+                                                                    List.of())))
+                            .collect(
+                                    java.util.stream.Collectors.toCollection(
+                                            java.util.ArrayList::new));
+            return TransactionSearchOrdering.page(
+                    responses, pageable, criteria.getAmountCurrencyMode());
+        }
+
         // Execute paginated query
         org.springframework.data.domain.Page<Transaction> transactionPage =
                 transactionRepository.findAll(spec, pageable);
@@ -1829,6 +1850,7 @@ public class TransactionService {
                 (criteria.getKeyword() != null && !criteria.getKeyword().trim().isEmpty())
                         || criteria.getAmountMin() != null
                         || criteria.getAmountMax() != null
+                        || criteria.getAmountExact() != null
                         || TransactionSummaryAmounts.filtersAllocations(criteria)
                         || Boolean.TRUE.equals(criteria.getNoPayee())
                         || (criteria.getPayee() != null && !criteria.getPayee().isBlank());
@@ -1905,23 +1927,15 @@ public class TransactionService {
             if (Boolean.TRUE.equals(criteria.getNoPayee())) {
                 stream = stream.filter(t -> t.getPayee() == null || t.getPayee().isBlank());
             }
-            // Amount range filter (amount is encrypted, SQL comparison is meaningless)
-            if (criteria.getAmountMin() != null) {
-                stream =
-                        stream.filter(
-                                t ->
-                                        t.getAmount() != null
-                                                && t.getAmount().compareTo(criteria.getAmountMin())
-                                                        >= 0);
-            }
-            if (criteria.getAmountMax() != null) {
-                stream =
-                        stream.filter(
-                                t ->
-                                        t.getAmount() != null
-                                                && t.getAmount().compareTo(criteria.getAmountMax())
-                                                        <= 0);
-            }
+            stream =
+                    stream.filter(
+                            TransactionAmountFilter.matching(
+                                    allUserTransactions,
+                                    criteria.getAmountMin(),
+                                    criteria.getAmountMax(),
+                                    criteria.getAmountExact(),
+                                    criteria.getAmountCurrencyMode(),
+                                    currencyConversionHelper));
 
             matchedTransactionIds = stream.map(org.openfinance.entity.Transaction::getId).toList();
         }
@@ -2609,37 +2623,9 @@ public class TransactionService {
 
     /** Reports booked base-currency legs exactly; other conversions use the transaction date. */
     private void populateConversionFields(TransactionResponse response, Transaction transaction) {
-        String baseCurrency = resolveBaseCurrency(transaction.getUserId());
-        BigDecimal bookedBaseAmount = null;
-        if (!baseCurrency.equalsIgnoreCase(transaction.getCurrency())) {
-            if (baseCurrency.equalsIgnoreCase(transaction.getAccountCurrency())) {
-                bookedBaseAmount = transaction.getAccountAmount();
-            } else if (baseCurrency.equalsIgnoreCase(transaction.getOriginalCurrency())) {
-                bookedBaseAmount = transaction.getOriginalAmount();
-            } else if (baseCurrency.equalsIgnoreCase(response.getTransferCurrency())) {
-                bookedBaseAmount = response.getTransferAmount();
-            }
-        }
-        if (bookedBaseAmount != null) {
-            response.setBaseCurrency(baseCurrency);
-            response.setAmountInBaseCurrency(bookedBaseAmount);
-            response.setExchangeRate(
-                    transaction.getAmount().signum() == 0
-                            ? null
-                            : bookedBaseAmount.divide(
-                                    transaction.getAmount(), 18, RoundingMode.HALF_UP));
-            response.setIsConverted(true);
-            return;
-        }
         CurrencyConversionHelper.ConversionResult result =
-                currencyConversionHelper.convert(
-                        transaction.getUserId(),
-                        transaction.getCurrency(),
-                        transaction.getAmount(),
-                        false,
-                        null,
-                        "transaction",
-                        transaction.getDate());
+                currencyConversionHelper.convertTransaction(
+                        transaction, response.getTransferAmount(), response.getTransferCurrency());
         response.setBaseCurrency(result.baseCurrency());
         response.setAmountInBaseCurrency(result.amountInBaseCurrency());
         response.setExchangeRate(result.exchangeRate());

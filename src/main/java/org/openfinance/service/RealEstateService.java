@@ -6,12 +6,12 @@ import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.util.Comparator;
 import java.util.List;
-import java.util.Locale;
 import java.util.Set;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.openfinance.dto.*;
+import org.openfinance.dto.AmountCurrencyMode;
 import org.openfinance.dto.AssetRequest;
 import org.openfinance.entity.AcquisitionType;
 import org.openfinance.entity.AssetType;
@@ -34,6 +34,7 @@ import org.openfinance.repository.UserRepository;
 import org.openfinance.security.EncryptionService;
 import org.openfinance.service.history.ReversibleOperation;
 import org.openfinance.specification.RealEstateSpecification;
+import org.openfinance.util.AmountComparison;
 import org.openfinance.util.MathConstants;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Caching;
@@ -706,6 +707,7 @@ public class RealEstateService {
         boolean hasValueFilter =
                 criteria.getValueMin() != null
                         || criteria.getValueMax() != null
+                        || criteria.getValueExact() != null
                         || criteria.getPriceMin() != null
                         || criteria.getPriceMax() != null
                         || criteria.getRentalIncomeMin() != null;
@@ -752,9 +754,8 @@ public class RealEstateService {
                 Comparator<RealEstatePropertyResponse> comparator = null;
                 for (Sort.Order order : sort) {
                     Comparator<RealEstatePropertyResponse> fieldComp =
-                            buildPropertyComparator(order.getProperty());
+                            buildPropertyComparator(order, criteria.getAmountCurrencyMode());
                     if (fieldComp != null) {
-                        if (order.isDescending()) fieldComp = fieldComp.reversed();
                         comparator =
                                 comparator == null
                                         ? fieldComp
@@ -801,61 +802,70 @@ public class RealEstateService {
      */
     private boolean matchesPropertyAmounts(
             RealEstatePropertyResponse property, RealEstateSearchCriteria criteria) {
-        return withinRange(
-                        property.getCurrentValue(), criteria.getValueMin(), criteria.getValueMax())
-                && withinRange(
-                        property.getPurchasePrice(), criteria.getPriceMin(), criteria.getPriceMax())
-                && withinRange(property.getRentalIncome(), criteria.getRentalIncomeMin(), null);
+        AmountCurrencyMode mode = criteria.getAmountCurrencyMode();
+        return AmountComparison.matches(
+                        propertyAmount(property, "currentValue", mode),
+                        criteria.getValueMin(),
+                        criteria.getValueMax(),
+                        criteria.getValueExact())
+                && AmountComparison.matches(
+                        propertyAmount(property, "purchasePrice", mode),
+                        criteria.getPriceMin(),
+                        criteria.getPriceMax(),
+                        null)
+                && AmountComparison.matches(
+                        propertyAmount(property, "rentalIncome", mode),
+                        criteria.getRentalIncomeMin(),
+                        null,
+                        null);
     }
 
-    private boolean withinRange(BigDecimal value, BigDecimal minimum, BigDecimal maximum) {
-        return (minimum == null || (value != null && value.compareTo(minimum) >= 0))
-                && (maximum == null || (value != null && value.compareTo(maximum) <= 0));
-    }
-
-    private Comparator<RealEstatePropertyResponse> buildPropertyComparator(String field) {
-        switch (field) {
-            case "name":
-                return (a, b) -> {
-                    String va = a.getName() != null ? a.getName().toLowerCase(Locale.ROOT) : "";
-                    String vb = b.getName() != null ? b.getName().toLowerCase(Locale.ROOT) : "";
-                    return va.compareTo(vb);
-                };
-            case "currentValue":
-                return (a, b) -> {
-                    BigDecimal va =
-                            a.getCurrentValue() != null ? a.getCurrentValue() : BigDecimal.ZERO;
-                    BigDecimal vb =
-                            b.getCurrentValue() != null ? b.getCurrentValue() : BigDecimal.ZERO;
-                    return va.compareTo(vb);
-                };
-            case "purchasePrice":
-                return (a, b) -> {
-                    BigDecimal va =
-                            a.getPurchasePrice() != null ? a.getPurchasePrice() : BigDecimal.ZERO;
-                    BigDecimal vb =
-                            b.getPurchasePrice() != null ? b.getPurchasePrice() : BigDecimal.ZERO;
-                    return va.compareTo(vb);
-                };
-            case "purchaseDate":
-                return (a, b) -> {
-                    LocalDate va =
-                            a.getPurchaseDate() != null ? a.getPurchaseDate() : LocalDate.MIN;
-                    LocalDate vb =
-                            b.getPurchaseDate() != null ? b.getPurchaseDate() : LocalDate.MIN;
-                    return va.compareTo(vb);
-                };
-            case "rentalIncome":
-                return (a, b) -> {
-                    BigDecimal va =
-                            a.getRentalIncome() != null ? a.getRentalIncome() : BigDecimal.ZERO;
-                    BigDecimal vb =
-                            b.getRentalIncome() != null ? b.getRentalIncome() : BigDecimal.ZERO;
-                    return va.compareTo(vb);
-                };
-            default:
-                return null;
+    private BigDecimal propertyAmount(
+            RealEstatePropertyResponse property, String field, AmountCurrencyMode mode) {
+        if (field.equals("currentValue")) {
+            return AmountComparison.select(
+                    property.getCurrentValue(),
+                    property.getCurrency(),
+                    property.getValueInBaseCurrency(),
+                    property.getBaseCurrency(),
+                    property.getIsConverted(),
+                    mode);
         }
+        BigDecimal nativeAmount =
+                field.equals("purchasePrice")
+                        ? property.getPurchasePrice()
+                        : property.getRentalIncome();
+        return AmountComparison.atRate(
+                nativeAmount,
+                property.getCurrency(),
+                property.getBaseCurrency(),
+                property.getExchangeRate(),
+                property.getIsConverted(),
+                mode);
+    }
+
+    private Comparator<RealEstatePropertyResponse> buildPropertyComparator(
+            Sort.Order order, AmountCurrencyMode mode) {
+        String field = order.getProperty();
+        if (Set.of("currentValue", "purchasePrice", "rentalIncome").contains(field)) {
+            return AmountComparison.comparator(
+                    property -> propertyAmount(property, field, mode), order.isAscending());
+        }
+        Comparator<RealEstatePropertyResponse> comparator =
+                switch (field) {
+                    case "name" -> Comparator.comparing(
+                            property -> property.getName() == null ? "" : property.getName(),
+                            String.CASE_INSENSITIVE_ORDER);
+                    case "purchaseDate" -> Comparator.comparing(
+                            RealEstatePropertyResponse::getPurchaseDate,
+                            Comparator.nullsLast(Comparator.naturalOrder()));
+                    case "createdAt" -> Comparator.comparing(
+                            RealEstatePropertyResponse::getCreatedAt,
+                            Comparator.nullsLast(Comparator.naturalOrder()));
+                    case "id" -> Comparator.comparing(RealEstatePropertyResponse::getId);
+                    default -> null;
+                };
+        return comparator != null && order.isDescending() ? comparator.reversed() : comparator;
     }
 
     /**

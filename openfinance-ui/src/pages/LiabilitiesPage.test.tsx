@@ -129,6 +129,9 @@ vi.mock('@/components/liabilities/LiabilityFilters', () => ({
       <button onClick={() => onFiltersChange({ type: 'MORTGAGE', search: '' })}>
         Apply Filter
       </button>
+      <button onClick={() => onFiltersChange({ balanceExact: 0, amountCurrencyMode: 'NATIVE' })}>
+        Exact Zero
+      </button>
     </div>
   ),
 }));
@@ -151,6 +154,15 @@ vi.mock('@/components/liabilities/LiabilityDetailDialog', () => ({
 }));
 
 describe('LiabilitiesPage', () => {
+  it('offers clearing amount filters when an exact-zero search has no matches', async () => {
+    mockPagedResponse = { content: [], totalElements: 0, totalPages: 0, number: 0, size: 20 };
+    const user = userEvent.setup();
+    renderWithProviders(<LiabilitiesPage />);
+    await user.click(screen.getByRole('button', { name: 'Filters' }));
+    await user.click(screen.getByRole('button', { name: 'Exact Zero' }));
+    expect(screen.getByRole('button', { name: /clear filters/i })).toBeInTheDocument();
+  });
+
   beforeEach(() => {
     clearAuthentication();
     mockAuthentication();

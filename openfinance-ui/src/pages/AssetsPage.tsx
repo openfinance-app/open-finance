@@ -168,14 +168,36 @@ export default function AssetsPage() {
     }
   }, [searchParams, setSearchParams]);
 
+  /** Check if any meaningful filter (beyond pagination/sort) is active */
+  const isFiltered = !!(
+    (filters.ownershipStatus && filters.ownershipStatus !== 'OWNED') ||
+    filters.keyword ||
+    filters.type ||
+    filters.currency ||
+    filters.symbol ||
+    filters.purchaseDateFrom ||
+    filters.purchaseDateTo ||
+    filters.valueMin !== undefined ||
+    filters.valueMax !== undefined ||
+    filters.valueExact !== undefined
+  );
+
   const { data: assetsPage, isLoading, error } = useAssetsSearch(filters);
   // Fetch all assets (unfiltered) for global totals in summary cards
-  const { data: allAssetsPage } = useAssetsSearch({
-    page: 0,
-    size: FETCH_ALL_PAGE_SIZE,
-    group: filters.group,
-    sort: 'name,asc',
-  });
+  const { data: allAssetsPage } = useAssetsSearch(
+    {
+      page: 0,
+      size: FETCH_ALL_PAGE_SIZE,
+      group: filters.group,
+      sort: 'name,asc',
+    },
+    true
+  );
+  const { data: matchingAssetsPage } = useAssetsSearch(
+    { ...filters, page: 0, size: FETCH_ALL_PAGE_SIZE },
+    true,
+    isFiltered
+  );
   // Also use the flat assets list for portfolio metrics
   const { data: allAssetsList } = useAssets();
   const viewingAsset =
@@ -197,31 +219,19 @@ export default function AssetsPage() {
 
   const assets = assetsPage?.content || [];
   const allAssets = allAssetsPage?.content || [];
+  const matchingAssets = matchingAssetsPage?.content || [];
 
   // Assets with symbols (for price refresh)
   const assetsWithSymbols =
     allAssetsList?.filter(a => a.symbol && a.acquisitionType !== 'PLANNED') || [];
-
-  /** Check if any meaningful filter (beyond pagination/sort) is active */
-  const isFiltered = !!(
-    (filters.ownershipStatus && filters.ownershipStatus !== 'OWNED') ||
-    filters.keyword ||
-    filters.type ||
-    filters.currency ||
-    filters.symbol ||
-    filters.purchaseDateFrom ||
-    filters.purchaseDateTo ||
-    filters.valueMin !== undefined ||
-    filters.valueMax !== undefined
-  );
 
   const globalSummary = useMemo(
     () => computeAssetSummary(allAssets, baseCurrency),
     [allAssets, baseCurrency]
   );
   const filteredSummary = useMemo(
-    () => computeAssetSummary(assets, baseCurrency),
-    [assets, baseCurrency]
+    () => computeAssetSummary(matchingAssets, baseCurrency),
+    [matchingAssets, baseCurrency]
   );
 
   const {
@@ -238,9 +248,9 @@ export default function AssetsPage() {
 
   // Best performer — use filtered assets when filters are active, otherwise global
   const { best } = useMemo(() => {
-    const sourceList = isFiltered ? assets : allAssets;
+    const sourceList = isFiltered ? matchingAssets : allAssets;
     return sourceList.length > 0 ? getTopPerformers(sourceList) : { best: [] };
-  }, [isFiltered, assets, allAssets]);
+  }, [isFiltered, matchingAssets, allAssets]);
 
   const handleRefreshPrices = async () => {
     if (assetsWithSymbols.length === 0) return;

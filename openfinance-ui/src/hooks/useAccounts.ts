@@ -78,6 +78,10 @@ export function useAccountsSearch(filters?: AccountFilters, fetchAll = false) {
         params.append('balanceMin', filters.balanceMin.toString());
       if (filters?.balanceMax !== undefined)
         params.append('balanceMax', filters.balanceMax.toString());
+      if (filters?.balanceExact !== undefined)
+        params.append('balanceExact', filters.balanceExact.toString());
+      if (filters?.amountCurrencyMode)
+        params.append('amountCurrencyMode', filters.amountCurrencyMode);
       if (filters?.institution) params.append('institution', filters.institution);
       if (filters?.lowBalance) params.append('lowBalance', 'true');
       if (filters?.page !== undefined) params.append('page', filters.page.toString());

@@ -322,6 +322,9 @@ public class RealEstateController {
                     LocalDate purchaseDateTo,
             @RequestParam(required = false) BigDecimal valueMin,
             @RequestParam(required = false) BigDecimal valueMax,
+            @RequestParam(required = false) java.math.BigDecimal valueExact,
+            @RequestParam(defaultValue = "BASE")
+                    org.openfinance.dto.AmountCurrencyMode amountCurrencyMode,
             @RequestParam(required = false) BigDecimal priceMin,
             @RequestParam(required = false) BigDecimal priceMax,
             @RequestParam(required = false) BigDecimal rentalIncomeMin,
@@ -350,6 +353,8 @@ public class RealEstateController {
                         .purchaseDateTo(purchaseDateTo)
                         .valueMin(valueMin)
                         .valueMax(valueMax)
+                        .valueExact(valueExact)
+                        .amountCurrencyMode(amountCurrencyMode)
                         .priceMin(priceMin)
                         .priceMax(priceMax)
                         .rentalIncomeMin(rentalIncomeMin)

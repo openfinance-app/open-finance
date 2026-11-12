@@ -13,6 +13,7 @@ import org.openfinance.dto.AccountRequest;
 import org.openfinance.dto.AccountResponse;
 import org.openfinance.dto.AccountSearchCriteria;
 import org.openfinance.dto.AccountSummaryResponse;
+import org.openfinance.dto.AmountCurrencyMode;
 import org.openfinance.dto.MetadataUpdateRequest;
 import org.openfinance.entity.Account;
 import org.openfinance.entity.AccountType;
@@ -34,6 +35,7 @@ import org.openfinance.security.EncryptionService;
 import org.openfinance.service.history.ReversibleOperation;
 import org.openfinance.service.history.SerializedFinancialWrite;
 import org.openfinance.specification.AccountSpecification;
+import org.openfinance.util.AmountComparison;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Caching;
 import org.springframework.data.domain.Page;
@@ -1048,33 +1050,36 @@ public class AccountService {
                             .collect(Collectors.toList());
         }
 
-        // Balance filters compare the effective balance in the user's base currency so accounts
-        // in different currencies are comparable and match the displayed (assets-inclusive) values.
-        if (criteria.getBalanceMin() != null) {
-            BigDecimal min = criteria.getBalanceMin();
-            results =
-                    results.stream()
-                            .filter(res -> effectiveBaseBalance(res).compareTo(min) >= 0)
-                            .collect(Collectors.toList());
-        }
-        if (criteria.getBalanceMax() != null) {
-            BigDecimal max = criteria.getBalanceMax();
-            results =
-                    results.stream()
-                            .filter(res -> effectiveBaseBalance(res).compareTo(max) <= 0)
-                            .collect(Collectors.toList());
-        }
+        results =
+                results.stream()
+                        .filter(
+                                res ->
+                                        AmountComparison.matches(
+                                                comparisonBalance(
+                                                        res, criteria.getAmountCurrencyMode()),
+                                                criteria.getBalanceMin(),
+                                                criteria.getBalanceMax(),
+                                                criteria.getBalanceExact()))
+                        .collect(Collectors.toList());
         if (Boolean.TRUE.equals(criteria.getLowBalance())) {
             BigDecimal threshold = businessRules.getAccounts().getLowBalanceThreshold();
             results =
                     results.stream()
-                            .filter(res -> effectiveBaseBalance(res).compareTo(threshold) < 0)
+                            .filter(
+                                    res ->
+                                            comparisonBalance(res, AmountCurrencyMode.BASE) != null
+                                                    && comparisonBalance(
+                                                                            res,
+                                                                            AmountCurrencyMode.BASE)
+                                                                    .compareTo(threshold)
+                                                            < 0)
                             .collect(Collectors.toList());
         }
 
         // Sort in-memory: balance and name are encrypted (DB ORDER BY would sort ciphertext);
         // createdAt is handled here too so all requested sorts are applied consistently.
-        Comparator<AccountResponse> comparator = buildAccountComparator(pageable.getSort());
+        Comparator<AccountResponse> comparator =
+                buildAccountComparator(pageable.getSort(), criteria.getAmountCurrencyMode());
         if (comparator != null) {
             results = new ArrayList<>(results);
             results.sort(
@@ -1099,24 +1104,23 @@ public class AccountService {
                 pageContent, pageable, results.size());
     }
 
-    /**
-     * Returns the account's effective balance in the user's base currency, used for balance
-     * filtering and sorting. Falls back to the native balance when no base-currency conversion is
-     * available. Never null (the native balance is {@code @NotNull}).
-     */
-    private static BigDecimal effectiveBaseBalance(AccountResponse res) {
-        return res.getBalanceInBaseCurrency() != null
-                ? res.getBalanceInBaseCurrency()
-                : res.getBalance();
+    private static BigDecimal comparisonBalance(AccountResponse res, AmountCurrencyMode mode) {
+        return AmountComparison.select(
+                res.getBalance(),
+                res.getCurrency(),
+                res.getBalanceInBaseCurrency(),
+                res.getBaseCurrency(),
+                res.getIsConverted(),
+                mode);
     }
 
     /**
      * Builds an in-memory comparator from the requested sort orders. Supports {@code balance}
-     * (compared in base currency), {@code name} (case-insensitive) and {@code createdAt}. Returns
-     * {@code null} when no supported sort order is present.
+     * (compared in the selected currency), {@code name} (case-insensitive) and {@code createdAt}.
+     * Returns {@code null} when no supported sort order is present.
      */
     private static Comparator<AccountResponse> buildAccountComparator(
-            org.springframework.data.domain.Sort sort) {
+            org.springframework.data.domain.Sort sort, AmountCurrencyMode mode) {
         Comparator<AccountResponse> comparator = null;
         for (org.springframework.data.domain.Sort.Order order : sort) {
             Comparator<AccountResponse> next;
@@ -1124,10 +1128,10 @@ public class AccountService {
                 case "balance":
                 case "balanceInBaseCurrency":
                     next =
-                            Comparator.comparing(
-                                    AccountService::effectiveBaseBalance,
-                                    Comparator.nullsLast(Comparator.naturalOrder()));
-                    break;
+                            AmountComparison.comparator(
+                                    res -> comparisonBalance(res, mode), order.isAscending());
+                    comparator = comparator == null ? next : comparator.thenComparing(next);
+                    continue;
                 case "name":
                     next =
                             Comparator.<AccountResponse, String>comparing(

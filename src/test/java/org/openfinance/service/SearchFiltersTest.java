@@ -1,12 +1,17 @@
 package org.openfinance.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.nullable;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -49,7 +54,36 @@ class SearchFiltersTest {
     @Mock private RecurringTransactionRepository recurring;
     @Mock private CategoryRepository categories;
     @Mock private SearchTokenService tokens;
+    @Mock private CurrencyConversionHelper conversion;
     @InjectMocks private SearchService service;
+
+    @BeforeEach
+    void nativeEuroAmounts() {
+        lenient()
+                .when(
+                        conversion.convertTransaction(
+                                any(), nullable(BigDecimal.class), nullable(String.class)))
+                .thenAnswer(
+                        invocation -> {
+                            Transaction transaction = invocation.getArgument(0);
+                            return new CurrencyConversionHelper.ConversionResult(
+                                    "EUR", transaction.getAmount(), null, false, null, null, null);
+                        });
+        lenient()
+                .when(
+                        conversion.convert(
+                                any(), any(), any(), anyBoolean(), nullable(Integer.class), any()))
+                .thenAnswer(
+                        invocation ->
+                                new CurrencyConversionHelper.ConversionResult(
+                                        "EUR",
+                                        invocation.getArgument(2),
+                                        null,
+                                        false,
+                                        null,
+                                        null,
+                                        null));
+    }
 
     @ParameterizedTest
     @ValueSource(
@@ -187,7 +221,7 @@ class SearchFiltersTest {
                 "tooLate",
                 "query"
             })
-    void assetFiltersApplyToPurchaseDateAndUnitPrice(String mismatch) {
+    void assetFiltersApplyToPurchaseDateAndTotalValue(String mismatch) {
         Asset excluded = asset(2L);
         switch (mismatch) {
             case "account" -> excluded.setAccountId(999L);
@@ -243,8 +277,8 @@ class SearchFiltersTest {
                 .query("rent")
                 .entityTypes(List.of(SearchResultType.ASSET))
                 .accountIds(List.of(7L))
-                .minAmount(new BigDecimal("10"))
-                .maxAmount(new BigDecimal("20"))
+                .minAmount(new BigDecimal("30"))
+                .maxAmount(new BigDecimal("60"))
                 .dateFrom(FROM)
                 .dateTo(TO)
                 .build();

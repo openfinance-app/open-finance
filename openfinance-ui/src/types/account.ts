@@ -1,3 +1,4 @@
+import type { AmountCurrencyMode } from '@/types/amount-filter';
 /**
  * Account-related types
  */
@@ -18,6 +19,8 @@ export interface AccountFilters {
   isActive?: boolean;
   balanceMin?: number;
   balanceMax?: number;
+  balanceExact?: number;
+  amountCurrencyMode?: AmountCurrencyMode;
   institution?: string;
   /** When true, filter to show only accounts with a low (≤ 0) balance */
   lowBalance?: boolean;

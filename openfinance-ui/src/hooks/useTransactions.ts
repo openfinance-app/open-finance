@@ -88,6 +88,9 @@ function transactionSearchParams(filters?: TransactionFilters, paginated = true)
   if (filters?.keyword && filters?.keywordRegex) params.append('keywordRegex', 'true');
   if (filters?.minAmount !== undefined) params.append('amountMin', filters.minAmount.toString());
   if (filters?.maxAmount !== undefined) params.append('amountMax', filters.maxAmount.toString());
+  if (filters?.exactAmount !== undefined)
+    params.append('amountExact', filters.exactAmount.toString());
+  if (filters?.amountCurrencyMode) params.append('amountCurrencyMode', filters.amountCurrencyMode);
   if (paginated && filters?.page !== undefined) params.append('page', filters.page.toString());
   if (paginated && filters?.size) params.append('size', filters.size.toString());
   if (filters?.realEstateId) params.append('realEstateId', filters.realEstateId.toString());

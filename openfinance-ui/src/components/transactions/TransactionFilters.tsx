@@ -9,7 +9,7 @@ import { Search, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Input, Button, Badge } from '@/components/ui';
 import { DateInput } from '@/components/ui/DateInput';
-import { NumberInput } from '@/components/ui/NumberInput';
+import { AmountFilterControls } from '@/components/ui/AmountFilterControls';
 import { RegexToggle } from '@/components/ui/RegexToggle';
 import { PayeeSelector } from '@/components/ui/PayeeSelector';
 import { CategorySelect } from '@/components/ui/CategorySelect';
@@ -79,7 +79,9 @@ export function TransactionFilters({ filters, onFiltersChange }: TransactionFilt
     onFiltersChange({});
   };
 
-  const hasActiveFilters = Object.keys(filters).some(key => filters[key as keyof Filters]);
+  const hasActiveFilters = Object.values(filters).some(
+    value => value !== undefined && value !== null && value !== '' && value !== false
+  );
 
   return (
     <div className="space-y-4 p-4 bg-surface rounded-lg border border-border">
@@ -200,43 +202,25 @@ export function TransactionFilters({ filters, onFiltersChange }: TransactionFilt
           </select>
         </div>
 
-        {/* Amount Range */}
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label
-              htmlFor="minAmount"
-              className="block text-sm font-medium text-text-primary mb-1.5"
-            >
-              {t('filterKeys.minAmount')}
-            </label>
-            <NumberInput
-              id="minAmount"
-              data-testid="filter-min-amount"
-              value={filters.minAmount !== undefined ? String(filters.minAmount) : ''}
-              onChange={val => handleChange('minAmount', val ? parseFloat(val) : undefined)}
-              placeholder="0.00"
-              min="0"
-            />
-          </div>
-          <div>
-            <label
-              htmlFor="maxAmount"
-              className="block text-sm font-medium text-text-primary mb-1.5"
-            >
-              {t('filterKeys.maxAmount')}
-            </label>
-            <NumberInput
-              id="maxAmount"
-              data-testid="filter-max-amount"
-              value={filters.maxAmount !== undefined ? String(filters.maxAmount) : ''}
-              onChange={val => handleChange('maxAmount', val ? parseFloat(val) : undefined)}
-              placeholder="0.00"
-              min="0"
-            />
-          </div>
-        </div>
+        <AmountFilterControls
+          min={filters.minAmount}
+          max={filters.maxAmount}
+          exact={filters.exactAmount}
+          amountCurrencyMode={filters.amountCurrencyMode}
+          minLabel={t('filterKeys.minAmount')}
+          maxLabel={t('filterKeys.maxAmount')}
+          testIdSuffix="amount"
+          onChange={value =>
+            onFiltersChange({
+              ...filters,
+              minAmount: value.min,
+              maxAmount: value.max,
+              exactAmount: value.exact,
+              amountCurrencyMode: value.amountCurrencyMode,
+            })
+          }
+        />
 
-        {/* Clear button */}
         <div className="flex items-end justify-end md:col-start-2 lg:col-start-4">
           <Button
             variant="outline"

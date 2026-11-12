@@ -40,7 +40,7 @@ import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { usePropertiesSearch, useCreateProperty, useUpdateProperty } from '@/hooks/useRealEstate';
 import { useAccounts } from '@/hooks/useAccounts';
 import { CurrencySelector } from '@/components/ui/CurrencySelector';
-import { NumberInput } from '@/components/ui/NumberInput';
+import { AmountFilterControls } from '@/components/ui/AmountFilterControls';
 import { ConvertedAmount } from '@/components/ui/ConvertedAmount';
 import { RegexToggle } from '@/components/ui/RegexToggle';
 import { useAuthContext } from '@/context/AuthContext';
@@ -91,6 +91,18 @@ export default function RealEstatePage() {
     isActive: true,
   });
 
+  const hasActiveFilters =
+    searchFilters.isActive !== true ||
+    Object.keys(searchFilters).some(
+      key =>
+        searchFilters[key as keyof PropertySearchFilters] !== undefined &&
+        key !== 'page' &&
+        key !== 'size' &&
+        key !== 'sort' &&
+        key !== 'isActive' &&
+        key !== 'propertyType'
+    );
+
   // Build filters for API call
   const apiFilters: PropertySearchFilters = {
     ...searchFilters,
@@ -98,12 +110,20 @@ export default function RealEstatePage() {
 
   const { data: propertiesPage, isLoading, error } = usePropertiesSearch(apiFilters);
   // Fetch all active properties (unfiltered) for global summary totals
-  const { data: allPropertiesPage } = usePropertiesSearch({
-    page: 0,
-    size: FETCH_ALL_PAGE_SIZE,
-    sort: 'name,asc',
-    isActive: true,
-  });
+  const { data: allPropertiesPage } = usePropertiesSearch(
+    {
+      page: 0,
+      size: FETCH_ALL_PAGE_SIZE,
+      sort: 'name,asc',
+      isActive: true,
+    },
+    true
+  );
+  const { data: matchingPropertiesPage } = usePropertiesSearch(
+    { ...apiFilters, page: 0, size: FETCH_ALL_PAGE_SIZE },
+    true,
+    hasActiveFilters
+  );
   // Active accounts for the buy wizard's down-payment / to-account pickers
   const { data: accounts = [] } = useAccounts('active');
 
@@ -119,6 +139,7 @@ export default function RealEstatePage() {
 
   const properties = propertiesPage?.content || [];
   const allProperties = allPropertiesPage?.content || [];
+  const matchingProperties = matchingPropertiesPage?.content || [];
 
   useEffect(() => {
     const propertyId =
@@ -240,7 +261,10 @@ export default function RealEstatePage() {
 
   // Calculate summary statistics
   const summary = useMemo(() => computeSummary(allProperties), [allProperties, baseCurrency]);
-  const filteredSummary = useMemo(() => computeSummary(properties), [properties, baseCurrency]);
+  const filteredSummary = useMemo(
+    () => computeSummary(matchingProperties),
+    [matchingProperties, baseCurrency]
+  );
 
   const handleFiltersChange = (
     key: keyof PropertySearchFilters,
@@ -314,18 +338,6 @@ export default function RealEstatePage() {
     setIsFormOpen(false);
     setEditingProperty(null);
   };
-
-  const hasActiveFilters =
-    searchFilters.isActive !== true ||
-    Object.keys(searchFilters).some(
-      key =>
-        searchFilters[key as keyof PropertySearchFilters] !== undefined &&
-        key !== 'page' &&
-        key !== 'size' &&
-        key !== 'sort' &&
-        key !== 'isActive' &&
-        key !== 'propertyType'
-    );
 
   const sortOptions = [
     { value: 'name,asc', label: t('sort.nameAsc') },
@@ -493,45 +505,25 @@ export default function RealEstatePage() {
               </select>
             </div>
 
-            {/* Value Range */}
-            <div className="grid grid-cols-2 gap-2">
-              <div>
-                <label
-                  htmlFor="valueMin"
-                  className="block text-sm font-medium text-text-primary mb-1.5"
-                >
-                  {t('filters.minValue')}
-                </label>
-                <NumberInput
-                  id="valueMin"
-                  min="0"
-                  placeholder="0"
-                  value={String(searchFilters.valueMin ?? '')}
-                  onChange={val =>
-                    handleFiltersChange('valueMin', val ? parseFloat(val) : undefined)
-                  }
-                  className="w-full h-10 px-3 rounded-lg bg-background border border-border text-text-primary text-sm placeholder:text-text-muted hover:border-border/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50 transition-colors duration-150"
-                />
-              </div>
-              <div>
-                <label
-                  htmlFor="valueMax"
-                  className="block text-sm font-medium text-text-primary mb-1.5"
-                >
-                  {t('filters.maxValue')}
-                </label>
-                <NumberInput
-                  id="valueMax"
-                  min="0"
-                  placeholder="0"
-                  value={String(searchFilters.valueMax ?? '')}
-                  onChange={val =>
-                    handleFiltersChange('valueMax', val ? parseFloat(val) : undefined)
-                  }
-                  className="w-full h-10 px-3 rounded-lg bg-background border border-border text-text-primary text-sm placeholder:text-text-muted hover:border-border/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50 transition-colors duration-150"
-                />
-              </div>
-            </div>
+            <AmountFilterControls
+              min={searchFilters.valueMin}
+              max={searchFilters.valueMax}
+              exact={searchFilters.valueExact}
+              amountCurrencyMode={searchFilters.amountCurrencyMode}
+              minLabel={t('filters.minValue')}
+              maxLabel={t('filters.maxValue')}
+              testIdSuffix="value"
+              onChange={value =>
+                setSearchFilters(previous => ({
+                  ...previous,
+                  valueMin: value.min,
+                  valueMax: value.max,
+                  valueExact: value.exact,
+                  amountCurrencyMode: value.amountCurrencyMode,
+                  page: 0,
+                }))
+              }
+            />
 
             {/* Sort */}
             <div>

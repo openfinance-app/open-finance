@@ -144,7 +144,8 @@ public class AdvancedSearchRequest {
     /**
      * Minimum amount filter (inclusive).
      *
-     * <p>Applies to transactions, assets (currentPrice), and liabilities (principalBalance).
+     * <p>Uses the displayed result amount in the selected comparison currency. Transactions compare
+     * magnitudes; assets compare total value, not unit price.
      *
      * <p>If null, no lower amount bound.
      *
@@ -156,7 +157,8 @@ public class AdvancedSearchRequest {
     /**
      * Maximum amount filter (inclusive).
      *
-     * <p>Applies to transactions, assets (currentPrice), and liabilities (principalBalance).
+     * <p>Uses the displayed result amount in the selected comparison currency. Transactions compare
+     * magnitudes; assets compare total value, not unit price.
      *
      * <p>If null, no upper amount bound.
      *
@@ -164,6 +166,15 @@ public class AdvancedSearchRequest {
      */
     @Min(value = 0, message = "{search.amount.max.min}")
     private BigDecimal maxAmount;
+
+    @Min(value = 0, message = "{search.amount.min}")
+    private BigDecimal exactAmount;
+
+    @Builder.Default private AmountCurrencyMode amountCurrencyMode = AmountCurrencyMode.BASE;
+
+    public boolean hasAmountFilter() {
+        return minAmount != null || maxAmount != null || exactAmount != null;
+    }
 
     /**
      * Filter by date from (inclusive).
@@ -252,6 +263,7 @@ public class AdvancedSearchRequest {
                 || (categoryIds != null && !categoryIds.isEmpty())
                 || minAmount != null
                 || maxAmount != null
+                || exactAmount != null
                 || dateFrom != null
                 || dateTo != null
                 || (tags != null && !tags.isEmpty())
@@ -269,6 +281,7 @@ public class AdvancedSearchRequest {
                 || (categoryIds != null && !categoryIds.isEmpty())
                 || minAmount != null
                 || maxAmount != null
+                || exactAmount != null
                 || dateFrom != null
                 || dateTo != null
                 || (tags != null && !tags.isEmpty())

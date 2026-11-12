@@ -6,6 +6,7 @@
 import { Search, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Input, Button } from '@/components/ui';
+import { AmountFilterControls } from '@/components/ui/AmountFilterControls';
 import { RegexToggle } from '@/components/ui/RegexToggle';
 import type { LiabilityFilters as Filters, LiabilityType } from '@/types/liability';
 
@@ -52,7 +53,13 @@ export function LiabilityFilters({ filters, onFiltersChange }: LiabilityFiltersP
     });
   };
 
-  const hasActiveFilters = filters.type || filters.search;
+  const hasActiveFilters =
+    filters.type ||
+    filters.search ||
+    filters.balanceMin !== undefined ||
+    filters.balanceMax !== undefined ||
+    filters.balanceExact !== undefined ||
+    filters.amountCurrencyMode === 'NATIVE';
 
   return (
     <div className="space-y-4 p-4 bg-surface rounded-lg border border-border">
@@ -121,6 +128,22 @@ export function LiabilityFilters({ filters, onFiltersChange }: LiabilityFiltersP
             ))}
           </select>
         </div>
+
+        <AmountFilterControls
+          min={filters.balanceMin}
+          max={filters.balanceMax}
+          exact={filters.balanceExact}
+          amountCurrencyMode={filters.amountCurrencyMode}
+          onChange={value =>
+            onFiltersChange({
+              ...filters,
+              balanceMin: value.min,
+              balanceMax: value.max,
+              balanceExact: value.exact,
+              amountCurrencyMode: value.amountCurrencyMode,
+            })
+          }
+        />
 
         {/* Clear button */}
         <div className="flex items-end justify-end md:col-start-3">

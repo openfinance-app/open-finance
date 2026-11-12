@@ -64,7 +64,21 @@ export default function LiabilitiesPage() {
   const deleteLiability = useDeleteLiability();
 
   // Fetch all liabilities for summary cards (unfiltered)
-  const { data: allLiabilities } = useLiabilitiesPaged({ page: 0, size: FETCH_ALL_PAGE_SIZE });
+  const { data: allLiabilities } = useLiabilitiesPaged(
+    { page: 0, size: FETCH_ALL_PAGE_SIZE },
+    true
+  );
+  const hasActiveFilters =
+    !!filters.type ||
+    !!filters.search ||
+    filters.balanceMin !== undefined ||
+    filters.balanceMax !== undefined ||
+    filters.balanceExact !== undefined;
+  const { data: matchingLiabilities } = useLiabilitiesPaged(
+    { ...filters, page: 0, size: FETCH_ALL_PAGE_SIZE },
+    true,
+    hasActiveFilters
+  );
 
   // Deep link ?highlight=<id>: open the detail dialog once liabilities load
   useEffect(() => {
@@ -199,8 +213,10 @@ export default function LiabilitiesPage() {
         <div className="mb-8">
           <LiabilitySummaryCards
             liabilities={allLiabilities?.content || []}
-            filteredLiabilities={liabilities}
-            isActiveFilter={!!(filters.type || filters.search)}
+            filteredLiabilities={
+              hasActiveFilters ? matchingLiabilities?.content : allLiabilities?.content
+            }
+            isActiveFilter={hasActiveFilters}
           />
         </div>
       )}
@@ -217,7 +233,7 @@ export default function LiabilitiesPage() {
       )}
 
       {/* Empty State */}
-      {!isLoading && liabilities.length === 0 && !filters.type && !filters.search && (
+      {!isLoading && liabilities.length === 0 && !hasActiveFilters && (
         <EmptyState
           title={t('empty.noLiabilities')}
           description={t('empty.addFirst')}
@@ -229,7 +245,7 @@ export default function LiabilitiesPage() {
       )}
 
       {/* No Results for Filter */}
-      {!isLoading && liabilities.length === 0 && (filters.type || filters.search) && (
+      {!isLoading && liabilities.length === 0 && hasActiveFilters && (
         <EmptyState
           title={t('empty.noResults')}
           description={t('empty.noMatch')}

@@ -118,6 +118,11 @@ public class AssetSearchCriteria {
      */
     private BigDecimal valueMax;
 
+    /** Exact amount in the selected comparison currency (numeric equality, no rounding). */
+    private BigDecimal valueExact;
+
+    @Builder.Default private AmountCurrencyMode amountCurrencyMode = AmountCurrencyMode.BASE;
+
     /**
      * Checks if any search criteria is provided.
      *
@@ -134,6 +139,7 @@ public class AssetSearchCriteria {
                 || purchaseDateFrom != null
                 || purchaseDateTo != null
                 || valueMin != null
-                || valueMax != null;
+                || valueMax != null
+                || valueExact != null;
     }
 }

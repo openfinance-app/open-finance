@@ -139,6 +139,8 @@ async function fetchPropertiesSearch(
   if (filters?.purchaseDateTo) params.append('purchaseDateTo', filters.purchaseDateTo);
   if (filters?.valueMin !== undefined) params.append('valueMin', filters.valueMin.toString());
   if (filters?.valueMax !== undefined) params.append('valueMax', filters.valueMax.toString());
+  if (filters?.valueExact !== undefined) params.append('valueExact', filters.valueExact.toString());
+  if (filters?.amountCurrencyMode) params.append('amountCurrencyMode', filters.amountCurrencyMode);
   if (filters?.priceMin !== undefined) params.append('priceMin', filters.priceMin.toString());
   if (filters?.priceMax !== undefined) params.append('priceMax', filters.priceMax.toString());
   if (filters?.rentalIncomeMin !== undefined)
@@ -304,7 +306,11 @@ export function useProperties(filters?: PropertyFilters): UseQueryResult<RealEst
  *   size: 10
  * });
  */
-export function usePropertiesSearch(filters?: PropertySearchFilters): UseQueryResult<{
+export function usePropertiesSearch(
+  filters?: PropertySearchFilters,
+  fetchAll = false,
+  enabled = true
+): UseQueryResult<{
   content: RealEstateProperty[];
   totalElements: number;
   totalPages: number;
@@ -315,8 +321,21 @@ export function usePropertiesSearch(filters?: PropertySearchFilters): UseQueryRe
   const securityConfig = useSecurityConfig();
   const encryptionEnabled = resolveEncryptionEnabled(securityConfig.data, securityConfig.isError);
   return useQuery({
-    queryKey: [...realEstateKeys.searchList(filters), baseCurrency, encryptionEnabled],
-    queryFn: () => fetchPropertiesSearch(filters, encryptionEnabled),
+    queryKey: [...realEstateKeys.searchList(filters), baseCurrency, encryptionEnabled, fetchAll],
+    enabled,
+    queryFn: async () => {
+      const first = await fetchPropertiesSearch(
+        fetchAll ? { ...filters, page: 0 } : filters,
+        encryptionEnabled
+      );
+      if (!fetchAll || first.totalPages <= 1) return first;
+      const content = [...first.content];
+      for (let page = 1; page < first.totalPages; page++) {
+        const next = await fetchPropertiesSearch({ ...filters, page }, encryptionEnabled);
+        content.push(...next.content);
+      }
+      return { ...first, content };
+    },
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
 }
