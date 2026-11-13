@@ -1,3 +1,5 @@
+import { useFormDraft } from '@/hooks/useFormDraft';
+import { getToday } from '@/utils/date';
 import { decimalField } from '@/utils/exact-decimal';
 import { CURRENCY_CODE_PATTERN } from '@/utils/currency-code';
 /**
@@ -19,6 +21,7 @@ import { NumberInput } from '@/components/ui/NumberInput';
 import { Alert, AlertDescription } from '@/components/ui/Alert';
 import { CategorySelect } from '@/components/ui/CategorySelect';
 import { PayeeSelector } from '@/components/ui/PayeeSelector';
+import { CurrencySelector } from '@/components/ui/CurrencySelector';
 import { AccountSelector } from '@/components/ui/AccountSelector';
 import { ConvertedAmount } from '@/components/ui/ConvertedAmount';
 import { useAuthContext } from '@/context/AuthContext';
@@ -64,7 +67,10 @@ const _recurringTransactionSchemaShape = z.object({
 
 type RecurringTransactionFormData = z.infer<typeof _recurringTransactionSchemaShape>;
 
-function createRecurringTransactionSchema(t: (key: string) => string) {
+function createRecurringTransactionSchema(
+  t: (key: string) => string,
+  original?: RecurringTransaction | null
+) {
   return z
     .object({
       accountId: z.number({ message: t('form.validation.accountRequired') }),
@@ -81,8 +87,8 @@ function createRecurringTransactionSchema(t: (key: string) => string) {
       description: z
         .string()
         .min(1, t('form.validation.descriptionRequired'))
-        .max(200, t('form.validation.descriptionTooLong')),
-      notes: z.string().max(1000, t('form.validation.notesTooLong')).optional(),
+        .max(1000, t('form.validation.descriptionTooLong')),
+      notes: z.string().max(2000, t('form.validation.notesTooLong')).optional(),
       frequency: z.enum(['DAILY', 'WEEKLY', 'BIWEEKLY', 'MONTHLY', 'QUARTERLY', 'YEARLY']),
       nextOccurrence: z.string().min(1, t('form.validation.nextOccurrenceRequired')),
       endDate: z.string().optional(),
@@ -95,7 +101,24 @@ function createRecurringTransactionSchema(t: (key: string) => string) {
           path: ['toAccountId'],
         });
       }
-      if (data.endDate && data.nextOccurrence && data.endDate < data.nextOccurrence) {
+      const unchangedSchedule =
+        original &&
+        data.nextOccurrence === original.nextOccurrence &&
+        (data.endDate || null) === (original.endDate || null) &&
+        data.frequency === original.frequency;
+      if (!unchangedSchedule && data.endDate && data.endDate < getToday()) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: t('form.validation.endDatePast'),
+          path: ['endDate'],
+        });
+      }
+      if (
+        !unchangedSchedule &&
+        data.endDate &&
+        data.nextOccurrence &&
+        data.endDate < data.nextOccurrence
+      ) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
           message: t('form.validation.endDateAfterNext'),
@@ -128,7 +151,10 @@ export function RecurringTransactionForm({
   const { baseCurrency } = useAuthContext();
   const { t } = useTranslation('recurring');
 
-  const schema = useMemo(() => createRecurringTransactionSchema(t), [t]);
+  const schema = useMemo(
+    () => createRecurringTransactionSchema(t, recurringTransaction),
+    [t, recurringTransaction]
+  );
 
   const transactionTypes: { value: TransactionType; label: string }[] = [
     { value: 'INCOME', label: t('filters.income') },
@@ -148,7 +174,7 @@ export function RecurringTransactionForm({
   const {
     register,
     handleSubmit,
-    formState: { errors },
+    formState: { errors, dirtyFields, isDirty },
     watch,
     setValue,
     control,
@@ -173,7 +199,7 @@ export function RecurringTransactionForm({
           type: 'EXPENSE',
           currency: baseCurrency || DEFAULT_CURRENCY,
           frequency: 'MONTHLY',
-          nextOccurrence: new Date().toISOString().split('T')[0],
+          nextOccurrence: getToday(),
           amount: '0',
           description: '',
           payee: undefined,
@@ -216,23 +242,37 @@ export function RecurringTransactionForm({
 
   // Set currency from selected account
   useEffect(() => {
-    if (selectedAccountId) {
+    if (
+      !recurringTransaction &&
+      !dirtyFields.amount &&
+      !dirtyFields.currency &&
+      selectedAccountId
+    ) {
       const account = accounts.find(a => a.id === selectedAccountId);
       if (account) {
         setValue('currency', account.currency);
       }
     }
-  }, [selectedAccountId, accounts, setValue]);
+  }, [
+    selectedAccountId,
+    accounts,
+    setValue,
+    recurringTransaction,
+    dirtyFields.amount,
+    dirtyFields.currency,
+  ]);
+
+  const cancelWithGuard = useFormDraft(isDirty, !!isSubmitting, onCancel);
 
   const handleFormSubmit = (data: RecurringTransactionFormData) => {
     onSubmit({
       accountId: data.accountId,
-      toAccountId: data.toAccountId || null,
+      toAccountId: data.type === 'TRANSFER' ? data.toAccountId || null : null,
       type: data.type,
       amount: data.amount.trim(),
       currency: data.currency,
-      categoryId: data.categoryId || null,
-      payee: data.payee || null,
+      categoryId: data.type === 'TRANSFER' ? null : data.categoryId || null,
+      payee: data.type === 'TRANSFER' ? null : data.payee || null,
       description: data.description,
       notes: data.notes || null,
       frequency: data.frequency,
@@ -299,19 +339,25 @@ export function RecurringTransactionForm({
           <label htmlFor="currency" className="block text-sm font-medium text-text-primary mb-1.5">
             {t('form.currency')} *
           </label>
-          <Input
-            id="currency"
-            {...register('currency')}
-            readOnly
-            error={errors.currency?.message}
+          <Controller
+            name="currency"
+            control={control}
+            render={({ field }) => (
+              <CurrencySelector id="currency" value={field.value} onValueChange={field.onChange} />
+            )}
           />
+          {errors.currency && (
+            <p role="alert" className="mt-1 text-sm text-error">
+              {errors.currency.message}
+            </p>
+          )}
         </div>
       </div>
 
       {/* Row 2: Account and To Account / Category */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm font-medium text-text-primary mb-1.5">
+          <label htmlFor="accountId" className="block text-sm font-medium text-text-primary mb-1.5">
             {selectedType === 'TRANSFER' ? t('form.fromAccount') : t('form.account')} *
           </label>
           <Controller
@@ -319,6 +365,7 @@ export function RecurringTransactionForm({
             control={control}
             render={({ field }) => (
               <AccountSelector
+                id="accountId"
                 value={field.value}
                 onValueChange={field.onChange}
                 placeholder={t('form.selectAccount')}
@@ -333,7 +380,10 @@ export function RecurringTransactionForm({
 
         {selectedType === 'TRANSFER' ? (
           <div>
-            <label className="block text-sm font-medium text-text-primary mb-1.5">
+            <label
+              htmlFor="toAccountId"
+              className="block text-sm font-medium text-text-primary mb-1.5"
+            >
               {t('form.toAccount')} *
             </label>
             <Controller
@@ -341,6 +391,7 @@ export function RecurringTransactionForm({
               control={control}
               render={({ field }) => (
                 <AccountSelector
+                  id="toAccountId"
                   value={field.value}
                   onValueChange={field.onChange}
                   placeholder={t('form.selectAccount')}
@@ -358,8 +409,9 @@ export function RecurringTransactionForm({
               {t('form.payee')}
             </label>
             <PayeeSelector
+              id="payee"
               value={watch('payee')?.toString()}
-              onValueChange={value => setValue('payee', value || undefined)}
+              onValueChange={value => setValue('payee', value || undefined, { shouldDirty: true })}
               placeholder={t('form.payeePlaceholder')}
               allowNewPayee={true}
             />
@@ -393,8 +445,9 @@ export function RecurringTransactionForm({
               {t('form.category')}
             </label>
             <CategorySelect
+              id="categoryId"
               value={watch('categoryId')}
-              onValueChange={value => setValue('categoryId', value)}
+              onValueChange={value => setValue('categoryId', value, { shouldDirty: true })}
               placeholder={t('form.selectCategory')}
               allowNone={true}
               allowCreateInline
@@ -495,7 +548,7 @@ export function RecurringTransactionForm({
 
       {/* Form Actions */}
       <div className="sticky bottom-[-25px] -mx-6 mt-2 flex items-center justify-end gap-3 border-t border-border bg-surface px-6 py-4">
-        <Button type="button" variant="secondary" onClick={onCancel} disabled={isSubmitting}>
+        <Button type="button" variant="secondary" onClick={cancelWithGuard} disabled={isSubmitting}>
           {t('form.cancel')}
         </Button>
         <Button type="submit" disabled={isSubmitting}>

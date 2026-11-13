@@ -52,3 +52,33 @@ describe('DateInput editing', () => {
     expect(input).toHaveValue('03/02/2025');
   });
 });
+
+describe('DateInput invalid drafts', () => {
+  beforeEach(mockAuthentication);
+  it.each(['31/02/2026', 'tomorrow', '01/01/2027'])(
+    'retains and blocks invalid or out-of-range draft %s',
+    draft => {
+      const save = vi.fn(event => event.preventDefault());
+      const change = vi.fn();
+      renderWithProviders(
+        <form noValidate onSubmit={save}>
+          <label htmlFor="date">Date</label>
+          <DateInput id="date" value="2026-02-01" max="2026-12-31" onChange={change} />
+        </form>
+      );
+      const input = screen.getByRole('textbox', { name: 'Date' });
+      fireEvent.change(input, { target: { value: draft } });
+      fireEvent.blur(input);
+      fireEvent.submit(input.closest('form')!);
+      expect(input).toHaveValue(draft);
+      expect(input).toHaveAttribute('aria-invalid', 'true');
+      expect(input).toHaveAccessibleDescription();
+      expect(save).not.toHaveBeenCalled();
+      expect(change).not.toHaveBeenCalled();
+      fireEvent.change(input, { target: { value: '28/02/2026' } });
+      fireEvent.submit(input.closest('form')!);
+      expect(save).toHaveBeenCalledOnce();
+      expect(change).toHaveBeenLastCalledWith('2026-02-28');
+    }
+  );
+});

@@ -139,9 +139,7 @@ describe('AssetForm', () => {
     fireEvent.change(screen.getByLabelText(/Asset Name/i), { target: { value: 'Car' } });
     fireEvent.change(screen.getByLabelText(/Quantity/i), { target: { value: '0' } });
     await userEvent.setup().click(screen.getByRole('button', { name: /create asset/i }));
-    await waitFor(() =>
-      expect(screen.getByText(/Quantity must be at least 0.00000001/i)).toBeInTheDocument()
-    );
+    await waitFor(() => expect(screen.getByText(/at least 0.00000001/i)).toBeInTheDocument());
     expect(mockOnSubmit).not.toHaveBeenCalled();
   });
 
@@ -314,7 +312,7 @@ describe('AssetForm', () => {
 
       await waitFor(
         () => {
-          expect(screen.getByText(/Quantity cannot be negative/i)).toBeInTheDocument();
+          expect(screen.getByText(/at least 0/i)).toBeInTheDocument();
         },
         { timeout: 3000 }
       );
@@ -357,7 +355,7 @@ describe('AssetForm', () => {
 
       await waitFor(
         () => {
-          expect(screen.getByText(/Purchase price cannot be negative/i)).toBeInTheDocument();
+          expect(screen.getByText(/at least 0/i)).toBeInTheDocument();
         },
         { timeout: 3000 }
       );
@@ -400,7 +398,7 @@ describe('AssetForm', () => {
 
       await waitFor(
         () => {
-          expect(screen.getByText(/Current price cannot be negative/i)).toBeInTheDocument();
+          expect(screen.getByText(/at least 0/i)).toBeInTheDocument();
         },
         { timeout: 3000 }
       );
@@ -549,6 +547,73 @@ describe('AssetForm', () => {
           purchasePrice: '0',
           currentPrice: '0',
           warrantyExpiration: '2021-01-01',
+        })
+      )
+    );
+  });
+  it('sends explicit clears for ordinary physical-asset metadata', async () => {
+    const asset: Asset = {
+      id: 1,
+      userId: 1,
+      name: 'Asset ' + 'a'.repeat(180),
+      type: 'ELECTRONICS',
+      quantity: 1,
+      purchasePrice: 500,
+      currentPrice: 400,
+      currency: 'EUR',
+      purchaseDate: '2020-01-01',
+      notes: 'n'.repeat(800),
+      serialNumber: 'serial',
+      brand: 'b'.repeat(180),
+      model: 'model',
+      condition: 'GOOD',
+      warrantyExpiration: '2027-01-01',
+      usefulLifeYears: 5,
+      lastUpdated: '',
+      createdAt: '',
+      updatedAt: '',
+      totalValue: 400,
+      totalCost: 500,
+      unrealizedGain: -100,
+      gainPercentage: -20,
+      holdingDays: 1,
+    };
+    renderWithProviders(
+      <AssetForm asset={asset} onSubmit={mockOnSubmit} onCancel={mockOnCancel} />
+    );
+    const user = userEvent.setup();
+    await user.click(screen.getByRole('button', { name: /update asset/i }));
+    await waitFor(() =>
+      expect(mockOnSubmit).toHaveBeenCalledWith(
+        expect.objectContaining({ notes: asset.notes, brand: asset.brand, name: asset.name })
+      )
+    );
+    mockOnSubmit.mockClear();
+    for (const label of [
+      /^Notes/i,
+      /^Serial Number/i,
+      /^Brand$/i,
+      /^Model$/i,
+      /^Warranty/i,
+      /^Useful Life/i,
+    ]) {
+      const input = screen.getByLabelText(label);
+      const details = input.closest('details');
+      if (details) details.open = true;
+      fireEvent.change(input, { target: { value: '' } });
+    }
+    await user.selectOptions(screen.getByLabelText(/^Condition/i), '');
+    await user.click(screen.getByRole('button', { name: /update asset/i }));
+    await waitFor(() =>
+      expect(mockOnSubmit).toHaveBeenCalledWith(
+        expect.objectContaining({
+          notes: '',
+          serialNumber: '',
+          brand: '',
+          model: '',
+          condition: null,
+          warrantyExpiration: null,
+          usefulLifeYears: null,
         })
       )
     );

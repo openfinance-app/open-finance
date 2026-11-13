@@ -20,5 +20,5 @@ export interface Payee {
 export interface PayeeRequest {
   name: string;
   logo?: string;
-  categoryId?: number;
+  categoryId?: number | null;
 }

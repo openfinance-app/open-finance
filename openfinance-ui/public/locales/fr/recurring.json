@@ -95,7 +95,8 @@
       "notesTooLong": "Les notes sont trop longues",
       "nextOccurrenceRequired": "La date de prochaine occurrence est requise",
       "toAccountRequired": "Le compte destinataire est requis pour les virements",
-      "endDateAfterNext": "La date de fin doit être égale ou postérieure à la prochaine occurrence"
+      "endDateAfterNext": "La date de fin doit être égale ou postérieure à la prochaine occurrence",
+      "endDatePast": "La date de fin ne peut pas être dans le passé."
     }
   },
   "status": {

@@ -52,7 +52,8 @@ vi.mock('@/hooks/useTransactionTags', () => ({
 }));
 
 // Mock date utils
-vi.mock('@/utils/date', () => ({
+vi.mock('@/utils/date', async importOriginal => ({
+  ...(await importOriginal<typeof import('@/utils/date')>()),
   getToday: () => '2026-05-26',
   getDaysAgo: (days: number) => '2026-05-19',
   getStartOfMonth: () => '2026-05-01',

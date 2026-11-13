@@ -180,7 +180,7 @@ public class AssetService {
         asset.setValuationRemainder(BigDecimal.ZERO);
         asset.setCurrencyId(resolveCurrencyId(asset.getCurrency()));
 
-        // Default usefulLifeYears for depreciating physical assets
+        // Set the default useful life for newly created depreciating assets.
         if (asset.getUsefulLifeYears() == null
                 && asset.getType() != null
                 && asset.getType().isDepreciating()) {
@@ -449,6 +449,12 @@ public class AssetService {
 
         // Update fields from request (only non-null fields will be copied)
         assetMapper.updateEntityFromRequest(request, asset);
+        if (request.isConditionPresent()) asset.setCondition(request.getCondition());
+        if (request.isWarrantyExpirationPresent())
+            asset.setWarrantyExpiration(request.getWarrantyExpiration());
+        if (request.isUsefulLifeYearsPresent())
+            asset.setUsefulLifeYears(request.getUsefulLifeYears());
+
         if (request.isReceivedValuePresent()) asset.setReceivedValue(request.getReceivedValue());
         if (request.isAccountIdPresent() || request.getAccountId() != null) {
             asset.setAccountId(request.getAccountId());
@@ -462,8 +468,9 @@ public class AssetService {
         }
         asset.setCurrencyId(resolveCurrencyId(asset.getCurrency()));
 
-        // Default usefulLifeYears for depreciating physical assets
-        if (asset.getUsefulLifeYears() == null
+        // Preserve explicit clears; only omitted values can receive a default.
+        if (!request.isUsefulLifeYearsPresent()
+                && asset.getUsefulLifeYears() == null
                 && asset.getType() != null
                 && asset.getType().isDepreciating()) {
             asset.setUsefulLifeYears(asset.getType().getDefaultUsefulLifeYears());

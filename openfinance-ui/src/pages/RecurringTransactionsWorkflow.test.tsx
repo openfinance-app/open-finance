@@ -124,6 +124,7 @@ describe('recurring transaction actions', () => {
 
   it('keeps a failed edit open with the server error and permits cancellation', async () => {
     state.update.mockRejectedValue({
+      isAxiosError: true,
       response: { data: { message: 'Account has been archived' } },
     });
     const log = vi.spyOn(console, 'error').mockImplementation(() => {});

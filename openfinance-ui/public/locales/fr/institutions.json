@@ -39,7 +39,9 @@
     "logoReadError": "Impossible de lire le fichier. Veuillez réessayer.",
     "cancel": "Annuler",
     "update": "Mettre à jour",
-    "create": "Créer"
+    "create": "Créer",
+    "editInstitution": "Modifier l’établissement {{name}}",
+    "deleteInstitution": "Supprimer l’établissement {{name}}"
   },
   "deleteDialog": {
     "title": "Supprimer l'institution",

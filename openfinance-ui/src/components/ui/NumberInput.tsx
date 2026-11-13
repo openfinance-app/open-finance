@@ -1,4 +1,7 @@
-import { useEffect, useState, type AriaAttributes } from 'react';
+import Decimal from 'decimal.js';
+import { useTranslation } from 'react-i18next';
+import { useInputValidation } from '@/hooks/useInputValidation';
+import { useEffect, useRef, useId, useState, type AriaAttributes } from 'react';
 import { cn } from '@/lib/utils';
 import { useNumberFormat } from '@/context/NumberFormatContext';
 import type { NumberFormat } from '@/context/NumberFormatContext';
@@ -23,6 +26,7 @@ interface NumberInputProps {
   /** Accessible label for testing when label element not present. */
   ['aria-label']?: string;
   ['aria-invalid']?: AriaAttributes['aria-invalid'];
+  ['aria-describedby']?: string;
   ['data-testid']?: string;
 }
 
@@ -69,88 +73,24 @@ function formatCanonicalToDisplay(
  * Returns "" for empty input, canonical string for valid numbers, or null for invalid intermediate states.
  */
 function parseDisplayToCanonical(input: string, fmt: NumberFormat): string | null {
-  const s = input.trim();
-  if (s === '') return '';
-  // Normalize narrow NBSPs to regular space for French format handling
-  const normalized = s.replace(/\u202F/g, ' ').replace(/\u00A0/g, ' ');
-  // If already canonical (dot decimal, no thousands except optional minus), accept directly
-  if (fmt !== '1.234,56' && /^-?\d+(\.\d+)?$/.test(normalized)) {
-    return normalized;
-  }
-  const { thousands, decimal } = getSeparators(fmt);
-
-  // Strict locale-aware parsing
-  try {
-    let withoutThousands: string;
-    if (fmt === '1 234,56') {
-      withoutThousands = normalized.replace(/ /g, '');
-    } else {
-      const esc = thousands.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-      withoutThousands = normalized.replace(new RegExp(esc, 'g'), '');
-    }
-    let withDotDecimal: string;
-    if (decimal !== '.') {
-      const escDec = decimal.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-      withDotDecimal = withoutThousands.replace(new RegExp(escDec, 'g'), '.');
-    } else {
-      withDotDecimal = withoutThousands;
-    }
-    // After conversion, should be plain canonical
-    if (/^-?\d+(\.\d+)?$/.test(withDotDecimal)) {
-      return withDotDecimal;
-    }
-    // Also handle case where user typed minus sign with spaces etc.
-  } catch {
-    // fall through to lenient
-  }
-
-  // Lenient fallback: treat last dot or comma as decimal, remove other separators
-  let lenient = normalized.replace(/ /g, '');
-  // Quick reject if contains invalid characters beyond digits, minus, dot, comma
-  if (!/^[-.,\d]+$/.test(lenient)) return null;
-  // Handle leading minus
-  const isNegative = lenient.startsWith('-');
-  // Remove all minus not at start for validation (will be re-added)
-  lenient = (isNegative ? '-' : '') + lenient.slice(isNegative ? 1 : 0).replace(/-/g, '');
-  const lastDot = lenient.lastIndexOf('.');
-  const lastComma = lenient.lastIndexOf(',');
-  let decimalPos = -1;
-  if (lastDot !== -1 && lastComma !== -1) {
-    decimalPos = Math.max(lastDot, lastComma);
-  } else if (lastDot !== -1) {
-    decimalPos = lastDot;
-  } else if (lastComma !== -1) {
-    decimalPos = lastComma;
-  }
-  let intPart: string;
-  let fracPart: string | null = null;
-  if (decimalPos !== -1) {
-    intPart = lenient.slice(0, decimalPos);
-    fracPart = lenient.slice(decimalPos + 1);
-    intPart = intPart.replace(/[.,]/g, '');
-    fracPart = fracPart.replace(/[.,]/g, '');
-  } else {
-    intPart = lenient.replace(/[.,]/g, '');
-  }
-  if (intPart === '' || intPart === '-') return null;
-  const cleanInt = (isNegative ? '-' : '') + intPart.replace(/-/g, '').replace(/^0+(?=\d)/, m => m); // keep digits
-  // Validate integer part digits
-  const intDigits = cleanInt.startsWith('-') ? cleanInt.slice(1) : cleanInt;
-  if (!/^\d+$/.test(intDigits)) return null;
-  if (fracPart !== null && fracPart !== '' && !/^\d+$/.test(fracPart)) return null;
-  let canonical = cleanInt;
-  if (fracPart !== null && fracPart !== '') canonical += '.' + fracPart;
-  // For inputs like "1," with trailing decimal and no fraction, we treat as incomplete intermediate -> don't commit
-  // If original had trailing decimal separator but no fraction, consider incomplete
-  const hadTrailingDecimal = /[.,]\s*$/.test(s);
-  if (hadTrailingDecimal && (fracPart === null || fracPart === '')) {
-    // Don't commit yet, but input like "1." is incomplete; let user continue typing
-    // Return null to indicate not yet commitable, but display remains
-    // However if they type "1." and blur, we should snap to "1"
-    // So return null here, and onBlur will format canonical
-    return null;
-  }
-  if (/^-?\d+(\.\d+)?$/.test(canonical)) return canonical;
+  const normalized = input.trim().replace(/[\u202F\u00A0]/g, ' ');
+  if (normalized === '') return '';
+  // Validate grouping before removing separators. Never turn malformed drafts
+  // such as "12-3" or "1..2" into a different, apparently valid amount.
+  const european = /^-?(?:\d+|\d{1,3}(?:\.\d{3})+)(?:,\d+)?$/;
+  const american = /^-?(?:\d+|\d{1,3}(?:,\d{3})+)(?:\.\d+)?$/;
+  const french = /^-?(?:\d+|\d{1,3}(?: \d{3})+)(?:,\d+)?$/;
+  if (fmt === '1.234,56' && european.test(normalized))
+    return normalized.replace(/\./g, '').replace(',', '.');
+  if (fmt === '1 234,56' && french.test(normalized))
+    return normalized.replace(/ /g, '').replace(',', '.');
+  if (fmt === '1,234.56' && american.test(normalized)) return normalized.replace(/,/g, '');
+  // Also accept an ungrouped decimal pasted in either common notation.
+  if (/^-?\d+(?:[.,]\d+)?$/.test(normalized)) return normalized.replace(',', '.');
+  // Preserve pasting well-formed amounts in another supported notation.
+  if (american.test(normalized)) return normalized.replace(/,/g, '');
+  if (european.test(normalized)) return normalized.replace(/\./g, '').replace(',', '.');
+  if (french.test(normalized)) return normalized.replace(/ /g, '').replace(',', '.');
   return null;
 }
 
@@ -173,6 +113,7 @@ export function NumberInput({
   max,
   'aria-label': ariaLabel,
   'aria-invalid': ariaInvalid,
+  'aria-describedby': ariaDescribedBy,
   'data-testid': dataTestId,
 }: NumberInputProps) {
   let numberFormat: NumberFormat = '1,234.56';
@@ -190,28 +131,52 @@ export function NumberInput({
     formatCanonicalToDisplay(canonicalValue, numberFormat)
   );
 
-  // Keep display in sync when canonical value or format changes externally
+  const emittedValue = useRef(canonicalValue);
+  const previousFormat = useRef(numberFormat);
+  const { t } = useTranslation('common');
+  const errorId = useId();
+  const parsed = parseDisplayToCanonical(display, numberFormat);
+  const invalidMessage =
+    display.trim() === ''
+      ? required
+        ? t('input.required')
+        : undefined
+      : parsed === null
+        ? t('input.invalidNumber')
+        : min != null && new Decimal(parsed).lt(min)
+          ? t('input.numberMin', { value: min })
+          : max != null && new Decimal(parsed).gt(max)
+            ? t('input.numberMax', { value: max })
+            : undefined;
+  const {
+    ref: inputRef,
+    reveal,
+    validationError,
+  } = useInputValidation(
+    disabled || readOnly ? undefined : invalidMessage,
+    display !== formatCanonicalToDisplay(canonicalValue, numberFormat)
+  );
+  const displayedError = validationError || error;
+
   useEffect(() => {
-    setDisplay(formatCanonicalToDisplay(canonicalValue, numberFormat));
+    if (canonicalValue !== emittedValue.current || numberFormat !== previousFormat.current)
+      setDisplay(formatCanonicalToDisplay(canonicalValue, numberFormat));
+    emittedValue.current = canonicalValue;
+    previousFormat.current = numberFormat;
   }, [canonicalValue, numberFormat]);
 
   const commit = (text: string) => {
-    const trimmed = text.trim();
-    if (trimmed === '') {
-      onChange('');
-      return;
+    const next = parseDisplayToCanonical(text, numberFormat);
+    if (next !== null) {
+      emittedValue.current = next;
+      onChange(next);
     }
-    const parsed = parseDisplayToCanonical(text, numberFormat);
-    if (parsed !== null && parsed !== '') {
-      onChange(parsed);
-    } else if (parsed === '') {
-      onChange('');
-    }
-    // If parsed is null (invalid/incomplete), do not call onChange — keep previous canonical
   };
 
   const handleBlur = () => {
-    setDisplay(formatCanonicalToDisplay(canonicalValue, numberFormat));
+    reveal();
+    if (!invalidMessage && parsed !== null)
+      setDisplay(formatCanonicalToDisplay(parsed, numberFormat));
     onBlur?.();
   };
 
@@ -229,6 +194,7 @@ export function NumberInput({
     <div className="relative w-full">
       <input
         id={id}
+        ref={inputRef}
         type="text"
         inputMode="decimal"
         autoComplete="off"
@@ -239,7 +205,11 @@ export function NumberInput({
         max={max}
         value={display}
         placeholder={displayPlaceholder}
-        aria-invalid={error ? 'true' : (ariaInvalid ?? 'false')}
+        aria-invalid={displayedError ? 'true' : (ariaInvalid ?? 'false')}
+        aria-describedby={
+          [ariaDescribedBy, displayedError ? errorId : undefined].filter(Boolean).join(' ') ||
+          undefined
+        }
         aria-label={ariaLabel}
         data-testid={dataTestId}
         onChange={e => {
@@ -252,11 +222,17 @@ export function NumberInput({
           'placeholder:text-text-muted',
           'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background',
           'disabled:cursor-not-allowed disabled:opacity-50 transition-all duration-150',
-          error ? 'border-error focus-visible:ring-error' : 'border-border hover:border-border/80',
+          displayedError
+            ? 'border-error focus-visible:ring-error'
+            : 'border-border hover:border-border/80',
           className
         )}
       />
-      {error && <p className="mt-1 text-sm text-error">{error}</p>}
+      {displayedError && (
+        <p id={errorId} role="alert" className="mt-1 text-sm text-error">
+          {displayedError}
+        </p>
+      )}
     </div>
   );
 }

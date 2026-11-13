@@ -38,7 +38,7 @@ export interface Category {
   id: number;
   userId: number;
   name: string;
-  parentId?: number;
+  parentId?: number | null;
   icon?: string;
   color?: string;
   mccCode?: string;
@@ -121,7 +121,7 @@ export interface Transaction {
   notes?: string;
   payee?: string;
   tags?: string[];
-  paymentMethod?: PaymentMethod;
+  paymentMethod?: PaymentMethod | null;
   isReconciled: boolean;
   createdAt: string;
   updatedAt?: string;
@@ -207,7 +207,7 @@ export interface TransactionRequest {
   notes?: string;
   payee?: string;
   tags?: string[];
-  paymentMethod?: PaymentMethod;
+  paymentMethod?: PaymentMethod | null;
   // Requirement 3.1: Optional link to a liability for EXPENSE transactions
   liabilityId?: number;
   // Optional instrument links: tranche (repayment allocation), property/asset
@@ -244,7 +244,7 @@ export interface TransferUpdateRequest {
   notes?: string;
   payee?: string;
   tags?: string[];
-  paymentMethod?: PaymentMethod;
+  paymentMethod?: PaymentMethod | null;
   isReconciled: boolean;
 }
 

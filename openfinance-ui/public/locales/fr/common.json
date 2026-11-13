@@ -355,5 +355,15 @@
     "minimum": "Montant min.",
     "maximum": "Montant max.",
     "exact": "Montant exact"
-  }
+  },
+  "input": {
+    "invalidNumber": "Saisissez un nombre valide.",
+    "invalidDate": "Saisissez une date valide ({{format}}).",
+    "numberMin": "Saisissez une valeur supérieure ou égale à {{value}}.",
+    "numberMax": "Saisissez une valeur inférieure ou égale à {{value}}.",
+    "dateMin": "Choisissez une date à partir du {{date}}.",
+    "dateMax": "Choisissez une date au plus tard le {{date}}.",
+    "required": "Ce champ est obligatoire"
+  },
+  "unsavedForm": "Abandonner les modifications non enregistrées ?"
 }

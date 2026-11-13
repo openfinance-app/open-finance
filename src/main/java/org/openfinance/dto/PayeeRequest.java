@@ -38,4 +38,16 @@ public class PayeeRequest {
      * <p>Requirements: REQ-CAT-5.1 - Payee-to-Category Auto-Fill
      */
     private Long categoryId;
+
+    @com.fasterxml.jackson.annotation.JsonIgnore private boolean categoryIdPresent;
+
+    @com.fasterxml.jackson.annotation.JsonSetter("categoryId")
+    public void setCategoryId(Long categoryId) {
+        this.categoryId = categoryId;
+        this.categoryIdPresent = true;
+    }
+
+    public boolean isCategoryIdPresent() {
+        return categoryIdPresent || categoryId != null;
+    }
 }

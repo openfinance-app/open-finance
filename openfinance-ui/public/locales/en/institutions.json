@@ -39,7 +39,9 @@
     "logoReadError": "Failed to read file. Please try again.",
     "cancel": "Cancel",
     "update": "Update",
-    "create": "Create"
+    "create": "Create",
+    "editInstitution": "Edit institution {{name}}",
+    "deleteInstitution": "Delete institution {{name}}"
   },
   "deleteDialog": {
     "title": "Delete Institution",

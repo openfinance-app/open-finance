@@ -213,6 +213,18 @@ public class AssetRequest {
      */
     private AssetCondition condition;
 
+    @com.fasterxml.jackson.annotation.JsonIgnore private boolean conditionPresent;
+
+    @com.fasterxml.jackson.annotation.JsonSetter("condition")
+    public void setCondition(AssetCondition condition) {
+        this.condition = condition;
+        this.conditionPresent = true;
+    }
+
+    public boolean isConditionPresent() {
+        return conditionPresent || condition != null;
+    }
+
     /**
      * Warranty expiration date for physical assets.
      *
@@ -221,6 +233,18 @@ public class AssetRequest {
      * <p>Optional field, only relevant for physical asset types.
      */
     private LocalDate warrantyExpiration;
+
+    @com.fasterxml.jackson.annotation.JsonIgnore private boolean warrantyExpirationPresent;
+
+    @com.fasterxml.jackson.annotation.JsonSetter("warrantyExpiration")
+    public void setWarrantyExpiration(LocalDate warrantyExpiration) {
+        this.warrantyExpiration = warrantyExpiration;
+        this.warrantyExpirationPresent = true;
+    }
+
+    public boolean isWarrantyExpirationPresent() {
+        return warrantyExpirationPresent || warrantyExpiration != null;
+    }
 
     /**
      * Expected useful life in years (for depreciation calculation).
@@ -239,6 +263,18 @@ public class AssetRequest {
     @Min(value = 1, message = "{asset.useful.life.min}")
     @Max(value = 50, message = "{asset.useful.life.max}")
     private Integer usefulLifeYears;
+
+    @com.fasterxml.jackson.annotation.JsonIgnore private boolean usefulLifeYearsPresent;
+
+    @com.fasterxml.jackson.annotation.JsonSetter("usefulLifeYears")
+    public void setUsefulLifeYears(Integer usefulLifeYears) {
+        this.usefulLifeYears = usefulLifeYears;
+        this.usefulLifeYearsPresent = true;
+    }
+
+    public boolean isUsefulLifeYearsPresent() {
+        return usefulLifeYearsPresent || usefulLifeYears != null;
+    }
 
     /**
      * Path to photo or image file for the asset.

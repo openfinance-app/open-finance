@@ -182,7 +182,7 @@ export function PayeeManagementSettings() {
       if (editingPayee) {
         await updatePayee.mutateAsync({
           id: editingPayee.id,
-          data: formData,
+          data: { ...formData, categoryId: formData.categoryId ?? null },
         });
       } else {
         await createPayee.mutateAsync(formData);
@@ -539,10 +539,14 @@ export function PayeeManagementSettings() {
           </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-text-primary mb-1.5">
+              <label
+                htmlFor="payeeName"
+                className="block text-sm font-medium text-text-primary mb-1.5"
+              >
                 {t('form.name')}
               </label>
               <Input
+                id="payeeName"
                 value={formData.name}
                 onChange={e => setFormData({ ...formData, name: e.target.value })}
                 placeholder={t('form.namePlaceholder')}
@@ -553,12 +557,16 @@ export function PayeeManagementSettings() {
 
             <div>
               <div className="flex items-center gap-1 mb-1.5">
-                <label className="block text-sm font-medium text-text-primary">
+                <label
+                  htmlFor="payeeCategory"
+                  className="block text-sm font-medium text-text-primary"
+                >
                   {t('form.category')}
                 </label>
                 <HelpTooltip text={t('form.categoryHelp')} />
               </div>
               <CategorySelect
+                id="payeeCategory"
                 value={formData.categoryId}
                 onValueChange={value => setFormData({ ...formData, categoryId: value })}
                 placeholder={t('form.categoryPlaceholder')}

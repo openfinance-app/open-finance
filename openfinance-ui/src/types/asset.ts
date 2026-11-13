@@ -89,9 +89,9 @@ export interface Asset {
   serialNumber?: string;
   brand?: string;
   model?: string;
-  condition?: AssetCondition;
-  warrantyExpiration?: string; // ISO date string
-  usefulLifeYears?: number;
+  condition?: AssetCondition | null;
+  warrantyExpiration?: string | null; // ISO date string
+  usefulLifeYears?: number | null;
   photoPath?: string;
   depreciatedValue?: number; // Calculated: depreciated value for physical assets
   conditionAdjustedValue?: number; // Calculated: condition-adjusted value
@@ -128,9 +128,9 @@ export interface AssetRequest {
   serialNumber?: string;
   brand?: string;
   model?: string;
-  condition?: AssetCondition;
-  warrantyExpiration?: string; // ISO date string (YYYY-MM-DD)
-  usefulLifeYears?: number;
+  condition?: AssetCondition | null;
+  warrantyExpiration?: string | null; // ISO date string (YYYY-MM-DD)
+  usefulLifeYears?: number | null;
   photoPath?: string;
 }
 

@@ -45,6 +45,18 @@ public class CategoryRequest {
      */
     private Long parentId;
 
+    @com.fasterxml.jackson.annotation.JsonIgnore private boolean parentIdPresent;
+
+    @com.fasterxml.jackson.annotation.JsonSetter("parentId")
+    public void setParentId(Long parentId) {
+        this.parentId = parentId;
+        this.parentIdPresent = true;
+    }
+
+    public boolean isParentIdPresent() {
+        return parentIdPresent || parentId != null;
+    }
+
     /**
      * Icon identifier for UI display (optional).
      *

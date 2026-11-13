@@ -1,3 +1,5 @@
+import { useFormDraft } from '@/hooks/useFormDraft';
+import { getToday } from '@/utils/date';
 import { useState } from 'react';
 import { useAssets } from '@/hooks/useAssets';
 
@@ -48,7 +50,7 @@ const liabilitySchema = (tv: (key: string) => string) =>
       name: z
         .string()
         .min(1, tv('form.validation.nameRequired'))
-        .max(100, tv('form.validation.nameTooLong')),
+        .max(255, tv('form.validation.nameTooLong')),
       type: z.enum([
         'MORTGAGE',
         'LOAN',
@@ -90,7 +92,7 @@ const liabilitySchema = (tv: (key: string) => string) =>
         .optional()
         .or(z.literal('')),
       currency: z.string().regex(CURRENCY_CODE_PATTERN, tv('form.validation.currencyCode')),
-      notes: z.string().max(500, tv('form.validation.notesTooLong')).optional().or(z.literal('')),
+      notes: z.string().max(1000, tv('form.validation.notesTooLong')).optional().or(z.literal('')),
       institutionId: z.string().optional(),
       // Requirement 1.1: Insurance percentage (annual, 0–100%) and one-time/periodic additional fees
       insurancePercentage: z
@@ -156,7 +158,7 @@ export function LiabilityForm({
   const isEditing = !!liability;
   const [intent, setIntent] = useState<'existing' | 'new' | 'approved'>('existing');
   const { data: assets = [] } = useAssets();
-  const today = new Date().toISOString().split('T')[0];
+  const today = getToday();
   const { t } = useTranslation('liabilities');
   // Get base currency from user settings (REQ-6.3)
   const { baseCurrency } = useAuthContext();
@@ -170,7 +172,7 @@ export function LiabilityForm({
     handleSubmit,
     control,
     watch,
-    formState: { errors },
+    formState: { errors, isDirty },
   } = useForm<LiabilityFormData>({
     resolver: zodResolver(liabilitySchema(t)),
     defaultValues: liability
@@ -179,7 +181,7 @@ export function LiabilityForm({
           type: liability.type,
           principal: decimalField(liability, 'principal'),
           currentBalance: decimalField(liability, 'currentBalance'),
-          interestRate: liability.interestRate || 0,
+          interestRate: liability.interestRate ?? undefined,
           startDate: liability.startDate,
           endDate: liability.endDate || '',
           minimumPayment:
@@ -204,7 +206,7 @@ export function LiabilityForm({
           type: initialType,
           principal: '0',
           currentBalance: '0',
-          interestRate: 0,
+          interestRate: undefined,
           startDate: today,
           endDate: '',
           minimumPayment: '',
@@ -219,6 +221,8 @@ export function LiabilityForm({
 
   const selectedCurrency = watch('currency');
   const selectedType = watch('type');
+
+  const cancelWithGuard = useFormDraft(isDirty || intent !== 'existing', !!isLoading, onCancel);
 
   const handleFormSubmit = handleSubmit((data: LiabilityFormData) => {
     onSubmit({
@@ -361,7 +365,7 @@ export function LiabilityForm({
               {...register('representedByAccountId')}
               disabled={isEditing}
               onChange={e => {
-                setValue('representedByAccountId', e.target.value);
+                setValue('representedByAccountId', e.target.value, { shouldDirty: true });
                 const account = accounts?.find(a => a.id === Number(e.target.value));
                 if (account) {
                   setValue('currency', account.currency);
@@ -466,6 +470,7 @@ export function LiabilityForm({
             control={control}
             render={({ field }) => (
               <CurrencySelector
+                id="currency"
                 value={field.value}
                 onValueChange={field.onChange}
                 placeholder={t('form.currencyPlaceholder')}
@@ -539,7 +544,7 @@ export function LiabilityForm({
                       ? String(field.value)
                       : ''
                   }
-                  onChange={val => field.onChange(val === '' ? 0 : Number(val))}
+                  onChange={val => field.onChange(val === '' ? undefined : Number(val))}
                   onBlur={field.onBlur}
                   placeholder="0.00"
                   error={errors.interestRate?.message}
@@ -772,8 +777,8 @@ export function LiabilityForm({
           </div>
         )}
       {/* Actions */}
-      <div className="sticky bottom-[-25px] -mx-6 mt-2 flex justify-end gap-3 border-t border-border bg-surface px-6 py-4">
-        <Button variant="ghost" type="button" onClick={onCancel} disabled={isLoading}>
+      <div className="sticky bottom-[-25px] -mx-6 mt-2 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end sm:gap-3 border-t border-border bg-surface px-6 py-4">
+        <Button variant="ghost" type="button" onClick={cancelWithGuard} disabled={isLoading}>
           {t('form.cancel')}
         </Button>
         <Button variant="primary" type="submit" isLoading={isLoading}>

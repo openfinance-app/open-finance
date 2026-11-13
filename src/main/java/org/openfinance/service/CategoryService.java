@@ -215,7 +215,7 @@ public class CategoryService {
         // Bug #5 fix: prevent duplicate names among siblings (same parent), excluding self
         if (request.getName() != null && !request.getName().isBlank()) {
             Long effectiveParentId =
-                    request.getParentId() != null
+                    request.isParentIdPresent()
                             ? request.getParentId()
                             : existingCategory.getParentId();
             checkDuplicateName(userId, request.getName(), effectiveParentId, categoryId);
@@ -223,6 +223,7 @@ public class CategoryService {
 
         // Update fields
         categoryMapper.updateEntityFromRequest(request, existingCategory);
+        if (request.isParentIdPresent()) existingCategory.setParentId(request.getParentId());
 
         // Save and return
         Category updatedCategory = categoryRepository.save(existingCategory);

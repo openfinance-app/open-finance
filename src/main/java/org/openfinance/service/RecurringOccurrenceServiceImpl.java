@@ -59,6 +59,7 @@ public class RecurringOccurrenceServiceImpl implements RecurringOccurrenceServic
                         .date(expectedDate)
                         .description(template.getDescription())
                         .notes(template.getNotes())
+                        .payee(template.getPayee())
                         .isReconciled(false)
                         .build();
         if (template.getType() == TransactionType.TRANSFER) {

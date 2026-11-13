@@ -356,7 +356,7 @@ class RecurringTransactionServiceTest {
                                     recurringTransactionService.createRecurringTransaction(
                                             1L, invalidRequest))
                     .isInstanceOf(InvalidTransactionException.class)
-                    .hasMessageContaining("End date must be after next occurrence date");
+                    .hasMessageContaining("End date cannot be before next occurrence date");
 
             verify(recurringTransactionRepository, never()).save(any());
         }

@@ -35,6 +35,16 @@ public class InvalidTransactionException extends RuntimeException implements Loc
         this.messageArgs = messageArgs.clone();
     }
 
+    public static InvalidTransactionException recurringEndBeforeNext() {
+        return new InvalidTransactionException(
+                "End date cannot be before next occurrence date", "error.recurring.endBeforeNext");
+    }
+
+    public static InvalidTransactionException recurringEndInPast() {
+        return new InvalidTransactionException(
+                "End date cannot be in the past", "error.recurring.endInPast");
+    }
+
     public static InvalidTransactionException metadataCategoryRequiresIndividualEdit() {
         return new InvalidTransactionException(
                 "Category bulk edits do not apply to transfers or split transactions; edit split categories individually",

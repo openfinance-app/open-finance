@@ -1,3 +1,5 @@
+import { FormDialog } from '@/components/ui/FormDialog';
+import { apiErrorMessage } from '@/utils/api-error';
 import { useViewState } from '@/hooks/useViewState';
 import { BulkSelection, BulkToolbar } from '@/components/bulk/BulkSelection';
 /**
@@ -10,7 +12,7 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Plus, Filter, Calendar, Search } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/Dialog';
+import { DialogContent, DialogHeader, DialogTitle } from '@/components/ui/Dialog';
 import { Pagination } from '@/components/ui/Pagination';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { EmptyState } from '@/components/layout/EmptyState';
@@ -134,11 +136,7 @@ export default function RecurringTransactionsPage() {
       setEditingTransaction(null);
     } catch (error: any) {
       // Extract user-friendly error message
-      const errorMessage =
-        error?.response?.data?.message ||
-        error?.response?.data?.error ||
-        error?.message ||
-        t('saveError');
+      const errorMessage = apiErrorMessage(error, t('saveError'));
 
       setFormError(errorMessage);
       console.error('Failed to save recurring transaction:', error);
@@ -485,7 +483,7 @@ export default function RecurringTransactionsPage() {
       )}
 
       {/* Form Dialog */}
-      <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
+      <FormDialog open={isFormOpen} onOpenChange={setIsFormOpen}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
@@ -502,7 +500,7 @@ export default function RecurringTransactionsPage() {
             error={formError}
           />
         </DialogContent>
-      </Dialog>
+      </FormDialog>
 
       {/* Delete Confirmation Dialog */}
       <ConfirmationDialog

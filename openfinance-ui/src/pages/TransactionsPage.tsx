@@ -1,3 +1,4 @@
+import { FormDialog } from '@/components/ui/FormDialog';
 import { TransactionScope } from '@/components/transactions/TransactionScope';
 import { useViewState } from '@/hooks/useViewState';
 import { BulkSelection, BulkToolbar } from '@/components/bulk/BulkSelection';
@@ -14,7 +15,7 @@ import { useLocation, useNavigate, useSearchParams } from 'react-router';
 import { Plus, Filter } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/Button';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/Dialog';
+import { DialogContent, DialogHeader, DialogTitle } from '@/components/ui/Dialog';
 import { Pagination } from '@/components/ui/Pagination';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { EmptyState } from '@/components/layout/EmptyState';
@@ -251,7 +252,7 @@ export default function TransactionsPage() {
               payee: data.payee,
               tags: data.tags,
               isReconciled: editingTransaction.isReconciled,
-              paymentMethod: data.paymentMethod,
+              paymentMethod: data.paymentMethod || null,
             },
           });
         } else {
@@ -436,7 +437,7 @@ export default function TransactionsPage() {
       )}
 
       {/* Create/Edit Dialog */}
-      <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
+      <FormDialog open={isFormOpen} onOpenChange={setIsFormOpen}>
         <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
@@ -462,7 +463,7 @@ export default function TransactionsPage() {
             </p>
           )}
         </DialogContent>
-      </Dialog>
+      </FormDialog>
 
       {/* Delete Confirmation Dialog */}
       <ConfirmationDialog

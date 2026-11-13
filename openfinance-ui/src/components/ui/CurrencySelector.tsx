@@ -55,6 +55,8 @@ function CurrencyTriggerLabel({
 // ---------------------------------------------------------------------------
 
 interface CurrencySelectorProps {
+  id?: string;
+  'aria-label'?: string;
   value?: string;
   onValueChange: (value: any) => void;
   placeholder?: string;
@@ -67,6 +69,8 @@ interface CurrencySelectorProps {
 }
 
 export function CurrencySelector({
+  id,
+  'aria-label': ariaLabel,
   value,
   onValueChange,
   placeholder = 'Select currency',
@@ -151,6 +155,8 @@ export function CurrencySelector({
       <PopoverPrimitive.Trigger asChild>
         <button
           {...navigation.triggerProps}
+          id={id}
+          aria-label={ariaLabel}
           ref={triggerRef}
           type="button"
           disabled={disabled}

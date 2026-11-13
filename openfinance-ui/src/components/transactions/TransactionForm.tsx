@@ -1,3 +1,4 @@
+import { useFormDraft } from '@/hooks/useFormDraft';
 import {
   decimalField,
   decimalValue,
@@ -279,7 +280,7 @@ export function TransactionForm({
   const {
     register,
     handleSubmit,
-    formState: { errors, submitCount },
+    formState: { errors, submitCount, isDirty },
     watch,
     setValue,
     setError,
@@ -641,6 +642,18 @@ export function TransactionForm({
     prevAccountIdRef.current = selectedAccountId;
   }, [selectedAccountId, accounts, setValue]);
 
+  const cancelWithGuard = useFormDraft(
+    isDirty ||
+      JSON.stringify(tags) !== JSON.stringify(transaction?.tags || []) ||
+      JSON.stringify(investment) !== JSON.stringify(investmentInstruction(transaction)) ||
+      linkedOperation !== initialLinkedOperation(transaction) ||
+      applyRepaymentSplit !== !transaction ||
+      splitMode !== !!(transaction?.hasSplits && transaction.splits?.length) ||
+      JSON.stringify(splits) !== JSON.stringify(reconstructInitialSplits(transaction)),
+    !!isLoading,
+    onCancel
+  );
+
   const handleFormSubmit = (data: TransactionFormData) => {
     if (investmentBlocked || linkedOperationError) return;
     if (
@@ -870,7 +883,7 @@ export function TransactionForm({
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Account */}
         <div>
-          <label className="block text-sm font-medium text-text-primary mb-1.5">
+          <label htmlFor="accountId" className="block text-sm font-medium text-text-primary mb-1.5">
             {selectedType === 'TRANSFER' ? t('form.fromAccount') : t('form.account')}{' '}
             <span aria-label="required">*</span>
           </label>
@@ -879,6 +892,7 @@ export function TransactionForm({
             control={control}
             render={({ field }) => (
               <AccountSelector
+                id="accountId"
                 value={field.value}
                 onValueChange={field.onChange}
                 placeholder={t('form.account')}
@@ -897,7 +911,10 @@ export function TransactionForm({
         {/* To Account (for transfers) */}
         {selectedType === 'TRANSFER' && (
           <div>
-            <label className="block text-sm font-medium text-text-primary mb-1.5">
+            <label
+              htmlFor="toAccountId"
+              className="block text-sm font-medium text-text-primary mb-1.5"
+            >
               {t('form.toAccount')} <span aria-label="required">*</span>
             </label>
             <Controller
@@ -905,6 +922,7 @@ export function TransactionForm({
               control={control}
               render={({ field }) => (
                 <AccountSelector
+                  id="toAccountId"
                   value={field.value}
                   onValueChange={field.onChange}
                   placeholder={t('form.account')}
@@ -944,6 +962,7 @@ export function TransactionForm({
             control={control}
             render={({ field }) => (
               <PayeeSelector
+                id="payee"
                 value={field.value?.toString()}
                 onValueChange={field.onChange}
                 placeholder={t('form.payeePlaceholder')}
@@ -992,7 +1011,10 @@ export function TransactionForm({
         <div className="space-y-3">
           {/* Split toggle button */}
           <div className="flex items-center justify-between">
-            <label className="block text-sm font-medium text-text-primary">
+            <label
+              htmlFor={splitMode ? undefined : 'categoryId'}
+              className="block text-sm font-medium text-text-primary"
+            >
               {splitMode ? t('form.splitTransaction') : t('form.category')}
             </label>
             <Button
@@ -1038,6 +1060,7 @@ export function TransactionForm({
                 control={control}
                 render={({ field }) => (
                   <CategorySelect
+                    id="categoryId"
                     value={field.value}
                     onValueChange={value => {
                       // Clear auto-fill indicator if user manually changes category
@@ -1360,6 +1383,7 @@ export function TransactionForm({
             <HelpTooltip text={t('form.tagsHint')} side="right" />
           </div>
           <TagInput
+            aria-label={t('form.tags')}
             value={tags}
             onChange={setTags}
             suggestions={popularTags}
@@ -1392,8 +1416,8 @@ export function TransactionForm({
       </div>
 
       {/* Actions */}
-      <div className="sticky bottom-[-25px] -mx-6 mt-2 flex justify-end gap-3 border-t border-border bg-surface px-6 py-4">
-        <Button variant="ghost" type="button" onClick={onCancel} disabled={isLoading}>
+      <div className="sticky bottom-[-25px] -mx-6 mt-2 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end sm:gap-3 border-t border-border bg-surface px-6 py-4">
+        <Button variant="ghost" type="button" onClick={cancelWithGuard} disabled={isLoading}>
           {t('form.cancel')}
         </Button>
         <Button

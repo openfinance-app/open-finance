@@ -21,6 +21,8 @@ import type { Payee } from '@/types/payee';
 import { cn } from '@/lib/utils';
 
 interface PayeeSelectorProps {
+  id?: string;
+  'aria-label'?: string;
   value?: string;
   onValueChange: (value: string | undefined) => void;
   placeholder?: string;
@@ -72,6 +74,8 @@ function shouldShowUseNew(
 }
 
 export function PayeeSelector({
+  id,
+  'aria-label': ariaLabel,
   value,
   onValueChange,
   placeholder = 'Select payee',
@@ -218,6 +222,8 @@ export function PayeeSelector({
             {...navigation.triggerProps}
             type="button"
             role="combobox"
+            id={id}
+            aria-label={ariaLabel}
             aria-expanded={isOpen}
             disabled={disabled}
             className={cn(

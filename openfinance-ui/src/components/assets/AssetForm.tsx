@@ -1,3 +1,5 @@
+import { useFormDraft } from '@/hooks/useFormDraft';
+import { getToday } from '@/utils/date';
 import { OptionalDetails } from '@/components/ui/OptionalDetails';
 import { decimalField } from '@/utils/exact-decimal';
 import Decimal from 'decimal.js';
@@ -89,7 +91,7 @@ export function AssetForm({
           name: z
             .string()
             .min(1, t('validation.nameRequired'))
-            .max(100, t('validation.nameTooLong')),
+            .max(255, t('validation.nameTooLong')),
           type: z.enum([
             'STOCK',
             'ETF',
@@ -132,10 +134,10 @@ export function AssetForm({
             .refine(v => Number(v) >= 0, t('validation.currentPriceRequired')),
           currency: z.string().regex(CURRENCY_CODE_PATTERN, t('validation.currencyInvalid')),
           purchaseDate: z.string().min(1, t('validation.purchaseDateRequired')),
-          notes: z.string().max(500, t('validation.notesTooLong')).optional().or(z.literal('')),
-          serialNumber: z.string().max(100).optional().or(z.literal('')),
-          brand: z.string().max(100).optional().or(z.literal('')),
-          model: z.string().max(100).optional().or(z.literal('')),
+          notes: z.string().max(1000, t('validation.notesTooLong')).optional().or(z.literal('')),
+          serialNumber: z.string().max(255).optional().or(z.literal('')),
+          brand: z.string().max(255).optional().or(z.literal('')),
+          model: z.string().max(255).optional().or(z.literal('')),
           condition: z.preprocess(
             value => (value === '' || value == null ? undefined : value),
             z.enum(['NEW', 'EXCELLENT', 'GOOD', 'FAIR', 'POOR']).optional()
@@ -162,10 +164,7 @@ export function AssetForm({
               message: t('validation.plannedValueZero'),
             });
           }
-          if (
-            data.acquisitionType !== 'PLANNED' &&
-            data.purchaseDate > new Date().toISOString().split('T')[0]
-          ) {
+          if (data.acquisitionType !== 'PLANNED' && data.purchaseDate > getToday()) {
             ctx.addIssue({
               code: 'custom',
               path: ['purchaseDate'],
@@ -179,7 +178,7 @@ export function AssetForm({
   type AssetFormData = z.infer<typeof assetSchema>;
 
   // Get today's date in YYYY-MM-DD format for max date validation
-  const today = new Date().toISOString().split('T')[0];
+  const today = getToday();
 
   const defaultValues = useMemo<AssetFormData>(
     () =>
@@ -235,7 +234,7 @@ export function AssetForm({
     reset,
     setValue,
     getFieldState,
-    formState: { errors },
+    formState: { errors, isDirty },
   } = useForm<z.input<typeof assetSchema>, unknown, AssetFormData>({
     resolver: zodResolver(assetSchema),
     defaultValues,
@@ -262,12 +261,14 @@ export function AssetForm({
     if (acquisitionType === 'PLANNED') setValue('currentPrice', '0');
   }, [acquisitionType, setValue]);
 
+  const cancelWithGuard = useFormDraft(isDirty, !!isLoading, onCancel);
+
   const handleFormSubmit = handleSubmit(data => {
     const requestData: AssetRequest = {
       accountId: data.accountId ?? null,
       name: data.name,
       type: data.type,
-      symbol: data.symbol || undefined,
+      symbol: data.symbol || '',
       quantity: data.quantity.trim(),
       purchasePrice: data.purchasePrice.trim(),
       receivedValue: data.acquisitionType === 'GIFT' ? data.receivedValue.trim() || null : null,
@@ -275,16 +276,16 @@ export function AssetForm({
       currentPrice: data.currentPrice.trim(),
       currency: data.currency,
       purchaseDate: data.purchaseDate,
-      notes: data.notes || undefined,
+      notes: data.notes || '',
     };
     // Add physical asset fields if applicable
     if (isPhysicalAsset) {
-      requestData.serialNumber = data.serialNumber || undefined;
-      requestData.brand = data.brand || undefined;
-      requestData.model = data.model || undefined;
-      requestData.condition = data.condition ?? undefined;
-      requestData.warrantyExpiration = data.warrantyExpiration || undefined;
-      requestData.usefulLifeYears = data.usefulLifeYears || undefined;
+      requestData.serialNumber = data.serialNumber || '';
+      requestData.brand = data.brand || '';
+      requestData.model = data.model || '';
+      requestData.condition = data.condition ?? null;
+      requestData.warrantyExpiration = data.warrantyExpiration || null;
+      requestData.usefulLifeYears = data.usefulLifeYears || null;
     }
 
     onSubmit(requestData);
@@ -353,6 +354,7 @@ export function AssetForm({
                   control={control}
                   render={({ field }) => (
                     <AccountSelector
+                      id="accountId"
                       disabled={asset?.investmentTracked}
                       value={field.value}
                       onValueChange={field.onChange}
@@ -569,6 +571,7 @@ export function AssetForm({
               control={control}
               render={({ field }) => (
                 <CurrencySelector
+                  id="currency"
                   disabled={asset?.investmentTracked}
                   value={field.value}
                   onValueChange={field.onChange}
@@ -783,6 +786,7 @@ export function AssetForm({
                   control={control}
                   render={({ field }) => (
                     <AccountSelector
+                      id="accountId"
                       value={field.value}
                       onValueChange={field.onChange}
                       className="w-full"
@@ -811,8 +815,8 @@ export function AssetForm({
           </div>
         </OptionalDetails>
         {/* Actions */}
-        <div className="sticky bottom-[-25px] -mx-6 mt-2 flex justify-end gap-3 border-t border-border bg-surface px-6 py-4">
-          <Button variant="ghost" type="button" onClick={onCancel} disabled={isLoading}>
+        <div className="sticky bottom-[-25px] -mx-6 mt-2 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end sm:gap-3 border-t border-border bg-surface px-6 py-4">
+          <Button variant="ghost" type="button" onClick={cancelWithGuard} disabled={isLoading}>
             {t('form.cancel')}
           </Button>
           <Button variant="primary" type="submit" isLoading={isLoading}>

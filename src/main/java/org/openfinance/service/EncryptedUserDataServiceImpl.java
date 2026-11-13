@@ -156,7 +156,7 @@ public class EncryptedUserDataServiceImpl implements EncryptedUserDataService {
                     "payees", List.of("PAYEE", "name"),
                     "real_estate_properties", List.of("REAL_ESTATE", "name", "address"),
                     "recurring_transactions",
-                            List.of("RECURRING_TRANSACTION", "description", "notes"),
+                            List.of("RECURRING_TRANSACTION", "description", "notes", "payee"),
                     "transactions",
                             List.of("TRANSACTION", "description", "notes", "tags", "payee"));
 

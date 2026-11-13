@@ -95,7 +95,8 @@
       "notesTooLong": "Notes are too long",
       "nextOccurrenceRequired": "Next occurrence date is required",
       "toAccountRequired": "To Account is required for transfers",
-      "endDateAfterNext": "End Date must be on or after the Next Occurrence date"
+      "endDateAfterNext": "End Date must be on or after the Next Occurrence date",
+      "endDatePast": "End date cannot be in the past."
     }
   },
   "status": {

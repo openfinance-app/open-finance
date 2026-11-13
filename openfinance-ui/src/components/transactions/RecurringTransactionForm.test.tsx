@@ -8,7 +8,7 @@ import type { RecurringTransaction } from '@/types/recurringTransaction';
  * to isolate form logic testing.
  */
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { screen, waitFor } from '@testing-library/react';
+import { screen, waitFor, fireEvent } from '@testing-library/react';
 import {
   renderWithProviders,
   mockAuthentication,
@@ -26,6 +26,23 @@ vi.mock('@/hooks/useUserSettings', async importOriginal => {
     useUserSettings: () => ({ data: { dateFormat: 'YYYY-MM-DD' }, isLoading: false }),
   };
 });
+
+vi.mock('@/components/ui/CurrencySelector', () => ({
+  CurrencySelector: ({
+    id,
+    value,
+    onValueChange,
+  }: {
+    id: string;
+    value: string;
+    onValueChange: (value: string) => void;
+  }) => (
+    <select id={id} value={value} onChange={e => onValueChange(e.target.value)}>
+      <option value="USD">USD</option>
+      <option value="EUR">EUR</option>
+    </select>
+  ),
+}));
 
 // Mock complex child components
 vi.mock('@/components/ui/CategorySelect', () => ({
@@ -449,6 +466,147 @@ describe('RecurringTransactionForm', () => {
 
       const endDateInput = screen.getByLabelText(/End Date/i) as HTMLInputElement;
       expect(endDateInput.value).toBe('2026-12-31');
+    });
+  });
+  describe('editing round trips', () => {
+    const template: RecurringTransaction = {
+      id: 10,
+      accountId: 1,
+      accountName: 'Checking',
+      toAccountId: null,
+      toAccountName: null,
+      type: 'EXPENSE',
+      amount: 100,
+      currency: 'EUR',
+      categoryId: 1,
+      categoryName: 'Food',
+      categoryIcon: null,
+      categoryColor: null,
+      payee: 'Shop',
+      description: 'Subscription',
+      notes: 'Notes',
+      frequency: 'MONTHLY',
+      frequencyDisplayName: 'Monthly',
+      nextOccurrence: '2099-01-01',
+      endDate: null,
+      isActive: true,
+      createdAt: '',
+      updatedAt: '',
+      isDue: false,
+      daysUntilNext: 1,
+      isEnded: false,
+    };
+    const renderEdit = (overrides: Partial<RecurringTransaction> = {}) =>
+      renderWithProviders(
+        <RecurringTransactionForm
+          recurringTransaction={{ ...template, ...overrides }}
+          accounts={mockAccounts}
+          categories={mockCategories}
+          onSubmit={mockOnSubmit}
+          onCancel={mockOnCancel}
+        />
+      );
+    const save = () => userEvent.setup().click(screen.getByRole('button', { name: /update/i }));
+
+    it('preserves EUR100 when renaming a template whose account is now USD', async () => {
+      renderEdit();
+      fireEvent.change(screen.getByRole('textbox', { name: /Description/i }), {
+        target: { value: 'Renamed' },
+      });
+      expect(screen.getByLabelText(/Currency/i)).toHaveValue('EUR');
+      await save();
+      await waitFor(() =>
+        expect(mockOnSubmit).toHaveBeenCalledWith(
+          expect.objectContaining({
+            amount: '100',
+            currency: 'EUR',
+            description: 'Renamed',
+            payee: 'Shop',
+          })
+        )
+      );
+    });
+
+    it('allows changing the explicit currency without changing the entered amount', async () => {
+      renderEdit();
+      await userEvent.setup().selectOptions(screen.getByLabelText(/Currency/i), 'USD');
+      await save();
+      await waitFor(() =>
+        expect(mockOnSubmit).toHaveBeenCalledWith(
+          expect.objectContaining({ amount: '100', currency: 'USD' })
+        )
+      );
+    });
+
+    it('clears hidden category/payee when changing an expense to a transfer', async () => {
+      renderEdit();
+      await userEvent.setup().selectOptions(screen.getByLabelText(/^Type/i), 'TRANSFER');
+      const accounts = screen.getAllByRole('combobox', { name: 'Account' });
+      await userEvent.setup().selectOptions(accounts[1], '2');
+      await save();
+      await waitFor(() =>
+        expect(mockOnSubmit).toHaveBeenCalledWith(
+          expect.objectContaining({
+            type: 'TRANSFER',
+            toAccountId: 2,
+            categoryId: null,
+            payee: null,
+          })
+        )
+      );
+    });
+
+    it('clears the hidden destination when changing a transfer to an expense', async () => {
+      renderEdit({ type: 'TRANSFER', toAccountId: 2, categoryId: null });
+      await userEvent.setup().selectOptions(screen.getByLabelText(/^Type/i), 'EXPENSE');
+      await save();
+      await waitFor(() =>
+        expect(mockOnSubmit).toHaveBeenCalledWith(
+          expect.objectContaining({ type: 'EXPENSE', toAccountId: null })
+        )
+      );
+    });
+
+    it('allows an inclusive end date and clears notes', async () => {
+      renderEdit();
+      fireEvent.change(screen.getByLabelText(/End Date/i), {
+        target: { value: template.nextOccurrence },
+      });
+      fireEvent.change(screen.getByLabelText(/Notes/i), { target: { value: '' } });
+      await save();
+      await waitFor(() =>
+        expect(mockOnSubmit).toHaveBeenCalledWith(
+          expect.objectContaining({ endDate: template.nextOccurrence, notes: null })
+        )
+      );
+    });
+
+    it('renames a completed schedule without rescheduling it', async () => {
+      renderEdit({
+        nextOccurrence: '2020-02-01',
+        endDate: '2020-01-31',
+        isActive: false,
+        isEnded: true,
+      });
+      fireEvent.change(screen.getByLabelText(/Description/i), {
+        target: { value: 'Old subscription renamed' },
+      });
+      await save();
+      await waitFor(() =>
+        expect(mockOnSubmit).toHaveBeenCalledWith(
+          expect.objectContaining({ nextOccurrence: '2020-02-01', endDate: '2020-01-31' })
+        )
+      );
+    });
+
+    it('round-trips descriptions and notes supported by the API', async () => {
+      renderEdit({ description: 'd'.repeat(800), notes: 'n'.repeat(1800) });
+      await save();
+      await waitFor(() =>
+        expect(mockOnSubmit).toHaveBeenCalledWith(
+          expect.objectContaining({ description: 'd'.repeat(800), notes: 'n'.repeat(1800) })
+        )
+      );
     });
   });
 });

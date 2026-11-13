@@ -63,7 +63,12 @@ describe('PeriodSelector', () => {
     for (const value of ['12/31/2026', '02/30/2027']) {
       fireEvent.change(screen.getByLabelText('To', { exact: true }), { target: { value } });
       fireEvent.blur(screen.getByLabelText('To', { exact: true }));
-      expect(screen.getByLabelText('To', { exact: true })).toHaveValue('12/31/2027');
+      expect(screen.getByLabelText('To', { exact: true })).toHaveValue(value);
+      expect(screen.getByLabelText('To', { exact: true })).toHaveAttribute('aria-invalid', 'true');
+      expect(screen.getByRole('button', { name: '01/01/2027 → 12/31/2027' })).toHaveAttribute(
+        'aria-pressed',
+        'true'
+      );
     }
   });
 

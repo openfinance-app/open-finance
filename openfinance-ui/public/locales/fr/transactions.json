@@ -212,7 +212,11 @@
     "validation": {
       "short": "Les montants des ventilations doivent totaliser <bold><total></total></bold>. Actuellement <bold><amount></amount></bold> manquant.",
       "over": "Les montants des ventilations doivent totaliser <bold><total></total></bold>. Actuellement <bold><amount></amount></bold> en trop."
-    }
+    },
+    "categoryLabel": "Catégorie de la ventilation {{index}}",
+    "amountLabel": "Montant de la ventilation {{index}}",
+    "descriptionLabel": "Description de la ventilation {{index}}",
+    "removeLabel": "Supprimer la ventilation {{index}}"
   },
   "splitDetail": {
     "noCategory": "Sans catégorie",

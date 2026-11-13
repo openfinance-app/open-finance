@@ -95,6 +95,9 @@ public class RecurringTransactionRequest {
      */
     private Long categoryId;
 
+    @Size(max = 100, message = "{transaction.payee.max}")
+    private String payee;
+
     /**
      * Brief description of the recurring transaction (optional, encrypted).
      *
@@ -150,25 +153,12 @@ public class RecurringTransactionRequest {
      * occurrence date that would be after the end date, the recurring transaction is automatically
      * set to inactive (isActive=false).
      *
-     * <p>Must be after nextOccurrence date.
+     * <p>Must be on or after nextOccurrence when creating or changing the schedule. Ended schedules
+     * can still be edited without rescheduling them.
      *
      * <p>Requirement REQ-2.3.6.2: Optional end date for recurring transactions
      */
-    @Future(message = "{recurring.end.date.past}")
     private LocalDate endDate;
-
-    /**
-     * Validates that the request is internally consistent.
-     *
-     * <p>Called by Jakarta Bean Validation framework during request validation.
-     */
-    @AssertTrue(message = "{recurring.end.date.after}")
-    private boolean isEndDateValid() {
-        if (endDate == null) {
-            return true; // End date is optional
-        }
-        return nextOccurrence == null || endDate.isAfter(nextOccurrence);
-    }
 
     /** Validates that TRANSFER transactions have a destination account. */
     @AssertTrue(message = "{recurring.transfer.destination}")

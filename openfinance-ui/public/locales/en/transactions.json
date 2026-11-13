@@ -212,7 +212,11 @@
     "validation": {
       "short": "Split amounts must add up to <bold><total></total></bold>. Currently <bold><amount></amount></bold> short.",
       "over": "Split amounts must add up to <bold><total></total></bold>. Currently <bold><amount></amount></bold> over."
-    }
+    },
+    "categoryLabel": "Split {{index}} category",
+    "amountLabel": "Split {{index}} amount",
+    "descriptionLabel": "Split {{index}} description",
+    "removeLabel": "Remove split {{index}}"
   },
   "splitDetail": {
     "noCategory": "No category",

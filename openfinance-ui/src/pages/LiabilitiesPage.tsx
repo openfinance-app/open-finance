@@ -1,3 +1,4 @@
+import { FormDialog } from '@/components/ui/FormDialog';
 import { useLiability } from '@/hooks/useLiabilities';
 import { useViewState } from '@/hooks/useViewState';
 import { BulkSelection, BulkToolbar } from '@/components/bulk/BulkSelection';
@@ -15,7 +16,7 @@ import { useTranslation } from 'react-i18next';
 import { useSearchParams } from 'react-router';
 import { Plus, Filter } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/Dialog';
+import { DialogContent, DialogHeader, DialogTitle } from '@/components/ui/Dialog';
 import { Pagination } from '@/components/ui/Pagination';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { EmptyState } from '@/components/layout/EmptyState';
@@ -287,7 +288,7 @@ export default function LiabilitiesPage() {
       )}
 
       {/* Create/Edit Dialog */}
-      <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
+      <FormDialog open={isFormOpen} onOpenChange={setIsFormOpen}>
         <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
@@ -306,7 +307,7 @@ export default function LiabilitiesPage() {
             </p>
           )}
         </DialogContent>
-      </Dialog>
+      </FormDialog>
 
       {/* Requirement 2.1: Unified Liability Details Dialog (Overview / Amortization / Linked Payments) */}
       <LiabilityDetailDialog

@@ -113,6 +113,7 @@ export function SplitTransactionForm({
           {/* Category selector — full row width on small screens */}
           <div className="col-span-3">
             <CategorySelect
+              aria-label={t('splitForm.categoryLabel', { index: index + 1 })}
               value={split.categoryId}
               onValueChange={value => handleChangeField(index, 'categoryId', value)}
               placeholder={t('splitForm.categoryPlaceholder')}
@@ -127,7 +128,7 @@ export function SplitTransactionForm({
               value={split.amount === 0 || split.amount === '0' ? '' : String(split.amount)}
               onChange={val => handleChangeField(index, 'amount', val || '0')}
               placeholder="0.00"
-              aria-label={`Split ${index + 1} amount`}
+              aria-label={t('splitForm.amountLabel', { index: index + 1 })}
               className="font-mono"
               min="0"
             />
@@ -140,7 +141,7 @@ export function SplitTransactionForm({
               onChange={e => handleChangeField(index, 'description', e.target.value || undefined)}
               placeholder={t('splitForm.notesPlaceholder')}
               maxLength={255}
-              aria-label={`Split ${index + 1} description`}
+              aria-label={t('splitForm.descriptionLabel', { index: index + 1 })}
             />
           </div>
 
@@ -152,7 +153,7 @@ export function SplitTransactionForm({
               size="sm"
               className="h-9 w-9 p-0 text-error hover:text-error hover:bg-error/10"
               onClick={() => handleRemove(index)}
-              aria-label={`Remove split ${index + 1}`}
+              aria-label={t('splitForm.removeLabel', { index: index + 1 })}
               disabled={splits.length <= 2}
               title={
                 splits.length <= 2 ? t('splitForm.removeDisabledTitle') : t('splitForm.removeTitle')

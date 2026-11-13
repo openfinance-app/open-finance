@@ -961,6 +961,8 @@ public class TransactionService {
     private void updateTransferMetadata(
             Transaction transaction, Long userId, TransferUpdateRequest request) {
         transaction.setPayee(request.getPayee());
+        if (request.isPaymentMethodPresent())
+            transaction.setPaymentMethod(request.getPaymentMethod());
         transaction.setTags(request.getTags());
         transaction.setIsReconciled(request.getIsReconciled());
         resolveAndLinkPayee(transaction, userId);

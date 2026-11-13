@@ -140,7 +140,7 @@ export function InstitutionManagementSettings() {
     setFormData({
       name: inst.name,
       bic: inst.bic || '',
-      country: inst.country || 'FR',
+      country: inst.country || '',
       logo: inst.logo || '',
     });
     // Show existing logo or local preview
@@ -318,6 +318,7 @@ export function InstitutionManagementSettings() {
                     <Button
                       variant="ghost"
                       size="sm"
+                      aria-label={t('form.editInstitution', { name: inst.name })}
                       onClick={() => openEditForm(inst)}
                       className="h-8 w-8 p-0"
                     >
@@ -326,6 +327,7 @@ export function InstitutionManagementSettings() {
                     <Button
                       variant="ghost"
                       size="sm"
+                      aria-label={t('form.deleteInstitution', { name: inst.name })}
                       onClick={() => setDeletingInstitution(inst)}
                       className="h-8 w-8 p-0 text-error hover:text-error hover:bg-error/10"
                     >
@@ -396,10 +398,14 @@ export function InstitutionManagementSettings() {
               </div>
             )}
             <div>
-              <label className="block text-sm font-medium text-text-primary mb-1.5">
+              <label
+                htmlFor="institutionName"
+                className="block text-sm font-medium text-text-primary mb-1.5"
+              >
                 {t('form.name')}
               </label>
               <Input
+                id="institutionName"
                 value={formData.name}
                 onChange={e => {
                   setFormData({ ...formData, name: e.target.value });
@@ -411,10 +417,14 @@ export function InstitutionManagementSettings() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-text-primary mb-1.5">
+              <label
+                htmlFor="institutionBic"
+                className="block text-sm font-medium text-text-primary mb-1.5"
+              >
                 {t('form.bic')}
               </label>
               <Input
+                id="institutionBic"
                 value={formData.bic}
                 onChange={e => {
                   const value = e.target.value.toUpperCase();
@@ -434,10 +444,14 @@ export function InstitutionManagementSettings() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-text-primary mb-1.5">
+              <label
+                htmlFor="institutionCountry"
+                className="block text-sm font-medium text-text-primary mb-1.5"
+              >
                 {t('form.country')}
               </label>
               <CountrySelector
+                id="institutionCountry"
                 value={formData.country ?? ''}
                 onValueChange={value => {
                   setFormData({ ...formData, country: value });

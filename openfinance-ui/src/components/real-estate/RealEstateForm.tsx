@@ -1,3 +1,4 @@
+import { getToday } from '@/utils/date';
 import { useEffect } from 'react';
 import { OptionalDetails } from '@/components/ui/OptionalDetails';
 import { HelpTooltip } from '@/components/ui/HelpTooltip';
@@ -106,7 +107,7 @@ const propertySchema = (tv: (key: string) => string) =>
     })
     .refine(
       data => {
-        const today = new Date().toISOString().split('T')[0];
+        const today = getToday();
         return data.acquisitionType === 'PLANNED' || data.purchaseDate <= today;
       },
       {
@@ -133,7 +134,7 @@ export function RealEstateForm({
   isLoading,
 }: RealEstateFormProps) {
   const isEditing = !!property;
-  const today = new Date().toISOString().split('T')[0];
+  const today = getToday();
   const { baseCurrency } = useAuthContext();
   const { t } = useTranslation('realEstate');
 

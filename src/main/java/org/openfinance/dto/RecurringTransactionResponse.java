@@ -106,6 +106,8 @@ public class RecurringTransactionResponse {
      */
     private String notes;
 
+    private String payee;
+
     /**
      * Frequency at which the transaction recurs.
      *

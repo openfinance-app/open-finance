@@ -7,7 +7,7 @@
  * are mocked to isolate form logic testing.
  */
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { screen, waitFor } from '@testing-library/react';
+import { screen, waitFor, fireEvent } from '@testing-library/react';
 import {
   renderWithProviders,
   mockAuthentication,
@@ -162,12 +162,12 @@ describe('AccountForm', () => {
       expect(mockOnSubmit).not.toHaveBeenCalled();
     });
 
-    it('should show error when name exceeds 100 characters', async () => {
+    it('should show error when name exceeds 255 characters', async () => {
       const user = userEvent.setup();
       renderWithProviders(<AccountForm onSubmit={mockOnSubmit} onCancel={mockOnCancel} />);
 
       const nameInput = screen.getByLabelText(/Account Name/i);
-      const longName = 'A'.repeat(101);
+      const longName = 'A'.repeat(256);
       await user.type(nameInput, longName);
 
       const submitButton = screen.getByRole('button', { name: /create account/i });
@@ -373,5 +373,30 @@ describe('AccountForm', () => {
         expect(screen.getByRole('textbox', { name: /Tax Rate/i })).toBeInTheDocument();
       });
     });
+  });
+  it('saves metadata and explicit text clears on an overdrawn checking account', async () => {
+    renderWithProviders(
+      <AccountForm
+        account={{ ...mockAccount, balance: -50, ownBalance: -50, description: 'Old description' }}
+        onSubmit={mockOnSubmit}
+        onCancel={mockOnCancel}
+      />
+    );
+    const user = userEvent.setup();
+    await user.clear(screen.getByLabelText(/Account Name/i));
+    await user.type(screen.getByLabelText(/Account Name/i), 'Checking ' + 'a'.repeat(180));
+    await user.clear(screen.getByLabelText(/Account Number/i));
+    await user.clear(screen.getByLabelText(/Description/i));
+    await user.click(screen.getByRole('button', { name: /update account/i }));
+    await waitFor(() =>
+      expect(mockOnSubmit).toHaveBeenCalledWith(
+        expect.objectContaining({
+          initialBalance: '-50',
+          adjustBalance: false,
+          description: '',
+          accountNumber: '',
+        })
+      )
+    );
   });
 });

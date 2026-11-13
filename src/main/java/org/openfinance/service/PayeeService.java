@@ -460,6 +460,8 @@ public class PayeeService {
                                             new org.openfinance.exception.CategoryNotFoundException(
                                                     request.getCategoryId()));
             payee.setDefaultCategory(defaultCategory);
+        } else if (request.isCategoryIdPresent()) {
+            payee.setDefaultCategory(null);
         }
 
         Payee saved = payeeRepository.save(payee);

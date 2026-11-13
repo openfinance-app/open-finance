@@ -1,3 +1,4 @@
+import { FormDialog } from '@/components/ui/FormDialog';
 import { useAnimatedClose } from '@/hooks/useAnimatedClose';
 import { buildTransactionsLink } from '@/utils/navigation';
 import { useViewScroll } from '@/hooks/useViewScroll';
@@ -39,7 +40,7 @@ import {
 } from 'recharts';
 import { Button } from '@/components/ui/Button';
 import { LoadingSkeleton } from '@/components/LoadingComponents';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/Dialog';
+import { DialogContent, DialogHeader, DialogTitle } from '@/components/ui/Dialog';
 import { AttachmentList, AttachmentUpload } from '@/components/attachments';
 import { AttachmentEntityType } from '@/types/attachment';
 import { ConvertedAmount } from '@/components/ui/ConvertedAmount';
@@ -561,7 +562,7 @@ export function AccountDetailModal({
 
       {/* Edit Dialog */}
       {account && (
-        <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
+        <FormDialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
           <DialogContent className="sm:max-w-[560px] max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>{t('detail.editTitle')}</DialogTitle>
@@ -573,7 +574,7 @@ export function AccountDetailModal({
               isLoading={updateAccount.isPending}
             />
           </DialogContent>
-        </Dialog>
+        </FormDialog>
       )}
     </div>
   );

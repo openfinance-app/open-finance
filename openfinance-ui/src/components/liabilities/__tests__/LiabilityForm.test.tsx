@@ -327,7 +327,7 @@ describe('LiabilityForm', () => {
         expect(mockOnSubmit).toHaveBeenCalledWith({
           name: 'Test Mortgage',
           type: 'LOAN',
-          interestRate: 0,
+          interestRate: undefined,
           principal: '300000',
           currentBalance: '250000',
           startDate: '2020-01-01',
@@ -404,7 +404,7 @@ describe('LiabilityForm', () => {
 
       await waitFor(() => {
         const submittedData = mockOnSubmit.mock.calls[0][0];
-        expect(submittedData.interestRate).toBe(0);
+        expect(submittedData.interestRate).toBeUndefined();
         expect(submittedData.insurancePercentage).toBeUndefined();
         expect(submittedData.additionalFees).toBeUndefined();
       });
@@ -471,4 +471,38 @@ describe('LiabilityForm', () => {
       );
     }
   );
+  it.each([undefined, 0])(
+    'preserves unknown versus zero interest (%s) while editing long valid metadata',
+    async interestRate => {
+      renderWithProviders(
+        <LiabilityForm
+          liability={{ ...mockLiability, interestRate, notes: 'n'.repeat(800) }}
+          onSubmit={mockOnSubmit}
+          onCancel={mockOnCancel}
+        />
+      );
+      fireEvent.change(screen.getByLabelText(/liability name/i), {
+        target: { value: 'Loan ' + 'a'.repeat(180) },
+      });
+      fireEvent.click(screen.getByRole('button', { name: /update liability/i }));
+      await waitFor(() =>
+        expect(mockOnSubmit).toHaveBeenCalledWith(
+          expect.objectContaining({ interestRate, notes: 'n'.repeat(800) })
+        )
+      );
+    }
+  );
+
+  it('clears a known interest rate to unknown rather than zero', async () => {
+    renderWithProviders(
+      <LiabilityForm liability={mockLiability} onSubmit={mockOnSubmit} onCancel={mockOnCancel} />
+    );
+    fireEvent.change(screen.getByLabelText(/interest rate/i), { target: { value: '' } });
+    fireEvent.click(screen.getByRole('button', { name: /update liability/i }));
+    await waitFor(() =>
+      expect(mockOnSubmit).toHaveBeenCalledWith(
+        expect.objectContaining({ interestRate: undefined })
+      )
+    );
+  });
 });

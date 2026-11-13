@@ -129,6 +129,19 @@ public class TransferUpdateRequest {
     @Size(max = 100, message = "{transfer.payee.max}")
     private String payee;
 
+    private org.openfinance.entity.PaymentMethod paymentMethod;
+    @com.fasterxml.jackson.annotation.JsonIgnore private boolean paymentMethodPresent;
+
+    @com.fasterxml.jackson.annotation.JsonSetter("paymentMethod")
+    public void setPaymentMethod(org.openfinance.entity.PaymentMethod paymentMethod) {
+        this.paymentMethod = paymentMethod;
+        this.paymentMethodPresent = true;
+    }
+
+    public boolean isPaymentMethodPresent() {
+        return paymentMethodPresent || paymentMethod != null;
+    }
+
     /**
      * Updated tags for organization (optional).
      *

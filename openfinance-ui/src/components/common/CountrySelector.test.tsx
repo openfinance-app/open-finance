@@ -137,4 +137,18 @@ describe('CountrySelector', () => {
     );
     expect(screen.getByText('Choose country')).toBeInTheDocument();
   });
+  it('labels the trigger without replacing the popup list id', async () => {
+    renderWithProviders(
+      <>
+        <label htmlFor="country">Institution country</label>
+        <CountrySelector id="country" value="" onValueChange={onValueChange} />
+      </>
+    );
+    const trigger = screen.getByRole('button', { name: 'Institution country' });
+    await userEvent.setup().click(trigger);
+    const list = screen.getByRole('listbox');
+    expect(list.id).not.toBe('country');
+    expect(document.querySelectorAll('#country')).toHaveLength(1);
+    expect(screen.getByRole('combobox')).toHaveAttribute('aria-controls', list.id);
+  });
 });

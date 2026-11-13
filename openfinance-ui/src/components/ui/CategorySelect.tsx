@@ -25,6 +25,8 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 
 interface CategorySelectProps {
+  id?: string;
+  'aria-label'?: string;
   value?: number;
   onValueChange: (value: number | undefined) => void;
   placeholder?: string;
@@ -94,6 +96,8 @@ export function shouldShowCreateInline(
 }
 
 export function CategorySelect({
+  id,
+  'aria-label': ariaLabel,
   value,
   onValueChange,
   placeholder = 'Select category',
@@ -226,6 +230,8 @@ export function CategorySelect({
             {...navigation.triggerProps}
             type="button"
             role="combobox"
+            id={id}
+            aria-label={ariaLabel}
             aria-expanded={isOpen}
             disabled={disabled}
             className={cn(

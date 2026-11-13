@@ -1,8 +1,9 @@
+import { FormDialog } from '@/components/ui/FormDialog';
 import { useTranslation } from 'react-i18next';
 import { isAxiosError } from 'axios';
 import { TransactionForm } from '@/components/transactions/TransactionForm';
 import { Button } from '@/components/ui/Button';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/Dialog';
+import { DialogContent, DialogHeader, DialogTitle } from '@/components/ui/Dialog';
 import { useAccounts } from '@/hooks/useAccounts';
 import { useCategories, useCreateTransaction, useCreateTransfer } from '@/hooks/useTransactions';
 import type { TransactionRequest } from '@/types/transaction';
@@ -34,7 +35,7 @@ export function CreateTransactionDialog({
   };
 
   return (
-    <Dialog open onOpenChange={open => !open && !isPending && onClose()}>
+    <FormDialog open onOpenChange={open => !open && !isPending && onClose()}>
       <DialogContent
         className="sm:max-w-3xl max-h-[90vh] overflow-y-auto"
         onCloseAutoFocus={event => {
@@ -83,6 +84,6 @@ export function CreateTransactionDialog({
           </>
         )}
       </DialogContent>
-    </Dialog>
+    </FormDialog>
   );
 }

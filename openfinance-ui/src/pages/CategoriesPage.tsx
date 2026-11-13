@@ -376,10 +376,11 @@ export function CategoryFormDialog({
 
           {/* Parent Category */}
           <div className="space-y-2">
-            <label className="text-sm font-medium text-text-primary">
+            <label htmlFor="parentCategory" className="text-sm font-medium text-text-primary">
               {t('form.parentCategory')}
             </label>
             <CategorySelect
+              id="parentCategory"
               value={formData.parentId}
               onValueChange={value => setFormData(previous => ({ ...previous, parentId: value }))}
               placeholder={t('form.selectParentCategory')}
@@ -557,7 +558,7 @@ export default function CategoriesPage() {
           id: editingCategory.id,
           data: {
             name: data.name,
-            parentId: data.parentId,
+            parentId: data.parentId ?? null,
             icon: data.icon,
             color: data.color,
           },
@@ -565,7 +566,7 @@ export default function CategoriesPage() {
       } else {
         await createCategory.mutateAsync({
           name: data.name,
-          parentId: data.parentId,
+          parentId: data.parentId ?? null,
           icon: data.icon,
           color: data.color,
         });

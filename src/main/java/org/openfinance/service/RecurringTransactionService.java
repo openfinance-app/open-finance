@@ -148,7 +148,7 @@ public class RecurringTransactionService {
                 request.getAmount());
 
         // Validate the recurring transaction request
-        validateRecurringTransactionRequest(userId, request);
+        validateRecurringTransactionRequest(userId, request, null);
 
         // Create entity
         RecurringTransaction recurringTransaction =
@@ -243,7 +243,7 @@ public class RecurringTransactionService {
                                                 recurringTransactionId, userId));
 
         // Validate the update request
-        validateRecurringTransactionRequest(userId, request);
+        validateRecurringTransactionRequest(userId, request, recurringTransaction);
 
         // Update fields
         recurringTransaction.setAccountId(request.getAccountId());
@@ -852,7 +852,7 @@ public class RecurringTransactionService {
      * @throws CategoryNotFoundException if category not found or not owned by user
      */
     private void validateRecurringTransactionRequest(
-            Long userId, RecurringTransactionRequest request) {
+            Long userId, RecurringTransactionRequest request, RecurringTransaction existing) {
         // Validate account exists and belongs to user
         Account account =
                 accountRepository
@@ -895,11 +895,18 @@ public class RecurringTransactionService {
                                             request.getCategoryId(), userId));
         }
 
-        // Validate end date is after next occurrence
-        if (request.getEndDate() != null
-                && request.getNextOccurrence() != null
-                && !request.getEndDate().isAfter(request.getNextOccurrence())) {
-            throw new InvalidTransactionException("End date must be after next occurrence date");
+        boolean unchangedSchedule =
+                existing != null
+                        && java.util.Objects.equals(
+                                existing.getNextOccurrence(), request.getNextOccurrence())
+                        && java.util.Objects.equals(existing.getEndDate(), request.getEndDate())
+                        && existing.getFrequency() == request.getFrequency();
+        if (!unchangedSchedule && request.getEndDate() != null) {
+            if (request.getNextOccurrence() != null
+                    && request.getEndDate().isBefore(request.getNextOccurrence()))
+                throw InvalidTransactionException.recurringEndBeforeNext();
+            if (request.getEndDate().isBefore(LocalDate.now()))
+                throw InvalidTransactionException.recurringEndInPast();
         }
     }
 
@@ -917,9 +924,14 @@ public class RecurringTransactionService {
             entity.setDescription(request.getDescription());
         }
 
-        if (request.getNotes() != null && !request.getNotes().isBlank()) {
-            entity.setNotes(request.getNotes());
-        }
+        entity.setNotes(
+                request.getNotes() == null || request.getNotes().isBlank()
+                        ? null
+                        : request.getNotes());
+        entity.setPayee(
+                request.getPayee() == null || request.getPayee().isBlank()
+                        ? null
+                        : request.getPayee().trim());
     }
 
     /**
@@ -985,6 +997,7 @@ public class RecurringTransactionService {
                         .categoryColor(categoryColor)
                         .description(description)
                         .notes(notes)
+                        .payee(entity.getPayee())
                         .frequency(entity.getFrequency())
                         .frequencyDisplayName(entity.getFrequency().getDisplayName())
                         .nextOccurrence(entity.getNextOccurrence())
@@ -1069,7 +1082,8 @@ public class RecurringTransactionService {
                     rt.getId(),
                     java.util.List.of(
                             new String[] {"description", description},
-                            new String[] {"notes", notes}),
+                            new String[] {"notes", notes},
+                            new String[] {"payee", rt.getPayee()}),
                     searchKey);
         } catch (Exception e) {
             log.warn(

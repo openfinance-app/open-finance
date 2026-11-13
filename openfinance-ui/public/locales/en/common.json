@@ -355,5 +355,15 @@
     "minimum": "Min amount",
     "maximum": "Max amount",
     "exact": "Exact amount"
-  }
+  },
+  "input": {
+    "invalidNumber": "Enter a valid number.",
+    "invalidDate": "Enter a valid date ({{format}}).",
+    "numberMin": "Enter a value of at least {{value}}.",
+    "numberMax": "Enter a value no greater than {{value}}.",
+    "dateMin": "Choose a date on or after {{date}}.",
+    "dateMax": "Choose a date on or before {{date}}.",
+    "required": "This field is required"
+  },
+  "unsavedForm": "Discard your unsaved changes?"
 }

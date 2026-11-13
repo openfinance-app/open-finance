@@ -1,3 +1,4 @@
+import { useFormDraft } from '@/hooks/useFormDraft';
 import { CURRENCY_CODE_PATTERN } from '@/utils/currency-code';
 import { decimalField, equalDecimals } from '@/utils/exact-decimal';
 import { formatDecimal } from '@/utils/format';
@@ -95,7 +96,7 @@ export function AccountForm({
           name: z
             .string()
             .min(1, t('validation.nameRequired'))
-            .max(100, t('validation.nameTooLong')),
+            .max(255, t('validation.nameTooLong')),
           accountNumber: z.string().max(50, t('validation.accountNumberTooLong')).optional(),
           type: z.enum(['CHECKING', 'SAVINGS', 'CREDIT_CARD', 'INVESTMENT', 'CASH', 'OTHER']),
           currency: z.string().regex(CURRENCY_CODE_PATTERN),
@@ -127,13 +128,6 @@ export function AccountForm({
             .optional(),
         })
         .superRefine((data, ctx) => {
-          if (data.type !== 'CREDIT_CARD' && Number(data.initialBalance) < 0) {
-            ctx.addIssue({
-              code: z.ZodIssueCode.custom,
-              message: t('validation.balanceNegative'),
-              path: ['initialBalance'],
-            });
-          }
           const nameLower = data.name.trim().toLowerCase();
           if (existingAccountNames.some(n => n.trim().toLowerCase() === nameLower)) {
             ctx.addIssue({
@@ -151,7 +145,7 @@ export function AccountForm({
     handleSubmit,
     control,
     watch,
-    formState: { errors, dirtyFields },
+    formState: { errors, dirtyFields, isDirty },
   } = useForm<AccountFormData>({
     resolver: zodResolver(accountSchema) as any,
     mode: 'onChange',
@@ -233,10 +227,12 @@ export function AccountForm({
     previewEnabled
   );
 
+  const cancelWithGuard = useFormDraft(isDirty, !!isLoading, onCancel);
+
   const handleFormSubmit = handleSubmit((data: AccountFormData) => {
     onSubmit({
       name: data.name,
-      accountNumber: data.accountNumber || undefined,
+      accountNumber: data.accountNumber || '',
       type: data.type,
       currency: data.currency,
       initialBalance: data.initialBalance.trim(),
@@ -249,7 +245,7 @@ export function AccountForm({
           ),
       }),
       balanceCurrency: account?.currency ?? data.currency,
-      description: data.description || undefined,
+      description: data.description || '',
       openingDate: data.openingDate || undefined,
       institutionId: data.institutionId ? parseInt(data.institutionId, 10) : null,
       isInterestEnabled: data.isInterestEnabled,
@@ -366,6 +362,7 @@ export function AccountForm({
             control={control}
             render={({ field }) => (
               <CurrencySelector
+                id="currency"
                 value={field.value}
                 onValueChange={field.onChange}
                 placeholder={t('form.currency')}
@@ -623,8 +620,8 @@ export function AccountForm({
       </div>
 
       {/* Actions */}
-      <div className="sticky bottom-[-25px] -mx-6 mt-2 flex justify-end gap-3 border-t border-border bg-surface px-6 py-4">
-        <Button variant="ghost" type="button" onClick={onCancel} disabled={isLoading}>
+      <div className="sticky bottom-[-25px] -mx-6 mt-2 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end sm:gap-3 border-t border-border bg-surface px-6 py-4">
+        <Button variant="ghost" type="button" onClick={cancelWithGuard} disabled={isLoading}>
           {t('form.cancel')}
         </Button>
         <Button variant="primary" type="submit" isLoading={isLoading}>

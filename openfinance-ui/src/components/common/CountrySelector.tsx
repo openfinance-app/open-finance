@@ -16,6 +16,8 @@ import { ALL_COUNTRIES, countryFlagClass } from '@/utils/countryUtils';
 export { ALL_COUNTRIES } from '@/utils/countryUtils';
 
 export interface CountrySelectorProps {
+  id?: string;
+  'aria-label'?: string;
   value: string;
   onValueChange: (value: string) => void;
   disabled?: boolean;
@@ -26,6 +28,8 @@ export interface CountrySelectorProps {
 }
 
 export function CountrySelector({
+  id,
+  'aria-label': ariaLabel,
   value,
   onValueChange,
   disabled = false,
@@ -85,7 +89,8 @@ export function CountrySelector({
           {...navigation.triggerProps}
           type="button"
           disabled={disabled}
-          aria-label={resolvedPlaceholder}
+          id={id}
+          aria-label={ariaLabel ?? (id ? undefined : resolvedPlaceholder)}
           className={cn(
             'flex h-10 w-full items-center justify-between rounded-lg border border-border bg-surface px-3 py-2 text-sm text-text-primary',
             'focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background',

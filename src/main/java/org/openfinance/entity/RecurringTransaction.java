@@ -203,6 +203,10 @@ public class RecurringTransaction {
     @Convert(converter = EncryptedStringConverter.class)
     private String notes;
 
+    @Column(columnDefinition = "TEXT")
+    @Convert(converter = EncryptedStringConverter.class)
+    private String payee;
+
     /**
      * Frequency at which the transaction recurs.
      *

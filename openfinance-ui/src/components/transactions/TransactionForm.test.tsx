@@ -917,6 +917,36 @@ describe('TransactionForm', () => {
       expect(onSubmit.mock.calls[0][0]).toMatchObject({ type: 'EXPENSE', amount: 50 });
     });
 
+    it('protects edits made only to tags, outside react-hook-form', () => {
+      const confirm = vi.spyOn(window, 'confirm').mockReturnValue(false);
+      try {
+        const { onCancel } = renderForm({
+          transaction: {
+            id: 1,
+            userId: 1,
+            accountId: 1,
+            type: 'EXPENSE',
+            amount: 50,
+            currency: 'EUR',
+            date: '2024-06-01',
+            description: 'Tagged',
+            tags: ['review'],
+            isReconciled: false,
+            createdAt: '2024-06-01',
+          },
+        });
+        fireEvent.click(screen.getByRole('button', { name: 'Remove tag review' }));
+        fireEvent.click(screen.getByRole('button', { name: /cancel/i }));
+        expect(confirm).toHaveBeenCalledOnce();
+        expect(onCancel).not.toHaveBeenCalled();
+        confirm.mockReturnValue(true);
+        fireEvent.click(screen.getByRole('button', { name: /cancel/i }));
+        expect(onCancel).toHaveBeenCalledOnce();
+      } finally {
+        confirm.mockRestore();
+      }
+    });
+
     it('calls onCancel when Cancel button is clicked', () => {
       const { onCancel } = renderForm();
 

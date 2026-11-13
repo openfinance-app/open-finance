@@ -1,3 +1,4 @@
+import { FormDialog } from '@/components/ui/FormDialog';
 import { useViewState } from '@/hooks/useViewState';
 import { OwnershipIntentChoice } from '@/components/assets/OwnershipIntentChoice';
 import { AssetPurchaseFlow } from '@/components/assets/AssetPurchaseFlow';
@@ -720,7 +721,7 @@ export default function AssetsPage() {
         </DialogContent>
       </Dialog>
       {/* Create/Edit Dialog */}
-      <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
+      <FormDialog open={isFormOpen} onOpenChange={setIsFormOpen}>
         <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
@@ -804,7 +805,7 @@ export default function AssetsPage() {
             </p>
           )}
         </DialogContent>
-      </Dialog>
+      </FormDialog>
     </BulkSelection>
   );
 }

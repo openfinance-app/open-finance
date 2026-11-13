@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState } from 'react';
+import { useInputValidation } from '@/hooks/useInputValidation';
+import { useEffect, useId, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { CalendarDays } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -58,6 +59,28 @@ export function DateInput({
     previousFormat.current = dateFormat;
   }, [value, dateFormat]);
 
+  const errorId = useId();
+  const parsed = parseDisplayDate(display, dateFormat);
+  const invalidMessage =
+    display.trim() === ''
+      ? undefined
+      : !parsed
+        ? t('input.invalidDate', { format: dateFormat })
+        : min && parsed < min
+          ? t('input.dateMin', { date: formatIsoToDisplay(min, dateFormat) })
+          : max && parsed > max
+            ? t('input.dateMax', { date: formatIsoToDisplay(max, dateFormat) })
+            : undefined;
+  const {
+    ref: inputRef,
+    reveal,
+    validationError,
+  } = useInputValidation(
+    disabled ? undefined : invalidMessage,
+    display !== (value ? formatIsoToDisplay(value, dateFormat) : '')
+  );
+  const displayedError = validationError || error;
+
   const commit = (text: string) => {
     const iso = parseDisplayDate(text, dateFormat);
     if (iso && (!max || iso <= max) && (!min || iso >= min)) {
@@ -70,8 +93,8 @@ export function DateInput({
   };
 
   const handleBlur = () => {
-    // Snap the display back to the canonical formatting of the stored value.
-    setDisplay(value ? formatIsoToDisplay(value, dateFormat) : '');
+    reveal();
+    if (!invalidMessage) setDisplay(parsed ? formatIsoToDisplay(parsed, dateFormat) : '');
     onBlur?.();
   };
 
@@ -86,13 +109,15 @@ export function DateInput({
     <div className="relative w-full">
       <input
         id={id}
+        ref={inputRef}
         type="text"
         inputMode="numeric"
         autoComplete="off"
         disabled={disabled}
         value={display}
         placeholder={dateFormat}
-        aria-invalid={error ? 'true' : 'false'}
+        aria-invalid={displayedError ? 'true' : 'false'}
+        aria-describedby={displayedError ? errorId : undefined}
         onChange={e => {
           setDisplay(e.target.value);
           commit(e.target.value);
@@ -103,7 +128,9 @@ export function DateInput({
           'placeholder:text-text-muted',
           'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background',
           'disabled:cursor-not-allowed disabled:opacity-50 transition-all duration-150',
-          error ? 'border-error focus-visible:ring-error' : 'border-border hover:border-border/80',
+          displayedError
+            ? 'border-error focus-visible:ring-error'
+            : 'border-border hover:border-border/80',
           className
         )}
       />
@@ -112,7 +139,7 @@ export function DateInput({
         onClick={openPicker}
         disabled={disabled}
         aria-label={t('dateRange.openPicker')}
-        className="absolute right-2 top-1/2 -translate-y-1/2 text-text-muted hover:text-primary transition-colors disabled:opacity-50"
+        className="absolute right-2 top-5 -translate-y-1/2 text-text-muted hover:text-primary transition-colors disabled:opacity-50"
       >
         <CalendarDays className="h-4 w-4" />
       </button>
@@ -134,7 +161,11 @@ export function DateInput({
         }}
         className="pointer-events-none absolute inset-x-0 top-0 h-10 w-full opacity-0"
       />
-      {error && <p className="mt-1 text-sm text-error">{error}</p>}
+      {displayedError && (
+        <p id={errorId} role="alert" className="mt-1 text-sm text-error">
+          {displayedError}
+        </p>
+      )}
     </div>
   );
 }
