@@ -165,6 +165,13 @@ public class TransactionResponse {
 
     private String transferCurrency;
 
+    /** Original instruction on the other leg; it can differ from this leg's valuation. */
+    private BigDecimal transferOriginalAmount;
+
+    private String transferOriginalCurrency;
+
+    private BigDecimal transferConversionRate;
+
     /**
      * Optional ID of the liability this transaction is a payment for.
      *

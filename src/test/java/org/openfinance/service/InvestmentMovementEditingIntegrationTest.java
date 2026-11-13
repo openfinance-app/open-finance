@@ -18,6 +18,8 @@ import java.util.List;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.openfinance.config.TestDatabaseConfig;
 import org.openfinance.dto.HistoricalPrice;
 import org.openfinance.dto.InvestmentMovementRequest;
@@ -441,6 +443,93 @@ class InvestmentMovementEditingIntegrationTest {
         assertQuantity("0.00688795");
         assertCash(btc, "0");
         assertCash(destination, "0");
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"EUR", "USD"})
+    void metadataEditPreservesIndependentReceiptAndOriginalCurrency(String destinationCurrency)
+            throws Exception {
+        acquisition("0.00688795", "699.54734893692");
+        destination.setCurrency(destinationCurrency);
+        accounts.save(destination);
+        Transaction debit =
+                transactions.save(
+                        Transaction.builder()
+                                .userId(userId)
+                                .accountId(btc.getId())
+                                .toAccountId(destination.getId())
+                                .type(TransactionType.EXPENSE)
+                                .transferId("imported-crypto-receipt")
+                                .date(TRANSFER_DATE)
+                                .currency("EUR")
+                                .amount(new BigDecimal("377.6497915456392"))
+                                .assetId(holding.getId())
+                                .investmentQuantity(new BigDecimal("-0.00589432"))
+                                .investmentCash(false)
+                                .accountAmount(BigDecimal.ZERO)
+                                .accountCurrency("EUR")
+                                .build());
+        boolean converted = "EUR".equals(destinationCurrency);
+        BigDecimal received = new BigDecimal(converted ? "392.531046206336" : "439.36");
+        Transaction credit =
+                transactions.save(
+                        Transaction.builder()
+                                .userId(userId)
+                                .accountId(destination.getId())
+                                .toAccountId(btc.getId())
+                                .type(TransactionType.INCOME)
+                                .transferId(debit.getTransferId())
+                                .date(TRANSFER_DATE)
+                                .currency(destinationCurrency)
+                                .amount(received)
+                                .accountAmount(received)
+                                .accountCurrency(destinationCurrency)
+                                .originalAmount(converted ? new BigDecimal("439.36") : null)
+                                .originalCurrency(converted ? "USD" : null)
+                                .conversionRate(converted ? new BigDecimal("0.8934155276") : null)
+                                .build());
+        accountService.recalculateBalance(btc.getId(), userId);
+        accountService.recalculateBalance(destination.getId(), userId);
+        TransactionResponse source = service.getTransferSource(debit.getTransferId(), userId);
+        assertThat(source.getTransferAmount()).isEqualByComparingTo(received);
+        assertThat(source.getTransferCurrency()).isEqualTo(destinationCurrency);
+        assertThat(source.getTransferOriginalCurrency()).isEqualTo(credit.getOriginalCurrency());
+        if (converted) {
+            http.perform(
+                            get("/api/v1/transactions/transfers/{id}", debit.getTransferId())
+                                    .header("Authorization", "Bearer " + login.getToken())
+                                    .header("X-Encryption-Session", login.getEncryptionKey()))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.transferOriginalCurrency").value("USD"))
+                    .andExpect(jsonPath("$.exactValues.transferAmount").value("392.531046206336"))
+                    .andExpect(jsonPath("$.exactValues.transferOriginalAmount").value("439.36"))
+                    .andExpect(
+                            jsonPath("$.exactValues.transferConversionRate").value("0.8934155276"));
+            EncryptionContext.setKey(
+                    keys.getKeyBySessionToken(login.getEncryptionKey()).orElseThrow());
+        }
+        TransferUpdateRequest edit = transferEdit(source);
+        edit.setDescription("Metadata edit");
+        edit.setInvestment(
+                InvestmentMovementRequest.builder()
+                        .assetId(holding.getId())
+                        .operation(Operation.REMOVE)
+                        .pricing(Pricing.QUANTITY)
+                        .quantity(new BigDecimal("0.00589432"))
+                        .build());
+        TransactionResponse updated = service.updateTransfer(debit.getTransferId(), userId, edit);
+        Transaction savedCredit = transactions.findById(credit.getId()).orElseThrow();
+        assertThat(updated.getAmount()).isEqualByComparingTo(debit.getAmount());
+        assertThat(updated.getOriginalAmount()).isNull();
+        assertThat(updated.getInvestmentQuantity()).isEqualByComparingTo("-0.00589432");
+        assertThat(savedCredit.getAmount()).isEqualByComparingTo(received);
+        assertThat(savedCredit.getOriginalAmount()).isEqualTo(credit.getOriginalAmount());
+        assertThat(savedCredit.getOriginalCurrency()).isEqualTo(credit.getOriginalCurrency());
+        assertThat(savedCredit.getConversionRate()).isEqualTo(credit.getConversionRate());
+        assertThat(savedCredit.getDescription()).isEqualTo("Metadata edit");
+        assertCash(btc, "0");
+        assertCash(destination, received.toPlainString());
+        assertQuantity("0.00099363");
     }
 
     @Test

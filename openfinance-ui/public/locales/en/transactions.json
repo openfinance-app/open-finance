@@ -57,6 +57,8 @@
     "interestCreditHint": "This payment replaces estimated reinvested interest in the account projection. Leave unchecked for ordinary deposits.",
     "type": "Type",
     "amount": "Amount",
+    "sentAmount": "Sent amount",
+    "recordedReceipt": "Recorded receipt",
     "currency": "Currency",
     "date": "Date",
     "account": "Account",

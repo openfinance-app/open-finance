@@ -43,6 +43,7 @@ import {
   type LinkedOperation,
 } from '@/utils/linked-operation';
 import { InvestmentMovementFields } from '@/components/transactions/InvestmentMovementFields';
+import { TransferReceipt } from '@/components/transactions/TransferReceipt';
 import { useAssets } from '@/hooks/useAssets';
 import { useInvestmentQuote } from '@/hooks/useInvestmentQuote';
 import { investmentInstruction, validInvestmentQuantity } from '@/utils/investment-movement';
@@ -833,7 +834,10 @@ export function TransactionForm({
           }
         >
           <label htmlFor="amount" className="block text-sm font-medium text-text-primary mb-1.5">
-            {t('form.amount')} <span aria-label="required">*</span>
+            {selectedType === 'TRANSFER'
+              ? `${t('form.sentAmount')} (${inputCurrency})`
+              : t('form.amount')}{' '}
+            <span aria-label="required">*</span>
           </label>
           <Controller
             name="amount"
@@ -917,6 +921,10 @@ export function TransactionForm({
           </div>
         )}
       </div>
+
+      {selectedType === 'TRANSFER' && transaction?.transferId && (
+        <TransferReceipt transaction={transaction} />
+      )}
 
       {/* ── Zone 3: context — payee, payment, category, linkages ──────────── */}
       <div aria-hidden="true" className="border-t border-border/60" />

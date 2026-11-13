@@ -729,8 +729,8 @@ public class TransactionService {
                         .conversionRate(request.getConversionRate())
                         .build();
         validateConversionDetails(conversion);
-        if (!request.isInvestmentPresent()
-                && sameTransferBooking(sourceTransaction, destTransaction, request)) {
+        boolean unchangedBooking = sameTransferBooking(sourceTransaction, destTransaction, request);
+        if (!request.isInvestmentPresent() && unchangedBooking) {
             updateTransferMetadata(sourceTransaction, userId, request);
             updateTransferMetadata(destTransaction, userId, request);
             transactionRepository.save(sourceTransaction);
@@ -739,8 +739,7 @@ public class TransactionService {
         }
         BigDecimal previousSourceAmount = sourceTransaction.getAmount();
         Transaction previousInvestment = InvestmentMovementService.snapshot(sourceTransaction);
-        if (destTransaction.getInvestmentQuantity() != null
-                && !sameTransferBooking(sourceTransaction, destTransaction, request)) {
+        if (destTransaction.getInvestmentQuantity() != null && !unchangedBooking) {
             throw InvalidTransactionException.investment(
                     "destination",
                     "This transfer also receives investment units. Its destination movement must remain unchanged.");
@@ -788,7 +787,9 @@ public class TransactionService {
         sourceTransaction.setAmount(request.getAmount());
         sourceTransaction.setCurrency(request.getCurrency());
         sourceTransaction.setDate(request.getDate());
-        applyConversionFields(sourceTransaction, conversion);
+        if (!unchangedBooking) {
+            applyConversionFields(sourceTransaction, conversion);
+        }
         updateTransferMetadata(sourceTransaction, userId, request);
         resolveAndLinkCurrency(sourceTransaction);
 
@@ -812,7 +813,7 @@ public class TransactionService {
         String destCurrency = defaultCurrencyProvider.resolve(newDestAccount.getCurrency());
         BigDecimal destAmount = request.getAmount();
 
-        if (!sourceCurrency.equalsIgnoreCase(destCurrency)) {
+        if (!unchangedBooking && !sourceCurrency.equalsIgnoreCase(destCurrency)) {
             boolean sameRateContext =
                     request.getDate().equals(oldTransferDate)
                             && sourceCurrency.equalsIgnoreCase(previousSourceCurrency)
@@ -839,10 +840,14 @@ public class TransactionService {
         destTransaction.setAccountId(
                 request.getToAccountId()); // Destination account becomes primary
         destTransaction.setToAccountId(request.getFromAccountId()); // Source becomes "toAccount"
-        destTransaction.setAmount(destAmount);
-        destTransaction.setCurrency(destCurrency);
+        // A form may resubmit an unchanged investment instruction during a metadata edit.
+        // Preserve the receiving leg's independent booked value and original currency.
+        if (!unchangedBooking) {
+            destTransaction.setAmount(destAmount);
+            destTransaction.setCurrency(destCurrency);
+            retainTransferSourceAmount(destTransaction, sourceTransaction);
+        }
         destTransaction.setDate(request.getDate());
-        retainTransferSourceAmount(destTransaction, sourceTransaction);
         updateTransferMetadata(destTransaction, userId, request);
         resolveAndLinkCurrency(destTransaction);
 
@@ -2618,6 +2623,9 @@ public class TransactionService {
                         leg -> {
                             response.setTransferAmount(leg.getAmount());
                             response.setTransferCurrency(leg.getCurrency());
+                            response.setTransferOriginalAmount(leg.getOriginalAmount());
+                            response.setTransferOriginalCurrency(leg.getOriginalCurrency());
+                            response.setTransferConversionRate(leg.getConversionRate());
                         });
     }
 

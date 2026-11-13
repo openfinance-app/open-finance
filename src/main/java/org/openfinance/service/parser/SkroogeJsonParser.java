@@ -420,7 +420,7 @@ public class SkroogeJsonParser {
             Long unitId = longValue(operation, "rc_unit_id");
             JsonNode unit = unitsById.get(unitId);
             boolean holding = isInvestmentUnit(unit);
-            if (!isAccountTransferUnit(unit) && !holding) {
+            if (!isCurrencyUnit(unit) && !holding) {
                 return false;
             }
             hasHolding = hasHolding || holding;
@@ -457,7 +457,7 @@ public class SkroogeJsonParser {
         return crossAccount || (!hasHolding && anyTransferCategory);
     }
 
-    private boolean isAccountTransferUnit(JsonNode unitNode) {
+    private boolean isCurrencyUnit(JsonNode unitNode) {
         if (unitNode == null || unitNode.isMissingNode()) {
             return false;
         }
@@ -1118,16 +1118,7 @@ public class SkroogeJsonParser {
             Map<Long, List<JsonNode>> subOperationsByOperationId) {
         for (JsonNode operation : operations) {
             if (SYNTHETIC_DATE.equals(textValue(operation, "d_date"))) {
-                List<JsonNode> subOperations =
-                        subOperationsByOperationId.getOrDefault(
-                                longValue(operation, "id"), List.of());
-                boolean hasNonZeroSyntheticBalance =
-                        subOperations.stream()
-                                .map(node -> decimalValue(node, "f_value"))
-                                .anyMatch(value -> value.compareTo(BigDecimal.ZERO) != 0);
-                if (!hasNonZeroSyntheticBalance) {
-                    continue;
-                }
+                // Skrooge stores the account unit on this row, including zero openings.
                 String syntheticCurrency =
                         resolveCurrencyCode(
                                 unitsById.get(longValue(operation, "rc_unit_id")), unitsById);
@@ -1579,8 +1570,7 @@ public class SkroogeJsonParser {
             Map<Long, TreeMap<LocalDate, BigDecimal>> unitValuesByUnitId) {
         Map<String, BigDecimal> rates = new HashMap<>();
         for (JsonNode unit : unitsById.values()) {
-            String type = textValue(unit, "t_type");
-            if (!CURRENCY_UNIT_TYPES.contains(type)) {
+            if (!isCurrencyUnit(unit) || isInvestmentUnit(unit)) {
                 continue;
             }
             String code = resolveCurrencyCode(unit, unitsById);
@@ -1633,6 +1623,14 @@ public class SkroogeJsonParser {
             Map<Long, JsonNode> unitsById,
             Map<Long, TreeMap<LocalDate, BigDecimal>> unitValuesByUnitId,
             Map<String, BigDecimal> currencyRatesToPrimary) {
+        JsonNode unit = unitsById.get(unitId);
+        if (unit != null
+                && isCurrencyUnit(unit)
+                && !isInvestmentUnit(unit)
+                && targetCurrency != null
+                && targetCurrency.equals(resolveCurrencyCode(unit, unitsById))) {
+            return rawValue;
+        }
         BigDecimal primaryAmount =
                 convertToPrimaryCurrency(
                         rawValue, unitId, date, unitsById, unitValuesByUnitId, new HashSet<>());

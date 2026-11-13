@@ -220,7 +220,8 @@ class SkroogeJsonImportRegressionTest {
         expected.put("Account_030", eur("2146.75"));
         expected.put("Account_031", xof("24741.04"));
         expected.put("Account_032", xof("500.00"));
-        expected.put("Account_033", eur("1072.91"));
+        // Its zero USD opening defines the native unit despite all later rows being in EUR.
+        expected.put("Account_033", new ExpectedAccount(new BigDecimal("1225.7990069395"), "USD"));
         expected.put("Account_034", eur("8222.45"));
         return expected;
     }

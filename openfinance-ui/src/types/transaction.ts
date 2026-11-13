@@ -167,6 +167,9 @@ export interface Transaction {
   transferId?: string;
   transferAmount?: number;
   transferCurrency?: string;
+  transferOriginalAmount?: number;
+  transferOriginalCurrency?: string;
+  transferConversionRate?: number;
   isDeleted?: boolean;
 
   // Populated fields (for local use)

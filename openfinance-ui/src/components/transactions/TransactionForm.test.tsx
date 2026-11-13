@@ -1349,6 +1349,53 @@ describe('TransactionForm', () => {
   // ── Transfer Type ─────────────────────────────────────────────────────────
 
   describe('Transfer Type', () => {
+    it.each(['EUR', 'USD'])(
+      'shows the receiving instruction independently of the outgoing %s booking',
+      async receivedCurrency => {
+        const transaction: Transaction = {
+          id: 214,
+          userId: 1,
+          accountId: 1,
+          toAccountId: 2,
+          type: 'EXPENSE',
+          amount: 377.6497915456392,
+          currency: 'EUR',
+          date: '2026-06-24',
+          transferId: 'crypto-receipt',
+          transferAmount: receivedCurrency === 'EUR' ? 392.531046206336 : 439.36,
+          transferCurrency: receivedCurrency,
+          transferOriginalAmount: receivedCurrency === 'EUR' ? 439.36 : undefined,
+          transferOriginalCurrency: receivedCurrency === 'EUR' ? 'USD' : undefined,
+          transferConversionRate: receivedCurrency === 'EUR' ? 0.8934155276 : undefined,
+          exactValues: { amount: '377.649791545639200001' },
+          isReconciled: false,
+          createdAt: '2026-06-24',
+        };
+        const { onSubmit } = renderForm({ transaction });
+        expect(screen.getByLabelText(/sent amount \(EUR\)/i)).toHaveValue('377.649791545639200001');
+        const receipt = screen.getByText('Recorded receipt').nextElementSibling;
+        expect(receipt).toHaveTextContent('439.36 USD');
+        if (receivedCurrency === 'EUR') expect(receipt).toHaveTextContent('≈ 392.53 EUR');
+        expect(screen.queryByTestId('currency-selector')).not.toBeInTheDocument();
+        fireEvent.change(screen.getByLabelText(/^description/i), {
+          target: { value: 'Metadata edit' },
+        });
+        fireEvent.click(screen.getByRole('button', { name: /update transaction/i }));
+        await waitFor(() => expect(onSubmit).toHaveBeenCalledOnce());
+        expect(onSubmit.mock.calls[0][0]).toEqual(
+          expect.objectContaining({
+            accountId: 1,
+            toAccountId: 2,
+            amount: '377.649791545639200001',
+            currency: 'EUR',
+            originalAmount: undefined,
+            originalCurrency: undefined,
+            conversionRate: undefined,
+          })
+        );
+      }
+    );
+
     it('edits a stored outgoing leg as a transfer and submits both accounts', async () => {
       const { onSubmit } = renderForm({
         transaction: {

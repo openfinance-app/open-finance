@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.within;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.lenient;
 
 import java.math.BigDecimal;
@@ -283,10 +284,26 @@ class SkroogeJsonImportFlowE2ETest {
         java.nio.file.Path fixture = java.nio.file.Path.of("samples/latest_4.json");
         org.junit.jupiter.api.Assumptions.assumeTrue(java.nio.file.Files.exists(fixture));
         useOfficialFx();
+        // The zero USD opening now correctly creates a USD account. Value it with this
+        // fixture's latest stored quote (2026-11-07), without calling an external FX provider.
+        BigDecimal usdToEur = new BigDecimal("0.8956560681");
+        org.mockito.Mockito.doReturn(usdToEur)
+                .when(exchangeRateService)
+                .getExchangeRate(eq("USD"), eq("EUR"), any());
+        org.mockito.Mockito.doAnswer(call -> call.<BigDecimal>getArgument(0).multiply(usdToEur))
+                .when(exchangeRateService)
+                .convert(any(), eq("USD"), eq("EUR"));
+        org.mockito.Mockito.doAnswer(call -> call.<BigDecimal>getArgument(0).multiply(usdToEur))
+                .when(exchangeRateService)
+                .convert(any(), eq("USD"), eq("EUR"), any());
         ImportSession imported =
                 importData("latest_4.json", java.nio.file.Files.readAllBytes(fixture));
         assertThat(imported.getErrorCount()).isZero();
         assertThat(accountRepository.findByUserId(userId)).hasSize(34);
+        assertThat(accountRepository.findByUserId(userId))
+                .filteredOn(account -> "USD".equals(account.getCurrency()))
+                .singleElement()
+                .satisfies(account -> assertThat(account.getOpeningBalance()).isZero());
         assertThat(
                         netWorth.calculateNetWorth(userId, java.time.LocalDate.now(), "EUR")
                                 .setScale(2, RoundingMode.HALF_UP))

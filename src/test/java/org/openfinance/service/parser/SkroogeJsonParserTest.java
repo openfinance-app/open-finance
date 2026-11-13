@@ -4,6 +4,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.math.BigDecimal;
@@ -471,8 +473,8 @@ class SkroogeJsonParserTest {
     }
 
     @Test
-    @DisplayName("Should ignore zero synthetic balance when deriving account currency")
-    void shouldIgnoreZeroSyntheticBalanceWhenDerivingAccountCurrency() throws IOException {
+    @DisplayName("A zero opening still defines the account currency, including fiat O units")
+    void shouldUseZeroSyntheticBalanceUnitForAccountCurrency() throws IOException {
         SkroogeImportParseResult result =
                 parser.parseFile(
                         new ByteArrayInputStream(
@@ -482,7 +484,78 @@ class SkroogeJsonParserTest {
         assertThat(result.getSkroogeMetadata().getAccounts())
                 .filteredOn(account -> account.getName().equals("Polymarket"))
                 .singleElement()
-                .satisfies(account -> assertThat(account.getCurrency()).isEqualTo("EUR"));
+                .satisfies(
+                        account -> {
+                            assertThat(account.getCurrency()).isEqualTo("USD");
+                            assertThat(account.getOpeningBalance()).isZero();
+                            assertThat(account.getOpeningDate())
+                                    .isEqualTo(LocalDate.of(2026, 6, 24));
+                        });
+        assertThat(result.getTransactions())
+                .singleElement()
+                .satisfies(
+                        transaction -> {
+                            assertThat(transaction.getCurrency()).isEqualTo("USD");
+                            assertThat(transaction.getAmount())
+                                    .isEqualByComparingTo("1225.7990069395");
+                            assertThat(transaction.getOriginalAmount())
+                                    .isEqualByComparingTo("1072.91");
+                            assertThat(transaction.getOriginalCurrency()).isEqualTo("EUR");
+                            assertThat(transaction.getInvestmentQuantity()).isNull();
+                        });
+    }
+
+    @Test
+    @DisplayName("Native USD receipts keep their exact values alongside converted EUR receipts")
+    void shouldPreserveNativeAmountsInMixedCurrencyAccount() throws IOException {
+        ObjectMapper mapper = new ObjectMapper();
+        ObjectNode root = (ObjectNode) mapper.readTree(zeroSyntheticCurrencyJson());
+        ArrayNode operations = (ArrayNode) root.get("operation");
+        ArrayNode parts = (ArrayNode) root.get("suboperation");
+        String[] amounts = {"20", "180", "481.36", "439.36", "16.170000000000000001"};
+        operations.remove(1);
+        parts.remove(1);
+        for (int i = 0; i < amounts.length; i++) {
+            operations
+                    .addObject()
+                    .put("id", i + 2)
+                    .put("rd_account_id", 10)
+                    .put("rc_unit_id", i < 3 ? 1 : 2)
+                    .put("t_mode", "Deposit")
+                    .put("d_date", "2026-06-24");
+            parts.addObject()
+                    .put("id", i + 2)
+                    .put("rd_operation_id", i + 2)
+                    .put("f_value", amounts[i]);
+        }
+        SkroogeImportParseResult result =
+                parser.parseFile(
+                        new ByteArrayInputStream(mapper.writeValueAsBytes(root)), "mixed.json");
+        assertThat(result.getTransactions())
+                .hasSize(5)
+                .allSatisfy(
+                        transaction -> {
+                            assertThat(transaction.getCurrency()).isEqualTo("USD");
+                            assertThat(transaction.getInvestmentQuantity()).isNull();
+                        });
+        for (int i = 0; i < amounts.length; i++) {
+            ImportedTransaction transaction = result.getTransactions().get(i);
+            if (i < 3) {
+                assertThat(transaction.getAmount())
+                        .isEqualByComparingTo(
+                                new BigDecimal(amounts[i])
+                                        .divide(
+                                                new BigDecimal("0.875274"),
+                                                10,
+                                                java.math.RoundingMode.HALF_UP));
+                assertThat(transaction.getOriginalAmount()).isEqualByComparingTo(amounts[i]);
+                assertThat(transaction.getOriginalCurrency()).isEqualTo("EUR");
+            } else {
+                assertThat(transaction.getAmount()).isEqualByComparingTo(amounts[i]);
+                assertThat(transaction.getOriginalAmount()).isNull();
+                assertThat(transaction.getOriginalCurrency()).isNull();
+            }
+        }
     }
 
     @Test
