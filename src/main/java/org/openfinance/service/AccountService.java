@@ -339,6 +339,7 @@ public class AccountService {
                 accountRepository
                         .findByIdAndUserId(accountId, userId)
                         .orElseThrow(() -> AccountNotFoundException.byIdAndUser(accountId, userId));
+        account.requireEditableLedger();
 
         if (request.getOpeningDate() != null
                 && transactionRepository.findByUserIdAndAccountId(userId, accountId).stream()
@@ -537,6 +538,7 @@ public class AccountService {
                 accountRepository
                         .findByIdAndUserId(accountId, userId)
                         .orElseThrow(() -> AccountNotFoundException.byIdAndUser(accountId, userId));
+        account.requireEditableLedger();
 
         if (accountRepository.isLiabilityBalanceSource(accountId, userId)) {
             throw new org.openfinance.exception.InvalidTransactionException(
@@ -732,6 +734,7 @@ public class AccountService {
                 accountRepository
                         .findByIdAndUserId(accountId, userId)
                         .orElseThrow(() -> AccountNotFoundException.byIdAndUser(accountId, userId));
+        account.requireEditableLedger();
 
         // Check if already active
         if (account.getIsActive()) {
@@ -825,6 +828,7 @@ public class AccountService {
                 accountRepository
                         .findByIdAndUserId(accountId, userId)
                         .orElseThrow(() -> AccountNotFoundException.byIdAndUser(accountId, userId));
+        account.requireEditableLedger();
 
         java.util.Set<String> reversedTransfers = new java.util.HashSet<>();
         for (org.openfinance.entity.Transaction transaction :
@@ -1330,6 +1334,7 @@ public class AccountService {
                         ? account.getBalance().add(assetsTotalValue)
                         : account.getBalance();
         // Expose the raw balance (without linked assets) so edit forms don't double it.
+        response.setLiabilityConvertedAt(account.getLiabilityConvertedAt());
         response.setOwnBalance(account.getBalance());
         response.setHoldingsValue(assetsTotalValue);
         response.setBalance(totalBalance);
@@ -1620,6 +1625,15 @@ public class AccountService {
             // Add the day's total to running balance
             runningBalance = runningBalance.add(dayTotal);
             dailyBalances.put(txDate.isBefore(firstDate) ? firstDate : txDate, runningBalance);
+        }
+
+        if (account.getLiabilityConvertedAt() != null
+                && !account.getLiabilityConvertedAt().isAfter(endDate)) {
+            dailyBalances.put(
+                    account.getLiabilityConvertedAt().isBefore(firstDate)
+                            ? firstDate
+                            : account.getLiabilityConvertedAt(),
+                    BigDecimal.ZERO);
         }
 
         // Convert to list sorted by date

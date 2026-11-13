@@ -68,6 +68,7 @@ public final class HistoryDomainRegistry {
                     Map.entry("account_id", "accounts"),
                     Map.entry("investment_import_account_id", "accounts"),
                     Map.entry("represented_by_account_id", "accounts"),
+                    Map.entry("converted_from_account_id", "accounts"),
                     Map.entry("to_account_id", "accounts"),
                     Map.entry("institution_id", "institutions"),
                     Map.entry("currency_id", "currencies"),

@@ -755,7 +755,7 @@ class DomainManagementIntegrationTest {
     }
 
     @Test
-    void previewRejectsAmountsThatDoNotReconcile() throws Exception {
+    void previewExplainsAmountsThatNeedAnActualAllocation() throws Exception {
         long loan =
                 json(
                                 "POST",
@@ -779,12 +779,19 @@ class DomainManagementIntegrationTest {
                                 201)
                         .get("id")
                         .asLong();
-        json(
-                "GET",
-                "/liabilities/" + loan + "/repayment-preview?total=5&date=" + LocalDate.now(),
-                null,
-                owner,
-                400);
+        JsonNode belowCharges =
+                json(
+                        "GET",
+                        "/liabilities/"
+                                + loan
+                                + "/repayment-preview?total=5&date="
+                                + LocalDate.now(),
+                        null,
+                        owner,
+                        200);
+        assertThat(belowCharges.get("status").asText()).isEqualTo("BELOW_ESTIMATED_CHARGES");
+        assertThat(belowCharges.get("principal").decimalValue()).isZero();
+        assertThat(belowCharges.get("interest").decimalValue()).isEqualByComparingTo("10.00");
         JsonNode preview =
                 json(
                         "GET",
@@ -795,6 +802,7 @@ class DomainManagementIntegrationTest {
                         null,
                         owner,
                         200);
+        assertThat(preview.get("status").asText()).isEqualTo("READY");
         assertThat(
                         preview.get("principal")
                                 .decimalValue()

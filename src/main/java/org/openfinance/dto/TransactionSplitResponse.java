@@ -40,6 +40,8 @@ public class TransactionSplitResponse {
     /** ID of the category assigned to this split line (may be null). */
     private Long categoryId;
 
+    private org.openfinance.entity.LoanComponent loanComponent;
+
     /**
      * Display name of the category (denormalized, null if no category).
      *

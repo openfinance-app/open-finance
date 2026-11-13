@@ -5,7 +5,7 @@
  * Requirement 2.1: Test total cost hero card and cost breakdown
  * Requirement 3.2: Test linked payments tab
  */
-import { screen, fireEvent, waitFor } from '@testing-library/react';
+import { screen, fireEvent, waitFor, within } from '@testing-library/react';
 import { vi, describe, it, expect, beforeEach } from 'vitest';
 import { act } from '@testing-library/react';
 import { renderWithProviders } from '@/test/test-utils';
@@ -195,8 +195,27 @@ describe('LiabilityDetailDialog', () => {
     } as any);
   });
 
-  describe('Overview Disburse (no planned tranches remaining)', () => {
-    it('shows a Disburse button on Overview when all tranches are drawn', () => {
+  describe('Staged funding actions', () => {
+    it.each(['overview', 'payments', 'drawdowns'] as const)(
+      'keeps Receive funds exclusive to staged funding when viewing %s',
+      tab => {
+        mockUseTranches.mockReturnValue({
+          data: [],
+          isLoading: false,
+          error: null,
+        } as unknown as ReturnType<typeof useTranchesModule.useTranches>);
+        renderWithProviders(
+          <LiabilityDetailDialog liability={mockLiability} initialTab={tab} onClose={vi.fn()} />
+        );
+        const receiveFunds = screen.queryByRole('button', { name: /^receive funds$/i });
+        if (tab === 'drawdowns') {
+          expect(receiveFunds).toBeVisible();
+        } else {
+          expect(receiveFunds).not.toBeInTheDocument();
+        }
+      }
+    );
+    it('keeps Receive funds in staged funding when all planned tranches are drawn', () => {
       mockUseLiabilityBreakdown.mockReturnValue({
         data: mockBreakdown,
         isLoading: false,
@@ -219,7 +238,9 @@ describe('LiabilityDetailDialog', () => {
         error: null,
       } as unknown as ReturnType<typeof useTranchesModule.useTranches>);
 
-      renderWithProviders(<LiabilityDetailDialog liability={mockLiability} onClose={vi.fn()} />);
+      renderWithProviders(
+        <LiabilityDetailDialog liability={mockLiability} initialTab="drawdowns" onClose={vi.fn()} />
+      );
 
       expect(screen.getByRole('button', { name: /^receive funds$/i })).toBeInTheDocument();
     });
@@ -247,7 +268,9 @@ describe('LiabilityDetailDialog', () => {
         error: null,
       } as unknown as ReturnType<typeof useTranchesModule.useTranches>);
 
-      renderWithProviders(<LiabilityDetailDialog liability={mockLiability} onClose={vi.fn()} />);
+      renderWithProviders(
+        <LiabilityDetailDialog liability={mockLiability} initialTab="drawdowns" onClose={vi.fn()} />
+      );
 
       expect(screen.getByRole('button', { name: /^receive funds$/i })).toBeInTheDocument();
     });
@@ -281,7 +304,9 @@ describe('LiabilityDetailDialog', () => {
         isError: false,
       } as any);
 
-      renderWithProviders(<LiabilityDetailDialog liability={mockLiability} onClose={vi.fn()} />);
+      renderWithProviders(
+        <LiabilityDetailDialog liability={mockLiability} initialTab="drawdowns" onClose={vi.fn()} />
+      );
 
       await act(async () => {
         screen.getByRole('button', { name: /^receive funds$/i }).click();
@@ -315,6 +340,7 @@ describe('LiabilityDetailDialog', () => {
           fundedAmount: 0,
           fundingStatus: 'UNDRAWN',
         }}
+        initialTab="drawdowns"
         onClose={vi.fn()}
       />
     );
@@ -324,6 +350,7 @@ describe('LiabilityDetailDialog', () => {
     renderWithProviders(
       <LiabilityDetailDialog
         liability={{ ...mockLiability, fundedAmount: mockLiability.principal }}
+        initialTab="drawdowns"
         onClose={vi.fn()}
       />
     );
@@ -440,7 +467,7 @@ describe('LiabilityDetailDialog', () => {
       expect(screen.getByText('Amortization Schedule')).toBeInTheDocument();
     });
 
-    it('does not show Amortization Schedule tab when interest rate is 0', () => {
+    it('shows Amortization Schedule for an interest-free loan', () => {
       const noInterestLiability = { ...mockLiability, interestRate: 0 };
 
       mockUseLiabilityBreakdown.mockReturnValue({
@@ -453,7 +480,7 @@ describe('LiabilityDetailDialog', () => {
         <LiabilityDetailDialog liability={noInterestLiability} onClose={vi.fn()} />
       );
 
-      expect(screen.queryByText('Amortization Schedule')).not.toBeInTheDocument();
+      expect(screen.getByText('Amortization Schedule')).toBeInTheDocument();
     });
 
     it('shows the interest-only phase banner on the schedule tab while a DRAWN tranche phase is active', () => {
@@ -574,7 +601,7 @@ describe('LiabilityDetailDialog', () => {
       ).toBeInTheDocument();
     });
 
-    it('shows transaction list in Linked Payments tab when transactions exist', () => {
+    it('counts imported movements while keeping drawdowns out of total paid', () => {
       mockUseLiabilityBreakdown.mockReturnValue({
         data: mockBreakdown,
         isLoading: false,
@@ -582,7 +609,16 @@ describe('LiabilityDetailDialog', () => {
       });
 
       mockUseLiabilityTransactions.mockReturnValue({
-        data: mockTransactions,
+        data: [
+          ...mockTransactions,
+          {
+            ...mockTransactions[0],
+            id: 'source-drawdown',
+            description: 'Imported drawdown',
+            amount: 100000,
+            type: 'TRANSFER',
+          },
+        ],
         isLoading: false,
         error: null,
       });
@@ -596,7 +632,10 @@ describe('LiabilityDetailDialog', () => {
       });
 
       expect(screen.getByText('Mortgage Payment')).toBeInTheDocument();
-      expect(screen.getAllByText('€1,500.00')).toHaveLength(2); // One in summary, one in transaction
+      expect(screen.getByText('Imported drawdown')).toBeInTheDocument();
+      expect(screen.getByText('2 transactions linked')).toBeInTheDocument();
+      expect(screen.getByText('Total Paid:')).toHaveTextContent('€60,600.00');
+      expect(screen.getAllByText('€1,500.00')).toHaveLength(1);
     });
 
     it('shows loading skeleton in Linked Payments tab while loading', () => {
@@ -711,6 +750,42 @@ describe('LiabilityDetailDialog', () => {
 
       expect(screen.getByText(/no planned drawdowns/i)).toBeInTheDocument();
     });
+  });
+
+  it('groups linked repayments, drawdowns and other movements with bounded lists', async () => {
+    mockUseLiabilityTransactions.mockReturnValue({
+      data: [
+        { ...mockTransactions[0], id: 1, movementType: 'REPAYMENT' },
+        {
+          ...mockTransactions[0],
+          id: 2,
+          description: 'Funds released',
+          movementType: 'DISBURSEMENT',
+        },
+        {
+          ...mockTransactions[0],
+          id: 3,
+          description: 'Legacy adjustment',
+          movementType: undefined,
+        },
+      ],
+      isLoading: false,
+      error: null,
+    } as any);
+    renderWithProviders(
+      <LiabilityDetailDialog liability={mockLiability} initialTab="payments" onClose={vi.fn()} />
+    );
+    const payments = await screen.findByRole('region', { name: 'Payments' });
+    expect(within(payments).getByText('Mortgage Payment')).toBeInTheDocument();
+    expect(within(payments).queryByText('Funds released')).not.toBeInTheDocument();
+    expect(payments).toHaveClass('overflow-y-auto', 'max-h-[min(24rem,45dvh)]');
+    const drawdowns = screen.getByText(/^Drawdowns/, { selector: 'summary' });
+    expect(drawdowns.parentElement).not.toHaveAttribute('open');
+    fireEvent.click(drawdowns);
+    expect(
+      within(screen.getByRole('region', { name: 'Drawdowns' })).getByText('Funds released')
+    ).toBeInTheDocument();
+    expect(screen.getByText(/^Other movements/, { selector: 'summary' })).toBeInTheDocument();
   });
 
   describe('Linked Payments movement badges', () => {

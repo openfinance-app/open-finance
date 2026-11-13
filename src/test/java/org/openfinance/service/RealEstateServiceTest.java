@@ -88,6 +88,7 @@ class RealEstateServiceTest {
     @Mock private DefaultCurrencyProvider defaultCurrencyProvider;
 
     @Mock private AssetFinancingService assetFinancingService;
+    @Mock private org.openfinance.repository.LiabilityTrancheRepository liabilityTrancheRepository;
     @Mock private org.openfinance.repository.TransactionRepository transactionRepository;
 
     @Mock

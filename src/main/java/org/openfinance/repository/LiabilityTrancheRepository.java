@@ -12,6 +12,8 @@ public interface LiabilityTrancheRepository extends JpaRepository<LiabilityTranc
 
     List<LiabilityTranche> findByUserId(Long userId);
 
+    List<LiabilityTranche> findByRealEstateIdAndUserId(Long realEstateId, Long userId);
+
     /** Find all tranches of a liability for a specific user. */
     List<LiabilityTranche> findByLiabilityIdAndUserId(Long liabilityId, Long userId);
 

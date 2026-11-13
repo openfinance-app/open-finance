@@ -41,6 +41,17 @@ public interface TransactionRepository
         extends JpaRepository<Transaction, Long>, JpaSpecificationExecutor<Transaction> {
     List<Transaction> findByUserIdAndPayeeId(Long userId, Long payeeId);
 
+    @Query(
+            """
+            SELECT t FROM Transaction t WHERE t.userId = :userId AND t.isDeleted = false
+            AND (t.liabilityId = :liabilityId OR t.accountId IN
+                (SELECT l.convertedFromAccountId FROM Liability l
+                 WHERE l.id = :liabilityId AND l.userId = :userId))
+            ORDER BY t.date DESC, t.id DESC
+            """)
+    List<Transaction> findIncludingConvertedAccount(
+            @Param("liabilityId") Long liabilityId, @Param("userId") Long userId);
+
     @Query("SELECT t FROM Transaction t WHERE t.userId = :userId")
     List<Transaction> findAllForExport(@Param("userId") Long userId);
 

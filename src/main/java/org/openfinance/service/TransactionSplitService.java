@@ -187,6 +187,7 @@ public class TransactionSplitService {
                             .amount(fixed.get(i))
                             .description(src.getDescription())
                             .tags(src.getTags())
+                            .loanComponent(src.getLoanComponent())
                             .build());
         }
         return out;
@@ -246,6 +247,7 @@ public class TransactionSplitService {
                             .categoryId(req.getCategoryId())
                             .amount(req.getAmount())
                             .tags(req.getTags())
+                            .loanComponent(req.getLoanComponent())
                             .build();
 
             // Description set directly — JPA converter handles encryption
@@ -362,6 +364,7 @@ public class TransactionSplitService {
                         .id(split.getId())
                         .transactionId(split.getTransactionId())
                         .categoryId(split.getCategoryId())
+                        .loanComponent(split.getLoanComponent())
                         .tags(
                                 split.getTags() == null
                                         ? List.of()

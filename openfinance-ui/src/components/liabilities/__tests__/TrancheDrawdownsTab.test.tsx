@@ -306,7 +306,9 @@ describe('TrancheDrawdownsTab', () => {
       isPending: false,
       isError: false,
     } as unknown as ReturnType<typeof useLiabilitiesModule.useDisburseLiability>);
-    renderWithProviders(<TrancheDrawdownsTab liability={mockLiability} />);
+    renderWithProviders(
+      <TrancheDrawdownsTab liability={{ ...mockLiability, principal: 11000000 }} />
+    );
     fireEvent.click(screen.getByRole('button', { name: /^draw$/i }));
     fireEvent.change(screen.getByLabelText(/account/i), { target: { value: '3' } });
     fireEvent.click(screen.getByRole('button', { name: /confirm disbursement/i }));
@@ -368,6 +370,8 @@ describe('TrancheDrawdownsTab', () => {
         amount: '50000',
         date: '2025-06-15',
         directRealEstateId: undefined,
+        capitalizePropertyCost: false,
+        increasePropertyValue: false,
       },
     });
   });
@@ -412,6 +416,8 @@ describe('TrancheDrawdownsTab', () => {
         amount: '15000',
         date: expect.any(String),
         directRealEstateId: 8,
+        capitalizePropertyCost: false,
+        increasePropertyValue: false,
       },
     });
   });

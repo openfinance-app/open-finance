@@ -489,8 +489,16 @@ export function TransactionForm({
           : undefined
         : debouncedAmount;
 
-  const { data: repaymentPreview, error: repaymentPreviewError } = useRepaymentPreview(
-    liabilityPreviewTotal != null && Number(liabilityPreviewTotal) > 0
+  const {
+    data: repaymentPreview,
+    error: repaymentPreviewError,
+    isFetching: repaymentLoading,
+    isPlaceholderData: repaymentStale,
+  } = useRepaymentPreview(
+    !splitMode &&
+      (watch('movementType') ?? 'REPAYMENT') === 'REPAYMENT' &&
+      liabilityPreviewTotal != null &&
+      Number(liabilityPreviewTotal) > 0
       ? liabilityIdValue
       : undefined,
     liabilityPreviewTotal ?? 0,
@@ -499,6 +507,18 @@ export function TransactionForm({
 
   // Auto-split toggle (Task 9): on by default — the submit includes the preview legs as splits.
   const [applyRepaymentSplit, setApplyRepaymentSplit] = useState(!transaction);
+  const repaymentNeedsActual =
+    repaymentPreview?.status != null && repaymentPreview.status !== 'READY';
+  const enterActualRepayment = () => {
+    setApplyRepaymentSplit(false);
+    setSplitMode(true);
+    setSplits([
+      { amount: 0, loanComponent: 'INTEREST' },
+      { amount: 0, loanComponent: 'INSURANCE' },
+    ]);
+    clearErrors('principalAmount');
+    setTimeout(() => document.getElementById('loan-component-0')?.focus(), 0);
+  };
 
   // Converted transfer instructions need the same exact source-to-account conversion.
   const needsConversion =
@@ -616,7 +636,7 @@ export function TransactionForm({
       setValue('realEstateId', undefined, { shouldDirty: true });
       setValue('assetId', undefined, { shouldDirty: true });
     }
-    if (next === 'LOAN_PAYMENT') setApplyRepaymentSplit(true);
+    if (next === 'LOAN_PAYMENT') setApplyRepaymentSplit(!transaction && !splitMode);
   }
 
   function changeTransactionType(type: TransactionType): void {
@@ -696,9 +716,13 @@ export function TransactionForm({
     if (
       data.liabilityId &&
       data.type === 'EXPENSE' &&
+      (data.movementType ?? 'REPAYMENT') === 'REPAYMENT' &&
       applyRepaymentSplit &&
       !splitMode &&
       (!repaymentPreview ||
+        repaymentLoading ||
+        repaymentStale ||
+        repaymentNeedsActual ||
         repaymentPreviewError ||
         repaymentPreview.principal > (selectedLiability?.currentBalance ?? Infinity))
     ) {
@@ -1113,6 +1137,9 @@ export function TransactionForm({
           {/* When in split mode: SplitTransactionForm */}
           {splitMode && (
             <SplitTransactionForm
+              loanPayment={
+                linkedLiability && (watch('movementType') ?? 'REPAYMENT') === 'REPAYMENT'
+              }
               totalAmount={watch('amount') || 0}
               currency={inputCurrency || DEFAULT_CURRENCY}
               accountCurrency={accountCurrency}
@@ -1179,7 +1206,7 @@ export function TransactionForm({
                       setValue('trancheId', undefined);
                       setValue('principalAmount', undefined);
                       setValue('movementType', undefined);
-                      setApplyRepaymentSplit(true);
+                      setApplyRepaymentSplit(!transaction && !splitMode);
                     }
                     field.onChange(value);
                   }}
@@ -1191,6 +1218,36 @@ export function TransactionForm({
               <p className="text-sm text-error" role="alert">
                 {errors.liabilityId?.message ?? linkedOperationError}
               </p>
+            )}
+            {liabilityIdValue && (
+              <div className="pt-2">
+                <label
+                  htmlFor="loanPaymentType"
+                  className="mb-1.5 block text-sm font-medium text-text-secondary"
+                >
+                  {t('form.loanPaymentType')}
+                </label>
+                <select
+                  id="loanPaymentType"
+                  className="w-full h-10 px-3 rounded-lg border border-border bg-surface text-text-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary"
+                  value={watch('movementType') ?? 'REPAYMENT'}
+                  onChange={event => {
+                    setValue(
+                      'movementType',
+                      event.target.value as 'REPAYMENT' | 'INTEREST' | 'INSURANCE' | 'FEE',
+                      { shouldDirty: true }
+                    );
+                    setValue('principalAmount', undefined, { shouldDirty: true });
+                    setApplyRepaymentSplit(false);
+                  }}
+                >
+                  {(['REPAYMENT', 'INTEREST', 'INSURANCE', 'FEE'] as const).map(type => (
+                    <option key={type} value={type}>
+                      {t(`form.loanPaymentTypes.${type}`)}
+                    </option>
+                  ))}
+                </select>
+              </div>
             )}
           </div>
         )}
@@ -1270,85 +1327,115 @@ export function TransactionForm({
            expressed in the LIABILITY currency (FX totals converted client-side since Task 9).
            When the Apply split toggle is on (default) the submit includes the preview legs as a
            splits[] payload: principal uncategorized, interest/insurance categorized. */}
-            {liabilityIdValue && liabilityPreviewTotal != null && (
-              <div
-                data-testid="repayment-preview"
-                className="rounded-lg border border-border bg-surface p-3 space-y-1.5"
-              >
-                <div className="flex items-center justify-between gap-2">
-                  <p className="text-sm font-medium text-text-primary">
-                    {t('form.repaymentPreviewTitle')}
-                    {liabilityCurrency ? ` (${liabilityCurrency})` : ''}
-                  </p>
-                  <label className="flex items-center gap-1.5 text-xs text-text-secondary cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={applyRepaymentSplit}
-                      onChange={e => setApplyRepaymentSplit(e.target.checked)}
-                      className="h-3.5 w-3.5 rounded border-border bg-surface text-primary focus:ring-2 focus:ring-primary"
-                      disabled={isLoading}
-                    />
-                    {t('form.repaymentApplySplit')}
-                  </label>
-                </div>
-                <dl className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm text-text-secondary">
-                  <dt>{t('form.repaymentPreviewPrincipal')}</dt>
-                  <dd className="text-right text-text-primary">
-                    {formatDecimal(
-                      repaymentPreview?.principal ?? 0,
-                      getCurrencyDecimals(liabilityCurrency)
-                    )}
-                  </dd>
-                  <dt>{t('form.repaymentPreviewInterest')}</dt>
-                  <dd className="text-right text-text-primary">
-                    {formatDecimal(
-                      repaymentPreview?.interest ?? 0,
-                      getCurrencyDecimals(liabilityCurrency)
-                    )}
-                  </dd>
-                  <dt>{t('form.repaymentPreviewInsurance')}</dt>
-                  <dd className="text-right text-text-primary">
-                    {formatDecimal(
-                      repaymentPreview?.insurance ?? 0,
-                      getCurrencyDecimals(liabilityCurrency)
-                    )}
-                  </dd>
-                </dl>
-                {repaymentPreview &&
-                  selectedLiability &&
-                  repaymentPreview.principal > selectedLiability.currentBalance && (
-                    <p role="alert" className="text-error">
-                      {t('form.repaymentExceedsDebt')}
+            {liabilityIdValue &&
+              !splitMode &&
+              liabilityPreviewTotal != null &&
+              (watch('movementType') ?? 'REPAYMENT') === 'REPAYMENT' && (
+                <div
+                  data-testid="repayment-preview"
+                  className="rounded-lg border border-border bg-surface p-3 space-y-1.5"
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-sm font-medium text-text-primary">
+                      {t('form.repaymentPreviewTitle')}
+                      {liabilityCurrency ? ` (${liabilityCurrency})` : ''}
+                    </p>
+                    <label className="flex items-center gap-1.5 text-xs text-text-secondary cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={
+                          applyRepaymentSplit && !repaymentNeedsActual && !repaymentPreviewError
+                        }
+                        onChange={e => setApplyRepaymentSplit(e.target.checked)}
+                        className="h-3.5 w-3.5 rounded border-border bg-surface text-primary focus:ring-2 focus:ring-primary"
+                        disabled={
+                          isLoading ||
+                          repaymentLoading ||
+                          repaymentNeedsActual ||
+                          !!repaymentPreviewError
+                        }
+                      />
+                      {t('form.repaymentApplySplit')}
+                    </label>
+                  </div>
+                  <dl className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm text-text-secondary">
+                    <dt>{t('form.repaymentPreviewPrincipal')}</dt>
+                    <dd className="text-right text-text-primary">
+                      {repaymentPreview
+                        ? formatDecimal(
+                            repaymentPreview?.principal ?? 0,
+                            getCurrencyDecimals(liabilityCurrency)
+                          )
+                        : '—'}
+                    </dd>
+                    <dt>{t('form.repaymentPreviewInterest')}</dt>
+                    <dd className="text-right text-text-primary">
+                      {repaymentPreview
+                        ? formatDecimal(
+                            repaymentPreview?.interest ?? 0,
+                            getCurrencyDecimals(liabilityCurrency)
+                          )
+                        : '—'}
+                    </dd>
+                    <dt>{t('form.repaymentPreviewInsurance')}</dt>
+                    <dd className="text-right text-text-primary">
+                      {repaymentPreview
+                        ? formatDecimal(
+                            repaymentPreview?.insurance ?? 0,
+                            getCurrencyDecimals(liabilityCurrency)
+                          )
+                        : '—'}
+                    </dd>
+                  </dl>
+                  {repaymentNeedsActual && !repaymentLoading && (
+                    <p role="status" className="text-sm text-text-secondary">
+                      {t(`form.repaymentStatus.${repaymentPreview.status}`)}
                     </p>
                   )}
-                {repaymentPreviewError && applyRepaymentSplit && (
-                  <p role="alert" className="text-sm text-error">
-                    {t('form.repaymentUnavailable')}
-                  </p>
-                )}
-                {!applyRepaymentSplit && !splitMode && (
-                  <div>
-                    <label htmlFor="principalAmount">
-                      {t('form.manualPrincipal', { currency: liabilityCurrency })}
-                    </label>
-                    <Input
-                      id="principalAmount"
-                      type="number"
-                      min="0"
-                      step="0.01"
-                      {...register('principalAmount')}
-                      error={errors.principalAmount?.message}
-                    />
-                    <p className="text-xs text-text-secondary">{t('form.manualPrincipalHint')}</p>
-                  </div>
-                )}
-                {errors.principalAmount && applyRepaymentSplit && (
-                  <p role="alert" className="text-sm text-error">
-                    {errors.principalAmount.message}
-                  </p>
-                )}
-              </div>
-            )}
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={enterActualRepayment}
+                    disabled={isLoading}
+                  >
+                    {t('form.repaymentEnterActual')}
+                  </Button>
+                  {repaymentPreview &&
+                    selectedLiability &&
+                    repaymentPreview.principal > selectedLiability.currentBalance && (
+                      <p role="alert" className="text-error">
+                        {t('form.repaymentExceedsDebt')}
+                      </p>
+                    )}
+                  {repaymentPreviewError && applyRepaymentSplit && (
+                    <p role="alert" className="text-sm text-error">
+                      {t('form.repaymentUnavailable')}
+                    </p>
+                  )}
+                  {!applyRepaymentSplit && !splitMode && (
+                    <div>
+                      <label htmlFor="principalAmount">
+                        {t('form.manualPrincipal', { currency: liabilityCurrency })}
+                      </label>
+                      <Input
+                        id="principalAmount"
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        {...register('principalAmount')}
+                        error={errors.principalAmount?.message}
+                      />
+                      <p className="text-xs text-text-secondary">{t('form.manualPrincipalHint')}</p>
+                    </div>
+                  )}
+                  {errors.principalAmount && applyRepaymentSplit && (
+                    <p role="alert" className="text-sm text-error">
+                      {errors.principalAmount.message}
+                    </p>
+                  )}
+                </div>
+              )}
           </div>
         )}
       </LinkedOperationSection>

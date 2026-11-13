@@ -114,6 +114,7 @@ public class LiabilityService {
     private final UserRepository userRepository;
     private final ExchangeRateService exchangeRateService;
     private final RealEstateRepository realEstateRepository;
+    private final RealEstateService realEstateService;
     private final org.openfinance.repository.InstitutionRepository institutionRepository;
     private final NetWorthRepository netWorthRepository;
     private final OperationHistoryService operationHistoryService;
@@ -126,6 +127,7 @@ public class LiabilityService {
     private final RealEstateValueHistoryRepository realEstateValueHistoryRepository;
     private final LiabilityTrancheService liabilityTrancheService;
     private final LoanPaymentTotals loanPaymentTotals;
+    private final LoanPaymentHistory loanPaymentHistory;
 
     // Constants for calculations
     private static final int MAX_AMORTIZATION_PERIODS = 360; // Max 30 years of monthly payments
@@ -181,6 +183,7 @@ public class LiabilityService {
         liability.setType(request.getType());
         liability.setStartDate(request.getStartDate());
         liability.setEndDate(request.getEndDate());
+        liability.setAmortizationStartDate(request.getAmortizationStartDate());
         liability.setCurrency(request.getCurrency());
         liability.setCurrencyId(resolveCurrencyId(request.getCurrency()));
 
@@ -375,6 +378,12 @@ public class LiabilityService {
                         .orElseThrow(
                                 () -> LiabilityNotFoundException.byIdAndUser(liabilityId, userId));
 
+        if (liability.getConvertedFromAccountId() != null
+                && (request.getRepresentedByAccountId() != null
+                        || request.getStartDate().isAfter(liability.getBalanceStartDate())))
+            throw InvalidTransactionException.liabilityConversion(
+                    "terms", "The converted loan must retain its historical accounting boundary");
+
         // Capture snapshot before update for history
         LiabilityResponse beforeSnapshot = toResponseWithDecryption(liability);
 
@@ -398,6 +407,7 @@ public class LiabilityService {
         if (balanceChanged
                 && (hasLinkedTransactions
                         || hasDrawnTranches
+                        || liability.getConvertedFromAccountId() != null
                         || liability.getRepresentedByAccountId() != null)) {
             throw InvalidLiabilityStateException.liabilityBalanceLocked(liabilityId);
         }
@@ -405,6 +415,7 @@ public class LiabilityService {
         if (!liability.getCurrency().equalsIgnoreCase(request.getCurrency())) {
             if (hasLinkedTransactions
                     || hasDrawnTranches
+                    || liability.getConvertedFromAccountId() != null
                     || liability.getRepresentedByAccountId() != null) {
                 throw new InvalidTransactionException(
                         "A loan with recorded borrowing history cannot change currency; record a separate refinancing loan to change denomination");
@@ -457,6 +468,7 @@ public class LiabilityService {
         liability.setType(request.getType());
         liability.setStartDate(request.getStartDate());
         liability.setEndDate(request.getEndDate());
+        liability.setAmortizationStartDate(request.getAmortizationStartDate());
         liability.setCurrency(request.getCurrency());
         liability.setCurrencyId(resolveCurrencyId(request.getCurrency()));
 
@@ -593,6 +605,11 @@ public class LiabilityService {
                         .findByIdAndUserId(liabilityId, userId)
                         .orElseThrow(
                                 () -> LiabilityNotFoundException.byIdAndUser(liabilityId, userId));
+
+        if (liability.getConvertedFromAccountId() != null)
+            throw InvalidTransactionException.liabilityConversion(
+                    "delete",
+                    "Undo the conversion to restore the source account before deleting this liability");
 
         String label = null;
         LiabilityResponse snapshot = null;
@@ -1033,9 +1050,10 @@ public class LiabilityService {
         // suppresses the principal during that period.
         InterestOnlyWindow window =
                 resolveInterestOnlyWindow(
+                        liability,
                         liabilityTrancheRepository.findByLiabilityIdAndUserId(liabilityId, userId));
         List<AmortizationScheduleEntry> schedule =
-                buildSchedule(inputs, window, monthlyInsuranceOf(liability));
+                buildSchedule(liability, inputs, window, monthlyInsuranceOf(liability));
 
         log.info(
                 "Amortization schedule calculated for liability {}: {} payments, total interest: {}",
@@ -1044,6 +1062,18 @@ public class LiabilityService {
                 totalInterestOf(schedule));
 
         return schedule;
+    }
+
+    /** Recorded payments are kept separate from forecasts used by cost calculations. */
+    @Transactional(readOnly = true)
+    public List<org.openfinance.dto.LoanPaymentHistoryEntry> getPaymentHistory(
+            Long liabilityId, Long userId) {
+        Liability loan =
+                liabilityRepository
+                        .findByIdAndUserId(liabilityId, userId)
+                        .orElseThrow(
+                                () -> LiabilityNotFoundException.byIdAndUser(liabilityId, userId));
+        return loanPaymentHistory.entries(loan);
     }
 
     /** Validated inputs of an amortization schedule computation. */
@@ -1067,8 +1097,12 @@ public class LiabilityService {
      * amortizes; the row loop stops at the window end when the payment cannot cover interest.
      */
     private List<AmortizationScheduleEntry> buildSchedule(
-            ScheduleInputs inputs, InterestOnlyWindow window, BigDecimal monthlyInsurance) {
-        LocalDate firstPaymentDate = LocalDate.now();
+            Liability liability,
+            ScheduleInputs inputs,
+            InterestOnlyWindow window,
+            BigDecimal monthlyInsurance) {
+        LocalDate firstPaymentDate =
+                org.openfinance.util.LoanPaymentDates.nextPayment(liability, LocalDate.now());
         BigDecimal firstMonthInterest =
                 monthlyInterest(inputs.balance(), inputs.annualPercentage(), inputs.moneyScale());
         if (!window.activeOn(firstPaymentDate)
@@ -1080,7 +1114,7 @@ public class LiabilityService {
                     firstMonthInterest);
             return new ArrayList<>();
         }
-        return generateScheduleRows(inputs, monthlyInsurance, window, firstPaymentDate);
+        return generateScheduleRows(liability, inputs, monthlyInsurance, window, firstPaymentDate);
     }
 
     /**
@@ -1100,9 +1134,10 @@ public class LiabilityService {
                         orZero(rate),
                         org.openfinance.util.MoneyPrecision.scale(liability.getCurrency()));
         if (isInterestOnlyWindowActive(
+                liability,
                 liabilityTrancheRepository.findByLiabilityIdAndUserId(
                         liability.getId(), liability.getUserId()),
-                LocalDate.now())) {
+                org.openfinance.util.LoanPaymentDates.nextPayment(liability, LocalDate.now()))) {
             return interest.add(monthlyInsuranceOf(liability));
         }
         BigDecimal payment = decryptAmount(liability.getMinimumPayment());
@@ -1167,8 +1202,12 @@ public class LiabilityService {
      * getRepaymentPreview}): open-ended when any qualifying tranche has no {@code
      * interestOnlyUntil}, otherwise the latest {@code interestOnlyUntil} among them.
      */
-    private static InterestOnlyWindow resolveInterestOnlyWindow(List<LiabilityTranche> tranches) {
-        LocalDate interestOnlyUntil = null;
+    private static InterestOnlyWindow resolveInterestOnlyWindow(
+            Liability liability, List<LiabilityTranche> tranches) {
+        LocalDate interestOnlyUntil =
+                liability.getAmortizationStartDate() == null
+                        ? null
+                        : liability.getAmortizationStartDate().minusDays(1);
         for (LiabilityTranche tranche : tranches) {
             if (tranche.getStatus() == TrancheStatus.DRAWN && tranche.isInterestOnly()) {
                 if (tranche.getInterestOnlyUntil() == null) {
@@ -1219,10 +1258,7 @@ public class LiabilityService {
             return null;
         }
 
-        long totalMonths =
-                ChronoUnit.MONTHS.between(
-                        liability.getStartDate().withDayOfMonth(1),
-                        liability.getEndDate().withDayOfMonth(1));
+        long totalMonths = org.openfinance.util.LoanPaymentDates.amortizingMonths(liability);
         if (totalMonths <= 0) {
             return null;
         }
@@ -1273,6 +1309,7 @@ public class LiabilityService {
      * MAX_AMORTIZATION_PERIODS} is reached (Phase 2).
      */
     private List<AmortizationScheduleEntry> generateScheduleRows(
+            Liability liability,
             ScheduleInputs inputs,
             BigDecimal monthlyInsurance,
             InterestOnlyWindow window,
@@ -1345,7 +1382,9 @@ public class LiabilityService {
                             .build());
 
             // Move to next month
-            currentDate = currentDate.plusMonths(1);
+            currentDate =
+                    org.openfinance.util.LoanPaymentDates.paymentAt(
+                            liability, firstPaymentDate, paymentNumber);
             paymentNumber++;
         }
         return schedule;
@@ -1544,18 +1583,28 @@ public class LiabilityService {
 
         // Verify liability exists and belongs to user (Requirement REQ-3.2:
         // Authorization)
-        if (!liabilityRepository.existsByIdAndUserId(liabilityId, userId)) {
-            throw LiabilityNotFoundException.byIdAndUser(liabilityId, userId);
-        }
+        Liability loan =
+                liabilityRepository
+                        .findByIdAndUserId(liabilityId, userId)
+                        .orElseThrow(
+                                () -> LiabilityNotFoundException.byIdAndUser(liabilityId, userId));
 
         List<Transaction> transactions =
-                transactionRepository.findByLiabilityIdAndUserId(liabilityId, userId);
+                transactionRepository.findIncludingConvertedAccount(liabilityId, userId);
 
         log.debug(
                 "Found {} linked transactions for liability {}", transactions.size(), liabilityId);
 
         return transactions.stream()
-                .map(t -> transactionService.toResponseWithDecryption(t))
+                .map(
+                        t -> {
+                            org.openfinance.dto.TransactionResponse response =
+                                    transactionService.toResponseWithDecryption(t);
+                            response.setMovementType(
+                                    org.openfinance.util.LoanMovementClassification.classify(
+                                            loan, t));
+                            return response;
+                        })
                 .collect(Collectors.toList());
     }
 
@@ -1610,6 +1659,12 @@ public class LiabilityService {
             userArgument = 0,
             idArgument = 1)
     public LiabilityResponse disburse(Long userId, Long liabilityId, DisbursementRequest request) {
+        if ((request.isCapitalizePropertyCost()
+                        && (request.getDirectRealEstateId() == null
+                                || request.getToAccountId() != null))
+                || (request.isIncreasePropertyValue() && !request.isCapitalizePropertyCost())) {
+            throw InvalidTransactionException.invalidPropertyCapitalization();
+        }
         Liability liability =
                 liabilityRepository
                         .findByIdAndUserId(liabilityId, userId)
@@ -1654,6 +1709,10 @@ public class LiabilityService {
             tranche.setNotes(request.getNotes());
         }
         liabilityTrancheRepository.save(tranche);
+        if (request.isCapitalizePropertyCost()) {
+            realEstateService.capitalizeDirectDraw(
+                    userId, tranche, request.isIncreasePropertyValue());
+        }
         return toResponseWithDecryption(liability);
     }
 
@@ -2096,6 +2155,8 @@ public class LiabilityService {
                 .trancheNo(tranche.getTrancheNo())
                 .plannedAmount(tranche.getPlannedAmount())
                 .drawnAmount(tranche.getDrawnAmount())
+                .capitalizedAmount(tranche.getCapitalizedAmount())
+                .valuationChange(tranche.getValuationChange())
                 .remaining(remaining)
                 .plannedDate(tranche.getPlannedDate())
                 .drawnDate(tranche.getDrawnDate())
@@ -2229,21 +2290,22 @@ public class LiabilityService {
 
         boolean interestOnly =
                 isInterestOnlyWindowActive(
+                        liability,
                         liabilityTrancheRepository.findByLiabilityIdAndUserId(liabilityId, userId),
                         date);
 
         BigDecimal charges = interest.add(insurance);
+        BigDecimal principal =
+                interestOnly
+                        ? BigDecimal.ZERO
+                        : effectiveTotal.subtract(charges).max(BigDecimal.ZERO);
+        RepaymentPreviewResponse.Status status = RepaymentPreviewResponse.Status.READY;
         if (effectiveTotal.compareTo(charges) < 0) {
-            throw new InvalidTransactionException(
-                    "Payment is below the estimated interest and insurance; enter the actual components manually");
-        }
-        BigDecimal principal = effectiveTotal.subtract(charges);
-        if (interestOnly && principal.signum() > 0) {
-            throw new InvalidTransactionException(
-                    "Interest-only payment must equal estimated charges; enter an extra principal payment manually");
-        }
-        if (principal.compareTo(balance) > 0) {
-            throw new InvalidTransactionException("Principal payment exceeds outstanding debt");
+            status = RepaymentPreviewResponse.Status.BELOW_ESTIMATED_CHARGES;
+        } else if (interestOnly && effectiveTotal.compareTo(charges) != 0) {
+            status = RepaymentPreviewResponse.Status.INTEREST_ONLY_DIFFERENCE;
+        } else if (principal.compareTo(balance) > 0) {
+            status = RepaymentPreviewResponse.Status.EXCEEDS_BALANCE;
         }
 
         return RepaymentPreviewResponse.builder()
@@ -2252,6 +2314,7 @@ public class LiabilityService {
                 .interest(interest)
                 .insurance(insurance)
                 .interestOnly(interestOnly)
+                .status(status)
                 .build();
     }
 
@@ -2465,6 +2528,7 @@ public class LiabilityService {
 
     private boolean isBalanceLocked(Liability liability) {
         return liability.getRepresentedByAccountId() != null
+                || liability.getConvertedFromAccountId() != null
                 || !transactionRepository
                         .findByLiabilityIdAndUserId(liability.getId(), liability.getUserId())
                         .isEmpty()
@@ -2481,7 +2545,9 @@ public class LiabilityService {
         for (Transaction tx :
                 transactionRepository.findByLiabilityIdAndUserId(
                         liability.getId(), liability.getUserId())) {
-            if (tx.getMovementType() == MovementType.DISBURSEMENT) continue;
+            if (tx.getMovementType() == MovementType.DISBURSEMENT
+                    || org.openfinance.util.LoanPostingPolicy.isHistorical(
+                            liability, tx.getDate(), tx.getCreatedAt())) continue;
             paid = paid.add(tx.getPrincipalAmount());
         }
         return paid;
@@ -2498,16 +2564,18 @@ public class LiabilityService {
      * past {@code interestOnlyUntil}).
      */
     private static boolean isInterestOnlyWindowActive(
-            List<LiabilityTranche> tranches, LocalDate date) {
-        return tranches.stream()
-                .anyMatch(
-                        t ->
-                                t.getStatus() == TrancheStatus.DRAWN
-                                        && t.isInterestOnly()
-                                        && (t.getDrawnDate() == null
-                                                || !date.isBefore(t.getDrawnDate()))
-                                        && (t.getInterestOnlyUntil() == null
-                                                || !date.isAfter(t.getInterestOnlyUntil())));
+            Liability liability, List<LiabilityTranche> tranches, LocalDate date) {
+        return org.openfinance.util.LoanPaymentDates.principalDeferred(liability, date)
+                || tranches.stream()
+                        .anyMatch(
+                                t ->
+                                        t.getStatus() == TrancheStatus.DRAWN
+                                                && t.isInterestOnly()
+                                                && (t.getDrawnDate() == null
+                                                        || !date.isBefore(t.getDrawnDate()))
+                                                && (t.getInterestOnlyUntil() == null
+                                                        || !date.isAfter(
+                                                                t.getInterestOnlyUntil())));
     }
 
     // ===========================
@@ -2632,6 +2700,8 @@ public class LiabilityService {
                                         ? liability.getCreditLimit()
                                         : decryptedPrincipal)
                         .creditLimit(liability.getCreditLimit())
+                        .convertedFromAccountId(liability.getConvertedFromAccountId())
+                        .balanceStartDate(liability.getBalanceStartDate())
                         .representedByAccountId(liability.getRepresentedByAccountId())
                         .fundedAmount(liability.getRepresentedByAccountId() == null ? funded : null)
                         .fundingStatus(
@@ -2648,6 +2718,7 @@ public class LiabilityService {
                         .interestRate(decryptedInterestRate)
                         .startDate(liability.getStartDate())
                         .endDate(liability.getEndDate())
+                        .amortizationStartDate(liability.getAmortizationStartDate())
                         .minimumPayment(decryptedMinimumPayment)
                         .effectiveMonthlyPayment(effectiveMonthlyPayment(liability))
                         .currency(liability.getCurrency())

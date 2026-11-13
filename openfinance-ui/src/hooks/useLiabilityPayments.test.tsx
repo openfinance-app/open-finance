@@ -9,6 +9,7 @@ import {
   useAmortizationSchedule,
 } from '@/hooks/useLiabilities';
 import type { Liability } from '@/types/liability';
+import { useCreateTransaction } from '@/hooks/useTransactions';
 
 beforeEach(() => mockAuthentication());
 afterEach(() => vi.restoreAllMocks());
@@ -22,6 +23,66 @@ function setup() {
 }
 
 describe('liability payment queries', () => {
+  it('refreshes recorded history immediately after a payment is posted', async () => {
+    const { wrapper } = setup();
+    const liability: Liability = {
+      id: 9,
+      name: 'Loan',
+      type: 'PERSONAL_LOAN',
+      principal: 100,
+      currentBalance: 100,
+      currency: 'EUR',
+      startDate: '2026-01-01',
+      createdAt: '2026-01-01',
+      updatedAt: '2026-01-01',
+    };
+    let posted = false;
+    vi.spyOn(apiClient, 'get').mockImplementation(async url => ({
+      data:
+        url.endsWith('/history') && posted
+          ? [
+              {
+                transactionId: 45,
+                paymentDate: '2026-01-05',
+                paymentAmount: 20,
+                principalPortion: 15,
+                interestPortion: 5,
+                insurancePortion: 0,
+                feePortion: 0,
+                otherCharges: 0,
+                remainingBalance: 85,
+              },
+            ]
+          : [],
+    }));
+    vi.spyOn(apiClient, 'post').mockImplementation(async () => {
+      posted = true;
+      return { data: { id: 45 } };
+    });
+    const hook = renderHook(
+      () => ({
+        schedule: useAmortizationSchedule(liability),
+        payment: useCreateTransaction(),
+      }),
+      { wrapper }
+    );
+    await waitFor(() => expect(hook.result.current.schedule.isSuccess).toBe(true));
+    expect(hook.result.current.schedule.data?.history).toEqual([]);
+    await act(async () => {
+      await hook.result.current.payment.mutateAsync({
+        accountId: 1,
+        liabilityId: 9,
+        type: 'EXPENSE',
+        movementType: 'REPAYMENT',
+        date: '2026-01-05',
+        amount: 20,
+        currency: 'EUR',
+      });
+    });
+    await waitFor(() => expect(hook.result.current.schedule.data?.history).toHaveLength(1));
+    expect(hook.result.current.schedule.data?.history?.[0].principalPayment).toBe(15);
+  });
+
   it('preserves exact disbursement decimals and refreshes every affected balance after success', async () => {
     const { queryClient, wrapper } = setup();
     const affected = [
@@ -113,28 +174,42 @@ describe('liability payment queries', () => {
 
   it('maps interest-only and insured amortization rows without losing their breakdown', async () => {
     const { wrapper } = setup();
-    vi.spyOn(apiClient, 'get').mockResolvedValue({
-      data: [
-        {
-          paymentNumber: 1,
-          paymentDate: '2026-01-01',
-          paymentAmount: 15,
-          principalPortion: 0,
-          interestPortion: 10,
-          insurancePortion: 5,
-          remainingBalance: 100,
-          interestOnlyPhase: true,
-        },
-        {
-          paymentNumber: 2,
-          paymentDate: '2026-02-01',
-          paymentAmount: 110,
-          principalPortion: 100,
-          interestPortion: 10,
-          remainingBalance: 0,
-        },
-      ],
-    });
+    vi.spyOn(apiClient, 'get').mockImplementation(async url => ({
+      data: url.endsWith('/history')
+        ? [
+            {
+              transactionId: 45,
+              paymentDate: '2025-12-01',
+              paymentAmount: 30,
+              principalPortion: 0,
+              interestPortion: 10,
+              insurancePortion: 5,
+              feePortion: 15,
+              otherCharges: 0,
+              remainingBalance: 100,
+            },
+          ]
+        : [
+            {
+              paymentNumber: 1,
+              paymentDate: '2026-01-01',
+              paymentAmount: 15,
+              principalPortion: 0,
+              interestPortion: 10,
+              insurancePortion: 5,
+              remainingBalance: 100,
+              interestOnlyPhase: true,
+            },
+            {
+              paymentNumber: 2,
+              paymentDate: '2026-02-01',
+              paymentAmount: 110,
+              principalPortion: 100,
+              interestPortion: 10,
+              remainingBalance: 0,
+            },
+          ],
+    }));
     const liability: Liability = {
       id: 9,
       name: 'Mortgage',
@@ -152,6 +227,15 @@ describe('liability payment queries', () => {
     expect(hook.result.current.data).toMatchObject({
       liabilityId: 9,
       liabilityName: 'Mortgage',
+      history: [
+        expect.objectContaining({
+          transactionId: 45,
+          paymentAmount: 30,
+          feePayment: 15,
+          insurancePayment: 5,
+          principalPayment: 0,
+        }),
+      ],
       totalInterest: 20,
       totalAmount: 125,
       monthlyPayment: 15,

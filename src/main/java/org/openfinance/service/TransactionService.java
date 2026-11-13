@@ -1239,7 +1239,13 @@ public class TransactionService {
         ReversibleMovement oldMovement = snapshotOf(transaction);
 
         // Validate the transaction request
-        validateTransactionRequest(userId, request);
+        if (oldLiabilityId != null) {
+            Liability oldLoan =
+                    liabilityRepository.findByIdAndUserId(oldLiabilityId, userId).orElseThrow();
+            if (LoanPostingPolicy.isHistorical(oldLoan, oldDate, transaction.getCreatedAt()))
+                LoanPostingPolicy.validateLink(oldLoan, request, transaction);
+        }
+        validateTransactionRequest(userId, request, transaction);
 
         // REQ-SPL-1.5 / REQ-SPL-2.2: Validate and prepare splits if provided
         transactionSplitService.validateSplits(
@@ -2056,6 +2062,11 @@ public class TransactionService {
      * @throws CategoryNotFoundException if category doesn't exist or doesn't belong to user
      */
     private void validateTransactionRequest(Long userId, TransactionRequest request) {
+        validateTransactionRequest(userId, request, null);
+    }
+
+    private void validateTransactionRequest(
+            Long userId, TransactionRequest request, Transaction existing) {
         if (request.getValuationChange() != null
                 && (request.getValuationChange().signum() < 0
                         || (request.getValuationChange().signum() != 0
@@ -2179,7 +2190,7 @@ public class TransactionService {
                             + " assetId — split the movement into separate transactions instead.");
         }
 
-        validateInstrumentReferences(userId, request);
+        validateInstrumentReferences(userId, request, existing);
 
         // Validate currency matches source account currency. For all transaction types
         // the
@@ -2220,7 +2231,8 @@ public class TransactionService {
         }
     }
 
-    private void validateInstrumentReferences(Long userId, TransactionRequest request) {
+    private void validateInstrumentReferences(
+            Long userId, TransactionRequest request, Transaction existing) {
         if (request.getMovementType() == MovementType.DISBURSEMENT
                 && request.getTrancheId() != null) {
             LiabilityTranche tranche =
@@ -2251,7 +2263,7 @@ public class TransactionService {
                                     () ->
                                             LiabilityNotFoundException.byIdAndUser(
                                                     request.getLiabilityId(), userId));
-            LoanPostingPolicy.validateDate(liability, request.getDate());
+            LoanPostingPolicy.validateLink(liability, request, existing);
         }
     }
 
@@ -3031,6 +3043,8 @@ public class TransactionService {
             }
             transaction.setPrincipalAmount(principal);
             transactionRepository.save(transaction);
+            if (LoanPostingPolicy.isHistorical(
+                    liability, transaction.getDate(), transaction.getCreatedAt())) return;
             BigDecimal delta =
                     transaction.getMovementType() == MovementType.DISBURSEMENT
                             ? liabilityTotal
@@ -3136,7 +3150,9 @@ public class TransactionService {
         BigDecimal categorized = BigDecimal.ZERO;
         if (splits != null) {
             for (TransactionSplitRequest split : splits) {
-                if (split.getCategoryId() != null) {
+                if (split.getLoanComponent() != null
+                        ? split.getLoanComponent() != org.openfinance.entity.LoanComponent.PRINCIPAL
+                        : split.getCategoryId() != null) {
                     categorized = categorized.add(split.getAmount());
                 }
             }
@@ -3285,6 +3301,7 @@ public class TransactionService {
                                     () ->
                                             LiabilityNotFoundException.byIdAndUser(
                                                     liabilityId, userId));
+            if (LoanPostingPolicy.isHistorical(liability, old.date(), old.recordedAt())) return;
             boolean converted = old.originalCurrency() != null && old.conversionRate() != null;
             BigDecimal instrumentTotal = converted ? old.originalAmount() : old.amount();
             BigDecimal delta =

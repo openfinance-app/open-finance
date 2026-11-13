@@ -85,6 +85,11 @@ const liabilitySchema = (tv: (key: string) => string) =>
         .regex(/^\d{4}-\d{2}-\d{2}$/, tv('form.validation.invalidDateFormat'))
         .optional()
         .or(z.literal('')),
+      amortizationStartDate: z
+        .string()
+        .regex(/^\d{4}-\d{2}-\d{2}$/, tv('form.validation.invalidDateFormat'))
+        .optional()
+        .or(z.literal('')),
       minimumPayment: z
         .string()
         .refine(v => v === '' || isValidDecimalString(v), tv('form.validation.paymentInvalid'))
@@ -131,6 +136,16 @@ const liabilitySchema = (tv: (key: string) => string) =>
       {
         message: tv('form.validation.endDateAfterStart'),
         path: ['endDate'],
+      }
+    )
+    .refine(
+      data =>
+        !data.amortizationStartDate ||
+        (data.amortizationStartDate >= data.startDate &&
+          (!data.endDate || data.amortizationStartDate <= data.endDate)),
+      {
+        message: tv('form.validation.amortizationDateOrder'),
+        path: ['amortizationStartDate'],
       }
     );
 
@@ -184,6 +199,7 @@ export function LiabilityForm({
           interestRate: liability.interestRate ?? undefined,
           startDate: liability.startDate,
           endDate: liability.endDate || '',
+          amortizationStartDate: liability.amortizationStartDate || '',
           minimumPayment:
             liability.minimumPayment !== undefined && liability.minimumPayment !== null
               ? decimalField(liability, 'minimumPayment')
@@ -209,6 +225,7 @@ export function LiabilityForm({
           interestRate: undefined,
           startDate: today,
           endDate: '',
+          amortizationStartDate: '',
           minimumPayment: '',
           currency: initialCurrency || baseCurrency || DEFAULT_CURRENCY,
           notes: '',
@@ -236,6 +253,7 @@ export function LiabilityForm({
       interestRate: data.interestRate == null ? undefined : Number(data.interestRate),
       startDate: data.startDate,
       endDate: data.endDate && data.endDate !== '' ? data.endDate : undefined,
+      amortizationStartDate: data.amortizationStartDate || undefined,
       minimumPayment:
         data.minimumPayment && data.minimumPayment !== '' && Number(data.minimumPayment) > 0
           ? data.minimumPayment.trim()
@@ -519,7 +537,8 @@ export function LiabilityForm({
             errors.insurancePercentage ||
             errors.minimumPayment ||
             errors.additionalFees ||
-            errors.endDate
+            errors.endDate ||
+            errors.amortizationStartDate
           )
         }
       >
@@ -636,6 +655,32 @@ export function LiabilityForm({
                 />
               )}
             />
+          </div>
+
+          <div>
+            <label
+              htmlFor="amortizationStartDate"
+              className="block text-sm font-medium text-text-primary mb-1.5"
+            >
+              {t('form.amortizationStartDate')}
+            </label>
+            <Controller
+              name="amortizationStartDate"
+              control={control}
+              render={({ field }) => (
+                <DateInput
+                  id="amortizationStartDate"
+                  value={field.value}
+                  onChange={field.onChange}
+                  onBlur={field.onBlur}
+                  error={errors.amortizationStartDate?.message}
+                  aria-describedby="amortizationStartDateHint"
+                />
+              )}
+            />
+            <p id="amortizationStartDateHint" className="text-xs text-text-secondary mt-1.5">
+              {t('form.amortizationStartDateHint')}
+            </p>
           </div>
 
           {/* End Date */}

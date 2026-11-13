@@ -2,6 +2,20 @@ import { describe, expect, it } from 'vitest';
 import { decimalField, distributeExact, equalDecimals, exactSum } from '@/utils/exact-decimal';
 
 describe('exact decimal values', () => {
+  it('removes imported padding without rounding significant property or currency digits', () => {
+    for (const [value, expected] of [
+      ['208524.998700000000000000000000000', '208524.9987'],
+      ['11000013.717000000000000000000000000', '11000013.717'],
+      [
+        '99999999999999999999999999.123456789012345678000',
+        '99999999999999999999999999.123456789012345678',
+      ],
+    ]) {
+      expect(
+        decimalField({ amount: Number(value), exactValues: { amount: value } }, 'amount')
+      ).toBe(expected);
+    }
+  });
   it('survives JSON parsing without losing the original account balance', () => {
     const response = JSON.parse(
       '{"ownBalance":10006858.9112567483,"exactValues":{"ownBalance":"10006858.9112567483"}}'

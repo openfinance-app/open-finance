@@ -85,6 +85,8 @@ public class AccountResponse {
      *
      * <p>Requirement REQ-2.2.4: Indicate soft-deleted accounts
      */
+    private java.time.LocalDate liabilityConvertedAt;
+
     private Boolean isActive;
 
     /** Timestamp when the account was created. */

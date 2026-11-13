@@ -2,7 +2,7 @@
  * DisburseForm Component (tranche drawdown action)
  *
  * Shared form behind the per-tranche "Draw" action (TrancheDrawdownsTab) and
- * the generic "Disburse" button on the liability Overview tab. Posts to the
+ * the generic "Disburse" button on the staged funding tab. Posts to the
  * liability disbursement endpoint via useDisburseLiability: the funds go
  * either to one of the user's accounts (toAccountId) or directly to the
  * seller of the linked property (directRealEstateId). When no tranche is
@@ -59,6 +59,7 @@ export function DisburseForm({ liability, tranche, onDone }: DisburseFormProps) 
   const selectedAsset = eligibleAssets.find(asset => asset.id === selectedAssetId);
 
   const linkedPropertyId = tranche?.realEstateId ?? liability.linkedPropertyId ?? null;
+  const linkedPropertyAsset = eligibleAssets.find(asset => asset.realEstateId === linkedPropertyId);
   // Amount prefilled with the remaining planned amount of the tranche.
   const [amount, setAmount] = useState(
     tranche
@@ -84,12 +85,33 @@ export function DisburseForm({ liability, tranche, onDone }: DisburseFormProps) 
   const [date, setDate] = useState(getToday());
   const [route, setRoute] = useState<DisburseRoute>('account');
   const [accountId, setAccountId] = useState<number | undefined>(undefined);
+  const [capitalizePropertyCost, setCapitalizePropertyCost] = useState(false);
+  const [increasePropertyValue, setIncreasePropertyValue] = useState(false);
+  const directPropertyId =
+    route === 'property'
+      ? (selectedAsset?.realEstateId ?? (selectedAsset ? undefined : linkedPropertyId))
+      : undefined;
+  const addsPropertyCost = directPropertyId != null && capitalizePropertyCost;
+  const addsPropertyValue = addsPropertyCost && increasePropertyValue;
+  const firstDrawDate = liability.balanceStartDate ?? liability.startDate;
+  const available = ExactDecimal.max(
+    new ExactDecimal(
+      decimalField(liability, liability.approvedAmount == null ? 'principal' : 'approvedAmount')
+    ).minus(
+      decimalField(liability, liability.fundedAmount == null ? 'currentBalance' : 'fundedAmount')
+    ),
+    0
+  );
+  const maximum = tranche
+    ? ExactDecimal.min(available, decimalField(tranche, 'plannedAmount'))
+    : available;
 
   const numericAmount = Number(amount);
   const valid =
     isValidDecimalString(amount) &&
     numericAmount > 0 &&
-    date >= liability.startDate &&
+    new ExactDecimal(amount).lte(maximum) &&
+    date >= firstDrawDate &&
     date <= getToday() &&
     (route === 'property'
       ? selectedAsset != null || linkedPropertyId != null
@@ -107,15 +129,13 @@ export function DisburseForm({ liability, tranche, onDone }: DisburseFormProps) 
           amount: amount.trim(),
           date,
           toAccountId: route === 'account' ? accountId : undefined,
-          directRealEstateId:
-            route === 'property'
-              ? (selectedAsset?.realEstateId ??
-                (selectedAsset ? undefined : (linkedPropertyId ?? undefined)))
-              : undefined,
+          directRealEstateId: directPropertyId ?? undefined,
           directAssetId:
             route === 'property' && selectedAsset && selectedAsset.type !== 'REAL_ESTATE'
               ? selectedAsset.id
               : undefined,
+          capitalizePropertyCost: addsPropertyCost,
+          increasePropertyValue: addsPropertyValue,
         },
       });
       onDone();
@@ -128,8 +148,13 @@ export function DisburseForm({ liability, tranche, onDone }: DisburseFormProps) 
     'w-full h-11 md:h-10 px-3 rounded-lg bg-surface border border-border text-text-primary text-base md:text-sm placeholder:text-text-muted hover:border-border/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50 transition-colors duration-150';
 
   return (
-    <div
-      className="p-4 mb-3 border border-border rounded-lg bg-surface space-y-3"
+    <form
+      noValidate
+      onSubmit={event => {
+        event.preventDefault();
+        void submit();
+      }}
+      className="p-4 mb-3 border border-border rounded-lg bg-surface space-y-3 text-left"
       data-testid="disburse-form"
     >
       <p className="text-sm font-medium text-text-primary">{t('drawdowns.disburseForm.title')}</p>
@@ -145,6 +170,11 @@ export function DisburseForm({ liability, tranche, onDone }: DisburseFormProps) 
             onChange={setAmount}
             placeholder="0.00"
             min="0"
+            error={
+              isValidDecimalString(amount) && new ExactDecimal(amount).gt(maximum)
+                ? t('drawdowns.disburseForm.amountLimit')
+                : undefined
+            }
           />
         </div>
         <div>
@@ -155,7 +185,7 @@ export function DisburseForm({ liability, tranche, onDone }: DisburseFormProps) 
             id="disburse-date"
             value={date}
             onChange={setDate}
-            min={liability.startDate}
+            min={firstDrawDate}
             max={getToday()}
           />
         </div>
@@ -168,7 +198,11 @@ export function DisburseForm({ liability, tranche, onDone }: DisburseFormProps) 
           <select
             id="disburse-route"
             value={route}
-            onChange={e => setRoute(e.target.value as DisburseRoute)}
+            onChange={e => {
+              setRoute(e.target.value as DisburseRoute);
+              setCapitalizePropertyCost(false);
+              setIncreasePropertyValue(false);
+            }}
             className={selectClass}
           >
             <option value="account">{t('drawdowns.disburseForm.routeAccount')}</option>
@@ -208,10 +242,16 @@ export function DisburseForm({ liability, tranche, onDone }: DisburseFormProps) 
           <select
             id="disburse-target"
             className={selectClass}
-            value={selectedAssetId ?? ''}
-            onChange={event => setSelectedAssetId(Number(event.target.value) || undefined)}
+            value={selectedAssetId ?? linkedPropertyAsset?.id ?? ''}
+            onChange={event => {
+              setSelectedAssetId(Number(event.target.value) || undefined);
+              setCapitalizePropertyCost(false);
+              setIncreasePropertyValue(false);
+            }}
           >
-            <option value="">{liability.linkedPropertyName ?? t('form.noAsset')}</option>
+            {!linkedPropertyAsset && (
+              <option value="">{liability.linkedPropertyName ?? t('form.noAsset')}</option>
+            )}
             {eligibleAssets.map(asset => (
               <option key={asset.id} value={asset.id}>
                 {asset.name}
@@ -220,9 +260,47 @@ export function DisburseForm({ liability, tranche, onDone }: DisburseFormProps) 
           </select>
         </div>
       )}
-      {route === 'property' && (
+      {directPropertyId != null ? (
+        <div className="space-y-3 border-t border-border pt-3">
+          <div>
+            <label className="flex min-h-10 items-center gap-2 text-sm font-medium">
+              <input
+                type="checkbox"
+                checked={capitalizePropertyCost}
+                onChange={event => {
+                  setCapitalizePropertyCost(event.target.checked);
+                  setIncreasePropertyValue(false);
+                }}
+                aria-describedby="disburse-capitalized-help"
+                className="h-4 w-4 shrink-0 accent-primary"
+              />
+              {t('drawdowns.disburseForm.capitalizeCost')}
+            </label>
+            <p id="disburse-capitalized-help" className="pl-6 text-xs text-text-secondary">
+              {t('drawdowns.disburseForm.capitalizeCostHelp')}
+            </p>
+          </div>
+          {capitalizePropertyCost && (
+            <div className="pl-6">
+              <label className="flex min-h-10 items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={increasePropertyValue}
+                  onChange={event => setIncreasePropertyValue(event.target.checked)}
+                  aria-describedby="disburse-value-help"
+                  className="h-4 w-4 shrink-0 accent-primary"
+                />
+                {t('drawdowns.disburseForm.increaseValue')}
+              </label>
+              <p id="disburse-value-help" className="pl-6 text-xs text-text-secondary">
+                {t('drawdowns.disburseForm.increaseValueHelp')}
+              </p>
+            </div>
+          )}
+        </div>
+      ) : route === 'property' ? (
         <p className="text-xs text-text-secondary">{t('drawdowns.disburseForm.valuationPolicy')}</p>
-      )}
+      ) : null}
       {valid && (
         <dl className="grid grid-cols-2 gap-x-3 gap-y-2 border-t border-border pt-3 text-sm">
           <dt>{t('recordPayment.cashChange')}</dt>
@@ -245,9 +323,25 @@ export function DisburseForm({ liability, tranche, onDone }: DisburseFormProps) 
           </dd>
           {route === 'property' && (
             <>
+              {directPropertyId != null && (
+                <>
+                  <dt>{t('drawdowns.disburseForm.costChange')}</dt>
+                  <dd className="text-right font-mono tabular-nums">
+                    <ConvertedAmount
+                      inline
+                      amount={addsPropertyCost ? numericAmount : 0}
+                      currency={liability.currency}
+                    />
+                  </dd>
+                </>
+              )}
               <dt>{t('drawdowns.disburseForm.valueChange')}</dt>
               <dd className="text-right font-mono tabular-nums">
-                <ConvertedAmount inline amount={0} currency={liability.currency} />
+                <ConvertedAmount
+                  inline
+                  amount={addsPropertyValue ? numericAmount : 0}
+                  currency={liability.currency}
+                />
               </dd>
             </>
           )}
@@ -262,16 +356,10 @@ export function DisburseForm({ liability, tranche, onDone }: DisburseFormProps) 
         <Button variant="ghost" type="button" onClick={onDone} disabled={disburse.isPending}>
           {t('drawdowns.disburseForm.cancel')}
         </Button>
-        <Button
-          variant="primary"
-          type="button"
-          disabled={!valid}
-          isLoading={disburse.isPending}
-          onClick={submit}
-        >
+        <Button variant="primary" type="submit" disabled={!valid} isLoading={disburse.isPending}>
           {t('drawdowns.disburseForm.submit')}
         </Button>
       </div>
-    </div>
+    </form>
   );
 }

@@ -231,6 +231,7 @@ export function AccountDetailModal({
             <Button
               variant="secondary"
               size="sm"
+              disabled={!!account?.liabilityConvertedAt}
               onClick={() => setIsEditModalOpen(true)}
               className="hidden sm:flex"
             >
@@ -288,6 +289,12 @@ export function AccountDetailModal({
                   </span>
                 )}
               </div>
+
+              {account.liabilityConvertedAt && (
+                <p className="mb-5 text-sm text-text-secondary">
+                  {t('liabilities:conversion.archivedAccount')}
+                </p>
+              )}
 
               {/* Tabs */}
               <div className="border-b border-border mb-6">

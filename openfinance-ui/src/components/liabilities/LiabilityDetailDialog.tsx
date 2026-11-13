@@ -19,10 +19,10 @@ import { AssetFinancingSection } from '@/components/assets/AssetFinancingSection
  *   - Amortization Schedule: full payment schedule table
  *   - Linked Payments: transactions linked to this liability
  */
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useDateFormatter } from '@/hooks/useDateFormatter';
-import { CreditCard, RefreshCcw, AlertCircle, Banknote } from 'lucide-react';
+import { CreditCard, RefreshCcw, AlertCircle } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/Dialog';
 import { Button } from '@/components/ui/Button';
 import { HelpTooltip } from '@/components/ui/HelpTooltip';
@@ -33,7 +33,6 @@ import { cn } from '@/lib/utils';
 import { AmortizationSchedule } from '@/components/liabilities/AmortizationSchedule';
 import { LiabilityBreakdownPanel } from '@/components/liabilities/LiabilityBreakdownPanel';
 import { TrancheDrawdownsTab } from '@/components/liabilities/TrancheDrawdownsTab';
-import { DisburseForm } from '@/components/liabilities/DisburseForm';
 import { AttachmentList, AttachmentUpload } from '@/components/attachments';
 import { AttachmentEntityType } from '@/types/attachment';
 import { multiply } from '@/utils/money';
@@ -213,7 +212,7 @@ function TotalCostHero({ liability }: { liability: Liability }) {
         )}
       </div>
       {/* Legend */}
-      <div className="grid grid-cols-2 gap-x-6 gap-y-1 text-xs">
+      <div className="grid grid-cols-1 gap-x-6 gap-y-2 text-xs sm:grid-cols-2">
         <div className="flex items-center justify-between">
           <span className="flex items-center gap-1.5 text-text-secondary">
             <span className="h-2 w-2 rounded-full bg-primary inline-block" />
@@ -322,6 +321,21 @@ function LinkedPaymentsTab({ liability }: { liability: Liability }) {
   const { data: transactions = [], isLoading, error } = useLiabilityTransactions(liability.id);
   const { data: tranches = [] } = useTranches(liability.id);
 
+  const paymentTypes = ['REPAYMENT', 'INTEREST', 'INSURANCE', 'FEE'];
+  const groups = [
+    {
+      key: 'payments',
+      items: transactions.filter(tx => paymentTypes.includes(tx.movementType ?? '')),
+    },
+    { key: 'drawdowns', items: transactions.filter(tx => tx.movementType === 'DISBURSEMENT') },
+    {
+      key: 'other',
+      items: transactions.filter(
+        tx => tx.movementType !== 'DISBURSEMENT' && !paymentTypes.includes(tx.movementType ?? '')
+      ),
+    },
+  ].filter(group => group.items.length > 0);
+
   // trancheId → T{n} label, for repayments allocated to a specific tranche
   const trancheLabelById = new Map(tranches.map(tr => [tr.id, getTrancheLabel(tr.trancheNo)]));
 
@@ -370,140 +384,129 @@ function LinkedPaymentsTab({ liability }: { liability: Liability }) {
       >
         {t('assets:costEntry.transactions')}
       </Link>
+      {liability.convertedFromAccountId != null && liability.balanceStartDate && (
+        <p className="text-sm text-text-secondary">
+          {t('conversion.importedHistory', { date: date(liability.balanceStartDate) })}
+        </p>
+      )}
       {/* Summary banner */}
-      {breakdown && breakdown.linkedTransactionCount > 0 && (
-        <div className="flex items-center justify-between bg-surface border border-border rounded-lg px-4 py-3 text-sm">
+      {breakdown && transactions.length > 0 && (
+        <div className="flex flex-wrap items-center justify-between gap-2 bg-surface border border-border rounded-lg px-4 py-3 text-sm">
           <span className="text-text-secondary">
-            {t('detail.linkedCount', { count: breakdown.linkedTransactionCount })}
+            {t('detail.linkedCount', { count: transactions.length })}
           </span>
           <span className="font-semibold font-mono text-text-primary">
+            {t('breakdown.totalPaid')}:{' '}
             <ConvertedAmount
-              amount={breakdown.linkedTransactionsTotalAmount}
+              amount={breakdown.totalPaid}
               currency={liability.currency}
-              convertedAmount={toBase(breakdown.linkedTransactionsTotalAmount)}
+              convertedAmount={toBase(breakdown.totalPaid)}
               baseCurrency={liability.baseCurrency}
               exchangeRate={liability.exchangeRate}
               isConverted={liability.isConverted}
               inline
-            />{' '}
-            {t('detail.total')}
+            />
           </span>
         </div>
       )}
 
-      {/* Transaction list */}
-      <div className="divide-y divide-border border border-border rounded-lg overflow-hidden">
-        {transactions.map(tx => (
+      {groups.map((group, index) => (
+        <details
+          key={group.key}
+          open={index === 0}
+          className="group border border-border rounded-lg overflow-hidden"
+        >
+          <summary className="cursor-pointer px-4 py-3 bg-surface-elevated text-sm font-medium text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary">
+            {t(`detail.operationGroups.${group.key}`)}{' '}
+            <span className="ml-2 text-text-secondary tabular-nums">{group.items.length}</span>
+          </summary>
           <div
-            key={tx.id}
-            className="relative flex items-center justify-between px-4 py-3 bg-surface hover:bg-surface-elevated transition-colors"
+            role="region"
+            aria-label={t(`detail.operationGroups.${group.key}`)}
+            tabIndex={0}
+            className="divide-y divide-border max-h-[min(24rem,45dvh)] overflow-y-auto overscroll-contain focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary"
           >
-            <div className="flex items-center gap-3 min-w-0">
-              <RefreshCcw className="h-4 w-4 text-text-tertiary flex-shrink-0" />
-              <div className="min-w-0">
-                <div className="text-sm text-text-primary truncate flex items-center gap-2">
-                  <Link
-                    to={buildTransactionsLink({ liabilityId: liability.id, highlight: tx.id })}
-                    className="truncate hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary after:absolute after:inset-0"
-                  >
-                    {tx.description || tx.payee || t('detail.transaction', { id: tx.id })}
-                  </Link>
-                  {tx.movementType && (
-                    <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-surface-elevated text-text-secondary border border-border text-xs font-medium flex-shrink-0">
-                      {t(`movementTypes.${tx.movementType}`)}
-                    </span>
-                  )}
-                  {tx.trancheId != null &&
-                    !tx.principalAllocations?.length &&
-                    trancheLabelById.has(tx.trancheId) && (
-                      <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-primary/10 text-primary border border-primary/30 text-xs font-mono font-medium flex-shrink-0">
-                        {trancheLabelById.get(tx.trancheId)}
-                      </span>
-                    )}
-                </div>
-                <div className="text-xs text-text-tertiary">
-                  {tx.principalAllocations?.map((allocation, index) => (
-                    <span className="block" key={index}>
-                      {allocation.trancheId == null
-                        ? t('payments.openingPrincipal')
-                        : (trancheLabelById.get(allocation.trancheId) ??
-                          `#${allocation.trancheId}`)}
-                      {': '}
-                      <CurrencyAmount
-                        amount={allocation.amount}
-                        currency={liability.currency}
-                        inline
-                        conversionDate={tx.date}
-                      />
-                    </span>
-                  ))}
-                  {tx.accountName && (
-                    <>
+            {group.items.map(tx => (
+              <div
+                key={tx.id}
+                className="relative flex items-center justify-between px-4 py-3 bg-surface hover:bg-surface-elevated transition-colors"
+              >
+                <div className="flex items-center gap-3 min-w-0">
+                  <RefreshCcw className="h-4 w-4 text-text-tertiary flex-shrink-0" />
+                  <div className="min-w-0">
+                    <div className="text-sm text-text-primary flex flex-wrap items-center gap-x-2 gap-y-1 min-w-0">
                       <Link
-                        to={`/accounts?highlight=${tx.accountId}`}
-                        className="relative z-10 text-primary hover:underline"
+                        to={buildTransactionsLink({ liabilityId: liability.id, highlight: tx.id })}
+                        className="truncate hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary after:absolute after:inset-0"
                       >
-                        {tx.accountName}
-                      </Link>{' '}
-                      ·{' '}
-                    </>
-                  )}
-                  {date(tx.date)}
-                  {tx.payee && tx.description && (
-                    <span className="ml-2 text-text-tertiary">{tx.payee}</span>
-                  )}
+                        {tx.description || tx.payee || t('detail.transaction', { id: tx.id })}
+                      </Link>
+                      {tx.movementType && (
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-surface-elevated text-text-secondary border border-border text-xs font-medium flex-shrink-0">
+                          {t(`movementTypes.${tx.movementType}`)}
+                        </span>
+                      )}
+                      {tx.trancheId != null &&
+                        !tx.principalAllocations?.length &&
+                        trancheLabelById.has(tx.trancheId) && (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-primary/10 text-primary border border-primary/30 text-xs font-mono font-medium flex-shrink-0">
+                            {trancheLabelById.get(tx.trancheId)}
+                          </span>
+                        )}
+                    </div>
+                    <div className="text-xs text-text-tertiary">
+                      {tx.principalAllocations?.map((allocation, index) => (
+                        <span className="block" key={index}>
+                          {allocation.trancheId == null
+                            ? t('payments.openingPrincipal')
+                            : (trancheLabelById.get(allocation.trancheId) ??
+                              `#${allocation.trancheId}`)}
+                          {': '}
+                          <CurrencyAmount
+                            amount={allocation.amount}
+                            currency={liability.currency}
+                            inline
+                            conversionDate={tx.date}
+                          />
+                        </span>
+                      ))}
+                      {tx.accountName && (
+                        <>
+                          <Link
+                            to={`/accounts?highlight=${tx.accountId}`}
+                            className="relative z-10 text-primary hover:underline"
+                          >
+                            {tx.accountName}
+                          </Link>{' '}
+                          ·{' '}
+                        </>
+                      )}
+                      {date(tx.date)}
+                      {tx.payee && tx.description && tx.payee !== tx.description && (
+                        <span className="ml-2 text-text-tertiary">{tx.payee}</span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+                <div className="text-sm font-mono font-semibold text-text-primary ml-4 flex-shrink-0">
+                  {/* Transactions carry their own currency; use liability conversion for badge */}
+                  <ConvertedAmount
+                    amount={tx.amount}
+                    currency={tx.currency}
+                    convertedAmount={
+                      tx.currency === liability.currency ? toBase(tx.amount) : undefined
+                    }
+                    baseCurrency={liability.baseCurrency}
+                    exchangeRate={liability.exchangeRate}
+                    isConverted={tx.currency === liability.currency ? liability.isConverted : false}
+                    inline
+                  />
                 </div>
               </div>
-            </div>
-            <div className="text-sm font-mono font-semibold text-text-primary ml-4 flex-shrink-0">
-              {/* Transactions carry their own currency; use liability conversion for badge */}
-              <ConvertedAmount
-                amount={tx.amount}
-                currency={tx.currency}
-                convertedAmount={tx.currency === liability.currency ? toBase(tx.amount) : undefined}
-                baseCurrency={liability.baseCurrency}
-                exchangeRate={liability.exchangeRate}
-                isConverted={tx.currency === liability.currency ? liability.isConverted : false}
-                inline
-              />
-            </div>
+            ))}
           </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-/**
- * OverviewDisburse renders the generic "Disburse" action on the Overview tab
- * when no PLANNED tranche remains: the disbursement endpoint auto-picks (or
- * creates) the next tranche server-side.
- */
-function OverviewDisburse({ liability }: { liability: Liability }) {
-  const { t } = useTranslation('liabilities');
-  const { data: tranches = [] } = useTranches(liability.id);
-  const [showForm, setShowForm] = useState(false);
-
-  const available =
-    (liability.approvedAmount ?? liability.principal) -
-    (liability.fundedAmount ?? liability.currentBalance);
-  if (
-    available <= 0 ||
-    liability.representedByAccountId != null ||
-    liability.type === 'CREDIT_CARD'
-  )
-    return null;
-  const next = tranches.find(tr => tr.status === 'PLANNED');
-
-  if (showForm) {
-    return <DisburseForm liability={liability} tranche={next} onDone={() => setShowForm(false)} />;
-  }
-  return (
-    <div className="flex justify-end mt-4">
-      <Button variant="outline" size="sm" type="button" onClick={() => setShowForm(true)}>
-        <Banknote className="h-3.5 w-3.5 mr-1" />
-        {t('drawdowns.disburse')}
-      </Button>
+        </details>
+      ))}
     </div>
   );
 }
@@ -522,17 +525,21 @@ export function LiabilityDetailDialog({
 }: LiabilityDetailDialogProps) {
   const { onClose, closing, onAnimationEnd } = useAnimatedClose(onClosed);
   const { t } = useTranslation('liabilities');
+  const { date: formatDate } = useDateFormatter();
   const detailScrollRef = useViewScroll(`liability:${liability?.id}:scroll`);
   const [activeTab, setActiveTab] = useViewState<DetailTab>(
     `liability:${liability?.id}:tab`,
     initialTab
   );
 
-  // Fetch amortization schedule only when schedule tab is active and liability has an interest rate
-  const hasSchedule = (liability?.interestRate ?? 0) > 0;
-  const { data: amortizationSchedule, isLoading: isLoadingSchedule } = useAmortizationSchedule(
-    activeTab === 'schedule' && hasSchedule ? liability : null
-  );
+  // Recorded history stays available even when repayment terms are incomplete.
+  const hasSchedule = !!liability && liability.representedByAccountId == null;
+  const {
+    data: amortizationSchedule,
+    isLoading: isLoadingSchedule,
+    error: scheduleError,
+    refetch: retrySchedule,
+  } = useAmortizationSchedule(activeTab === 'schedule' && hasSchedule ? liability : null);
 
   // Interest-only phase note (Task 9): a DRAWN tranche flagged interest-only whose window is
   // still open suppresses the principal during that period.
@@ -557,7 +564,10 @@ export function LiabilityDetailDialog({
       <DialogContent
         onAnimationEnd={onAnimationEnd}
         ref={detailScrollRef}
-        className="max-w-[calc(100vw-2rem)] sm:max-w-[800px] max-h-[90vh] overflow-y-auto"
+        className={cn(
+          'max-w-[calc(100vw-2rem)] max-h-[90vh] overflow-y-auto',
+          activeTab === 'schedule' ? 'sm:max-w-[1024px]' : 'sm:max-w-[800px]'
+        )}
       >
         <DialogHeader className="min-w-0 text-left">
           <DialogTitle className="break-words">
@@ -611,8 +621,9 @@ export function LiabilityDetailDialog({
                   <>
                     <TotalCostHero liability={liability} />
                     <LiabilityBreakdownPanel liability={liability} />
-                    <OverviewDisburse liability={liability} />
-                    <RecordLoanPayment liability={liability} />
+                    <div className="mt-4">
+                      <RecordLoanPayment liability={liability} />
+                    </div>
                   </>
                 )}
               </div>
@@ -621,16 +632,21 @@ export function LiabilityDetailDialog({
             {/* Tab 2: Amortization Schedule */}
             {activeTab === 'schedule' && hasSchedule && (
               <div>
-                {activeInterestOnlyTranche && (
+                {(activeInterestOnlyTranche ||
+                  (liability.amortizationStartDate && liability.amortizationStartDate > today)) && (
                   <p
                     data-testid="interest-only-banner"
                     className="mb-3 px-3 py-2 rounded-md bg-info/10 border border-info/30 text-info text-sm"
                   >
-                    {activeInterestOnlyTranche.interestOnlyUntil
-                      ? t('schedule.interestOnlyPhase', {
-                          date: activeInterestOnlyTranche.interestOnlyUntil,
-                        })
-                      : t('schedule.interestOnlyPhaseOpen')}
+                    {activeInterestOnlyTranche
+                      ? activeInterestOnlyTranche.interestOnlyUntil
+                        ? t('schedule.interestOnlyPhase', {
+                            date: activeInterestOnlyTranche.interestOnlyUntil,
+                          })
+                        : t('schedule.interestOnlyPhaseOpen')
+                      : t('schedule.principalStarts', {
+                          date: formatDate(liability.amortizationStartDate!),
+                        })}
                   </p>
                 )}
                 {isLoadingSchedule && (
@@ -638,11 +654,30 @@ export function LiabilityDetailDialog({
                     {t('detail.loadingSchedule')}
                   </div>
                 )}
-                {amortizationSchedule && (
-                  <AmortizationSchedule
-                    schedule={amortizationSchedule}
-                    contractualEndDate={liability.endDate}
-                  />
+                {scheduleError && (
+                  <div
+                    role="alert"
+                    className="space-y-2 p-3 rounded-lg border border-error/20 text-error text-sm"
+                  >
+                    <p>{t('detail.scheduleError')}</p>
+                    <Button variant="secondary" size="sm" onClick={() => void retrySchedule()}>
+                      {t('detail.retry')}
+                    </Button>
+                  </div>
+                )}
+                {!scheduleError && amortizationSchedule && (
+                  <>
+                    {liability.fundedAmount != null &&
+                      liability.fundedAmount < liability.principal && (
+                        <p className="mb-3 text-sm text-text-secondary">
+                          {t('schedule.drawnBalanceForecast')}
+                        </p>
+                      )}
+                    <AmortizationSchedule
+                      schedule={amortizationSchedule}
+                      contractualEndDate={liability.endDate}
+                    />
+                  </>
                 )}
               </div>
             )}
@@ -656,7 +691,12 @@ export function LiabilityDetailDialog({
                     <HelpTooltip text={t('form.accountSourceHint')} />
                   </div>
                 ) : (
-                  <LinkedPaymentsTab liability={liability} />
+                  <>
+                    <div className="mb-4">
+                      <RecordLoanPayment liability={liability} />
+                    </div>
+                    <LinkedPaymentsTab liability={liability} />
+                  </>
                 )}
               </div>
             )}

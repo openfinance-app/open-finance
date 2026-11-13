@@ -1,3 +1,5 @@
+import { ConvertLiabilityWizard } from '@/components/liabilities/ConvertLiabilityWizard';
+import { useLiabilityConversionEnabled } from '@/hooks/useLiabilityConversion';
 import { FormDialog } from '@/components/ui/FormDialog';
 import { useLiability } from '@/hooks/useLiabilities';
 import { useViewState } from '@/hooks/useViewState';
@@ -48,6 +50,8 @@ export default function LiabilitiesPage() {
 
   const [showFilters, setShowFilters] = useViewState('showFilters', false);
   const [isFormOpen, setIsFormOpen] = useState(false);
+  const [isConversionOpen, setIsConversionOpen] = useState(false);
+  const conversionEnabled = useLiabilityConversionEnabled();
   const [saveError, setSaveError] = useState<string | null>(null);
   const [editingLiability, setEditingLiability] = useState<Liability | null>(null);
   /** Requirement 2.1: Single state for unified details dialog */
@@ -185,7 +189,7 @@ export default function LiabilitiesPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <PageHeader title={t('title')} description={t('description')} />
-        <div className="flex gap-2 shrink-0">
+        <div className="flex flex-wrap gap-2">
           <Button
             variant={showFilters ? 'primary' : 'outline'}
             onClick={() => setShowFilters(!showFilters)}
@@ -195,6 +199,11 @@ export default function LiabilitiesPage() {
             <Filter className="h-4 w-4 mr-2" />
             {t('filters')}
           </Button>
+          {conversionEnabled && (
+            <Button variant="outline" onClick={() => setIsConversionOpen(true)}>
+              {t('conversion.action')}
+            </Button>
+          )}
           <Button variant="primary" onClick={handleCreate}>
             <Plus className="h-4 w-4 mr-2" />
             {t('addLiability')}
@@ -285,6 +294,16 @@ export default function LiabilitiesPage() {
             />
           )}
         </>
+      )}
+
+      {isConversionOpen && conversionEnabled && (
+        <ConvertLiabilityWizard
+          onClose={() => setIsConversionOpen(false)}
+          onConverted={id => {
+            setIsConversionOpen(false);
+            setDetailId(id);
+          }}
+        />
       )}
 
       {/* Create/Edit Dialog */}

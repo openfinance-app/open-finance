@@ -83,6 +83,14 @@ public class LiabilityTranche {
     @Column(name = "drawn_amount", columnDefinition = "TEXT")
     private BigDecimal drawnAmount;
 
+    @Convert(converter = EncryptedBigDecimalConverter.class)
+    @Column(name = "capitalized_amount", columnDefinition = "TEXT")
+    private BigDecimal capitalizedAmount;
+
+    @Convert(converter = EncryptedBigDecimalConverter.class)
+    @Column(name = "valuation_change", columnDefinition = "TEXT")
+    private BigDecimal valuationChange;
+
     @Column(name = "planned_date")
     private LocalDate plannedDate;
 

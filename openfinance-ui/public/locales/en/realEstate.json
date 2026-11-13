@@ -664,7 +664,8 @@
     "error": "Failed to load movements. Please try again.",
     "acquisition": "Acquisition and other payments",
     "directFunding": "Funding drawdowns",
-    "reversed": "reversed {{date}}"
+    "reversed": "reversed {{date}}",
+    "directCapitalizedCost": "Added to property cost"
   },
   "wizard": {
     "back": "Back",

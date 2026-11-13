@@ -30,6 +30,7 @@ export function reconstructInitialSplits(transaction?: Transaction): Transaction
       amount: decimalValue(s, 'amount') ?? 0,
       description: s.description,
       tags: s.tags ?? [],
+      loanComponent: s.loanComponent,
     })) ?? [];
 
   const rate = transaction && decimalValue(transaction, 'conversionRate');
@@ -145,17 +146,24 @@ function buildRepaymentAutoSplit(
     principalRow = {
       amount: principalLeg,
       categoryId: principalCategoryId,
+      loanComponent: 'PRINCIPAL',
       description: undefined,
     };
     rows.push(principalRow);
   }
   if (new ExactDecimal(interestLeg).gt(0)) {
-    rows.push({ amount: interestLeg, categoryId: interestCategoryId, description: undefined });
+    rows.push({
+      amount: interestLeg,
+      categoryId: interestCategoryId,
+      loanComponent: 'INTEREST',
+      description: undefined,
+    });
   }
   if (new ExactDecimal(insuranceLeg).gt(0)) {
     rows.push({
       amount: insuranceLeg,
       categoryId: insuranceCategoryId,
+      loanComponent: 'INSURANCE',
       description: undefined,
     });
   }
@@ -281,6 +289,15 @@ export function buildTransactionRequest(ctx: SubmitContext): TransactionRequest 
       : value;
 
   const inSplit = splitMode && splits.length > 0;
+  if (
+    !inSplit &&
+    applyRepaymentSplit &&
+    linkedLiability &&
+    repaymentPreview?.status &&
+    repaymentPreview.status !== 'READY'
+  ) {
+    throw new Error('Enter the actual repayment allocation before saving this payment.');
+  }
   const submitAmount = convert(data.amount);
   const convertedAmounts = inSplit ? splits.map(split => convert(split.amount)) : [];
   const allocatedAmounts =
@@ -309,7 +326,13 @@ export function buildTransactionRequest(ctx: SubmitContext): TransactionRequest 
   // user did not enter manual splits.
   let finalSplits = submitSplits;
   let autoSplitCategoryId: number | undefined;
-  if (!inSplit && applyRepaymentSplit && repaymentPreview && linkedLiability) {
+  if (
+    !inSplit &&
+    applyRepaymentSplit &&
+    repaymentPreview &&
+    linkedLiability &&
+    (!repaymentPreview.status || repaymentPreview.status === 'READY')
+  ) {
     const liabToAccount =
       needsLiabilityFx && conversion.conversionRate ? conversion.conversionRate : 1;
     const autoSplit = buildRepaymentAutoSplit(
@@ -380,7 +403,8 @@ export function buildTransactionRequest(ctx: SubmitContext): TransactionRequest 
   };
   // Metadata edits must not reconstruct money through an approximate historical FX rate.
   // This also preserves older bookings whose original conversion rate was rounded.
-  if (ctx.transaction && hasUnchangedBooking(ctx, ctx.transaction)) {
+  const unchangedBooking = ctx.transaction && hasUnchangedBooking(ctx, ctx.transaction);
+  if (ctx.transaction && (unchangedBooking || hasUnchangedLoanCash(ctx, ctx.transaction))) {
     const stored = ctx.transaction;
     return {
       ...request,
@@ -389,18 +413,49 @@ export function buildTransactionRequest(ctx: SubmitContext): TransactionRequest 
       originalAmount: decimalValue(stored, 'originalAmount'),
       originalCurrency: stored.originalCurrency,
       conversionRate: decimalValue(stored, 'conversionRate'),
-      principalAmount: decimalValue(stored, 'principalAmount'),
+      principalAmount: unchangedBooking
+        ? decimalValue(stored, 'principalAmount')
+        : request.principalAmount,
       splits: stored.hasSplits
         ? stored.splits?.map((split, index) => ({
             categoryId: split.categoryId,
             amount: decimalValue(split, 'amount') ?? 0,
             description: splits[index]?.description,
             tags: splits[index]?.tags ?? [],
+            loanComponent: splits[index]?.loanComponent,
           }))
         : undefined,
     };
   }
   return request;
+}
+
+/** Changing a loan association/allocation must not re-round an existing foreign-currency booking. */
+function hasUnchangedLoanCash(ctx: SubmitContext, stored: Transaction): boolean {
+  if (
+    !(ctx.linkedLiability || stored.liabilityId) ||
+    ctx.data.type !== 'EXPENSE' ||
+    (ctx.liabilityCurrency &&
+      ctx.liabilityCurrency !== (stored.originalCurrency ?? stored.currency))
+  )
+    return false;
+  return hasUnchangedBooking(
+    {
+      ...ctx,
+      data: {
+        ...ctx.data,
+        liabilityId: stored.liabilityId,
+        trancheId: stored.trancheId,
+        movementType: stored.movementType,
+        principalAmount: decimalValue(stored, 'principalAmount'),
+      },
+      splits: ctx.splits.map((split, index) => ({
+        ...split,
+        loanComponent: stored.splits?.[index]?.loanComponent,
+      })),
+    },
+    stored
+  );
 }
 
 function hasUnchangedBooking(ctx: SubmitContext, transaction: Transaction): boolean {
@@ -454,7 +509,8 @@ function hasUnchangedBooking(ctx: SubmitContext, transaction: Transaction): bool
         splits.every(
           (split, index) =>
             equalDecimals(split.amount, initialSplits[index].amount) &&
-            (split.categoryId ?? null) === (initialSplits[index].categoryId ?? null)
+            (split.categoryId ?? null) === (initialSplits[index].categoryId ?? null) &&
+            (split.loanComponent ?? null) === (initialSplits[index].loanComponent ?? null)
         )))
   );
 }

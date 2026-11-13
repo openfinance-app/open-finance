@@ -402,12 +402,12 @@ describe('DashboardPage Integration Tests', () => {
   describe('Error Handling', () => {
     it('should display error message when API fails', async () => {
       server.use(
-        http.get('/api/v1/dashboard/summary', () =>
+        http.get('/api/v1/dashboard', () =>
           HttpResponse.json({ message: 'Server error' }, { status: 500 })
         )
       );
       renderWithProviders(<DashboardPage />);
-      const errorText = await screen.findByText(/failed to load/i, {}, { timeout: 10000 });
+      const errorText = await screen.findByText('Server error', {}, { timeout: 10000 });
       expect(errorText).toBeInTheDocument();
     }, 15000);
   });

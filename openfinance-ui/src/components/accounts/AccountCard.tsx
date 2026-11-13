@@ -120,13 +120,14 @@ export function AccountCard({
                   onEdit(account);
                 }}
                 className="h-11 w-11 p-0 sm:h-8 sm:w-8"
+                disabled={!!account.liabilityConvertedAt}
                 aria-label={tc('aria.editAccount')}
               >
                 <Edit2 className="h-4 w-4" />
               </Button>
 
               {/* Show reopen button for closed accounts */}
-              {isClosed && onReopen && (
+              {isClosed && onReopen && !account.liabilityConvertedAt && (
                 <Button
                   variant="ghost"
                   size="sm"
@@ -168,6 +169,7 @@ export function AccountCard({
                   onDelete(account);
                 }}
                 className="h-11 w-11 p-0 sm:h-8 sm:w-8 text-error hover:text-error hover:bg-error/10"
+                disabled={!!account.liabilityConvertedAt}
                 aria-label={tc('aria.deleteAccount')}
                 title={tc('aria.deleteAccount')}
               >

@@ -165,6 +165,18 @@ describe('Linked operation display', () => {
     expect(screen.queryByText('800 EUR')).not.toBeInTheDocument();
   });
 
+  it('does not present a drawdown as a zero-principal repayment', () => {
+    renderDetails({
+      ...base,
+      type: 'INCOME',
+      liabilityId: 4,
+      movementType: 'DISBURSEMENT',
+      principalAmount: 0,
+    });
+    expect(screen.getByRole('link', { name: 'Home mortgage' })).toBeVisible();
+    expect(screen.queryByText('Principal')).not.toBeInTheDocument();
+  });
+
   it('links property maintenance to the property details', () => {
     renderDetails({ ...base, realEstateId: 9, movementType: 'MAINTENANCE' });
     expect(screen.getByRole('link', { name: 'Family home' })).toHaveAttribute(

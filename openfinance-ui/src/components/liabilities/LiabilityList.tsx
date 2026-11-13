@@ -192,6 +192,7 @@ export function LiabilityList({
                     variant="ghost"
                     size="sm"
                     onClick={() => handleDeleteClick(liability)}
+                    disabled={liability.convertedFromAccountId != null}
                     aria-label={tc('aria.deleteLiability')}
                   >
                     <Trash2 className="h-4 w-4 text-error" />

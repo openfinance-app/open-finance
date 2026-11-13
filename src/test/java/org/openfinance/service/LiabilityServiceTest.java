@@ -834,6 +834,40 @@ class LiabilityServiceTest {
 
     // ============ Two-Phase Amortization Schedule Tests (interest-only tranches) ============
 
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(ints = {1, 6, 18, 24})
+    void openingDebtSupportsDifferentContractualDefermentPeriods(int months) {
+        Liability loan = createLiabilityEntity(100L, testUserId);
+        loan.setPrincipal("12000");
+        loan.setCurrentBalance("10000");
+        loan.setInterestRate("6");
+        loan.setInsurancePercentage("1.2");
+        loan.setMinimumPayment("500");
+        LocalDate first = LocalDate.now().withDayOfMonth(1);
+        if (first.isBefore(LocalDate.now())) first = first.plusMonths(1);
+        loan.setAmortizationStartDate(first.plusMonths(months));
+        when(liabilityRepository.findByIdAndUserId(100L, testUserId)).thenReturn(Optional.of(loan));
+        List<AmortizationScheduleEntry> schedule =
+                liabilityService.calculateAmortizationSchedule(100L, testUserId);
+        for (int i = 0; i < months; i++) {
+            assertThat(schedule.get(i).getPaymentDate()).isEqualTo(first.plusMonths(i));
+            assertThat(schedule.get(i).getPrincipalPortion()).isZero();
+            assertThat(schedule.get(i).getPaymentAmount()).isEqualByComparingTo("62");
+            assertThat(schedule.get(i).getRemainingBalance()).isEqualByComparingTo("10000");
+        }
+        assertThat(schedule.get(months).getPaymentDate())
+                .isEqualTo(loan.getAmortizationStartDate());
+        assertThat(schedule.get(months).getPrincipalPortion()).isEqualByComparingTo("450");
+        assertThat(schedule.get(months).getPaymentAmount()).isEqualByComparingTo("512");
+        assertThat(schedule.getLast().getRemainingBalance()).isZero();
+        assertThat(
+                        schedule.stream()
+                                .map(AmortizationScheduleEntry::getPrincipalPortion)
+                                .reduce(BigDecimal.ZERO, BigDecimal::add))
+                .isEqualByComparingTo("10000");
+        assertThat(liabilityService.effectiveMonthlyPayment(loan)).isEqualByComparingTo("62");
+    }
+
     /** Builds a DRAWN interest-only tranche for the given liability. */
     private LiabilityTranche drawnInterestOnlyTranche(
             Long liabilityId, LocalDate interestOnlyUntil) {

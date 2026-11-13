@@ -539,6 +539,13 @@ public class LiabilityController {
         return ResponseEntity.ok(schedule);
     }
 
+    @GetMapping("/{id}/amortization/history")
+    public ResponseEntity<List<org.openfinance.dto.LoanPaymentHistoryEntry>> getPaymentHistory(
+            @PathVariable("id") Long liabilityId, Authentication authentication) {
+        User user = (User) authentication.getPrincipal();
+        return ResponseEntity.ok(liabilityService.getPaymentHistory(liabilityId, user.getId()));
+    }
+
     /**
      * Calculates and returns the projected total interest for a liability.
      *

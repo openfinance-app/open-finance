@@ -43,6 +43,8 @@ public class TransactionSplitRequest {
      */
     private Long categoryId;
 
+    private org.openfinance.entity.LoanComponent loanComponent;
+
     /**
      * Amount allocated to this split line (required, must be &gt; 0).
      *

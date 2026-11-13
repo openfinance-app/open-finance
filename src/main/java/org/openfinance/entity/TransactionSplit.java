@@ -78,6 +78,10 @@ public class TransactionSplit {
     @Column(name = "category_id")
     private Long categoryId;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "loan_component", length = 16)
+    private LoanComponent loanComponent;
+
     /** Lazy-loaded reference to the category entity. */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "category_id", insertable = false, updatable = false)

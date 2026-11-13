@@ -167,6 +167,8 @@ class DataExportServiceTest {
                                         .id(40L)
                                         .transactionId(10L)
                                         .categoryId(50L)
+                                        .loanComponent(
+                                                org.openfinance.entity.LoanComponent.INTEREST)
                                         .amount(new BigDecimal("100.00"))
                                         .description("Line one, \"quoted\"\nline two")
                                         .tags("Holiday,Work")
@@ -201,6 +203,7 @@ class DataExportServiceTest {
                             .readTree(row[headers.indexOf("splits")])
                             .get(0);
             assertThat(split.path("categoryId").asLong()).isEqualTo(50L);
+            assertThat(split.path("loanComponent").asText()).isEqualTo("INTEREST");
             assertThat(split.path("tags").asText()).isEqualTo("Holiday,Work");
             assertThat(split.path("amount").decimalValue()).isEqualByComparingTo("100.00");
             assertThat(split.path("description").asText())
@@ -221,6 +224,7 @@ class DataExportServiceTest {
         liability.setMinimumPayment("825.99");
         liability.setCurrency("EUR");
         liability.setStartDate(java.time.LocalDate.of(2025, 1, 1));
+        liability.setAmortizationStartDate(java.time.LocalDate.of(2026, 7, 5));
         liability.setEndDate(java.time.LocalDate.of(2045, 1, 1));
         when(liabilities.findByUserIdOrderByCreatedAtDesc(1L)).thenReturn(List.of(liability));
         when(budgets.findByUserId(1L))
@@ -247,6 +251,8 @@ class DataExportServiceTest {
         assertThat(json.path("liabilities").get(0).path("currency").asText()).isEqualTo("EUR");
         assertThat(json.path("liabilities").get(0).path("endDate").asText())
                 .isEqualTo("2045-01-01");
+        assertThat(json.path("liabilities").get(0).path("amortizationStartDate").asText())
+                .isEqualTo("2026-07-05");
         assertThat(json.path("budgets").get(0).path("amount").asText())
                 .isEqualTo("123.456789012345678");
         assertThat(json.path("budgets").get(0).path("currency").asText()).isEqualTo("GBP");

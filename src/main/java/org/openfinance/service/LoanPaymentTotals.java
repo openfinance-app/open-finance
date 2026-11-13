@@ -32,7 +32,22 @@ public class LoanPaymentTotals {
     }
 
     public Paid calculate(Liability loan, List<Transaction> transactions) {
-        Map<Long, List<TransactionSplit>> byTransaction = splitAllocations(transactions);
+        return calculate(loan, transactions, splitAllocations(transactions));
+    }
+
+    public Map<Long, Paid> byTransaction(Liability loan, List<Transaction> transactions) {
+        Map<Long, List<TransactionSplit>> allocations = splitAllocations(transactions);
+        return transactions.stream()
+                .collect(
+                        Collectors.toMap(
+                                Transaction::getId,
+                                tx -> calculate(loan, List.of(tx), allocations)));
+    }
+
+    private Paid calculate(
+            Liability loan,
+            List<Transaction> transactions,
+            Map<Long, List<TransactionSplit>> byTransaction) {
         Map<String, BigDecimal> paid = new HashMap<>();
         for (Transaction transaction : transactions) {
             if (Boolean.TRUE.equals(transaction.getIsDeleted())
@@ -76,7 +91,10 @@ public class LoanPaymentTotals {
             Map<String, BigDecimal> paid) {
         List<TransactionSplit> charges =
                 allocations.stream()
-                        .filter(split -> split.getCategoryId() != null)
+                        .filter(
+                                split ->
+                                        split.getCategoryId() != null
+                                                || split.getLoanComponent() != null)
                         .filter(split -> !"PRINCIPAL".equals(chargeBucket(split)))
                         .filter(split -> split.getAmount().signum() > 0)
                         .toList();
@@ -109,6 +127,8 @@ public class LoanPaymentTotals {
     }
 
     private String chargeBucket(TransactionSplit split) {
+        if (split.getLoanComponent() != null) return split.getLoanComponent().name();
+        if (split.getCategoryId() == null) return "OTHER";
         String key =
                 categories
                         .findById(split.getCategoryId())

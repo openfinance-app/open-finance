@@ -120,6 +120,7 @@ class RepaymentPreviewTest {
         assertThat(preview.getTotal()).isEqualByComparingTo("1200.00");
         assertThat(preview.getInterest()).isEqualByComparingTo("218.75");
         assertThat(preview.getPrincipal()).isEqualByComparingTo("981.25");
+        assertThat(preview.getStatus()).isEqualTo(RepaymentPreviewResponse.Status.READY);
         assertThat(preview.getInsurance()).isEqualByComparingTo("0.00");
         assertThat(preview.getInterestOnly()).isFalse();
     }
@@ -223,6 +224,48 @@ class RepaymentPreviewTest {
     }
 
     // ---------- (d) Zero rate ----------
+
+    @Test
+    void differingDeferredPaymentStillReturnsTheEstimateForManualAllocation() {
+        givenLiability(
+                liability("50000.00", "5.25", "50000.00", "0.5"),
+                List.of(interestOnlyTranche(DATE.plusMonths(6))));
+
+        RepaymentPreviewResponse preview =
+                liabilityService.getRepaymentPreview(
+                        USER_ID, LIABILITY_ID, new BigDecimal("250.00"), DATE);
+
+        assertThat(preview.getInterest()).isEqualByComparingTo("218.75");
+        assertThat(preview.getInsurance()).isEqualByComparingTo("20.83");
+        assertThat(preview.getPrincipal()).isZero();
+        assertThat(preview.getStatus())
+                .isEqualTo(RepaymentPreviewResponse.Status.INTEREST_ONLY_DIFFERENCE);
+    }
+
+    @Test
+    void paymentBelowMonthlyEstimateStillReturnsChargesWithoutNegativePrincipal() {
+        givenLiability(liability("50000.00", "5.25", "50000.00", "0.5"), List.of());
+
+        RepaymentPreviewResponse preview =
+                liabilityService.getRepaymentPreview(
+                        USER_ID, LIABILITY_ID, new BigDecimal("100.00"), DATE);
+
+        assertThat(preview.getInterest()).isEqualByComparingTo("218.75");
+        assertThat(preview.getInsurance()).isEqualByComparingTo("20.83");
+        assertThat(preview.getPrincipal()).isZero();
+        assertThat(preview.getStatus())
+                .isEqualTo(RepaymentPreviewResponse.Status.BELOW_ESTIMATED_CHARGES);
+    }
+
+    @Test
+    void excessiveRepaymentRequiresActualAllocationInsteadOfFailingThePreview() {
+        givenLiability(liability("100.00", "0", "100.00", null), List.of());
+        RepaymentPreviewResponse preview =
+                liabilityService.getRepaymentPreview(
+                        USER_ID, LIABILITY_ID, new BigDecimal("120.00"), DATE);
+        assertThat(preview.getStatus()).isEqualTo(RepaymentPreviewResponse.Status.EXCEEDS_BALANCE);
+        assertThat(preview.getTotal()).isEqualByComparingTo("120.00");
+    }
 
     @Test
     @DisplayName("Zero rate: interest is 0 and principal = total − insurance")

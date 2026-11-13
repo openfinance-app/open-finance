@@ -145,7 +145,9 @@ export function LinkedOperationDetails({
       {(quantity ||
         booked.saleFees != null ||
         booked.valuationChange != null ||
-        (booked.liabilityId && booked.principalAmount != null)) && (
+        (booked.liabilityId &&
+          booked.movementType === 'REPAYMENT' &&
+          booked.principalAmount != null)) && (
         <dl className="mt-3 grid grid-cols-1 gap-x-4 gap-y-3 sm:grid-cols-2">
           {booked.valuationChange != null && (
             <Field label={ta('costEntry.valueChange')}>
@@ -200,19 +202,21 @@ export function LinkedOperationDetails({
               )}
             </Field>
           )}
-          {booked.liabilityId && booked.principalAmount != null && (
-            <Field label={t('form.repaymentPreviewPrincipal')}>
-              <RecordedAmount
-                value={decimalField(booked, 'principalAmount')}
-                currency={liability?.currency}
-              />
-              {!liability?.currency && (
-                <span className="ml-1 text-xs text-text-secondary">
-                  {t('linkedOperation.details.loanCurrency')}
-                </span>
-              )}
-            </Field>
-          )}
+          {booked.liabilityId &&
+            booked.movementType === 'REPAYMENT' &&
+            booked.principalAmount != null && (
+              <Field label={t('form.repaymentPreviewPrincipal')}>
+                <RecordedAmount
+                  value={decimalField(booked, 'principalAmount')}
+                  currency={liability?.currency}
+                />
+                {!liability?.currency && (
+                  <span className="ml-1 text-xs text-text-secondary">
+                    {t('linkedOperation.details.loanCurrency')}
+                  </span>
+                )}
+              </Field>
+            )}
         </dl>
       )}
     </Field>

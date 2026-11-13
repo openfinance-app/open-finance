@@ -113,8 +113,20 @@ public class TransactionSpecification {
 
             // Filter by linked liability
             if (criteria.getLiabilityId() != null) {
+                Subquery<Long> sourceAccount = query.subquery(Long.class);
+                Root<org.openfinance.entity.Liability> liability =
+                        sourceAccount.from(org.openfinance.entity.Liability.class);
+                sourceAccount
+                        .select(liability.get("convertedFromAccountId"))
+                        .where(
+                                criteriaBuilder.equal(
+                                        liability.get("id"), criteria.getLiabilityId()),
+                                criteriaBuilder.equal(liability.get("userId"), userId));
                 predicates.add(
-                        criteriaBuilder.equal(root.get("liabilityId"), criteria.getLiabilityId()));
+                        criteriaBuilder.or(
+                                criteriaBuilder.equal(
+                                        root.get("liabilityId"), criteria.getLiabilityId()),
+                                root.get("accountId").in(sourceAccount)));
             }
 
             // Filter by category

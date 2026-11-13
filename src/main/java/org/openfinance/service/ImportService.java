@@ -2357,6 +2357,7 @@ public class ImportService {
             } else {
                 requireActiveImportAccount(matchingAccount);
             }
+            matchingAccount.setImportSource("SKROOGE_JSON");
             applyImportedAccountActiveState(matchingAccount, account);
             accountIdsBySource.put(account.getSourceId(), matchingAccount.getId());
         }

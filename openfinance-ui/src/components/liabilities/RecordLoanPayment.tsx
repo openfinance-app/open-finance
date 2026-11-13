@@ -4,6 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useTranslation } from 'react-i18next';
 import { useAccounts } from '@/hooks/useAccounts';
+import { useDateFormatter } from '@/hooks/useDateFormatter';
 import { useCreateTransaction } from '@/hooks/useTransactions';
 import { Button } from '@/components/ui/Button';
 import { NumberInput } from '@/components/ui/NumberInput';
@@ -18,10 +19,12 @@ import type { Liability } from '@/types/liability';
 /** Actual statement amounts, never a made-up principal/interest split from an incomplete schedule. */
 export function RecordLoanPayment({ liability }: { liability: Liability }) {
   const { t } = useTranslation('liabilities');
+  const { date: formatDate } = useDateFormatter();
   const [open, setOpen] = useState(false);
   const id = useId();
   const accounts = useAccounts();
   const create = useCreateTransaction();
+  const earliestNewPayment = liability.balanceStartDate ?? liability.startDate;
   const eligible = (accounts.data ?? []).filter(account => account.currency === liability.currency);
   const amount = z
     .string()
@@ -45,8 +48,8 @@ export function RecordLoanPayment({ liability }: { liability: Liability }) {
       date: z
         .string()
         .refine(
-          value => value >= liability.startDate && value <= getToday(),
-          t('recordPayment.dateInvalid')
+          value => value >= earliestNewPayment && value <= getToday(),
+          t('recordPayment.dateInvalid', { date: formatDate(earliestNewPayment) })
         ),
     })
     .superRefine((value, context) => {
@@ -80,7 +83,6 @@ export function RecordLoanPayment({ liability }: { liability: Liability }) {
     return liability.currentBalance > 0 ? (
       <Button
         variant="secondary"
-        className="mt-4"
         onClick={() => {
           create.reset();
           setOpen(true);
@@ -92,7 +94,7 @@ export function RecordLoanPayment({ liability }: { liability: Liability }) {
   return (
     <form
       noValidate
-      className="mt-4 space-y-4 rounded-lg border border-primary/30 p-4"
+      className="w-full basis-full space-y-4 rounded-lg border border-primary/30 p-4"
       onSubmit={handleSubmit(async value => {
         try {
           await create.mutateAsync({
@@ -145,7 +147,7 @@ export function RecordLoanPayment({ liability }: { liability: Liability }) {
                 className="h-11 text-base md:h-10 md:text-sm"
                 id={`${id}-date`}
                 {...field}
-                min={liability.startDate}
+                min={earliestNewPayment}
                 max={getToday()}
               />
             )}

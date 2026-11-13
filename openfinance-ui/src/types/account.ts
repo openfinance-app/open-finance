@@ -103,6 +103,7 @@ export interface Account {
   description?: string;
   /** ISO date (yyyy-MM-dd) when the account was opened. */
   openingDate?: string;
+  liabilityConvertedAt?: string;
   isActive: boolean;
   createdAt: string;
   updatedAt?: string;

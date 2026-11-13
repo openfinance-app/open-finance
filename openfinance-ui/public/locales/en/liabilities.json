@@ -29,7 +29,7 @@
     "currencyPlaceholder": "Select currency",
     "interestRate": "Interest Rate (% Annual)",
     "insurancePercentage": "Insurance Rate (% Annual)",
-    "minimumPayment": "Minimum Monthly Payment",
+    "minimumPayment": "Minimum Monthly Payment (excluding insurance)",
     "additionalFees": "One-time Fee",
     "startDate": "Start Date",
     "endDate": "End Date (Optional)",
@@ -66,7 +66,8 @@
       "feesNonNegative": "Fees cannot be negative",
       "feesInvalid": "Enter a valid amount (e.g. 1234.56)",
       "endDateAfterStart": "End date must be after start date",
-      "reviewFields": "Please check the form fields before saving."
+      "reviewFields": "Please check the form fields before saving.",
+      "amortizationDateOrder": "Choose a date between the loan start and maturity."
     },
     "balanceLocked": "Balance comes from recorded movements. Use a repayment, draw or reversal to change it.",
     "creditLimit": "Credit limit (optional)",
@@ -94,7 +95,9 @@
     "paidHistory": "Historical paid loan (optional)",
     "financedAsset": "Financed possession (optional)",
     "noAsset": "No linked possession",
-    "assetLinkHint": "Associates the loan with this item. No payment or valuation change is created."
+    "assetLinkHint": "Associates the loan with this item. No payment or valuation change is created.",
+    "amortizationStartDate": "First principal repayment",
+    "amortizationStartDateHint": "Earlier instalments cover interest and insurance only. Monthly payments use this day of the month."
   },
   "summary": {
     "totalLiabilities": "Total Liabilities",
@@ -167,7 +170,7 @@
     "totalAmount": "Remaining Total",
     "totalPayments": "Total Payments",
     "interestPrincipalRatio": "Interest/Principal",
-    "filterAll": "All Payments",
+    "filterAll": "All",
     "filter12": "Next 12 Months",
     "filter24": "Next 24 Months",
     "exportCsv": "Export CSV",
@@ -184,13 +187,23 @@
       "principal": "Principal",
       "interest": "Interest",
       "remainingBalance": "Remaining Balance",
-      "insurance": "Insurance"
+      "insurance": "Insurance",
+      "status": "Status",
+      "charges": "Fees / other"
     },
     "pastContract": "At this payment amount, estimated payoff is {{payoff}}, after the contractual end date {{contract}}. Review the payment amount or the contract terms.",
     "incomplete": "This schedule does not repay the full balance. Review the payment amount and any interest-only period.",
     "paidOff": "No payments remain: this loan is paid off.",
     "undrawn": "No repayment schedule yet: this loan has not been drawn.",
-    "noBalance": "There is no outstanding principal to schedule."
+    "noBalance": "There is no outstanding principal to schedule.",
+    "remainingForecast": "Remaining forecast",
+    "paid": "Paid",
+    "remaining": "Remaining",
+    "statusFilter": "Payment status",
+    "historyHint": "Paid entries come from recorded transactions. Remaining payments are estimates.",
+    "closingBalanceHint": "Outstanding principal at the end of the payment date.",
+    "noHistory": "No recorded payments yet.",
+    "noRemaining": "No remaining payments to display."
   },
   "breakdown": {
     "loadError": "Failed to load breakdown. Please try again.",
@@ -259,13 +272,20 @@
       "error": "The disbursement failed. Please try again.",
       "target": "Financed asset or property",
       "debtAfter": "New debt balance",
-      "valueChange": "Change in item value"
+      "valueChange": "Change in item value",
+      "amountLimit": "The amount exceeds the undrawn funds or the planned amount for this installment.",
+      "capitalizeCost": "Add to property cost",
+      "capitalizeCostHelp": "For construction, renovations or improvements not already included in the property’s cost.",
+      "increaseValue": "Also increase the property value by this amount",
+      "increaseValueHelp": "Choose this when your tracked value reflects progress at cost. Leave unchecked if the value already includes these works or comes from a separate appraisal.",
+      "costChange": "Added property cost"
     },
     "reverse": "Reverse draw",
     "reversedOn": "Reversed on {{date}}",
     "reverseDate": "Reversal date",
-    "reverseHint": "This removes the draw from outstanding debt. Its history is retained; later independent property valuations are preserved.",
-    "reverseError": "The draw could not be reversed. Check the date and principal repayments."
+    "reverseHint": "This removes the draw from outstanding debt and cancels any property cost and value increase recorded with it. History and later independent valuations are preserved.",
+    "reverseError": "The draw could not be reversed. Check the date and principal repayments.",
+    "capitalizedCost": "Added to property cost"
   },
   "movementTypes": {
     "DISBURSEMENT": "Disbursement",
@@ -279,7 +299,9 @@
   },
   "schedule": {
     "interestOnlyPhase": "Interest-only until {{date}}: principal 0",
-    "interestOnlyPhaseOpen": "Interest-only phase active: principal 0"
+    "interestOnlyPhaseOpen": "Interest-only phase active: principal 0",
+    "principalStarts": "Interest and insurance only until the first principal repayment on {{date}}.",
+    "drawnBalanceForecast": "Projection based on the outstanding drawn balance. Future drawdowns will change this schedule."
   },
   "fundingStatus": {
     "UNDRAWN": "Undrawn",
@@ -316,7 +338,14 @@
     "transaction": "Transaction #{{id}}",
     "title": "{{name}} — Details",
     "sections": "Loan sections",
-    "assets": "Linked assets"
+    "assets": "Linked assets",
+    "operationGroups": {
+      "payments": "Payments",
+      "drawdowns": "Drawdowns",
+      "other": "Other movements"
+    },
+    "scheduleError": "Failed to load payment history and forecast.",
+    "retry": "Try again"
   },
   "saveError": "The liability could not be saved. Please try again.",
   "deleteError": "The liability could not be deleted. Please try again.",
@@ -330,12 +359,99 @@
     "chooseAccount": "Choose an account",
     "amountInvalid": "Enter a valid positive payment and non-negative principal.",
     "principalInvalid": "Principal cannot exceed the payment or outstanding debt.",
-    "dateInvalid": "Choose a date between the loan start and today.",
+    "dateInvalid": "Choose a date between {{date}} and today.",
     "description": "Loan payment: {{name}}",
     "cashChange": "Cash change",
     "debtAfter": "Debt after payment",
     "cancel": "Cancel",
     "confirm": "Confirm payment",
     "error": "Payment could not be saved. Your entries have been kept."
+  },
+  "conversion": {
+    "stepsLabel": "Conversion steps",
+    "steps": {
+      "source": "Account",
+      "details": "Loan terms",
+      "review": "Review",
+      "payments": "Payments"
+    },
+    "action": "Convert imported account",
+    "title": "Convert imported account",
+    "description": "Turn a Skrooge debt account into a managed liability.",
+    "loading": "Loading imported accounts…",
+    "loadError": "Could not load accounts. Try again.",
+    "retry": "Try again",
+    "empty": "No eligible imported debt accounts. Accounts must have a negative balance and no linked assets.",
+    "search": "Find an account",
+    "selectSource": "Choose the debt account",
+    "noMatch": "No matching accounts.",
+    "detailsTitle": "Confirm the loan terms",
+    "reviewTitle": "Review the conversion",
+    "outstanding": "Outstanding debt",
+    "name": "Liability name",
+    "type": "Liability type",
+    "termsHint": "Review the agreed principal and the total already borrowed against your loan statement. The agreed principal includes funds still to be drawn; the total already borrowed includes any principal you have repaid.",
+    "principal": "Agreed principal",
+    "fundedPrincipal": "Total already borrowed",
+    "startDate": "Loan start date",
+    "endDate": "End date (optional)",
+    "interestRate": "Annual interest rate (optional)",
+    "minimumPayment": "Monthly payment, excluding insurance (optional)",
+    "source": "Source account",
+    "effect_one": "The account will be closed and its debt moved here. Its {{count}} imported transaction remains available in Linked payments. New payments are managed here from today. Cash flow and net worth stay unchanged.",
+    "effect_other": "The account will be closed and its debt moved here. Its {{count}} imported transactions remain available in Linked payments. New payments are managed here from today. Cash flow and net worth stay unchanged.",
+    "confirm": "Convert to liability",
+    "converting": "Converting…",
+    "review": "Review conversion",
+    "back": "Back",
+    "error": "Conversion failed. Try again.",
+    "retryHint": "The result is not yet confirmed. Retry safely with the same details.",
+    "invalidAmount": "Enter a valid non-negative amount.",
+    "nameRequired": "Enter a liability name.",
+    "invalidDate": "Choose a loan start date no later than today.",
+    "invalidEndDate": "End date must follow the start date.",
+    "invalidRate": "Enter a rate between 0 and 100.",
+    "fundedMinimum": "Total borrowed must cover the outstanding debt.",
+    "principalMinimum": "Agreed principal must cover the total already borrowed.",
+    "importedHistory": "Includes the original account history. Managed payments start on {{date}}.",
+    "archivedAccount": "Converted to a managed liability. This account is kept for its history; record new payments in Liabilities.",
+    "mortgagePreset": "Confirmed mortgage terms are prefilled. Review the property, dates and amounts before continuing; the first principal repayment date was inferred from the contract maturity.",
+    "propertyHint": "Select the converted property. If it is not listed, convert the imported asset in Real Estate first. Linking allocates this mortgage to the property without creating a payment.",
+    "propertyError": "Properties could not be loaded. Close and reopen the wizard to retry.",
+    "propertyRequired": "Select the property financed by this mortgage.",
+    "otherDetails": "Fees and contract notes (optional)",
+    "feesHint": "Only enter fees not already included in the payments you will link. Linked fees are counted automatically.",
+    "monthlyInsurance": "Monthly insurance",
+    "payments": {
+      "title": "Associate existing payments",
+      "next": "Review existing payments",
+      "hint": "Select the existing repayments and review their breakdown. Their booked amounts, dates and categories stay unchanged.",
+      "search": "Loan reference, description or tag (same-currency expenses)",
+      "find": "Search",
+      "reload": "Reload payments",
+      "loading": "Finding existing payments…",
+      "error": "Payments could not be loaded. Reload them before continuing.",
+      "empty": "No matching payments. Try another loan reference or description, or continue without associations.",
+      "truncated": "Showing the first 100 matches. Refine the search to find the payments you need.",
+      "selectAll": "Select results",
+      "clear": "Clear selection",
+      "list": "Existing loan payments",
+      "select": "Associate {{description}} on {{date}}",
+      "unnamed": "Payment",
+      "uncategorized": "Uncategorized",
+      "classify": "Choose the loan components",
+      "breakdown": "Review payment components",
+      "chooseComponent": "Choose a component",
+      "selected_one": "{{count}} payment selected",
+      "selected_other": "{{count}} payments selected",
+      "incomplete": "Choose a component for every selected payment and split, or deselect the payment.",
+      "principalExceeded": "Selected principal exceeds the principal already repaid. Review the total borrowed and payment components.",
+      "effect": "Selected payments will be associated in the same conversion. They will not be recreated or deducted from the outstanding balance again."
+    },
+    "undrawn": "Still undrawn",
+    "paymentWithInsurance": "Amortizing payment, including insurance"
+  },
+  "wizard": {
+    "next": "Next"
   }
 }

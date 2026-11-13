@@ -89,6 +89,7 @@ public class AssetService {
 
     private final AssetRepository assetRepository;
     private final org.openfinance.repository.RealEstateRepository realEstateRepository;
+    private final org.openfinance.repository.LiabilityTrancheRepository liabilityTrancheRepository;
     private final org.openfinance.repository.TransactionRepository transactionRepository;
     private final AccountRepository accountRepository;
     private final CurrencyRepository currencyRepository;
@@ -1436,8 +1437,19 @@ public class AssetService {
                     .map(
                             property ->
                                     org.openfinance.util.CapitalizedCosts.total(
-                                            transactionRepository.findByRealEstateIdAndUserId(
-                                                    property.getId(), asset.getUserId())))
+                                                    transactionRepository
+                                                            .findByRealEstateIdAndUserId(
+                                                                    property.getId(),
+                                                                    asset.getUserId()))
+                                            .add(
+                                                    org.openfinance.util.CapitalizedCosts
+                                                            .directFunding(
+                                                                    liabilityTrancheRepository
+                                                                            .findByRealEstateIdAndUserId(
+                                                                                    property
+                                                                                            .getId(),
+                                                                                    asset
+                                                                                            .getUserId()))))
                     .orElse(BigDecimal.ZERO);
         }
         if (!asset.isPhysical()) return BigDecimal.ZERO;

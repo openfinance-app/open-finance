@@ -444,6 +444,14 @@ export const liabilityHandlers = [
  * Request handlers for dashboard
  */
 export const dashboardHandlers = [
+  // These cards also mount in dashboard integration tests. Keep their requests
+  // isolated from any running development server (which rejects the mock JWT).
+  http.get(`${API_BASE_URL}/rss/finance`, () => HttpResponse.json([])),
+  http.get(`${API_BASE_URL}/real-estate`, () => HttpResponse.json([])),
+  http.get(`${API_BASE_URL}/dashboard/yearly-balance`, () =>
+    HttpResponse.json({ years: [], netWorth: [], accounts: [], institutions: [], currency: 'USD' })
+  ),
+
   // Get dashboard summary (main endpoint)
   http.get(`${API_BASE_URL}/dashboard`, () => {
     return HttpResponse.json(mockDashboardSummary);

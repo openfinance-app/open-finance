@@ -27,6 +27,58 @@ function context(transaction?: Transaction): Parameters<typeof buildTransactionR
 }
 
 describe('transaction decimal precision', () => {
+  it('never submits an unappliable estimate as actual principal', () => {
+    const draft = context();
+    Object.assign(draft, {
+      applyRepaymentSplit: true,
+      linkedLiability: true,
+      repaymentPreview: {
+        total: 250,
+        principal: 0,
+        interest: 218.75,
+        insurance: 20.83,
+        interestOnly: true,
+        status: 'INTEREST_ONLY_DIFFERENCE',
+      },
+    });
+    expect(() => buildTransactionRequest(draft)).toThrow(/actual repayment allocation/);
+  });
+  it('links historical foreign-currency payments without recalculating their booked cash amount', () => {
+    const stored = {
+      id: 1,
+      accountId: 1,
+      type: 'EXPENSE',
+      currency: 'XOF',
+      date: '2026-01-01',
+      amount: 10006858.91125675,
+      exactValues: { amount: '10006858.9112567483' },
+      originalAmount: 500,
+      originalCurrency: 'EUR',
+      conversionRate: 20013.7178,
+    } as Transaction;
+    const edit = context(stored);
+    Object.assign(edit.data, {
+      amount: '500',
+      currency: 'EUR',
+      liabilityId: 2,
+      movementType: 'REPAYMENT',
+      principalAmount: '80',
+    });
+    Object.assign(edit, {
+      inputCurrency: 'EUR',
+      needsConversion: true,
+      rate: '20013.7178',
+      linkedLiability: true,
+      liabilityCurrency: 'EUR',
+    });
+    expect(buildTransactionRequest(edit)).toMatchObject({
+      amount: '10006858.9112567483',
+      originalAmount: 500,
+      conversionRate: 20013.7178,
+      liabilityId: 2,
+      principalAmount: '80',
+    });
+  });
   it('keeps an improvement valuation increase in the item currency when cash is converted', () => {
     const request = context();
     Object.assign(request.data, {

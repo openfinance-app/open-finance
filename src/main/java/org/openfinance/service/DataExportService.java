@@ -324,6 +324,7 @@ public class DataExportService {
         data.put("amount", split.getAmount());
         data.put("description", split.getDescription());
         data.put("tags", split.getTags());
+        data.put("loanComponent", split.getLoanComponent());
         return data;
     }
 
@@ -389,6 +390,11 @@ public class DataExportService {
                                             ? liability.getEndDate().toString()
                                             : null);
                             data.put("minimumPayment", liability.getMinimumPayment());
+                            data.put(
+                                    "amortizationStartDate",
+                                    liability.getAmortizationStartDate() != null
+                                            ? liability.getAmortizationStartDate().toString()
+                                            : null);
                             data.put("currency", liability.getCurrency());
                             data.put("notes", liability.getNotes());
                             data.put("createdAt", formatDateTime(liability.getCreatedAt()));

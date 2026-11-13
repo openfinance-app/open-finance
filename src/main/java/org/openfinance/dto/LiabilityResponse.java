@@ -55,6 +55,9 @@ public class LiabilityResponse {
      */
     private BigDecimal principal;
 
+    private Long convertedFromAccountId;
+    private java.time.LocalDate balanceStartDate;
+
     private Long representedByAccountId;
 
     /**
@@ -82,6 +85,8 @@ public class LiabilityResponse {
      * <p>Can be null for revolving credit or liabilities without fixed payoff dates.
      */
     private LocalDate endDate;
+
+    private LocalDate amortizationStartDate;
 
     /**
      * Minimum monthly payment required (decrypted).

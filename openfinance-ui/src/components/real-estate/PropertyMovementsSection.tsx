@@ -253,6 +253,11 @@ export function PropertyMovementsSection({ property }: { property: RealEstatePro
                       {draw.reversedDate
                         ? ` · ${t('movements.reversed', { date: draw.reversedDate })}`
                         : ''}
+                      {(draw.capitalizedAmount ?? 0) > 0 && (
+                        <span className="block text-xs text-text-secondary">
+                          {t('movements.directCapitalizedCost')}
+                        </span>
+                      )}
                     </span>
                     <CurrencyAmount
                       amount={draw.drawnAmount ?? 0}

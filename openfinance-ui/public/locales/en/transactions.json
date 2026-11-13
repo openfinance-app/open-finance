@@ -145,7 +145,20 @@
     "manualPrincipal": "Principal repaid ({{currency}})",
     "manualPrincipalHint": "Enter 0 for interest, insurance or fees only. Leave empty to apply the full payment to principal.",
     "repaymentExceedsDebt": "Principal exceeds the outstanding debt. Check the payment amount.",
-    "saveError": "The transaction could not be saved. Review the details and try again."
+    "saveError": "The transaction could not be saved. Review the details and try again.",
+    "loanPaymentType": "Payment allocation",
+    "loanPaymentTypes": {
+      "REPAYMENT": "Repayment (principal and/or charges)",
+      "INTEREST": "Interest only",
+      "INSURANCE": "Insurance only",
+      "FEE": "Fees only"
+    },
+    "repaymentEnterActual": "Enter actual breakdown",
+    "repaymentStatus": {
+      "INTEREST_ONLY_DIFFERENCE": "This loan is in its interest-only period. Your payment differs from the monthly estimate shown above. Enter the lender’s actual breakdown, including any fees or extra principal.",
+      "BELOW_ESTIMATED_CHARGES": "Your payment is below the estimated monthly interest and insurance. For a partial month or a different charge, enter the lender’s actual breakdown.",
+      "EXCEEDS_BALANCE": "The estimated principal exceeds the outstanding debt. Check the amount or enter the lender’s actual breakdown."
+    }
   },
   "detail": {
     "edit": "Edit",
@@ -216,7 +229,16 @@
     "categoryLabel": "Split {{index}} category",
     "amountLabel": "Split {{index}} amount",
     "descriptionLabel": "Split {{index}} description",
-    "removeLabel": "Remove split {{index}}"
+    "removeLabel": "Remove split {{index}}",
+    "loanComponent": "Loan component {{index}}",
+    "loanComponents": {
+      "AUTO": "Use category",
+      "PRINCIPAL": "Principal",
+      "INTEREST": "Interest",
+      "INSURANCE": "Insurance",
+      "FEE": "Fees",
+      "OTHER": "Other charge"
+    }
   },
   "splitDetail": {
     "noCategory": "No category",

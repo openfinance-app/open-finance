@@ -108,6 +108,7 @@ class AssetImprovementSyncTest {
                         assetRepository,
                         org.mockito.Mockito.mock(
                                 org.openfinance.repository.RealEstateRepository.class),
+                        liabilityTrancheRepository,
                         transactionRepository,
                         accountRepository,
                         currencyRepository,

@@ -75,7 +75,10 @@ export interface CategoryTreeNode {
  * Request payload for a single transaction split line.
  * Requirement REQ-SPL-3.1, REQ-SPL-3.2
  */
+export type LoanComponent = 'PRINCIPAL' | 'INTEREST' | 'INSURANCE' | 'FEE' | 'OTHER';
+
 export interface TransactionSplitRequest {
+  loanComponent?: LoanComponent;
   /** Tags belonging to this part only; an empty array clears them. */
   tags?: string[];
   /** Optional category to assign to this split */
@@ -91,6 +94,7 @@ export interface TransactionSplitRequest {
  * Requirement REQ-SPL-4.3
  */
 export interface TransactionSplitResponse {
+  loanComponent?: LoanComponent;
   exactValues?: Record<string, string>;
   tags?: string[];
   id: number;

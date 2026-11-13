@@ -144,6 +144,8 @@ export interface DisbursementRequest {
   toAccountId?: number;
   directRealEstateId?: number;
   directAssetId?: number;
+  capitalizePropertyCost?: boolean;
+  increasePropertyValue?: boolean;
   trancheId?: number;
   amount: number | string;
   date: string;
@@ -177,7 +179,7 @@ export function useDisburseLiability() {
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
       queryClient.invalidateQueries({ queryKey: ['assets'] });
       queryClient.invalidateQueries({ queryKey: ['assetFinancing'] });
-      // Direct disbursements bump property value + value history server-side
+      // Direct payments can also add property cost and an explicitly chosen value increase.
       queryClient.invalidateQueries({ queryKey: ['realEstate'] });
     },
   });
@@ -200,7 +202,6 @@ export function useUpdateLiability() {
       // Invalidate both list and individual liability queries
       queryClient.invalidateQueries({ queryKey: ['liabilities'] });
       queryClient.invalidateQueries({ queryKey: ['liabilities', variables.id] });
-      queryClient.invalidateQueries({ queryKey: ['amortization', variables.id] });
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
       queryClient.invalidateQueries({ queryKey: ['networth'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
@@ -251,6 +252,12 @@ interface RawAmortizationEntry {
   interestOnlyPhase?: boolean;
 }
 
+interface RawPaymentHistoryEntry extends Omit<RawAmortizationEntry, 'paymentNumber'> {
+  transactionId: number;
+  feePortion: number;
+  otherCharges: number;
+}
+
 /**
  * Fetch amortization schedule for a liability.
  * Accepts the full Liability object so the hook can populate the schedule's
@@ -259,16 +266,22 @@ interface RawAmortizationEntry {
  */
 export function useAmortizationSchedule(liability: Liability | null) {
   return useQuery<AmortizationSchedule>({
-    queryKey: ['amortization', liability?.id],
+    // Payments, transaction edits and drawdowns already invalidate this liability family.
+    queryKey: ['liabilities', liability?.id, 'amortization'],
     queryFn: async () => {
       if (!liability) throw new Error('Liability is required');
 
-      const response = await apiClient.get<RawAmortizationEntry[]>(
-        `/liabilities/${liability.id}/amortization`,
-        {
+      const [response, historyResponse] = await Promise.all([
+        apiClient.get<RawAmortizationEntry[]>(`/liabilities/${liability.id}/amortization`, {
           headers: buildEncryptionHeaders(),
-        }
-      );
+        }),
+        apiClient.get<RawPaymentHistoryEntry[]>(
+          `/liabilities/${liability.id}/amortization/history`,
+          {
+            headers: buildEncryptionHeaders(),
+          }
+        ),
+      ]);
 
       const entries = response.data;
 
@@ -293,7 +306,7 @@ export function useAmortizationSchedule(liability: Liability | null) {
         liabilityName: liability.name,
         currentBalance: liability.currentBalance,
         fundingStatus: liability.fundingStatus,
-        principal: liability.principal,
+        principal: liability.currentBalance,
         interestRate: liability.interestRate ?? 0,
         termMonths: payments.length,
         monthlyPayment,
@@ -302,6 +315,18 @@ export function useAmortizationSchedule(liability: Liability | null) {
         totalAmount,
         currency: liability.currency,
         payments,
+        history: historyResponse.data.map((entry, index) => ({
+          paymentNumber: index + 1,
+          transactionId: entry.transactionId,
+          paymentDate: entry.paymentDate,
+          paymentAmount: entry.paymentAmount,
+          principalPayment: entry.principalPortion,
+          interestPayment: entry.interestPortion,
+          insurancePayment: entry.insurancePortion ?? 0,
+          feePayment: entry.feePortion,
+          otherCharges: entry.otherCharges,
+          remainingBalance: entry.remainingBalance,
+        })),
       };
     },
     enabled: !!liability,
@@ -375,6 +400,7 @@ export interface RepaymentPreview {
   interest: number;
   insurance: number;
   interestOnly: boolean;
+  status?: 'READY' | 'BELOW_ESTIMATED_CHARGES' | 'INTEREST_ONLY_DIFFERENCE' | 'EXCEEDS_BALANCE';
 }
 
 /**
@@ -402,6 +428,7 @@ export function useRepaymentPreview(
       return response.data;
     },
     enabled: liabilityId != null && Number(total) > 0 && !!date,
+    retry: false,
     // Keep the previous breakdown while a new amount settles, so the preview
     // does not flicker (unmount) between keystrokes.
     placeholderData: keepPreviousData,

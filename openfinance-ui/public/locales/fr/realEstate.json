@@ -664,7 +664,8 @@
     "error": "Échec du chargement des mouvements. Veuillez réessayer.",
     "acquisition": "Acquisition et autres paiements",
     "directFunding": "Déblocages de financement",
-    "reversed": "annulé le {{date}}"
+    "reversed": "annulé le {{date}}",
+    "directCapitalizedCost": "Ajouté au coût du bien"
   },
   "wizard": {
     "back": "Retour",

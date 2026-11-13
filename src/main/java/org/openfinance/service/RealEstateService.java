@@ -17,16 +17,19 @@ import org.openfinance.entity.AcquisitionType;
 import org.openfinance.entity.AssetType;
 import org.openfinance.entity.EntityType;
 import org.openfinance.entity.Liability;
+import org.openfinance.entity.LiabilityTranche;
 import org.openfinance.entity.OperationType;
 import org.openfinance.entity.PropertyType;
 import org.openfinance.entity.RealEstateProperty;
 import org.openfinance.entity.RealEstateValueHistory;
+import org.openfinance.entity.TrancheStatus;
 import org.openfinance.exception.InvalidTransactionException;
 import org.openfinance.exception.LiabilityNotFoundException;
 import org.openfinance.exception.RealEstatePropertyNotFoundException;
 import org.openfinance.mapper.RealEstateMapper;
 import org.openfinance.repository.CurrencyRepository;
 import org.openfinance.repository.LiabilityRepository;
+import org.openfinance.repository.LiabilityTrancheRepository;
 import org.openfinance.repository.NetWorthRepository;
 import org.openfinance.repository.RealEstateRepository;
 import org.openfinance.repository.RealEstateValueHistoryRepository;
@@ -91,6 +94,7 @@ public class RealEstateService {
     private final org.openfinance.repository.PropertyStatusHistoryRepository
             propertyStatusHistoryRepository;
     private final LiabilityRepository liabilityRepository;
+    private final LiabilityTrancheRepository liabilityTrancheRepository;
     private final CurrencyRepository currencyRepository;
     private final RealEstateMapper realEstateMapper;
     private final EncryptionService encryptionService;
@@ -374,25 +378,43 @@ public class RealEstateService {
         boolean currencyChanged =
                 request.getCurrency() != null
                         && !request.getCurrency().equalsIgnoreCase(property.getCurrency());
+        List<LiabilityTranche> capitalizedDraws =
+                liabilityTrancheRepository.findByRealEstateIdAndUserId(propertyId, userId).stream()
+                        .filter(
+                                t ->
+                                        t.getStatus() == TrancheStatus.DRAWN
+                                                && t.getReversedDate() == null)
+                        .filter(
+                                t ->
+                                        t.getCapitalizedAmount() != null
+                                                && t.getCapitalizedAmount().signum() > 0)
+                        .toList();
 
         if (currencyChanged
-                && !transactionRepository
-                        .findByRealEstateIdAndUserId(propertyId, userId)
-                        .isEmpty()) {
+                && (!capitalizedDraws.isEmpty()
+                        || !transactionRepository
+                                .findByRealEstateIdAndUserId(propertyId, userId)
+                                .isEmpty())) {
             throw new org.openfinance.exception.InvalidTransactionException(
                     "Reverse property cost movements before correcting its currency");
         }
         if (request.getPurchaseDate() != null
-                && transactionRepository.findByRealEstateIdAndUserId(propertyId, userId).stream()
-                        .filter(
-                                tx ->
-                                        tx.getMovementType()
-                                                        == org.openfinance.entity.MovementType
-                                                                .CAPITAL_IMPROVEMENT
-                                                || tx.getMovementType()
-                                                        == org.openfinance.entity.MovementType
-                                                                .MAINTENANCE)
-                        .anyMatch(tx -> tx.getDate().isBefore(request.getPurchaseDate()))) {
+                && (capitalizedDraws.stream()
+                                .anyMatch(t -> t.getDrawnDate().isBefore(request.getPurchaseDate()))
+                        || transactionRepository
+                                .findByRealEstateIdAndUserId(propertyId, userId)
+                                .stream()
+                                .filter(
+                                        tx ->
+                                                tx.getMovementType()
+                                                                == org.openfinance.entity
+                                                                        .MovementType
+                                                                        .CAPITAL_IMPROVEMENT
+                                                        || tx.getMovementType()
+                                                                == org.openfinance.entity
+                                                                        .MovementType.MAINTENANCE)
+                                .anyMatch(
+                                        tx -> tx.getDate().isBefore(request.getPurchaseDate())))) {
             throw new InvalidTransactionException(
                     "Acquisition cannot follow an existing property cost movement");
         }
@@ -1027,11 +1049,7 @@ public class RealEstateService {
         BigDecimal purchasePrice = new BigDecimal(property.getPurchasePrice());
         BigDecimal currentValue = new BigDecimal(property.getCurrentValue());
 
-        BigDecimal costBasis =
-                purchasePrice.add(
-                        org.openfinance.util.CapitalizedCosts.total(
-                                transactionRepository.findByRealEstateIdAndUserId(
-                                        propertyId, userId)));
+        BigDecimal costBasis = purchasePrice.add(capitalizedCost(property));
         // Capitalized expenditure is an investment contribution, not appreciation.
         BigDecimal performanceBasis =
                 property.getAcquisitionValue() == null
@@ -1252,6 +1270,40 @@ public class RealEstateService {
             LocalDate movementDate,
             String movementCurrency,
             java.time.LocalDateTime recordedAt) {
+        applyCapitalImprovement(
+                propertyId, userId, amount, movementDate, movementCurrency, recordedAt, null);
+    }
+
+    /** A direct lender payment adds cost without fabricating a bank-account transaction. */
+    public void capitalizeDirectDraw(Long userId, LiabilityTranche tranche, boolean increaseValue) {
+        if (!userId.equals(tranche.getUserId())
+                || !tranche.isDirectDisbursement()
+                || tranche.getRealEstateId() == null
+                || tranche.getStatus() != TrancheStatus.DRAWN
+                || tranche.getCapitalizedAmount() != null) {
+            throw InvalidTransactionException.invalidPropertyCapitalization();
+        }
+        tranche.setCapitalizedAmount(tranche.getDrawnAmount());
+        tranche.setValuationChange(increaseValue ? tranche.getDrawnAmount() : BigDecimal.ZERO);
+        liabilityTrancheRepository.save(tranche);
+        applyCapitalImprovement(
+                tranche.getRealEstateId(),
+                userId,
+                tranche.getValuationChange(),
+                tranche.getDrawnDate(),
+                tranche.getCurrency(),
+                java.time.LocalDateTime.now(),
+                tranche.getId());
+    }
+
+    private void applyCapitalImprovement(
+            Long propertyId,
+            Long userId,
+            BigDecimal amount,
+            LocalDate movementDate,
+            String movementCurrency,
+            java.time.LocalDateTime recordedAt,
+            Long sourceTrancheId) {
         RealEstateProperty property =
                 realEstateRepository
                         .findByIdAndUserId(propertyId, userId)
@@ -1274,7 +1326,7 @@ public class RealEstateService {
                     movementCurrency, property.getCurrency(), propertyId, "property");
         }
         if (amount.signum() == 0) return;
-        recordValueAdjustment(property, amount, movementDate, recordedAt);
+        recordValueHistory(property, amount, movementDate, true, recordedAt, sourceTrancheId);
         synchronizeValuation(property, userId);
         invalidateSnapshotsFrom(userId, movementDate);
     }
@@ -1313,6 +1365,16 @@ public class RealEstateService {
         recordValueAdjustment(property, amount.negate(), movementDate, recordedAt);
         synchronizeValuation(property, userId);
         invalidateSnapshotsFrom(userId, movementDate);
+    }
+
+    private BigDecimal capitalizedCost(RealEstateProperty property) {
+        return org.openfinance.util.CapitalizedCosts.total(
+                        transactionRepository.findByRealEstateIdAndUserId(
+                                property.getId(), property.getUserId()))
+                .add(
+                        org.openfinance.util.CapitalizedCosts.directFunding(
+                                liabilityTrancheRepository.findByRealEstateIdAndUserId(
+                                        property.getId(), property.getUserId())));
     }
 
     private void synchronizeValuation(RealEstateProperty property, Long userId) {
@@ -1376,6 +1438,16 @@ public class RealEstateService {
             LocalDate effectiveDate,
             boolean adjustment,
             java.time.LocalDateTime recordedAt) {
+        recordValueHistory(property, plainValue, effectiveDate, adjustment, recordedAt, null);
+    }
+
+    private void recordValueHistory(
+            RealEstateProperty property,
+            BigDecimal plainValue,
+            LocalDate effectiveDate,
+            boolean adjustment,
+            java.time.LocalDateTime recordedAt,
+            Long sourceTrancheId) {
         RealEstateValueHistory entry =
                 RealEstateValueHistory.builder()
                         .propertyId(property.getId())
@@ -1384,6 +1456,7 @@ public class RealEstateService {
                         .recordedValue(plainValue.toString())
                         .adjustment(adjustment)
                         .movementRecordedAt(recordedAt)
+                        .sourceTrancheId(sourceTrancheId)
                         .currency(property.getCurrency())
                         .currencyId(property.getCurrencyId())
                         .build();
@@ -1547,11 +1620,7 @@ public class RealEstateService {
         }
 
         // Capital improvements add invested cost without creating market appreciation.
-        BigDecimal costBasis =
-                purchasePrice.add(
-                        org.openfinance.util.CapitalizedCosts.total(
-                                transactionRepository.findByRealEstateIdAndUserId(
-                                        property.getId(), property.getUserId())));
+        BigDecimal costBasis = purchasePrice.add(capitalizedCost(property));
         BigDecimal performanceBasis =
                 property.getAcquisitionValue() == null
                         ? null

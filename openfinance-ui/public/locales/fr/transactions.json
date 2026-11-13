@@ -145,7 +145,20 @@
     "manualPrincipal": "Capital remboursé ({{currency}})",
     "manualPrincipalHint": "Saisissez 0 pour les intérêts, assurances ou frais seuls. Laissez vide pour affecter tout le paiement au capital.",
     "repaymentExceedsDebt": "Le capital dépasse la dette restante. Vérifiez le montant du paiement.",
-    "saveError": "La transaction n’a pas pu être enregistrée. Vérifiez les informations et réessayez."
+    "saveError": "La transaction n’a pas pu être enregistrée. Vérifiez les informations et réessayez.",
+    "loanPaymentType": "Nature du paiement",
+    "loanPaymentTypes": {
+      "REPAYMENT": "Échéance (capital et/ou coûts)",
+      "INTEREST": "Intérêts seuls",
+      "INSURANCE": "Assurance seule",
+      "FEE": "Frais seuls"
+    },
+    "repaymentEnterActual": "Saisir la répartition réelle",
+    "repaymentStatus": {
+      "INTEREST_ONLY_DIFFERENCE": "Ce prêt est en différé de capital. Votre paiement diffère de l’estimation mensuelle ci-dessus. Saisissez la répartition réelle du prêteur, y compris les frais ou le capital remboursé en supplément.",
+      "BELOW_ESTIMATED_CHARGES": "Votre paiement est inférieur aux intérêts et à l’assurance mensuels estimés. Pour un mois incomplet ou un montant différent, saisissez la répartition réelle du prêteur.",
+      "EXCEEDS_BALANCE": "Le capital estimé dépasse la dette restante. Vérifiez le montant ou saisissez la répartition réelle du prêteur."
+    }
   },
   "detail": {
     "edit": "Modifier",
@@ -216,7 +229,16 @@
     "categoryLabel": "Catégorie de la ventilation {{index}}",
     "amountLabel": "Montant de la ventilation {{index}}",
     "descriptionLabel": "Description de la ventilation {{index}}",
-    "removeLabel": "Supprimer la ventilation {{index}}"
+    "removeLabel": "Supprimer la ventilation {{index}}",
+    "loanComponent": "Composante du prêt {{index}}",
+    "loanComponents": {
+      "AUTO": "Selon la catégorie",
+      "PRINCIPAL": "Capital",
+      "INTEREST": "Intérêts",
+      "INSURANCE": "Assurance",
+      "FEE": "Frais",
+      "OTHER": "Autre coût"
+    }
   },
   "splitDetail": {
     "noCategory": "Sans catégorie",

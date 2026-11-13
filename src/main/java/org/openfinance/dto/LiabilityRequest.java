@@ -145,6 +145,15 @@ public class LiabilityRequest {
      */
     private LocalDate endDate;
 
+    private LocalDate amortizationStartDate;
+
+    @AssertTrue(message = "{liability.amortization.chronology}")
+    public boolean isAmortizationDateValid() {
+        return amortizationStartDate == null
+                || ((startDate == null || !amortizationStartDate.isBefore(startDate))
+                        && (endDate == null || !amortizationStartDate.isAfter(endDate)));
+    }
+
     /**
      * Minimum monthly payment required.
      *

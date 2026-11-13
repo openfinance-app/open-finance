@@ -7,7 +7,9 @@ export interface ExactDecimalFields {
 
 export function decimalField<T extends object>(source: T, key: keyof T, fallback = ''): string {
   const exact = (source as ExactDecimalFields).exactValues?.[String(key)];
-  if (exact !== undefined) return exact;
+  // Imported arithmetic can carry padding beyond the API's fractional-digit limit.
+  // Canonicalize the text without rounding any significant digits.
+  if (exact !== undefined) return new Decimal(exact).toFixed();
   const value = source[key];
   return value == null ? fallback : new Decimal(String(value)).toFixed();
 }

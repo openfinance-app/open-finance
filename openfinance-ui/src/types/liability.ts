@@ -23,6 +23,7 @@ export interface Liability {
   interestRate?: number;
   startDate: string; // ISO date string
   endDate?: string; // ISO date string
+  amortizationStartDate?: string;
   minimumPayment?: number;
   effectiveMonthlyPayment?: number | null;
   currency: string;
@@ -49,6 +50,8 @@ export interface Liability {
   creditLimit?: number;
   fundingStatus?: 'UNDRAWN' | 'ACTIVE' | 'PAID' | 'NO_BALANCE';
   balanceLocked?: boolean;
+  convertedFromAccountId?: number;
+  balanceStartDate?: string;
   representedByAccountId?: number;
   interestPaid?: number;
   createdAt: string;
@@ -78,6 +81,7 @@ export interface LiabilityRequest {
   interestRate?: number;
   startDate: string; // ISO date string (YYYY-MM-DD)
   endDate?: string; // ISO date string (YYYY-MM-DD)
+  amortizationStartDate?: string;
   minimumPayment?: string;
   currency: string;
   notes?: string;
@@ -91,6 +95,9 @@ export interface LiabilityRequest {
 }
 
 export interface AmortizationPayment {
+  transactionId?: number;
+  feePayment?: number;
+  otherCharges?: number;
   paymentNumber: number;
   paymentDate: string; // ISO date string
   paymentAmount: number;
@@ -116,6 +123,7 @@ export interface AmortizationSchedule {
   totalAmount: number;
   currency: string;
   payments: AmortizationPayment[];
+  history?: AmortizationPayment[];
 }
 
 export interface LiabilityTotals {
@@ -194,6 +202,8 @@ export interface LiabilityTranche {
   trancheNo: number;
   plannedAmount: number;
   drawnAmount?: number | null;
+  capitalizedAmount?: number | null;
+  valuationChange?: number | null;
   remaining: number;
   plannedDate?: string | null;
   drawnDate?: string | null;

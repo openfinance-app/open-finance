@@ -28,6 +28,56 @@ class LoanPaymentTotalsTest {
     @InjectMocks LoanPaymentTotals totals;
 
     @Test
+    void explicitComponentsPreserveCustomCategoriesAndRecognizeCategorizedPrincipal() {
+        Liability loan = new Liability();
+        loan.setCurrency("EUR");
+        Transaction payment =
+                Transaction.builder()
+                        .id(1L)
+                        .currency("EUR")
+                        .type(TransactionType.EXPENSE)
+                        .movementType(MovementType.REPAYMENT)
+                        .amount(new BigDecimal("100"))
+                        .principalAmount(new BigDecimal("80"))
+                        .build();
+        when(splits.findByTransactionIdIn(List.of(1L)))
+                .thenReturn(
+                        List.of(
+                                TransactionSplit.builder()
+                                        .transactionId(1L)
+                                        .categoryId(42L)
+                                        .loanComponent(
+                                                org.openfinance.entity.LoanComponent.PRINCIPAL)
+                                        .amount(new BigDecimal("80"))
+                                        .build(),
+                                TransactionSplit.builder()
+                                        .transactionId(1L)
+                                        .categoryId(43L)
+                                        .loanComponent(
+                                                org.openfinance.entity.LoanComponent.INTEREST)
+                                        .amount(new BigDecimal("12"))
+                                        .build(),
+                                TransactionSplit.builder()
+                                        .transactionId(1L)
+                                        .categoryId(44L)
+                                        .loanComponent(
+                                                org.openfinance.entity.LoanComponent.INSURANCE)
+                                        .amount(new BigDecimal("6"))
+                                        .build(),
+                                TransactionSplit.builder()
+                                        .transactionId(1L)
+                                        .categoryId(45L)
+                                        .loanComponent(org.openfinance.entity.LoanComponent.FEE)
+                                        .amount(new BigDecimal("2"))
+                                        .build()));
+        LoanPaymentTotals.Paid paid = totals.calculate(loan, List.of(payment));
+        assertThat(paid.interest()).isEqualByComparingTo("12");
+        assertThat(paid.insurance()).isEqualByComparingTo("6");
+        assertThat(paid.fees()).isEqualByComparingTo("2");
+        assertThat(paid.total()).isEqualByComparingTo("20");
+    }
+
+    @Test
     void convertedRepaymentChargesReconcileWithTheStoredPrincipalAndOriginalTotal() {
         Liability loan = new Liability();
         loan.setCurrency("EUR");

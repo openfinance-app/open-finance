@@ -11,12 +11,13 @@ import { Trans, useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { NumberInput } from '@/components/ui/NumberInput';
+import { SimpleSelect } from '@/components/ui/SimpleSelect';
 import { CategorySelect } from '@/components/ui/CategorySelect';
 import { ConvertedAmount } from '@/components/ui/ConvertedAmount';
 import { TagInput } from '@/components/transactions/TagInput';
 import { decimalPlaces, multiply } from '@/utils/money';
 import { getMonetaryScale } from '@/utils/currency';
-import type { TransactionSplitRequest } from '@/types/transaction';
+import type { LoanComponent, TransactionSplitRequest } from '@/types/transaction';
 
 interface SplitTransactionFormProps {
   /** The parent transaction total amount */
@@ -32,6 +33,7 @@ interface SplitTransactionFormProps {
   /** 1 unit of `currency` = `exchangeRate` units of `accountCurrency` (latest rate) */
   exchangeRate?: number;
   tagSuggestions?: string[];
+  loanPayment?: boolean;
 }
 
 /**
@@ -48,6 +50,7 @@ export function SplitTransactionForm({
   accountCurrency,
   exchangeRate,
   tagSuggestions = [],
+  loanPayment = false,
 }: SplitTransactionFormProps) {
   const { t } = useTranslation('transactions');
   const decimals = Math.max(
@@ -123,6 +126,38 @@ export function SplitTransactionForm({
           </div>
 
           {/* Amount input */}
+          {loanPayment && (
+            <div className="col-span-3">
+              <label
+                className="block text-sm text-text-secondary mb-1"
+                htmlFor={`loan-component-${index}`}
+              >
+                {t('splitForm.loanComponent', { index: index + 1 })}
+              </label>
+              <SimpleSelect
+                id={`loan-component-${index}`}
+                value={split.loanComponent ?? ''}
+                className="w-full"
+                onChange={event =>
+                  handleChangeField(
+                    index,
+                    'loanComponent',
+                    (event.target.value || undefined) as LoanComponent | undefined
+                  )
+                }
+              >
+                <option value="">{t('splitForm.loanComponents.AUTO')}</option>
+                {(['PRINCIPAL', 'INTEREST', 'INSURANCE', 'FEE', 'OTHER'] as const).map(
+                  component => (
+                    <option key={component} value={component}>
+                      {t(`splitForm.loanComponents.${component}`)}
+                    </option>
+                  )
+                )}
+              </SimpleSelect>
+            </div>
+          )}
+
           <div>
             <NumberInput
               value={split.amount === 0 || split.amount === '0' ? '' : String(split.amount)}

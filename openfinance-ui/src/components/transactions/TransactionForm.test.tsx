@@ -153,6 +153,11 @@ vi.mock('./SplitTransactionForm', () => ({
     onChange: (splits: import('@/types/transaction').TransactionSplitRequest[]) => void;
   }) => (
     <>
+      {splits.map((split, index) => (
+        <output key={`component-${index}`} aria-label={`Loan component ${index + 1}`}>
+          {split.loanComponent}
+        </output>
+      ))}
       {splits.map((split, index) =>
         split.tags?.map(tag => (
           <button
@@ -602,6 +607,7 @@ describe('TransactionForm', () => {
       fireEvent.change(screen.getByLabelText('Loan'), { target: { value: '1' } });
       await screen.findByTestId('repayment-preview');
       expect(screen.queryByLabelText('Linked holding')).not.toBeInTheDocument();
+      fireEvent.click(screen.getByRole('checkbox', { name: /apply.*split/i }));
       fireEvent.click(screen.getByRole('button', { name: /update transaction/i }));
       await waitFor(() =>
         expect(onSubmit).toHaveBeenCalledWith(
@@ -1591,6 +1597,41 @@ describe('TransactionForm', () => {
       });
     }
 
+    it('shows the deferred estimate and lets the user enter actual components without applying excess principal', async () => {
+      mockUseLiabilities.mockReturnValue({ data: [mortgageLiability] } as ReturnType<
+        typeof useLiabilitiesModule.useLiabilities
+      >);
+      mockUseRepaymentPreview.mockReturnValue({
+        data: {
+          total: 250,
+          principal: 0,
+          interest: 218.75,
+          insurance: 20.83,
+          interestOnly: true,
+          status: 'INTEREST_ONLY_DIFFERENCE',
+        },
+        isFetching: false,
+      } as ReturnType<typeof useLiabilitiesModule.useRepaymentPreview>);
+      const { onSubmit } = renderForm();
+      fireEvent.click(screen.getByTestId('account-selector'));
+      fireEvent.change(screen.getByLabelText(/amount/i), { target: { value: '250' } });
+      await selectLiability('1');
+      expect(
+        await screen.findByText(/your payment differs from the monthly estimate/i)
+      ).toBeVisible();
+      expect(screen.getByText('218.75')).toBeVisible();
+      expect(screen.getByRole('checkbox', { name: /apply split/i })).toBeDisabled();
+      fireEvent.click(screen.getByRole('button', { name: /create transaction/i }));
+      await waitFor(() =>
+        expect(screen.getByText(/estimated payment cannot be applied/i)).toBeVisible()
+      );
+      expect(onSubmit).not.toHaveBeenCalled();
+      fireEvent.click(screen.getByRole('button', { name: 'Enter actual breakdown' }));
+      expect(screen.queryByTestId('repayment-preview')).not.toBeInTheDocument();
+      expect(screen.getByLabelText('Loan component 1')).toHaveTextContent('INTEREST');
+      expect(screen.getByLabelText('Loan component 2')).toHaveTextContent('INSURANCE');
+    });
+
     function mockPreviewData() {
       mockUseRepaymentPreview.mockReturnValue({
         data: {
@@ -1942,8 +1983,13 @@ describe('TransactionForm', () => {
       await waitFor(() => expect(onSubmit).toHaveBeenCalled());
       const payload = onSubmit.mock.calls[0][0];
       expect(payload.splits).toEqual([
-        { amount: '981.25', categoryId: undefined, description: undefined },
-        { amount: '218.75', categoryId: 77, description: undefined },
+        {
+          amount: '981.25',
+          categoryId: undefined,
+          description: undefined,
+          loanComponent: 'PRINCIPAL',
+        },
+        { amount: '218.75', categoryId: 77, description: undefined, loanComponent: 'INTEREST' },
       ]);
     });
 

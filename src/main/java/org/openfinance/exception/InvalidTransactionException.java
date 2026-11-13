@@ -29,10 +29,20 @@ public class InvalidTransactionException extends RuntimeException implements Loc
     private final String messageKey;
     private final Object[] messageArgs;
 
+    public static InvalidTransactionException invalidPropertyCapitalization() {
+        return new InvalidTransactionException(
+                "Adding property cost requires a direct property payment; a value increase requires adding its cost",
+                "error.disbursement.propertyCapitalization");
+    }
+
     private InvalidTransactionException(String message, String messageKey, Object... messageArgs) {
         super(message);
         this.messageKey = messageKey;
         this.messageArgs = messageArgs.clone();
+    }
+
+    public static InvalidTransactionException liabilityConversion(String key, String message) {
+        return new InvalidTransactionException(message, "error.liabilityConversion." + key);
     }
 
     public static InvalidTransactionException recurringEndBeforeNext() {

@@ -35,6 +35,12 @@ public class DisbursementRequest {
     /** Physical possession financed directly by the lender, without a bank-account receipt. */
     private Long directAssetId;
 
+    /** Add this direct payment to the property's invested cost (construction or improvements). */
+    private boolean capitalizePropertyCost;
+
+    /** Explicitly increase the property's tracked value by the capitalized payment amount. */
+    private boolean increasePropertyValue;
+
     /** Optional ID of the planned tranche being drawn; auto-picked when absent. */
     private Long trancheId;
 

@@ -21,6 +21,7 @@ import { Button } from '@/components/ui/Button';
 import { DateInput } from '@/components/ui/DateInput';
 import { NumberInput } from '@/components/ui/NumberInput';
 import { DisburseForm } from '@/components/liabilities/DisburseForm';
+import { LoanDisbursementAction } from '@/components/liabilities/LoanDisbursementAction';
 import { useTranches, useCreateTranche, getTrancheLabel } from '@/hooks/useTranches';
 import type { Liability, TrancheStatus } from '@/types/liability';
 import { cn } from '@/lib/utils';
@@ -67,7 +68,12 @@ function AddTrancheForm({ liability, onDone }: { liability: Liability; onDone: (
   };
 
   return (
-    <div
+    <form
+      noValidate
+      onSubmit={event => {
+        event.preventDefault();
+        void submit();
+      }}
       className="p-4 mb-3 border border-border rounded-lg bg-surface space-y-3"
       data-testid="add-tranche-form"
     >
@@ -130,15 +136,14 @@ function AddTrancheForm({ liability, onDone }: { liability: Liability; onDone: (
         </Button>
         <Button
           variant="primary"
-          type="button"
+          type="submit"
           disabled={!valid}
           isLoading={createTranche.isPending}
-          onClick={submit}
         >
           {t('drawdowns.add.submit')}
         </Button>
       </div>
-    </div>
+    </form>
   );
 }
 
@@ -190,7 +195,10 @@ export function TrancheDrawdownsTab({ liability }: { liability: Liability }) {
       <div className="text-center py-12">
         <Layers className="h-10 w-10 text-text-tertiary mx-auto mb-3" />
         <p className="text-text-secondary text-sm mb-3">{t('drawdowns.empty')}</p>
-        {addButton}
+        <div className="flex flex-wrap justify-center gap-2">
+          <LoanDisbursementAction liability={liability} />
+          {addButton}
+        </div>
       </div>
     );
   }
@@ -205,14 +213,17 @@ export function TrancheDrawdownsTab({ liability }: { liability: Liability }) {
           onDone={() => setDrawTrancheId(null)}
         />
       )}
-      <div className="flex justify-end">{addButton}</div>
+      <div className="flex flex-wrap justify-end gap-2">
+        <LoanDisbursementAction liability={liability} />
+        {addButton}
+      </div>
       <div className="divide-y divide-border border border-border rounded-lg overflow-hidden">
         {tranches.map(tranche => (
           <div
             key={tranche.id}
-            className="flex items-center justify-between px-4 py-3 bg-surface hover:bg-surface-elevated transition-colors"
+            className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 bg-surface hover:bg-surface-elevated transition-colors"
           >
-            <div className="flex items-center gap-3 min-w-0">
+            <div className="flex flex-wrap items-center gap-3 min-w-0">
               <span className="text-sm font-semibold text-text-primary font-mono">
                 {getTrancheLabel(tranche.trancheNo)}
               </span>
@@ -235,8 +246,13 @@ export function TrancheDrawdownsTab({ liability }: { liability: Liability }) {
                   {t('drawdowns.linkedProperty', { id: tranche.realEstateId })}
                 </span>
               )}
+              {(tranche.capitalizedAmount ?? 0) > 0 && (
+                <span className="text-xs text-text-secondary">
+                  {t('drawdowns.capitalizedCost')}
+                </span>
+              )}
             </div>
-            <div className="text-xs text-text-secondary ml-4 flex-shrink-0 flex items-center gap-4">
+            <div className="text-xs text-text-secondary flex flex-wrap items-center gap-4">
               <span>
                 {t('drawdowns.planned')}:{' '}
                 <span className="font-mono text-text-primary">
@@ -289,7 +305,17 @@ export function TrancheDrawdownsTab({ liability }: { liability: Liability }) {
                 </p>
               )}
               {reverseId === tranche.id && (
-                <div className="space-y-2">
+                <form
+                  noValidate
+                  className="space-y-2"
+                  onSubmit={event => {
+                    event.preventDefault();
+                    reverse.mutate(
+                      { trancheId: tranche.id, date: reverseDate },
+                      { onSuccess: () => setReverseId(null) }
+                    );
+                  }}
+                >
                   <p className="text-sm">{t('drawdowns.reverseHint')}</p>
                   <label htmlFor={`reverse-date-${tranche.id}`}>{t('drawdowns.reverseDate')}</label>
                   <DateInput
@@ -297,18 +323,10 @@ export function TrancheDrawdownsTab({ liability }: { liability: Liability }) {
                     value={reverseDate}
                     onChange={setReverseDate}
                   />
-                  <Button
-                    disabled={reverse.isPending}
-                    onClick={() =>
-                      reverse.mutate(
-                        { trancheId: tranche.id, date: reverseDate },
-                        { onSuccess: () => setReverseId(null) }
-                      )
-                    }
-                  >
+                  <Button type="submit" disabled={reverse.isPending}>
                     {t('drawdowns.reverse')}
                   </Button>
-                  <Button variant="ghost" onClick={() => setReverseId(null)}>
+                  <Button type="button" variant="ghost" onClick={() => setReverseId(null)}>
                     {t('drawdowns.add.cancel')}
                   </Button>
                   {reverse.error && (
@@ -316,7 +334,7 @@ export function TrancheDrawdownsTab({ liability }: { liability: Liability }) {
                       {t('drawdowns.reverseError')}
                     </p>
                   )}
-                </div>
+                </form>
               )}
               {tranche.status === 'PLANNED' && (
                 <Button

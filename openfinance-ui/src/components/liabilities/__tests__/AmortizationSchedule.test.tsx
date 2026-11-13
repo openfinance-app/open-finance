@@ -3,7 +3,7 @@
  * Focus: Test privacy implementation with PrivateAmount wrapping of currency displays
  */
 import { screen, fireEvent, within } from '@testing-library/react';
-import { vi, describe, it, expect, beforeEach } from 'vitest';
+import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
 import React from 'react';
 import { renderWithProviders, createTestQueryClient, mockAuthentication } from '@/test/test-utils';
 import { AmortizationSchedule } from '../AmortizationSchedule';
@@ -64,7 +64,10 @@ describe('AmortizationSchedule', () => {
     expect(screen.queryByText('Remaining Total')).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /export csv/i })).not.toBeInTheDocument();
   });
+  afterEach(() => vi.unstubAllGlobals());
+
   beforeEach(() => {
+    vi.stubGlobal('innerWidth', 1280);
     vi.clearAllMocks();
     mockAuthentication();
     (useVisibility as any).mockReturnValue({ isAmountsVisible: true });
@@ -125,7 +128,7 @@ describe('AmortizationSchedule', () => {
     it('should render summary section with key metrics', () => {
       renderWithProviders(<AmortizationSchedule schedule={mockSchedule} />);
 
-      expect(screen.getByText('Home Mortgage - Amortization Schedule')).toBeInTheDocument();
+      expect(screen.getByText('Remaining forecast')).toBeInTheDocument();
       expect(screen.getByText('Interest Rate')).toBeInTheDocument();
       expect(screen.getByText('Monthly Payment')).toBeInTheDocument();
       expect(screen.getByText('3.50%')).toBeInTheDocument();
@@ -142,7 +145,7 @@ describe('AmortizationSchedule', () => {
       const headers = table?.querySelectorAll('th');
       expect(headers?.length).toBe(7);
 
-      expect(headers?.[0]).toHaveTextContent('Payment #');
+      expect(headers?.[0]).toHaveTextContent('Status');
       expect(headers?.[1]).toHaveTextContent('Date');
       expect(headers?.[2]).toHaveTextContent('Payment');
       expect(headers?.[3]).toHaveTextContent('Principal');
@@ -183,7 +186,7 @@ describe('AmortizationSchedule', () => {
         reader.readAsText(blob);
       });
       expect(csv).toContain('Insurance');
-      expect(csv).toContain('1510.00,1200.00,300.00,10.00,299800.00');
+      expect(csv).toContain('1510.00,1200.00,300.00,10.00,0.00,0.00,299800.00');
     });
   });
 
@@ -202,7 +205,7 @@ describe('AmortizationSchedule', () => {
       renderWithProviders(<AmortizationSchedule schedule={zeroBalanceSchedule} />);
 
       expect(
-        screen.getAllByText('Principal', { selector: 'div' })[0].parentElement
+        screen.getAllByText('Principal', { selector: 'dt' })[0].parentElement
       ).toHaveTextContent('$0.00');
     });
 
@@ -215,8 +218,7 @@ describe('AmortizationSchedule', () => {
       renderWithProviders(<AmortizationSchedule schedule={zeroPaymentSchedule} />);
 
       expect(screen.queryByText(/nan/i)).not.toBeInTheDocument();
-      // payment 2 principal % still shown (desktop table + mobile card)
-      expect(screen.getAllByText('80.1%')).toHaveLength(2);
+      expect(screen.queryByText(/Infinity/)).not.toBeInTheDocument();
     });
   });
 
@@ -224,7 +226,7 @@ describe('AmortizationSchedule', () => {
     it('should have scrollable table container', () => {
       renderWithProviders(<AmortizationSchedule schedule={mockSchedule} />);
 
-      const scrollContainer = document.querySelector('.overflow-x-auto');
+      const scrollContainer = document.querySelector('table')?.parentElement;
       expect(scrollContainer).toBeInTheDocument();
     });
   });
@@ -247,43 +249,157 @@ describe('AmortizationSchedule', () => {
     });
   });
 
-  describe('Filter Options', () => {
-    const manyPayments = Array.from({ length: 30 }, (_, i) => ({
-      paymentNumber: i + 1,
-      paymentDate: `2020-${String((i % 12) + 1).padStart(2, '0')}-01`,
-      paymentAmount: 1500,
-      principalPayment: 1200,
-      interestPayment: 300,
-      remainingBalance: 300000 - (i + 1) * 1200,
-    }));
-    const bigSchedule = { ...mockSchedule, payments: manyPayments };
+  describe('Payment history and status filters', () => {
+    const history = [
+      {
+        paymentNumber: 1,
+        transactionId: 42,
+        paymentDate: '2019-12-05',
+        paymentAmount: 127,
+        principalPayment: 80,
+        interestPayment: 12,
+        insurancePayment: 5,
+        feePayment: 30,
+        remainingBalance: 300000,
+      },
+    ];
+    const tracked = { ...mockSchedule, history };
 
-    it('filters to 12 payments', () => {
-      renderWithProviders(<AmortizationSchedule schedule={bigSchedule} />);
-      fireEvent.click(screen.getByText(/Next 12 Months/));
-      const rows = document.querySelectorAll('tbody tr');
-      expect(rows.length).toBe(12);
+    it('shows recorded payments and estimates with separate statuses and transaction links', () => {
+      renderWithProviders(<AmortizationSchedule schedule={tracked} />);
+      const table = within(screen.getByRole('table'));
+      expect(table.getAllByRole('row')).toHaveLength(4);
+      expect(table.getByText('Paid')).toBeInTheDocument();
+      expect(table.getAllByText('Remaining')).toHaveLength(2);
+      expect(table.getByRole('link')).toHaveAttribute(
+        'href',
+        expect.stringContaining('highlight=42')
+      );
+      expect(table.getByText('$30.00')).toBeInTheDocument();
+      // History does not inflate future totals.
+      expect(screen.getByText('Remaining Total').parentElement).toHaveTextContent('$540,000.00');
     });
 
-    it('filters to 24 payments', () => {
-      renderWithProviders(<AmortizationSchedule schedule={bigSchedule} />);
-      fireEvent.click(screen.getByText(/Next 24 Months/));
-      const rows = document.querySelectorAll('tbody tr');
-      expect(rows.length).toBe(24);
+    it('filters paid and remaining rows without treating past dates as evidence of payment', () => {
+      renderWithProviders(<AmortizationSchedule schedule={tracked} />);
+      fireEvent.click(screen.getByRole('button', { name: 'Paid 1' }));
+      expect(within(screen.getByRole('table')).getAllByRole('row')).toHaveLength(2);
+      expect(screen.getByRole('button', { name: 'Paid 1' })).toHaveAttribute(
+        'aria-pressed',
+        'true'
+      );
+      fireEvent.click(screen.getByRole('button', { name: 'Remaining 2' }));
+      const table = within(screen.getByRole('table'));
+      expect(table.getAllByRole('row')).toHaveLength(3);
+      expect(table.queryByText('Paid')).not.toBeInTheDocument();
     });
 
-    it('shows expand button when all selected and >12 payments', () => {
-      renderWithProviders(<AmortizationSchedule schedule={bigSchedule} />);
-      const rows = document.querySelectorAll('tbody tr');
-      expect(rows.length).toBe(12);
-      expect(screen.getAllByText(/Show All 30 Payments/).length).toBeGreaterThan(0);
+    it('keeps history visible after the loan is paid off', () => {
+      renderWithProviders(
+        <AmortizationSchedule
+          schedule={{ ...tracked, payments: [], currentBalance: 0, fundingStatus: 'PAID' }}
+        />
+      );
+      expect(screen.getByText(/this loan is paid off/i)).toBeInTheDocument();
+      expect(within(screen.getByRole('table')).getByText('Paid')).toBeInTheDocument();
+      expect(screen.queryByText('Remaining Total')).not.toBeInTheDocument();
     });
 
-    it('expands to show all payments', () => {
-      renderWithProviders(<AmortizationSchedule schedule={bigSchedule} />);
-      fireEvent.click(screen.getAllByText(/Show All 30 Payments/)[0]);
-      const rows = document.querySelectorAll('tbody tr');
-      expect(rows.length).toBe(30);
+    it('pages long schedules without mounting hidden mobile amounts', () => {
+      const payments = Array.from({ length: 30 }, (_, i) => ({
+        ...mockSchedule.payments[0],
+        paymentNumber: i + 1,
+      }));
+      renderWithProviders(<AmortizationSchedule schedule={{ ...tracked, payments }} />);
+      expect(within(screen.getByRole('table')).getAllByRole('row')).toHaveLength(21);
+      expect(screen.getAllByRole('region')).toHaveLength(1);
+      expect(
+        screen.getByRole('region').querySelectorAll('[data-testid="converted-amount"]')
+      ).toHaveLength(120);
+      fireEvent.click(screen.getByRole('button', { name: 'Next', exact: true }));
+      expect(within(screen.getByRole('table')).getAllByRole('row')).toHaveLength(12);
+      expect(screen.getByRole('button', { name: 'Next', exact: true })).toBeDisabled();
+      fireEvent.click(screen.getByRole('button', { name: 'Paid 1' }));
+      expect(within(screen.getByRole('table')).getAllByRole('row')).toHaveLength(2);
+      expect(screen.getByRole('table').parentElement).toHaveClass(
+        'overflow-auto',
+        'max-h-[min(24rem,45dvh)]'
+      );
+    });
+
+    it('keeps mobile rendering bounded and lets the user jump to the final payment', () => {
+      vi.stubGlobal('innerWidth', 390);
+      const payments = Array.from({ length: 360 }, (_, i) => ({
+        ...mockSchedule.payments[0],
+        paymentNumber: i + 1,
+        paymentAmount: i + 1,
+      }));
+      renderWithProviders(<AmortizationSchedule schedule={{ ...mockSchedule, payments }} />);
+      expect(screen.queryByRole('table')).not.toBeInTheDocument();
+      expect(screen.getAllByRole('region')).toHaveLength(1);
+      expect(
+        screen.getByRole('region').querySelectorAll('[data-testid="converted-amount"]')
+      ).toHaveLength(100);
+      fireEvent.change(screen.getByRole('combobox', { name: 'Page 1 of 18' }), {
+        target: { value: '17' },
+      });
+      expect(within(screen.getByRole('region')).getByText('$360.00')).toBeInTheDocument();
+      fireEvent.click(screen.getByRole('button', { name: 'Paid 0' }));
+      expect(screen.getByRole('status')).toHaveTextContent('No recorded payments yet.');
+    });
+
+    it('exports every filtered payment even when only one page is rendered', async () => {
+      const payments = Array.from({ length: 360 }, (_, i) => ({
+        ...mockSchedule.payments[0],
+        paymentNumber: i + 1,
+        paymentAmount: i + 1,
+      }));
+      const createObjectURL = vi.fn((_blob: Blob) => 'blob:all');
+      global.URL.createObjectURL = createObjectURL;
+      global.URL.revokeObjectURL = vi.fn();
+      renderWithProviders(<AmortizationSchedule schedule={{ ...tracked, payments }} />);
+      fireEvent.click(screen.getByRole('button', { name: 'Remaining 360' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Next', exact: true }));
+      fireEvent.click(screen.getByRole('button', { name: /Export CSV/i }));
+      const csv = await new Promise<string>(resolve => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result));
+        reader.readAsText(createObjectURL.mock.calls[0][0]);
+      });
+      expect(csv.split('\n')).toHaveLength(361);
+      expect(csv).toContain('Remaining,360,,2020-02-01,360.00');
+      expect(csv).not.toContain('Paid,');
+    });
+
+    it('shows the active phase when a page starts midway through it', () => {
+      const payments = Array.from({ length: 60 }, (_, i) => ({
+        ...mockSchedule.payments[0],
+        paymentNumber: i + 1,
+        interestOnlyPhase: i < 30,
+      }));
+      renderWithProviders(<AmortizationSchedule schedule={{ ...mockSchedule, payments }} />);
+      fireEvent.click(screen.getByRole('button', { name: 'Next', exact: true }));
+      expect(screen.getByTestId('phase-interest-only')).toBeInTheDocument();
+      expect(screen.getByTestId('phase-amortizing')).toBeInTheDocument();
+      fireEvent.click(screen.getByRole('button', { name: 'Next', exact: true }));
+      expect(screen.queryByTestId('phase-interest-only')).not.toBeInTheDocument();
+      expect(screen.getByTestId('phase-amortizing')).toBeInTheDocument();
+    });
+
+    it('exports only the selected status, with the exact historical fees', async () => {
+      const createObjectURL = vi.fn((_blob: Blob) => 'blob:paid');
+      global.URL.createObjectURL = createObjectURL;
+      global.URL.revokeObjectURL = vi.fn();
+      renderWithProviders(<AmortizationSchedule schedule={tracked} />);
+      fireEvent.click(screen.getByRole('button', { name: 'Paid 1' }));
+      fireEvent.click(screen.getByRole('button', { name: /Export CSV/i }));
+      const csv = await new Promise<string>(resolve => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result));
+        reader.readAsText(createObjectURL.mock.calls[0][0]);
+      });
+      expect(csv).toContain('Paid,,42,2019-12-05,127.00,80.00,12.00,5.00,30.00,0.00,300000.00');
+      expect(csv).not.toContain('Remaining,');
     });
   });
 
@@ -324,9 +440,9 @@ describe('AmortizationSchedule', () => {
 
       const phaseOneLabels = screen.getAllByTestId('phase-interest-only');
       const phaseTwoLabels = screen.getAllByTestId('phase-amortizing');
-      // Rendered once in the desktop table and once in the mobile card view
-      expect(phaseOneLabels.length).toBeGreaterThanOrEqual(1);
-      expect(phaseTwoLabels.length).toBeGreaterThanOrEqual(1);
+      // Only the active responsive layout is mounted.
+      expect(phaseOneLabels).toHaveLength(1);
+      expect(phaseTwoLabels).toHaveLength(1);
       expect(phaseOneLabels[0]).toHaveTextContent(/interest-only until 11\/01\/2026/i);
       expect(phaseTwoLabels[0]).toHaveTextContent(/amortizing/i);
     });
@@ -373,7 +489,7 @@ describe('AmortizationSchedule', () => {
         reader.onload = () => resolve(String(reader.result));
         reader.readAsText(createObjectURL.mock.calls[0][0]);
       });
-      expect(csv).toContain('1.234,1.222,0.012,0.000,11.123');
+      expect(csv).toContain('1.234,1.222,0.012,0.000,0.000,0.000,11.123');
     });
 
     it('creates CSV download on export click', () => {

@@ -142,6 +142,29 @@ describe('SplitTransactionForm', () => {
     } as ReturnType<typeof useTransactionsModule.useCategoryTree>);
   });
 
+  it('assigns loan components while retaining the original spending category and amount', () => {
+    const onChange = vi.fn();
+    renderWithProviders(
+      <SplitTransactionForm
+        totalAmount={100}
+        currency="EUR"
+        loanPayment
+        splits={[
+          { categoryId: 42, amount: '80' },
+          { categoryId: 43, amount: '20' },
+        ]}
+        onChange={onChange}
+      />
+    );
+    fireEvent.change(screen.getByRole('combobox', { name: 'Loan component 1' }), {
+      target: { value: 'PRINCIPAL' },
+    });
+    expect(onChange).toHaveBeenCalledWith([
+      { categoryId: 42, amount: '80', loanComponent: 'PRINCIPAL' },
+      { categoryId: 43, amount: '20' },
+    ]);
+  });
+
   it('keeps the entered USD total when the display is limited to one decimal', () => {
     setDecimalPlacesOverride(1);
     const { onChange } = renderForm({

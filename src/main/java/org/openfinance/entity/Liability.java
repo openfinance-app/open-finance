@@ -82,6 +82,13 @@ public class Liability {
     @Convert(converter = EncryptedStringConverter.class)
     private String principal;
 
+    @Column(name = "converted_from_account_id")
+    private Long convertedFromAccountId;
+
+    /** Earlier debt is represented by the preserved source account ledger. */
+    @Column(name = "balance_start_date")
+    private LocalDate balanceStartDate;
+
     @Column(name = "represented_by_account_id")
     private Long representedByAccountId;
 
@@ -119,6 +126,10 @@ public class Liability {
     /** Expected end date for the liability (maturity date) */
     @Column(name = "end_date")
     private LocalDate endDate;
+
+    /** First principal instalment; earlier instalments cover interest and insurance only. */
+    @Column(name = "amortization_start_date")
+    private LocalDate amortizationStartDate;
 
     /** Minimum monthly payment (encrypted) Max encrypted length: 512 chars */
     @Column(name = "minimum_payment", length = 512)

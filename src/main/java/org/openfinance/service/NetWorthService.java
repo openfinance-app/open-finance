@@ -1093,6 +1093,11 @@ public class NetWorthService {
     /** Shared dated principal reconstruction for history and repayment estimates. */
     @Transactional(readOnly = true)
     public BigDecimal getLiabilityBalanceAt(Liability liability, LocalDate date) {
+        if (beforeLiabilityConversion(liability, date))
+            return getAccountBalancesAt(liability.getUserId(), date, liability.getCurrency())
+                    .getOrDefault(liability.getConvertedFromAccountId(), BigDecimal.ZERO)
+                    .negate()
+                    .max(BigDecimal.ZERO);
         if (liability.getStartDate() != null && date.isBefore(liability.getStartDate()))
             return BigDecimal.ZERO;
         if (liability.getRepresentedByAccountId() != null) {
@@ -1120,22 +1125,83 @@ public class NetWorthService {
                         ? liability.getStartDate()
                         : startDate;
         if (firstDate.isAfter(endDate)) return List.of();
+        List<LocalDate> dates = firstDate.datesUntil(endDate.plusDays(1)).toList();
+        Map<LocalDate, BigDecimal> balances = getStandaloneLiabilityBalancesAt(liability, dates);
+        return dates.stream()
+                .map(date -> new org.openfinance.dto.BalanceHistoryPoint(date, balances.get(date)))
+                .toList();
+    }
+
+    /**
+     * Closing principal on selected dates, sharing the same reconstruction as net-worth history.
+     */
+    @Transactional(readOnly = true)
+    public Map<LocalDate, BigDecimal> getStandaloneLiabilityBalancesAt(
+            Liability liability, List<LocalDate> dates) {
+        if (liability.getRepresentedByAccountId() != null) {
+            throw new IllegalArgumentException("Account-backed debt uses account balance history");
+        }
+        if (dates.isEmpty()) return Map.of();
         List<Transaction> movements =
                 transactionRepository.findByLiabilityIdAndUserId(
                         liability.getId(), liability.getUserId());
         List<org.openfinance.entity.LiabilityTranche> tranches =
                 liabilityTrancheRepository.findByLiabilityIdAndUserId(
                         liability.getId(), liability.getUserId());
-        List<org.openfinance.dto.BalanceHistoryPoint> history = new ArrayList<>();
+        Map<LocalDate, BigDecimal> history = new java.util.LinkedHashMap<>();
         Map<Long, List<Transaction>> movementsByLiability = Map.of(liability.getId(), movements);
-        for (LocalDate date = firstDate; !date.isAfter(endDate); date = date.plusDays(1)) {
-            history.add(
-                    new org.openfinance.dto.BalanceHistoryPoint(
-                            date,
-                            computeHistoricalLiabilityBalance(
-                                    liability, date, movementsByLiability, tranches)));
+        Account source =
+                liability.getConvertedFromAccountId() == null
+                        ? null
+                        : accountRepository
+                                .findByIdAndUserId(
+                                        liability.getConvertedFromAccountId(),
+                                        liability.getUserId())
+                                .orElse(null);
+        Map<Long, List<Transaction>> sourceMovements =
+                source == null
+                        ? Map.of()
+                        : Map.of(
+                                source.getId(),
+                                transactionRepository
+                                        .findAllForAccount(source.getId(), liability.getUserId())
+                                        .stream()
+                                        .filter(tx -> !Boolean.TRUE.equals(tx.getIsDeleted()))
+                                        .toList());
+        for (LocalDate date : dates) {
+            history.put(
+                    date,
+                    source != null && beforeLiabilityConversion(liability, date)
+                            ? convertedSourceDebt(source, date, sourceMovements, liability)
+                            : liability.getStartDate() != null
+                                            && date.isBefore(liability.getStartDate())
+                                    ? BigDecimal.ZERO
+                                    : computeHistoricalLiabilityBalance(
+                                            liability, date, movementsByLiability, tranches));
         }
         return history;
+    }
+
+    private boolean beforeLiabilityConversion(Liability liability, LocalDate date) {
+        return liability.getConvertedFromAccountId() != null
+                && liability.getBalanceStartDate() != null
+                && date.isBefore(liability.getBalanceStartDate());
+    }
+
+    private BigDecimal convertedSourceDebt(
+            Account source,
+            LocalDate date,
+            Map<Long, List<Transaction>> movements,
+            Liability liability) {
+        if (date.isBefore(source.getOpeningDate())) return BigDecimal.ZERO;
+        BigDecimal balance = computeHistoricalBalance(source, date, movements, Map.of());
+        AccountCurrencyService.Position position =
+                accountCurrencyService.historicalPosition(
+                        source, balance, date, liability.getUserId());
+        return convertToBaseCurrency(
+                        position.amount(), position.currency(), liability.getCurrency(), date)
+                .negate()
+                .max(BigDecimal.ZERO);
     }
 
     private boolean propertyWasActive(
@@ -1177,6 +1243,8 @@ public class NetWorthService {
             LocalDate targetDate,
             Map<Long, List<Transaction>> movementsByLiability,
             List<org.openfinance.entity.LiabilityTranche> tranches) {
+        if (liability.getBalanceStartDate() != null
+                && targetDate.isBefore(liability.getBalanceStartDate())) return BigDecimal.ZERO;
         String balanceStr = liability.getCurrentBalance();
         if (balanceStr == null || balanceStr.isBlank()) {
             return BigDecimal.ZERO;
@@ -1258,7 +1326,10 @@ public class NetWorthService {
             LocalDate targetDate,
             Map<Long, List<Transaction>> txBySourceAccount,
             Map<Long, List<Transaction>> txByDestAccount) {
-        BigDecimal currentBalance = account.getBalance();
+        BigDecimal currentBalance =
+                account.getLiabilityTransferredBalance() != null
+                        ? account.getLiabilityTransferredBalance()
+                        : account.getBalance();
         BigDecimal delta = BigDecimal.ZERO;
 
         // Reverse source-account transactions after targetDate

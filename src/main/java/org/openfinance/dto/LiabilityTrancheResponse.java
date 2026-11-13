@@ -34,6 +34,12 @@ public class LiabilityTrancheResponse {
     /** Amount already drawn. */
     private BigDecimal drawnAmount;
 
+    /** Direct lender payment added to the property's cost, without a cash-account transaction. */
+    private BigDecimal capitalizedAmount;
+
+    /** Value increase explicitly chosen when capitalizing this payment. */
+    private BigDecimal valuationChange;
+
     /**
      * Outstanding drawn principal of this tranche (drawn amount minus principal allocated by
      * REPAYMENT transactions, capped at the drawn amount). Computed from the allocation ledger by

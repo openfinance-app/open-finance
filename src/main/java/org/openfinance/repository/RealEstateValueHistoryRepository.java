@@ -26,8 +26,10 @@ public interface RealEstateValueHistoryRepository
      */
     @Query(
             "SELECT h FROM RealEstateValueHistory h "
+                    + "LEFT JOIN LiabilityTranche t ON t.id = h.sourceTrancheId AND t.userId = h.userId "
                     + "WHERE h.propertyId = :propertyId "
                     + "AND h.effectiveDate <= :targetDate "
+                    + "AND (t.reversedDate IS NULL OR t.reversedDate > :targetDate) "
                     + "ORDER BY h.effectiveDate DESC, h.id DESC")
     List<RealEstateValueHistory> findHistoryUpToDate(
             @Param("propertyId") Long propertyId, @Param("targetDate") LocalDate targetDate);

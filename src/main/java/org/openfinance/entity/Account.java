@@ -207,9 +207,35 @@ public class Account {
     @Column(name = "deleted_date")
     private java.time.LocalDate deletedDate;
 
-    /** Closure is a workflow state, while deletion removes value from this date onward. */
+    @Column(name = "import_source", length = 30)
+    private String importSource;
+
+    /** The debt now belongs to a managed liability; the original ledger remains historical. */
+    @Column(name = "liability_converted_at")
+    private java.time.LocalDate liabilityConvertedAt;
+
+    /** Frozen ledger endpoint used when reconstructing dates before the debt cutover. */
+    @Column(name = "liability_transferred_balance", length = 512)
+    @Convert(converter = EncryptedBigDecimalConverter.class)
+    private BigDecimal liabilityTransferredBalance;
+
+    public void requireEditableLedger() {
+        if (liabilityConvertedAt != null) {
+            throw org.openfinance.exception.InvalidTransactionException.liabilityConversion(
+                    "archived",
+                    "This account was converted to a liability. Use the liability to record new movements, or undo the conversion first");
+        }
+    }
+
+    public void setBalance(BigDecimal value) {
+        requireEditableLedger();
+        this.balance = value;
+    }
+
+    /** Closure retains value; deletion or conversion ends this account's contribution. */
     public boolean isPresentAt(java.time.LocalDate date) {
-        return deletedDate == null || date.isBefore(deletedDate);
+        return (deletedDate == null || date.isBefore(deletedDate))
+                && (liabilityConvertedAt == null || date.isBefore(liabilityConvertedAt));
     }
 
     /** Flag indicating whether interest calculation is enabled for this account. */

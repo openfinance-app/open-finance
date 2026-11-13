@@ -17,6 +17,13 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class RepaymentPreviewResponse {
 
+    public enum Status {
+        READY,
+        BELOW_ESTIMATED_CHARGES,
+        INTEREST_ONLY_DIFFERENCE,
+        EXCEEDS_BALANCE
+    }
+
     /** Total repayment amount (principal + interest + insurance). */
     private BigDecimal total;
 
@@ -31,4 +38,7 @@ public class RepaymentPreviewResponse {
 
     /** Whether the previewed repayment is interest-only. */
     private Boolean interestOnly;
+
+    /** Whether the estimate can be applied, or why actual components must be entered instead. */
+    private Status status;
 }

@@ -29,7 +29,7 @@
     "currencyPlaceholder": "Sélectionner une devise",
     "interestRate": "Taux d'intérêt (% annuel)",
     "insurancePercentage": "Taux d'assurance (% annuel)",
-    "minimumPayment": "Mensualité minimum",
+    "minimumPayment": "Mensualité (hors assurance)",
     "additionalFees": "Frais uniques",
     "startDate": "Date de début",
     "endDate": "Date de fin (facultatif)",
@@ -66,7 +66,8 @@
       "feesNonNegative": "Les frais ne peuvent pas être négatifs",
       "feesInvalid": "Saisissez un montant valide (ex. 1234,56)",
       "endDateAfterStart": "La date de fin doit être postérieure à la date de début",
-      "reviewFields": "Veuillez vérifier les champs du formulaire avant d’enregistrer."
+      "reviewFields": "Veuillez vérifier les champs du formulaire avant d’enregistrer.",
+      "amortizationDateOrder": "Choisissez une date comprise entre le début et la fin du prêt."
     },
     "balanceLocked": "Le solde provient des mouvements enregistrés. Utilisez un remboursement, un déblocage ou une annulation pour le modifier.",
     "creditLimit": "Plafond de crédit (facultatif)",
@@ -94,7 +95,9 @@
     "paidHistory": "Ancien prêt remboursé (facultatif)",
     "financedAsset": "Bien financé (facultatif)",
     "noAsset": "Aucun bien lié",
-    "assetLinkHint": "Associe le prêt à ce bien sans créer de paiement ni changer sa valeur."
+    "assetLinkHint": "Associe le prêt à ce bien sans créer de paiement ni changer sa valeur.",
+    "amortizationStartDate": "Premier remboursement de capital",
+    "amortizationStartDateHint": "Avant cette date, les échéances couvrent uniquement les intérêts et l’assurance. Ce jour du mois fixe les échéances mensuelles."
   },
   "summary": {
     "totalLiabilities": "Total des passifs",
@@ -167,7 +170,7 @@
     "totalAmount": "Total restant",
     "totalPayments": "Nombre de paiements",
     "interestPrincipalRatio": "Intérêts/Capital",
-    "filterAll": "Tous les paiements",
+    "filterAll": "Tous",
     "filter12": "12 prochains mois",
     "filter24": "24 prochains mois",
     "exportCsv": "Exporter CSV",
@@ -184,13 +187,23 @@
       "principal": "Capital",
       "interest": "Intérêts",
       "remainingBalance": "Solde restant",
-      "insurance": "Assurance"
+      "insurance": "Assurance",
+      "status": "État",
+      "charges": "Frais / autres"
     },
     "pastContract": "Avec cette mensualité, le remboursement est prévu le {{payoff}}, après l’échéance contractuelle du {{contract}}. Vérifiez la mensualité ou les conditions du contrat.",
     "incomplete": "Cet échéancier ne rembourse pas tout le capital. Vérifiez la mensualité et la période de différé.",
     "paidOff": "Aucun paiement restant : cet emprunt est remboursé.",
     "undrawn": "Aucun échéancier pour le moment : ce prêt n’a pas encore été débloqué.",
-    "noBalance": "Aucun capital restant dû à planifier."
+    "noBalance": "Aucun capital restant dû à planifier.",
+    "remainingForecast": "Échéances restantes estimées",
+    "paid": "Payé",
+    "remaining": "À venir",
+    "statusFilter": "État des paiements",
+    "historyHint": "Les paiements effectués proviennent des transactions enregistrées. Les échéances à venir sont estimées.",
+    "closingBalanceHint": "Capital restant dû à la fin de la date du paiement.",
+    "noHistory": "Aucun paiement enregistré pour le moment.",
+    "noRemaining": "Aucune échéance à venir à afficher."
   },
   "breakdown": {
     "loadError": "Impossible de charger la décomposition. Veuillez réessayer.",
@@ -259,13 +272,20 @@
       "error": "Le déblocage a échoué. Veuillez réessayer.",
       "target": "Bien financé",
       "debtAfter": "Nouveau solde du prêt",
-      "valueChange": "Variation de la valeur du bien"
+      "valueChange": "Variation de la valeur du bien",
+      "amountLimit": "Le montant dépasse les fonds encore disponibles ou le montant prévu pour cette tranche.",
+      "capitalizeCost": "Ajouter au coût du bien",
+      "capitalizeCostHelp": "Pour une construction, une rénovation ou une amélioration qui n’est pas déjà incluse dans le coût du bien.",
+      "increaseValue": "Augmenter aussi la valeur du bien de ce montant",
+      "increaseValueHelp": "À cocher si la valeur suivie reflète l’avancement au coût des travaux. Laissez décoché si elle inclut déjà ces travaux ou provient d’une estimation indépendante.",
+      "costChange": "Coût ajouté au bien"
     },
     "reverse": "Annuler le déblocage",
     "reversedOn": "Annulé le {{date}}",
     "reverseDate": "Date d’annulation",
-    "reverseHint": "Cette opération retire le déblocage de la dette restante. Son historique et les valorisations ultérieures indépendantes sont conservés.",
-    "reverseError": "Impossible d’annuler ce déblocage. Vérifiez la date et les remboursements de capital."
+    "reverseHint": "Cette opération retire le déblocage de la dette et annule le coût et la hausse de valeur du bien enregistrés avec lui. L’historique et les estimations indépendantes ultérieures sont conservés.",
+    "reverseError": "Impossible d’annuler ce déblocage. Vérifiez la date et les remboursements de capital.",
+    "capitalizedCost": "Ajouté au coût du bien"
   },
   "movementTypes": {
     "DISBURSEMENT": "Déblocage",
@@ -279,7 +299,9 @@
   },
   "schedule": {
     "interestOnlyPhase": "Intérêts seuls jusqu'au {{date}} : capital 0",
-    "interestOnlyPhaseOpen": "Phase d'intérêts seuls active : capital 0"
+    "interestOnlyPhaseOpen": "Phase d'intérêts seuls active : capital 0",
+    "principalStarts": "Intérêts et assurance uniquement jusqu’au premier remboursement de capital le {{date}}.",
+    "drawnBalanceForecast": "Projection sur le capital débloqué restant dû. Les futurs déblocages modifieront cet échéancier."
   },
   "fundingStatus": {
     "UNDRAWN": "Non débloqué",
@@ -316,7 +338,14 @@
     "transaction": "Opération n° {{id}}",
     "title": "{{name}} — Détails",
     "sections": "Rubriques de l’emprunt",
-    "assets": "Biens liés"
+    "assets": "Biens liés",
+    "operationGroups": {
+      "payments": "Paiements",
+      "drawdowns": "Déblocages",
+      "other": "Autres opérations"
+    },
+    "scheduleError": "Impossible de charger l’historique et les échéances.",
+    "retry": "Réessayer"
   },
   "saveError": "Le passif n’a pas pu être enregistré. Veuillez réessayer.",
   "deleteError": "Le passif n’a pas pu être supprimé. Veuillez réessayer.",
@@ -330,12 +359,99 @@
     "chooseAccount": "Choisir un compte",
     "amountInvalid": "Saisissez un paiement positif et un capital positif ou nul.",
     "principalInvalid": "Le capital ne peut dépasser le paiement ni la dette restante.",
-    "dateInvalid": "Choisissez une date entre le début de l’emprunt et aujourd’hui.",
+    "dateInvalid": "Choisissez une date entre le {{date}} et aujourd’hui.",
     "description": "Remboursement : {{name}}",
     "cashChange": "Variation de trésorerie",
     "debtAfter": "Dette après paiement",
     "cancel": "Annuler",
     "confirm": "Confirmer le paiement",
     "error": "Le paiement n’a pas pu être enregistré. Vos saisies sont conservées."
+  },
+  "conversion": {
+    "stepsLabel": "Étapes de conversion",
+    "steps": {
+      "source": "Compte",
+      "details": "Conditions du prêt",
+      "review": "Vérification",
+      "payments": "Paiements"
+    },
+    "action": "Convertir un compte importé",
+    "title": "Convertir un compte importé",
+    "description": "Transformez un compte de dette Skrooge en dette gérée dans Open Finance.",
+    "loading": "Chargement des comptes importés…",
+    "loadError": "Impossible de charger les comptes. Réessayez.",
+    "retry": "Réessayer",
+    "empty": "Aucun compte de dette importé éligible. Le solde doit être négatif et aucun actif ne doit être lié au compte.",
+    "search": "Rechercher un compte",
+    "selectSource": "Choisissez le compte de dette",
+    "noMatch": "Aucun compte correspondant.",
+    "detailsTitle": "Confirmez les conditions du prêt",
+    "reviewTitle": "Vérifiez la conversion",
+    "outstanding": "Capital restant dû",
+    "name": "Nom de la dette",
+    "type": "Type de dette",
+    "termsHint": "Vérifiez le capital convenu et le total déjà emprunté sur votre relevé de prêt. Le capital convenu inclut les fonds restant à débloquer ; le total déjà emprunté inclut le capital que vous avez déjà remboursé.",
+    "principal": "Capital convenu",
+    "fundedPrincipal": "Total déjà emprunté",
+    "startDate": "Date de début du prêt",
+    "endDate": "Date de fin (facultatif)",
+    "interestRate": "Taux annuel (facultatif)",
+    "minimumPayment": "Mensualité hors assurance (facultatif)",
+    "source": "Compte source",
+    "effect_one": "Le compte sera clôturé et sa dette transférée ici. {{count}} transaction importée restera accessible dans Paiements liés. Les nouveaux paiements seront gérés ici à partir d’aujourd’hui. La trésorerie et le patrimoine net resteront inchangés.",
+    "effect_other": "Le compte sera clôturé et sa dette transférée ici. Ses {{count}} transactions importées resteront accessibles dans Paiements liés. Les nouveaux paiements seront gérés ici à partir d’aujourd’hui. La trésorerie et le patrimoine net resteront inchangés.",
+    "confirm": "Convertir en dette",
+    "converting": "Conversion…",
+    "review": "Vérifier la conversion",
+    "back": "Retour",
+    "error": "La conversion a échoué. Réessayez.",
+    "retryHint": "Le résultat n’est pas encore confirmé. Réessayez avec les mêmes informations.",
+    "invalidAmount": "Saisissez un montant valide positif ou nul.",
+    "nameRequired": "Saisissez un nom pour la dette.",
+    "invalidDate": "Choisissez une date de début du prêt au plus tard aujourd’hui.",
+    "invalidEndDate": "La date de fin doit suivre la date de début.",
+    "invalidRate": "Saisissez un taux entre 0 et 100.",
+    "fundedMinimum": "Le total emprunté doit couvrir le capital restant dû.",
+    "principalMinimum": "Le capital convenu doit couvrir le total déjà emprunté.",
+    "importedHistory": "Inclut l’historique du compte d’origine. Les paiements gérés commencent le {{date}}.",
+    "archivedAccount": "Converti en dette gérée. Ce compte conserve son historique ; enregistrez les nouveaux paiements dans Dettes.",
+    "mortgagePreset": "Les conditions confirmées du prêt sont préremplies. Vérifiez le bien, les dates et les montants ; la date du premier remboursement de capital est déduite de la fin contractuelle.",
+    "propertyHint": "Choisissez le bien converti. S’il manque, convertissez d’abord l’actif importé dans Immobilier. Le lien affecte cet emprunt au bien sans créer de paiement.",
+    "propertyError": "Impossible de charger les biens. Fermez puis rouvrez l’assistant pour réessayer.",
+    "propertyRequired": "Choisissez le bien financé par cet emprunt.",
+    "otherDetails": "Frais et notes du contrat (facultatif)",
+    "feesHint": "Saisissez uniquement les frais absents des paiements que vous allez associer. Les frais des paiements liés sont comptés automatiquement.",
+    "monthlyInsurance": "Assurance mensuelle",
+    "payments": {
+      "title": "Associer les paiements existants",
+      "next": "Vérifier les paiements existants",
+      "hint": "Sélectionnez les échéances existantes et vérifiez leur ventilation. Leurs montants, dates et catégories restent inchangés.",
+      "search": "Référence du prêt, libellé ou étiquette (dépenses de même devise)",
+      "find": "Rechercher",
+      "reload": "Recharger les paiements",
+      "loading": "Recherche des paiements existants…",
+      "error": "Impossible de charger les paiements. Rechargez-les avant de continuer.",
+      "empty": "Aucun paiement correspondant. Essayez une autre référence ou un autre libellé, ou continuez sans association.",
+      "truncated": "Les 100 premiers résultats sont affichés. Précisez la recherche pour retrouver les paiements souhaités.",
+      "selectAll": "Sélectionner les résultats",
+      "clear": "Effacer la sélection",
+      "list": "Paiements existants du prêt",
+      "select": "Associer {{description}} du {{date}}",
+      "unnamed": "Paiement",
+      "uncategorized": "Sans catégorie",
+      "classify": "Choisir les composantes du prêt",
+      "breakdown": "Vérifier la ventilation",
+      "chooseComponent": "Choisir une composante",
+      "selected_one": "{{count}} paiement sélectionné",
+      "selected_other": "{{count}} paiements sélectionnés",
+      "incomplete": "Choisissez une composante pour chaque paiement et ventilation sélectionnés, ou désélectionnez le paiement.",
+      "principalExceeded": "Le capital sélectionné dépasse le capital déjà remboursé. Vérifiez le total emprunté et la ventilation des paiements.",
+      "effect": "Les paiements sélectionnés seront associés pendant la conversion. Ils ne seront ni recréés ni déduits à nouveau du capital restant dû."
+    },
+    "undrawn": "Capital non débloqué",
+    "paymentWithInsurance": "Échéance d’amortissement, assurance comprise"
+  },
+  "wizard": {
+    "next": "Suivant"
   }
 }

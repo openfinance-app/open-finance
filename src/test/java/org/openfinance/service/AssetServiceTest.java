@@ -54,6 +54,7 @@ import org.openfinance.security.EncryptionService;
 class AssetServiceTest {
 
     @Mock private AssetRepository assetRepository;
+    @Mock private org.openfinance.repository.LiabilityTrancheRepository liabilityTrancheRepository;
 
     @Mock private AccountRepository accountRepository;
 

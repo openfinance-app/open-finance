@@ -143,6 +143,7 @@ class TransactionLiabilitySyncTest {
                         org.mockito.Mockito.mock(
                                 org.openfinance.repository.PropertyStatusHistoryRepository.class),
                         liabilityRepository,
+                        liabilityTrancheRepository,
                         currencyRepository,
                         realEstateMapper,
                         encryptionService,
