@@ -22,6 +22,7 @@ import { useTranslation } from 'react-i18next';
 import { Hammer, Wrench, Landmark, AlertCircle } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
 import { ConvertedAmount } from '@/components/ui/ConvertedAmount';
+import { TransactionAmount } from '@/components/transactions/TransactionAmount';
 import { useTransactions } from '@/hooks/useTransactions';
 import { useLiabilityTransactions } from '@/hooks/useLiabilities';
 import type { RealEstateProperty } from '@/types/realEstate';
@@ -36,10 +37,12 @@ function MovementRow({
   tx,
   label,
   currency,
+  realEstateId,
 }: {
   tx: Transaction;
   label: string;
   currency: string;
+  realEstateId?: number;
 }) {
   const { date: formatDate } = useDateFormatter();
   return (
@@ -47,8 +50,8 @@ function MovementRow({
       <Link
         to={buildTransactionsLink({
           highlight: tx.id,
-          ...(tx.realEstateId
-            ? { realEstateId: tx.realEstateId }
+          ...(realEstateId || tx.realEstateId
+            ? { realEstateId: realEstateId ?? tx.realEstateId }
             : { liabilityId: tx.liabilityId }),
         })}
         className="flex flex-1 items-center gap-3 min-w-0 rounded-sm hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
@@ -67,7 +70,7 @@ function MovementRow({
         </div>
       </Link>
       <div className="relative text-sm font-mono font-semibold text-text-primary ml-4 flex-shrink-0">
-        <ConvertedAmount amount={tx.amount} currency={tx.currency || currency} inline />
+        <TransactionAmount transaction={{ ...tx, currency: tx.currency || currency }} inline />
       </div>
     </div>
   );
@@ -79,30 +82,38 @@ function MovementList({
   transactions,
   currency,
   movementLabel,
-  emptyLabel,
+  realEstateId,
 }: {
   title: string;
   icon: React.ReactNode;
   transactions: Transaction[];
   currency: string;
   movementLabel: (tx: Transaction) => string;
-  emptyLabel: string;
+  realEstateId?: number;
 }) {
+  if (transactions.length === 0) return null;
   return (
     <Card className="p-4">
       <h4 className="plate-label text-sm font-semibold text-text-primary mb-3 flex items-center gap-2">
         {icon}
         {title}
       </h4>
-      {transactions.length === 0 ? (
-        <p className="text-xs text-text-tertiary">{emptyLabel}</p>
-      ) : (
-        <div className="divide-y divide-border border border-border rounded-lg overflow-hidden">
-          {transactions.map(tx => (
-            <MovementRow key={tx.id} tx={tx} label={movementLabel(tx)} currency={currency} />
-          ))}
-        </div>
-      )}
+      <div
+        role="region"
+        aria-label={title}
+        tabIndex={0}
+        className="max-h-[min(20rem,40dvh)] overflow-y-auto overscroll-contain divide-y divide-border border border-border rounded-lg [scrollbar-gutter:stable] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary"
+      >
+        {transactions.map(tx => (
+          <MovementRow
+            key={tx.id}
+            tx={tx}
+            label={movementLabel(tx)}
+            currency={currency}
+            realEstateId={realEstateId}
+          />
+        ))}
+      </div>
     </Card>
   );
 }
@@ -216,26 +227,41 @@ export function PropertyMovementsSection({ property }: { property: RealEstatePro
             icon={<Landmark className="h-4 w-4" />}
             transactions={acquisition}
             currency={property.currency}
-            movementLabel={() => t('movements.acquisition')}
-            emptyLabel={t('movements.empty')}
+            realEstateId={property.id}
+            movementLabel={tx =>
+              property.convertedFromHolding && tx.assetId === property.assetId
+                ? t(`transactions:form.types.${tx.transferId ? 'TRANSFER' : tx.type}`)
+                : t('movements.acquisition')
+            }
           />
           {funding.data?.length ? (
             <section className="space-y-2">
               <h4 className="plate-label font-semibold">{t('movements.directFunding')}</h4>
-              {funding.data.map(draw => (
-                <div
-                  key={draw.id}
-                  className="flex justify-between gap-3 border border-border rounded p-3 text-sm"
-                >
-                  <span>
-                    T{draw.trancheNo} · {draw.drawnDate}
-                    {draw.reversedDate
-                      ? ` · ${t('movements.reversed', { date: draw.reversedDate })}`
-                      : ''}
-                  </span>
-                  <ConvertedAmount amount={draw.drawnAmount ?? 0} currency={draw.currency} inline />
-                </div>
-              ))}
+              <div
+                role="region"
+                aria-label={t('movements.directFunding')}
+                tabIndex={0}
+                className="max-h-[min(20rem,40dvh)] overflow-y-auto overscroll-contain space-y-2 [scrollbar-gutter:stable] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary"
+              >
+                {funding.data.map(draw => (
+                  <div
+                    key={draw.id}
+                    className="flex justify-between gap-3 border border-border rounded p-3 text-sm"
+                  >
+                    <span>
+                      T{draw.trancheNo} · {draw.drawnDate}
+                      {draw.reversedDate
+                        ? ` · ${t('movements.reversed', { date: draw.reversedDate })}`
+                        : ''}
+                    </span>
+                    <ConvertedAmount
+                      amount={draw.drawnAmount ?? 0}
+                      currency={draw.currency}
+                      inline
+                    />
+                  </div>
+                ))}
+              </div>
             </section>
           ) : null}
           <MovementList
@@ -244,7 +270,7 @@ export function PropertyMovementsSection({ property }: { property: RealEstatePro
             transactions={capitalized}
             currency={property.currency}
             movementLabel={tx => t(`movements.movementTypes.${tx.movementType}`)}
-            emptyLabel={t('movements.empty')}
+            realEstateId={property.id}
           />
           <MovementList
             title={t('movements.maintenance')}
@@ -252,7 +278,7 @@ export function PropertyMovementsSection({ property }: { property: RealEstatePro
             transactions={maintenance}
             currency={property.currency}
             movementLabel={tx => t(`movements.movementTypes.${tx.movementType}`)}
-            emptyLabel={t('movements.empty')}
+            realEstateId={property.id}
           />
           {loanMovements.length > 0 && (
             <MovementList
@@ -261,7 +287,6 @@ export function PropertyMovementsSection({ property }: { property: RealEstatePro
               transactions={loanMovements}
               currency={property.currency}
               movementLabel={tx => t(`movements.movementTypes.${tx.movementType}`)}
-              emptyLabel={t('movements.empty')}
             />
           )}
         </>

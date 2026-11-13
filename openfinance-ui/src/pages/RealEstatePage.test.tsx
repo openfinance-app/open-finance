@@ -6,6 +6,9 @@ import userEvent from '@testing-library/user-event';
 import { renderWithProviders, mockAuthentication } from '@/test/test-utils';
 import { usePropertiesSearch } from '@/hooks/useRealEstate';
 
+const importConfig = vi.hoisted(() => ({ data: { skroogeJsonEnabled: true }, isError: false }));
+vi.mock('@/hooks/useImportConfig', () => ({ useImportConfig: () => importConfig }));
+
 vi.mock('@/hooks/useDocumentTitle', () => ({ useDocumentTitle: vi.fn() }));
 vi.mock('@/components/real-estate/BuyPropertyWizard', () => ({
   BuyPropertyWizard: ({
@@ -107,6 +110,7 @@ describe('RealEstatePage', () => {
     window.history.replaceState({}, '', '/real-estate');
     vi.clearAllMocks();
     mockAuthentication();
+    importConfig.data.skroogeJsonEnabled = true;
     mockData = undefined;
     mockIsLoading = false;
     mockError = null;
@@ -115,6 +119,30 @@ describe('RealEstatePage', () => {
     Element.prototype.scrollIntoView = vi.fn();
   });
   afterEach(() => window.history.replaceState({}, '', '/'));
+
+  it('shows the property conversion action when Skrooge import is enabled', () => {
+    renderWithProviders(<RealEstatePage />);
+    expect(
+      screen.getByRole('button', { name: i18n.t('realEstate:conversion.action') })
+    ).toBeInTheDocument();
+  });
+
+  it('hides conversion and ignores its deep links when disabled', async () => {
+    importConfig.data.skroogeJsonEnabled = false;
+    window.history.replaceState({}, '', '/real-estate?convert=8');
+    renderWithProviders(<RealEstatePage />);
+    expect(
+      screen.queryByRole('button', { name: i18n.t('realEstate:conversion.action') })
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('dialog', { name: i18n.t('realEstate:conversion.title') })
+    ).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: i18n.t('realEstate:addProperty') }));
+    expect(await screen.findByText(i18n.t('realEstate:createChoice.intro'))).toBeInTheDocument();
+    expect(
+      screen.queryByRole('dialog', { name: i18n.t('realEstate:conversion.title') })
+    ).not.toBeInTheDocument();
+  });
 
   it.each(['highlight=9', 'asset=4'])(
     'opens a property from a %s deep link and removes consumed parameters',

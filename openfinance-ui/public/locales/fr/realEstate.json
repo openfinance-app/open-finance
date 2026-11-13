@@ -821,5 +821,38 @@
   "saveError": "Impossible d’enregistrer ce bien. Vos saisies ont été conservées. Réessayez.",
   "performanceUnavailable": "Performance indisponible : renseignez la valeur à la réception.",
   "notApplicable": "N/D",
-  "plannedNotice": "Cette acquisition est prévue. Elle est exclue du patrimoine détenu et de la performance."
+  "plannedNotice": "Cette acquisition est prévue. Elle est exclue du patrimoine détenu et de la performance.",
+  "conversion": {
+    "action": "Convertir un actif importé",
+    "title": "Convertir en bien immobilier",
+    "description": "Transformez un placement importé en bien immobilier en conservant ses valeurs et son historique.",
+    "stepsLabel": "Étapes de conversion",
+    "steps": {
+      "source": "Actif importé",
+      "details": "Détails du bien",
+      "review": "Vérification"
+    },
+    "loading": "Chargement des placements importés…",
+    "loadError": "Impossible de charger les placements importés. Réessayez.",
+    "retry": "Réessayer",
+    "empty": "Aucun placement importé disponible. Importez d’abord vos données ; les placements déjà convertis ou entièrement vendus ne sont pas proposés.",
+    "search": "Rechercher un actif ou un compte",
+    "selectSource": "Quel actif importé représente votre bien immobilier ?",
+    "noMatch": "Aucun placement correspondant. Essayez un autre nom.",
+    "detailsTitle": "Complétez les détails du bien",
+    "reviewTitle": "Vérifiez la conversion",
+    "source": "Placement importé",
+    "recordedSince": "Suivi depuis le",
+    "cost": "Coût d’acquisition enregistré",
+    "value": "Valeur actuelle enregistrée",
+    "preserved": "Conservation de {{transactions}} transactions et de {{valuations}} valorisations datées. Le placement devient un seul bien immobilier dans votre portefeuille.",
+    "noPayment": "Aucun paiement n’est créé. Les soldes en espèces et le patrimoine total restent identiques. Les mouvements de placement d’origine restent dans l’historique ; annulez cette conversion avant de les modifier.",
+    "confirm": "Convertir en bien immobilier",
+    "error": "Impossible de confirmer la conversion. Veuillez réessayer.",
+    "retrySame": "Le résultat n’a pas pu être confirmé. Réessayez avec les mêmes informations pour éviter un doublon.",
+    "nameLimit": "Utilisez 255 caractères au maximum.",
+    "addressLimit": "Utilisez 500 caractères au maximum.",
+    "closeAccount": "Le compte d’origine « {{account}} » sera clôturé. Son historique de transactions reste accessible ici.",
+    "keepAccount": "Le compte d’origine « {{account}} » reste ouvert pour ses autres activités financières."
+  }
 }

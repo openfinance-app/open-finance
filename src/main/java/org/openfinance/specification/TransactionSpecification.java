@@ -1,9 +1,12 @@
 package org.openfinance.specification;
 
 import jakarta.persistence.criteria.Predicate;
+import jakarta.persistence.criteria.Root;
+import jakarta.persistence.criteria.Subquery;
 import java.util.ArrayList;
 import java.util.List;
 import org.openfinance.dto.TransactionSearchCriteria;
+import org.openfinance.entity.RealEstateProperty;
 import org.openfinance.entity.Transaction;
 import org.springframework.data.jpa.domain.Specification;
 
@@ -86,9 +89,21 @@ public class TransactionSpecification {
 
             // Filter by linked real estate property
             if (criteria.getRealEstateId() != null) {
+                // Converted holdings retain their original asset link. Include that ledger
+                // without rewriting its financial classification or duplicating cost entries.
+                Subquery<Long> propertyAsset = query.subquery(Long.class);
+                Root<RealEstateProperty> property = propertyAsset.from(RealEstateProperty.class);
+                propertyAsset
+                        .select(property.get("assetId"))
+                        .where(
+                                criteriaBuilder.equal(
+                                        property.get("id"), criteria.getRealEstateId()),
+                                criteriaBuilder.equal(property.get("userId"), userId));
                 predicates.add(
-                        criteriaBuilder.equal(
-                                root.get("realEstateId"), criteria.getRealEstateId()));
+                        criteriaBuilder.or(
+                                criteriaBuilder.equal(
+                                        root.get("realEstateId"), criteria.getRealEstateId()),
+                                root.get("assetId").in(propertyAsset)));
             }
 
             // Filter by linked asset

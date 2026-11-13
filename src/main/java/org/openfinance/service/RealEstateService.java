@@ -147,6 +147,17 @@ public class RealEstateService {
             idArgument = -1)
     public RealEstatePropertyResponse createProperty(
             Long userId, RealEstatePropertyRequest request) {
+        return createPropertyInternal(userId, request, null);
+    }
+
+    /** Internal conversion path: reuse the holding rather than create a second asset. */
+    public RealEstatePropertyResponse createPropertyFromImportedAsset(
+            Long userId, RealEstatePropertyRequest request, Long assetId) {
+        return createPropertyInternal(userId, request, assetId);
+    }
+
+    private RealEstatePropertyResponse createPropertyInternal(
+            Long userId, RealEstatePropertyRequest request, Long importedAssetId) {
         if (userId == null) {
             throw new IllegalArgumentException("User ID cannot be null");
         }
@@ -186,7 +197,12 @@ public class RealEstateService {
 
         // Sync with Assets module (Requirement: Real Estate appearing in Net Worth)
         try {
-            createLinkedAsset(userId, savedProperty, request);
+            if (importedAssetId == null) {
+                createLinkedAsset(userId, savedProperty, request);
+            } else {
+                assetService.convertImportedPropertyAsset(importedAssetId, userId, request);
+                savedProperty.setAssetId(importedAssetId);
+            }
             // Save again to persist the assetId
             savedProperty = realEstateRepository.save(savedProperty);
         } catch (Exception e) {
@@ -519,8 +535,10 @@ public class RealEstateService {
         realEstateRepository.save(property);
         searchTokenService.removeEntity("REAL_ESTATE", propertyId);
 
-        // Sync with Assets module - HARD DELETE the asset to remove from net worth
-        if (property.getAssetId() != null) {
+        // Imported ledgers keep their linked asset and source identity when a property is archived.
+        boolean imported =
+                property.getAsset() != null && property.getAsset().getImportSource() != null;
+        if (property.getAssetId() != null && !imported) {
             try {
                 assetService.deletePropertyAsset(property.getAssetId(), userId);
                 property.setAssetId(null); // Clear the link
@@ -1492,6 +1510,8 @@ public class RealEstateService {
     private RealEstatePropertyResponse toResponseWithDecryption(RealEstateProperty property) {
         // Map basic fields using MapStruct
         RealEstatePropertyResponse response = realEstateMapper.toResponse(property);
+        response.setConvertedFromHolding(
+                property.getAsset() != null && property.getAsset().getImportSource() != null);
 
         // Manually set isActive (MapStruct has issues with boolean "is" prefix fields)
         response.setActive(property.isActive() && property.getSoldDate() == null);

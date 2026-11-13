@@ -6,7 +6,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 @ConfigurationProperties(prefix = "application.import")
 public class ImportProperties {
 
-    /** Master switch for the Skrooge JSON import format. Defaults enabled. */
+    /** Master switch for Skrooge JSON import and imported-property conversion. Defaults enabled. */
     private boolean skroogeJsonEnabled = true;
 
     public boolean isSkroogeJsonEnabled() {

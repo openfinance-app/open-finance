@@ -1243,6 +1243,7 @@ public class AccountService {
         // encrypted amounts)
         List<Transaction> transactions = transactionRepository.findActiveByAccountId(accountId);
         for (org.openfinance.entity.Asset asset : assetRepository.findByAccountId(accountId)) {
+            if (asset.getType() == org.openfinance.entity.AssetType.REAL_ESTATE) continue;
             if (asset.getImportSource() == null && asset.getImportOpeningQuantity() == null)
                 continue;
             org.openfinance.util.InvestmentHoldings.update(asset, transactions);

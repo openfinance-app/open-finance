@@ -326,6 +326,29 @@ public class AssetService {
         return updateAssetInternal(assetId, userId, request, true, true);
     }
 
+    /** Only called by the atomic property-conversion workflow. Keeps source identity and ledger. */
+    public void convertImportedPropertyAsset(
+            Long assetId, Long userId, org.openfinance.dto.RealEstatePropertyRequest request) {
+        Asset asset =
+                assetRepository
+                        .findByIdAndUserId(assetId, userId)
+                        .orElseThrow(() -> AssetNotFoundException.byIdAndUser(assetId, userId));
+        if (asset.getImportSource() == null || asset.getType() == AssetType.REAL_ESTATE)
+            throw InvalidTransactionException.investment(
+                    "propertyConversion.source",
+                    "Choose an imported holding that has not already been converted");
+        asset.setType(AssetType.REAL_ESTATE);
+        asset.setName(request.getName());
+        asset.setSymbol(null);
+        asset.setQuantity(BigDecimal.ONE);
+        asset.setPurchasePrice(request.getPurchasePrice());
+        asset.setCurrentPrice(request.getCurrentValue());
+        asset.setReceivedValue(request.getReceivedValue());
+        asset.setLastUpdated(LocalDateTime.now());
+        assetRepository.save(asset);
+        indexAssetSearchTokens(asset, asset.getName());
+    }
+
     @CacheEvict(
             value = {
                 "dashboardSummary",
@@ -340,6 +363,7 @@ public class AssetService {
     }
 
     private void validateImportedHoldingEdit(Asset asset, AssetRequest request) {
+        if (asset.getType() == AssetType.REAL_ESTATE) return;
         if (asset.getImportSource() == null && asset.getImportOpeningQuantity() == null) return;
         if ((request.getType() != null
                         && (request.getType().isPhysical()
@@ -1424,7 +1448,8 @@ public class AssetService {
     private AssetResponse toResponseWithDecryption(Asset asset) {
         if (canReadSensitiveFields()) {
             asset.setCapitalizedCost(capitalizedCost(asset));
-            if (asset.getImportOpeningQuantity() != null) {
+            if (asset.getImportOpeningQuantity() != null
+                    && asset.getType() != AssetType.REAL_ESTATE) {
                 asset.setRemainingReceivedValue(
                         org.openfinance.util.InvestmentHoldings.at(
                                         asset,
@@ -1436,7 +1461,9 @@ public class AssetService {
         }
         // Map to response first (mapper will populate calculated fields automatically)
         AssetResponse response = assetMapper.toResponse(asset);
-        if (canReadSensitiveFields() && asset.getImportOpeningQuantity() != null) {
+        if (canReadSensitiveFields()
+                && asset.getImportOpeningQuantity() != null
+                && asset.getType() != AssetType.REAL_ESTATE) {
             response.setRealizedGain(
                     org.openfinance.util.InvestmentHoldings.at(
                                     asset,
@@ -1446,7 +1473,9 @@ public class AssetService {
                             .realizedGain());
         }
         response.setInvestmentTracked(
-                asset.getImportSource() != null || asset.getImportOpeningQuantity() != null);
+                asset.getType() != AssetType.REAL_ESTATE
+                        && (asset.getImportSource() != null
+                                || asset.getImportOpeningQuantity() != null));
         boolean closed =
                 asset.getSoldDate() != null
                         || (!asset.isPhysical()

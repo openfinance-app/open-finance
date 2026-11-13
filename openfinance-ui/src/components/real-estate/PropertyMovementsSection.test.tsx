@@ -5,14 +5,21 @@
  * realEstateId transaction filter) and the Loan movements section
  * (repayments/disbursements of the property's mortgage).
  */
-import { screen } from '@testing-library/react';
+import { screen, within } from '@testing-library/react';
 import { vi, describe, it, expect, beforeEach } from 'vitest';
 import { mockAuthentication, renderWithProviders } from '@/test/test-utils';
-import { PropertyMovementsSection } from './PropertyMovementsSection';
+import { PropertyMovementsSection } from '@/components/real-estate/PropertyMovementsSection';
 import * as useTransactionsModule from '@/hooks/useTransactions';
 import * as useLiabilitiesModule from '@/hooks/useLiabilities';
 import type { RealEstateProperty } from '@/types/realEstate';
 import type { Transaction } from '@/types/transaction';
+import type { AmountDisplayMode } from '@/context/CurrencyDisplayContext';
+
+const currencyDisplay = vi.hoisted(() => ({ mode: 'base' as AmountDisplayMode }));
+vi.mock('@/context/CurrencyDisplayContext', async importOriginal => ({
+  ...(await importOriginal<typeof import('@/context/CurrencyDisplayContext')>()),
+  useCurrencyDisplay: () => ({ displayMode: currencyDisplay.mode, secondaryCurrency: null }),
+}));
 
 vi.mock('@/hooks/useTransactions', async importOriginal => {
   const actual = await importOriginal<typeof useTransactionsModule>();
@@ -106,6 +113,7 @@ describe('PropertyMovementsSection', () => {
   beforeEach(() => {
     mockAuthentication();
     vi.clearAllMocks();
+    currencyDisplay.mode = 'base';
     mockUseTransactions.mockReturnValue({
       data: {
         content: [kitchenTx, leakTx],
@@ -167,6 +175,112 @@ describe('PropertyMovementsSection', () => {
     renderWithProviders(<PropertyMovementsSection property={mockProperty} />);
 
     expect(mockUseTransactions).toHaveBeenCalledWith(expect.objectContaining({ realEstateId: 7 }));
+  });
+
+  it.each(['base', 'native', 'both'] as const)(
+    'honors %s currency display for acquisition, costs and loan transactions',
+    mode => {
+      currencyDisplay.mode = mode;
+      const conversion = {
+        currency: 'XOF',
+        baseCurrency: 'EUR',
+        exchangeRate: 1 / 655.957,
+        isConverted: true,
+      };
+      const transactions: Transaction[] = [
+        {
+          ...kitchenTx,
+          ...conversion,
+          id: 104,
+          assetId: 8,
+          realEstateId: undefined,
+          movementType: undefined,
+          type: 'INCOME',
+          transferId: 'imported-property-transfer',
+          amount: 655957,
+          amountInBaseCurrency: 1000,
+        },
+        { ...kitchenTx, ...conversion, amount: 1311914, amountInBaseCurrency: 2000 },
+        { ...leakTx, ...conversion, amount: 1967871, amountInBaseCurrency: 3000 },
+      ];
+      mockUseTransactions.mockReturnValue({
+        data: { content: transactions, totalElements: 3, totalPages: 1, number: 0, size: 200 },
+        isLoading: false,
+        error: null,
+      } as unknown as ReturnType<typeof useTransactionsModule.useTransactions>);
+      mockUseLiabilityTransactions.mockReturnValue({
+        data: [{ ...repaymentTx, ...conversion, amount: 2623828, amountInBaseCurrency: 4000 }],
+        isLoading: false,
+        error: null,
+      } as unknown as ReturnType<typeof useLiabilitiesModule.useLiabilityTransactions>);
+
+      renderWithProviders(
+        <PropertyMovementsSection
+          property={{ ...mockProperty, assetId: 8, convertedFromHolding: true, currency: 'XOF' }}
+        />
+      );
+
+      const amounts = [
+        ['Acquisition and other payments', '€1,000.00', /655,957/],
+        ['Capitalized', '€2,000.00', /1,311,914/],
+        ['Maintenance', '€3,000.00', /1,967,871/],
+        ['Loan movements', '€4,000.00', /2,623,828/],
+      ] as const;
+      for (const [section, base, native] of amounts) {
+        const list = within(screen.getByRole('region', { name: section, exact: true }));
+        if (mode !== 'native') expect(list.getByText(base)).toBeVisible();
+        else expect(list.queryByText(base)).not.toBeInTheDocument();
+        if (mode !== 'base') expect(list.getByText(native)).toBeVisible();
+        else expect(list.queryByText(native)).not.toBeInTheDocument();
+      }
+    }
+  );
+
+  it('shows imported transfers alongside new costs and opens the same property history', () => {
+    const imported: Transaction = {
+      ...kitchenTx,
+      id: 104,
+      assetId: 8,
+      realEstateId: undefined,
+      movementType: undefined,
+      type: 'INCOME',
+      transferId: 'original-transfer',
+      investmentQuantity: 0.5,
+      investmentCash: false,
+      amount: 500,
+      description: 'Imported property contribution',
+    };
+    mockUseTransactions.mockReturnValue({
+      data: {
+        content: [imported, kitchenTx],
+        totalElements: 2,
+        totalPages: 1,
+        number: 0,
+        size: 200,
+      },
+      isLoading: false,
+      error: null,
+    } as unknown as ReturnType<typeof useTransactionsModule.useTransactions>);
+
+    renderWithProviders(
+      <PropertyMovementsSection
+        property={{ ...mockProperty, assetId: 8, convertedFromHolding: true }}
+      />
+    );
+
+    expect(
+      screen.getByRole('link', { name: /Imported property contribution\s*Transfer/ })
+    ).toHaveAttribute('href', '/transactions?realEstateId=7&highlight=104');
+    expect(screen.getByRole('link', { name: 'Open transactions' })).toHaveAttribute(
+      'href',
+      '/transactions?realEstateId=7'
+    );
+    expect(screen.getByText('Kitchen renovation')).toBeInTheDocument();
+    expect(screen.queryByText(/no movements recorded yet/i)).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('link', { name: 'View imported transactions' })
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText('Income')).not.toBeInTheDocument();
   });
 
   it('fetches loan movements for the property mortgage liability', () => {

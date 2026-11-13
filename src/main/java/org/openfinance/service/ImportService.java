@@ -399,7 +399,8 @@ public class ImportService {
                     List<Account> userAccounts =
                             accountRepository.findByUserId(session.getUserId());
                     for (Account acc : userAccounts) {
-                        if (acc.getDeletedDate() != null) continue;
+                        if (acc.getDeletedDate() != null || !Boolean.TRUE.equals(acc.getIsActive()))
+                            continue;
                         String normalizedDetected =
                                 detectedAccountName.replaceAll("[^a-zA-Z0-9]", "").toLowerCase();
                         String normalizedAccName =

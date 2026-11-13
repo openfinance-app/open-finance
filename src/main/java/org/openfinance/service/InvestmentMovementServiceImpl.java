@@ -102,6 +102,7 @@ public class InvestmentMovementServiceImpl implements InvestmentMovementService 
             InvestmentMovementRequest request,
             boolean present,
             Transaction previous) {
+        if (retainedPropertyMovement(tx, request, present, previous)) return;
         if (previous != null
                 && tx.getInvestmentImportIdentity() == null
                 && (previous.getInvestmentQuantity() != null || request != null)) {
@@ -145,6 +146,26 @@ public class InvestmentMovementServiceImpl implements InvestmentMovementService 
         tx.setInvestmentPriceDate(tx.getDate());
         tx.setInvestmentPriceSource(historical ? "HISTORICAL_CLOSE" : "RECORDED");
         tx.setInvestmentEdited(true);
+    }
+
+    private boolean retainedPropertyMovement(
+            Transaction tx,
+            InvestmentMovementRequest request,
+            boolean present,
+            Transaction previous) {
+        if (previous == null || previous.getInvestmentQuantity() == null) return false;
+        Asset asset = assets.findByIdAndUserId(previous.getAssetId(), tx.getUserId()).orElse(null);
+        if (asset == null || asset.getType() != AssetType.REAL_ESTATE) return false;
+        InvestmentMovementRequest instruction = present ? request : retainedInstruction(previous);
+        if (instruction == null
+                || !Objects.equals(tx.getAccountId(), previous.getAccountId())
+                || tx.getType() != previous.getType()
+                || !unchanged(tx, instruction, previous))
+            throw invalid(
+                    "propertyConversion.managed",
+                    "This holding is now managed as a property. Undo the conversion before changing its original investment movements");
+        tx.setAssetId(previous.getAssetId());
+        return true;
     }
 
     private boolean unchanged(
@@ -338,6 +359,8 @@ public class InvestmentMovementServiceImpl implements InvestmentMovementService 
         if (current.getInvestmentQuantity() != null) ids.add(current.getAssetId());
         transactions.flush();
         for (Long id : ids) {
+            Asset converted = assets.findByIdAndUserId(id, current.getUserId()).orElse(null);
+            if (converted != null && converted.getType() == AssetType.REAL_ESTATE) continue;
             Asset asset = holding(id, current.getUserId());
             List<Transaction> movements =
                     transactions.findByAssetIdAndUserId(id, current.getUserId());

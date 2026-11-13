@@ -114,8 +114,7 @@ export function PropertyDetailView({
       <Dialog open={!closing} onOpenChange={open => !open && onClose()}>
         <DialogContent
           onAnimationEnd={onAnimationEnd}
-          ref={detailScrollRef}
-          className="grid-cols-1 sm:max-w-4xl max-h-[90vh] overflow-y-auto"
+          className="flex max-h-[90dvh] flex-col overflow-hidden sm:max-w-4xl"
         >
           {loadingProperty ? (
             <div className="space-y-4">
@@ -128,7 +127,7 @@ export function PropertyDetailView({
           ) : property ? (
             <>
               {/* Header */}
-              <DialogHeader>
+              <DialogHeader className="shrink-0">
                 <div className="flex items-start justify-between">
                   <div className="flex items-start gap-4 flex-1">
                     <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-primary/10 text-primary shrink-0">
@@ -158,7 +157,7 @@ export function PropertyDetailView({
 
               <nav
                 aria-label={t('propertyDetail.sections')}
-                className="flex gap-1 overflow-x-auto border-b border-border"
+                className="flex shrink-0 gap-1 overflow-x-auto border-b border-border"
               >
                 {(
                   [
@@ -195,7 +194,13 @@ export function PropertyDetailView({
               </nav>
 
               {/* Tab Content */}
-              <div className="py-4">
+              <div
+                ref={detailScrollRef}
+                role="region"
+                aria-label={t(`propertyDetail.tab.${activeTab}`)}
+                tabIndex={0}
+                className="min-h-0 space-y-6 overflow-y-auto overscroll-contain py-4 pr-2 [scrollbar-gutter:stable] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary"
+              >
                 {activeTab === 'costs' && <PropertyMovementsSection property={property} />}
                 {activeTab === 'financing' && property.assetId && (
                   <AssetFinancingSection assetId={property.assetId} />

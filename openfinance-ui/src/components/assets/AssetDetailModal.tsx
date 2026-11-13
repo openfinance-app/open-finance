@@ -593,7 +593,7 @@ export function AssetDetailModal({
             </div>
 
             {/* Actions */}
-            <div className="flex justify-end gap-3 mt-6">
+            <div className="flex flex-wrap justify-end gap-3 mt-6">
               <Button variant="secondary" onClick={onClose}>
                 {t('detail.actions.close')}
               </Button>

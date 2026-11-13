@@ -43,4 +43,7 @@ public interface RealEstateValueHistoryRepository
      * Loads all history entries for all properties belonging to a user (for backfill pre-loading).
      */
     List<RealEstateValueHistory> findByUserId(Long userId);
+
+    List<RealEstateValueHistory> findByPropertyIdAndUserIdOrderByEffectiveDateAsc(
+            Long propertyId, Long userId);
 }

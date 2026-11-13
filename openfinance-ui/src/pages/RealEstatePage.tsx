@@ -35,9 +35,11 @@ import { Card } from '@/components/ui/Card';
 import { PropertyCard } from '@/components/real-estate/PropertyCard';
 import { RealEstateForm } from '@/components/real-estate/RealEstateForm';
 import { BuyPropertyWizard } from '@/components/real-estate/BuyPropertyWizard';
+import { ConvertPropertyWizard } from '@/components/real-estate/ConvertPropertyWizard';
 import { PropertyDetailView } from '@/components/real-estate/PropertyDetailView';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { usePropertiesSearch, useCreateProperty, useUpdateProperty } from '@/hooks/useRealEstate';
+import { usePropertyConversionEnabled } from '@/hooks/usePropertyConversion';
 import { useAccounts } from '@/hooks/useAccounts';
 import { CurrencySelector } from '@/components/ui/CurrencySelector';
 import { AmountFilterControls } from '@/components/ui/AmountFilterControls';
@@ -55,6 +57,7 @@ import { PropertyType as PropertyTypeEnum } from '@/types/realEstate';
 
 export default function RealEstatePage() {
   const { t } = useTranslation('realEstate');
+  const conversionEnabled = usePropertyConversionEnabled();
   useDocumentTitle(t('title'));
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -75,6 +78,8 @@ export default function RealEstatePage() {
   const [saveError, setSaveError] = useState<string | null>(null);
   const [purchasePlan, setPurchasePlan] = useState<RealEstateProperty>();
   const [isBuyWizardOpen, setIsBuyWizardOpen] = useState(false);
+  const [conversionAssetId, setConversionAssetId] = useState<number>();
+  const [isConversionOpen, setIsConversionOpen] = useState(false);
   const [editingProperty, setEditingProperty] = useState<RealEstateProperty | null>(null);
   const [viewingPropertyId, setViewingPropertyId] = useViewState<number | null>(
     'viewingPropertyId',
@@ -140,6 +145,17 @@ export default function RealEstatePage() {
   const properties = propertiesPage?.content || [];
   const allProperties = allPropertiesPage?.content || [];
   const matchingProperties = matchingPropertiesPage?.content || [];
+
+  useEffect(() => {
+    if (!conversionEnabled || !searchParams.has('convert')) return;
+    const id = Number(searchParams.get('convert'));
+    setConversionAssetId(Number.isSafeInteger(id) && id > 0 ? id : undefined);
+    setIsConversionOpen(true);
+    setViewingPropertyId(null);
+    const next = new URLSearchParams(searchParams);
+    next.delete('convert');
+    setSearchParams(next, { replace: true });
+  }, [conversionEnabled, searchParams, setSearchParams, setViewingPropertyId]);
 
   useEffect(() => {
     const propertyId =
@@ -381,6 +397,17 @@ export default function RealEstatePage() {
             <Calculator className="h-4 w-4 mr-2" />
             {t('tools')}
           </Button>
+          {conversionEnabled && (
+            <Button
+              variant="outline"
+              onClick={() => {
+                setConversionAssetId(undefined);
+                setIsConversionOpen(true);
+              }}
+            >
+              {t('conversion.action')}
+            </Button>
+          )}
           <Button variant="primary" onClick={handleCreate}>
             <Plus className="h-4 w-4 mr-2" />
             {t('addProperty')}
@@ -740,6 +767,16 @@ export default function RealEstatePage() {
       )}
 
       {/* Create/Edit Dialog */}
+      {conversionEnabled && isConversionOpen && (
+        <ConvertPropertyWizard
+          initialAssetId={conversionAssetId}
+          onClose={() => setIsConversionOpen(false)}
+          onConverted={id => {
+            setIsConversionOpen(false);
+            setViewingPropertyId(id);
+          }}
+        />
+      )}
       <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
         <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
           <DialogHeader>

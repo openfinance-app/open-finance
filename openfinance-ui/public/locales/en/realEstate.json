@@ -821,5 +821,38 @@
   "saveError": "Unable to save this property. Your entries have been kept. Please try again.",
   "performanceUnavailable": "Performance unavailable: add the value when received.",
   "notApplicable": "N/A",
-  "plannedNotice": "This is a planned acquisition. It is excluded from owned value and performance."
+  "plannedNotice": "This is a planned acquisition. It is excluded from owned value and performance.",
+  "conversion": {
+    "action": "Convert imported asset",
+    "title": "Convert to property",
+    "description": "Turn an imported holding into a property using its recorded values and history.",
+    "stepsLabel": "Conversion steps",
+    "steps": {
+      "source": "Imported asset",
+      "details": "Property details",
+      "review": "Review"
+    },
+    "loading": "Loading imported holdings…",
+    "loadError": "Could not load imported holdings. Try again.",
+    "retry": "Try again",
+    "empty": "No eligible imported holdings are available. Import your data first; already converted or fully sold holdings are not listed.",
+    "search": "Search by asset or account",
+    "selectSource": "Which imported asset represents your property?",
+    "noMatch": "No matching holdings. Try another name.",
+    "detailsTitle": "Complete the property details",
+    "reviewTitle": "Review your conversion",
+    "source": "Imported holding",
+    "recordedSince": "Recorded since",
+    "cost": "Recorded acquisition cost",
+    "value": "Current recorded value",
+    "preserved": "Keep {{transactions}} transactions and {{valuations}} dated valuations. The holding becomes one property in your portfolio.",
+    "noPayment": "No payment is created. Account cash balances and total net worth stay the same. Original investment movements remain in the history; undo this conversion before changing them.",
+    "confirm": "Convert to property",
+    "error": "Could not confirm the conversion. Please try again.",
+    "retrySame": "The result could not be confirmed. Retry with the same details to avoid creating a duplicate.",
+    "nameLimit": "Use 255 characters or fewer.",
+    "addressLimit": "Use 500 characters or fewer.",
+    "closeAccount": "The source account “{{account}}” will be closed. Its transaction history remains available here.",
+    "keepAccount": "The source account “{{account}}” stays open for its other financial activity."
+  }
 }

@@ -27,6 +27,7 @@ export type PropertyType = (typeof PropertyType)[keyof typeof PropertyType];
  * Matches: org.openfinance.dto.RealEstatePropertyResponse
  */
 export interface RealEstateProperty {
+  convertedFromHolding?: boolean;
   exactValues?: Record<string, string>;
   ownershipStatus?: 'OWNED' | 'PLANNED' | 'CLOSED';
   soldDate?: string;

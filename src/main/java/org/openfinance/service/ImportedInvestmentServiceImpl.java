@@ -42,6 +42,7 @@ public class ImportedInvestmentServiceImpl implements ImportedInvestmentService 
                         .findFirst()
                         .orElseGet(
                                 () -> newSecurityAsset(transaction, source, reference, currency));
+        rejectConvertedHolding(asset);
         if (!asset.getCurrency().equals(currency)) {
             throw new IllegalArgumentException(
                     "Investment currency differs from the existing holding");
@@ -116,6 +117,24 @@ public class ImportedInvestmentServiceImpl implements ImportedInvestmentService 
                             .toList();
             if (persisted.isEmpty() && source.openingQuantity().signum() == 0) continue;
             Asset asset = findOrCreate(source, accountId, userId);
+            if (asset.getType() == org.openfinance.entity.AssetType.REAL_ESTATE) {
+                if (persisted.stream()
+                        .anyMatch(
+                                tx ->
+                                        !asset.getId().equals(tx.getAssetId())
+                                                || tx.getInvestmentQuantity() == null
+                                                || tx.getInvestmentQuantity()
+                                                                .compareTo(
+                                                                        sourceRows
+                                                                                .get(
+                                                                                        tx
+                                                                                                .getExternalReference())
+                                                                                .getInvestmentQuantity())
+                                                        != 0)) {
+                    rejectConvertedHolding(asset);
+                }
+                continue; // Reimporting unchanged source rows must not overwrite the property.
+            }
             priceHistory.recordAll(
                     userId,
                     asset,
@@ -190,6 +209,7 @@ public class ImportedInvestmentServiceImpl implements ImportedInvestmentService 
             throw new IllegalArgumentException(
                     "Imported holding currency does not match its existing position");
         }
+        if (asset.getType() == org.openfinance.entity.AssetType.REAL_ESTATE) return asset;
         if (asset.getLastUpdated() == null
                 || !source.priceDate().isBefore(asset.getLastUpdated().toLocalDate())) {
             asset.setCurrentPrice(source.currentPrice());
@@ -219,7 +239,15 @@ public class ImportedInvestmentServiceImpl implements ImportedInvestmentService 
     @Override
     public void recalculate(Long assetId, Long userId) {
         Asset asset = assets.findByIdAndUserId(assetId, userId).orElseThrow();
+        rejectConvertedHolding(asset);
         InvestmentHoldings.update(asset, transactions.findActiveByAccountId(asset.getAccountId()));
         assets.save(asset);
+    }
+
+    private void rejectConvertedHolding(Asset asset) {
+        if (asset.getType() == org.openfinance.entity.AssetType.REAL_ESTATE)
+            throw org.openfinance.exception.InvalidTransactionException.investment(
+                    "propertyConversion.managed",
+                    "This holding is now managed as a property. Undo the conversion before changing its original investment movements");
     }
 }

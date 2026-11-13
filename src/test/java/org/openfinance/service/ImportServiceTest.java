@@ -525,6 +525,28 @@ class ImportServiceTest {
         verify(objectMapper).writeValueAsString(any());
     }
 
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(booleans = {false, true})
+    void autoDetectionSelectsOnlyOpenAccounts(boolean active) throws Exception {
+        testSession.setAccountId(null);
+        testAccount.setIsActive(active);
+        testTransactions.get(0).setAccountName(testAccount.getName());
+        when(accountRepository.findByUserId(USER_ID)).thenReturn(List.of(testAccount));
+        when(importSessionRepository.findById(1L)).thenReturn(Optional.of(testSession));
+        when(fileStorageService.getFileContent(UPLOAD_ID, USER_ID))
+                .thenReturn(new ByteArrayInputStream("!Type:Bank\n".getBytes()));
+        when(qifParser.parseFile(any(InputStream.class), eq(FILE_NAME), any()))
+                .thenReturn(testTransactions);
+        when(objectMapper.writeValueAsString(any())).thenReturn("{\"transactions\":[]}");
+        when(importSessionRepository.save(any(ImportSession.class))).thenReturn(testSession);
+
+        importService.parseFileAsync(1L);
+
+        assertThat(testSession.getStatus()).isEqualTo(ImportStatus.PARSED);
+        assertThat(testSession.getAccountId()).isEqualTo(active ? ACCOUNT_ID : null);
+        assertThat(testAccount.getIsActive()).isEqualTo(active);
+    }
+
     @Test
     @DisplayName("History suggests a category without replacing a different imported merchant")
     void historyCategoryPredictionPreservesTheImportedMerchant() throws Exception {

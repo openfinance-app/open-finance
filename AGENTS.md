@@ -157,6 +157,7 @@ See `.github/workflows/backend-ci.yml` and `frontend-ci.yml` for environment det
 - SSE/EventSource cannot send JWT headers — use synchronous POST endpoints for authenticated AI endpoints.
 - New `InsightType` enum values require a Flyway migration to drop and recreate the `CHECK` constraint (SQLite has no `ALTER TABLE DROP CONSTRAINT`).
 - Project still in development: no need to handle old data backward compatibility unless necessary or requested.
+- After a bug fix, always check other surfaces for the same issue or similar.
 
 ---
 

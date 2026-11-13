@@ -27,6 +27,7 @@ import org.openfinance.entity.PropertyType;
 @NoArgsConstructor
 @AllArgsConstructor
 public class RealEstatePropertyResponse {
+    private boolean convertedFromHolding;
     private org.openfinance.entity.AcquisitionType acquisitionType;
 
     /** Unique identifier of the property. */
