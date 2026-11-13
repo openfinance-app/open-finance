@@ -227,6 +227,10 @@ export function AccountSelector({
                       <ConvertedAmount
                         amount={account.balance}
                         currency={account.currency}
+                        convertedAmount={account.balanceInBaseCurrency}
+                        baseCurrency={account.baseCurrency}
+                        exchangeRate={account.exchangeRate}
+                        isConverted={account.isConverted}
                         inline
                       />
                     </span>

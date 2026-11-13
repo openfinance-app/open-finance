@@ -409,7 +409,11 @@ export function TransactionDetailModal({
                 {t('detail.sections.splitLines')}
               </h3>
               {transaction.splits && transaction.splits.length > 0 ? (
-                <SplitDetail splits={transaction.splits} currency={transaction.currency} />
+                <SplitDetail
+                  splits={transaction.splits}
+                  currency={transaction.currency}
+                  transaction={transaction}
+                />
               ) : (
                 <p className="text-sm text-muted-foreground">{t('splitDetail.noSplitDetails')}</p>
               )}

@@ -203,6 +203,9 @@ export function BudgetCard({ budget, onEdit, onDelete, onViewDetail }: BudgetCar
           <ConvertedAmount
             amount={budget.nativeCarryover ?? budget.carryover ?? 0}
             currency={displayCurrency}
+            convertedAmount={budget.carryover ?? 0}
+            baseCurrency={budget.currency}
+            isConverted={displayCurrency !== budget.currency}
             inline
           />
         </p>

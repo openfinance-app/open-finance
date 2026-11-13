@@ -16,7 +16,7 @@ import { useReverseDirectDraw } from '@/hooks/useTranches';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Layers, AlertCircle, Plus, Banknote } from 'lucide-react';
-import { ConvertedAmount } from '@/components/ui/ConvertedAmount';
+import { CurrencyAmount } from '@/components/ui/CurrencyAmount';
 import { Button } from '@/components/ui/Button';
 import { DateInput } from '@/components/ui/DateInput';
 import { NumberInput } from '@/components/ui/NumberInput';
@@ -240,30 +240,37 @@ export function TrancheDrawdownsTab({ liability }: { liability: Liability }) {
               <span>
                 {t('drawdowns.planned')}:{' '}
                 <span className="font-mono text-text-primary">
-                  <ConvertedAmount
+                  <CurrencyAmount
                     amount={tranche.plannedAmount}
                     currency={tranche.currency ?? liability.currency}
                     inline
+                    baseCurrency={liability.baseCurrency}
+                    exchangeRate={liability.exchangeRate}
+                    isConverted={liability.isConverted}
                   />
                 </span>
               </span>
               <span>
                 {t('drawdowns.drawn')}:{' '}
                 <span className="font-mono text-text-primary">
-                  <ConvertedAmount
+                  <CurrencyAmount
                     amount={tranche.drawnAmount ?? 0}
                     currency={tranche.currency ?? liability.currency}
                     inline
+                    conversionDate={tranche.drawnDate ?? undefined}
                   />
                 </span>
               </span>
               <span>
                 {t('drawdowns.remaining')}:{' '}
                 <span className="font-mono font-semibold text-text-primary">
-                  <ConvertedAmount
+                  <CurrencyAmount
                     amount={tranche.remaining}
                     currency={tranche.currency ?? liability.currency}
                     inline
+                    baseCurrency={liability.baseCurrency}
+                    exchangeRate={liability.exchangeRate}
+                    isConverted={liability.isConverted}
                   />
                 </span>
               </span>

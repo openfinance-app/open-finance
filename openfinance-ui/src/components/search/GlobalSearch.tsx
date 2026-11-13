@@ -16,8 +16,7 @@ import { useNavigate, useSearchParams } from 'react-router';
 import { Search, X, Clock, TrendingUp, Loader, ArrowRight } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useSearchWithDebounce } from '../../hooks/useSearch';
-import { DEFAULT_CURRENCY } from '@/utils/currency';
-import { ConvertedAmount } from '@/components/ui/ConvertedAmount';
+import { SearchResultAmount } from '@/components/search/SearchResultAmount';
 import { RegexToggle } from '@/components/ui/RegexToggle';
 import type { SearchResult } from '../../types/search';
 import { getResultTypeDisplayName, getResultRoute } from '../../types/search';
@@ -300,17 +299,13 @@ export const GlobalSearch = forwardRef<GlobalSearchHandle>((_, ref) => {
                           <Icon name={result.icon || 'Search'} className="h-4 w-4 text-white" />
                         </div>
                         <div className="flex-1 min-w-0">
-                          <div className="flex items-center justify-between gap-2">
+                          <div className="flex flex-col items-stretch gap-1 sm:flex-row sm:items-center sm:justify-between sm:gap-2">
                             <div className="text-sm font-medium text-text-primary truncate">
                               {result.title}
                             </div>
                             {result.amount !== undefined && (
                               <span className="text-sm font-semibold text-text-primary whitespace-nowrap">
-                                <ConvertedAmount
-                                  amount={result.amount}
-                                  currency={result.currency || DEFAULT_CURRENCY}
-                                  inline
-                                />
+                                <SearchResultAmount result={result} />
                               </span>
                             )}
                           </div>

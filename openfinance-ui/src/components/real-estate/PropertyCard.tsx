@@ -31,6 +31,7 @@ import {
   MapPin,
 } from 'lucide-react';
 import { ConvertedAmount } from '@/components/ui/ConvertedAmount';
+import { CurrencyAmount } from '@/components/ui/CurrencyAmount';
 import { multiply } from '@/utils/money';
 import { useSecondaryConversion } from '@/hooks/useSecondaryConversion';
 import { useDeleteProperty } from '@/hooks/useRealEstate';
@@ -314,14 +315,16 @@ export function PropertyCard({ property, onEdit, onView, isHighlighted }: Proper
             <div className="flex justify-between">
               <span className="text-text-secondary">{t('card.monthlyRent')}</span>
               <span className="text-primary font-medium">
-                <ConvertedAmount
+                <CurrencyAmount
                   amount={property.rentalIncome}
                   currency={property.currency}
-                  isConverted={false}
                   secondaryAmount={convert(property.rentalIncome)}
                   secondaryCurrency={secCurrency}
                   secondaryExchangeRate={secondaryExchangeRate}
                   inline
+                  baseCurrency={property.baseCurrency}
+                  exchangeRate={property.exchangeRate}
+                  isConverted={property.isConverted}
                 />
                 /mo
               </span>

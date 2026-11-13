@@ -56,6 +56,7 @@ class SearchFiltersTest {
     @Mock private SearchTokenService tokens;
     @Mock private CurrencyConversionHelper conversion;
     @InjectMocks private SearchService service;
+    @Mock private SearchResultCurrencyEnricher currencyEnricher;
 
     @BeforeEach
     void nativeEuroAmounts() {

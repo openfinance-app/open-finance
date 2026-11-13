@@ -485,7 +485,11 @@ function TransactionItem({
 
         {/* REQ-SPL-4.3, REQ-SPL-4.4: inline split details (collapsed by default) */}
         {transaction.hasSplits && splitsExpanded && transaction.splits && (
-          <SplitDetail splits={transaction.splits} currency={transaction.currency} />
+          <SplitDetail
+            splits={transaction.splits}
+            currency={transaction.currency}
+            transaction={transaction}
+          />
         )}
       </div>
 

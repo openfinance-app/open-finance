@@ -28,6 +28,14 @@ export interface SearchResult {
   subtitle?: string;
   amount?: number;
   currency?: string;
+  amountInBaseCurrency?: number;
+  baseCurrency?: string;
+  exchangeRate?: number;
+  isConverted?: boolean;
+  originalAmount?: number;
+  originalCurrency?: string;
+  transferAmount?: number;
+  transferCurrency?: string;
   date?: string;
   icon?: string;
   color?: string;

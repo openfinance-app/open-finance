@@ -34,6 +34,7 @@ import {
 import { useProperty, usePropertyEquity, usePropertyROI } from '@/hooks/useRealEstate';
 import { PrivateAmount } from '@/components/ui/PrivateAmount';
 import { ConvertedAmount } from '@/components/ui/ConvertedAmount';
+import { CurrencyAmount } from '@/components/ui/CurrencyAmount';
 import {
   PropertyType,
   getPropertyTypeName,
@@ -377,9 +378,10 @@ export function PropertyDetailView({
                               {property.receivedValue == null ? (
                                 t('propertyDetail.na')
                               ) : (
-                                <ConvertedAmount
+                                <CurrencyAmount
                                   amount={property.receivedValue}
                                   currency={property.currency}
+                                  conversionDate={property.purchaseDate}
                                 />
                               )}
                             </p>

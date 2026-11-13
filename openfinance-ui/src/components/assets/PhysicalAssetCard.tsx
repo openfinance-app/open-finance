@@ -12,6 +12,7 @@ import { formatDecimal } from '@/utils/format';
 import { Badge } from '@/components/ui/Badge';
 import { Card } from '@/components/ui/Card';
 import { ConvertedAmount } from '@/components/ui/ConvertedAmount';
+import { CurrencyAmount } from '@/components/ui/CurrencyAmount';
 import { AssetCoverImage } from './AssetCoverImage';
 import { useSecondaryConversion } from '@/hooks/useSecondaryConversion';
 import { getConditionBadgeVariant, getAssetTypeBadgeVariant } from '@/hooks/useAssets';
@@ -135,7 +136,7 @@ export function PhysicalAssetCard({ asset, onClick, onCompletePurchase }: Physic
       {/* Value Change Bar */}
       {hasValueChange && (
         <div className="space-y-2">
-          <div className="flex items-center justify-between text-sm">
+          <div className="flex flex-wrap items-center justify-between gap-2 text-sm">
             <div className="flex items-center gap-1.5">
               <TrendingDown className="h-4 w-4 text-text-secondary" />
               <span className="text-text-secondary font-medium">
@@ -143,22 +144,24 @@ export function PhysicalAssetCard({ asset, onClick, onCompletePurchase }: Physic
               </span>
             </div>
             <span
-              className={`text-xs font-medium ${valueLoss > 0 ? 'text-red-500' : 'text-green-500'}`}
+              className={`whitespace-nowrap text-xs font-medium ${valueLoss > 0 ? 'text-red-500' : 'text-green-500'}`}
             >
               {valueLoss > 0 ? '-' : '+'}
               {formatDecimal(Math.abs(lossPercent), 0)}% ({valueLoss > 0 ? '-' : '+'}
-              <ConvertedAmount
+              <CurrencyAmount
                 amount={Math.abs(valueLoss)}
                 currency={asset.currency}
-                isConverted={false}
                 inline
+                baseCurrency={asset.baseCurrency}
+                exchangeRate={asset.exchangeRate}
+                isConverted={asset.isConverted}
               />
               )
             </span>
           </div>
 
           {/* Progress Bar — green = retained value, gray = loss */}
-          <div className="relative h-6 bg-red-100 dark:bg-red-950 rounded-full overflow-hidden border border-border">
+          <div className="relative min-h-6 bg-red-100 dark:bg-red-950 rounded-full overflow-hidden border border-border">
             {/* Retained value portion */}
             <div
               className={`absolute inset-y-0 left-0 transition-all duration-300 ${
@@ -170,22 +173,26 @@ export function PhysicalAssetCard({ asset, onClick, onCompletePurchase }: Physic
             />
 
             {/* Labels */}
-            <div className="relative h-full flex items-center justify-between px-3 text-xs font-medium">
-              <span className="text-white drop-shadow-md">
-                <ConvertedAmount
+            <div className="relative flex min-h-6 items-center justify-between gap-2 px-3 py-1 text-xs font-medium">
+              <span className="min-w-0 flex-1 text-white drop-shadow-md">
+                <CurrencyAmount
                   amount={currentValue}
                   currency={asset.currency}
-                  isConverted={false}
                   inline
+                  baseCurrency={asset.baseCurrency}
+                  exchangeRate={asset.exchangeRate}
+                  isConverted={asset.isConverted}
                 />
               </span>
               {valueLoss > 0 && retainedPercent < 85 && (
-                <span className="text-red-600 dark:text-red-400 drop-shadow-sm">
-                  <ConvertedAmount
+                <span className="min-w-0 flex-1 text-right text-red-600 dark:text-red-400 drop-shadow-sm">
+                  <CurrencyAmount
                     amount={asset.totalCost}
                     currency={asset.currency}
-                    isConverted={false}
                     inline
+                    baseCurrency={asset.baseCurrency}
+                    exchangeRate={asset.exchangeRate}
+                    isConverted={asset.isConverted}
                   />
                 </span>
               )}
@@ -236,14 +243,16 @@ export function PhysicalAssetCard({ asset, onClick, onCompletePurchase }: Physic
             {t(isPlanned ? 'physicalCard.plannedCost' : 'physicalCard.purchaseCost')}
           </div>
           <div className="text-lg font-semibold text-text-secondary">
-            <ConvertedAmount
+            <CurrencyAmount
               amount={asset.totalCost}
               currency={asset.currency}
-              isConverted={false}
               secondaryAmount={convert(asset.totalCost)}
               secondaryCurrency={secCurrency}
               secondaryExchangeRate={secondaryExchangeRate}
               inline
+              baseCurrency={asset.baseCurrency}
+              exchangeRate={asset.exchangeRate}
+              isConverted={asset.isConverted}
             />
           </div>
         </div>

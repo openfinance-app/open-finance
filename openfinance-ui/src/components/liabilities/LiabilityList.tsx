@@ -18,6 +18,7 @@ import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { ConfirmationDialog } from '@/components/ConfirmationDialog';
 import { ConvertedAmount } from '@/components/ui/ConvertedAmount';
+import { CurrencyAmount } from '@/components/ui/CurrencyAmount';
 import { cn } from '@/lib/utils';
 import { multiply } from '@/utils/money';
 import {
@@ -288,18 +289,24 @@ export function LiabilityList({
                 <div className="flex flex-wrap gap-4 text-xs text-text-secondary mb-3">
                   <span>
                     {t('funding.funded')}:{' '}
-                    <ConvertedAmount
+                    <CurrencyAmount
                       amount={liability.fundedAmount}
                       currency={liability.currency}
                       inline
+                      baseCurrency={liability.baseCurrency}
+                      exchangeRate={liability.exchangeRate}
+                      isConverted={liability.isConverted}
                     />
                   </span>
                   <span>
                     {t('funding.repaid')}:{' '}
-                    <ConvertedAmount
+                    <CurrencyAmount
                       amount={liability.principalPaid ?? 0}
                       currency={liability.currency}
                       inline
+                      baseCurrency={liability.baseCurrency}
+                      exchangeRate={liability.exchangeRate}
+                      isConverted={liability.isConverted}
                     />
                   </span>
                 </div>

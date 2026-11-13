@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/Button';
-import { ConvertedAmount } from '@/components/ui/ConvertedAmount';
+import { CurrencyAmount } from '@/components/ui/CurrencyAmount';
 import { useDateFormatter } from '@/hooks/useDateFormatter';
 import { AssetBuyForm } from '@/components/assets/AssetBuyForm';
 import { AssetSaleForm, type SaleTarget } from '@/components/assets/AssetSaleForm';
@@ -49,11 +49,12 @@ export function OwnershipActions({
             <>
               <dt>{t('ownership.netProceeds')}</dt>
               <dd>
-                <ConvertedAmount
+                <CurrencyAmount
                   className="font-mono tabular-nums"
                   inline
                   amount={saleProceeds}
                   currency={target.currency}
+                  conversionDate={soldDate}
                 />
               </dd>
             </>
@@ -63,11 +64,12 @@ export function OwnershipActions({
             {realizedGain == null ? (
               t('ownership.unknownGain')
             ) : (
-              <ConvertedAmount
+              <CurrencyAmount
                 className="font-mono tabular-nums"
                 inline
                 amount={realizedGain}
                 currency={target.currency}
+                conversionDate={soldDate}
               />
             )}
           </dd>

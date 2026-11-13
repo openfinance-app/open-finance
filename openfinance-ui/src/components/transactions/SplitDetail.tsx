@@ -9,13 +9,15 @@ import { useTranslation } from 'react-i18next';
 import { ConvertedAmount } from '@/components/ui/ConvertedAmount';
 import { Badge } from '@/components/ui/Badge';
 import { translateCategoryName } from '@/utils/categoryTranslation';
-import type { TransactionSplitResponse } from '@/types/transaction';
+import type { Transaction, TransactionSplitResponse } from '@/types/transaction';
+import { splitCurrencyAmounts } from '@/utils/split-currency-amounts';
 
 interface SplitDetailProps {
   /** The list of split lines to render */
   splits: TransactionSplitResponse[];
   /** ISO 4217 currency code of the parent transaction */
   currency: string;
+  transaction?: Transaction;
 }
 
 /**
@@ -60,7 +62,7 @@ function CategorySplitPill({
  * SplitDetail renders each split line of a split transaction.
  * Used inside TransactionItem when the user expands a split transaction (REQ-SPL-4.3).
  */
-export function SplitDetail({ splits, currency }: SplitDetailProps) {
+export function SplitDetail({ splits, currency, transaction }: SplitDetailProps) {
   const { t } = useTranslation('transactions');
   if (!splits || splits.length === 0) {
     return (
@@ -68,12 +70,13 @@ export function SplitDetail({ splits, currency }: SplitDetailProps) {
     );
   }
 
+  const equivalents = splitCurrencyAmounts(splits, transaction);
   return (
     <ul className="mt-2 space-y-1" aria-label="Split details">
-      {splits.map(split => (
+      {splits.map((split, index) => (
         <li
           key={split.id}
-          className="flex items-center justify-between gap-3 px-3 py-1.5 rounded-md bg-surface-elevated text-sm"
+          className="flex flex-col items-stretch gap-1.5 px-3 py-1.5 rounded-md bg-surface-elevated text-sm sm:flex-row sm:items-center sm:justify-between sm:gap-3"
         >
           {/* Left: category pill + optional description */}
           <div className="flex flex-col min-w-0">
@@ -99,8 +102,21 @@ export function SplitDetail({ splits, currency }: SplitDetailProps) {
           </div>
 
           {/* Right: amount */}
-          <span className="font-mono text-sm text-text-primary shrink-0">
-            <ConvertedAmount amount={split.amount} currency={currency} inline />
+          <span className="self-end font-mono text-sm text-text-primary shrink-0 sm:self-auto">
+            <ConvertedAmount
+              amount={split.amount}
+              currency={currency}
+              convertedAmount={
+                equivalents[index].find(value => value.currency === transaction?.baseCurrency)
+                  ?.amount
+              }
+              baseCurrency={transaction?.baseCurrency}
+              exchangeRate={transaction?.exchangeRate}
+              isConverted={transaction?.isConverted}
+              conversionDate={transaction?.date}
+              recordedAmounts={equivalents[index]}
+              inline
+            />
           </span>
         </li>
       ))}

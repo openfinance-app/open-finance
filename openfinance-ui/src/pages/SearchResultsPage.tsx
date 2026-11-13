@@ -21,8 +21,7 @@ import { AdvancedFilterPanel } from '@/components/search/AdvancedFilterPanel';
 import { SavedSearchesDropdown } from '@/components/search/SavedSearchesDropdown';
 import { SaveSearchDialog } from '@/components/search/SaveSearchDialog';
 import { useAdvancedSearch, useGlobalSearch, useSavedSearches } from '@/hooks/useSearch';
-import { DEFAULT_CURRENCY } from '@/utils/currency';
-import { ConvertedAmount } from '@/components/ui/ConvertedAmount';
+import { SearchResultAmount } from '@/components/search/SearchResultAmount';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import {
   type SearchResult,
@@ -406,17 +405,13 @@ function ResultCard({ result, query, onClick, localizeSubtitle }: ResultCardProp
 
       {/* Content */}
       <div className="flex-1 min-w-0">
-        <div className="flex items-start justify-between gap-2 mb-1">
-          <h4 className="font-semibold text-text-primary truncate group-hover:text-primary transition-colors">
+        <div className="flex flex-col items-stretch gap-1 mb-1 sm:flex-row sm:items-start sm:justify-between sm:gap-2">
+          <h4 className="min-w-0 font-semibold text-text-primary truncate group-hover:text-primary transition-colors">
             {highlightMatch(result.title, query)}
           </h4>
           {result.amount !== undefined && result.amount !== null && (
             <span className="font-semibold text-text-primary flex-shrink-0">
-              <ConvertedAmount
-                amount={result.amount}
-                currency={result.currency || DEFAULT_CURRENCY}
-                inline
-              />
+              <SearchResultAmount result={result} />
             </span>
           )}
         </div>

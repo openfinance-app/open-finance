@@ -85,6 +85,7 @@ public class SearchService {
     private final CategoryRepository categoryRepository;
     private final SearchTokenService searchTokenService;
     private final CurrencyConversionHelper currencyConversionHelper;
+    private final SearchResultCurrencyEnricher searchResultCurrencyEnricher;
 
     private static final int DEFAULT_LIMIT = 50;
     private static final int MAX_LIMIT = 100;
@@ -208,6 +209,8 @@ public class SearchService {
         if (hasMore) {
             allResults = allResults.stream().limit(effectiveLimit).collect(Collectors.toList());
         }
+
+        searchResultCurrencyEnricher.populate(allResults, userId);
 
         // Group results by type
         Map<String, List<SearchResultDto>> resultsByType =
@@ -390,6 +393,8 @@ public class SearchService {
         if (hasMore) {
             allResults = allResults.stream().limit(effectiveLimit).collect(Collectors.toList());
         }
+
+        searchResultCurrencyEnricher.populate(allResults, userId);
 
         // Group results by type
         Map<String, List<SearchResultDto>> resultsByType =

@@ -58,6 +58,7 @@ import { AttachmentEntityType } from '@/types/attachment';
 import { AssetGallery } from './AssetGallery';
 import { AssetCostsSection } from './AssetCostsSection';
 import { ConvertedAmount } from '@/components/ui/ConvertedAmount';
+import { CurrencyAmount } from '@/components/ui/CurrencyAmount';
 import { getAssetTypeName } from '@/hooks/useAssets';
 import { ConfirmationDialog } from '@/components/ConfirmationDialog';
 
@@ -533,9 +534,10 @@ export function AssetDetailModal({
                             {asset.receivedValue == null ? (
                               t('notApplicable')
                             ) : (
-                              <ConvertedAmount
+                              <CurrencyAmount
                                 amount={asset.receivedValue}
                                 currency={asset.currency}
+                                conversionDate={asset.purchaseDate}
                               />
                             )}
                           </p>

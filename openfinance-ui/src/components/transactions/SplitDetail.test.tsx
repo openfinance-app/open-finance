@@ -308,18 +308,7 @@ describe('SplitDetail', () => {
   });
 
   describe('Layout and Styling', () => {
-    it('applies correct grid layout classes', () => {
-      renderComponent();
-
-      const listItems = screen.getAllByRole('listitem');
-      listItems.forEach(item => {
-        expect(item).toHaveClass('flex');
-        expect(item).toHaveClass('items-center');
-        expect(item).toHaveClass('justify-between');
-        expect(item).toHaveClass('gap-3');
-      });
-    });
-
+    // Responsive row layout is verified at desktop/mobile sizes in currency-surfaces.spec.ts.
     it('applies correct background and padding classes', () => {
       renderComponent();
 

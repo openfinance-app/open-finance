@@ -25,6 +25,7 @@ import {
   XCircle,
 } from 'lucide-react';
 import { ConvertedAmount } from '@/components/ui/ConvertedAmount';
+import { CurrencyAmount } from '@/components/ui/CurrencyAmount';
 import { useSecondaryConversion } from '@/hooks/useSecondaryConversion';
 import type { Account, AccountType } from '@/types/account';
 import { useInterestEstimate } from '@/hooks/useAccounts';
@@ -223,14 +224,16 @@ export function AccountCard({
             <div>
               <p className="text-xs text-text-muted leading-none mb-0.5">{t('card.totalEarned')}</p>
               <p className="text-sm font-mono font-medium text-text-secondary">
-                <ConvertedAmount
+                <CurrencyAmount
                   amount={interestData?.historicalAccumulated ?? 0}
                   currency={account.currency}
-                  isConverted={false}
                   secondaryAmount={convert(interestData?.historicalAccumulated ?? 0)}
                   secondaryCurrency={secCurrency}
                   secondaryExchangeRate={secondaryExchangeRate}
                   inline
+                  baseCurrency={account.baseCurrency}
+                  exchangeRate={account.exchangeRate}
+                  isConverted={account.isConverted}
                 />
               </p>
             </div>
@@ -241,14 +244,16 @@ export function AccountCard({
               </p>
               <p className="text-sm font-mono font-semibold text-success flex items-center justify-end gap-1">
                 <TrendingIcon className="h-3 w-3" />
-                <ConvertedAmount
+                <CurrencyAmount
                   amount={interestData?.estimate ?? 0}
                   currency={account.currency}
-                  isConverted={false}
                   secondaryAmount={convert(interestData?.estimate ?? 0)}
                   secondaryCurrency={secCurrency}
                   secondaryExchangeRate={secondaryExchangeRate}
                   inline
+                  baseCurrency={account.baseCurrency}
+                  exchangeRate={account.exchangeRate}
+                  isConverted={account.isConverted}
                 />
               </p>
             </div>

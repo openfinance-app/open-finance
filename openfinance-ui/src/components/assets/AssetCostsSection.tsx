@@ -15,7 +15,7 @@ import { HelpTooltip } from '@/components/ui/HelpTooltip';
  */
 import { useTranslation } from 'react-i18next';
 import { Hammer, Wrench, AlertCircle } from 'lucide-react';
-import { ConvertedAmount } from '@/components/ui/ConvertedAmount';
+import { TransactionAmount } from '@/components/transactions/TransactionAmount';
 import { useTransactions } from '@/hooks/useTransactions';
 import type { Asset } from '@/types/asset';
 import type { Transaction } from '@/types/transaction';
@@ -26,7 +26,7 @@ const MOVEMENTS_PAGE_SIZE = 200;
 function CostRow({ tx, label, currency }: { tx: Transaction; label: string; currency: string }) {
   const { date: formatDate } = useDateFormatter();
   return (
-    <div className="group relative flex items-center justify-between px-4 py-3 bg-background hover:bg-surface transition-colors">
+    <div className="group relative flex flex-col items-stretch gap-2 px-4 py-3 bg-background hover:bg-surface transition-colors sm:flex-row sm:items-center sm:justify-between">
       <Link
         to={buildTransactionsLink({ assetId: tx.assetId, highlight: tx.id })}
         className="flex flex-1 items-center gap-3 min-w-0 rounded-sm hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
@@ -44,8 +44,8 @@ function CostRow({ tx, label, currency }: { tx: Transaction; label: string; curr
           <div className="text-xs text-muted-foreground">{formatDate(tx.date)}</div>
         </div>
       </Link>
-      <div className="relative text-sm font-mono font-semibold text-foreground ml-4 flex-shrink-0">
-        <ConvertedAmount amount={tx.amount} currency={tx.currency || currency} inline />
+      <div className="relative self-end text-sm font-mono font-semibold text-foreground flex-shrink-0 sm:ml-4 sm:self-auto">
+        <TransactionAmount transaction={{ ...tx, currency: tx.currency || currency }} inline />
       </div>
     </div>
   );

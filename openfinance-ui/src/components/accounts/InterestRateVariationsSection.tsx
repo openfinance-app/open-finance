@@ -13,7 +13,7 @@ import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { DateInput } from '@/components/ui/DateInput';
 import { NumberInput } from '@/components/ui/NumberInput';
-import { ConvertedAmount } from '@/components/ui/ConvertedAmount';
+import { CurrencyAmount } from '@/components/ui/CurrencyAmount';
 import { HelpTooltip } from '@/components/ui/HelpTooltip';
 import { LoadingSkeleton } from '@/components/LoadingComponents';
 import {
@@ -174,7 +174,7 @@ export function InterestRateVariationsSection({
                 {estimateUnavailable ? (
                   '—'
                 ) : (
-                  <ConvertedAmount amount={earned} currency={accountCurrency} inline />
+                  <CurrencyAmount amount={earned} currency={accountCurrency} inline />
                 )}
               </span>
             </div>
@@ -185,7 +185,7 @@ export function InterestRateVariationsSection({
                 {estimateUnavailable ? (
                   '—'
                 ) : (
-                  <ConvertedAmount amount={projected} currency={accountCurrency} inline />
+                  <CurrencyAmount amount={projected} currency={accountCurrency} inline />
                 )}
               </span>
             </div>
@@ -195,7 +195,7 @@ export function InterestRateVariationsSection({
                 {estimateUnavailable ? (
                   '—'
                 ) : (
-                  <ConvertedAmount amount={totalEarned} currency={accountCurrency} inline />
+                  <CurrencyAmount amount={totalEarned} currency={accountCurrency} inline />
                 )}
               </span>
             </div>
@@ -266,7 +266,7 @@ export function InterestRateVariationsSection({
                     {(variation.interestProduced ?? 0) > 0 ? (
                       <span className="font-mono font-semibold text-success">
                         +
-                        <ConvertedAmount
+                        <CurrencyAmount
                           amount={variation.interestProduced ?? 0}
                           currency={accountCurrency}
                           inline

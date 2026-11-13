@@ -27,6 +27,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Button } from '@/components/ui/Button';
 import { HelpTooltip } from '@/components/ui/HelpTooltip';
 import { ConvertedAmount } from '@/components/ui/ConvertedAmount';
+import { CurrencyAmount } from '@/components/ui/CurrencyAmount';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/Tooltip';
 import { cn } from '@/lib/utils';
 import { AmortizationSchedule } from '@/components/liabilities/AmortizationSchedule';
@@ -120,7 +121,14 @@ function TotalCostHero({ liability }: { liability: Liability }) {
                 sideOffset={4}
               >
                 {t('detail.principal')}:{' '}
-                <ConvertedAmount amount={totalPrincipal} currency={liability.currency} inline />
+                <CurrencyAmount
+                  amount={totalPrincipal}
+                  currency={liability.currency}
+                  inline
+                  baseCurrency={liability.baseCurrency}
+                  exchangeRate={liability.exchangeRate}
+                  isConverted={liability.isConverted}
+                />
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
@@ -139,7 +147,14 @@ function TotalCostHero({ liability }: { liability: Liability }) {
                 sideOffset={4}
               >
                 {t('detail.interestTotal')}:{' '}
-                <ConvertedAmount amount={totalInterest} currency={liability.currency} inline />
+                <CurrencyAmount
+                  amount={totalInterest}
+                  currency={liability.currency}
+                  inline
+                  baseCurrency={liability.baseCurrency}
+                  exchangeRate={liability.exchangeRate}
+                  isConverted={liability.isConverted}
+                />
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
@@ -158,7 +173,14 @@ function TotalCostHero({ liability }: { liability: Liability }) {
                 sideOffset={4}
               >
                 {t('detail.insuranceTotal')}:{' '}
-                <ConvertedAmount amount={totalInsurance} currency={liability.currency} inline />
+                <CurrencyAmount
+                  amount={totalInsurance}
+                  currency={liability.currency}
+                  inline
+                  baseCurrency={liability.baseCurrency}
+                  exchangeRate={liability.exchangeRate}
+                  isConverted={liability.isConverted}
+                />
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
@@ -177,7 +199,14 @@ function TotalCostHero({ liability }: { liability: Liability }) {
                 sideOffset={4}
               >
                 {t('detail.oneTimeFee')}:{' '}
-                <ConvertedAmount amount={totalFees} currency={liability.currency} inline />
+                <CurrencyAmount
+                  amount={totalFees}
+                  currency={liability.currency}
+                  inline
+                  baseCurrency={liability.baseCurrency}
+                  exchangeRate={liability.exchangeRate}
+                  isConverted={liability.isConverted}
+                />
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
@@ -400,10 +429,11 @@ function LinkedPaymentsTab({ liability }: { liability: Liability }) {
                         : (trancheLabelById.get(allocation.trancheId) ??
                           `#${allocation.trancheId}`)}
                       {': '}
-                      <ConvertedAmount
+                      <CurrencyAmount
                         amount={allocation.amount}
                         currency={liability.currency}
                         inline
+                        conversionDate={tx.date}
                       />
                     </span>
                   ))}

@@ -68,6 +68,7 @@ class SearchServiceTest {
     @Mock private RecurringTransactionRepository recurring;
     @Mock private CategoryRepository categories;
     @Mock private SearchTokenService tokens;
+    @Mock private SearchResultCurrencyEnricher currencyEnricher;
     @InjectMocks private SearchService service;
 
     @AfterEach

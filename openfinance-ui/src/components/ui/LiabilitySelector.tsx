@@ -196,6 +196,10 @@ export function LiabilitySelector({
                     <ConvertedAmount
                       amount={liability.currentBalance}
                       currency={liability.currency}
+                      convertedAmount={liability.balanceInBaseCurrency}
+                      baseCurrency={liability.baseCurrency}
+                      exchangeRate={liability.exchangeRate}
+                      isConverted={liability.isConverted}
                       inline
                       compact
                     />

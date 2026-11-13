@@ -21,7 +21,7 @@ import { Link } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { Hammer, Wrench, Landmark, AlertCircle } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
-import { ConvertedAmount } from '@/components/ui/ConvertedAmount';
+import { CurrencyAmount } from '@/components/ui/CurrencyAmount';
 import { TransactionAmount } from '@/components/transactions/TransactionAmount';
 import { useTransactions } from '@/hooks/useTransactions';
 import { useLiabilityTransactions } from '@/hooks/useLiabilities';
@@ -254,10 +254,11 @@ export function PropertyMovementsSection({ property }: { property: RealEstatePro
                         ? ` · ${t('movements.reversed', { date: draw.reversedDate })}`
                         : ''}
                     </span>
-                    <ConvertedAmount
+                    <CurrencyAmount
                       amount={draw.drawnAmount ?? 0}
                       currency={draw.currency}
                       inline
+                      conversionDate={draw.drawnDate ?? undefined}
                     />
                   </div>
                 ))}

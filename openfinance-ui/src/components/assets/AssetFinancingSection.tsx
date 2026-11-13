@@ -9,6 +9,7 @@ import { useLiabilities, useCreateLiability } from '@/hooks/useLiabilities';
 import { LiabilityForm } from '@/components/liabilities/LiabilityForm';
 import apiClient from '@/services/apiClient';
 import { ConvertedAmount } from '@/components/ui/ConvertedAmount';
+import { CurrencyAmount } from '@/components/ui/CurrencyAmount';
 import { Button } from '@/components/ui/Button';
 import { HelpTooltip } from '@/components/ui/HelpTooltip';
 import { Input } from '@/components/ui/Input';
@@ -203,7 +204,14 @@ export function AssetFinancingSection({
             <div key={key}>
               <dt className="text-text-secondary">{t(`financing.${key}`)}</dt>
               <dd className="mt-1 font-semibold">
-                <ConvertedAmount amount={amount} currency={asset.currency} inline />
+                <CurrencyAmount
+                  amount={amount}
+                  currency={asset.currency}
+                  inline
+                  baseCurrency={asset.baseCurrency}
+                  exchangeRate={asset.exchangeRate}
+                  isConverted={asset.isConverted}
+                />
               </dd>
             </div>
           ))}
@@ -244,7 +252,7 @@ export function AssetFinancingSection({
               </div>
               <div className="flex flex-wrap items-center gap-3">
                 {row.relationship === 'FINANCING' && (
-                  <ConvertedAmount
+                  <CurrencyAmount
                     className="font-mono tabular-nums"
                     amount={row.allocatedBalance ?? 0}
                     currency={

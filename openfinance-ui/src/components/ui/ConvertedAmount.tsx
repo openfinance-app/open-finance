@@ -288,8 +288,8 @@ function buildPrimaryDisplay(
   // 'both'
   if (canShowBase && currency !== baseCurrency) {
     return (
-      <span className="inline-flex items-baseline gap-1">
-        <PrivateAmount inline>
+      <span className="inline-flex max-w-full flex-wrap items-baseline gap-1">
+        <PrivateAmount inline className="whitespace-nowrap">
           {animate ? (
             <AnimatedNumber
               value={convertedAmount!}
@@ -299,12 +299,14 @@ function buildPrimaryDisplay(
             formatCurrency(convertedAmount!, baseCurrency!, opts)
           )}
         </PrivateAmount>
-        <span className="text-muted-foreground mx-0.5" aria-hidden="true">
-          ·
+        <span className="inline-flex items-baseline gap-1 whitespace-nowrap">
+          <span className="text-muted-foreground mx-0.5" aria-hidden="true">
+            ·
+          </span>
+          <PrivateAmount inline className="text-muted-foreground text-sm">
+            {formatCurrency(amount, currency, opts)}
+          </PrivateAmount>
         </span>
-        <PrivateAmount inline className="text-muted-foreground text-sm">
-          {formatCurrency(amount, currency, opts)}
-        </PrivateAmount>
       </span>
     );
   }

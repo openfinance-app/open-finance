@@ -43,6 +43,15 @@ public class SearchResultDto {
     /** Currency code (ISO 4217) */
     private String currency;
 
+    private BigDecimal amountInBaseCurrency;
+    private String baseCurrency;
+    private BigDecimal exchangeRate;
+    private Boolean isConverted;
+    private BigDecimal originalAmount;
+    private String originalCurrency;
+    private BigDecimal transferAmount;
+    private String transferCurrency;
+
     /**
      * Date associated with the result (transaction date, account creation date, asset purchase
      * date)

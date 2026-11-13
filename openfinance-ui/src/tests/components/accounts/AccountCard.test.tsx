@@ -51,6 +51,29 @@ describe('AccountCard', () => {
   });
 
   describe('Rendering', () => {
+    it('converts interest figures using the same rate as the balance', () => {
+      vi.mocked(useInterestEstimate).mockReturnValue({
+        data: { historicalAccumulated: 100, estimate: 200 },
+      } as unknown as ReturnType<typeof useInterestEstimate>);
+      renderWithProviders(
+        <AccountCard
+          account={{
+            ...baseAccount,
+            isInterestEnabled: true,
+            balanceInBaseCurrency: 4000,
+            baseCurrency: 'EUR',
+            exchangeRate: 0.8,
+            isConverted: true,
+          }}
+          onEdit={mockOnEdit}
+          onDelete={mockOnDelete}
+        />
+      );
+      expect(screen.getByText('€80.00')).toBeVisible();
+      expect(screen.getByText('€160.00')).toBeVisible();
+      expect(screen.queryByText('$100.00')).not.toBeInTheDocument();
+    });
+
     it('should render account name', () => {
       renderWithProviders(
         <AccountCard account={baseAccount} onEdit={mockOnEdit} onDelete={mockOnDelete} />

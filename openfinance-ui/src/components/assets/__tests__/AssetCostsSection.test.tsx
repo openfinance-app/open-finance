@@ -104,6 +104,29 @@ describe('AssetCostsSection', () => {
     expect(screen.getByText('$8,000.00')).toBeInTheDocument();
   });
 
+  it('uses each transaction recorded base amount for all cost groups', () => {
+    const content = [restorationTx, tiresTx, { ...tiresTx, id: 203, movementType: undefined }].map(
+      (tx, index) => ({
+        ...tx,
+        amountInBaseCurrency: 100 + index,
+        baseCurrency: 'EUR',
+        isConverted: true,
+      })
+    );
+    mockUseTransactions.mockReturnValue({
+      data: { content, totalElements: 3, totalPages: 1, number: 0, size: 200 },
+      isLoading: false,
+      error: null,
+    } as unknown as ReturnType<typeof useTransactionsModule.useTransactions>);
+
+    renderWithProviders(<AssetCostsSection asset={mockAsset} />);
+
+    for (const amount of ['€100.00', '€101.00', '€102.00'])
+      expect(screen.getByText(amount)).toBeVisible();
+    expect(screen.queryByText('$8,000.00')).not.toBeInTheDocument();
+    expect(screen.queryByText('$600.00')).not.toBeInTheDocument();
+  });
+
   it('renders upkeep costs under the maintenance list', () => {
     renderWithProviders(<AssetCostsSection asset={mockAsset} />);
 
