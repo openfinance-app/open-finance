@@ -1,5 +1,7 @@
 package org.openfinance.controller;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -7,7 +9,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.openfinance.config.TestDatabaseConfig;
 import org.openfinance.dto.AccountRequest;
@@ -15,6 +20,7 @@ import org.openfinance.dto.CategoryRequest;
 import org.openfinance.dto.LoginRequest;
 import org.openfinance.dto.PayeeRequest;
 import org.openfinance.dto.TransactionRequest;
+import org.openfinance.dto.TransactionSplitRequest;
 import org.openfinance.dto.UserRegistrationRequest;
 import org.openfinance.entity.AccountType;
 import org.openfinance.entity.TransactionType;
@@ -29,6 +35,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -68,6 +75,8 @@ class CategoryTransactionFlowIntegrationTest {
     @Autowired private KeyManagementService keyManagementService;
 
     @Autowired private DatabaseCleanupService databaseCleanupService;
+
+    @Autowired private JdbcTemplate jdbcTemplate;
 
     /** JWT bearer token for the test user */
     private String token;
@@ -193,6 +202,98 @@ class CategoryTransactionFlowIntegrationTest {
     }
 
     // ── TASK-CAT-3.3.1 Tests ─────────────────────────────────────────────────
+
+    @Test
+    @DisplayName("Deleted splits do not block category deletion, but active splits still do")
+    void shouldDeleteCategoriesAfterTheirSplitTransactionsAreSoftDeleted() throws Exception {
+        List<Long> categoryIds =
+                List.of(createCategory("Split food", null), createCategory("Split travel", null));
+        Long firstTransaction = createSplitTransaction(categoryIds);
+        Long secondTransaction = createSplitTransaction(categoryIds);
+        for (Long categoryId : categoryIds) {
+            assertSplitDeletionImpact(categoryId, 2);
+        }
+
+        softDeleteTransaction(firstTransaction);
+        for (Long categoryId : categoryIds) {
+            assertSplitDeletionImpact(categoryId, 1);
+            mockMvc.perform(
+                            delete("/api/v1/categories/{id}", categoryId)
+                                    .header("Authorization", "Bearer " + token)
+                                    .header("X-Encryption-Session", encKey))
+                    .andExpect(status().isBadRequest());
+        }
+
+        softDeleteTransaction(secondTransaction);
+        for (Long categoryId : categoryIds) {
+            assertSplitDeletionImpact(categoryId, 0);
+            mockMvc.perform(
+                            delete("/api/v1/categories/{id}", categoryId)
+                                    .header("Authorization", "Bearer " + token)
+                                    .header("X-Encryption-Session", encKey))
+                    .andExpect(status().isNoContent());
+        }
+
+        // The existing ON DELETE SET NULL constraint preserves historical splits.
+        assertThat(
+                        jdbcTemplate.queryForObject(
+                                "SELECT COUNT(*) FROM transaction_splits WHERE transaction_id IN (?, ?) AND category_id IS NULL",
+                                Long.class,
+                                firstTransaction,
+                                secondTransaction))
+                .isEqualTo(4L);
+    }
+
+    private Long createSplitTransaction(List<Long> categoryIds) throws Exception {
+        TransactionRequest request =
+                TransactionRequest.builder()
+                        .accountId(accountId)
+                        .type(TransactionType.EXPENSE)
+                        .amount(new BigDecimal("100"))
+                        .currency("EUR")
+                        .date(LocalDate.now())
+                        .splits(
+                                categoryIds.stream()
+                                        .map(
+                                                categoryId ->
+                                                        TransactionSplitRequest.builder()
+                                                                .categoryId(categoryId)
+                                                                .amount(new BigDecimal("50"))
+                                                                .build())
+                                        .toList())
+                        .build();
+        String response =
+                mockMvc.perform(
+                                post("/api/v1/transactions")
+                                        .header("Authorization", "Bearer " + token)
+                                        .header("X-Encryption-Session", encKey)
+                                        .contentType(MediaType.APPLICATION_JSON)
+                                        .content(objectMapper.writeValueAsString(request)))
+                        .andExpect(status().isCreated())
+                        .andReturn()
+                        .getResponse()
+                        .getContentAsString();
+        return objectMapper.readTree(response).get("id").asLong();
+    }
+
+    private void softDeleteTransaction(Long transactionId) throws Exception {
+        mockMvc.perform(
+                        delete("/api/v1/transactions/{id}", transactionId)
+                                .header("Authorization", "Bearer " + token)
+                                .header("X-Encryption-Session", encKey))
+                .andExpect(status().isNoContent());
+    }
+
+    private void assertSplitDeletionImpact(Long categoryId, int splitCount) throws Exception {
+        mockMvc.perform(
+                        get("/api/v1/categories/{id}/deletion-impact", categoryId)
+                                .header("Authorization", "Bearer " + token)
+                                .header("X-Encryption-Session", encKey))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.transactionCount").value(0))
+                .andExpect(jsonPath("$.splitCount").value(splitCount))
+                .andExpect(jsonPath("$.deletable").value(splitCount == 0));
+    }
 
     @Test
     void parentDirectActivityAndDrilldownsIncludeSplitAllocationsAndEncryptedPayees()

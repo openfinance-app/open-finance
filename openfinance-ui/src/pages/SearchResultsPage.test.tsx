@@ -260,6 +260,7 @@ describe('SearchResultsPage', () => {
     };
     renderWithProviders(<SearchResultsPage />, { route: '/search?q=food' });
     expect(screen.getByText('Food')).toBeInTheDocument();
+    expect(screen.getByText('Expense')).toBeInTheDocument();
     expect(screen.getByText('monthly')).toBeInTheDocument();
   });
 

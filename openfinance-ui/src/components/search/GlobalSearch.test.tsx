@@ -805,6 +805,7 @@ describe('GlobalSearch', () => {
 
     await waitFor(() => {
       expect(screen.getByText('Food')).toBeInTheDocument();
+      expect(screen.getByText('Expense')).toBeInTheDocument();
     });
   });
 

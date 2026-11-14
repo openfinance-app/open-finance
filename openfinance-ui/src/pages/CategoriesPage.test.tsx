@@ -372,12 +372,16 @@ describe('CategoriesPage', () => {
     });
   });
 
-  it('does not offer deletion for system categories', async () => {
+  it('prevents editing and deletion of system categories', async () => {
     const user = userEvent.setup();
     renderWithProviders(<CategoriesPage />);
     await user.click(screen.getByRole('button', { name: 'Actions for Salary' }));
-    expect(screen.getByRole('menuitem', { name: /edit category/i })).toBeInTheDocument();
+    const editAction = screen.getByRole('menuitem', { name: /edit category/i });
+    expect(editAction).toHaveAttribute('aria-disabled', 'true');
     expect(screen.queryByRole('menuitem', { name: /delete category/i })).not.toBeInTheDocument();
+    await user.click(editAction);
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(mockUpdateMutateAsync).not.toHaveBeenCalled();
   });
 
   it('shows delete confirmation when delete clicked', async () => {

@@ -326,7 +326,7 @@ export function AdvancedFilterPanel({
                   <option value="">{t('navigation:search.filters.allTypes')}</option>
                   {transactionTypeValues.map(value => (
                     <option key={value} value={value}>
-                      {t(`transactions:types.${value}`, value)}
+                      {t(`transactions:form.types.${value}`, value)}
                     </option>
                   ))}
                 </select>

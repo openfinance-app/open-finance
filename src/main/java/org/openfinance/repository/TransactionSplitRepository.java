@@ -25,7 +25,11 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface TransactionSplitRepository extends JpaRepository<TransactionSplit, Long> {
 
-    long countByCategoryId(Long categoryId);
+    /** Counts only splits whose parent transaction is active, matching category deletion rules. */
+    @Query(
+            "SELECT COUNT(s) FROM TransactionSplit s JOIN s.transaction t "
+                    + "WHERE s.categoryId = :categoryId AND t.isDeleted = false")
+    long countByCategoryId(@Param("categoryId") Long categoryId);
 
     /**
      * Returns all splits belonging to a specific transaction, ordered by id.

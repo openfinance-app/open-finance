@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
-import { SavedSearchesDropdown } from './SavedSearchesDropdown';
+import { screen, fireEvent } from '@testing-library/react';
+import { renderWithProviders as render, mockAuthentication } from '@/test/test-utils';
+import { SavedSearchesDropdown } from '@/components/search/SavedSearchesDropdown';
 import type { SavedSearch } from '@/types/search';
 
 // Mock ConfirmationDialog to render inline for easier testing
@@ -48,6 +49,7 @@ describe('SavedSearchesDropdown', () => {
   let onDelete: ReturnType<typeof vi.fn>;
 
   beforeEach(() => {
+    mockAuthentication();
     onLoad = vi.fn();
     onDelete = vi.fn();
   });
@@ -74,12 +76,13 @@ describe('SavedSearchesDropdown', () => {
   });
 
   it('shows saved searches on button click', () => {
-    render(
+    const { container } = render(
       <SavedSearchesDropdown savedSearches={mockSearches} onLoad={onLoad} onDelete={onDelete} />
     );
     fireEvent.click(screen.getByRole('button'));
     expect(screen.getByText('My Search')).toBeInTheDocument();
     expect(screen.getByText('Recent Search')).toBeInTheDocument();
+    expect(container.querySelector('button button')).toBeNull();
   });
 
   it('shows query text for searches with query filter', () => {
@@ -127,6 +130,7 @@ describe('SavedSearchesDropdown', () => {
     fireEvent.click(deleteButtons[0]);
     expect(screen.getByTestId('confirm-dialog')).toBeInTheDocument();
     expect(screen.getByText(/Are you sure you want to delete "Recent Search"/)).toBeInTheDocument();
+    expect(onLoad).not.toHaveBeenCalled();
   });
 
   it('calls onDelete when confirmation is confirmed', () => {

@@ -74,7 +74,7 @@ export const GlobalSearch = forwardRef<GlobalSearchHandle>((_, ref) => {
   const localizeSubtitle = (result: SearchResult): string | undefined => {
     if (!result.subtitle) return result.subtitle;
     if (result.resultType === 'CATEGORY') {
-      return t(`transactions:types.${result.subtitle}`, result.subtitle);
+      return t(`transactions:form.types.${result.subtitle}`, result.subtitle);
     }
     if (result.resultType === 'BUDGET') {
       return t(`budgets:form.periods.${result.subtitle}`, result.subtitle);

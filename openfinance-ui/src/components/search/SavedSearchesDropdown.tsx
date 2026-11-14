@@ -32,11 +32,6 @@ export function SavedSearchesDropdown({
     setIsOpen(false);
   };
 
-  const handleDeleteClick = (e: React.MouseEvent, search: SavedSearch) => {
-    e.stopPropagation();
-    setDeletingSearch(search);
-  };
-
   const handleConfirmDelete = () => {
     if (deletingSearch) {
       onDelete(deletingSearch.id);
@@ -82,56 +77,58 @@ export function SavedSearchesDropdown({
 
                 <div className="space-y-1">
                   {sortedSearches.map(search => (
-                    <button
+                    <div
                       key={search.id}
-                      onClick={() => handleLoad(search)}
-                      className="w-full px-3 py-2.5 rounded-lg hover:bg-surface-elevated transition-colors text-left group"
+                      className="group flex items-start rounded-lg hover:bg-surface-elevated transition-colors"
                     >
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 mb-1">
-                            <Bookmark className="h-3.5 w-3.5 text-primary flex-shrink-0" />
-                            <span className="font-medium text-text-primary text-sm truncate">
-                              {search.name}
+                      <button
+                        type="button"
+                        onClick={() => handleLoad(search)}
+                        className="flex-1 min-w-0 px-3 py-2.5 rounded-lg text-left"
+                      >
+                        <span className="flex items-center gap-2 mb-1">
+                          <Bookmark className="h-3.5 w-3.5 text-primary flex-shrink-0" />
+                          <span className="font-medium text-text-primary text-sm truncate">
+                            {search.name}
+                          </span>
+                        </span>
+
+                        {/* Search details */}
+                        <span className="block text-xs text-text-tertiary space-y-0.5 ml-5">
+                          {search.filters.query && (
+                            <span className="block truncate">Query: "{search.filters.query}"</span>
+                          )}
+                          {search.lastUsed && (
+                            <span className="flex items-center gap-1">
+                              <Clock className="h-3 w-3" />
+                              Used{' '}
+                              {formatDistanceToNow(new Date(search.lastUsed), {
+                                addSuffix: true,
+                              })}
                             </span>
-                          </div>
+                          )}
+                          {!search.lastUsed && (
+                            <span className="flex items-center gap-1">
+                              <Clock className="h-3 w-3" />
+                              Created{' '}
+                              {formatDistanceToNow(new Date(search.createdAt), {
+                                addSuffix: true,
+                              })}
+                            </span>
+                          )}
+                        </span>
+                      </button>
 
-                          {/* Search details */}
-                          <div className="text-xs text-text-tertiary space-y-0.5 ml-5">
-                            {search.filters.query && (
-                              <div className="truncate">Query: "{search.filters.query}"</div>
-                            )}
-                            {search.lastUsed && (
-                              <div className="flex items-center gap-1">
-                                <Clock className="h-3 w-3" />
-                                Used{' '}
-                                {formatDistanceToNow(new Date(search.lastUsed), {
-                                  addSuffix: true,
-                                })}
-                              </div>
-                            )}
-                            {!search.lastUsed && (
-                              <div className="flex items-center gap-1">
-                                <Clock className="h-3 w-3" />
-                                Created{' '}
-                                {formatDistanceToNow(new Date(search.createdAt), {
-                                  addSuffix: true,
-                                })}
-                              </div>
-                            )}
-                          </div>
-                        </div>
-
-                        {/* Delete button */}
-                        <button
-                          onClick={e => handleDeleteClick(e, search)}
-                          className="opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0 p-1.5 rounded hover:bg-error/10 text-error"
-                          title="Delete saved search"
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </button>
-                      </div>
-                    </button>
+                      {/* Delete button */}
+                      <button
+                        type="button"
+                        onClick={() => setDeletingSearch(search)}
+                        className="flex h-11 w-11 md:h-7 md:w-7 mt-2 mr-2 items-center justify-center md:opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity flex-shrink-0 rounded hover:bg-error/10 text-error"
+                        title="Delete saved search"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
                   ))}
                 </div>
               </div>

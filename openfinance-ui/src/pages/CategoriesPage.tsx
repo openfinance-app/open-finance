@@ -202,7 +202,11 @@ function TreeNode({
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="shadow-plate-lift">
-              <DropdownMenuItem onSelect={() => onEdit(node)} className="min-h-11 gap-2 lg:min-h-8">
+              <DropdownMenuItem
+                onSelect={() => onEdit(node)}
+                disabled={node.isSystem}
+                className="min-h-11 gap-2 lg:min-h-8"
+              >
                 <Edit2 size={15} />
                 {t('aria.editCategory')}
               </DropdownMenuItem>
