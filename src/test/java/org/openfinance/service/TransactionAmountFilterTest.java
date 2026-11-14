@@ -9,6 +9,7 @@ import static org.mockito.Mockito.when;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -16,6 +17,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.openfinance.dto.AmountCurrencyMode;
+import org.openfinance.dto.TransactionSplitResponse;
 import org.openfinance.entity.Transaction;
 import org.openfinance.entity.TransactionType;
 import org.openfinance.entity.User;
@@ -125,6 +128,82 @@ class TransactionAmountFilterTest {
                         maximum == null ? null : new BigDecimal(maximum),
                         conversion)
                 .test(transaction);
+    }
+
+    @Test
+    void splitComparisonDoesNotRoundTheBookedExchangeRate() {
+        Transaction transaction = foreignExpense();
+        transaction.setAmount(new BigDecimal("3"));
+        transaction.setAccountAmount(new BigDecimal("1"));
+        transaction.setAccountCurrency("EUR");
+        Map<Long, List<TransactionSplitResponse>> splits =
+                Map.of(
+                        transaction.getId(),
+                        List.of(
+                                TransactionSplitResponse.builder()
+                                        .amount(new BigDecimal("1.5"))
+                                        .build()));
+
+        assertThat(
+                        TransactionAmountFilter.matching(
+                                        List.of(transaction),
+                                        splits,
+                                        null,
+                                        null,
+                                        new BigDecimal("0.5"),
+                                        AmountCurrencyMode.BASE,
+                                        conversion)
+                                .test(transaction))
+                .isTrue();
+        assertThat(
+                        TransactionAmountFilter.matching(
+                                        List.of(transaction),
+                                        splits,
+                                        null,
+                                        null,
+                                        new BigDecimal("0.499999999999999999"),
+                                        AmountCurrencyMode.BASE,
+                                        conversion)
+                                .test(transaction))
+                .isFalse();
+        verifyNoInteractions(rates);
+    }
+
+    @Test
+    void missingConversionDoesNotMatchForeignSplitsAgainstBaseCurrencyBounds() {
+        Transaction transaction = foreignExpense();
+        Map<Long, List<TransactionSplitResponse>> splits =
+                Map.of(
+                        transaction.getId(),
+                        List.of(
+                                TransactionSplitResponse.builder()
+                                        .amount(new BigDecimal("500"))
+                                        .build()));
+        when(rates.getExchangeRate("USD", "EUR", DATE))
+                .thenThrow(new IllegalStateException("No historical quote"));
+
+        assertThat(
+                        TransactionAmountFilter.matching(
+                                        List.of(transaction),
+                                        splits,
+                                        null,
+                                        null,
+                                        new BigDecimal("500"),
+                                        AmountCurrencyMode.BASE,
+                                        conversion)
+                                .test(transaction))
+                .isFalse();
+        assertThat(
+                        TransactionAmountFilter.matching(
+                                        List.of(transaction),
+                                        splits,
+                                        null,
+                                        null,
+                                        new BigDecimal("500"),
+                                        AmountCurrencyMode.NATIVE,
+                                        conversion)
+                                .test(transaction))
+                .isTrue();
     }
 
     private Transaction foreignExpense() {

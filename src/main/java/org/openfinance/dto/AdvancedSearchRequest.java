@@ -73,11 +73,13 @@ public class AdvancedSearchRequest {
      * <p>This is used for full-text search across various fields depending on entity type:
      *
      * <ul>
-     *   <li><strong>Transactions:</strong> description, notes, tags, payee (FTS5 full-text search)
-     *   <li><strong>Accounts:</strong> name, description (LIKE query on decrypted fields)
-     *   <li><strong>Assets:</strong> name, symbol (LIKE query on decrypted fields)
-     *   <li><strong>Real Estate:</strong> name, address (LIKE query on decrypted fields)
-     *   <li><strong>Liabilities:</strong> name (LIKE query on decrypted fields)
+     *   <li><strong>Transactions:</strong> description, notes, tags, payee and split
+     *       descriptions/tags
+     *   <li><strong>Accounts:</strong> name, description, account number and institution
+     *   <li><strong>Assets:</strong> name, symbol, notes, brand, model and serial number
+     *   <li><strong>Real Estate:</strong> name, address and notes
+     *   <li><strong>Liabilities:</strong> name and notes
+     *   <li><strong>Recurring transactions:</strong> description, notes and payee
      * </ul>
      *
      * <p>Example: "investment" will search across all entity types for the keyword "investment"

@@ -7,7 +7,7 @@
  * BUG-08 fixed: ACCOUNT_TYPE_LABELS now uses uppercase keys (CHECKING, SAVINGS…)
  * to match the backend API enum values.
  */
-import { useState, useMemo } from 'react';
+import { useState, useMemo, type ReactElement } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   Select,
@@ -47,6 +47,23 @@ interface AccountSelectorProps {
   currency?: string;
 }
 
+function AccountIcon({ logo }: { logo?: string }): ReactElement {
+  const [failedLogo, setFailedLogo] = useState<string>();
+
+  if (logo && logo !== failedLogo) {
+    return (
+      <img
+        src={logo}
+        alt=""
+        className="h-5 w-5 shrink-0 rounded bg-white object-contain"
+        onError={() => setFailedLogo(logo)}
+      />
+    );
+  }
+
+  return <Wallet className="h-4 w-4 shrink-0 text-text-muted" aria-hidden="true" />;
+}
+
 export function AccountSelector({
   id,
   value,
@@ -80,6 +97,8 @@ export function AccountSelector({
     return withoutExcluded.filter(
       account =>
         account.name.toLowerCase().includes(normalizedQuery) ||
+        account.description?.toLowerCase().includes(normalizedQuery) ||
+        account.accountNumber?.toLowerCase().includes(normalizedQuery) ||
         (account.institution?.name &&
           account.institution.name.toLowerCase().includes(normalizedQuery))
     );
@@ -163,7 +182,7 @@ export function AccountSelector({
         <SelectValue placeholder={resolvedPlaceholder}>
           {selectedAccount ? (
             <span className="flex items-center gap-2">
-              <Wallet className="h-4 w-4 text-text-muted" />
+              <AccountIcon logo={selectedAccount.institution?.logo} />
               <span>{selectedAccount.name}</span>
               {selectedAccount.institution?.name && (
                 <span className="text-text-muted text-xs">
@@ -219,7 +238,7 @@ export function AccountSelector({
               <SelectItem key={account.id} value={account.id.toString()} className="gap-2">
                 <div className="flex items-center justify-between w-full gap-2">
                   <span className="flex items-center gap-2 min-w-0">
-                    <Wallet className="h-4 w-4 text-text-muted shrink-0" />
+                    <AccountIcon logo={account.institution?.logo} />
                     <span className="text-sm truncate">{account.name}</span>
                   </span>
                   {account.balance !== undefined && (

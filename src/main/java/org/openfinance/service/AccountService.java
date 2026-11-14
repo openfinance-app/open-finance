@@ -1030,7 +1030,7 @@ public class AccountService {
                         .map(account -> toResponseWithDecryption(account))
                         .collect(Collectors.toList());
 
-        // Keyword search (name, institution name, account number are all encrypted)
+        // Match decrypted account details before pagination.
         if (criteria.getKeyword() != null && !criteria.getKeyword().trim().isEmpty()) {
             String keyword = criteria.getKeyword();
             boolean keywordRegex = criteria.isKeywordRegex();
@@ -1038,19 +1038,15 @@ public class AccountService {
                     results.stream()
                             .filter(
                                     res ->
-                                            org.openfinance.util.RegexSearchUtil.matches(
-                                                            res.getName(), keyword, keywordRegex)
-                                                    || (res.getInstitution() != null
-                                                            && org.openfinance.util.RegexSearchUtil
-                                                                    .matches(
-                                                                            res.getInstitution()
-                                                                                    .getName(),
-                                                                            keyword,
-                                                                            keywordRegex))
-                                                    || org.openfinance.util.RegexSearchUtil.matches(
-                                                            res.getAccountNumber(),
-                                                            keyword,
-                                                            keywordRegex))
+                                            org.openfinance.util.RegexSearchUtil.matchesAny(
+                                                    keyword,
+                                                    keywordRegex,
+                                                    res.getName(),
+                                                    res.getDescription(),
+                                                    res.getAccountNumber(),
+                                                    res.getInstitution() == null
+                                                            ? null
+                                                            : res.getInstitution().getName()))
                             .collect(Collectors.toList());
         }
 

@@ -777,14 +777,13 @@ public class RealEstateService {
                             .filter(
                                     response ->
                                             keyword == null
-                                                    || org.openfinance.util.RegexSearchUtil.matches(
-                                                            response.getName(),
-                                                            keyword,
-                                                            keywordRegex)
-                                                    || org.openfinance.util.RegexSearchUtil.matches(
-                                                            response.getAddress(),
-                                                            keyword,
-                                                            keywordRegex))
+                                                    || org.openfinance.util.RegexSearchUtil
+                                                            .matchesAny(
+                                                                    keyword,
+                                                                    keywordRegex,
+                                                                    response.getName(),
+                                                                    response.getAddress(),
+                                                                    response.getNotes()))
                             .filter(response -> matchesPropertyAmounts(response, criteria))
                             .collect(Collectors.toList());
 

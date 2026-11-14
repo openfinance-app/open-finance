@@ -69,7 +69,7 @@ public interface AccountRepository
      * @return List of active accounts owned by the user (may be empty)
      */
     @Query(
-            "SELECT a FROM Account a WHERE a.userId = :userId AND a.isActive = :isActive AND a.deletedDate IS NULL")
+            "SELECT a FROM Account a LEFT JOIN FETCH a.institution WHERE a.userId = :userId AND a.isActive = :isActive AND a.deletedDate IS NULL")
     List<Account> findByUserIdAndIsActive(
             @Param("userId") Long userId, @Param("isActive") Boolean isActive);
 

@@ -458,13 +458,12 @@ public class RecurringTransactionService {
                                     if (search == null || search.trim().isEmpty()) {
                                         return true;
                                     }
-                                    boolean matchDescription =
-                                            org.openfinance.util.RegexSearchUtil.matches(
-                                                    resp.getDescription(), search, searchRegex);
-                                    boolean matchNotes =
-                                            org.openfinance.util.RegexSearchUtil.matches(
-                                                    resp.getNotes(), search, searchRegex);
-                                    return matchDescription || matchNotes;
+                                    return org.openfinance.util.RegexSearchUtil.matchesAny(
+                                            search,
+                                            searchRegex,
+                                            resp.getDescription(),
+                                            resp.getNotes(),
+                                            resp.getPayee());
                                 })
                         .collect(Collectors.toList());
 

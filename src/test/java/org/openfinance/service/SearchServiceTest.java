@@ -60,7 +60,9 @@ class SearchServiceTest {
     private static final long USER_ID = 41L;
     private static final LocalDate DATE = LocalDate.of(2025, 6, 15);
     @Mock private TransactionRepository transactions;
+    @Mock private TransactionSplitService transactionSplits;
     @Mock private AccountRepository accounts;
+    @Mock private AccountService accountService;
     @Mock private AssetRepository assets;
     @Mock private RealEstateRepository properties;
     @Mock private LiabilityRepository liabilities;

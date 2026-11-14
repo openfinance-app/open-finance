@@ -1007,8 +1007,15 @@ public class AssetService {
                         results.stream()
                                 .filter(
                                         response ->
-                                                org.openfinance.util.RegexSearchUtil.matches(
-                                                        response.getName(), keyword, keywordRegex))
+                                                org.openfinance.util.RegexSearchUtil.matchesAny(
+                                                        keyword,
+                                                        keywordRegex,
+                                                        response.getName(),
+                                                        response.getSymbol(),
+                                                        response.getNotes(),
+                                                        response.getBrand(),
+                                                        response.getModel(),
+                                                        response.getSerialNumber()))
                                 .collect(Collectors.toList());
             }
 

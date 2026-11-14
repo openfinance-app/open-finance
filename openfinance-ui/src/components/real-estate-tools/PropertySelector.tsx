@@ -56,6 +56,7 @@ export const PropertySelector: React.FC<PropertySelectorProps> = ({
     return properties.filter(
       property =>
         property.name.toLowerCase().includes(normalizedQuery) ||
+        property.notes?.toLowerCase().includes(normalizedQuery) ||
         (property.address && property.address.toLowerCase().includes(normalizedQuery)) ||
         (property.propertyType &&
           getPropertyTypeName(property.propertyType).toLowerCase().includes(normalizedQuery))

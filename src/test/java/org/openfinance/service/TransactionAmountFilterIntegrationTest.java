@@ -154,6 +154,120 @@ class TransactionAmountFilterIntegrationTest extends AuditApiTestSupport {
                 create("INCOME", euros, "EUR", "3000"));
     }
 
+    @Test
+    void splitAmountsMatchOnceBeforePaginationAndKeepParentTotals() throws Exception {
+        long split = createSplit(euros, "EUR", "2150", "1075", "1075");
+        long whole = create("EXPENSE", euros, "EUR", "1075");
+        create("EXPENSE", euros, "EUR", "900");
+        createSplit(euros, "EUR", "1300", "1075.000000000000000001", "224.999999999999999999");
+
+        assertThat(ids(search("amountExact=1075.00").path("content")))
+                .containsExactlyInAnyOrder(split, whole);
+        assertThat(ids(search("amountMin=1075&amountMax=1075").path("content")))
+                .containsExactlyInAnyOrder(split, whole);
+        JsonNode page = search("amountExact=1075&size=1");
+        assertThat(page.path("totalElements").asInt()).isEqualTo(2);
+        assertThat(page.path("content").size()).isEqualTo(1);
+        JsonNode summary = summary("amountExact=1075");
+        assertThat(summary.path("transactionCount").asInt()).isEqualTo(2);
+        money(summary, "expenseAmount", "3225");
+        assertThat(ids(advanced("1075", "1075").path("resultsByType").path("TRANSACTION")))
+                .containsExactlyInAnyOrder(split, whole);
+        assertThat(ids(search("amountExact=2150").path("content"))).containsExactly(split);
+    }
+
+    @Test
+    void splitAmountsUseTheParentsBookedConversionAndRespectNativeMode() throws Exception {
+        Map<String, Object> request = request("EXPENSE", francs, "XOF", "40000");
+        request.put("originalAmount", new BigDecimal("2000"));
+        request.put("originalCurrency", "EUR");
+        request.put("conversionRate", new BigDecimal("20"));
+        request.put("splits", List.of(data("amount", 21500), data("amount", 18500)));
+        long split = json("POST", "/transactions", request, owner, 201).path("id").asLong();
+
+        assertThat(ids(search("amountExact=1075").path("content"))).containsExactly(split);
+        assertThat(ids(search("amountExact=21500&amountCurrencyMode=NATIVE").path("content")))
+                .containsExactly(split);
+        assertThat(
+                        search("amountExact=1075&amountCurrencyMode=NATIVE")
+                                .path("totalElements")
+                                .asInt())
+                .isZero();
+        assertThat(ids(advanced("1075", "1075").path("resultsByType").path("TRANSACTION")))
+                .containsExactly(split);
+        money(summary("amountExact=1075"), "expenseAmount", "2000");
+    }
+
+    @Test
+    void splitDescriptionsAndTagsAreSearchableEvenWhenTheParentIndexHasMatches() throws Exception {
+        long housing =
+                json("POST", "/categories", data("name", "Housing"), owner, 201)
+                        .path("id")
+                        .asLong();
+        Map<String, Object> request = request("EXPENSE", euros, "EUR", "1200");
+        request.put(
+                "splits",
+                List.of(
+                        data(
+                                "amount",
+                                1075,
+                                "description",
+                                "SplitRent November",
+                                "tags",
+                                "housing",
+                                "categoryId",
+                                housing),
+                        data("amount", 125, "description", "Utilities", "tags", "SplitRent")));
+        long split = json("POST", "/transactions", request, owner, 201).path("id").asLong();
+        request = request("EXPENSE", euros, "EUR", "500");
+        request.put("description", "SplitRent parent match");
+        long whole = json("POST", "/transactions", request, owner, 201).path("id").asLong();
+
+        assertThat(ids(search("keyword=splitrent").path("content")))
+                .containsExactlyInAnyOrder(split, whole);
+        assertThat(ids(search("keyword=November$&keywordRegex=true").path("content")))
+                .containsExactly(split);
+        JsonNode global = json("GET", "/search?q=SplitRent", null, owner, 200);
+        assertThat(ids(global.path("resultsByType").path("TRANSACTION")))
+                .containsExactlyInAnyOrder(split, whole);
+        assertThat(
+                        ids(
+                                json("GET", "/search?q=housing", null, owner, 200)
+                                        .path("resultsByType")
+                                        .path("TRANSACTION")))
+                .containsExactly(split);
+        JsonNode advanced =
+                json(
+                        "POST",
+                        "/search/advanced",
+                        data(
+                                "query",
+                                "SplitRent",
+                                "entityTypes",
+                                List.of("TRANSACTION"),
+                                "exactAmount",
+                                1075,
+                                "tags",
+                                List.of("housing"),
+                                "categoryIds",
+                                List.of(housing)),
+                        owner,
+                        200);
+        assertThat(ids(advanced.path("resultsByType").path("TRANSACTION"))).containsExactly(split);
+    }
+
+    private long createSplit(
+            long account, String currency, String total, String first, String second)
+            throws Exception {
+        Map<String, Object> request = request("EXPENSE", account, currency, total);
+        request.put(
+                "splits",
+                List.of(
+                        data("amount", new BigDecimal(first)),
+                        data("amount", new BigDecimal(second))));
+        return json("POST", "/transactions", request, owner, 201).path("id").asLong();
+    }
+
     private long create(String type, long account, String currency, String amount)
             throws Exception {
         return json("POST", "/transactions", request(type, account, currency, amount), owner, 201)

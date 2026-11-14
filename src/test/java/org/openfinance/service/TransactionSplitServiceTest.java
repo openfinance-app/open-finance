@@ -6,7 +6,9 @@ import static org.mockito.Mockito.*;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.stream.LongStream;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -594,5 +596,39 @@ class TransactionSplitServiceTest {
         assertThat(responses.get(0).getCategoryName()).isNull();
         assertThat(responses.get(0).getCategoryIcon()).isNull();
         assertThat(responses.get(0).getCategoryColor()).isNull();
+    }
+
+    @Test
+    @DisplayName("Large searches load every split without exceeding SQLite's parameter limit")
+    void shouldLoadSplitsForLargeTransactionHistories() {
+        List<Long> transactionIds = LongStream.rangeClosed(1, 1200).boxed().toList();
+        when(splitRepository.findByTransactionIdIn(anyList()))
+                .thenAnswer(
+                        invocation -> {
+                            List<Long> batch = invocation.getArgument(0);
+                            assertThat(batch).hasSizeLessThanOrEqualTo(999);
+                            return batch.stream()
+                                    .map(
+                                            id ->
+                                                    createSplitEntity(
+                                                            id,
+                                                            id,
+                                                            null,
+                                                            new BigDecimal("1075"),
+                                                            "Rent"))
+                                    .toList();
+                        });
+
+        Map<Long, List<TransactionSplitResponse>> splits =
+                transactionSplitService.getSplitsForTransactions(transactionIds);
+
+        assertThat(splits).containsOnlyKeys(transactionIds);
+        assertThat(splits.values())
+                .allSatisfy(
+                        parts -> {
+                            assertThat(parts).hasSize(1);
+                            assertThat(parts.getFirst().getAmount()).isEqualByComparingTo("1075");
+                            assertThat(parts.getFirst().getDescription()).isEqualTo("Rent");
+                        });
     }
 }

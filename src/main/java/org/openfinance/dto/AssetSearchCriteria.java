@@ -18,7 +18,7 @@ import org.openfinance.entity.AssetType;
  * <p><strong>Supported Search Filters:</strong>
  *
  * <ul>
- *   <li><strong>keyword</strong> - Search in asset name (case-insensitive, partial match)
+ *   <li><strong>keyword</strong> - Search name, symbol, notes, brand, model and serial number
  *   <li><strong>type</strong> - Filter by asset type (STOCK, ETF, CRYPTO, etc.)
  *   <li><strong>accountId</strong> - Filter by account ID
  *   <li><strong>currency</strong> - Filter by currency code (USD, EUR, etc.)
@@ -38,9 +38,8 @@ import org.openfinance.entity.AssetType;
 public class AssetSearchCriteria {
 
     /**
-     * Keyword to search in asset name (case-insensitive).
-     *
-     * <p>Uses LIKE query with wildcards: %keyword%
+     * Keyword to search in decrypted asset name, symbol, notes, brand, model and serial number
+     * (case-insensitive substring match).
      *
      * <p>Example: "apple" will match "Apple Inc.", "Apple Watch", etc.
      */

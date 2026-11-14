@@ -14,6 +14,14 @@ public final class RegexSearchUtil {
 
     private RegexSearchUtil() {}
 
+    /** Matches individual fields so anchored regexes behave consistently on every surface. */
+    public static boolean matchesAny(String query, boolean regex, String... fields) {
+        for (String field : fields) {
+            if (matches(field, query, regex)) return true;
+        }
+        return false;
+    }
+
     /**
      * Returns true when {@code text} matches {@code query}.
      *

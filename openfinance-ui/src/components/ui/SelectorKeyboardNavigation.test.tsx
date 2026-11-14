@@ -43,7 +43,15 @@ vi.mock('@/hooks/useAccounts', () => ({
   useAccounts: () => ({
     data: [
       { id: 1, name: 'Alpha', type: 'CHECKING', currency: 'EUR' },
-      { id: 2, name: 'Beta', type: 'SAVINGS', currency: 'EUR' },
+      {
+        id: 2,
+        name: 'Beta',
+        type: 'SAVINGS',
+        currency: 'EUR',
+        description: 'Holiday reserve',
+        accountNumber: 'FR761234',
+        institution: { name: 'Example bank' },
+      },
     ],
     isLoading: false,
     isError: false,
@@ -65,7 +73,7 @@ vi.mock('@/hooks/useLiabilities', () => ({
   useLiabilities: () => ({
     data: [
       { id: 1, name: 'Alpha', type: 'MORTGAGE', currency: 'EUR' },
-      { id: 2, name: 'Beta', type: 'OTHER', currency: 'EUR' },
+      { id: 2, name: 'Beta', type: 'OTHER', currency: 'EUR', notes: 'Refinancing planned' },
     ],
     isLoading: false,
     isError: false,
@@ -234,6 +242,25 @@ describe.each([
     await user.keyboard('{Escape}');
     await waitFor(() => expect(screen.queryByRole('listbox')).not.toBeInTheDocument());
     expect(onValueChange).not.toHaveBeenCalled();
+  });
+});
+
+describe('Search fields in financial selectors', () => {
+  it.each([
+    { Component: AccountSelector, query: 'HOLIDAY' },
+    { Component: AccountSelector, query: 'fr761234' },
+    { Component: AccountSelector, query: 'example bank' },
+    { Component: LiabilitySelector, query: 'REFINANCING' },
+  ])('finds and selects a record by $query', async ({ Component, query }) => {
+    const user = userEvent.setup();
+    const onValueChange = vi.fn();
+    renderWithProviders(<Component onValueChange={onValueChange} allowNone={false} />);
+    await user.click(screen.getByRole('combobox'));
+    await user.type(await screen.findByRole('textbox'), query);
+
+    expect(screen.queryByRole('option', { name: /Alpha/ })).not.toBeInTheDocument();
+    await user.click(screen.getByRole('option', { name: /Beta/ }));
+    expect(onValueChange).toHaveBeenCalledExactlyOnceWith(2);
   });
 });
 

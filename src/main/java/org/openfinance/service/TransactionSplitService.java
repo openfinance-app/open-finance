@@ -314,13 +314,16 @@ public class TransactionSplitService {
             return Map.of();
         }
 
-        List<TransactionSplit> allSplits = splitRepository.findByTransactionIdIn(transactionIds);
-        return allSplits.stream()
-                .collect(
-                        Collectors.groupingBy(
-                                TransactionSplit::getTransactionId,
-                                Collectors.mapping(
-                                        split -> toResponse(split), Collectors.toList())));
+        Map<Long, List<TransactionSplitResponse>> splits = new HashMap<>();
+        for (int offset = 0; offset < transactionIds.size(); offset += 500) {
+            List<Long> batch =
+                    transactionIds.subList(offset, Math.min(offset + 500, transactionIds.size()));
+            for (TransactionSplit split : splitRepository.findByTransactionIdIn(batch)) {
+                splits.computeIfAbsent(split.getTransactionId(), ignored -> new ArrayList<>())
+                        .add(toResponse(split));
+            }
+        }
+        return splits;
     }
 
     // -----------------------------------------------------------------------

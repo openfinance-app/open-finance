@@ -17,7 +17,7 @@ import org.openfinance.entity.AccountType;
  * <p><strong>Supported Search Filters:</strong>
  *
  * <ul>
- *   <li><strong>keyword</strong> - Search in account name (case-insensitive, partial match)
+ *   <li><strong>keyword</strong> - Search name, description, account number and institution
  *   <li><strong>type</strong> - Filter by account type (CHECKING, SAVINGS, CREDIT_CARD, etc.)
  *   <li><strong>currency</strong> - Filter by currency code (USD, EUR, etc.)
  *   <li><strong>isActive</strong> - Filter by active status (true=active, false=closed)
@@ -36,9 +36,8 @@ import org.openfinance.entity.AccountType;
 public class AccountSearchCriteria {
 
     /**
-     * Keyword to search in account name (case-insensitive).
-     *
-     * <p>Uses LIKE query with wildcards: %keyword%
+     * Keyword to search in decrypted account name, description, account number and institution
+     * (case-insensitive substring match).
      *
      * <p>Example: "chase" will match "Chase Checking", "Chase Savings", etc.
      */

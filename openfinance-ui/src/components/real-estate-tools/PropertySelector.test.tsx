@@ -14,6 +14,7 @@ vi.mock('@/hooks/useRealEstate', () => ({
         id: 1,
         name: 'London flat',
         address: 'Chelsea, London',
+        notes: 'Renovated loft',
         propertyType: 'RESIDENTIAL',
         purchasePrice: 123456.78,
         rentalIncome: 987.65,
@@ -51,6 +52,18 @@ beforeEach(async () => {
 });
 
 describe('using an existing property in a simulation', () => {
+  it('finds a property by its notes', async () => {
+    const user = userEvent.setup();
+    const selected = vi.fn();
+    renderWithProviders(<PropertySelector onPropertySelect={selected} />);
+    await user.click(screen.getByRole('combobox'));
+    fireEvent.change(screen.getByRole('textbox'), { target: { value: ' RENOVATED ' } });
+
+    expect(screen.queryByRole('option', { name: /Paris home/ })).not.toBeInTheDocument();
+    await user.click(screen.getByRole('option', { name: /London flat/ }));
+    await waitFor(() => expect(selected).toHaveBeenCalledOnce());
+  });
+
   it('searches addresses and converts purchase price and rent with the same exchange rate', async () => {
     const user = userEvent.setup();
     const selected = vi.fn();

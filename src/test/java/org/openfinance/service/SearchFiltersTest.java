@@ -46,7 +46,9 @@ class SearchFiltersTest {
     private static final LocalDate FROM = LocalDate.of(2025, 1, 1);
     private static final LocalDate TO = LocalDate.of(2025, 12, 31);
     @Mock private TransactionRepository transactions;
+    @Mock private TransactionSplitService transactionSplits;
     @Mock private AccountRepository accounts;
+    @Mock private AccountService accountService;
     @Mock private AssetRepository assets;
     @Mock private RealEstateRepository properties;
     @Mock private LiabilityRepository liabilities;

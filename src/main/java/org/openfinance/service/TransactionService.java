@@ -1859,12 +1859,14 @@ public class TransactionService {
     private List<Long> findMatchingTransactionIds(
             Long userId, org.openfinance.dto.TransactionSearchCriteria criteria) {
         List<Long> matchedTransactionIds = null;
-        boolean needsInMemoryPreFilter =
+        boolean needsSplitFilter =
                 (criteria.getKeyword() != null && !criteria.getKeyword().trim().isEmpty())
                         || criteria.getAmountMin() != null
                         || criteria.getAmountMax() != null
                         || criteria.getAmountExact() != null
-                        || TransactionSummaryAmounts.filtersAllocations(criteria)
+                        || TransactionSummaryAmounts.filtersAllocations(criteria);
+        boolean needsInMemoryPreFilter =
+                needsSplitFilter
                         || Boolean.TRUE.equals(criteria.getNoPayee())
                         || (criteria.getPayee() != null && !criteria.getPayee().isBlank());
 
@@ -1878,41 +1880,28 @@ public class TransactionService {
                             .toList();
 
             java.util.stream.Stream<Transaction> stream = allUserTransactions.stream();
+            Map<Long, List<TransactionSplitResponse>> allocations =
+                    needsSplitFilter
+                            ? transactionSplitService.getSplitsForTransactions(
+                                    allUserTransactions.stream().map(Transaction::getId).toList())
+                            : Map.of();
 
-            // Keyword filter (description, notes, payee, tags)
+            // Include split descriptions and tags alongside the parent's encrypted text.
             if (criteria.getKeyword() != null && !criteria.getKeyword().trim().isEmpty()) {
-                Map<Long, List<String>> splitTags = splitTagsFor(allUserTransactions);
                 String keyword = criteria.getKeyword();
                 boolean keywordRegex = criteria.isKeywordRegex();
                 stream =
                         stream.filter(
                                 t ->
-                                        org.openfinance.util.RegexSearchUtil.matches(
-                                                        t.getDescription(), keyword, keywordRegex)
-                                                || org.openfinance.util.RegexSearchUtil.matches(
-                                                        t.getNotes(), keyword, keywordRegex)
-                                                || org.openfinance.util.RegexSearchUtil.matches(
-                                                        t.getPayee(), keyword, keywordRegex)
-                                                || org.openfinance.util.RegexSearchUtil.matches(
-                                                        t.getTags(), keyword, keywordRegex)
-                                                || splitTags
-                                                        .getOrDefault(t.getId(), List.of())
-                                                        .stream()
-                                                        .anyMatch(
-                                                                tag ->
-                                                                        org.openfinance.util
-                                                                                .RegexSearchUtil
-                                                                                .matches(
-                                                                                        tag,
-                                                                                        keyword,
-                                                                                        keywordRegex)));
+                                        TransactionSearchText.matches(
+                                                t,
+                                                allocations.getOrDefault(t.getId(), List.of()),
+                                                keyword,
+                                                keywordRegex));
             }
 
             if (TransactionSummaryAmounts.filtersAllocations(criteria)) {
                 java.util.Set<Long> categoryIds = matchingCategoryIds(userId, criteria);
-                Map<Long, List<TransactionSplitResponse>> allocations =
-                        transactionSplitService.getSplitsForTransactions(
-                                allUserTransactions.stream().map(Transaction::getId).toList());
                 stream =
                         stream.filter(
                                 transaction ->
@@ -1944,6 +1933,7 @@ public class TransactionService {
                     stream.filter(
                             TransactionAmountFilter.matching(
                                     allUserTransactions,
+                                    allocations,
                                     criteria.getAmountMin(),
                                     criteria.getAmountMax(),
                                     criteria.getAmountExact(),

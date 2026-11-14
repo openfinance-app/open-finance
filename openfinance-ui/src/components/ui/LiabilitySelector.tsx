@@ -56,6 +56,7 @@ export function LiabilitySelector({
     return filtered.filter(
       liability =>
         liability.name.toLowerCase().includes(normalizedQuery) ||
+        liability.notes?.toLowerCase().includes(normalizedQuery) ||
         liability.type.toLowerCase().includes(normalizedQuery)
     );
   }, [liabilities, searchQuery, liabilityFilter]);

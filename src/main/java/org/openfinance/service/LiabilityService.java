@@ -822,14 +822,17 @@ public class LiabilityService {
             List<LiabilityResponse> responses =
                     all.stream().map(l -> toResponseWithDecryption(l)).collect(Collectors.toList());
 
-            // Apply search filter on decrypted name
+            // Apply search filter on decrypted name and notes.
             if (hasSearch) {
                 responses =
                         responses.stream()
                                 .filter(
                                         r ->
-                                                org.openfinance.util.RegexSearchUtil.matches(
-                                                        r.getName(), search, searchRegex))
+                                                org.openfinance.util.RegexSearchUtil.matchesAny(
+                                                        search,
+                                                        searchRegex,
+                                                        r.getName(),
+                                                        r.getNotes()))
                                 .collect(Collectors.toList());
             }
 

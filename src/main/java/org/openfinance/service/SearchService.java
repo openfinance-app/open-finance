@@ -8,8 +8,8 @@ import java.time.temporal.ChronoField;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
@@ -22,6 +22,7 @@ import org.openfinance.dto.AmountCurrencyMode;
 import org.openfinance.dto.GlobalSearchResponse;
 import org.openfinance.dto.SearchResultDto;
 import org.openfinance.dto.SearchResultDto.SearchResultType;
+import org.openfinance.dto.TransactionSplitResponse;
 import org.openfinance.entity.Account;
 import org.openfinance.entity.AccountType;
 import org.openfinance.entity.Asset;
@@ -76,7 +77,9 @@ import org.springframework.stereotype.Service;
 public class SearchService {
 
     private final TransactionRepository transactionRepository;
+    private final TransactionSplitService transactionSplitService;
     private final AccountRepository accountRepository;
+    private final AccountService accountService;
     private final AssetRepository assetRepository;
     private final RealEstateRepository realEstateRepository;
     private final LiabilityRepository liabilityRepository;
@@ -437,9 +440,20 @@ public class SearchService {
 
             String lowerQuery = request.getQuery().toLowerCase();
             boolean regex = request.isRegex();
+            Map<Long, List<TransactionSplitResponse>> splits =
+                    transactionSplitService.getSplitsForTransactions(
+                            transactions.stream()
+                                    .map(org.openfinance.entity.Transaction::getId)
+                                    .toList());
 
             return transactions.stream()
-                    .filter(t -> matchesTextQuery(t, request.getQuery(), regex))
+                    .filter(
+                            t ->
+                                    TransactionSearchText.matches(
+                                            t,
+                                            splits.getOrDefault(t.getId(), List.of()),
+                                            request.getQuery(),
+                                            regex))
                     .filter(
                             t -> {
                                 if (request.getAccountIds() != null
@@ -455,6 +469,18 @@ public class SearchService {
                             t -> {
                                 if (request.getCategoryIds() != null
                                         && !request.getCategoryIds().isEmpty()) {
+                                    List<TransactionSplitResponse> parts =
+                                            splits.getOrDefault(t.getId(), List.of());
+                                    if (!parts.isEmpty()) {
+                                        return parts.stream()
+                                                .anyMatch(
+                                                        split ->
+                                                                split.getCategoryId() != null
+                                                                        && request.getCategoryIds()
+                                                                                .contains(
+                                                                                        split
+                                                                                                .getCategoryId()));
+                                    }
                                     return t.getCategoryId() != null
                                             && request.getCategoryIds().contains(t.getCategoryId());
                                 }
@@ -475,20 +501,11 @@ public class SearchService {
                                 return true;
                             })
                     .filter(
-                            t -> {
-                                if (request.getTags() != null && !request.getTags().isEmpty()) {
-                                    String tags = t.getTags();
-                                    if (tags == null) return false;
-                                    return request.getTags().stream()
-                                            .anyMatch(
-                                                    tag ->
-                                                            tags.toLowerCase(Locale.ROOT)
-                                                                    .contains(
-                                                                            tag.toLowerCase(
-                                                                                    Locale.ROOT)));
-                                }
-                                return true;
-                            })
+                            t ->
+                                    TransactionSearchText.matchesTags(
+                                            t,
+                                            splits.getOrDefault(t.getId(), List.of()),
+                                            request.getTags()))
                     .filter(
                             t -> {
                                 if (request.getIsReconciled() != null) {
@@ -506,6 +523,7 @@ public class SearchService {
                     .filter(
                             TransactionAmountFilter.matching(
                                     transactions,
+                                    splits,
                                     request.getMinAmount(),
                                     request.getMaxAmount(),
                                     request.getExactAmount(),
@@ -573,16 +591,8 @@ public class SearchService {
                                     }
                                 }
 
-                                // Match query
-                                String name = account.getName() != null ? account.getName() : "";
-                                String description =
-                                        account.getDescription() != null
-                                                ? account.getDescription()
-                                                : "";
-                                return org.openfinance.util.RegexSearchUtil.matches(
-                                        name + " " + description,
-                                        request.getQuery(),
-                                        request.isRegex());
+                                return matchesAccountText(
+                                        account, request.getQuery(), request.isRegex());
                             })
                     .map(
                             account -> {
@@ -602,7 +612,7 @@ public class SearchService {
                                             .id(account.getId())
                                             .title(name)
                                             .subtitle(account.getType().name())
-                                            .amount(account.getBalance())
+                                            .amount(accountSearchBalance(account, userId))
                                             .currency(account.getCurrency())
                                             .icon(getAccountTypeIcon(account.getType()))
                                             .color(getAccountTypeColor(account.getType()))
@@ -661,11 +671,8 @@ public class SearchService {
                                     }
                                 }
 
-                                // Match query
-                                String name = asset.getName() != null ? asset.getName() : "";
-                                String symbol = asset.getSymbol() != null ? asset.getSymbol() : "";
-                                return org.openfinance.util.RegexSearchUtil.matches(
-                                        name + " " + symbol, request.getQuery(), request.isRegex());
+                                return matchesAssetText(
+                                        asset, request.getQuery(), request.isRegex());
                             })
                     .map(
                             asset -> {
@@ -728,36 +735,31 @@ public class SearchService {
             Long userId, String query, int limit, boolean regex) {
         try {
             String lowerQuery = query.toLowerCase();
+            Map<Long, org.openfinance.entity.Transaction> matches = new LinkedHashMap<>();
+            indexedTransactions(userId, query, limit, regex)
+                    .forEach(transaction -> matches.put(transaction.getId(), transaction));
 
-            // Token-based search does not support regex; skip straight to in-memory scan.
-            if (!regex) {
-                // Use token-based search if encryption key is available
-                SecretKey contextKey = org.openfinance.security.EncryptionContext.getKey();
-                if (contextKey != null) {
-                    SecretKey searchKey = searchTokenService.deriveSearchKey(contextKey);
-                    List<Long> matchingIds =
-                            searchTokenService.search(
-                                    userId, "TRANSACTION", query, searchKey, limit);
-                    if (!matchingIds.isEmpty()) {
-                        return matchingIds.stream()
-                                .map(id -> transactionRepository.findById(id).orElse(null))
-                                .filter(Objects::nonNull)
-                                .filter(t -> !Boolean.TRUE.equals(t.getIsDeleted()))
-                                .map(t -> buildTransactionSearchResult(t, lowerQuery))
-                                .filter(Objects::nonNull)
-                                .collect(Collectors.toList());
-                    }
-                }
-            }
-
-            // Fallback: in-memory search (for entities not yet indexed, or when using regex)
+            // Parent tokens do not index split text. Always include decrypted split matches.
             List<org.openfinance.entity.Transaction> transactions =
                     transactionRepository.findByUserId(userId).stream()
                             .filter(t -> !Boolean.TRUE.equals(t.getIsDeleted()))
                             .toList();
+            Map<Long, List<TransactionSplitResponse>> splits =
+                    transactionSplitService.getSplitsForTransactions(
+                            transactions.stream()
+                                    .map(org.openfinance.entity.Transaction::getId)
+                                    .toList());
+            transactions.stream()
+                    .filter(
+                            t ->
+                                    TransactionSearchText.matches(
+                                            t,
+                                            splits.getOrDefault(t.getId(), List.of()),
+                                            query,
+                                            regex))
+                    .forEach(t -> matches.putIfAbsent(t.getId(), t));
 
-            return transactions.stream()
-                    .filter(t -> matchesTextQuery(t, query, regex))
+            return matches.values().stream()
                     .limit(limit)
                     .map(t -> buildTransactionSearchResult(t, lowerQuery))
                     .filter(Objects::nonNull)
@@ -769,41 +771,69 @@ public class SearchService {
         }
     }
 
-    /** Searches accounts by name. */
+    private List<org.openfinance.entity.Transaction> indexedTransactions(
+            Long userId, String query, int limit, boolean regex) {
+        SecretKey contextKey = org.openfinance.security.EncryptionContext.getKey();
+        if (regex || contextKey == null) return List.of();
+        SecretKey searchKey = searchTokenService.deriveSearchKey(contextKey);
+        return searchTokenService.search(userId, "TRANSACTION", query, searchKey, limit).stream()
+                .map(id -> transactionRepository.findById(id).orElse(null))
+                .filter(Objects::nonNull)
+                .filter(t -> Objects.equals(t.getUserId(), userId))
+                .filter(t -> !Boolean.TRUE.equals(t.getIsDeleted()))
+                .toList();
+    }
+
+    private boolean matchesAccountText(Account account, String query, boolean regex) {
+        return org.openfinance.util.RegexSearchUtil.matchesAny(
+                query,
+                regex,
+                account.getName(),
+                account.getDescription(),
+                account.getAccountNumber(),
+                account.getInstitution() == null ? null : account.getInstitution().getName());
+    }
+
+    private boolean matchesAssetText(Asset asset, String query, boolean regex) {
+        return org.openfinance.util.RegexSearchUtil.matchesAny(
+                query,
+                regex,
+                asset.getName(),
+                asset.getSymbol(),
+                asset.getNotes(),
+                asset.getBrand(),
+                asset.getModel(),
+                asset.getSerialNumber());
+    }
+
+    private BigDecimal accountSearchBalance(Account account, Long userId) {
+        // Use the account page's valuation rules for cash plus eligible investment holdings.
+        return account.getType() == AccountType.INVESTMENT
+                ? accountService.getAccountById(account.getId(), userId).getBalance()
+                : account.getBalance();
+    }
+
+    /** Searches accounts by name, description, account number and institution. */
     private List<SearchResultDto> searchAccounts(
             Long userId, String query, int limit, boolean regex) {
         try {
             List<Account> accounts = accountRepository.findByUserIdWithInstitution(userId);
 
-            return accounts.parallelStream()
+            // Holdings are decrypted while valuing investment accounts. Stay on this search
+            // worker, which carries the user's encryption context.
+            return accounts.stream()
                     .map(
                             account -> {
                                 try {
                                     String decryptedName = account.getName();
-                                    String decryptedDesc = account.getDescription();
-                                    String decryptedAccountNumber = account.getAccountNumber();
-                                    String institutionName =
-                                            account.getInstitution() != null
-                                                    ? account.getInstitution().getName()
-                                                    : null;
-
-                                    // Check if query matches name, description, account number, or
-                                    // institution name
-                                    if (org.openfinance.util.RegexSearchUtil.matches(
-                                                    decryptedName, query, regex)
-                                            || org.openfinance.util.RegexSearchUtil.matches(
-                                                    decryptedDesc, query, regex)
-                                            || org.openfinance.util.RegexSearchUtil.matches(
-                                                    decryptedAccountNumber, query, regex)
-                                            || org.openfinance.util.RegexSearchUtil.matches(
-                                                    institutionName, query, regex)) {
+                                    if (matchesAccountText(account, query, regex)) {
 
                                         return SearchResultDto.builder()
                                                 .resultType(SearchResultType.ACCOUNT)
                                                 .id(account.getId())
                                                 .title(decryptedName)
                                                 .subtitle(account.getType().name())
-                                                .amount(account.getBalance())
+                                                .amount(accountSearchBalance(account, userId))
                                                 .currency(account.getCurrency())
                                                 .icon(getAccountTypeIcon(account.getType()))
                                                 .color(getAccountTypeColor(account.getType()))
@@ -827,7 +857,7 @@ public class SearchService {
         }
     }
 
-    /** Searches assets by name and ticker symbol. */
+    /** Searches assets by name, symbol, notes and physical identifiers. */
     private List<SearchResultDto> searchAssets(
             Long userId, String query, int limit, boolean regex) {
         try {
@@ -839,11 +869,7 @@ public class SearchService {
                                 try {
                                     String decryptedName = asset.getName();
 
-                                    // Check if query matches name or symbol
-                                    if (org.openfinance.util.RegexSearchUtil.matches(
-                                                    decryptedName, query, regex)
-                                            || org.openfinance.util.RegexSearchUtil.matches(
-                                                    asset.getSymbol(), query, regex)) {
+                                    if (matchesAssetText(asset, query, regex)) {
 
                                         BigDecimal value = asset.getTotalValue();
 
@@ -880,7 +906,7 @@ public class SearchService {
         }
     }
 
-    /** Searches real estate properties by name and address. */
+    /** Searches real estate properties by name, address and notes. */
     private List<SearchResultDto> searchRealEstate(
             Long userId, String query, int limit, boolean regex) {
         try {
@@ -894,11 +920,12 @@ public class SearchService {
                                     String decryptedName = property.getName();
                                     String decryptedAddress = property.getAddress();
 
-                                    // Check if query matches name or address
-                                    if (org.openfinance.util.RegexSearchUtil.matches(
-                                                    decryptedName, query, regex)
-                                            || org.openfinance.util.RegexSearchUtil.matches(
-                                                    decryptedAddress, query, regex)) {
+                                    if (org.openfinance.util.RegexSearchUtil.matchesAny(
+                                            query,
+                                            regex,
+                                            decryptedName,
+                                            decryptedAddress,
+                                            property.getNotes())) {
 
                                         BigDecimal currentValue =
                                                 new BigDecimal(property.getCurrentValue());
@@ -933,7 +960,7 @@ public class SearchService {
         }
     }
 
-    /** Searches liabilities by name. */
+    /** Searches liabilities by name and notes. */
     private List<SearchResultDto> searchLiabilities(
             Long userId, String query, int limit, boolean regex) {
         try {
@@ -946,9 +973,8 @@ public class SearchService {
                                 try {
                                     String decryptedName = liability.getName();
 
-                                    // Check if query matches name
-                                    if (org.openfinance.util.RegexSearchUtil.matches(
-                                            decryptedName, query, regex)) {
+                                    if (org.openfinance.util.RegexSearchUtil.matchesAny(
+                                            query, regex, decryptedName, liability.getNotes())) {
 
                                         BigDecimal currentBalance =
                                                 new BigDecimal(liability.getCurrentBalance());
@@ -1040,7 +1066,7 @@ public class SearchService {
         }
     }
 
-    /** Searches recurring transactions by description or notes. */
+    /** Searches recurring transactions by description, notes or payee. */
     private List<SearchResultDto> searchRecurringTransactions(
             Long userId, String query, int limit, boolean regex) {
         try {
@@ -1054,10 +1080,8 @@ public class SearchService {
                                     String description = rt.getDescription();
                                     String notes = rt.getNotes();
 
-                                    if (org.openfinance.util.RegexSearchUtil.matches(
-                                                    description, query, regex)
-                                            || org.openfinance.util.RegexSearchUtil.matches(
-                                                    notes, query, regex)) {
+                                    if (org.openfinance.util.RegexSearchUtil.matchesAny(
+                                            query, regex, description, notes, rt.getPayee())) {
 
                                         return SearchResultDto.builder()
                                                 .resultType(SearchResultType.RECURRING_TRANSACTION)
@@ -1167,15 +1191,6 @@ public class SearchService {
             log.debug("Could not parse timestamp '{}', using current time as fallback", ts);
             return LocalDateTime.now();
         }
-    }
-
-    /** Checks if a transaction's text fields match the search query. */
-    private boolean matchesTextQuery(
-            org.openfinance.entity.Transaction t, String query, boolean regex) {
-        return org.openfinance.util.RegexSearchUtil.matches(t.getDescription(), query, regex)
-                || org.openfinance.util.RegexSearchUtil.matches(t.getNotes(), query, regex)
-                || org.openfinance.util.RegexSearchUtil.matches(t.getPayee(), query, regex)
-                || org.openfinance.util.RegexSearchUtil.matches(t.getTags(), query, regex);
     }
 
     /** Builds a SearchResultDto from a Transaction entity. */
