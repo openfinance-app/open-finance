@@ -891,6 +891,83 @@ class ImportServiceTest {
         verify(transactionRepository, times(testTransactions.size())).save(any(Transaction.class));
     }
 
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.CsvSource({
+        "true,false",
+        "false,false",
+        "true,true",
+        "false,true"
+    })
+    @DisplayName("Exact roots resolve category collisions, while explicit mappings take precedence")
+    void shouldResolveCategoryCollisionsWithRootsOrMappings(
+            boolean hasRootCategory, boolean hasExplicitMapping) throws Exception {
+        Category child = importCategory(21L, 20L, "Informatique");
+        List<Category> categories =
+                new ArrayList<>(
+                        List.of(
+                                importCategory(20L, null, "Loisirs"),
+                                child,
+                                importCategory(30L, null, "Travail"),
+                                importCategory(31L, 30L, "Informatique")));
+        if (hasRootCategory) categories.add(importCategory(10L, null, "Informatique"));
+        when(categoryRepository.findByUserId(USER_ID)).thenReturn(categories);
+        if (hasExplicitMapping) {
+            when(categoryRepository.findByIdAndUserId(child.getId(), USER_ID))
+                    .thenReturn(Optional.of(child));
+        }
+        prepareCategoryCollisionImport();
+        boolean shouldImport = hasRootCategory || hasExplicitMapping;
+        if (shouldImport) {
+            when(transactionRepository.save(any(Transaction.class)))
+                    .thenAnswer(invocation -> invocation.getArgument(0));
+        }
+
+        ImportSession completed =
+                importService.confirmImport(
+                        1L,
+                        USER_ID,
+                        ACCOUNT_ID,
+                        hasExplicitMapping ? Map.of("Informatique", child.getId()) : Map.of(),
+                        true);
+
+        assertThat(completed.getErrorCount()).isEqualTo(shouldImport ? 0 : 1);
+        assertThat(completed.getImportedCount()).isEqualTo(shouldImport ? 1 : 0);
+        if (shouldImport) {
+            Long expectedId = hasExplicitMapping ? child.getId() : 10L;
+            verify(transactionRepository)
+                    .save(argThat(tx -> expectedId.equals(tx.getCategoryId())));
+        } else {
+            verify(transactionRepository, never()).save(any(Transaction.class));
+        }
+        verify(categoryRepository, never()).save(any(Category.class));
+    }
+
+    private void prepareCategoryCollisionImport() throws Exception {
+        testSession.setStatus(ImportStatus.PARSED);
+        testSession.setMetadata("{\"transactions\":[]}");
+        List<ImportedTransaction> rows =
+                List.of(
+                        ImportedTransaction.builder()
+                                .transactionDate(LocalDate.of(2026, 9, 1))
+                                .amount(new BigDecimal("-12.50"))
+                                .category("Informatique")
+                                .build());
+        when(importSessionRepository.findById(1L)).thenReturn(Optional.of(testSession));
+        when(accountRepository.findByIdAndUserId(ACCOUNT_ID, USER_ID))
+                .thenReturn(Optional.of(testAccount));
+        when(objectMapper.readValue(
+                        anyString(), any(com.fasterxml.jackson.core.type.TypeReference.class)))
+                .thenReturn(Map.of("transactions", rows));
+        when(objectMapper.convertValue(
+                        any(), any(com.fasterxml.jackson.core.type.TypeReference.class)))
+                .thenReturn(rows);
+        when(importSessionRepository.save(any(ImportSession.class))).thenReturn(testSession);
+    }
+
+    private Category importCategory(Long id, Long parentId, String name) {
+        return Category.builder().id(id).userId(USER_ID).parentId(parentId).name(name).build();
+    }
+
     @Test
     @DisplayName("Should reject an expense mapped to income before posting any row")
     void shouldRejectForeignCategoryMappingBeforePosting() throws Exception {

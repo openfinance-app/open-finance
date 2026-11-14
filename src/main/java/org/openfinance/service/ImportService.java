@@ -3003,6 +3003,7 @@ public class ImportService {
      * <p>Resolution order:
      *
      * <ol>
+     *   <li>Prefer an exact root category over same-named categories in other branches
      *   <li>Reuse an unambiguous bare category name; reject ambiguous bare names
      *   <li>Resolve every segment under its parent, without using transaction direction
      *   <li>Create missing hierarchy segments
@@ -3026,6 +3027,11 @@ public class ImportService {
                                             category.getName()
                                                     .equalsIgnoreCase(categoryPath.trim()))
                             .toList();
+            // A root name is also a complete path (e.g., "Informatique"). A matching leaf
+            // under another parent ("Loisirs:Informatique") must not make that path ambiguous.
+            List<Category> rootMatches =
+                    matches.stream().filter(category -> category.getParentId() == null).toList();
+            if (rootMatches.size() == 1) return rootMatches.getFirst().getId();
             if (matches.size() == 1) return matches.getFirst().getId();
             if (matches.size() > 1)
                 throw new IllegalArgumentException(

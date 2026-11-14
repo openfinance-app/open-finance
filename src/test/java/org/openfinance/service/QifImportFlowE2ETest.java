@@ -6,9 +6,12 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.lenient;
 
+import java.io.ByteArrayInputStream;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -18,18 +21,22 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.openfinance.config.TestDatabaseConfig;
+import org.openfinance.dto.ImportedTransaction;
 import org.openfinance.dto.LoginRequest;
 import org.openfinance.dto.LoginResponse;
 import org.openfinance.dto.UserRegistrationRequest;
 import org.openfinance.entity.Account;
+import org.openfinance.entity.Category;
 import org.openfinance.entity.ImportSession;
 import org.openfinance.entity.ImportSession.ImportStatus;
 import org.openfinance.entity.User;
 import org.openfinance.repository.AccountRepository;
+import org.openfinance.repository.CategoryRepository;
 import org.openfinance.repository.TransactionRepository;
 import org.openfinance.repository.UserRepository;
 import org.openfinance.security.EncryptionContext;
 import org.openfinance.security.EncryptionKeyCache;
+import org.openfinance.service.parser.QifParser;
 import org.openfinance.util.DatabaseCleanupService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -82,6 +89,7 @@ class QifImportFlowE2ETest {
     @Autowired private ImportService importService;
     @Autowired private AccountRepository accountRepository;
     @Autowired private TransactionRepository transactionRepository;
+    @Autowired private CategoryRepository categoryRepository;
     @Autowired private org.openfinance.repository.AssetRepository assets;
     @Autowired private AccountService accountsService;
     @Autowired private org.openfinance.repository.TransactionSplitRepository splitRepository;
@@ -232,6 +240,67 @@ class QifImportFlowE2ETest {
                                                     .getBalance())
                                     .isZero();
                         });
+    }
+
+    @Test
+    @DisplayName("Anonymized QIF keeps root categories distinct from same-named subcategories")
+    void shouldImportAnonymizedQifWithoutCategorySaveFailures() throws Exception {
+        byte[] source = Files.readAllBytes(Path.of("docs/sample/qif/export_anonymized.qif"));
+        List<ImportedTransaction> parsed =
+                new QifParser()
+                        .parseFile(new ByteArrayInputStream(source), "export_anonymized.qif");
+        // The fixture has invalid amounts and unsupported investment actions. Confirmation
+        // must not add category-resolution failures to those existing parser errors.
+        long parseErrors = parsed.stream().filter(ImportedTransaction::hasErrors).count();
+        String uploadId =
+                fileStorageService.storeFile(
+                        new MockMultipartFile(
+                                "file",
+                                "export_anonymized.qif",
+                                "application/octet-stream",
+                                source),
+                        userId);
+        ImportSession session =
+                importService.startImport(uploadId, userId, null, "export_anonymized.qif");
+        awaitParsed(session.getId());
+
+        ImportSession completed =
+                importService.confirmImport(session.getId(), userId, null, Map.of(), false);
+
+        assertThat(completed.getStatus()).isEqualTo(ImportStatus.COMPLETED);
+        assertThat(completed.getErrorCount())
+                .as("no additional failures while saving")
+                .isEqualTo((int) parseErrors);
+        assertInformatiqueAssignments();
+    }
+
+    private void assertInformatiqueAssignments() {
+        List<Category> categories = categoryRepository.findByUserId(userId);
+        Category root =
+                categories.stream()
+                        .filter(
+                                category ->
+                                        category.getParentId() == null
+                                                && "Informatique".equals(category.getName()))
+                        .findFirst()
+                        .orElseThrow();
+        Category child =
+                categories.stream()
+                        .filter(
+                                category ->
+                                        category.getParentId() != null
+                                                && "Informatique".equals(category.getName()))
+                        .findFirst()
+                        .orElseThrow();
+        assertThat(transactionRepository.findByUserId(userId))
+                .filteredOn(tx -> root.getId().equals(tx.getCategoryId()))
+                .hasSize(131);
+        assertThat(transactionRepository.findByUserId(userId))
+                .filteredOn(tx -> child.getId().equals(tx.getCategoryId()))
+                .hasSize(2);
+        assertThat(splitRepository.findAll())
+                .filteredOn(split -> root.getId().equals(split.getCategoryId()))
+                .hasSize(5);
     }
 
     /** Waits for the async parse to reach PARSED, failing fast on FAILED or timeout. */
