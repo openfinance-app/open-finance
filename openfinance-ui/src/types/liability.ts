@@ -138,9 +138,9 @@ export interface LiabilityTotals {
 
 // UI Filter state
 export interface LiabilityFilters {
-  balanceMin?: number;
-  balanceMax?: number;
-  balanceExact?: number;
+  balanceMin?: number | string;
+  balanceMax?: number | string;
+  balanceExact?: number | string;
   amountCurrencyMode?: AmountCurrencyMode;
   type?: LiabilityType;
   search?: string;

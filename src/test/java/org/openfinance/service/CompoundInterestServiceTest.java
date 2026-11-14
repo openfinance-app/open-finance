@@ -15,6 +15,10 @@ import org.openfinance.dto.calculator.CompoundInterestYearlyBreakdown;
 /** Unit tests for {@link CompoundInterestService}. */
 class CompoundInterestServiceTest {
 
+    private static void assertMoneyEquals(BigDecimal expected, BigDecimal actual) {
+        org.assertj.core.api.Assertions.assertThat(actual).isEqualByComparingTo(expected);
+    }
+
     private CompoundInterestService service;
 
     @Test
@@ -51,10 +55,11 @@ class CompoundInterestServiceTest {
     @DisplayName("Retain rate precision through ten years of monthly compounding")
     void monthlyRateMustNotRoundFinalBalanceUpOneCent() {
         CompoundInterestResult result = service.calculate(request("10000", "5", 12, 10));
-        assertEquals(new BigDecimal("16470.09"), result.getFinalBalance());
-        assertEquals(new BigDecimal("6470.09"), result.getTotalInterest());
-        assertEquals(
-                new BigDecimal("16470.09"), result.getYearlyBreakdown().get(9).getEndingBalance());
+        assertMoneyEquals(new BigDecimal("16470.094976902830341857"), result.getFinalBalance());
+        assertMoneyEquals(new BigDecimal("6470.094976902830341857"), result.getTotalInterest());
+        assertMoneyEquals(
+                new BigDecimal("16470.094976902830341857"),
+                result.getYearlyBreakdown().get(9).getEndingBalance());
     }
 
     @Test
@@ -63,9 +68,9 @@ class CompoundInterestServiceTest {
                 requestWithContribution("12.345", "0", 1, 1, "0.001", false);
         input.setCurrency("KWD");
         CompoundInterestResult kwd = service.calculate(input);
-        assertEquals(new BigDecimal("12.346"), kwd.getFinalBalance());
-        assertEquals(new BigDecimal("12.345"), kwd.getPrincipal());
-        assertEquals(new BigDecimal("0.001"), kwd.getTotalContributions());
+        assertMoneyEquals(new BigDecimal("12.346"), kwd.getFinalBalance());
+        assertMoneyEquals(new BigDecimal("12.345"), kwd.getPrincipal());
+        assertMoneyEquals(new BigDecimal("0.001"), kwd.getTotalContributions());
         input.setCurrency("BTC");
         input.setPrincipal(new BigDecimal("0.00000001"));
         input.setRegularContribution(new BigDecimal("0.00000002"));
@@ -118,10 +123,10 @@ class CompoundInterestServiceTest {
         void oneYearAnnual() {
             CompoundInterestResult result = service.calculate(request("1000", "10", 1, 1));
 
-            assertEquals(new BigDecimal("1100.00"), result.getFinalBalance());
-            assertEquals(new BigDecimal("100.00"), result.getTotalInterest());
-            assertEquals(new BigDecimal("0.00"), result.getTotalContributions());
-            assertEquals(new BigDecimal("1000.00"), result.getTotalInvested());
+            assertMoneyEquals(new BigDecimal("1100.00"), result.getFinalBalance());
+            assertMoneyEquals(new BigDecimal("100.00"), result.getTotalInterest());
+            assertMoneyEquals(new BigDecimal("0.00"), result.getTotalContributions());
+            assertMoneyEquals(new BigDecimal("1000.00"), result.getTotalInvested());
         }
 
         @Test
@@ -129,8 +134,8 @@ class CompoundInterestServiceTest {
         void threeYearsAnnual() {
             CompoundInterestResult result = service.calculate(request("1000", "10", 1, 3));
 
-            assertEquals(new BigDecimal("1331.00"), result.getFinalBalance());
-            assertEquals(new BigDecimal("331.00"), result.getTotalInterest());
+            assertMoneyEquals(new BigDecimal("1331.00"), result.getFinalBalance());
+            assertMoneyEquals(new BigDecimal("331.00"), result.getTotalInterest());
         }
 
         @Test
@@ -209,8 +214,8 @@ class CompoundInterestServiceTest {
             CompoundInterestResult result =
                     service.calculate(requestWithContribution("1000", "7", 12, 5, "100", false));
 
-            assertEquals(new BigDecimal("6000.00"), result.getTotalContributions());
-            assertEquals(new BigDecimal("7000.00"), result.getTotalInvested());
+            assertMoneyEquals(new BigDecimal("6000.00"), result.getTotalContributions());
+            assertMoneyEquals(new BigDecimal("7000.00"), result.getTotalInvested());
         }
 
         @Test
@@ -256,7 +261,7 @@ class CompoundInterestServiceTest {
         void firstRowStartBalanceIsPrincipal() {
             CompoundInterestResult result = service.calculate(request("2500", "6", 12, 3));
 
-            assertEquals(
+            assertMoneyEquals(
                     new BigDecimal("2500.00"),
                     result.getYearlyBreakdown().get(0).getStartingBalance());
         }
@@ -275,9 +280,9 @@ class CompoundInterestServiceTest {
                                 .add(row.getInterestEarned());
                 BigDecimal diff = sum.subtract(row.getEndingBalance()).abs();
                 // Allow 1-cent rounding difference: each field is independently
-                // rounded to 2 d.p., so their rounded sum may be off by ±0.01.
+                // Rounded only at the 18-place calculation boundary.
                 assertTrue(
-                        diff.compareTo(new BigDecimal("0.01")) <= 0,
+                        diff.compareTo(new BigDecimal("0.000000000000000001")) <= 0,
                         "Row "
                                 + row.getYear()
                                 + " balance inconsistency exceeds 1 cent: diff="
@@ -363,7 +368,7 @@ class CompoundInterestServiceTest {
         void principalStoredCorrectly() {
             CompoundInterestResult result = service.calculate(request("7500", "5", 4, 8));
 
-            assertEquals(new BigDecimal("7500.00"), result.getPrincipal());
+            assertMoneyEquals(new BigDecimal("7500.00"), result.getPrincipal());
         }
     }
 
@@ -381,7 +386,7 @@ class CompoundInterestServiceTest {
             CompoundInterestResult result = service.calculate(request("1000", "10", 1, 5));
 
             // EAR = (1 + 0.10/1)^1 - 1 = 10.0000%
-            assertEquals(new BigDecimal("10.0000"), result.getEffectiveAnnualRate());
+            assertMoneyEquals(new BigDecimal("10.0000"), result.getEffectiveAnnualRate());
         }
 
         @Test
@@ -423,7 +428,7 @@ class CompoundInterestServiceTest {
             CompoundInterestResult result = service.calculate(request("1000", "10", 2, 1));
 
             // FV = 1000 × (1 + 0.05)^2 = 1102.50
-            assertEquals(new BigDecimal("1102.50"), result.getFinalBalance());
+            assertMoneyEquals(new BigDecimal("1102.50"), result.getFinalBalance());
         }
 
         @Test

@@ -20,6 +20,7 @@ import {
 import { Line } from 'react-chartjs-2';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { useAuthContext } from '@/context/AuthContext';
+import { useFormatCurrency } from '@/hooks/useFormatCurrency';
 import i18n from '@/i18n';
 import type { BuyRentResults } from '@/types/realEstateTools';
 
@@ -41,7 +42,7 @@ export interface EvolutionChartProps {
 
 export const EvolutionChart: React.FC<EvolutionChartProps> = ({ results }) => {
   const { baseCurrency } = useAuthContext();
-  const locale = (i18n.language ?? 'en').startsWith('fr') ? 'fr-FR' : 'en-US';
+  const { format, formatCompact } = useFormatCurrency();
   const years = results.years.map(y =>
     i18n.t('realEstate:evolutionChart.yearLabel', { year: y.year })
   );
@@ -107,10 +108,7 @@ export const EvolutionChart: React.FC<EvolutionChartProps> = ({ results }) => {
               label += ': ';
             }
             if (context.parsed.y !== null) {
-              label += new Intl.NumberFormat(locale, {
-                style: 'currency',
-                currency: baseCurrency,
-              }).format(context.parsed.y);
+              label += format(context.parsed.y, baseCurrency);
             }
             return label;
           },
@@ -130,11 +128,7 @@ export const EvolutionChart: React.FC<EvolutionChartProps> = ({ results }) => {
         beginAtZero: true,
         ticks: {
           callback: (value: any) => {
-            return new Intl.NumberFormat(locale, {
-              style: 'currency',
-              currency: baseCurrency,
-              notation: 'compact',
-            }).format(value);
+            return formatCompact(Number(value), baseCurrency);
           },
         },
       },

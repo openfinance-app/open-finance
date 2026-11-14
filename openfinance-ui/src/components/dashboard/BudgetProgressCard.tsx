@@ -1,3 +1,4 @@
+import { ExactDecimal, decimalValue } from '@/utils/exact-decimal';
 /**
  * BudgetProgressCard — Dashboard widget
  *
@@ -86,7 +87,8 @@ function BudgetRow({ budget, baseCurrency, onOpen }: BudgetRowProps) {
     Math.min(budget.percentageSpent ?? (budget.status === 'EXCEEDED' ? 100 : 0), 100)
   );
   const {
-    convert,
+    convert: convertNumber,
+    convertExact: convert = convertNumber,
     secondaryCurrency: secCurrency,
     secondaryExchangeRate,
   } = useSecondaryConversion(baseCurrency);
@@ -114,20 +116,20 @@ function BudgetRow({ budget, baseCurrency, onOpen }: BudgetRowProps) {
           </span>
           <span className="text-xs text-text-tertiary font-mono">
             <ConvertedAmount
-              amount={budget.spent}
+              amount={decimalValue(budget, 'spent') ?? budget.spent}
               currency={baseCurrency}
               isConverted={false}
-              secondaryAmount={convert(budget.spent)}
+              secondaryAmount={convert(decimalValue(budget, 'spent') ?? budget.spent)}
               secondaryCurrency={secCurrency}
               secondaryExchangeRate={secondaryExchangeRate}
               inline
             />
             {' / '}
             <ConvertedAmount
-              amount={budget.budgeted}
+              amount={decimalValue(budget, 'budgeted') ?? budget.budgeted}
               currency={baseCurrency}
               isConverted={false}
-              secondaryAmount={convert(budget.budgeted)}
+              secondaryAmount={convert(decimalValue(budget, 'budgeted') ?? budget.budgeted)}
               secondaryCurrency={secCurrency}
               secondaryExchangeRate={secondaryExchangeRate}
               inline
@@ -159,7 +161,8 @@ export default function BudgetProgressCard() {
   const navigate = useNavigate();
   const { baseCurrency } = useAuthContext();
   const {
-    convert,
+    convert: convertNumber,
+    convertExact: convert = convertNumber,
     secondaryCurrency: secCurrency,
     secondaryExchangeRate,
   } = useSecondaryConversion(baseCurrency);
@@ -306,10 +309,10 @@ export default function BudgetProgressCard() {
           <div className="flex items-center justify-between text-xs">
             <span className="font-mono text-text-secondary">
               <ConvertedAmount
-                amount={summary.totalSpent}
+                amount={decimalValue(summary, 'totalSpent') ?? summary.totalSpent}
                 currency={baseCurrency}
                 isConverted={false}
-                secondaryAmount={convert(summary.totalSpent)}
+                secondaryAmount={convert(decimalValue(summary, 'totalSpent') ?? summary.totalSpent)}
                 secondaryCurrency={secCurrency}
                 secondaryExchangeRate={secondaryExchangeRate}
                 inline
@@ -331,10 +334,12 @@ export default function BudgetProgressCard() {
             <span className="font-mono text-text-secondary">
               {t('cards.budgetCard.of') + ' '}
               <ConvertedAmount
-                amount={summary.totalBudgeted}
+                amount={decimalValue(summary, 'totalBudgeted') ?? summary.totalBudgeted}
                 currency={baseCurrency}
                 isConverted={false}
-                secondaryAmount={convert(summary.totalBudgeted)}
+                secondaryAmount={convert(
+                  decimalValue(summary, 'totalBudgeted') ?? summary.totalBudgeted
+                )}
                 secondaryCurrency={secCurrency}
                 secondaryExchangeRate={secondaryExchangeRate}
                 inline
@@ -374,10 +379,18 @@ export default function BudgetProgressCard() {
             )}
           >
             <ConvertedAmount
-              amount={Math.abs(summary.totalRemaining)}
+              amount={new ExactDecimal(
+                decimalValue(summary, 'totalRemaining') ?? summary.totalRemaining
+              )
+                .abs()
+                .toFixed()}
               currency={baseCurrency}
               isConverted={false}
-              secondaryAmount={convert(Math.abs(summary.totalRemaining))}
+              secondaryAmount={convert(
+                new ExactDecimal(decimalValue(summary, 'totalRemaining') ?? summary.totalRemaining)
+                  .abs()
+                  .toFixed()
+              )}
               secondaryCurrency={secCurrency}
               secondaryExchangeRate={secondaryExchangeRate}
               inline

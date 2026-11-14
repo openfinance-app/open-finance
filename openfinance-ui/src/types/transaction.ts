@@ -290,9 +290,9 @@ export interface TransactionFilters {
   /** When true, `keyword` is treated as a regular expression instead of a plain substring. */
   keywordRegex?: boolean;
   tag?: string;
-  minAmount?: number;
-  maxAmount?: number;
-  exactAmount?: number;
+  minAmount?: number | string;
+  maxAmount?: number | string;
+  exactAmount?: number | string;
   amountCurrencyMode?: AmountCurrencyMode;
   page?: number;
   size?: number;

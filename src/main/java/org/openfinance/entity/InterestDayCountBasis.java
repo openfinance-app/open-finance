@@ -9,6 +9,10 @@ public enum InterestDayCountBasis {
     THIRTY_360,
     FORTNIGHT_24;
 
+    /** Working precision for estimates, independent of currency settlement and display rounding. */
+    public static final int CALCULATION_SCALE =
+            org.openfinance.util.MoneyPrecision.CALCULATION_SCALE;
+
     /** Daily weights total one year; fortnight accrual is recognized at each half-month end. */
     public BigDecimal dailyInterest(BigDecimal annualInterest, LocalDate date) {
         int units = 1;
@@ -25,7 +29,7 @@ public enum InterestDayCountBasis {
         }
         return annualInterest
                 .multiply(BigDecimal.valueOf(units))
-                .divide(BigDecimal.valueOf(denominator), 18, RoundingMode.HALF_UP);
+                .divide(BigDecimal.valueOf(denominator), CALCULATION_SCALE, RoundingMode.HALF_UP);
     }
 
     public static InterestDayCountBasis fromSkrooge(String code) {

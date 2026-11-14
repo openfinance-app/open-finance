@@ -1,7 +1,7 @@
+import { decimalValue, ExactDecimal } from '@/utils/exact-decimal';
 import { useTranslation } from 'react-i18next';
 import { ConvertedAmount } from '@/components/ui/ConvertedAmount';
 import type { Account } from '@/types/account';
-import { multiply } from '@/utils/money';
 
 /** Keep portfolio value distinct from the cash available for a payment. */
 export function AccountBalanceBreakdown({ account }: { account: Account }) {
@@ -11,8 +11,8 @@ export function AccountBalanceBreakdown({ account }: { account: Account }) {
     <dl className="mt-2 flex flex-wrap gap-x-5 gap-y-1 text-sm text-text-secondary">
       {(
         [
-          ['cash', account.ownBalance],
-          ['holdings', account.holdingsValue ?? 0],
+          ['cash', decimalValue(account, 'ownBalance') ?? account.ownBalance],
+          ['holdings', decimalValue(account, 'holdingsValue') ?? 0],
         ] as const
       ).map(([key, amount]) => (
         <div key={key} className="flex flex-wrap items-baseline gap-x-2">
@@ -22,14 +22,18 @@ export function AccountBalanceBreakdown({ account }: { account: Account }) {
               amount={amount}
               currency={account.currency}
               convertedAmount={
-                account.exchangeRate != null ? multiply(amount, account.exchangeRate) : undefined
+                account.exchangeRate != null
+                  ? new ExactDecimal(amount).times(decimalValue(account, 'exchangeRate')!).toFixed()
+                  : undefined
               }
               baseCurrency={account.baseCurrency}
-              exchangeRate={account.exchangeRate}
+              exchangeRate={decimalValue(account, 'exchangeRate') ?? account.exchangeRate}
               isConverted={account.isConverted}
               secondaryAmount={
                 account.secondaryExchangeRate != null
-                  ? multiply(amount, account.secondaryExchangeRate)
+                  ? new ExactDecimal(amount)
+                      .times(decimalValue(account, 'secondaryExchangeRate')!)
+                      .toFixed()
                   : undefined
               }
               secondaryCurrency={account.secondaryCurrency}

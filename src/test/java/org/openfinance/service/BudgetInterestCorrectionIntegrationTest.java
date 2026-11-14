@@ -1,8 +1,10 @@
 package org.openfinance.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.within;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
@@ -241,12 +243,14 @@ class BudgetInterestCorrectionIntegrationTest extends AuditApiTestSupport {
                 "0");
         JsonNode year2025 =
                 json("GET", "/accounts/" + id + "/interest-year?year=2025", null, owner, 200);
-        money(year2025, "accrued", "495.15");
-        money(year2025, "calendarYearEstimate", "495.15");
-        money(
+        // 22950 * (3% * 31 days + 2.4% * 181 days + 1.7% * 153 days) / 365.
+        preciseEstimate(year2025, "accrued", "495.154109589041095890");
+        preciseEstimate(year2025, "calendarYearEstimate", "495.154109589041095890");
+        // The posted credit joins principal on January 1: 23445.16 at the 2026 rates.
+        preciseEstimate(
                 json("GET", "/accounts/" + id + "/interest-year?year=2026", null, owner, 200),
                 "calendarYearEstimate",
-                "375.32");
+                "375.315259945205479452");
         money(json("GET", "/accounts/" + id, null, owner, 200), "ownBalance", "23445.16");
         JsonNode cash =
                 json("GET", "/accounts/" + id + "/balance-history?period=ALL", null, owner, 200);
@@ -259,6 +263,12 @@ class BudgetInterestCorrectionIntegrationTest extends AuditApiTestSupport {
                 .isEqualTo(2);
         Auth other = register();
         json("GET", "/accounts/" + id + "/interest-year?year=2025", null, other, 404);
+    }
+
+    private void preciseEstimate(JsonNode response, String field, String expected) {
+        assertThat(response.path(field).decimalValue())
+                .as(field)
+                .isCloseTo(new BigDecimal(expected), within(new BigDecimal("0.000000000001")));
     }
 
     @Test

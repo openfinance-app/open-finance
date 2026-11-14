@@ -497,7 +497,12 @@ class SkroogeJsonParserTest {
                         transaction -> {
                             assertThat(transaction.getCurrency()).isEqualTo("USD");
                             assertThat(transaction.getAmount())
-                                    .isEqualByComparingTo("1225.7990069395");
+                                    .isEqualByComparingTo(
+                                            new BigDecimal("1072.91")
+                                                    .divide(
+                                                            new BigDecimal("0.875274"),
+                                                            18,
+                                                            java.math.RoundingMode.HALF_UP));
                             assertThat(transaction.getOriginalAmount())
                                     .isEqualByComparingTo("1072.91");
                             assertThat(transaction.getOriginalCurrency()).isEqualTo("EUR");
@@ -546,7 +551,7 @@ class SkroogeJsonParserTest {
                                 new BigDecimal(amounts[i])
                                         .divide(
                                                 new BigDecimal("0.875274"),
-                                                10,
+                                                18,
                                                 java.math.RoundingMode.HALF_UP));
                 assertThat(transaction.getOriginalAmount()).isEqualByComparingTo(amounts[i]);
                 assertThat(transaction.getOriginalCurrency()).isEqualTo("EUR");

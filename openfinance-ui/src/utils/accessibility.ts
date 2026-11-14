@@ -1,3 +1,4 @@
+import { formatCurrency } from '@/utils/currency';
 /**
  * Accessibility utilities for keyboard navigation, focus management, and screen readers.
  * Implements WCAG 2.1 Level AA compliance features.
@@ -264,12 +265,8 @@ export const ariaLabel = {
   /**
    * Create accessible label for money amount
    */
-  money: (amount: number, currency: string): string => {
-    const formatter = new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: currency,
-    });
-    return formatter.format(amount);
+  money: (amount: number | string, currency: string): string => {
+    return formatCurrency(amount, currency);
   },
 
   /**

@@ -47,7 +47,7 @@ export function ReviewStep({
     <ConvertedAmount
       className="font-mono tabular-nums"
       inline
-      amount={number.toNumber()}
+      amount={number.toFixed()}
       currency={property.currency}
     />
   );

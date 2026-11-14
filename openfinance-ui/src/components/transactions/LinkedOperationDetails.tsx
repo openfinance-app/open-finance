@@ -12,6 +12,7 @@ import { getTransferSource } from '@/hooks/useTransactions';
 import type { Transaction } from '@/types/transaction';
 import { decimalField, equalDecimals, ExactDecimal } from '@/utils/exact-decimal';
 import { formatExactNumber } from '@/utils/format';
+import { useFormatCurrency } from '@/hooks/useFormatCurrency';
 import { linkedOperationSummary } from '@/utils/linked-operation';
 
 function Field({
@@ -32,9 +33,10 @@ function Field({
 }
 
 function RecordedAmount({ value, currency }: { value: string; currency?: string }) {
+  const { format } = useFormatCurrency();
   return (
     <PrivateAmount inline className="max-w-full break-words font-mono tabular-nums">
-      {formatExactNumber(value)}
+      {currency ? format(value, currency, { showSymbol: false }) : formatExactNumber(value)}
       {currency ? ` ${currency}` : ''}
     </PrivateAmount>
   );

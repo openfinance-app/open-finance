@@ -124,7 +124,7 @@ describe('real estate reconciliation and state', () => {
     const factor = 0.88 ** (1 / 12);
     for (let month = 0; month < 120; month++) balance = balance * factor + 1000 / 3;
     expect(calculateCompoundInterest(20000, -12, 10, 1000 / 3)).toBeCloseTo(balance, 2);
-    expect(calculateCompoundInterest(20000, -12, 1, 1000 / 3)).toBe(21374.92);
+    expect(calculateCompoundInterest(20000, -12, 1, 1000 / 3)).toBeCloseTo(21374.923566449033, 8);
   });
   it('calculates a selected property atomically and clears results on edit or load', async () => {
     const initial = zeroCostPurchase();

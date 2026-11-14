@@ -1,4 +1,4 @@
-import { ExactDecimal, decimalField } from '@/utils/exact-decimal';
+import { decimalValue, ExactDecimal, decimalField } from '@/utils/exact-decimal';
 import { isValidDecimalString } from '@/utils/money';
 import { formatDecimal } from '@/utils/format';
 import { useMemo, useState } from 'react';
@@ -267,7 +267,11 @@ export function InterestRateVariationsSection({
                       <span className="font-mono font-semibold text-success">
                         +
                         <CurrencyAmount
-                          amount={variation.interestProduced ?? 0}
+                          amount={
+                            decimalValue(variation, 'interestProduced') ??
+                            variation.interestProduced ??
+                            0
+                          }
                           currency={accountCurrency}
                           inline
                         />

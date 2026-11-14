@@ -13,6 +13,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.openfinance.dto.AccountResponse;
 import org.openfinance.dto.BalanceHistoryPoint;
 import org.openfinance.dto.InterestPreviewRequest;
+import org.openfinance.entity.InterestDayCountBasis;
 import org.openfinance.entity.InterestRateVariation;
 import org.openfinance.entity.InterestValueDateMode;
 import org.openfinance.repository.InterestRateVariationRepository;
@@ -28,7 +29,6 @@ public class InterestCalculatorService {
 
     private final InterestRateVariationRepository variationRepository;
     private final AccountService accountService;
-    private final CurrencyTypeResolver currencyTypeResolver;
 
     /**
      * Sums the actual net interest earned day-by-day since account creation, using the rate that
@@ -50,7 +50,6 @@ public class InterestCalculatorService {
         if (history.isEmpty()) return BigDecimal.ZERO;
 
         return totalAccrued(
-                account,
                 accrue(
                         variations,
                         eligibleHistory(
@@ -75,7 +74,6 @@ public class InterestCalculatorService {
         List<BalanceHistoryPoint> cash =
                 accountService.getAccountBalanceHistory(accountId, userId, startDate, through);
         return totalAccrued(
-                account,
                 accrue(
                         variations,
                         eligibleHistory(accountId, userId, variations, cash, through, false),
@@ -155,8 +153,8 @@ public class InterestCalculatorService {
         return new YearEstimate(
                 year,
                 through,
-                totalAccrued(account, accrued),
-                round(annual.netInterest(), account.getCurrency()),
+                totalAccrued(accrued),
+                estimatePrecision(annual.netInterest()),
                 accrued);
     }
 
@@ -191,13 +189,14 @@ public class InterestCalculatorService {
                 end.getYear(),
                 start,
                 end,
-                round(result.grossInterest(), request.currency()),
-                round(result.taxAmount(), request.currency()),
-                round(result.netInterest(), request.currency()));
+                estimatePrecision(result.grossInterest()),
+                estimatePrecision(result.taxAmount()),
+                estimatePrecision(result.netInterest()));
     }
 
-    private BigDecimal round(BigDecimal amount, String currency) {
-        return amount.setScale(currencyTypeResolver.decimalsFor(currency), RoundingMode.HALF_UP);
+    /** These are estimates, not posted credits: leave display rounding to the user's preference. */
+    private BigDecimal estimatePrecision(BigDecimal amount) {
+        return amount.setScale(InterestDayCountBasis.CALCULATION_SCALE, RoundingMode.HALF_UP);
     }
 
     private Map<LocalDate, BigDecimal> postedInterest(
@@ -284,13 +283,11 @@ public class InterestCalculatorService {
         }
     }
 
-    private BigDecimal totalAccrued(AccountResponse account, Map<Long, Accrual> accruals) {
-        return accruals.values().stream()
-                .map(Accrual::interestProduced)
-                .reduce(BigDecimal.ZERO, BigDecimal::add)
-                .setScale(
-                        currencyTypeResolver.decimalsFor(account.getCurrency()),
-                        RoundingMode.HALF_UP);
+    private BigDecimal totalAccrued(Map<Long, Accrual> accruals) {
+        return estimatePrecision(
+                accruals.values().stream()
+                        .map(Accrual::interestProduced)
+                        .reduce(BigDecimal.ZERO, BigDecimal::add));
     }
 
     private Map<Long, Accrual> accrue(

@@ -3,7 +3,6 @@ package org.openfinance.service;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import java.math.BigDecimal;
-import java.math.MathContext;
 import java.time.Duration;
 import java.time.LocalDate;
 import java.time.YearMonth;
@@ -20,6 +19,7 @@ import org.openfinance.entity.Transaction;
 import org.openfinance.exception.MarketDataException;
 import org.openfinance.repository.AssetPriceHistoryRepository;
 import org.openfinance.util.InvestmentHoldings;
+import org.openfinance.util.MoneyPrecision;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -178,7 +178,10 @@ public class HistoricalAssetValuationServiceImpl implements HistoricalAssetValua
                 if (value == null && asset.getCurrency().equals(tx.getCurrency()))
                     value = tx.getAmount();
                 if (value == null) continue;
-                price = value.divide(tx.getInvestmentQuantity().abs(), MathContext.DECIMAL128);
+                price =
+                        value.divide(
+                                tx.getInvestmentQuantity().abs(),
+                                MoneyPrecision.CALCULATION_CONTEXT);
             }
             if (!priceDate.isAfter(date) && price.signum() >= 0)
                 quotes.putIfAbsent(priceDate, new Quote(price, asset.getCurrency(), 1));

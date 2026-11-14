@@ -1,4 +1,5 @@
-import Decimal from 'decimal.js';
+import type Decimal from 'decimal.js';
+import { ExactDecimal } from '@/utils/exact-decimal';
 
 /**
  * Precise decimal arithmetic helpers for monetary values, backed by `decimal.js`.
@@ -13,17 +14,14 @@ import Decimal from 'decimal.js';
  * [0.1, 0.2].reduce((a, b) => a + b, 0) // -> 0.30000000000000004
  * ```
  *
- * This module is the **single shared source of truth** for precise decimal math on the frontend —
- * every function accepts and returns plain `number`s (converting to/from `Decimal` only inside the
- * function body), so call sites never need to learn the `decimal.js` API or hold onto `Decimal`
- * instances in component state; `number` stays the only type crossing into React/recharts.
+ * These helpers use 80 significant decimal digits internally. Numeric results are for
+ * chart geometry and legacy numeric consumers; converting back to a JavaScript number can
+ * lose digits. Use ExactDecimal/decimalValue/exactSum and decimal strings for recorded inputs,
+ * exports and monetary display bindings that must preserve the API's exact values.
  *
- * Rounding is configured to half-away-from-zero, matching the backend's
- * `BigDecimal`/`RoundingMode.HALF_UP` convention, so frontend-computed figures never diverge from
- * the backend for the same inputs.
+ * Explicit rounding uses half-away-from-zero, matching BigDecimal/RoundingMode.HALF_UP.
+ * Display preferences never participate in arithmetic.
  */
-
-Decimal.set({ rounding: Decimal.ROUND_HALF_UP });
 
 /**
  * A numeric input accepted by every function in this module. `null`/`undefined` are tolerated
@@ -62,12 +60,12 @@ export function isValidDecimalString(value: string): boolean {
  * the UI) instead of silently substituting a possibly-misleading `0` in a financial app.
  */
 function toDecimal(value: Numeric): Decimal {
-  if (value instanceof Decimal) return value;
-  if (value === null || value === undefined) return new Decimal(NaN);
+  if (ExactDecimal.isDecimal(value)) return new ExactDecimal(value);
+  if (value === null || value === undefined) return new ExactDecimal(NaN);
   try {
-    return new Decimal(value);
+    return new ExactDecimal(value);
   } catch {
-    return new Decimal(NaN);
+    return new ExactDecimal(NaN);
   }
 }
 
@@ -118,7 +116,9 @@ export function divide(a: Numeric, b: Numeric): number {
  * data-quality problem stays visible instead of silently under-counting a real total.
  */
 export function sum(values: Numeric[]): number {
-  return values.reduce((total: Decimal, v) => total.plus(toDecimal(v)), new Decimal(0)).toNumber();
+  return values
+    .reduce((total: Decimal, v) => total.plus(toDecimal(v)), new ExactDecimal(0))
+    .toNumber();
 }
 
 /**
@@ -131,7 +131,10 @@ export function roundToDecimals(value: Numeric, decimals = 2): number {
 
 /** Sums `values` precisely (see {@link sum}) and rounds the result to `decimals` places. */
 export function sumToDecimals(values: Numeric[], decimals = 2): number {
-  return roundToDecimals(sum(values), decimals);
+  return values
+    .reduce<Decimal>((total, value) => total.plus(toDecimal(value)), new ExactDecimal(0))
+    .toDecimalPlaces(decimals)
+    .toNumber();
 }
 
 /**
@@ -142,23 +145,22 @@ export function sumToDecimals(values: Numeric[], decimals = 2): number {
 export function percentage(part: Numeric, whole: Numeric, decimals = 2): number {
   const wholeDecimal = toDecimal(whole);
   if (wholeDecimal.isZero()) return 0;
-  return roundToDecimals(toDecimal(part).dividedBy(wholeDecimal).times(100).toNumber(), decimals);
+  return toDecimal(part).dividedBy(wholeDecimal).times(100).toDecimalPlaces(decimals).toNumber();
 }
 
 /**
  * Converts `value` to an integer number of minor units (e.g. cents for a 2-decimal currency).
  *
- * Scope: this and {@link fromMinorUnits} hardcode a 2-decimal scale by default, matching every
- * existing call site (fiat amounts). Currency-aware decimal precision (JPY = 0 decimals, BTC = 8
- * decimals) is tracked separately as Critical Theme 3 and is out of scope here.
+ * Callers allocating payments must supply the currency settlement scale; the default
+ * is two places. Never use display preferences to choose a payment allocation scale.
  */
 export function toMinorUnits(value: Numeric, decimals = 2): number {
-  return toDecimal(value).times(new Decimal(10).pow(decimals)).toDecimalPlaces(0).toNumber();
+  return toDecimal(value).times(new ExactDecimal(10).pow(decimals)).toDecimalPlaces(0).toNumber();
 }
 
 /** Converts an integer number of minor units back to a decimal value. */
 export function fromMinorUnits(units: Numeric, decimals = 2): number {
-  return toDecimal(units).dividedBy(new Decimal(10).pow(decimals)).toNumber();
+  return toDecimal(units).dividedBy(new ExactDecimal(10).pow(decimals)).toNumber();
 }
 
 /**
@@ -167,12 +169,12 @@ export function fromMinorUnits(units: Numeric, decimals = 2): number {
  * Decimal integer arithmetic also works at crypto scales above Number.MAX_SAFE_INTEGER.
  */
 export function distributeRemainder(total: Numeric, amounts: Numeric[], decimals = 2): number[] {
-  const factor = new Decimal(10).pow(decimals);
+  const factor = new ExactDecimal(10).pow(decimals);
   const units = amounts.map(amount => toDecimal(amount).times(factor).toDecimalPlaces(0));
   let residue = toDecimal(total)
     .times(factor)
     .toDecimalPlaces(0)
-    .minus(units.reduce((acc, value) => acc.plus(value), new Decimal(0)));
+    .minus(units.reduce((acc, value) => acc.plus(value), new ExactDecimal(0)));
   const order = units
     .map((_, index) => index)
     .sort((a, b) => units[b].abs().comparedTo(units[a].abs()) || a - b);
@@ -180,7 +182,7 @@ export function distributeRemainder(total: Numeric, amounts: Numeric[], decimals
     if (!residue.isFinite() || residue.isZero()) break;
     const adjustment = residue.isPositive()
       ? residue
-      : Decimal.max(residue, new Decimal(1).minus(units[index]));
+      : ExactDecimal.max(residue, new ExactDecimal(1).minus(units[index]));
     units[index] = units[index].plus(adjustment);
     residue = residue.minus(adjustment);
   }

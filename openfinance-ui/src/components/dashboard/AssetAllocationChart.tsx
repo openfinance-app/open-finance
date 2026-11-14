@@ -1,3 +1,4 @@
+import { decimalValue } from '@/utils/exact-decimal';
 /**
  * AssetAllocationChart Component
  * Task 4.3.6: Create AssetAllocationChart component with treemap visualization
@@ -34,7 +35,11 @@ const CustomTooltip = ({ active, payload }: any) => {
       <div className="bg-surface rounded-lg shadow-lg p-4 border border-border">
         <p className="text-sm font-semibold text-text-primary mb-2">{data.typeName}</p>
         <p className="text-lg font-bold text-text-primary mb-1">
-          <ConvertedAmount amount={data.totalValue} currency={data.currency} inline />
+          <ConvertedAmount
+            amount={decimalValue(data, 'totalValue') ?? data.totalValue}
+            currency={data.currency}
+            inline
+          />
         </p>
         <p className="text-sm text-text-secondary mb-1">
           {t('assetAllocation.portfolioShare', {

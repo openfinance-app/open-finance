@@ -115,7 +115,8 @@ describe('Imported liability conversion', () => {
     await user.click(screen.getByRole('button', { name: 'Review existing payments' }));
     await user.click(await screen.findByRole('button', { name: 'Review conversion' }));
     expect(screen.getByText(/5 imported transactions remain available/)).toBeVisible();
-    expect(screen.getAllByText('800 EUR')).toHaveLength(2);
+    expect(screen.getByText('800 EUR')).toBeVisible();
+    expect(screen.getByText('800.00 EUR')).toBeVisible();
     await user.click(screen.getByRole('button', { name: 'Convert to liability' }));
     await waitFor(() => expect(onConverted).toHaveBeenCalledWith(42));
     expect(state.mutateAsync.mock.calls[0][0]).toMatchObject({

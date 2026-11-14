@@ -1,3 +1,4 @@
+import { decimalValue } from '@/utils/exact-decimal';
 import { AssetReturn } from '@/components/assets/AssetReturn';
 /**
  * AssetPerformanceTable Component
@@ -199,7 +200,7 @@ export function AssetPerformanceTable({ assets }: AssetPerformanceTableProps) {
               <td className="py-3 px-4 text-right">
                 <p className="text-sm text-foreground">
                   <ConvertedAmount
-                    amount={asset.totalCost}
+                    amount={decimalValue(asset, 'totalCost') ?? asset.totalCost}
                     currency={asset.currency}
                     convertedAmount={
                       asset.isConverted && asset.exchangeRate
@@ -207,7 +208,7 @@ export function AssetPerformanceTable({ assets }: AssetPerformanceTableProps) {
                         : undefined
                     }
                     baseCurrency={asset.baseCurrency}
-                    exchangeRate={asset.exchangeRate}
+                    exchangeRate={decimalValue(asset, 'exchangeRate') ?? asset.exchangeRate}
                     isConverted={asset.isConverted}
                     inline
                   />
@@ -215,7 +216,7 @@ export function AssetPerformanceTable({ assets }: AssetPerformanceTableProps) {
                 <p className="text-xs text-muted-foreground">
                   {asset.quantity} ×{' '}
                   <ConvertedAmount
-                    amount={asset.purchasePrice}
+                    amount={decimalValue(asset, 'purchasePrice') ?? asset.purchasePrice}
                     currency={asset.currency}
                     convertedAmount={
                       asset.isConverted && asset.exchangeRate
@@ -223,7 +224,7 @@ export function AssetPerformanceTable({ assets }: AssetPerformanceTableProps) {
                         : undefined
                     }
                     baseCurrency={asset.baseCurrency}
-                    exchangeRate={asset.exchangeRate}
+                    exchangeRate={decimalValue(asset, 'exchangeRate') ?? asset.exchangeRate}
                     isConverted={asset.isConverted}
                     inline
                   />
@@ -233,13 +234,18 @@ export function AssetPerformanceTable({ assets }: AssetPerformanceTableProps) {
                 <p className="text-sm font-medium text-foreground">
                   {/* REQ-2.2: Display current value with base-currency conversion when available */}
                   <ConvertedAmount
-                    amount={asset.totalValue}
+                    amount={decimalValue(asset, 'totalValue') ?? asset.totalValue}
                     currency={asset.currency}
-                    convertedAmount={asset.valueInBaseCurrency}
+                    convertedAmount={
+                      decimalValue(asset, 'valueInBaseCurrency') ?? asset.valueInBaseCurrency
+                    }
                     baseCurrency={asset.baseCurrency}
-                    exchangeRate={asset.exchangeRate}
+                    exchangeRate={decimalValue(asset, 'exchangeRate') ?? asset.exchangeRate}
                     isConverted={asset.isConverted}
-                    secondaryAmount={asset.valueInSecondaryCurrency}
+                    secondaryAmount={
+                      decimalValue(asset, 'valueInSecondaryCurrency') ??
+                      asset.valueInSecondaryCurrency
+                    }
                     secondaryCurrency={asset.secondaryCurrency}
                     inline
                   />
@@ -247,7 +253,7 @@ export function AssetPerformanceTable({ assets }: AssetPerformanceTableProps) {
                 <p className="text-xs text-muted-foreground">
                   {asset.quantity} ×{' '}
                   <ConvertedAmount
-                    amount={asset.currentPrice}
+                    amount={decimalValue(asset, 'currentPrice') ?? asset.currentPrice}
                     currency={asset.currency}
                     convertedAmount={
                       asset.isConverted && asset.exchangeRate
@@ -255,7 +261,7 @@ export function AssetPerformanceTable({ assets }: AssetPerformanceTableProps) {
                         : undefined
                     }
                     baseCurrency={asset.baseCurrency}
-                    exchangeRate={asset.exchangeRate}
+                    exchangeRate={decimalValue(asset, 'exchangeRate') ?? asset.exchangeRate}
                     isConverted={asset.isConverted}
                     inline
                   />
@@ -309,13 +315,18 @@ export function AssetPerformanceTable({ assets }: AssetPerformanceTableProps) {
                 <p className="font-medium text-foreground">
                   {/* REQ-2.2: Display current value with base-currency conversion when available */}
                   <ConvertedAmount
-                    amount={asset.totalValue}
+                    amount={decimalValue(asset, 'totalValue') ?? asset.totalValue}
                     currency={asset.currency}
-                    convertedAmount={asset.valueInBaseCurrency}
+                    convertedAmount={
+                      decimalValue(asset, 'valueInBaseCurrency') ?? asset.valueInBaseCurrency
+                    }
                     baseCurrency={asset.baseCurrency}
-                    exchangeRate={asset.exchangeRate}
+                    exchangeRate={decimalValue(asset, 'exchangeRate') ?? asset.exchangeRate}
                     isConverted={asset.isConverted}
-                    secondaryAmount={asset.valueInSecondaryCurrency}
+                    secondaryAmount={
+                      decimalValue(asset, 'valueInSecondaryCurrency') ??
+                      asset.valueInSecondaryCurrency
+                    }
                     secondaryCurrency={asset.secondaryCurrency}
                     inline
                   />

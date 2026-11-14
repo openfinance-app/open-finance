@@ -1,7 +1,6 @@
 package org.openfinance.service;
 
 import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashSet;
@@ -283,9 +282,7 @@ public class AssetFinancingServiceImpl implements AssetFinancingService {
         Liability loan = liability(link.getUserId(), link.getLiabilityId());
         BigDecimal allocated =
                 link.getRelationship().equals("FINANCING")
-                        ? balance(loan)
-                                .multiply(link.getAllocationPercentage())
-                                .divide(new BigDecimal("100"), 8, RoundingMode.HALF_UP)
+                        ? balance(loan).multiply(link.getAllocationPercentage()).movePointLeft(2)
                         : BigDecimal.ZERO;
         return AssetFinancingLink.builder()
                 .assetId(asset.getId())

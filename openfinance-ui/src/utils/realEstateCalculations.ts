@@ -49,7 +49,7 @@ export function calculateMonthlyPayment(
   const factor = pow(add(1, monthlyRate), numPayments);
   const payment = divide(multiply(multiply(principal, monthlyRate), factor), subtract(factor, 1));
 
-  return roundToDecimals(payment, 2); // Round to 2 decimal places
+  return payment;
 }
 
 /**
@@ -98,7 +98,7 @@ export function calculateRemainingCapital(
     divide(multiply(monthlyPayment, subtract(factor, 1)), monthlyRate)
   );
 
-  return Math.max(0, roundToDecimals(remaining, 2));
+  return Math.max(0, remaining);
 }
 
 /**
@@ -132,7 +132,7 @@ export function calculateCompoundInterest(
     Math.abs(monthlyRate) < 1e-12
       ? multiply(monthlyContribution, years * 12)
       : multiply(monthlyContribution, divide(subtract(growth, 1), monthlyRate));
-  return roundToDecimals(add(multiply(principal, growth), contributions), 2);
+  return add(multiply(principal, growth), contributions);
 }
 
 /**
@@ -165,7 +165,7 @@ export function calculateMinimumResalePrice(
     add(add(totalCosts, remainingCapital), targetProfit),
     subtract(1, resaleFees)
   );
-  return roundToDecimals(minimumPrice, 2);
+  return minimumPrice;
 }
 
 /**

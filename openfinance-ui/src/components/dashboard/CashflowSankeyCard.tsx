@@ -1,3 +1,4 @@
+import { ExactDecimal, decimalValue, exactSum } from '@/utils/exact-decimal';
 import { useDateFormatter } from '@/hooks/useDateFormatter';
 import { useId, useState, useCallback, useMemo } from 'react';
 import { Eye, EyeOff } from 'lucide-react';
@@ -284,6 +285,7 @@ export default function CashflowSankeyCard({
         {
           name: otherLabel,
           amount: sum(rest.map(n => n.amount)),
+          exactValues: { amount: exactSum(rest.map(n => decimalValue(n, 'amount') ?? 0)) },
           previousAmount: previousData ? sum(rest.map(n => n.previousAmount ?? 0)) : undefined,
           color: '#6b7280',
           icon: null,
@@ -420,7 +422,11 @@ export default function CashflowSankeyCard({
         >
           <div className="text-xs text-text-secondary mb-0.5">{t('cashflowSankey.income')}</div>
           <div className="text-sm font-bold text-success font-mono">
-            <ConvertedAmount amount={data.totalIncome} currency={currency} inline />
+            <ConvertedAmount
+              amount={decimalValue(data, 'totalIncome') ?? data.totalIncome}
+              currency={currency}
+              inline
+            />
           </div>
         </button>
         <button
@@ -431,7 +437,11 @@ export default function CashflowSankeyCard({
         >
           <div className="text-xs text-text-secondary mb-0.5">{t('cashflowSankey.expenses')}</div>
           <div className="text-sm font-bold text-error font-mono">
-            <ConvertedAmount amount={data.totalExpenses} currency={currency} inline />
+            <ConvertedAmount
+              amount={decimalValue(data, 'totalExpenses') ?? data.totalExpenses}
+              currency={currency}
+              inline
+            />
           </div>
         </button>
         <div
@@ -443,7 +453,13 @@ export default function CashflowSankeyCard({
           </div>
           <div className="text-sm font-bold font-mono" style={{ color: surplusColor }}>
             {hasSurplus ? '+' : '-'}
-            <ConvertedAmount amount={Math.abs(data.surplus)} currency={currency} inline />
+            <ConvertedAmount
+              amount={new ExactDecimal(decimalValue(data, 'surplus') ?? data.surplus)
+                .abs()
+                .toFixed()}
+              currency={currency}
+              inline
+            />
           </div>
         </div>
       </div>
@@ -582,7 +598,9 @@ export default function CashflowSankeyCard({
                   fontSize={9}
                   fill="#9ca3af"
                 >
-                  {isAmountsVisible ? format(n.amount, currency) : '••••'}
+                  {isAmountsVisible
+                    ? format(decimalValue(n, 'amount') ?? n.amount, currency)
+                    : '••••'}
                 </text>
               </g>
             );
@@ -639,7 +657,9 @@ export default function CashflowSankeyCard({
                   fontSize={9}
                   fill="#9ca3af"
                 >
-                  {isAmountsVisible ? format(n.amount, currency) : '••••'}
+                  {isAmountsVisible
+                    ? format(decimalValue(n, 'amount') ?? n.amount, currency)
+                    : '••••'}
                 </text>
               </g>
             );
@@ -694,7 +714,12 @@ export default function CashflowSankeyCard({
                     {hasSurplus
                       ? `▲ ${t('cashflowSankey.surplus')}`
                       : `▼ ${t('cashflowSankey.deficit')}`}{' '}
-                    {isAmountsVisible ? format(Math.abs(data.surplus), currency) : '••••'}
+                    {isAmountsVisible
+                      ? format(
+                          new ExactDecimal(decimalValue(data, 'surplus') ?? 0).abs().toFixed(),
+                          currency
+                        )
+                      : '••••'}
                   </text>
                 </g>
               );
@@ -753,7 +778,9 @@ export default function CashflowSankeyCard({
                   <span>{node.name}</span>
                   {renderVariation(node, type, true)}
                   <span className="ml-auto text-text-secondary font-mono">
-                    {isAmountsVisible ? format(node.amount, currency) : '••••'}
+                    {isAmountsVisible
+                      ? format(decimalValue(node, 'amount') ?? node.amount, currency)
+                      : '••••'}
                   </span>
                 </button>
               ))}

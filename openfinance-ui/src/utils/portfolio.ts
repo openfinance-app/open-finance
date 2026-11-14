@@ -4,7 +4,7 @@
  */
 import { formatPercentage as formatPercent } from '@/utils/format';
 import type { Asset } from '@/types/asset';
-import { DEFAULT_CURRENCY, getCurrencyDecimals } from './currency';
+import { formatCurrency as sharedFormatCurrency } from '@/utils/currency';
 import { add, sum, subtract, percentage } from '@/utils/money';
 import { ASSET_TYPE_COLORS, CATEGORY_COLOR_FALLBACK } from '@/constants/colors';
 
@@ -149,15 +149,7 @@ export const getTopPerformers = (
 /**
  * Format currency value
  */
-export const formatCurrency = (value: number, currency: string = DEFAULT_CURRENCY): string => {
-  const decimals = getCurrencyDecimals(currency);
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency,
-    minimumFractionDigits: decimals,
-    maximumFractionDigits: decimals,
-  }).format(value);
-};
+export const formatCurrency = sharedFormatCurrency;
 
 /**
  * Format percentage

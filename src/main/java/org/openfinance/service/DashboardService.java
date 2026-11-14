@@ -1396,7 +1396,7 @@ public class DashboardService {
                         .reduce(BigDecimal.ZERO, BigDecimal::add);
 
         BigDecimal days = BigDecimal.valueOf(analysisPeriod);
-        int scale = org.openfinance.util.MoneyPrecision.scale(baseCurrency);
+        int scale = org.openfinance.util.MoneyPrecision.CALCULATION_SCALE;
         BigDecimal monthlyIncome =
                 totalIncome.multiply(DAYS_PER_MONTH).divide(days, scale, RoundingMode.HALF_UP);
         BigDecimal monthlyExpenses =
@@ -1433,8 +1433,7 @@ public class DashboardService {
                         .multiply(MONTHS_PER_YEAR)
                         .multiply(
                                 BigDecimal.valueOf(
-                                        businessRules.getDebtToIncome().getBorrowingTermYears()))
-                        .setScale(2, RoundingMode.HALF_UP);
+                                        businessRules.getDebtToIncome().getBorrowingTermYears()));
 
         String financialHealthStatus;
         if (!debtPaymentsComplete || monthlyIncome.compareTo(BigDecimal.ZERO) == 0) {
@@ -2138,8 +2137,8 @@ public class DashboardService {
             if (projected) projectedBalanceDays = projectedBalanceDays.add(balance);
         }
         return new LiabilityInterest(
-                interestForBalanceDays(earnedBalanceDays, annualPercentage, baseCurrency),
-                interestForBalanceDays(projectedBalanceDays, annualPercentage, baseCurrency));
+                interestForBalanceDays(earnedBalanceDays, annualPercentage),
+                interestForBalanceDays(projectedBalanceDays, annualPercentage));
     }
 
     private List<org.openfinance.dto.BalanceHistoryPoint> liabilityPrincipalHistory(
@@ -2161,13 +2160,12 @@ public class DashboardService {
                 .toList();
     }
 
-    private BigDecimal interestForBalanceDays(
-            BigDecimal balanceDays, BigDecimal annualPercentage, String currency) {
+    private BigDecimal interestForBalanceDays(BigDecimal balanceDays, BigDecimal annualPercentage) {
         return balanceDays
                 .multiply(annualPercentage)
                 .divide(
                         DAYS_PER_YEAR.multiply(BigDecimal.valueOf(100)),
-                        org.openfinance.util.MoneyPrecision.scale(currency),
+                        org.openfinance.entity.InterestDayCountBasis.CALCULATION_SCALE,
                         RoundingMode.HALF_UP);
     }
 

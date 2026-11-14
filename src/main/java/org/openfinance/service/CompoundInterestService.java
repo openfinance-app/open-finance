@@ -38,7 +38,7 @@ import org.springframework.stereotype.Service;
 public class CompoundInterestService {
 
     private static final RoundingMode ROUNDING = RoundingMode.HALF_UP;
-    private static final MathContext MC = new MathContext(20, ROUNDING);
+    private static final MathContext MC = MoneyPrecision.CALCULATION_CONTEXT;
 
     /**
      * Calculate compound interest for the given request.
@@ -54,7 +54,7 @@ public class CompoundInterestService {
                 request.getCompoundingFrequency(),
                 request.getYears());
 
-        int scale = MoneyPrecision.scale(request.getCurrency());
+        int scale = MoneyPrecision.CALCULATION_SCALE;
         BigDecimal principal = request.getPrincipal();
         BigDecimal annualRate = request.getAnnualRate().divide(BigDecimal.valueOf(100), MC);
         int n = request.getCompoundingFrequency();

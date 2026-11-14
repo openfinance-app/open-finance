@@ -1,26 +1,41 @@
 import type { Transaction, TransactionSplitResponse } from '@/types/transaction';
-import { ExactDecimal } from '@/utils/exact-decimal';
+import { decimalValue, ExactDecimal } from '@/utils/exact-decimal';
 import { getMonetaryScale } from '@/utils/currency';
 
 /** Allocate recorded equivalents without fetching a different rate for each split. */
 export function splitCurrencyAmounts(
   splits: TransactionSplitResponse[],
   transaction?: Transaction
-): { amount: number; currency: string }[][] {
-  const result: { amount: number; currency: string }[][] = splits.map(() => []);
-  if (!transaction || transaction.amount === 0) return result;
+): { amount: string; currency: string }[][] {
+  const result: { amount: string; currency: string }[][] = splits.map(() => []);
+  if (!transaction) return result;
+  const total = new ExactDecimal(decimalValue(transaction, 'amount') ?? 0);
+  if (total.isZero()) return result;
   const equivalents = [
     ...(transaction.isConverted
-      ? [{ amount: transaction.amountInBaseCurrency, currency: transaction.baseCurrency }]
+      ? [
+          {
+            amount: decimalValue(transaction, 'amountInBaseCurrency'),
+            currency: transaction.baseCurrency,
+          },
+        ]
       : []),
-    { amount: transaction.transferAmount, currency: transaction.transferCurrency },
-    { amount: transaction.originalAmount, currency: transaction.originalCurrency },
+    { amount: decimalValue(transaction, 'transferAmount'), currency: transaction.transferCurrency },
+    { amount: decimalValue(transaction, 'originalAmount'), currency: transaction.originalCurrency },
   ];
   for (const equivalent of equivalents) {
     if (equivalent.amount == null || !equivalent.currency) continue;
-    const factor = new ExactDecimal(10).pow(getMonetaryScale(equivalent.currency));
+    // Allocate in settlement units, retaining any finer precision in the recorded total.
+    const scale = Math.max(
+      getMonetaryScale(equivalent.currency),
+      new ExactDecimal(equivalent.amount).decimalPlaces()
+    );
+    const factor = new ExactDecimal(10).pow(scale);
     const amounts = splits.map(split =>
-      new ExactDecimal(split.amount).times(equivalent.amount!).div(transaction.amount).times(factor)
+      new ExactDecimal(decimalValue(split, 'amount') ?? 0)
+        .times(equivalent.amount!)
+        .div(total)
+        .times(factor)
     );
     // Display allocations may round to zero; input split allocation requires positive amounts.
     const units = amounts.map(amount => amount.toDecimalPlaces(0, ExactDecimal.ROUND_DOWN));
@@ -38,7 +53,7 @@ export function splitCurrencyAmounts(
       remainder = remainder.minus(adjustment);
     }
     units.forEach((amount, index) =>
-      result[index].push({ amount: amount.div(factor).toNumber(), currency: equivalent.currency! })
+      result[index].push({ amount: amount.div(factor).toFixed(), currency: equivalent.currency! })
     );
   }
   return result;

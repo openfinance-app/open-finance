@@ -78,7 +78,7 @@ describe('AdvancedFilterPanel', () => {
     );
     fireEvent.click(screen.getByRole('button', { name: /filters/i }));
     fireEvent.change(screen.getByLabelText(/minimum/i), { target: { value: '100' } });
-    expect(onFiltersChange).toHaveBeenCalledWith(expect.objectContaining({ minAmount: 100 }));
+    expect(onFiltersChange).toHaveBeenCalledWith(expect.objectContaining({ minAmount: '100' }));
   });
 
   it('calls onApply when apply button clicked', () => {
@@ -152,7 +152,7 @@ describe('AdvancedFilterPanel', () => {
     );
     fireEvent.click(screen.getByRole('button', { name: /filters/i }));
     fireEvent.change(screen.getByLabelText(/maximum/i), { target: { value: '500' } });
-    expect(onFiltersChange).toHaveBeenCalledWith(expect.objectContaining({ maxAmount: 500 }));
+    expect(onFiltersChange).toHaveBeenCalledWith(expect.objectContaining({ maxAmount: '500' }));
   });
 
   it('clears min amount when input emptied', () => {

@@ -81,7 +81,7 @@ export function ImprovementValuationFields({
                 <ConvertedAmount
                   inline
                   className="font-mono tabular-nums"
-                  amount={number.toNumber()}
+                  amount={number.toFixed()}
                   currency={effectCurrency}
                 />
               ) : (

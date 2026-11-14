@@ -25,6 +25,23 @@ describe('useEarlyPayoffCalculator', () => {
     vi.clearAllMocks();
   });
 
+  it('retains fractional principal and extra payments through the payoff simulation', () => {
+    const { result } = renderHook(() => useEarlyPayoffCalculator(noIraConfig));
+    act(() => {
+      result.current.updateInput('loanBalance', '123.475349999999999999');
+      result.current.updateInput('annualRate', 0);
+      result.current.updateInput('remainingYears', 1);
+      result.current.updateInput('remainingMonthsExtra', 0);
+      result.current.updateInput('lumpSumPayments', []);
+      result.current.updateInput('monthlyExtraPayment', '0.123456789012345678');
+    });
+    act(() => result.current.calculate());
+    for (const scenario of Object.values(result.current.result!)) {
+      expect(scenario.exactValues?.totalCost).toBe('123.475349999999999999');
+      expect(scenario.yearlySchedule.at(-1)?.endBalance).toBe(0);
+    }
+  });
+
   it('repays a small BTC balance instead of treating it as below half a cent', () => {
     const { result } = renderHook(() => useEarlyPayoffCalculator(noIraConfig, 'BTC'));
     act(() => {

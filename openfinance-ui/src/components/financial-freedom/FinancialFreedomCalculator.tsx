@@ -1,3 +1,4 @@
+import { decimalValue } from '@/utils/exact-decimal';
 import { formatDecimal } from '@/utils/format';
 import { useCallback } from 'react';
 import { Trans, useTranslation } from 'react-i18next';
@@ -109,10 +110,10 @@ export function FinancialFreedomCalculator({ className }: FinancialFreedomCalcul
  */
 interface CalculatorInputFormProps {
   input: {
-    currentSavings: number;
-    monthlyExpenses: number;
+    currentSavings: number | string;
+    monthlyExpenses: number | string;
     expectedAnnualReturn: number;
-    monthlyContribution?: number;
+    monthlyContribution?: number | string;
     withdrawalRate?: number;
     inflationRate?: number;
     adjustForInflation?: boolean;
@@ -173,14 +174,17 @@ function CalculatorInputForm({
                     components={{
                       savings: (
                         <ConvertedAmount
-                          amount={userData.totalSavings}
+                          amount={decimalValue(userData, 'totalSavings') ?? userData.totalSavings}
                           currency={userData.currency || currency}
                           inline
                         />
                       ),
                       expenses: (
                         <ConvertedAmount
-                          amount={userData.averageMonthlyExpenses}
+                          amount={
+                            decimalValue(userData, 'averageMonthlyExpenses') ??
+                            userData.averageMonthlyExpenses
+                          }
                           currency={userData.currency || currency}
                           inline
                         />
@@ -230,7 +234,7 @@ function CalculatorInputForm({
           <NumberInput
             id="currentSavings"
             value={String(input.currentSavings)}
-            onChange={val => onChange('currentSavings', parseFloat(val) || 0)}
+            onChange={val => onChange('currentSavings', val || '0')}
             placeholder="50000"
           />
           <p className="text-xs text-muted-foreground">
@@ -246,7 +250,7 @@ function CalculatorInputForm({
           <NumberInput
             id="monthlyExpenses"
             value={String(input.monthlyExpenses)}
-            onChange={val => onChange('monthlyExpenses', parseFloat(val) || 0)}
+            onChange={val => onChange('monthlyExpenses', val || '0')}
             placeholder="2500"
           />
           <p className="text-xs text-muted-foreground">
@@ -294,7 +298,7 @@ function CalculatorInputForm({
           <NumberInput
             id="monthlyContribution"
             value={String(input.monthlyContribution ?? 0)}
-            onChange={val => onChange('monthlyContribution', parseFloat(val) || 0)}
+            onChange={val => onChange('monthlyContribution', val || '0')}
             placeholder="500"
           />
           <p className="text-xs text-muted-foreground">
@@ -504,8 +508,10 @@ function FreedomResults({
           <CardContent>
             <ProgressChart
               data={result.projections}
-              currentSavings={result.currentProgress}
-              targetAmount={result.targetSavingsAmount}
+              currentSavings={decimalValue(result, 'currentProgress') ?? result.currentProgress}
+              targetAmount={
+                decimalValue(result, 'targetSavingsAmount') ?? result.targetSavingsAmount
+              }
               currency={currency}
               yearsToFreedom={result.isAchievable ? yearsToFreedom : undefined}
             />
@@ -522,7 +528,9 @@ function FreedomResults({
           <CardContent>
             <TimelineProjection
               projections={result.projections}
-              targetAmount={result.targetSavingsAmount}
+              targetAmount={
+                decimalValue(result, 'targetSavingsAmount') ?? result.targetSavingsAmount
+              }
               currency={currency}
               yearsToFreedom={result.isAchievable ? yearsToFreedom : undefined}
             />
@@ -551,10 +559,18 @@ function FreedomResults({
           <div className="space-y-4">
             <div className="flex justify-between text-sm">
               <span>
-                <ConvertedAmount amount={result.currentProgress} currency={currency} inline />
+                <ConvertedAmount
+                  amount={decimalValue(result, 'currentProgress') ?? result.currentProgress}
+                  currency={currency}
+                  inline
+                />
               </span>
               <span>
-                <ConvertedAmount amount={result.targetSavingsAmount} currency={currency} inline />
+                <ConvertedAmount
+                  amount={decimalValue(result, 'targetSavingsAmount') ?? result.targetSavingsAmount}
+                  currency={currency}
+                  inline
+                />
               </span>
             </div>
             <Progress value={result.progressPercentage} className="h-3" />
@@ -577,7 +593,11 @@ function FreedomResults({
           </CardHeader>
           <CardContent>
             <p className="text-2xl font-bold">
-              <ConvertedAmount amount={result.targetSavingsAmount} currency={currency} inline />
+              <ConvertedAmount
+                amount={decimalValue(result, 'targetSavingsAmount') ?? result.targetSavingsAmount}
+                currency={currency}
+                inline
+              />
             </p>
             <p className="text-xs text-muted-foreground">
               <Trans
@@ -586,7 +606,9 @@ function FreedomResults({
                 components={{
                   income: (
                     <ConvertedAmount
-                      amount={result.annualPassiveIncome}
+                      amount={
+                        decimalValue(result, 'annualPassiveIncome') ?? result.annualPassiveIncome
+                      }
                       currency={currency}
                       inline
                     />
@@ -605,7 +627,11 @@ function FreedomResults({
           </CardHeader>
           <CardContent>
             <p className="text-2xl font-bold">
-              <ConvertedAmount amount={result.annualPassiveIncome} currency={currency} inline />
+              <ConvertedAmount
+                amount={decimalValue(result, 'annualPassiveIncome') ?? result.annualPassiveIncome}
+                currency={currency}
+                inline
+              />
               /yr
             </p>
             <p className="text-xs text-muted-foreground">

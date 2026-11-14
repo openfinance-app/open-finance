@@ -57,6 +57,23 @@ class FinancialFreedomControllerTest {
     class TimelineEndpointTests {
 
         @Test
+        void preservesFractionalInputsAndReturnsExactTargets() throws Exception {
+            validRequest.setCurrentSavings(new BigDecimal("0.123456789012345678"));
+            validRequest.setMonthlyExpenses(new BigDecimal("1.23456789123456789"));
+            validRequest.setProjectionYears(1);
+            mockMvc.perform(
+                            post("/api/v1/calculator/financial-freedom/timeline")
+                                    .contentType(MediaType.APPLICATION_JSON)
+                                    .content(objectMapper.writeValueAsString(validRequest)))
+                    .andExpect(status().isOk())
+                    .andExpect(
+                            jsonPath("$.exactValues.currentProgress").value("0.123456789012345678"))
+                    .andExpect(
+                            jsonPath("$.exactValues.targetSavingsAmount")
+                                    .value("370.370367370370367000"));
+        }
+
+        @Test
         @DisplayName("Should return 200 OK with valid request")
         void shouldReturnOkWithValidRequest() throws Exception {
             mockMvc.perform(

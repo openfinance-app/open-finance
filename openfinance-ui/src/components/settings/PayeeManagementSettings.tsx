@@ -1,3 +1,4 @@
+import { decimalValue } from '@/utils/exact-decimal';
 import { useViewState } from '@/hooks/useViewState';
 import { BulkSelection, BulkToolbar, SelectionCheckbox } from '@/components/bulk/BulkSelection';
 import { Link } from 'react-router';
@@ -63,7 +64,8 @@ export function PayeeManagementSettings() {
   useDocumentTitle(t('title'));
   const { baseCurrency } = useAuthContext();
   const {
-    convert,
+    convert: convertNumber,
+    convertExact: convert = convertNumber,
     secondaryCurrency: secCurrency,
     secondaryExchangeRate,
   } = useSecondaryConversion(baseCurrency);
@@ -394,10 +396,14 @@ export function PayeeManagementSettings() {
                           </Link>
                           <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-primary/5 text-primary border border-primary/10">
                             <ConvertedAmount
-                              amount={payee.totalAmount || 0}
+                              amount={
+                                (decimalValue(payee, 'totalAmount') ?? payee.totalAmount) || 0
+                              }
                               currency={baseCurrency}
                               isConverted={false}
-                              secondaryAmount={convert(payee.totalAmount || 0)}
+                              secondaryAmount={convert(
+                                (decimalValue(payee, 'totalAmount') ?? payee.totalAmount) || 0
+                              )}
                               secondaryCurrency={secCurrency}
                               secondaryExchangeRate={secondaryExchangeRate}
                               inline
@@ -483,10 +489,12 @@ export function PayeeManagementSettings() {
                       </Link>
                       <span className="text-[10px] text-text-muted">
                         <ConvertedAmount
-                          amount={payee.totalAmount || 0}
+                          amount={(decimalValue(payee, 'totalAmount') ?? payee.totalAmount) || 0}
                           currency={baseCurrency}
                           isConverted={false}
-                          secondaryAmount={convert(payee.totalAmount || 0)}
+                          secondaryAmount={convert(
+                            (decimalValue(payee, 'totalAmount') ?? payee.totalAmount) || 0
+                          )}
                           secondaryCurrency={secCurrency}
                           secondaryExchangeRate={secondaryExchangeRate}
                           inline

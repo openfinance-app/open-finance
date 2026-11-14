@@ -270,19 +270,19 @@ describe('NetWorthTrendChart', () => {
       renderWithProviders(<NetWorthTrendChart data={data} currency="EUR" />);
       expect(capturedYAxisFormatter).toBeTruthy();
       const result = capturedYAxisFormatter(2500000);
-      expect(result).toBe('2.5M');
+      expect(result).toBe('2.50M');
     });
 
     it('formats thousands with K suffix', () => {
       renderWithProviders(<NetWorthTrendChart data={data} currency="EUR" />);
       const result = capturedYAxisFormatter(45000);
-      expect(result).toBe('45K');
+      expect(result).toBe('45.00K');
     });
 
-    it('formats small values as integers', () => {
+    it('formats small values with the currency display precision', () => {
       renderWithProviders(<NetWorthTrendChart data={data} currency="EUR" />);
       const result = capturedYAxisFormatter(500);
-      expect(result).toBe('500');
+      expect(result).toBe('500.00');
     });
   });
 });

@@ -1,3 +1,4 @@
+import { decimalValue } from '@/utils/exact-decimal';
 /**
  * SummaryCards Component
  *
@@ -38,38 +39,58 @@ export const SummaryCards: React.FC<SummaryCardsProps> = ({ results, monthlySavi
             <div>
               <p className="text-sm text-muted-foreground">{t('results.averageMonthlyCost')}</p>
               <p className="text-lg font-semibold">
-                <ConvertedAmount amount={buy.averageMonthlyCost} currency={baseCurrency} inline />
+                <ConvertedAmount
+                  amount={decimalValue(buy, 'averageMonthlyCost') ?? buy.averageMonthlyCost}
+                  currency={baseCurrency}
+                  inline
+                />
               </p>
             </div>
             <div>
               <p className="text-sm text-muted-foreground">{t('results.totalCost')}</p>
               <p className="text-lg font-semibold">
-                <ConvertedAmount amount={buy.totalCost} currency={baseCurrency} inline />
+                <ConvertedAmount
+                  amount={decimalValue(buy, 'totalCost') ?? buy.totalCost}
+                  currency={baseCurrency}
+                  inline
+                />
               </p>
             </div>
             <div>
               <p className="text-sm text-muted-foreground">{t('results.propertyValue')}</p>
               <p className="text-lg font-semibold text-green-600">
-                <ConvertedAmount amount={buy.finalPropertyValue} currency={baseCurrency} inline />
+                <ConvertedAmount
+                  amount={decimalValue(buy, 'finalPropertyValue') ?? buy.finalPropertyValue}
+                  currency={baseCurrency}
+                  inline
+                />
               </p>
             </div>
             <div>
               <p className="text-sm text-muted-foreground">{t('results.remainingCapital')}</p>
               <p className="text-lg font-semibold text-red-600">
-                <ConvertedAmount amount={buy.remainingCapital} currency={baseCurrency} inline />
+                <ConvertedAmount
+                  amount={decimalValue(buy, 'remainingCapital') ?? buy.remainingCapital}
+                  currency={baseCurrency}
+                  inline
+                />
               </p>
             </div>
             <div>
               <p className="text-sm text-muted-foreground">{t('results.netWorth')}</p>
               <p className="text-xl font-bold text-primary">
-                <ConvertedAmount amount={buy.netWorth} currency={baseCurrency} inline />
+                <ConvertedAmount
+                  amount={decimalValue(buy, 'netWorth') ?? buy.netWorth}
+                  currency={baseCurrency}
+                  inline
+                />
               </p>
             </div>
             <div>
               <p className="text-sm text-muted-foreground">{t('results.accumulatedSavings')}</p>
               <p className="text-lg font-semibold">
                 <ConvertedAmount
-                  amount={buy.accumulatedSavings ?? 0}
+                  amount={decimalValue(buy, 'accumulatedSavings') ?? buy.accumulatedSavings ?? 0}
                   currency={baseCurrency}
                   inline
                 />
@@ -78,7 +99,11 @@ export const SummaryCards: React.FC<SummaryCardsProps> = ({ results, monthlySavi
             <div>
               <p className="text-sm text-muted-foreground">{t('results.creditCost')}</p>
               <p className="text-lg font-semibold">
-                <ConvertedAmount amount={buy.totalCreditCost} currency={baseCurrency} inline />
+                <ConvertedAmount
+                  amount={decimalValue(buy, 'totalCreditCost') ?? buy.totalCreditCost}
+                  currency={baseCurrency}
+                  inline
+                />
               </p>
             </div>
           </div>
@@ -98,31 +123,51 @@ export const SummaryCards: React.FC<SummaryCardsProps> = ({ results, monthlySavi
             <div>
               <p className="text-sm text-muted-foreground">{t('results.averageMonthlyCost')}</p>
               <p className="text-lg font-semibold">
-                <ConvertedAmount amount={rent.averageMonthlyCost} currency={baseCurrency} inline />
+                <ConvertedAmount
+                  amount={decimalValue(rent, 'averageMonthlyCost') ?? rent.averageMonthlyCost}
+                  currency={baseCurrency}
+                  inline
+                />
               </p>
             </div>
             <div>
               <p className="text-sm text-muted-foreground">{t('results.totalCost')}</p>
               <p className="text-lg font-semibold">
-                <ConvertedAmount amount={rent.totalCost} currency={baseCurrency} inline />
+                <ConvertedAmount
+                  amount={decimalValue(rent, 'totalCost') ?? rent.totalCost}
+                  currency={baseCurrency}
+                  inline
+                />
               </p>
             </div>
             <div>
               <p className="text-sm text-muted-foreground">{t('results.accumulatedSavings')}</p>
               <p className="text-lg font-semibold text-green-600">
-                <ConvertedAmount amount={rent.accumulatedSavings} currency={baseCurrency} inline />
+                <ConvertedAmount
+                  amount={decimalValue(rent, 'accumulatedSavings') ?? rent.accumulatedSavings}
+                  currency={baseCurrency}
+                  inline
+                />
               </p>
             </div>
             <div>
               <p className="text-sm text-muted-foreground">{t('results.netExpense')}</p>
               <p className="text-lg font-semibold text-red-600">
-                <ConvertedAmount amount={rent.netExpense} currency={baseCurrency} inline />
+                <ConvertedAmount
+                  amount={decimalValue(rent, 'netExpense') ?? rent.netExpense}
+                  currency={baseCurrency}
+                  inline
+                />
               </p>
             </div>
             <div>
               <p className="text-sm text-muted-foreground">{t('results.netWorth')}</p>
               <p className="text-xl font-bold text-warning">
-                <ConvertedAmount amount={rent.netWorth} currency={baseCurrency} inline />
+                <ConvertedAmount
+                  amount={decimalValue(rent, 'netWorth') ?? rent.netWorth}
+                  currency={baseCurrency}
+                  inline
+                />
               </p>
             </div>
             <div>
@@ -154,7 +199,9 @@ export const SummaryCards: React.FC<SummaryCardsProps> = ({ results, monthlySavi
               >
                 {comparison.netWorthDifference >= 0 ? '+' : ''}
                 <ConvertedAmount
-                  amount={comparison.netWorthDifference}
+                  amount={
+                    decimalValue(comparison, 'netWorthDifference') ?? comparison.netWorthDifference
+                  }
                   currency={baseCurrency}
                   inline
                 />
@@ -177,7 +224,10 @@ export const SummaryCards: React.FC<SummaryCardsProps> = ({ results, monthlySavi
               >
                 {comparison.netExpenseDifference >= 0 ? '+' : ''}
                 <ConvertedAmount
-                  amount={comparison.netExpenseDifference}
+                  amount={
+                    decimalValue(comparison, 'netExpenseDifference') ??
+                    comparison.netExpenseDifference
+                  }
                   currency={baseCurrency}
                   inline
                 />
@@ -190,7 +240,11 @@ export const SummaryCards: React.FC<SummaryCardsProps> = ({ results, monthlySavi
                 className={`text-2xl font-bold ${comparison.monthlyGap >= 0 ? 'text-green-600' : 'text-red-600'}`}
               >
                 {comparison.monthlyGap >= 0 ? '+' : ''}
-                <ConvertedAmount amount={comparison.monthlyGap} currency={baseCurrency} inline />
+                <ConvertedAmount
+                  amount={decimalValue(comparison, 'monthlyGap') ?? comparison.monthlyGap}
+                  currency={baseCurrency}
+                  inline
+                />
               </p>
               <p className="text-xs text-muted-foreground mt-1">{t('results.perMonth')}</p>
             </div>

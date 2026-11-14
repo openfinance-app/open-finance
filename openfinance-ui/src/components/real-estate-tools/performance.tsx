@@ -7,7 +7,8 @@
 
 import { useMemo, useCallback, useRef, useEffect, useState } from 'react';
 import type { BuyRentInputs, InvestmentInputs } from '@/types/realEstateTools';
-import { DEFAULT_CURRENCY, getCurrencyDecimals } from '@/utils/currency';
+import { DEFAULT_CURRENCY } from '@/utils/currency';
+import { useFormatCurrency } from '@/hooks/useFormatCurrency';
 import i18n from '@/i18n';
 import {
   DEFAULT_DEBOUNCE_MS,
@@ -234,33 +235,21 @@ export function useLazyChart() {
  * Memoized currency formatter
  */
 export function useMemoizedFormatter(currency: string = DEFAULT_CURRENCY) {
+  const { format, formatCompact } = useFormatCurrency();
   const locale = (i18n.language ?? 'en').startsWith('fr') ? 'fr-FR' : 'en-US';
   return useMemo(() => {
-    const currencyDecimals = getCurrencyDecimals(currency);
-    const currencyFormatter = new Intl.NumberFormat(locale, {
-      style: 'currency',
-      currency,
-      minimumFractionDigits: currencyDecimals,
-      maximumFractionDigits: currencyDecimals,
-    });
-
     const percentFormatter = new Intl.NumberFormat(locale, {
       style: 'percent',
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
     });
 
-    const compactFormatter = new Intl.NumberFormat(locale, {
-      notation: 'compact',
-      compactDisplay: 'short',
-    });
-
     return {
-      formatCurrency: (value: number) => currencyFormatter.format(value),
+      formatCurrency: (value: number) => format(value, currency),
       formatPercent: (value: number) => percentFormatter.format(value / 100),
-      formatCompact: (value: number) => compactFormatter.format(value),
+      formatCompact: (value: number) => formatCompact(value, currency, { showSymbol: false }),
     };
-  }, [locale, currency]);
+  }, [locale, currency, format, formatCompact]);
 }
 
 /**

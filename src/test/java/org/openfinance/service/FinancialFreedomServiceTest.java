@@ -146,7 +146,8 @@ class FinancialFreedomServiceTest {
             FreedomCalculatorResponse response = service.calculateTimeToFreedom(request);
 
             // Target = €30,000 / 0.04 = €750,000
-            assertEquals(new BigDecimal("750000.00"), response.getTargetSavingsAmount());
+            assertEquals(
+                    new BigDecimal("750000.000000000000000000"), response.getTargetSavingsAmount());
         }
 
         @Test
@@ -168,8 +169,7 @@ class FinancialFreedomServiceTest {
         }
 
         @Test
-        @DisplayName(
-                "Not-achievable message formats the target amount without a hardcoded currency symbol")
+        @DisplayName("Not-achievable message leaves monetary formatting to the frontend")
         void shouldFormatNotAchievableMessageWithoutHardcodedCurrencySymbol() {
             // Huge target relative to tiny savings/contribution/return — unreachable within 50
             // years
@@ -189,8 +189,10 @@ class FinancialFreedomServiceTest {
             // No hardcoded currency symbol — the caller/frontend applies the user's actual currency
             assertFalse(response.getMessage().contains("€"));
             assertFalse(response.getMessage().contains("$"));
-            // Target amount is still rendered with thousands separators, e.g. "30,000,000.00"
-            assertTrue(response.getMessage().contains("30,000,000.00"));
+            // The structured target remains available for preference-aware frontend formatting.
+            assertEquals(
+                    0, response.getTargetSavingsAmount().compareTo(new BigDecimal("30000000")));
+            assertTrue(response.getMessage().contains("target savings amount"));
         }
 
         @Test

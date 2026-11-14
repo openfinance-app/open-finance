@@ -1,3 +1,4 @@
+import { decimalValue, decimalField, ExactDecimal } from '@/utils/exact-decimal';
 import { formatDecimal } from '@/utils/format';
 import { useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -20,7 +21,6 @@ import {
   Percent,
   DollarSign,
 } from 'lucide-react';
-import { subtract, roundToDecimals } from '@/utils/money';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/Card';
 import { NumberInput } from '@/components/ui/NumberInput';
 import { Label } from '../ui/Label';
@@ -107,7 +107,7 @@ export function CompoundInterestCalculator({ className }: CompoundInterestCalcul
                     id="ci-principal"
                     min={0}
                     value={String(input.principal)}
-                    onChange={val => updateInput('principal', Number(val))}
+                    onChange={val => updateInput('principal', val || '0')}
                   />
                   <p className="text-xs text-muted-foreground">
                     {t('compoundInterest.calculator.fields.principal.description')}
@@ -186,7 +186,7 @@ export function CompoundInterestCalculator({ className }: CompoundInterestCalcul
                     id="ci-contribution"
                     min={0}
                     value={String(input.regularContribution)}
-                    onChange={val => updateInput('regularContribution', Number(val))}
+                    onChange={val => updateInput('regularContribution', val || '0')}
                   />
                   <p className="text-xs text-muted-foreground">
                     {t('compoundInterest.calculator.fields.contribution.description')}
@@ -252,7 +252,7 @@ export function CompoundInterestCalculator({ className }: CompoundInterestCalcul
 interface ResultsSectionProps {
   result: CompoundInterestResult;
   currency: string;
-  formatCurrency: (val: number) => string;
+  formatCurrency: (val: number | string) => string;
   t: (key: string) => string;
 }
 
@@ -264,18 +264,36 @@ function ResultsSection({ result, currency, formatCurrency, t }: ResultsSectionP
         <SummaryCard
           icon={<TrendingUp className="h-4 w-4 text-green-500" />}
           label={t('compoundInterest.results.finalBalance')}
-          value={<ConvertedAmount amount={result.finalBalance} currency={currency} inline />}
+          value={
+            <ConvertedAmount
+              amount={decimalValue(result, 'finalBalance') ?? result.finalBalance}
+              currency={currency}
+              inline
+            />
+          }
           highlight
         />
         <SummaryCard
           icon={<DollarSign className="h-4 w-4 text-blue-500" />}
           label={t('compoundInterest.results.totalInterest')}
-          value={<ConvertedAmount amount={result.totalInterest} currency={currency} inline />}
+          value={
+            <ConvertedAmount
+              amount={decimalValue(result, 'totalInterest') ?? result.totalInterest}
+              currency={currency}
+              inline
+            />
+          }
         />
         <SummaryCard
           icon={<PiggyBank className="h-4 w-4 text-yellow-500" />}
           label={t('compoundInterest.results.totalInvested')}
-          value={<ConvertedAmount amount={result.totalInvested} currency={currency} inline />}
+          value={
+            <ConvertedAmount
+              amount={decimalValue(result, 'totalInvested') ?? result.totalInvested}
+              currency={currency}
+              inline
+            />
+          }
         />
         <SummaryCard
           icon={<Percent className="h-4 w-4 text-purple-500" />}
@@ -333,18 +351,25 @@ function GrowthChart({
   t,
 }: {
   breakdown: CompoundInterestYearlyBreakdown[];
-  formatCurrency: (val: number) => string;
+  formatCurrency: (val: number | string) => string;
   t: (key: string) => string;
 }) {
   // Build chart data suitable for a stacked area
   const chartData = breakdown.map(row => {
-    const initPrincipal = breakdown[0].startingBalance;
-    const totalContribs = subtract(row.cumulativePrincipal, initPrincipal);
+    const initPrincipal = decimalField(breakdown[0], 'startingBalance');
+    const totalContribs = new ExactDecimal(decimalField(row, 'cumulativePrincipal'))
+      .minus(initPrincipal)
+      .toFixed();
     return {
       year: `Y${row.year}`,
-      [t('compoundInterest.chart.principal')]: roundToDecimals(initPrincipal),
-      [t('compoundInterest.chart.contributions')]: roundToDecimals(totalContribs),
-      [t('compoundInterest.chart.interest')]: roundToDecimals(row.cumulativeInterest),
+      [t('compoundInterest.chart.principal')]: Number(initPrincipal),
+      [t('compoundInterest.chart.contributions')]: Number(totalContribs),
+      [t('compoundInterest.chart.interest')]: row.cumulativeInterest,
+      exactValues: {
+        [t('compoundInterest.chart.principal')]: initPrincipal,
+        [t('compoundInterest.chart.contributions')]: totalContribs,
+        [t('compoundInterest.chart.interest')]: decimalField(row, 'cumulativeInterest'),
+      },
     };
   });
 
@@ -382,8 +407,12 @@ function GrowthChart({
               width={90}
             />
             <Tooltip
-              formatter={(value: number | undefined) =>
-                value != null ? formatCurrency(value) : ''
+              formatter={(value: number | undefined, name, item) =>
+                value != null
+                  ? formatCurrency(
+                      item.payload?.exactValues?.[String(item.dataKey ?? name)] ?? value
+                    )
+                  : ''
               }
             />
             <Legend />
@@ -462,19 +491,39 @@ function BreakdownTable({
                 <tr key={row.year} className="border-b border-border/50 hover:bg-surface/50">
                   <td className="py-2 pr-4 font-medium">{row.year}</td>
                   <td className="py-2 pr-4">
-                    <ConvertedAmount amount={row.startingBalance} currency={currency} inline />
+                    <ConvertedAmount
+                      amount={decimalValue(row, 'startingBalance') ?? row.startingBalance}
+                      currency={currency}
+                      inline
+                    />
                   </td>
                   <td className="py-2 pr-4">
-                    <ConvertedAmount amount={row.contributions} currency={currency} inline />
+                    <ConvertedAmount
+                      amount={decimalValue(row, 'contributions') ?? row.contributions}
+                      currency={currency}
+                      inline
+                    />
                   </td>
                   <td className="py-2 pr-4 text-green-600">
-                    <ConvertedAmount amount={row.interestEarned} currency={currency} inline />
+                    <ConvertedAmount
+                      amount={decimalValue(row, 'interestEarned') ?? row.interestEarned}
+                      currency={currency}
+                      inline
+                    />
                   </td>
                   <td className="py-2 pr-4 font-medium">
-                    <ConvertedAmount amount={row.endingBalance} currency={currency} inline />
+                    <ConvertedAmount
+                      amount={decimalValue(row, 'endingBalance') ?? row.endingBalance}
+                      currency={currency}
+                      inline
+                    />
                   </td>
                   <td className="py-2 text-green-600">
-                    <ConvertedAmount amount={row.cumulativeInterest} currency={currency} inline />
+                    <ConvertedAmount
+                      amount={decimalValue(row, 'cumulativeInterest') ?? row.cumulativeInterest}
+                      currency={currency}
+                      inline
+                    />
                   </td>
                 </tr>
               ))}

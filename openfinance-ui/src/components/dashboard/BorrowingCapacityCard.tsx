@@ -1,3 +1,4 @@
+import { decimalValue } from '@/utils/exact-decimal';
 import { formatDecimal } from '@/utils/format';
 import { Activity, TrendingUp, TrendingDown, AlertCircle } from 'lucide-react';
 import type { IBorrowingCapacity } from '@/types/dashboard';
@@ -16,7 +17,8 @@ interface BorrowingCapacityCardProps {
  */
 export default function BorrowingCapacityCard({ capacity }: BorrowingCapacityCardProps) {
   const {
-    convert,
+    convert: convertNumber,
+    convertExact: convert = convertNumber,
     secondaryCurrency: secCurrency,
     secondaryExchangeRate,
   } = useSecondaryConversion(capacity.currency || DEFAULT_CURRENCY);
@@ -94,10 +96,16 @@ export default function BorrowingCapacityCard({ capacity }: BorrowingCapacityCar
           <p className="text-sm text-text-secondary mb-1">{t('borrowingCapacity.available')}</p>
           <p className="text-3xl font-bold text-primary">
             <ConvertedAmount
-              amount={capacity.availableBorrowingCapacity}
+              amount={
+                decimalValue(capacity, 'availableBorrowingCapacity') ??
+                capacity.availableBorrowingCapacity
+              }
               currency={capacity.currency || DEFAULT_CURRENCY}
               isConverted={false}
-              secondaryAmount={convert(capacity.availableBorrowingCapacity)}
+              secondaryAmount={convert(
+                decimalValue(capacity, 'availableBorrowingCapacity') ??
+                  capacity.availableBorrowingCapacity
+              )}
               secondaryCurrency={secCurrency}
               secondaryExchangeRate={secondaryExchangeRate}
               inline
@@ -150,10 +158,12 @@ export default function BorrowingCapacityCard({ capacity }: BorrowingCapacityCar
               className={`text-lg font-semibold ${capacity.monthlyIncome > 0 ? 'text-green-500' : 'text-text-primary'}`}
             >
               <ConvertedAmount
-                amount={capacity.monthlyIncome}
+                amount={decimalValue(capacity, 'monthlyIncome') ?? capacity.monthlyIncome}
                 currency={capacity.currency || DEFAULT_CURRENCY}
                 isConverted={false}
-                secondaryAmount={convert(capacity.monthlyIncome)}
+                secondaryAmount={convert(
+                  decimalValue(capacity, 'monthlyIncome') ?? capacity.monthlyIncome
+                )}
                 secondaryCurrency={secCurrency}
                 secondaryExchangeRate={secondaryExchangeRate}
                 inline
@@ -165,10 +175,12 @@ export default function BorrowingCapacityCard({ capacity }: BorrowingCapacityCar
             <p className="text-xs text-text-secondary">{t('borrowingCapacity.monthlyExpenses')}</p>
             <p className="text-lg font-semibold text-orange-500">
               <ConvertedAmount
-                amount={capacity.monthlyExpenses}
+                amount={decimalValue(capacity, 'monthlyExpenses') ?? capacity.monthlyExpenses}
                 currency={capacity.currency || DEFAULT_CURRENCY}
                 isConverted={false}
-                secondaryAmount={convert(capacity.monthlyExpenses)}
+                secondaryAmount={convert(
+                  decimalValue(capacity, 'monthlyExpenses') ?? capacity.monthlyExpenses
+                )}
                 secondaryCurrency={secCurrency}
                 secondaryExchangeRate={secondaryExchangeRate}
                 inline
@@ -182,10 +194,14 @@ export default function BorrowingCapacityCard({ capacity }: BorrowingCapacityCar
               className={`text-lg font-semibold ${capacity.monthlyDebtPayments > 0 ? 'text-red-500' : 'text-text-primary'}`}
             >
               <ConvertedAmount
-                amount={capacity.monthlyDebtPayments}
+                amount={
+                  decimalValue(capacity, 'monthlyDebtPayments') ?? capacity.monthlyDebtPayments
+                }
                 currency={capacity.currency || DEFAULT_CURRENCY}
                 isConverted={false}
-                secondaryAmount={convert(capacity.monthlyDebtPayments)}
+                secondaryAmount={convert(
+                  decimalValue(capacity, 'monthlyDebtPayments') ?? capacity.monthlyDebtPayments
+                )}
                 secondaryCurrency={secCurrency}
                 secondaryExchangeRate={secondaryExchangeRate}
                 inline
@@ -197,10 +213,16 @@ export default function BorrowingCapacityCard({ capacity }: BorrowingCapacityCar
             <p className="text-xs text-text-secondary">{t('borrowingCapacity.recommended')}</p>
             <p className="text-lg font-semibold text-blue-500">
               <ConvertedAmount
-                amount={capacity.recommendedMaxBorrowing}
+                amount={
+                  decimalValue(capacity, 'recommendedMaxBorrowing') ??
+                  capacity.recommendedMaxBorrowing
+                }
                 currency={capacity.currency || DEFAULT_CURRENCY}
                 isConverted={false}
-                secondaryAmount={convert(capacity.recommendedMaxBorrowing)}
+                secondaryAmount={convert(
+                  decimalValue(capacity, 'recommendedMaxBorrowing') ??
+                    capacity.recommendedMaxBorrowing
+                )}
                 secondaryCurrency={secCurrency}
                 secondaryExchangeRate={secondaryExchangeRate}
                 inline

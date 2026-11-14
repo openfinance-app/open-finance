@@ -1,3 +1,4 @@
+import { decimalValue } from '@/utils/exact-decimal';
 import React from 'react';
 import { isInvestmentInputs } from '@/validators/simulationShape';
 import { Calculator, ArrowLeft, RefreshCw } from 'lucide-react';
@@ -202,20 +203,30 @@ export const PropertyRentalSimulator: React.FC<PropertyRentalSimulatorProps> = (
           <div>
             <p className="text-muted-foreground">{t('rentalSimulator.totalPrice')}</p>
             <p className="font-semibold">
-              <ConvertedAmount amount={inputs.property.totalPrice} currency={baseCurrency} inline />
+              <ConvertedAmount
+                amount={decimalValue(inputs.property, 'totalPrice') ?? inputs.property.totalPrice}
+                currency={baseCurrency}
+                inline
+              />
             </p>
           </div>
           <div>
             <p className="text-muted-foreground">{t('rentalSimulator.monthlyRent')}</p>
             <p className="font-semibold">
-              <ConvertedAmount amount={inputs.revenue.monthlyRent} currency={baseCurrency} inline />
+              <ConvertedAmount
+                amount={decimalValue(inputs.revenue, 'monthlyRent') ?? inputs.revenue.monthlyRent}
+                currency={baseCurrency}
+                inline
+              />
             </p>
           </div>
           <div>
             <p className="text-muted-foreground">{t('rentalSimulator.creditPayment')}</p>
             <p className="font-semibold">
               <ConvertedAmount
-                amount={inputs.credit.monthlyPayment}
+                amount={
+                  decimalValue(inputs.credit, 'monthlyPayment') ?? inputs.credit.monthlyPayment
+                }
                 currency={baseCurrency}
                 inline
               />

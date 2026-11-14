@@ -1,3 +1,4 @@
+import { decimalValue } from '@/utils/exact-decimal';
 import { formatDecimal } from '@/utils/format';
 /**
  * RegimeComparisonGrid Component
@@ -265,7 +266,10 @@ export const RegimeComparisonGrid: React.FC<RegimeComparisonGridProps> = ({
                       <td key={regime} className="text-center py-2 px-4">
                         {result?.performance.monthlyCashFlow != null ? (
                           <ConvertedAmount
-                            amount={result.performance.monthlyCashFlow}
+                            amount={
+                              decimalValue(result.performance, 'monthlyCashFlow') ??
+                              result.performance.monthlyCashFlow
+                            }
                             currency={baseCurrency}
                             inline
                           />
@@ -313,7 +317,9 @@ export const RegimeComparisonGrid: React.FC<RegimeComparisonGridProps> = ({
                       <td key={regime} className="text-center py-2 px-4">
                         {result ? (
                           <ConvertedAmount
-                            amount={result.revenue.taxable}
+                            amount={
+                              decimalValue(result.revenue, 'taxable') ?? result.revenue.taxable
+                            }
                             currency={baseCurrency}
                             inline
                           />
@@ -332,7 +338,10 @@ export const RegimeComparisonGrid: React.FC<RegimeComparisonGridProps> = ({
                       <td key={regime} className="text-center py-2 px-4 text-red-600">
                         {result?.taxation.totalTaxes != null ? (
                           <ConvertedAmount
-                            amount={result.taxation.totalTaxes}
+                            amount={
+                              decimalValue(result.taxation, 'totalTaxes') ??
+                              result.taxation.totalTaxes
+                            }
                             currency={baseCurrency}
                             inline
                           />

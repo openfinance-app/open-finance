@@ -53,7 +53,7 @@ public class FreedomCalculatorRequest {
      */
     @NotNull(message = "{calc.savings.required}")
     @DecimalMin(value = "0.0", message = "{calc.savings.min}")
-    @Digits(integer = 15, fraction = 2, message = "{calc.savings.digits}")
+    @Digits(integer = 15, fraction = 18, message = "{calc.savings.digits}")
     private BigDecimal currentSavings;
 
     /**
@@ -62,7 +62,7 @@ public class FreedomCalculatorRequest {
      */
     @NotNull(message = "{calc.expenses.required}")
     @DecimalMin(value = "0.0", message = "{calc.expenses.min}")
-    @Digits(integer = 12, fraction = 2, message = "{calc.expenses.digits}")
+    @Digits(integer = 12, fraction = 18, message = "{calc.expenses.digits}")
     private BigDecimal monthlyExpenses;
 
     /**
@@ -80,7 +80,7 @@ public class FreedomCalculatorRequest {
      */
     @Builder.Default
     @DecimalMin(value = "0.0", message = "{calc.contribution.min}")
-    @Digits(integer = 12, fraction = 2, message = "{calc.contribution.digits}")
+    @Digits(integer = 12, fraction = 18, message = "{calc.contribution.digits}")
     private BigDecimal monthlyContribution = BigDecimal.ZERO;
 
     /**

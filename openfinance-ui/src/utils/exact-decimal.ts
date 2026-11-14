@@ -17,6 +17,22 @@ export function decimalField<T extends object>(source: T, key: keyof T, fallback
 /** Extra headroom for the API's 26 integer + 18 fractional digit monetary limits. */
 export const ExactDecimal = Decimal.clone({ precision: 80, rounding: Decimal.ROUND_HALF_UP });
 
+/** Match the API's calculation boundary; numbers are for charts, text is for amounts. */
+export function calculatedAmounts<T extends Record<string, Decimal.Value>>(
+  values: T
+): { [K in keyof T]: number } & ExactDecimalFields {
+  const exactValues = Object.fromEntries(
+    Object.entries(values).map(([key, value]) => [
+      key,
+      new ExactDecimal(value).toDecimalPlaces(18).toFixed(),
+    ])
+  );
+  return {
+    ...Object.fromEntries(Object.entries(exactValues).map(([key, value]) => [key, Number(value)])),
+    exactValues,
+  } as { [K in keyof T]: number } & ExactDecimalFields;
+}
+
 export function equalDecimals(a: string | number, b: string | number): boolean {
   try {
     return new ExactDecimal(a).eq(b);
@@ -31,9 +47,10 @@ export function exactSum(values: (number | string)[]): string {
 
 /** Retains the numeric fallback for older API responses and callers. */
 export function decimalValue<T extends object>(
-  source: T,
+  source: T | null | undefined,
   key: keyof T
 ): string | number | undefined {
+  if (source == null) return undefined;
   const value = (source as ExactDecimalFields).exactValues?.[String(key)] ?? source[key];
   return typeof value === 'number' || typeof value === 'string' ? value : undefined;
 }

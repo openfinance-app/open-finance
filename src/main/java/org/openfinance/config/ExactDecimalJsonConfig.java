@@ -43,7 +43,9 @@ public class ExactDecimalJsonConfig implements WebMvcConfigurer {
                             List<BeanPropertyWriter> properties) {
                         String packageName = bean.getBeanClass().getPackageName();
                         if (!packageName.startsWith("org.openfinance.dto")
-                                && !packageName.equals("org.openfinance.entity")) return properties;
+                                && !packageName.equals("org.openfinance.entity")
+                                && !(packageName.startsWith("org.openfinance.")
+                                        && bean.getBeanClass().isRecord())) return properties;
                         List<BeanPropertyWriter> decimals =
                                 properties.stream()
                                         .filter(

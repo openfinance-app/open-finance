@@ -7,7 +7,7 @@
 import { useMutation, useQueries, useQuery, useQueryClient } from '@tanstack/react-query';
 import apiClient from '@/services/apiClient';
 import { multiply } from '@/utils/money';
-import { getCurrencyDecimals } from '@/utils/currency';
+import { useFormatCurrency } from '@/hooks/useFormatCurrency';
 import type {
   Currency,
   ExchangeRate,
@@ -152,28 +152,6 @@ export function useConvertAmount(amount: number, from: string, to: string) {
  * Helper hook to format amount in a specific currency
  */
 export function useCurrencyFormat(code: string) {
-  const { data: currencies } = useCurrencies();
-
-  const currency = currencies?.find(c => c.code === code);
-
-  return (amount: number) => {
-    const decimals = getCurrencyDecimals(code);
-    if (!currency) {
-      return `${code} ${amount.toFixed(decimals)}`;
-    }
-
-    const formattedAmount = new Intl.NumberFormat('en-US', {
-      minimumFractionDigits: decimals,
-      maximumFractionDigits: decimals,
-    }).format(Math.abs(amount));
-
-    const sign = amount < 0 ? '-' : '';
-
-    // Special case for CHF (symbol after)
-    if (code === 'CHF') {
-      return `${sign}${formattedAmount} ${currency.symbol}`;
-    }
-
-    return `${sign}${currency.symbol}${formattedAmount}`;
-  };
+  const { format } = useFormatCurrency();
+  return (amount: number): string => format(amount, code);
 }

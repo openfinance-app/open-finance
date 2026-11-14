@@ -52,6 +52,25 @@ class CompoundInterestControllerTest {
     }
 
     @Test
+    void retainsFractionalProjectionForAWholeUnitCurrency() throws Exception {
+        validRequest.setCurrency("JPY");
+        validRequest.setPrincipal(new BigDecimal("100.001"));
+        validRequest.setAnnualRate(new BigDecimal("1.4753"));
+        validRequest.setRegularContribution(BigDecimal.ZERO);
+        validRequest.setCompoundingFrequency(1);
+        validRequest.setYears(1);
+        mockMvc.perform(
+                        post(URL)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(validRequest)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.exactValues.totalInterest").value("1.475314753000000000"))
+                .andExpect(
+                        jsonPath("$.yearlyBreakdown[0].exactValues.interestEarned")
+                                .value("1.475314753000000000"));
+    }
+
+    @Test
     void acceptsCurrencyPrecisionAtTheHttpBoundary() throws Exception {
         validRequest.setCurrency("KWD");
         validRequest.setPrincipal(new BigDecimal("12.345"));
@@ -129,7 +148,7 @@ class CompoundInterestControllerTest {
                                     .contentType(MediaType.APPLICATION_JSON)
                                     .content(objectMapper.writeValueAsString(validRequest)))
                     .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.totalInterest", greaterThan(0.0)));
+                    .andExpect(jsonPath("$.totalInterest", greaterThan(0.0), Double.class));
         }
 
         @Test

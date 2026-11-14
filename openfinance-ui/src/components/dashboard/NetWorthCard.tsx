@@ -1,3 +1,4 @@
+import { decimalValue, ExactDecimal } from '@/utils/exact-decimal';
 import { TrendingUp, TrendingDown } from 'lucide-react';
 import type { INetWorthSummary } from '../../types/dashboard';
 import { formatDate } from '../../utils/date';
@@ -17,7 +18,7 @@ interface NetWorthCardProps {
   periodLabel?: string;
   periodRange?: DateRange;
   /** Override computed from the history chart's first/last data point, takes precedence over API monthlyChange fields */
-  periodChange?: { amount: number; percentage: number } | null;
+  periodChange?: { amount: number | string; percentage: number } | null;
   /** Last observation when the selected period has no closing balance yet. */
   observedThrough?: string;
 }
@@ -37,18 +38,21 @@ export default function NetWorthCard({
   const { t } = useTranslation('dashboard');
   const { data: settings } = useUserSettings();
   const {
-    convert,
+    convert: convertNumber,
+    convertExact: convert = convertNumber,
     secondaryCurrency: secCurrency,
     secondaryExchangeRate,
   } = useSecondaryConversion(netWorth.currency);
   // When periodChange is explicitly null, no comparison data exists for this period — don't fall back to monthly.
   // Only use monthly fallback when periodChange is undefined (prop not passed).
   const changeAmount =
-    periodChange === null ? null : (periodChange?.amount ?? netWorth.monthlyChangeAmount);
+    periodChange === null
+      ? null
+      : (periodChange?.amount ?? decimalValue(netWorth, 'monthlyChangeAmount'));
   const changePercentage =
     periodChange === null ? null : (periodChange?.percentage ?? netWorth.monthlyChangePercentage);
   const hasComparison = changeAmount != null && changePercentage != null;
-  const isPositiveChange = hasComparison && (changeAmount ?? 0) >= 0;
+  const isPositiveChange = hasComparison && new ExactDecimal(changeAmount ?? 0).gte(0);
   const changeColor = isPositiveChange ? 'gain-positive' : 'gain-negative';
   const ChangeIcon = isPositiveChange ? TrendingUp : TrendingDown;
 
@@ -68,10 +72,10 @@ export default function NetWorthCard({
       {/* Net Worth Value — the calibrated readout */}
       <div className="relative mb-4">
         <ConvertedAmount
-          amount={netWorth.netWorth}
+          amount={decimalValue(netWorth, 'netWorth') ?? netWorth.netWorth}
           currency={netWorth.currency}
           isConverted={false}
-          secondaryAmount={convert(netWorth.netWorth)}
+          secondaryAmount={convert(decimalValue(netWorth, 'netWorth') ?? netWorth.netWorth)}
           secondaryCurrency={secCurrency}
           secondaryExchangeRate={secondaryExchangeRate}
           animate
@@ -130,10 +134,10 @@ export default function NetWorthCard({
             <HelpTooltip text={t('metrics.totalAssetsTooltip')} />
           </div>
           <ConvertedAmount
-            amount={netWorth.totalAssets}
+            amount={decimalValue(netWorth, 'totalAssets') ?? netWorth.totalAssets}
             currency={netWorth.currency}
             isConverted={false}
-            secondaryAmount={convert(netWorth.totalAssets)}
+            secondaryAmount={convert(decimalValue(netWorth, 'totalAssets') ?? netWorth.totalAssets)}
             secondaryCurrency={secCurrency}
             secondaryExchangeRate={secondaryExchangeRate}
             className="text-lg font-semibold text-text-primary font-mono"
@@ -145,10 +149,12 @@ export default function NetWorthCard({
             <HelpTooltip text={t('metrics.totalLiabilitiesTooltip')} />
           </div>
           <ConvertedAmount
-            amount={netWorth.totalLiabilities}
+            amount={decimalValue(netWorth, 'totalLiabilities') ?? netWorth.totalLiabilities}
             currency={netWorth.currency}
             isConverted={false}
-            secondaryAmount={convert(netWorth.totalLiabilities)}
+            secondaryAmount={convert(
+              decimalValue(netWorth, 'totalLiabilities') ?? netWorth.totalLiabilities
+            )}
             secondaryCurrency={secCurrency}
             secondaryExchangeRate={secondaryExchangeRate}
             className={`text-lg font-semibold font-mono ${netWorth.totalLiabilities > 0 ? 'gain-negative' : 'text-text-primary'}`}

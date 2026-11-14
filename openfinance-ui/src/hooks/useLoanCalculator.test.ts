@@ -3,6 +3,19 @@ import { renderHook, act } from '@testing-library/react';
 import { useLoanCalculator } from './useLoanCalculator';
 
 describe('useLoanCalculator', () => {
+  it('retains an entered fractional principal through the complete schedule', () => {
+    const { result } = renderHook(() => useLoanCalculator());
+    act(() => {
+      result.current.updateInput('principal', '1.475349999999999999');
+      result.current.updateInput('annualRate', 0);
+      result.current.updateInput('years', 1);
+    });
+    act(() => result.current.calculate());
+    expect(result.current.result?.exactValues?.totalPayment).toBe('1.475349999999999999');
+    expect(result.current.result?.exactValues?.monthlyPayment).toBe('0.122945833333333333');
+    expect(result.current.result?.amortizationSchedule.at(-1)?.remainingBalance).toBe(0);
+  });
+
   it('initialises with default input and no result', () => {
     const { result } = renderHook(() => useLoanCalculator());
 

@@ -67,6 +67,25 @@ describe('Amount filter requests across financial surfaces', () => {
   );
 
   it.each([
+    ['accounts/search', 'balanceExact', useAccountsSearch],
+    ['assets/search', 'valueExact', useAssetsSearch],
+    ['liabilities/paged', 'balanceExact', useLiabilitiesPaged],
+    ['real-estate/search', 'valueExact', usePropertiesSearch],
+    ['transactions/search', 'amountExact', useTransactions],
+    ['transactions/summary', 'amountExact', useTransactionSummary],
+  ] as const)('preserves exact decimals on %s', async (path, parameter, useSurface) => {
+    const exact = '1075.000000000000000001';
+    const { result } = renderHook(
+      () => useSurface({ balanceExact: exact, valueExact: exact, exactAmount: exact }),
+      { wrapper }
+    );
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    const request = new URL(vi.mocked(apiClient.get).mock.calls.at(-1)![0], 'http://localhost');
+    expect(request.pathname).toBe(`/${path}`);
+    expect(request.searchParams.get(parameter)).toBe(exact);
+  });
+
+  it.each([
     ['assets', useAssetsSearch],
     ['real-estate', usePropertiesSearch],
   ] as const)('includes every matching page in %s summaries', async (_surface, useSurface) => {

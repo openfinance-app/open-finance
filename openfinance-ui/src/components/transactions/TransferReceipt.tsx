@@ -2,9 +2,8 @@ import type { ReactElement } from 'react';
 import { useTranslation } from 'react-i18next';
 import { PrivateAmount } from '@/components/ui/PrivateAmount';
 import type { Transaction } from '@/types/transaction';
-import { decimalField, equalDecimals, ExactDecimal } from '@/utils/exact-decimal';
-import { formatExactNumber } from '@/utils/format';
-import { getCurrencyDecimals } from '@/utils/currency';
+import { decimalField, equalDecimals } from '@/utils/exact-decimal';
+import { useFormatCurrency } from '@/hooks/useFormatCurrency';
 
 /** The received instruction belongs to the other posting, not to the sending amount field. */
 export function TransferReceipt({
@@ -13,6 +12,7 @@ export function TransferReceipt({
   transaction: Transaction;
 }): ReactElement | null {
   const { t } = useTranslation('transactions');
+  const { format } = useFormatCurrency();
   const currency = transaction.transferCurrency;
   if (!currency || transaction.transferAmount == null) return null;
 
@@ -34,14 +34,11 @@ export function TransferReceipt({
       <dt className="text-text-secondary">{t('form.recordedReceipt')}</dt>
       <dd className="min-w-0 break-words text-text-primary">
         <PrivateAmount inline className="font-mono tabular-nums">
-          {formatExactNumber(originalAmount)} {originalCurrency}
+          {format(originalAmount, originalCurrency, { showSymbol: false })} {originalCurrency}
           {converted && originalCurrency !== currency && (
             <span className="text-text-secondary">
               {' ≈ '}
-              {formatExactNumber(
-                new ExactDecimal(amount).toDecimalPlaces(getCurrencyDecimals(currency)).toFixed()
-              )}{' '}
-              {currency}
+              {format(amount, currency, { showSymbol: false })} {currency}
             </span>
           )}
         </PrivateAmount>

@@ -1,3 +1,4 @@
+import { decimalValue, exactSum } from '@/utils/exact-decimal';
 import { useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Calculator, RefreshCw, DollarSign, Percent, Calendar } from 'lucide-react';
@@ -30,7 +31,7 @@ interface LoanCalculatorProps {
 }
 
 export function LoanCalculator({ className }: LoanCalculatorProps) {
-  const { t, i18n } = useTranslation('tools');
+  const { t } = useTranslation('tools');
   const { baseCurrency } = useAuthContext();
   const { input, result, error, updateInput, resetInputs, calculate } = useLoanCalculator();
   const { format: formatCurrency } = useFormatCurrency();
@@ -77,7 +78,7 @@ export function LoanCalculator({ className }: LoanCalculatorProps) {
                     min="0"
                     className="pl-10"
                     value={input.principal ? String(input.principal) : ''}
-                    onChange={val => updateInput('principal', val ? Number(val) : 0)}
+                    onChange={val => updateInput('principal', val || '0')}
                   />
                 </div>
               </div>
@@ -155,7 +156,7 @@ export function LoanCalculator({ className }: LoanCalculatorProps) {
                     <TooltipTrigger asChild>
                       <div className="text-3xl font-bold text-foreground truncate">
                         <ConvertedAmount
-                          amount={result.monthlyPayment}
+                          amount={decimalValue(result, 'monthlyPayment') ?? result.monthlyPayment}
                           currency={baseCurrency}
                           inline
                         />
@@ -166,7 +167,7 @@ export function LoanCalculator({ className }: LoanCalculatorProps) {
                       sideOffset={4}
                     >
                       <ConvertedAmount
-                        amount={result.monthlyPayment}
+                        amount={decimalValue(result, 'monthlyPayment') ?? result.monthlyPayment}
                         currency={baseCurrency}
                         inline
                       />
@@ -186,7 +187,7 @@ export function LoanCalculator({ className }: LoanCalculatorProps) {
                     <TooltipTrigger asChild>
                       <div className="text-2xl font-semibold text-foreground truncate">
                         <ConvertedAmount
-                          amount={result.totalInterest}
+                          amount={decimalValue(result, 'totalInterest') ?? result.totalInterest}
                           currency={baseCurrency}
                           inline
                         />
@@ -197,7 +198,7 @@ export function LoanCalculator({ className }: LoanCalculatorProps) {
                       sideOffset={4}
                     >
                       <ConvertedAmount
-                        amount={result.totalInterest}
+                        amount={decimalValue(result, 'totalInterest') ?? result.totalInterest}
                         currency={baseCurrency}
                         inline
                       />
@@ -217,7 +218,7 @@ export function LoanCalculator({ className }: LoanCalculatorProps) {
                     <TooltipTrigger asChild>
                       <div className="text-2xl font-semibold text-foreground truncate">
                         <ConvertedAmount
-                          amount={result.totalPayment}
+                          amount={decimalValue(result, 'totalPayment') ?? result.totalPayment}
                           currency={baseCurrency}
                           inline
                         />
@@ -228,7 +229,7 @@ export function LoanCalculator({ className }: LoanCalculatorProps) {
                       sideOffset={4}
                     >
                       <ConvertedAmount
-                        amount={result.totalPayment}
+                        amount={decimalValue(result, 'totalPayment') ?? result.totalPayment}
                         currency={baseCurrency}
                         inline
                       />
@@ -266,18 +267,18 @@ export function LoanCalculator({ className }: LoanCalculatorProps) {
                     />
                     <YAxis
                       tickFormatter={val =>
-                        new Intl.NumberFormat(i18n.language, {
-                          notation: 'compact',
-                          compactDisplay: 'short',
-                        }).format(val)
+                        formatCurrency(val, baseCurrency, { compact: true, showSymbol: false })
                       }
                       stroke="#888888"
                       fontSize={12}
                     />
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
                     <Tooltip
-                      formatter={value => [
-                        formatCurrency(value as number, baseCurrency),
+                      formatter={(value, _name, item) => [
+                        formatCurrency(
+                          decimalValue(item.payload, 'remainingBalance') ?? (value as number),
+                          baseCurrency
+                        ),
                         'Balance',
                       ]}
                       labelFormatter={label =>
@@ -331,19 +332,28 @@ export function LoanCalculator({ className }: LoanCalculatorProps) {
                     {(() => {
                       const yearlyStats: {
                         year: number;
-                        payment: number;
-                        principal: number;
-                        interest: number;
-                        balance: number;
+                        payment: number | string;
+                        principal: number | string;
+                        interest: number | string;
+                        balance: number | string;
                       }[] = [];
-                      let yearPrincipal = 0;
-                      let yearInterest = 0;
-                      let yearPayment = 0;
+                      let yearPrincipal = '0';
+                      let yearInterest = '0';
+                      let yearPayment = '0';
 
                       result.amortizationSchedule.forEach(entry => {
-                        yearPrincipal += entry.principalPortion;
-                        yearInterest += entry.interestPortion;
-                        yearPayment += entry.paymentAmount;
+                        yearPrincipal = exactSum([
+                          yearPrincipal,
+                          decimalValue(entry, 'principalPortion') ?? 0,
+                        ]);
+                        yearInterest = exactSum([
+                          yearInterest,
+                          decimalValue(entry, 'interestPortion') ?? 0,
+                        ]);
+                        yearPayment = exactSum([
+                          yearPayment,
+                          decimalValue(entry, 'paymentAmount') ?? 0,
+                        ]);
 
                         if (
                           entry.paymentNumber % 12 === 0 ||
@@ -354,11 +364,11 @@ export function LoanCalculator({ className }: LoanCalculatorProps) {
                             payment: yearPayment,
                             principal: yearPrincipal,
                             interest: yearInterest,
-                            balance: entry.remainingBalance,
+                            balance: decimalValue(entry, 'remainingBalance') ?? 0,
                           });
-                          yearPrincipal = 0;
-                          yearInterest = 0;
-                          yearPayment = 0;
+                          yearPrincipal = '0';
+                          yearInterest = '0';
+                          yearPayment = '0';
                         }
                       });
 
@@ -366,24 +376,32 @@ export function LoanCalculator({ className }: LoanCalculatorProps) {
                         <tr key={stat.year} className="hover:bg-muted/50 transition-colors">
                           <td className="px-4 py-3 font-medium text-foreground">{stat.year}</td>
                           <td className="px-4 py-3 text-right">
-                            <ConvertedAmount amount={stat.payment} currency={baseCurrency} inline />
+                            <ConvertedAmount
+                              amount={decimalValue(stat, 'payment') ?? stat.payment}
+                              currency={baseCurrency}
+                              inline
+                            />
                           </td>
                           <td className="px-4 py-3 text-right text-muted-foreground">
                             <ConvertedAmount
-                              amount={stat.principal}
+                              amount={decimalValue(stat, 'principal') ?? stat.principal}
                               currency={baseCurrency}
                               inline
                             />
                           </td>
                           <td className="px-4 py-3 text-right text-red-600 dark:text-red-400">
                             <ConvertedAmount
-                              amount={stat.interest}
+                              amount={decimalValue(stat, 'interest') ?? stat.interest}
                               currency={baseCurrency}
                               inline
                             />
                           </td>
                           <td className="px-4 py-3 text-right font-medium text-foreground">
-                            <ConvertedAmount amount={stat.balance} currency={baseCurrency} inline />
+                            <ConvertedAmount
+                              amount={decimalValue(stat, 'balance') ?? stat.balance}
+                              currency={baseCurrency}
+                              inline
+                            />
                           </td>
                         </tr>
                       ));

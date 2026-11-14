@@ -16,6 +16,9 @@ vi.mock('@/hooks/useSecondaryConversion', () => ({
 vi.mock('@/context/NumberFormatContext', () => ({
   useNumberFormat: vi.fn(),
 }));
+vi.mock('@/context/DecimalPlacesContext', () => ({
+  useDecimalPlaces: () => ({ effectiveDecimals: null }),
+}));
 
 vi.mock('@/components/ui/PrivateAmount', () => ({
   PrivateAmount: ({ children }: { children: React.ReactNode }) => (

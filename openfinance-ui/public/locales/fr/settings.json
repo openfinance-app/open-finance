@@ -87,9 +87,9 @@
     },
     "decimalPlaces": {
       "label": "Décimales",
-      "description": "Remplacez le nombre de décimales affichées pour tous les montants monétaires. Désactivé, chaque devise utilise sa précision naturelle (par ex. JPY 0, crypto jusqu'à 8).",
+      "description": "Choisissez le nombre de décimales affichées pour les montants monétaires. Si désactivé, les valeurs par défaut des devises sont utilisées : yens entiers, deux décimales pour les euros et huit pour les cryptomonnaies. Les montants enregistrés restent inchangés.",
       "enableLabel": "Utiliser un nombre de décimales personnalisé",
-      "enableHint": "S'applique à toutes les devises. Minimum 1 pour ne pas masquer les petits montants.",
+      "enableHint": "Choisissez de 1 à 8 décimales. Cela modifie uniquement l’arrondi à l’affichage.",
       "placesLabel": "Décimales",
       "livePreview": "Aperçu en direct",
       "updateSuccess": "Décimales mises à jour avec succès",

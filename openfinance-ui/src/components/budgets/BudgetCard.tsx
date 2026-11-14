@@ -1,3 +1,4 @@
+import { ExactDecimal, decimalValue } from '@/utils/exact-decimal';
 import { SelectionCheckbox } from '@/components/bulk/BulkSelection';
 /**
  * BudgetCard Component
@@ -60,17 +61,20 @@ function getStatusVariant(status: string): 'success' | 'warning' | 'error' | 'de
 
 export function BudgetCard({ budget, onEdit, onDelete, onViewDetail }: BudgetCardProps) {
   const displayCurrency = budget.nativeCurrency ?? budget.currency;
-  const budgeted = budget.nativeBudgeted ?? budget.budgeted;
-  const spent = budget.nativeSpent ?? budget.spent;
-  const remaining = budget.nativeRemaining ?? budget.remaining;
+  const budgeted = decimalValue(budget, 'nativeBudgeted') ?? decimalValue(budget, 'budgeted') ?? 0;
+  const spent = decimalValue(budget, 'nativeSpent') ?? decimalValue(budget, 'spent') ?? 0;
+  const remaining =
+    decimalValue(budget, 'nativeRemaining') ?? decimalValue(budget, 'remaining') ?? 0;
   const {
-    convert,
+    convert: convertNumber,
+    convertExact,
     secondaryCurrency: secCurrency,
     secondaryExchangeRate,
   } = useSecondaryConversion(displayCurrency);
+  const convert = convertExact ?? convertNumber;
   const { t } = useTranslation('budgets');
   const { t: tc } = useTranslation('common');
-  const isOverBudget = remaining < 0;
+  const isOverBudget = new ExactDecimal(remaining).lt(0);
   const progressWidth = Math.max(
     0,
     Math.min(budget.percentageSpent ?? (isOverBudget ? 100 : 0), 100)
@@ -147,7 +151,7 @@ export function BudgetCard({ budget, onEdit, onDelete, onViewDetail }: BudgetCar
           <span className="text-sm font-medium font-mono text-text-primary">
             <ConvertedAmount
               amount={budgeted}
-              convertedAmount={budget.budgeted}
+              convertedAmount={decimalValue(budget, 'budgeted') ?? budget.budgeted}
               currency={displayCurrency}
               baseCurrency={budget.currency}
               isConverted={displayCurrency !== budget.currency}
@@ -163,7 +167,7 @@ export function BudgetCard({ budget, onEdit, onDelete, onViewDetail }: BudgetCar
           <span className="text-sm font-medium font-mono text-text-primary">
             <ConvertedAmount
               amount={spent}
-              convertedAmount={budget.spent}
+              convertedAmount={decimalValue(budget, 'spent') ?? budget.spent}
               currency={displayCurrency}
               baseCurrency={budget.currency}
               isConverted={displayCurrency !== budget.currency}
@@ -184,7 +188,7 @@ export function BudgetCard({ budget, onEdit, onDelete, onViewDetail }: BudgetCar
           >
             <ConvertedAmount
               amount={remaining}
-              convertedAmount={budget.remaining}
+              convertedAmount={decimalValue(budget, 'remaining') ?? budget.remaining}
               currency={displayCurrency}
               baseCurrency={budget.currency}
               isConverted={displayCurrency !== budget.currency}
@@ -201,9 +205,15 @@ export function BudgetCard({ budget, onEdit, onDelete, onViewDetail }: BudgetCar
         <p className="mb-3 flex items-center justify-between text-xs text-text-secondary">
           <span>{t('card.includesCarry')}</span>
           <ConvertedAmount
-            amount={budget.nativeCarryover ?? budget.carryover ?? 0}
+            amount={
+              decimalValue(budget, 'nativeCarryover') ??
+              budget.nativeCarryover ??
+              decimalValue(budget, 'carryover') ??
+              budget.carryover ??
+              0
+            }
             currency={displayCurrency}
-            convertedAmount={budget.carryover ?? 0}
+            convertedAmount={decimalValue(budget, 'carryover') ?? budget.carryover ?? 0}
             baseCurrency={budget.currency}
             isConverted={displayCurrency !== budget.currency}
             inline
@@ -232,12 +242,16 @@ export function BudgetCard({ budget, onEdit, onDelete, onViewDetail }: BudgetCar
             <span className="text-xs font-medium">
               {t('card.overBudgetBy')}{' '}
               <ConvertedAmount
-                amount={Math.abs(remaining)}
-                convertedAmount={Math.abs(budget.remaining)}
+                amount={new ExactDecimal(remaining).abs().toFixed()}
+                convertedAmount={new ExactDecimal(
+                  decimalValue(budget, 'remaining') ?? budget.remaining
+                )
+                  .abs()
+                  .toFixed()}
                 currency={displayCurrency}
                 baseCurrency={budget.currency}
                 isConverted={displayCurrency !== budget.currency}
-                secondaryAmount={convert(Math.abs(remaining))}
+                secondaryAmount={convert(new ExactDecimal(remaining).abs().toFixed())}
                 secondaryCurrency={secCurrency}
                 secondaryExchangeRate={secondaryExchangeRate}
                 inline

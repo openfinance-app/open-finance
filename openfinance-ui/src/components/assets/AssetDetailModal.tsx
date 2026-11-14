@@ -1,8 +1,8 @@
+import { decimalValue, decimalField } from '@/utils/exact-decimal';
 import { useAnimatedClose } from '@/hooks/useAnimatedClose';
 import { useViewScroll } from '@/hooks/useViewScroll';
 import { useViewState } from '@/hooks/useViewState';
 import { OwnershipActions } from '@/components/assets/OwnershipActions';
-import { decimalField } from '@/utils/exact-decimal';
 import { apiErrorMessage } from '@/utils/api-error';
 import { AssetReturn } from '@/components/assets/AssetReturn';
 import { useDateFormatter } from '@/hooks/useDateFormatter';
@@ -39,7 +39,6 @@ import type { Asset } from '@/types/asset';
 import { useHistoricalPrices } from '@/hooks/useMarketData';
 import { getGainLossColor } from '@/utils/portfolio';
 import { multiply } from '@/utils/money';
-import { getCurrencySymbol } from '@/utils/currency';
 import { useFormatCurrency } from '@/hooks/useFormatCurrency';
 import { useSecondaryConversion } from '@/hooks/useSecondaryConversion';
 import { LastUpdatedIndicator } from './LastUpdatedIndicator';
@@ -297,13 +296,19 @@ export function AssetDetailModal({
                         <p className="text-2xl font-bold text-foreground">
                           {/* REQ-2.2: Display current value with base-currency conversion when available */}
                           <ConvertedAmount
-                            amount={asset.totalValue}
+                            amount={decimalValue(asset, 'totalValue') ?? asset.totalValue}
                             currency={asset.currency}
-                            convertedAmount={asset.valueInBaseCurrency}
+                            convertedAmount={
+                              decimalValue(asset, 'valueInBaseCurrency') ??
+                              asset.valueInBaseCurrency
+                            }
                             baseCurrency={asset.baseCurrency}
-                            exchangeRate={asset.exchangeRate}
+                            exchangeRate={decimalValue(asset, 'exchangeRate') ?? asset.exchangeRate}
                             isConverted={asset.isConverted}
-                            secondaryAmount={asset.valueInSecondaryCurrency}
+                            secondaryAmount={
+                              decimalValue(asset, 'valueInSecondaryCurrency') ??
+                              asset.valueInSecondaryCurrency
+                            }
                             secondaryCurrency={asset.secondaryCurrency}
                           />
                         </p>
@@ -343,7 +348,7 @@ export function AssetDetailModal({
                       <p className="text-2xl font-bold text-foreground">
                         {/* Cost basis converted to base currency using same rate as totalValue */}
                         <ConvertedAmount
-                          amount={asset.totalCost}
+                          amount={decimalValue(asset, 'totalCost') ?? asset.totalCost}
                           currency={asset.currency}
                           convertedAmount={
                             asset.isConverted && asset.exchangeRate
@@ -351,7 +356,7 @@ export function AssetDetailModal({
                               : undefined
                           }
                           baseCurrency={asset.baseCurrency}
-                          exchangeRate={asset.exchangeRate}
+                          exchangeRate={decimalValue(asset, 'exchangeRate') ?? asset.exchangeRate}
                           isConverted={asset.isConverted}
                         />
                       </p>
@@ -450,7 +455,7 @@ export function AssetDetailModal({
                               stroke="#888"
                               tick={{ fill: '#888', fontSize: 12 }}
                               tickFormatter={value =>
-                                `${getCurrencySymbol(chartCurrency)}${value.toFixed(0)}`
+                                formatCurrency(value, chartCurrency, { compact: true })
                               }
                             />
                             <Tooltip
@@ -535,7 +540,7 @@ export function AssetDetailModal({
                               t('notApplicable')
                             ) : (
                               <CurrencyAmount
-                                amount={asset.receivedValue}
+                                amount={decimalValue(asset, 'receivedValue') ?? asset.receivedValue}
                                 currency={asset.currency}
                                 conversionDate={asset.purchaseDate}
                               />

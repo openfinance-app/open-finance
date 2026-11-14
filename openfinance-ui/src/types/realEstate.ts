@@ -171,13 +171,13 @@ export interface PropertySearchFilters {
   hasMortgage?: boolean;
   purchaseDateFrom?: string;
   purchaseDateTo?: string;
-  valueMin?: number;
-  valueMax?: number;
-  valueExact?: number;
+  valueMin?: number | string;
+  valueMax?: number | string;
+  valueExact?: number | string;
   amountCurrencyMode?: AmountCurrencyMode;
-  priceMin?: number;
-  priceMax?: number;
-  rentalIncomeMin?: number;
+  priceMin?: number | string;
+  priceMax?: number | string;
+  rentalIncomeMin?: number | string;
   // Pagination
   page?: number;
   size?: number;

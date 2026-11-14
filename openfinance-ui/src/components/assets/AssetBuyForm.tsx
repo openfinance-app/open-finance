@@ -96,7 +96,7 @@ export function AssetBuyForm({ target, onClose }: { target: SaleTarget; onClose:
           <dd>
             <ConvertedAmount
               className="font-mono tabular-nums"
-              amount={-Number(amount)}
+              amount={new ExactDecimal(amount || '0').negated().toFixed()}
               currency={target.currency}
               inline
             />

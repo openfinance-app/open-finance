@@ -12,7 +12,7 @@ import {
 import { enUS, fr } from 'date-fns/locale';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/Tooltip';
 import { ConvertedAmount } from '@/components/ui/ConvertedAmount';
-import { subtract } from '@/utils/money';
+import { decimalValue, ExactDecimal } from '@/utils/exact-decimal';
 import { cn } from '@/lib/utils';
 import type { ICashFlowPeriod } from '@/types/dashboard';
 
@@ -54,10 +54,10 @@ export default function DailyCashFlowGrid({
 
   // Pre-build a lookup map for O(1) day-data access
   const dailyDataMap = useMemo(() => {
-    const map = new Map<string, { income: number; expense: number }>();
+    const map = new Map<string, ICashFlowPeriod>();
     if (!dailyData) return map;
     for (const d of dailyData) {
-      map.set(d.date, { income: Number(d.income) || 0, expense: Number(d.expense) || 0 });
+      map.set(d.date, d);
     }
     return map;
   }, [dailyData]);
@@ -100,7 +100,9 @@ export default function DailyCashFlowGrid({
 
           const income = dayData?.income ?? 0;
           const expense = dayData?.expense ?? 0;
-          const net = subtract(income, expense);
+          const net = new ExactDecimal(decimalValue(dayData, 'income') ?? 0).minus(
+            decimalValue(dayData, 'expense') ?? 0
+          );
           const hasActivity = income > 0 || expense > 0;
 
           // Scale to BAR_AREA_HEIGHT_PX so bars always render with concrete pixel values
@@ -184,7 +186,11 @@ export default function DailyCashFlowGrid({
                       {t('calendar.income')}:
                     </span>
                     <span className="text-success font-medium text-right">
-                      <ConvertedAmount amount={income} currency={baseCurrency} inline />
+                      <ConvertedAmount
+                        amount={decimalValue(dayData, 'income') ?? 0}
+                        currency={baseCurrency}
+                        inline
+                      />
                     </span>
 
                     <span className="text-text-secondary flex items-center gap-1">
@@ -192,7 +198,11 @@ export default function DailyCashFlowGrid({
                       {t('calendar.expense')}:
                     </span>
                     <span className="text-error font-medium text-right">
-                      <ConvertedAmount amount={expense} currency={baseCurrency} inline />
+                      <ConvertedAmount
+                        amount={decimalValue(dayData, 'expense') ?? 0}
+                        currency={baseCurrency}
+                        inline
+                      />
                     </span>
 
                     <span className="text-text-secondary font-medium pt-1 border-t mt-0.5">
@@ -201,11 +211,19 @@ export default function DailyCashFlowGrid({
                     <span
                       className={cn(
                         'font-bold text-right pt-1 border-t mt-0.5',
-                        net > 0 ? 'text-success' : net < 0 ? 'text-error' : 'text-text-secondary'
+                        net.gt(0)
+                          ? 'text-success'
+                          : net.lt(0)
+                            ? 'text-error'
+                            : 'text-text-secondary'
                       )}
                     >
-                      {net > 0 ? '+' : net < 0 ? '-' : ''}
-                      <ConvertedAmount amount={Math.abs(net)} currency={baseCurrency} inline />
+                      {net.gt(0) ? '+' : net.lt(0) ? '-' : ''}
+                      <ConvertedAmount
+                        amount={net.abs().toFixed()}
+                        currency={baseCurrency}
+                        inline
+                      />
                     </span>
                   </div>
                 </TooltipContent>

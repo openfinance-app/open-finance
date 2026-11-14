@@ -16,6 +16,12 @@ import {
 import apiClient from '@/services/apiClient';
 
 vi.mock('@/services/apiClient');
+vi.mock('@/context/NumberFormatContext', () => ({
+  useNumberFormat: () => ({ numberFormat: '1,234.56' }),
+}));
+vi.mock('@/context/DecimalPlacesContext', () => ({
+  useDecimalPlaces: () => ({ effectiveDecimals: null }),
+}));
 const mockedApiClient = apiClient as any;
 
 describe('useCurrency hooks', () => {
@@ -178,12 +184,10 @@ describe('useCurrency hooks', () => {
       expect(typeof result.current).toBe('function');
     });
 
-    it('should format amount with fallback when currency not loaded', () => {
+    it('should format consistently before the currency catalog loads', () => {
       const { result } = renderHook(() => useCurrencyFormat('USD'), { wrapper });
       const formatted = result.current(1234.56);
-      expect(formatted).toContain('USD');
-      // Fallback uses toFixed(2) without locale formatting: "USD 1234.56"
-      expect(formatted).toContain('1234.56');
+      expect(formatted).toBe('$1,234.56');
     });
 
     it('should format negative amounts', () => {

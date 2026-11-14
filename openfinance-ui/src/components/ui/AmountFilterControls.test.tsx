@@ -45,13 +45,13 @@ describe('Amount comparison controls', () => {
     await user.type(await screen.findByLabelText('Exact amount'), '0');
     expect(screen.getByLabelText('Min amount')).toHaveValue('');
     expect(screen.getByLabelText('Max amount')).toHaveValue('');
-    expect(screen.getByLabelText('Selected filters')).toHaveTextContent('"exact":0');
+    expect(screen.getByLabelText('Selected filters')).toHaveTextContent('"exact":"0"');
     expect(screen.getByLabelText('Selected filters')).toHaveTextContent(
       '"amountCurrencyMode":"NATIVE"'
     );
     await user.type(screen.getByLabelText('Max amount'), '2500');
     expect(screen.getByLabelText('Exact amount')).toHaveValue('');
-    expect(screen.getByLabelText('Selected filters')).toHaveTextContent('"max":2500');
+    expect(screen.getByLabelText('Selected filters')).toHaveTextContent('"max":"2500"');
     await user.clear(screen.getByLabelText('Max amount'));
     expect(screen.getByLabelText('Selected filters')).toHaveTextContent(
       '{"amountCurrencyMode":"NATIVE"}'
@@ -62,6 +62,17 @@ describe('Amount comparison controls', () => {
     const user = userEvent.setup();
     renderWithProviders(<Harness allowNegative />);
     await user.type(await screen.findByLabelText('Exact amount'), '-60.98');
-    expect(screen.getByLabelText('Selected filters')).toHaveTextContent('"exact":-60.98');
+    expect(screen.getByLabelText('Selected filters')).toHaveTextContent('"exact":"-60.98"');
   });
 });
+
+it.each(['Exact amount', 'Min amount', 'Max amount'])(
+  'retains every entered digit in %s',
+  async label => {
+    mockAuthentication();
+    const user = userEvent.setup();
+    renderWithProviders(<Harness />);
+    await user.type(await screen.findByLabelText(label), '1075.000000000000000001');
+    expect(screen.getByLabelText('Selected filters')).toHaveTextContent('1075.000000000000000001');
+  }
+);

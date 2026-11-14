@@ -9,6 +9,9 @@ import * as AuthContextModule from '@/context/AuthContext';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 const mockNavigate = vi.hoisted(() => vi.fn());
+vi.mock('@/context/DecimalPlacesContext', () => ({
+  useDecimalPlaces: () => ({ effectiveDecimals: null }),
+}));
 
 // Mock the hooks
 vi.mock('@/hooks/useBudgets', () => ({

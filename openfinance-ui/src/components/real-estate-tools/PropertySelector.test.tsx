@@ -77,7 +77,7 @@ describe('using an existing property in a simulation', () => {
     await waitFor(() =>
       expect(selected).toHaveBeenCalledWith(
         expect.objectContaining({
-          purchase: expect.objectContaining({ propertyPrice: 148148.14 }),
+          purchase: expect.objectContaining({ propertyPrice: 148148.136 }),
           rental: expect.objectContaining({ monthlyRent: 1185.18, securityDeposit: 1185.18 }),
         })
       )

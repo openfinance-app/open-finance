@@ -1,3 +1,4 @@
+import { decimalValue, exactSum } from '@/utils/exact-decimal';
 import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router';
 import { PiggyBank, TrendingUp } from 'lucide-react';
@@ -33,7 +34,8 @@ export default function EstimatedInterestCard({
 }: EstimatedInterestCardProps) {
   const [filterType, setFilterType] = useState<'ALL' | 'ACCOUNTS' | 'LIABILITIES'>('ALL');
   const {
-    convert,
+    convert: convertNumber,
+    convertExact: convert = convertNumber,
     secondaryCurrency: secCurrency,
     secondaryExchangeRate,
   } = useSecondaryConversion(summary.currency || DEFAULT_CURRENCY);
@@ -66,12 +68,12 @@ export default function EstimatedInterestCard({
 
   const displayEarned =
     filterType === 'ALL'
-      ? summary.totalEarned
-      : filteredAccounts.reduce((sum, acc) => sum + (acc.interestEarned || 0), 0);
+      ? (decimalValue(summary, 'totalEarned') ?? summary.totalEarned)
+      : exactSum(filteredAccounts.map(acc => decimalValue(acc, 'interestEarned') ?? 0));
   const displayProjected =
     filterType === 'ALL'
-      ? summary.totalProjected
-      : filteredAccounts.reduce((sum, acc) => sum + (acc.projectedInterest || 0), 0);
+      ? (decimalValue(summary, 'totalProjected') ?? summary.totalProjected)
+      : exactSum(filteredAccounts.map(acc => decimalValue(acc, 'projectedInterest') ?? 0));
 
   return (
     <div className="bg-surface rounded-lg p-6 border border-border h-full flex flex-col">
@@ -163,10 +165,12 @@ export default function EstimatedInterestCard({
                 <div className="text-right shrink-0">
                   <div className="text-sm font-bold text-green-500">
                     <ConvertedAmount
-                      amount={account.interestEarned}
+                      amount={decimalValue(account, 'interestEarned') ?? account.interestEarned}
                       currency={summary.currency || DEFAULT_CURRENCY}
                       isConverted={false}
-                      secondaryAmount={convert(account.interestEarned)}
+                      secondaryAmount={convert(
+                        decimalValue(account, 'interestEarned') ?? account.interestEarned
+                      )}
                       secondaryCurrency={secCurrency}
                       secondaryExchangeRate={secondaryExchangeRate}
                       inline
@@ -175,10 +179,14 @@ export default function EstimatedInterestCard({
                   <div className="text-xs text-text-muted">
                     {t('estimatedInterest.projShort')}:{' '}
                     <ConvertedAmount
-                      amount={account.projectedInterest}
+                      amount={
+                        decimalValue(account, 'projectedInterest') ?? account.projectedInterest
+                      }
                       currency={summary.currency || DEFAULT_CURRENCY}
                       isConverted={false}
-                      secondaryAmount={convert(account.projectedInterest)}
+                      secondaryAmount={convert(
+                        decimalValue(account, 'projectedInterest') ?? account.projectedInterest
+                      )}
                       secondaryCurrency={secCurrency}
                       secondaryExchangeRate={secondaryExchangeRate}
                       inline

@@ -1,5 +1,5 @@
 import type { BuyRentInputs } from '@/types/realEstateTools';
-import { multiply, roundToDecimals } from '@/utils/money';
+import { multiply } from '@/utils/money';
 
 /** Convert monetary inputs only; rates, years and flags retain their meaning. */
 export function convertBuyRentInputs(
@@ -24,7 +24,7 @@ export function convertBuyRentInputs(
     'bankFees',
     'garbageTax',
   ] as const;
-  const convert = (amount: number): number => roundToDecimals(multiply(amount, rate), 2);
+  const convert = (amount: number): number => multiply(amount, rate);
   for (const key of moneyFields) purchase[key] = convert(purchase[key]);
   const rental = { ...inputs.rental };
   for (const key of Object.keys(rental) as Array<keyof typeof rental>) {

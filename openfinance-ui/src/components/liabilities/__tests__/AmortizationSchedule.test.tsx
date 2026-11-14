@@ -186,7 +186,7 @@ describe('AmortizationSchedule', () => {
         reader.readAsText(blob);
       });
       expect(csv).toContain('Insurance');
-      expect(csv).toContain('1510.00,1200.00,300.00,10.00,0.00,0.00,299800.00');
+      expect(csv).toContain('1510,1200,300,10,0,0,299800');
     });
   });
 
@@ -367,7 +367,7 @@ describe('AmortizationSchedule', () => {
         reader.readAsText(createObjectURL.mock.calls[0][0]);
       });
       expect(csv.split('\n')).toHaveLength(361);
-      expect(csv).toContain('Remaining,360,,2020-02-01,360.00');
+      expect(csv).toContain('Remaining,360,,2020-02-01,360');
       expect(csv).not.toContain('Paid,');
     });
 
@@ -398,7 +398,7 @@ describe('AmortizationSchedule', () => {
         reader.onload = () => resolve(String(reader.result));
         reader.readAsText(createObjectURL.mock.calls[0][0]);
       });
-      expect(csv).toContain('Paid,,42,2019-12-05,127.00,80.00,12.00,5.00,30.00,0.00,300000.00');
+      expect(csv).toContain('Paid,,42,2019-12-05,127,80,12,5,30,0,300000');
       expect(csv).not.toContain('Remaining,');
     });
   });
@@ -461,7 +461,7 @@ describe('AmortizationSchedule', () => {
       expect(screen.getByText(/Export CSV/i)).toBeInTheDocument();
     });
 
-    it('exports all KWD minor units independent of display rounding', async () => {
+    it('exports exact API values beyond currency minor units independent of display rounding', async () => {
       const createObjectURL = vi.fn((_blob: Blob) => 'blob:kwd');
       global.URL.createObjectURL = createObjectURL;
       global.URL.revokeObjectURL = vi.fn();
@@ -473,7 +473,8 @@ describe('AmortizationSchedule', () => {
             payments: [
               {
                 ...mockSchedule.payments[0],
-                paymentAmount: 1.234,
+                paymentAmount: Number('1.23456789123456789'),
+                exactValues: { paymentAmount: '1.23456789123456789' },
                 principalPayment: 1.222,
                 interestPayment: 0.012,
                 insurancePayment: 0,
@@ -489,7 +490,7 @@ describe('AmortizationSchedule', () => {
         reader.onload = () => resolve(String(reader.result));
         reader.readAsText(createObjectURL.mock.calls[0][0]);
       });
-      expect(csv).toContain('1.234,1.222,0.012,0.000,0.000,0.000,11.123');
+      expect(csv).toContain('1.23456789123456789,1.222,0.012,0,0,0,11.123');
     });
 
     it('creates CSV download on export click', () => {

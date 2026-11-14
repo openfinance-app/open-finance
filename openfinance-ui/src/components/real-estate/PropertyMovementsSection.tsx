@@ -1,3 +1,4 @@
+import { decimalValue } from '@/utils/exact-decimal';
 import { useViewState } from '@/hooks/useViewState';
 import { buildTransactionsLink } from '@/utils/navigation';
 import { RecordCostForm } from '@/components/assets/RecordCostForm';
@@ -260,7 +261,7 @@ export function PropertyMovementsSection({ property }: { property: RealEstatePro
                       )}
                     </span>
                     <CurrencyAmount
-                      amount={draw.drawnAmount ?? 0}
+                      amount={decimalValue(draw, 'drawnAmount') ?? draw.drawnAmount ?? 0}
                       currency={draw.currency}
                       inline
                       conversionDate={draw.drawnDate ?? undefined}

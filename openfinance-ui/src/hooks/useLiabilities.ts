@@ -8,7 +8,7 @@ import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tansta
 import apiClient from '@/services/apiClient';
 import i18next from 'i18next';
 import { buildEncryptionHeaders } from '@/utils/encryption';
-import { DEFAULT_CURRENCY, getCurrencyDecimals } from '@/utils/currency';
+import { formatCurrency as sharedFormatCurrency } from '@/utils/currency';
 import { sum, multiply, add } from '@/utils/money';
 import type {
   Liability,
@@ -501,21 +501,4 @@ export const calculateMonthsRemaining = (endDate: string | undefined): number =>
 /**
  * Format currency with appropriate symbol
  */
-export const formatCurrency = (amount: number, currency: string = DEFAULT_CURRENCY): string => {
-  const symbols: Record<string, string> = {
-    USD: '$',
-    EUR: '€',
-    GBP: '£',
-    JPY: '¥',
-    BTC: '₿',
-    ETH: 'Ξ',
-  };
-
-  const symbol = symbols[currency] || currency + ' ';
-  const formatted = Math.abs(amount).toFixed(getCurrencyDecimals(currency));
-
-  if (amount < 0) {
-    return `-${symbol}${formatted}`;
-  }
-  return `${symbol}${formatted}`;
-};
+export const formatCurrency = sharedFormatCurrency;

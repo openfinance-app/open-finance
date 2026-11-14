@@ -1,3 +1,4 @@
+import { decimalValue } from '@/utils/exact-decimal';
 import React, { useState } from 'react';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
@@ -89,35 +90,42 @@ export const YearlyTable: React.FC<YearlyTableProps> = ({ results }) => {
                       </TableCell>
                       <TableCell>
                         <ConvertedAmount
-                          amount={year.buy.annualCost}
+                          amount={decimalValue(year.buy, 'annualCost') ?? year.buy.annualCost}
                           currency={baseCurrency}
                           inline
                         />
                       </TableCell>
                       <TableCell>
                         <ConvertedAmount
-                          amount={year.buy.cumulativeCost}
+                          amount={
+                            decimalValue(year.buy, 'cumulativeCost') ?? year.buy.cumulativeCost
+                          }
                           currency={baseCurrency}
                           inline
                         />
                       </TableCell>
                       <TableCell className="text-green-600">
                         <ConvertedAmount
-                          amount={year.buy.propertyValue}
+                          amount={decimalValue(year.buy, 'propertyValue') ?? year.buy.propertyValue}
                           currency={baseCurrency}
                           inline
                         />
                       </TableCell>
                       <TableCell className="text-red-600">
                         <ConvertedAmount
-                          amount={year.buy.remainingCapital}
+                          amount={
+                            decimalValue(year.buy, 'remainingCapital') ?? year.buy.remainingCapital
+                          }
                           currency={baseCurrency}
                           inline
                         />
                       </TableCell>
                       <TableCell className={showWarning ? 'text-red-600 font-semibold' : ''}>
                         <ConvertedAmount
-                          amount={year.buy.minimumResalePrice}
+                          amount={
+                            decimalValue(year.buy, 'minimumResalePrice') ??
+                            year.buy.minimumResalePrice
+                          }
                           currency={baseCurrency}
                           inline
                         />
@@ -125,28 +133,30 @@ export const YearlyTable: React.FC<YearlyTableProps> = ({ results }) => {
                       </TableCell>
                       <TableCell>
                         <ConvertedAmount
-                          amount={year.rent.annualCost}
+                          amount={decimalValue(year.rent, 'annualCost') ?? year.rent.annualCost}
                           currency={baseCurrency}
                           inline
                         />
                       </TableCell>
                       <TableCell>
                         <ConvertedAmount
-                          amount={year.rent.cumulativeCost}
+                          amount={
+                            decimalValue(year.rent, 'cumulativeCost') ?? year.rent.cumulativeCost
+                          }
                           currency={baseCurrency}
                           inline
                         />
                       </TableCell>
                       <TableCell className="text-green-600">
                         <ConvertedAmount
-                          amount={year.rent.savings}
+                          amount={decimalValue(year.rent, 'savings') ?? year.rent.savings}
                           currency={baseCurrency}
                           inline
                         />
                       </TableCell>
                       <TableCell>
                         <ConvertedAmount
-                          amount={year.buy.savings ?? 0}
+                          amount={decimalValue(year.buy, 'savings') ?? year.buy.savings ?? 0}
                           currency={baseCurrency}
                           inline
                         />
@@ -165,7 +175,10 @@ export const YearlyTable: React.FC<YearlyTableProps> = ({ results }) => {
                                 <li>
                                   {t('yearlyTable.mortgage')}:{' '}
                                   <ConvertedAmount
-                                    amount={year.buy.details.mortgage}
+                                    amount={
+                                      decimalValue(year.buy.details, 'mortgage') ??
+                                      year.buy.details.mortgage
+                                    }
                                     currency={baseCurrency}
                                     inline
                                   />
@@ -173,7 +186,10 @@ export const YearlyTable: React.FC<YearlyTableProps> = ({ results }) => {
                                 <li>
                                   {t('yearlyTable.insurance')}:{' '}
                                   <ConvertedAmount
-                                    amount={year.buy.details.insurance}
+                                    amount={
+                                      decimalValue(year.buy.details, 'insurance') ??
+                                      year.buy.details.insurance
+                                    }
                                     currency={baseCurrency}
                                     inline
                                   />
@@ -181,7 +197,10 @@ export const YearlyTable: React.FC<YearlyTableProps> = ({ results }) => {
                                 <li>
                                   {t('yearlyTable.propertyTax')}:{' '}
                                   <ConvertedAmount
-                                    amount={year.buy.details.propertyTax}
+                                    amount={
+                                      decimalValue(year.buy.details, 'propertyTax') ??
+                                      year.buy.details.propertyTax
+                                    }
                                     currency={baseCurrency}
                                     inline
                                   />
@@ -189,7 +208,10 @@ export const YearlyTable: React.FC<YearlyTableProps> = ({ results }) => {
                                 <li>
                                   {t('yearlyTable.coOwnershipCharges')}:{' '}
                                   <ConvertedAmount
-                                    amount={year.buy.details.coOwnershipCharges}
+                                    amount={
+                                      decimalValue(year.buy.details, 'coOwnershipCharges') ??
+                                      year.buy.details.coOwnershipCharges
+                                    }
                                     currency={baseCurrency}
                                     inline
                                   />
@@ -197,7 +219,10 @@ export const YearlyTable: React.FC<YearlyTableProps> = ({ results }) => {
                                 <li>
                                   {t('yearlyTable.maintenance')}:{' '}
                                   <ConvertedAmount
-                                    amount={year.buy.details.maintenance}
+                                    amount={
+                                      decimalValue(year.buy.details, 'maintenance') ??
+                                      year.buy.details.maintenance
+                                    }
                                     currency={baseCurrency}
                                     inline
                                   />
@@ -212,7 +237,10 @@ export const YearlyTable: React.FC<YearlyTableProps> = ({ results }) => {
                                 <li>
                                   {t('yearlyTable.value')}:{' '}
                                   <ConvertedAmount
-                                    amount={year.buy.propertyValue}
+                                    amount={
+                                      decimalValue(year.buy, 'propertyValue') ??
+                                      year.buy.propertyValue
+                                    }
                                     currency={baseCurrency}
                                     inline
                                   />
@@ -220,7 +248,10 @@ export const YearlyTable: React.FC<YearlyTableProps> = ({ results }) => {
                                 <li>
                                   {t('yearlyTable.capitalDue')}:{' '}
                                   <ConvertedAmount
-                                    amount={year.buy.remainingCapital}
+                                    amount={
+                                      decimalValue(year.buy, 'remainingCapital') ??
+                                      year.buy.remainingCapital
+                                    }
                                     currency={baseCurrency}
                                     inline
                                   />
@@ -259,7 +290,9 @@ export const YearlyTable: React.FC<YearlyTableProps> = ({ results }) => {
                                 <li>
                                   {t('yearlyTable.total')}:{' '}
                                   <ConvertedAmount
-                                    amount={year.rent.annualCost}
+                                    amount={
+                                      decimalValue(year.rent, 'annualCost') ?? year.rent.annualCost
+                                    }
                                     currency={baseCurrency}
                                     inline
                                   />

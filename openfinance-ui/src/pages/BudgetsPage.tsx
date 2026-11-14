@@ -1,3 +1,4 @@
+import { decimalValue } from '@/utils/exact-decimal';
 import { useViewState } from '@/hooks/useViewState';
 import { BulkSelection, BulkToolbar, SelectionCheckbox } from '@/components/bulk/BulkSelection';
 import { isAxiosError } from 'axios';
@@ -360,7 +361,7 @@ export default function BudgetsPage() {
                     {t(`form.periods.${budget.period}`)} · {budget.startDate} – {budget.endDate}
                   </p>
                   <ConvertedAmount
-                    amount={Number(budget.amount)}
+                    amount={decimalValue(budget, 'amount') ?? budget.amount}
                     currency={budget.currency}
                     inline
                   />

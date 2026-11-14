@@ -3,8 +3,10 @@ package org.openfinance.service;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.Map;
+import org.assertj.core.data.Offset;
 import org.junit.jupiter.api.Test;
 
 /** Authenticated persistence and API parity, not just tests of an unused formula. */
@@ -79,12 +81,12 @@ class CalendarCompoundingIntegrationTest extends AuditApiTestSupport {
                         "THIRTY_360"),
                 owner,
                 201);
-        assertProjection(account, "40.60");
+        assertProjection(account, "40.60401");
 
         // First quarter's €10 is actually posted on April 1. It replaces the estimated €10;
         // a separate €1,000 deposit on the SAME day remains new interest-bearing capital.
         long credit = movement(account, "INCOME", "10", january.plusMonths(3), "INTEREST");
-        assertProjection(account, "40.60");
+        assertProjection(account, "40.60401");
         json(
                 "PUT",
                 "/transactions/" + credit,
@@ -103,7 +105,8 @@ class CalendarCompoundingIntegrationTest extends AuditApiTestSupport {
                         null),
                 owner,
                 200);
-        assertProjection(account, "40.91"); // An ordinary deposit must remain additional capital.
+        assertProjection(
+                account, "40.90702"); // An ordinary deposit must remain additional capital.
         json(
                 "PUT",
                 "/transactions/" + credit,
@@ -122,7 +125,7 @@ class CalendarCompoundingIntegrationTest extends AuditApiTestSupport {
                         "INTEREST"),
                 owner,
                 200);
-        assertProjection(account, "40.60");
+        assertProjection(account, "40.60401");
         json(
                 "POST",
                 "/transactions",
@@ -144,7 +147,7 @@ class CalendarCompoundingIntegrationTest extends AuditApiTestSupport {
         movement(account, "INCOME", "1000", january.plusMonths(3), null);
         movement(account, "EXPENSE", "500", january.plusMonths(6), null);
         // Q1=10; Q2=2010*.01=20.10; Q3=1530.10*.01=15.301; Q4=1545.401*.01=15.45401.
-        assertProjection(account, "60.86");
+        assertProjection(account, "60.85501");
         long changedRate =
                 json(
                                 "POST",
@@ -163,11 +166,11 @@ class CalendarCompoundingIntegrationTest extends AuditApiTestSupport {
                         .path("id")
                         .asLong();
         // Q3=30.602; Q4=1560.702*.02=31.21404.
-        assertProjection(account, "91.92");
+        assertProjection(account, "91.91604");
         json("DELETE", rates + "/" + changedRate, null, owner, 204);
-        assertProjection(account, "60.86");
+        assertProjection(account, "60.85501");
         json("DELETE", "/transactions/" + credit, null, owner, 204);
-        assertProjection(account, "60.86");
+        assertProjection(account, "60.85501");
         money(json("GET", "/accounts/" + account, null, owner, 200), "ownBalance", "1500");
         assertThat(
                         jdbc.queryForObject(
@@ -200,7 +203,10 @@ class CalendarCompoundingIntegrationTest extends AuditApiTestSupport {
                         owner,
                         200);
         // Jul–Sep and Oct–Dec both have 92 actual days: 1000 * ((1 + .04*.8*92/365)^2 - 1).
-        money(preview, "netInterest", "16.20");
+        assertThat(preview.path("netInterest").decimalValue())
+                .isCloseTo(
+                        new BigDecimal("16.196563227622443"),
+                        Offset.offset(new BigDecimal("0.000000000001")));
         long account =
                 json(
                                 "POST",
@@ -228,7 +234,7 @@ class CalendarCompoundingIntegrationTest extends AuditApiTestSupport {
                                 201)
                         .path("id")
                         .asLong();
-        assertProjection(account, "16.20");
+        assertProjection(account, "16.196563227622443");
         money(json("GET", "/accounts/" + account, null, owner, 200), "ownBalance", "1000");
         assertThat(
                         jdbc.queryForObject(
@@ -282,13 +288,16 @@ class CalendarCompoundingIntegrationTest extends AuditApiTestSupport {
     }
 
     private void assertProjection(long account, String expected) throws Exception {
-        money(
-                json("GET", "/accounts/" + account + "/interest-estimate", null, owner, 200),
-                "estimate",
-                expected);
+        BigDecimal estimate =
+                json("GET", "/accounts/" + account + "/interest-estimate", null, owner, 200)
+                        .path("estimate")
+                        .decimalValue();
+        assertThat(estimate)
+                .isCloseTo(
+                        new BigDecimal(expected), Offset.offset(new BigDecimal("0.000000000001")));
         money(
                 json("GET", "/dashboard/estimated-interest?period=YTD", null, owner, 200),
                 "totalProjected",
-                expected);
+                estimate.toPlainString());
     }
 }

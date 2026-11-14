@@ -196,7 +196,7 @@ export function RecordLoanPayment({ liability }: { liability: Liability }) {
               inline
               amount={new ExactDecimal(decimalField(liability, 'currentBalance'))
                 .minus(value.principal)
-                .toNumber()}
+                .toFixed()}
               currency={liability.currency}
             />
           </dd>

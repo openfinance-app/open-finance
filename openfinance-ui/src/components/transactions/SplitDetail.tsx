@@ -1,3 +1,4 @@
+import { decimalValue } from '@/utils/exact-decimal';
 /**
  * SplitDetail Component
  * Task 13 (REQ-SPL-4.3)
@@ -104,14 +105,18 @@ export function SplitDetail({ splits, currency, transaction }: SplitDetailProps)
           {/* Right: amount */}
           <span className="self-end font-mono text-sm text-text-primary shrink-0 sm:self-auto">
             <ConvertedAmount
-              amount={split.amount}
+              amount={decimalValue(split, 'amount') ?? split.amount}
               currency={currency}
               convertedAmount={
+                decimalValue(
+                  equivalents[index].find(value => value.currency === transaction?.baseCurrency),
+                  'amount'
+                ) ??
                 equivalents[index].find(value => value.currency === transaction?.baseCurrency)
                   ?.amount
               }
               baseCurrency={transaction?.baseCurrency}
-              exchangeRate={transaction?.exchangeRate}
+              exchangeRate={decimalValue(transaction, 'exchangeRate') ?? transaction?.exchangeRate}
               isConverted={transaction?.isConverted}
               conversionDate={transaction?.date}
               recordedAmounts={equivalents[index]}

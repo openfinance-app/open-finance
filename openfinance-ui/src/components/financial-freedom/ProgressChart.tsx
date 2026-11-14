@@ -1,3 +1,5 @@
+import { useFormatCurrency } from '@/hooks/useFormatCurrency';
+import { decimalField } from '@/utils/exact-decimal';
 import {
   Line,
   XAxis,
@@ -10,14 +12,13 @@ import {
   Area,
   ComposedChart,
 } from 'recharts';
-import { getCurrencySymbol } from '@/utils/currency';
 import { ConvertedAmount } from '@/components/ui/ConvertedAmount';
 import type { YearlyProjection } from '../../types/calculator';
 
 interface ProgressChartProps {
   data: YearlyProjection[];
-  currentSavings: number;
-  targetAmount: number;
+  currentSavings: number | string;
+  targetAmount: number | string;
   currency: string;
   yearsToFreedom?: number;
 }
@@ -38,12 +39,18 @@ export function ProgressChart({
   currency,
   yearsToFreedom,
 }: ProgressChartProps) {
+  const { formatCompact } = useFormatCurrency();
   // Prepare chart data
   const chartData = data.map(item => ({
     year: item.year,
     savings: item.endingBalance,
     contributions: item.contributions,
-    target: targetAmount,
+    target: Number(targetAmount),
+    exactValues: {
+      savings: decimalField(item, 'endingBalance'),
+      contributions: decimalField(item, 'contributions'),
+      target: String(targetAmount),
+    },
     isFreedomYear: yearsToFreedom && item.year <= yearsToFreedom,
   }));
 
@@ -54,7 +61,12 @@ export function ProgressChart({
     label,
   }: {
     active?: boolean;
-    payload?: Array<{ value: number; dataKey: string; color: string }>;
+    payload?: Array<{
+      value: number;
+      dataKey: string;
+      color: string;
+      payload?: { exactValues?: Record<string, string> };
+    }>;
     label?: string;
   }) => {
     if (active && payload && payload.length) {
@@ -64,7 +76,11 @@ export function ProgressChart({
           {payload.map((entry, index) => (
             <p key={index} className="text-sm" style={{ color: entry.color }}>
               {entry.dataKey === 'target' ? 'Target Amount: ' : `${entry.dataKey}: `}
-              <ConvertedAmount amount={entry.value} currency={currency} inline />
+              <ConvertedAmount
+                amount={entry.payload?.exactValues?.[entry.dataKey] ?? entry.value}
+                currency={currency}
+                inline
+              />
             </p>
           ))}
         </div>
@@ -97,16 +113,7 @@ export function ProgressChart({
             fontSize={12}
             tickLine={false}
             axisLine={{ stroke: 'var(--color-border)' }}
-            tickFormatter={value => {
-              const sym = getCurrencySymbol(currency);
-              if (value >= 1000000) {
-                return `${sym}${(value / 1000000).toFixed(1)}M`;
-              }
-              if (value >= 1000) {
-                return `${sym}${(value / 1000).toFixed(0)}K`;
-              }
-              return `${sym}${value}`;
-            }}
+            tickFormatter={value => formatCompact(value, currency)}
           />
           <Tooltip content={<CustomTooltip />} />
           <Legend
@@ -118,7 +125,7 @@ export function ProgressChart({
 
           {/* Target Amount Reference Line */}
           <ReferenceLine
-            y={targetAmount}
+            y={Number(targetAmount)}
             stroke="var(--color-warning)"
             strokeDasharray="5 5"
             label={{
@@ -131,7 +138,7 @@ export function ProgressChart({
 
           {/* Current Savings Starting Point */}
           <ReferenceLine
-            y={currentSavings}
+            y={Number(currentSavings)}
             stroke="var(--color-primary)"
             strokeWidth={2}
             label={{

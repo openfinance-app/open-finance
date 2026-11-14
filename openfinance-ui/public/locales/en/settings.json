@@ -87,9 +87,9 @@
     },
     "decimalPlaces": {
       "label": "Decimal Places",
-      "description": "Override how many decimal places are shown for all monetary amounts. When off, each currency uses its natural precision (e.g. JPY 0, crypto up to 8).",
+      "description": "Choose how many decimal places are displayed for monetary amounts. When disabled, use currency defaults: whole Japanese yen, two decimal places for euros, and eight for crypto. Stored amounts are unchanged.",
       "enableLabel": "Use a custom number of decimal places",
-      "enableHint": "Applies to every currency. Minimum 1 to avoid hiding small amounts.",
+      "enableHint": "Choose 1 to 8 decimal places. This changes display rounding only.",
       "placesLabel": "Decimal places",
       "livePreview": "Live preview",
       "updateSuccess": "Decimal places updated successfully",

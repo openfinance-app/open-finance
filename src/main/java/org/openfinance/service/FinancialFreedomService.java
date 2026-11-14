@@ -3,17 +3,16 @@ package org.openfinance.service;
 import java.math.BigDecimal;
 import java.math.MathContext;
 import java.math.RoundingMode;
-import java.text.NumberFormat;
 import java.time.Year;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Locale;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.openfinance.config.BusinessRulesProperties;
 import org.openfinance.dto.calculator.*;
 import org.openfinance.exception.CalculationValidationException;
 import org.openfinance.util.MathConstants;
+import org.openfinance.util.MoneyPrecision;
 import org.springframework.stereotype.Service;
 
 /**
@@ -75,7 +74,7 @@ public class FinancialFreedomService {
     private static final BigDecimal HUNDRED = MathConstants.HUNDRED;
 
     /** Working precision for iterative BigDecimal compounding. */
-    private static final MathContext MC = new MathContext(20, RoundingMode.HALF_UP);
+    private static final MathContext MC = MoneyPrecision.CALCULATION_CONTEXT;
 
     /** Return-rate delta (± percentage points) applied for pessimistic/optimistic scenarios. */
     private static final BigDecimal SENSITIVITY_RATE_DELTA = new BigDecimal("2");
@@ -180,13 +179,10 @@ public class FinancialFreedomService {
         BigDecimal progressPercentage = targetProgress(request.getCurrentSavings(), targetAmount);
 
         // Calculate annual passive income at target
-        BigDecimal annualPassiveIncome =
-                targetAmount
-                        .multiply(withdrawalRate)
-                        .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
+        BigDecimal annualPassiveIncome = targetAmount.multiply(withdrawalRate).movePointLeft(2);
 
         // Build message based on result
-        String message = buildFreedomMessage(monthsToFreedom, achievable, targetAmount);
+        String message = buildFreedomMessage(monthsToFreedom, achievable);
 
         return FreedomCalculatorResponse.builder()
                 .yearsToFreedom((int) (monthsToFreedom / MONTHS_PER_YEAR))
@@ -194,7 +190,7 @@ public class FinancialFreedomService {
                 .targetSavingsAmount(targetAmount)
                 .progressPercentage(progressPercentage.min(HUNDRED))
                 .currentProgress(request.getCurrentSavings())
-                .annualPassiveIncome(annualPassiveIncome)
+                .annualPassiveIncome(MoneyPrecision.calculated(annualPassiveIncome))
                 .sustainableIndefinitely(
                         isSustainable(
                                 request.getCurrentSavings(),
@@ -252,10 +248,7 @@ public class FinancialFreedomService {
             throw CalculationValidationException.required("Annual return rate");
         }
 
-        BigDecimal monthlyRate =
-                annualReturnRate
-                        .divide(BigDecimal.valueOf(100), 10, RoundingMode.HALF_UP)
-                        .divide(BigDecimal.valueOf(12), 10, RoundingMode.HALF_UP);
+        BigDecimal monthlyRate = annualReturnRate.divide(BigDecimal.valueOf(1200), MC);
 
         boolean infinite = isSustainable(currentSavings, monthlyExpenses, annualReturnRate);
 
@@ -286,7 +279,7 @@ public class FinancialFreedomService {
                             ProjectionResult.builder()
                                     .year(year)
                                     .startingBalance(startingBalance)
-                                    .endingBalance(balance)
+                                    .endingBalance(MoneyPrecision.calculated(balance))
                                     .withdrawals(
                                             monthlyExpenses.multiply(
                                                     BigDecimal.valueOf(MONTHS_PER_YEAR)))
@@ -295,7 +288,7 @@ public class FinancialFreedomService {
                 }
 
                 // Apply investment returns
-                balance = balance.add(balance.multiply(monthlyRate));
+                balance = balance.add(balance.multiply(monthlyRate, MC));
                 // Subtract expenses
                 balance = balance.subtract(monthlyExpenses);
                 months++;
@@ -338,7 +331,7 @@ public class FinancialFreedomService {
                 .totalMonthsUntilDepletion(months)
                 .infinite(infinite)
                 .depletionYear(depletionYear)
-                .finalBalance(balance.compareTo(BigDecimal.ZERO) > 0 ? balance : BigDecimal.ZERO)
+                .finalBalance(MoneyPrecision.calculated(balance.max(BigDecimal.ZERO)))
                 .willDeplete(!infinite && !exceedsProjection)
                 .depletionProjections(depletionProjections)
                 .monthlyExpenses(monthlyExpenses)
@@ -446,10 +439,9 @@ public class FinancialFreedomService {
             throw new CalculationValidationException("Withdrawal rate must be greater than zero");
         }
 
-        BigDecimal withdrawalDecimal =
-                withdrawalRate.divide(BigDecimal.valueOf(100), 10, RoundingMode.HALF_UP);
-
-        return annualExpenses.divide(withdrawalDecimal, 2, RoundingMode.HALF_UP);
+        return annualExpenses
+                .multiply(HUNDRED)
+                .divide(withdrawalRate, MoneyPrecision.CALCULATION_SCALE, RoundingMode.HALF_UP);
     }
 
     /**
@@ -504,18 +496,12 @@ public class FinancialFreedomService {
      * @return Real return rate after inflation
      */
     private BigDecimal calculateRealReturn(BigDecimal nominalReturn, BigDecimal inflation) {
-        BigDecimal onePlusNominal =
-                nominalReturn
-                        .divide(BigDecimal.valueOf(100), 10, RoundingMode.HALF_UP)
-                        .add(BigDecimal.ONE);
-        BigDecimal onePlusInflation =
-                inflation
-                        .divide(BigDecimal.valueOf(100), 10, RoundingMode.HALF_UP)
-                        .add(BigDecimal.ONE);
+        BigDecimal onePlusNominal = nominalReturn.movePointLeft(2).add(BigDecimal.ONE);
+        BigDecimal onePlusInflation = inflation.movePointLeft(2).add(BigDecimal.ONE);
 
         BigDecimal realReturn =
                 onePlusNominal
-                        .divide(onePlusInflation, 10, RoundingMode.HALF_UP)
+                        .divide(onePlusInflation, MC)
                         .subtract(BigDecimal.ONE)
                         .multiply(BigDecimal.valueOf(100));
 
@@ -566,10 +552,10 @@ public class FinancialFreedomService {
             projections.add(
                     ProjectionResult.builder()
                             .year(year)
-                            .startingBalance(startingBalance)
-                            .endingBalance(balance)
+                            .startingBalance(MoneyPrecision.calculated(startingBalance))
+                            .endingBalance(MoneyPrecision.calculated(balance))
                             .contributions(annualContribution)
-                            .investmentReturns(yearlyReturns)
+                            .investmentReturns(MoneyPrecision.calculated(yearlyReturns))
                             .progressTowardTarget(progress.min(HUNDRED))
                             .targetReached(targetReached)
                             .build());
@@ -678,13 +664,12 @@ public class FinancialFreedomService {
     }
 
     /** Builds a human-readable message based on calculation results. */
-    private String buildFreedomMessage(
-            long monthsToFreedom, boolean isAchievable, BigDecimal targetAmount) {
+    private String buildFreedomMessage(long monthsToFreedom, boolean isAchievable) {
         if (!isAchievable) {
             return String.format(
                     "Financial freedom is not achievable within %d years with current savings and contribution levels. "
-                            + "Consider increasing monthly contributions or adjusting your target amount of %s.",
-                    MAX_PROJECTION_YEARS, formatCurrency(targetAmount));
+                            + "Consider increasing monthly contributions or reviewing your target savings amount.",
+                    MAX_PROJECTION_YEARS);
         }
 
         int years = (int) (monthsToFreedom / MONTHS_PER_YEAR);
@@ -708,20 +693,5 @@ public class FinancialFreedomService {
         }
 
         return message.toString();
-    }
-
-    /**
-     * Formats a BigDecimal amount with thousands separators and 2 decimal places.
-     *
-     * <p>Intentionally has no currency symbol: this service has no currency context (the request
-     * carries only raw amounts), so guessing one (the previous code hardcoded "€") would be wrong
-     * for non-EUR users. The caller/frontend is responsible for pairing this figure with the user's
-     * actual currency.
-     */
-    private String formatCurrency(BigDecimal amount) {
-        NumberFormat numberFormat = NumberFormat.getNumberInstance(Locale.US);
-        numberFormat.setMinimumFractionDigits(2);
-        numberFormat.setMaximumFractionDigits(2);
-        return numberFormat.format(amount.setScale(2, RoundingMode.HALF_UP));
     }
 }

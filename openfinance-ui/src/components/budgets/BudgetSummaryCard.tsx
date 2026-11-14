@@ -1,3 +1,4 @@
+import { ExactDecimal, decimalValue, exactSum } from '@/utils/exact-decimal';
 /**
  * BudgetSummaryCard Component
  * TASK-8.2.7: Create budget summary card for BudgetsPage
@@ -13,7 +14,7 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import { ConvertedAmount } from '@/components/ui/ConvertedAmount';
 import { useSecondaryConversion } from '@/hooks/useSecondaryConversion';
 import { formatPercentage } from '@/utils/format';
-import { percentage, sum, subtract } from '@/utils/money';
+import { percentage } from '@/utils/money';
 import { TrendingUp, TrendingDown, DollarSign, Target } from 'lucide-react';
 import type { BudgetProgressResponse, BudgetSummaryResponse } from '@/types/budget';
 import { cn } from '@/lib/utils';
@@ -35,7 +36,8 @@ export function BudgetSummaryCard({
   const { t } = useTranslation('budgets');
   const displayCurrency = summary.currency;
   const {
-    convert,
+    convert: convertNumber,
+    convertExact: convert = convertNumber,
     secondaryCurrency: secCurrency,
     secondaryExchangeRate,
   } = useSecondaryConversion(displayCurrency);
@@ -51,9 +53,13 @@ export function BudgetSummaryCard({
 
   const filteredTotals = useMemo(() => {
     if (!filteredBudgets) return null;
-    const filteredTotalBudgeted = sum(filteredBudgets.map(b => b.budgeted));
-    const filteredTotalSpent = sum(filteredBudgets.map(b => b.spent));
-    const filteredTotalRemaining = subtract(filteredTotalBudgeted, filteredTotalSpent);
+    const filteredTotalBudgeted = exactSum(
+      filteredBudgets.map(b => decimalValue(b, 'budgeted') ?? 0)
+    );
+    const filteredTotalSpent = exactSum(filteredBudgets.map(b => decimalValue(b, 'spent') ?? 0));
+    const filteredTotalRemaining = new ExactDecimal(filteredTotalBudgeted)
+      .minus(filteredTotalSpent)
+      .toFixed();
     const filteredSpentPct = percentage(filteredTotalSpent, filteredTotalBudgeted);
     return { filteredTotalBudgeted, filteredTotalSpent, filteredTotalRemaining, filteredSpentPct };
   }, [filteredBudgets]);
@@ -76,10 +82,12 @@ export function BudgetSummaryCard({
             </div>
             <p className="text-2xl font-bold font-mono text-text-primary">
               <ConvertedAmount
-                amount={summary.totalBudgeted}
+                amount={decimalValue(summary, 'totalBudgeted') ?? summary.totalBudgeted}
                 currency={displayCurrency}
                 isConverted={false}
-                secondaryAmount={convert(summary.totalBudgeted)}
+                secondaryAmount={convert(
+                  decimalValue(summary, 'totalBudgeted') ?? summary.totalBudgeted
+                )}
                 secondaryCurrency={secCurrency}
                 secondaryExchangeRate={secondaryExchangeRate}
                 inline
@@ -96,10 +104,16 @@ export function BudgetSummaryCard({
               <p className="text-xs font-mono text-text-tertiary">
                 {t('summary.filtered')}{' '}
                 <ConvertedAmount
-                  amount={filteredTotals.filteredTotalBudgeted}
+                  amount={
+                    decimalValue(filteredTotals, 'filteredTotalBudgeted') ??
+                    filteredTotals.filteredTotalBudgeted
+                  }
                   currency={displayCurrency}
                   isConverted={false}
-                  secondaryAmount={convert(filteredTotals.filteredTotalBudgeted)}
+                  secondaryAmount={convert(
+                    decimalValue(filteredTotals, 'filteredTotalBudgeted') ??
+                      filteredTotals.filteredTotalBudgeted
+                  )}
                   secondaryCurrency={secCurrency}
                   secondaryExchangeRate={secondaryExchangeRate}
                   inline
@@ -119,10 +133,10 @@ export function BudgetSummaryCard({
             </div>
             <p className="text-2xl font-bold font-mono text-text-primary">
               <ConvertedAmount
-                amount={summary.totalSpent}
+                amount={decimalValue(summary, 'totalSpent') ?? summary.totalSpent}
                 currency={displayCurrency}
                 isConverted={false}
-                secondaryAmount={convert(summary.totalSpent)}
+                secondaryAmount={convert(decimalValue(summary, 'totalSpent') ?? summary.totalSpent)}
                 secondaryCurrency={secCurrency}
                 secondaryExchangeRate={secondaryExchangeRate}
                 inline
@@ -136,10 +150,16 @@ export function BudgetSummaryCard({
               <p className="text-xs font-mono text-text-tertiary">
                 {t('summary.filtered')}{' '}
                 <ConvertedAmount
-                  amount={filteredTotals.filteredTotalSpent}
+                  amount={
+                    decimalValue(filteredTotals, 'filteredTotalSpent') ??
+                    filteredTotals.filteredTotalSpent
+                  }
                   currency={displayCurrency}
                   isConverted={false}
-                  secondaryAmount={convert(filteredTotals.filteredTotalSpent)}
+                  secondaryAmount={convert(
+                    decimalValue(filteredTotals, 'filteredTotalSpent') ??
+                      filteredTotals.filteredTotalSpent
+                  )}
                   secondaryCurrency={secCurrency}
                   secondaryExchangeRate={secondaryExchangeRate}
                   inline
@@ -168,10 +188,20 @@ export function BudgetSummaryCard({
               )}
             >
               <ConvertedAmount
-                amount={Math.abs(summary.totalRemaining)}
+                amount={new ExactDecimal(
+                  decimalValue(summary, 'totalRemaining') ?? summary.totalRemaining
+                )
+                  .abs()
+                  .toFixed()}
                 currency={displayCurrency}
                 isConverted={false}
-                secondaryAmount={convert(Math.abs(summary.totalRemaining))}
+                secondaryAmount={convert(
+                  new ExactDecimal(
+                    decimalValue(summary, 'totalRemaining') ?? summary.totalRemaining
+                  )
+                    .abs()
+                    .toFixed()
+                )}
                 secondaryCurrency={secCurrency}
                 secondaryExchangeRate={secondaryExchangeRate}
                 inline
@@ -185,15 +215,27 @@ export function BudgetSummaryCard({
               <p className={cn('text-xs font-mono text-text-tertiary')}>
                 {t('summary.filtered')}{' '}
                 <ConvertedAmount
-                  amount={Math.abs(filteredTotals.filteredTotalRemaining)}
+                  amount={new ExactDecimal(
+                    decimalValue(filteredTotals, 'filteredTotalRemaining') ??
+                      filteredTotals.filteredTotalRemaining
+                  )
+                    .abs()
+                    .toFixed()}
                   currency={displayCurrency}
                   isConverted={false}
-                  secondaryAmount={convert(Math.abs(filteredTotals.filteredTotalRemaining))}
+                  secondaryAmount={convert(
+                    new ExactDecimal(
+                      decimalValue(filteredTotals, 'filteredTotalRemaining') ??
+                        filteredTotals.filteredTotalRemaining
+                    )
+                      .abs()
+                      .toFixed()
+                  )}
                   secondaryCurrency={secCurrency}
                   secondaryExchangeRate={secondaryExchangeRate}
                   inline
                 />
-                {filteredTotals.filteredTotalRemaining < 0
+                {new ExactDecimal(filteredTotals.filteredTotalRemaining).lt(0)
                   ? ` ${t('summary.over')}`
                   : ` ${t('summary.remainingLabel')}`}
               </p>

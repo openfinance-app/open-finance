@@ -1,3 +1,4 @@
+import { decimalValue } from '@/utils/exact-decimal';
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ChevronDown } from 'lucide-react';
@@ -226,7 +227,7 @@ function PaymentRow({
           </span>
         </span>
         <ConvertedAmount
-          amount={candidate.amount}
+          amount={decimalValue(candidate, 'amount') ?? candidate.amount}
           currency={candidate.currency}
           className="shrink-0 font-mono text-sm tabular-nums"
         />
@@ -334,7 +335,7 @@ export function ConversionPaymentSummary({
       <p className="text-sm font-medium">
         {t('conversion.payments.selected', { count: payments.length })} ·{' '}
         <ConvertedAmount
-          amount={totals.total.toNumber()}
+          amount={totals.total.toFixed()}
           currency={currency}
           className="font-mono tabular-nums"
         />
@@ -350,7 +351,7 @@ export function ConversionPaymentSummary({
                 </dt>
                 <dd>
                   <ConvertedAmount
-                    amount={totals[component].toNumber()}
+                    amount={totals[component].toFixed()}
                     currency={currency}
                     className="font-mono tabular-nums"
                   />

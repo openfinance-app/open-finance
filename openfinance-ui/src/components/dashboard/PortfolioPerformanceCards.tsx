@@ -1,3 +1,4 @@
+import { decimalValue } from '@/utils/exact-decimal';
 /**
  * PortfolioPerformanceCards Component
  * Task 4.3.8: Create PortfolioPerformanceCards component with sparkline charts
@@ -30,7 +31,8 @@ function PerformanceCard({ performance, t }: { performance: IPortfolioPerformanc
   const { label, currentValue, changeAmount, changePercentage, currency, sparklineData } =
     performance;
   const {
-    convert,
+    convert: convertNumber,
+    convertExact: convert = convertNumber,
     secondaryCurrency: secCurrency,
     secondaryExchangeRate,
   } = useSecondaryConversion(currency);
@@ -64,10 +66,10 @@ function PerformanceCard({ performance, t }: { performance: IPortfolioPerformanc
       {/* Current Value */}
       <p className="text-2xl font-bold text-text-primary font-mono mb-1">
         <ConvertedAmount
-          amount={currentValue}
+          amount={decimalValue(performance, 'currentValue') ?? currentValue}
           currency={currency}
           isConverted={false}
-          secondaryAmount={convert(currentValue)}
+          secondaryAmount={convert(decimalValue(performance, 'currentValue') ?? currentValue)}
           secondaryCurrency={secCurrency}
           secondaryExchangeRate={secondaryExchangeRate}
           inline
@@ -89,10 +91,10 @@ function PerformanceCard({ performance, t }: { performance: IPortfolioPerformanc
           >
             {isPositive && '+'}
             <ConvertedAmount
-              amount={changeAmount}
+              amount={decimalValue(performance, 'changeAmount') ?? changeAmount}
               currency={currency}
               isConverted={false}
-              secondaryAmount={convert(changeAmount)}
+              secondaryAmount={convert(decimalValue(performance, 'changeAmount') ?? changeAmount)}
               secondaryCurrency={secCurrency}
               secondaryExchangeRate={secondaryExchangeRate}
               inline

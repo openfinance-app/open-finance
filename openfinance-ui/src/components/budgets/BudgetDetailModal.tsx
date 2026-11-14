@@ -1,3 +1,4 @@
+import { decimalValue, decimalField, ExactDecimal } from '@/utils/exact-decimal';
 import { useAnimatedClose } from '@/hooks/useAnimatedClose';
 import { formatDecimal } from '@/utils/format';
 /**
@@ -38,8 +39,13 @@ import type { BudgetHistoryEntry } from '@/types/budget';
 
 function PeriodResult({ entry, currency }: { entry: BudgetHistoryEntry; currency: string }) {
   const { t } = useTranslation('budgets');
-  const { convert, secondaryCurrency, secondaryExchangeRate } = useSecondaryConversion(currency);
-  const amount = Math.abs(entry.remaining);
+  const {
+    convert: convertNumber,
+    convertExact: convert = convertNumber,
+    secondaryCurrency,
+    secondaryExchangeRate,
+  } = useSecondaryConversion(currency);
+  const amount = new ExactDecimal(decimalValue(entry, 'remaining') ?? 0).abs().toFixed();
   const exceeded = entry.remaining < 0;
   const available = entry.available ?? add(entry.budgeted, entry.carryover ?? 0);
   const resultLabel = exceeded
@@ -78,7 +84,8 @@ interface TooltipPayloadItem {
   name: string;
   value: number;
   color: string;
-  payload?: { period: BudgetHistoryEntry };
+  dataKey?: string;
+  payload?: { period: BudgetHistoryEntry; exactValues?: Record<string, string> };
 }
 
 interface CustomTooltipProps {
@@ -91,7 +98,8 @@ interface CustomTooltipProps {
 function CustomTooltip({ active, payload, label, currency }: CustomTooltipProps) {
   const { t } = useTranslation('budgets');
   const {
-    convert,
+    convert: convertNumber,
+    convertExact: convert = convertNumber,
     secondaryCurrency: secCurrency,
     secondaryExchangeRate,
   } = useSecondaryConversion(currency);
@@ -107,10 +115,12 @@ function CustomTooltip({ active, payload, label, currency }: CustomTooltipProps)
         <p key={entry.name} style={{ color: entry.color }} className="mb-0.5">
           {entry.name}:{' '}
           <ConvertedAmount
-            amount={entry.value}
+            amount={entry.payload?.exactValues?.[entry.dataKey ?? entry.name] ?? entry.value}
             currency={currency}
             isConverted={false}
-            secondaryAmount={convert(entry.value)}
+            secondaryAmount={convert(
+              entry.payload?.exactValues?.[entry.dataKey ?? entry.name] ?? entry.value
+            )}
             secondaryCurrency={secCurrency}
             secondaryExchangeRate={secondaryExchangeRate}
             inline
@@ -122,7 +132,11 @@ function CustomTooltip({ active, payload, label, currency }: CustomTooltipProps)
           {(period.carryover ?? 0) !== 0 && (
             <p className="text-text-secondary">
               {t('card.carryover')}:{' '}
-              <ConvertedAmount amount={period.carryover ?? 0} currency={currency} inline />
+              <ConvertedAmount
+                amount={decimalValue(period, 'carryover') ?? period.carryover ?? 0}
+                currency={currency}
+                inline
+              />
             </p>
           )}
           <div className="mt-2 flex items-center justify-between gap-6 border-t border-border pt-2">
@@ -141,7 +155,8 @@ function CustomTooltip({ active, payload, label, currency }: CustomTooltipProps)
 function HistoryRow({ entry, currency }: { entry: BudgetHistoryEntry; currency: string }) {
   const { t } = useTranslation('budgets');
   const {
-    convert,
+    convert: convertNumber,
+    convertExact: convert = convertNumber,
     secondaryCurrency: secCurrency,
     secondaryExchangeRate,
   } = useSecondaryConversion(currency);
@@ -176,10 +191,10 @@ function HistoryRow({ entry, currency }: { entry: BudgetHistoryEntry; currency: 
       </td>
       <td className="py-3 px-4 text-sm text-right text-text-primary font-mono tabular-nums">
         <ConvertedAmount
-          amount={entry.budgeted}
+          amount={decimalValue(entry, 'budgeted') ?? entry.budgeted}
           currency={currency}
           isConverted={false}
-          secondaryAmount={convert(entry.budgeted)}
+          secondaryAmount={convert(decimalValue(entry, 'budgeted') ?? entry.budgeted)}
           secondaryCurrency={secCurrency}
           secondaryExchangeRate={secondaryExchangeRate}
           inline
@@ -189,7 +204,11 @@ function HistoryRow({ entry, currency }: { entry: BudgetHistoryEntry; currency: 
         {entry.future ? (
           '—'
         ) : (
-          <ConvertedAmount amount={entry.carryover ?? 0} currency={currency} inline />
+          <ConvertedAmount
+            amount={decimalValue(entry, 'carryover') ?? entry.carryover ?? 0}
+            currency={currency}
+            inline
+          />
         )}
       </td>
       <td className="py-3 px-4 text-sm text-right text-text-primary font-mono tabular-nums">
@@ -197,10 +216,10 @@ function HistoryRow({ entry, currency }: { entry: BudgetHistoryEntry; currency: 
           '—'
         ) : (
           <ConvertedAmount
-            amount={entry.spent}
+            amount={decimalValue(entry, 'spent') ?? entry.spent}
             currency={currency}
             isConverted={false}
-            secondaryAmount={convert(entry.spent)}
+            secondaryAmount={convert(decimalValue(entry, 'spent') ?? entry.spent)}
             secondaryCurrency={secCurrency}
             secondaryExchangeRate={secondaryExchangeRate}
             inline
@@ -233,7 +252,8 @@ export function BudgetDetailModal({ budgetId, onClose: onClosed }: BudgetDetailM
   const { data: historyData, isLoading: isHistoryLoading } = useBudgetHistory(budgetId);
   const currency = historyData?.currency ?? budget?.currency;
   const {
-    convert,
+    convert: convertNumber,
+    convertExact: convert = convertNumber,
     secondaryCurrency: secCurrency,
     secondaryExchangeRate,
   } = useSecondaryConversion(currency);
@@ -255,6 +275,10 @@ export function BudgetDetailModal({ budgetId, onClose: onClosed }: BudgetDetailM
   const chartData = (historyData?.history ?? []).map(entry => ({
     name: entry.label,
     period: entry,
+    exactValues: {
+      [chartBudgetedKey]: decimalField(entry, 'budgeted'),
+      [chartSpentKey]: decimalField(entry, 'spent'),
+    },
     [chartBudgetedKey]: entry.budgeted,
     [chartSpentKey]: entry.future ? null : entry.spent,
   }));
@@ -349,10 +373,14 @@ export function BudgetDetailModal({ budgetId, onClose: onClosed }: BudgetDetailM
                   </p>
                   <p className="text-xl font-bold text-text-primary font-mono">
                     <ConvertedAmount
-                      amount={historyData.totalBudgeted}
+                      amount={
+                        decimalValue(historyData, 'totalBudgeted') ?? historyData.totalBudgeted
+                      }
                       currency={historyData.currency}
                       isConverted={false}
-                      secondaryAmount={convert(historyData.totalBudgeted)}
+                      secondaryAmount={convert(
+                        decimalValue(historyData, 'totalBudgeted') ?? historyData.totalBudgeted
+                      )}
                       secondaryCurrency={secCurrency}
                       secondaryExchangeRate={secondaryExchangeRate}
                       inline
@@ -370,10 +398,12 @@ export function BudgetDetailModal({ budgetId, onClose: onClosed }: BudgetDetailM
                     )}
                   >
                     <ConvertedAmount
-                      amount={historyData.totalSpent}
+                      amount={decimalValue(historyData, 'totalSpent') ?? historyData.totalSpent}
                       currency={historyData.currency}
                       isConverted={false}
-                      secondaryAmount={convert(historyData.totalSpent)}
+                      secondaryAmount={convert(
+                        decimalValue(historyData, 'totalSpent') ?? historyData.totalSpent
+                      )}
                       secondaryCurrency={secCurrency}
                       secondaryExchangeRate={secondaryExchangeRate}
                       inline
@@ -391,17 +421,17 @@ export function BudgetDetailModal({ budgetId, onClose: onClosed }: BudgetDetailM
                     )}
                   >
                     <ConvertedAmount
-                      amount={
-                        historyData.totalBudgeted +
-                        (historyData.initialCarryover ?? 0) -
-                        historyData.totalSpent
-                      }
+                      amount={new ExactDecimal(decimalValue(historyData, 'totalBudgeted') ?? 0)
+                        .plus(decimalValue(historyData, 'initialCarryover') ?? 0)
+                        .minus(decimalValue(historyData, 'totalSpent') ?? 0)
+                        .toFixed()}
                       currency={historyData.currency}
                       isConverted={false}
                       secondaryAmount={convert(
-                        historyData.totalBudgeted +
-                          (historyData.initialCarryover ?? 0) -
-                          historyData.totalSpent
+                        new ExactDecimal(decimalValue(historyData, 'totalBudgeted') ?? 0)
+                          .plus(decimalValue(historyData, 'initialCarryover') ?? 0)
+                          .minus(decimalValue(historyData, 'totalSpent') ?? 0)
+                          .toFixed()
                       )}
                       secondaryCurrency={secCurrency}
                       secondaryExchangeRate={secondaryExchangeRate}
@@ -513,7 +543,11 @@ export function BudgetDetailModal({ budgetId, onClose: onClosed }: BudgetDetailM
                     <p className="px-4 py-3 text-sm text-text-secondary">
                       {t('detail.initialCarry')}{' '}
                       <ConvertedAmount
-                        amount={historyData.initialCarryover ?? 0}
+                        amount={
+                          decimalValue(historyData, 'initialCarryover') ??
+                          historyData.initialCarryover ??
+                          0
+                        }
                         currency={historyData.currency}
                         inline
                       />

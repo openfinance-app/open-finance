@@ -1,3 +1,5 @@
+import { useFormatCurrency } from '@/hooks/useFormatCurrency';
+import { decimalValue, ExactDecimal } from '@/utils/exact-decimal';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router';
@@ -27,7 +29,11 @@ const CustomTooltip = ({ active, payload, currency }: any) => {
       <div className="bg-surface-elevated border border-border rounded-lg p-3 shadow-lg">
         <p className="text-text-primary font-semibold text-sm mb-1">{data.name}</p>
         <p className="text-primary font-mono text-sm">
-          <ConvertedAmount amount={data.amount} currency={currency} inline />
+          <ConvertedAmount
+            amount={decimalValue(data, 'amount') ?? data.amount}
+            currency={currency}
+            inline
+          />
         </p>
       </div>
     );
@@ -53,6 +59,7 @@ export default function CashFlowChart({
 }: CashFlowChartProps) {
   const { t } = useTranslation('dashboard');
   const { isAmountsVisible } = useVisibility();
+  const { formatCompact } = useFormatCurrency();
   const navigate = useNavigate();
   const navTo = (type: 'INCOME' | 'EXPENSE') =>
     navigate(buildTransactionsLink({ type, excludeTransfers: true, dateRange: navDateRange }));
@@ -61,11 +68,13 @@ export default function CashFlowChart({
     {
       name: t('cashFlowChart.income'),
       amount: cashFlow.income,
+      exactValues: { amount: String(decimalValue(cashFlow, 'income') ?? 0) },
       fill: '#10b981', // green-500
     },
     {
       name: t('cashFlowChart.expenses'),
       amount: cashFlow.expenses,
+      exactValues: { amount: String(decimalValue(cashFlow, 'expenses') ?? 0) },
       fill: '#ef4444', // red-500
     },
   ];
@@ -93,7 +102,11 @@ export default function CashFlowChart({
           }`}
         >
           {cashFlow.netCashFlow >= 0 ? '+' : '-'}
-          <ConvertedAmount amount={Math.abs(cashFlow.netCashFlow)} currency={currency} inline />
+          <ConvertedAmount
+            amount={new ExactDecimal(decimalValue(cashFlow, 'netCashFlow') ?? 0).abs().toFixed()}
+            currency={currency}
+            inline
+          />
         </div>
       </div>
 
@@ -110,10 +123,7 @@ export default function CashFlowChart({
                 if (!isAmountsVisible) {
                   return '••••';
                 }
-                if (value >= 1000) {
-                  return `${(value / 1000).toFixed(0)}k`;
-                }
-                return value.toString();
+                return formatCompact(value, currency, { showSymbol: false });
               }}
             />
             <Tooltip
@@ -141,7 +151,11 @@ export default function CashFlowChart({
         >
           <span className="text-text-secondary">{t('cashFlowChart.income')}:</span>
           <span className="text-green-500 font-semibold font-mono">
-            <ConvertedAmount amount={cashFlow.income} currency={currency} inline />
+            <ConvertedAmount
+              amount={decimalValue(cashFlow, 'income') ?? cashFlow.income}
+              currency={currency}
+              inline
+            />
           </span>
         </button>
         <button
@@ -152,7 +166,11 @@ export default function CashFlowChart({
         >
           <span className="text-text-secondary">{t('cashFlowChart.expenses')}:</span>
           <span className="text-red-500 font-semibold font-mono">
-            <ConvertedAmount amount={cashFlow.expenses} currency={currency} inline />
+            <ConvertedAmount
+              amount={decimalValue(cashFlow, 'expenses') ?? cashFlow.expenses}
+              currency={currency}
+              inline
+            />
           </span>
         </button>
       </div>

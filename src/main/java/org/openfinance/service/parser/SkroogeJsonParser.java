@@ -30,6 +30,7 @@ import org.openfinance.dto.SkroogeImportParseResult;
 import org.openfinance.entity.AccountType;
 import org.openfinance.entity.InterestDayCountBasis;
 import org.openfinance.entity.InterestValueDateMode;
+import org.openfinance.util.MoneyPrecision;
 import org.springframework.stereotype.Component;
 
 @Slf4j
@@ -1643,7 +1644,8 @@ public class SkroogeJsonParser {
                 || targetRate.compareTo(BigDecimal.ONE) == 0) {
             return primaryAmount;
         }
-        return primaryAmount.divide(targetRate, 10, RoundingMode.HALF_UP);
+        return primaryAmount.divide(
+                targetRate, MoneyPrecision.CALCULATION_SCALE, RoundingMode.HALF_UP);
     }
 
     /** Resolve institution name, falling back to a generated name if blank. */

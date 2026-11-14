@@ -1,3 +1,4 @@
+import { decimalValue, ExactDecimal, decimalField } from '@/utils/exact-decimal';
 import { useId, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useTransactions } from '@/hooks/useTransactions';
@@ -5,7 +6,6 @@ import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { ConvertedAmount } from '@/components/ui/ConvertedAmount';
 import { useDateFormatter } from '@/hooks/useDateFormatter';
-import { ExactDecimal, decimalField } from '@/utils/exact-decimal';
 import type { Transaction } from '@/types/transaction';
 
 interface Props {
@@ -103,7 +103,7 @@ export function PurchasePaymentSelector({
               </span>
               <ConvertedAmount
                 className="font-mono tabular-nums"
-                amount={payment.amount}
+                amount={decimalValue(payment, 'amount') ?? payment.amount}
                 currency={payment.currency}
                 inline
               />

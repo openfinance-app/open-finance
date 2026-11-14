@@ -1,3 +1,4 @@
+import { decimalValue, decimalField, ExactDecimal } from '@/utils/exact-decimal';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Controller, useForm, useWatch } from 'react-hook-form';
@@ -30,7 +31,6 @@ import type {
 import type { LiabilityType } from '@/types/liability';
 import { format } from 'date-fns';
 import { isValidDecimalString } from '@/utils/money';
-import { decimalField, ExactDecimal } from '@/utils/exact-decimal';
 import { apiErrorMessage } from '@/utils/api-error';
 import { getMonetaryScale } from '@/utils/currency';
 import { OptionalDetails } from '@/components/ui/OptionalDetails';
@@ -160,7 +160,7 @@ function ConversionFlow({ initialAccountId, onClose, onConverted }: Props) {
                       {item.currency}
                     </span>
                     <ConvertedAmount
-                      amount={item.outstandingBalance}
+                      amount={decimalValue(item, 'outstandingBalance') ?? item.outstandingBalance}
                       currency={item.currency}
                       className="text-sm font-mono tabular-nums"
                     />
@@ -456,7 +456,7 @@ function ConversionDetails({
       <div className="flex flex-wrap items-baseline justify-between gap-2 border-b border-border pb-4">
         <span className="text-sm text-text-secondary">{t('conversion.outstanding')}</span>
         <ConvertedAmount
-          amount={source.outstandingBalance}
+          amount={decimalValue(source, 'outstandingBalance') ?? source.outstandingBalance}
           currency={source.currency}
           className="font-mono font-semibold tabular-nums"
         />
@@ -666,14 +666,14 @@ function ConversionDetails({
             <ReviewRow label={t('conversion.principal')}>
               <ConvertedAmount
                 className="font-mono tabular-nums"
-                amount={Number(values.principal)}
+                amount={decimalValue(values, 'principal') ?? values.principal ?? 0}
                 currency={source.currency}
               />
             </ReviewRow>
             <ReviewRow label={t('conversion.fundedPrincipal')}>
               <ConvertedAmount
                 className="font-mono tabular-nums"
-                amount={Number(values.fundedPrincipal)}
+                amount={decimalValue(values, 'fundedPrincipal') ?? values.fundedPrincipal ?? 0}
                 currency={source.currency}
               />
             </ReviewRow>
@@ -681,7 +681,7 @@ function ConversionDetails({
               <ConvertedAmount
                 amount={new ExactDecimal(values.principal || 0)
                   .minus(values.fundedPrincipal || 0)
-                  .toNumber()}
+                  .toFixed()}
                 currency={source.currency}
                 className="font-mono tabular-nums"
               />
@@ -707,7 +707,7 @@ function ConversionDetails({
               <ReviewRow label={t('conversion.minimumPayment')}>
                 <ConvertedAmount
                   className="font-mono tabular-nums"
-                  amount={Number(values.minimumPayment)}
+                  amount={decimalValue(values, 'minimumPayment') ?? values.minimumPayment}
                   currency={source.currency}
                 />
               </ReviewRow>
@@ -724,7 +724,7 @@ function ConversionDetails({
                     .times(values.insurancePercentage)
                     .div(1200)
                     .toDecimalPlaces(getMonetaryScale(source.currency))
-                    .toNumber()}
+                    .toFixed()}
                   currency={source.currency}
                   className="font-mono tabular-nums"
                 />
@@ -738,7 +738,7 @@ function ConversionDetails({
                     .div(1200)
                     .toDecimalPlaces(getMonetaryScale(source.currency))
                     .plus(values.minimumPayment)
-                    .toNumber()}
+                    .toFixed()}
                   currency={source.currency}
                   className="font-mono tabular-nums"
                 />
@@ -747,7 +747,7 @@ function ConversionDetails({
             {values.additionalFees && (
               <ReviewRow label={t('form.additionalFees')}>
                 <ConvertedAmount
-                  amount={Number(values.additionalFees)}
+                  amount={decimalValue(values, 'additionalFees') ?? values.additionalFees}
                   currency={source.currency}
                   className="font-mono tabular-nums"
                 />

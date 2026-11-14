@@ -1,6 +1,6 @@
+import { ExactDecimal, decimalValue, decimalField, equalDecimals } from '@/utils/exact-decimal';
 import { useFormDraft } from '@/hooks/useFormDraft';
 import { CURRENCY_CODE_PATTERN } from '@/utils/currency-code';
-import { decimalField, equalDecimals } from '@/utils/exact-decimal';
 import { formatDecimal } from '@/utils/format';
 /**
  * AccountForm Component
@@ -560,7 +560,10 @@ export function AccountForm({
                     <p className="text-sm font-semibold font-mono text-success">
                       +
                       <ConvertedAmount
-                        amount={interestPreview.grossInterest}
+                        amount={
+                          decimalValue(interestPreview, 'grossInterest') ??
+                          interestPreview.grossInterest
+                        }
                         currency={balanceCurrency}
                         inline
                       />
@@ -571,7 +574,11 @@ export function AccountForm({
                     <p className="text-sm font-semibold font-mono text-error">
                       -
                       <ConvertedAmount
-                        amount={Math.abs(interestPreview.taxAmount)}
+                        amount={new ExactDecimal(
+                          decimalValue(interestPreview, 'taxAmount') ?? interestPreview.taxAmount
+                        )
+                          .abs()
+                          .toFixed()}
                         currency={balanceCurrency}
                         inline
                       />
@@ -582,7 +589,10 @@ export function AccountForm({
                     <p className="text-sm font-bold font-mono text-primary">
                       +
                       <ConvertedAmount
-                        amount={interestPreview.netInterest}
+                        amount={
+                          decimalValue(interestPreview, 'netInterest') ??
+                          interestPreview.netInterest
+                        }
                         currency={balanceCurrency}
                         inline
                       />

@@ -761,11 +761,18 @@ class SkroogeJsonImportFlowE2ETest {
                         .filter(tx -> "skrooge:operation:4".equals(tx.getExternalReference()))
                         .findFirst()
                         .orElseThrow();
+        BigDecimal expectedCredit =
+                new BigDecimal("500")
+                        .divide(
+                                new BigDecimal("0.001524490197"),
+                                18,
+                                java.math.RoundingMode.HALF_UP);
         assertThat(credit.getCurrency()).isEqualTo("XOF");
-        assertThat(credit.getAmount()).isEqualByComparingTo("327978.4947019899");
+        assertThat(credit.getAmount()).isEqualByComparingTo(expectedCredit);
         assertThat(credit.getOriginalAmount()).isEqualByComparingTo("500");
         assertThat(credit.getOriginalCurrency()).isEqualTo("EUR");
-        assertThat(credit.getConversionRate()).isEqualByComparingTo("655.9569894039798");
+        assertThat(credit.getConversionRate())
+                .isEqualByComparingTo(expectedCredit.divide(new BigDecimal("500")));
         assertThat(rows)
                 .filteredOn(tx -> "skrooge:operation:8".equals(tx.getExternalReference()))
                 .singleElement()
@@ -798,10 +805,10 @@ class SkroogeJsonImportFlowE2ETest {
                                 .date(debit.getDate())
                                 .description("Renamed imported transfer")
                                 .build());
-        assertThat(response.getTransferAmount()).isEqualByComparingTo("327978.4947019899");
+        assertThat(response.getTransferAmount()).isEqualByComparingTo(expectedCredit);
         org.openfinance.entity.Transaction saved =
                 transactionRepository.findById(credit.getId()).orElseThrow();
-        assertThat(saved.getAmount()).isEqualByComparingTo("327978.4947019899");
+        assertThat(saved.getAmount()).isEqualByComparingTo(expectedCredit);
         assertThat(saved.getOriginalAmount()).isEqualByComparingTo("500");
         assertThat(accountRepository.findById(credit.getAccountId()).orElseThrow().getBalance())
                 .isEqualByComparingTo(beforeBalance);
@@ -811,7 +818,7 @@ class SkroogeJsonImportFlowE2ETest {
                 .satisfies(
                         tx ->
                                 assertThat(tx.getTransferAmount())
-                                        .isEqualByComparingTo("327978.4947019899"));
+                                        .isEqualByComparingTo(expectedCredit));
     }
 
     /** Waits for the async parse to reach PARSED, failing fast on FAILED or timeout. */

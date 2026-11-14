@@ -1,3 +1,4 @@
+import { decimalValue } from '@/utils/exact-decimal';
 import { SelectionCheckbox } from '@/components/bulk/BulkSelection';
 import { useDateFormatter } from '@/hooks/useDateFormatter';
 import { formatDecimal } from '@/utils/format';
@@ -64,7 +65,8 @@ export function PropertyCard({ property, onEdit, onView, isHighlighted }: Proper
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const deleteMutation = useDeleteProperty();
   const {
-    convert,
+    convert: convertNumber,
+    convertExact: convert = convertNumber,
     secondaryCurrency: secCurrency,
     secondaryExchangeRate,
   } = useSecondaryConversion(property.currency);
@@ -225,7 +227,7 @@ export function PropertyCard({ property, onEdit, onView, isHighlighted }: Proper
             </span>
             <span className="text-text-primary font-medium">
               <ConvertedAmount
-                amount={property.purchasePrice}
+                amount={decimalValue(property, 'purchasePrice') ?? property.purchasePrice}
                 currency={property.currency}
                 convertedAmount={
                   property.isConverted && property.exchangeRate
@@ -233,7 +235,7 @@ export function PropertyCard({ property, onEdit, onView, isHighlighted }: Proper
                     : undefined
                 }
                 baseCurrency={property.baseCurrency}
-                exchangeRate={property.exchangeRate}
+                exchangeRate={decimalValue(property, 'exchangeRate') ?? property.exchangeRate}
                 isConverted={property.isConverted}
               />
             </span>
@@ -246,13 +248,18 @@ export function PropertyCard({ property, onEdit, onView, isHighlighted }: Proper
               <span className="text-text-primary font-bold text-base">
                 {/* REQ-10.3: Display property current value with base-currency conversion hint */}
                 <ConvertedAmount
-                  amount={property.currentValue}
+                  amount={decimalValue(property, 'currentValue') ?? property.currentValue}
                   currency={property.currency}
-                  convertedAmount={property.valueInBaseCurrency}
+                  convertedAmount={
+                    decimalValue(property, 'valueInBaseCurrency') ?? property.valueInBaseCurrency
+                  }
                   baseCurrency={property.baseCurrency}
-                  exchangeRate={property.exchangeRate}
+                  exchangeRate={decimalValue(property, 'exchangeRate') ?? property.exchangeRate}
                   isConverted={property.isConverted}
-                  secondaryAmount={property.valueInSecondaryCurrency}
+                  secondaryAmount={
+                    decimalValue(property, 'valueInSecondaryCurrency') ??
+                    property.valueInSecondaryCurrency
+                  }
                   secondaryCurrency={property.secondaryCurrency}
                 />
               </span>
@@ -265,7 +272,7 @@ export function PropertyCard({ property, onEdit, onView, isHighlighted }: Proper
               <span className={cn('font-medium flex items-center gap-1', appreciationColor)}>
                 <span>{property.appreciationPercentage >= 0 ? '+' : ''}</span>
                 <ConvertedAmount
-                  amount={property.appreciation}
+                  amount={decimalValue(property, 'appreciation') ?? property.appreciation}
                   currency={property.currency}
                   convertedAmount={
                     property.isConverted && property.exchangeRate
@@ -273,7 +280,7 @@ export function PropertyCard({ property, onEdit, onView, isHighlighted }: Proper
                       : undefined
                   }
                   baseCurrency={property.baseCurrency}
-                  exchangeRate={property.exchangeRate}
+                  exchangeRate={decimalValue(property, 'exchangeRate') ?? property.exchangeRate}
                   isConverted={property.isConverted}
                   inline
                 />
@@ -295,7 +302,7 @@ export function PropertyCard({ property, onEdit, onView, isHighlighted }: Proper
                   className={`font-medium ${property.equity < 0 ? 'text-error' : 'text-green-400'}`}
                 >
                   <ConvertedAmount
-                    amount={property.equity}
+                    amount={decimalValue(property, 'equity') ?? property.equity}
                     currency={property.currency}
                     convertedAmount={
                       property.isConverted && property.exchangeRate
@@ -303,7 +310,7 @@ export function PropertyCard({ property, onEdit, onView, isHighlighted }: Proper
                         : undefined
                     }
                     baseCurrency={property.baseCurrency}
-                    exchangeRate={property.exchangeRate}
+                    exchangeRate={decimalValue(property, 'exchangeRate') ?? property.exchangeRate}
                     isConverted={property.isConverted}
                   />
                 </span>
@@ -316,14 +323,16 @@ export function PropertyCard({ property, onEdit, onView, isHighlighted }: Proper
               <span className="text-text-secondary">{t('card.monthlyRent')}</span>
               <span className="text-primary font-medium">
                 <CurrencyAmount
-                  amount={property.rentalIncome}
+                  amount={decimalValue(property, 'rentalIncome') ?? property.rentalIncome}
                   currency={property.currency}
-                  secondaryAmount={convert(property.rentalIncome)}
+                  secondaryAmount={convert(
+                    decimalValue(property, 'rentalIncome') ?? property.rentalIncome
+                  )}
                   secondaryCurrency={secCurrency}
                   secondaryExchangeRate={secondaryExchangeRate}
                   inline
                   baseCurrency={property.baseCurrency}
-                  exchangeRate={property.exchangeRate}
+                  exchangeRate={decimalValue(property, 'exchangeRate') ?? property.exchangeRate}
                   isConverted={property.isConverted}
                 />
                 /mo

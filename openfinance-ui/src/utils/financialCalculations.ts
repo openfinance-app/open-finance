@@ -1,3 +1,4 @@
+import { ExactDecimal } from '@/utils/exact-decimal';
 import { formatPercentage as formatPercent } from '@/utils/format';
 /**
  * Financial Calculation Utilities
@@ -6,7 +7,7 @@ import { formatPercentage as formatPercent } from '@/utils/format';
  * Used for client-side calculations and validation
  */
 
-import { DEFAULT_CURRENCY } from './currency';
+import { DEFAULT_CURRENCY, formatCurrency as sharedFormatCurrency } from '@/utils/currency';
 import { add, divide, multiply, percentage, pow, subtract } from '@/utils/money';
 
 /**
@@ -57,26 +58,21 @@ export function calculateFutureValue(
  * @returns Months until target is reached, or maxMonths if not achievable
  */
 export function calculateMonthsToTarget(
-  currentSavings: number,
-  monthlyContribution: number,
+  currentSavings: number | string,
+  monthlyContribution: number | string,
   annualRate: number,
-  targetAmount: number,
+  targetAmount: number | string,
   maxMonths: number = 1200
 ): number {
-  const monthlyRate = divide(divide(annualRate, 100), 12);
-  let balance = currentSavings;
+  const monthlyRate = new ExactDecimal(annualRate).div(1200);
+  const contribution = new ExactDecimal(monthlyContribution);
+  let balance = new ExactDecimal(currentSavings);
+  if (monthlyRate.lte(0) && contribution.lte(0) && balance.lt(targetAmount)) return maxMonths;
   let months = 0;
-
-  // Safety check for impossible scenarios
-  if (monthlyRate <= 0 && monthlyContribution <= 0 && balance < targetAmount) {
-    return maxMonths;
-  }
-
-  while (balance < targetAmount && months < maxMonths) {
-    balance = add(multiply(balance, add(1, monthlyRate)), monthlyContribution);
+  while (balance.lt(targetAmount) && months < maxMonths) {
+    balance = balance.times(monthlyRate.plus(1)).plus(contribution);
     months++;
   }
-
   return months;
 }
 
@@ -105,8 +101,8 @@ export function calculateTargetAmount(annualExpenses: number, withdrawalRate: nu
  * @returns Depletion month (including a final partially funded month), infinity flag and balance
  */
 export function calculateSavingsLongevity(
-  currentSavings: number,
-  monthlyExpenses: number,
+  currentSavings: number | string,
+  monthlyExpenses: number | string,
   annualReturnRate: number,
   maxMonths: number = 1200
 ): {
@@ -115,49 +111,29 @@ export function calculateSavingsLongevity(
   finalBalance: number | null;
   exceedsProjection?: boolean;
 } {
-  const monthlyRate = divide(divide(annualReturnRate, 100), 12);
-  let balance = currentSavings;
-  let months = 0;
-
-  // Check for infinite sustainability
-  // If returns on current savings exceed monthly expenses
-  if (monthlyExpenses === 0) {
+  const monthlyRate = new ExactDecimal(annualReturnRate).div(1200);
+  const expenses = new ExactDecimal(monthlyExpenses);
+  let balance = new ExactDecimal(currentSavings);
+  if (expenses.isZero() || (monthlyRate.gt(0) && balance.times(monthlyRate).gte(expenses))) {
     return { monthsUntilDepletion: maxMonths, isInfinite: true, finalBalance: null };
   }
-  if (monthlyRate > 0) {
-    const monthlyReturn = multiply(currentSavings, monthlyRate);
-    if (monthlyReturn >= monthlyExpenses) {
-      return {
-        monthsUntilDepletion: maxMonths,
-        isInfinite: true,
-        finalBalance: null,
-      };
-    }
-  }
-
-  if (monthlyRate === 0) {
+  if (monthlyRate.isZero()) {
     return {
-      monthsUntilDepletion: Math.ceil(divide(currentSavings, monthlyExpenses)),
+      monthsUntilDepletion: balance.div(expenses).ceil().toNumber(),
       isInfinite: false,
       finalBalance: 0,
     };
   }
-
-  // Calculate month by month depletion
-  while (balance > 0 && months < maxMonths) {
-    // Add investment returns
-    balance = multiply(balance, add(1, monthlyRate));
-    // Subtract monthly expenses
-    balance = subtract(balance, monthlyExpenses);
-
+  let months = 0;
+  while (balance.gt(0) && months < maxMonths) {
+    balance = balance.times(monthlyRate.plus(1)).minus(expenses);
     months++;
   }
-
   return {
     monthsUntilDepletion: months,
     isInfinite: false,
-    finalBalance: balance > 0 ? balance : 0,
-    exceedsProjection: balance > 0,
+    finalBalance: balance.gt(0) ? balance.toNumber() : 0,
+    exceedsProjection: balance.gt(0),
   };
 }
 
@@ -212,16 +188,17 @@ export function calculatePassiveIncome(targetAmount: number, withdrawalRate: num
  * @returns Formatted currency string
  */
 export function formatCurrency(
-  value: number,
+  value: number | string,
   locale: string = 'en-US',
   currency: string = DEFAULT_CURRENCY
 ): string {
-  return new Intl.NumberFormat(locale, {
-    style: 'currency',
-    currency: currency,
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(value);
+  return sharedFormatCurrency(value, currency, {
+    numberFormat: locale.startsWith('fr')
+      ? '1 234,56'
+      : locale.startsWith('de')
+        ? '1.234,56'
+        : '1,234.56',
+  });
 }
 
 /**

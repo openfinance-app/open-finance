@@ -20,10 +20,10 @@ import {
 import {
   calculateSavingsLongevity,
   calculateMonthsToTarget,
-  calculateTargetAmount,
   calculateRealReturn,
 } from '../utils/financialCalculations';
-import { divide, multiply, percentage } from '@/utils/money';
+import { percentage } from '@/utils/money';
+import { calculatedAmounts, ExactDecimal } from '@/utils/exact-decimal';
 import { validateFreedom } from '@/validators/calculatorValidation';
 
 /**
@@ -174,12 +174,16 @@ export function useFinancialFreedom() {
     const inflationRate = input.inflationRate ?? 2.5;
     const adjustForInflation = input.adjustForInflation ?? false;
 
-    const annualExpenses = multiply(input.monthlyExpenses, 12);
+    const annualExpenses = new ExactDecimal(input.monthlyExpenses).times(12);
     const effectiveReturnRate = adjustForInflation
       ? calculateRealReturn(input.expectedAnnualReturn, inflationRate)
       : input.expectedAnnualReturn;
 
-    const targetAmount = calculateTargetAmount(annualExpenses, withdrawalRate);
+    const targetAmount = annualExpenses
+      .times(100)
+      .div(withdrawalRate)
+      .toDecimalPlaces(18)
+      .toFixed();
     const monthsToFreedom = calculateMonthsToTarget(
       input.currentSavings,
       monthlyContribution,
@@ -191,9 +195,10 @@ export function useFinancialFreedom() {
     const monthsRemainder = Math.round(monthsToFreedom % 12);
 
     const isAchievable = monthsToFreedom <= 600; // 50 years max
-    const progressPercentage =
-      targetAmount === 0 ? 100 : percentage(input.currentSavings, targetAmount);
-    const annualPassiveIncome = multiply(targetAmount, divide(withdrawalRate, 100));
+    const progressPercentage = new ExactDecimal(targetAmount).isZero()
+      ? 100
+      : percentage(input.currentSavings, targetAmount);
+    const annualPassiveIncome = new ExactDecimal(targetAmount).times(withdrawalRate).div(100);
     const longevity = calculateSavingsLongevity(
       input.currentSavings,
       input.monthlyExpenses,
@@ -203,10 +208,9 @@ export function useFinancialFreedom() {
     const result: FreedomCalculatorResult = {
       yearsToFreedom,
       monthsToFreedom: monthsRemainder,
-      targetSavingsAmount: targetAmount,
+      ...calculatedAmounts({ targetSavingsAmount: targetAmount, annualPassiveIncome }),
       progressPercentage: Math.min(progressPercentage, 100),
       currentProgress: input.currentSavings,
-      annualPassiveIncome,
       isSustainableIndefinitely: longevity.isInfinite,
       isAchievable,
       withdrawalRate,

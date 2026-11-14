@@ -16,6 +16,12 @@ vi.mock('react-chartjs-2', () => ({
 vi.mock('@/context/AuthContext', () => ({
   useAuthContext: () => ({ baseCurrency: 'USD' }),
 }));
+vi.mock('@/context/NumberFormatContext', () => ({
+  useNumberFormat: () => ({ numberFormat: '1,234.56' }),
+}));
+vi.mock('@/context/DecimalPlacesContext', () => ({
+  useDecimalPlaces: () => ({ effectiveDecimals: null }),
+}));
 
 import { EvolutionChart } from './EvolutionChart';
 

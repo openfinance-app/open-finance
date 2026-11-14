@@ -1,3 +1,4 @@
+import { decimalValue, ExactDecimal, decimalField } from '@/utils/exact-decimal';
 import { useEffect, useId, useState } from 'react';
 import { Link } from 'react-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -15,7 +16,6 @@ import { HelpTooltip } from '@/components/ui/HelpTooltip';
 import { Input } from '@/components/ui/Input';
 import { SimpleSelect } from '@/components/ui/SimpleSelect';
 import { RecordLoanPayment } from '@/components/liabilities/RecordLoanPayment';
-import { ExactDecimal, decimalField } from '@/utils/exact-decimal';
 import { sum, subtract } from '@/utils/money';
 import type { LiabilityRequest } from '@/types/liability';
 
@@ -209,7 +209,7 @@ export function AssetFinancingSection({
                   currency={asset.currency}
                   inline
                   baseCurrency={asset.baseCurrency}
-                  exchangeRate={asset.exchangeRate}
+                  exchangeRate={decimalValue(asset, 'exchangeRate') ?? asset.exchangeRate}
                   isConverted={asset.isConverted}
                 />
               </dd>
@@ -254,7 +254,7 @@ export function AssetFinancingSection({
                 {row.relationship === 'FINANCING' && (
                   <CurrencyAmount
                     className="font-mono tabular-nums"
-                    amount={row.allocatedBalance ?? 0}
+                    amount={decimalValue(row, 'allocatedBalance') ?? row.allocatedBalance ?? 0}
                     currency={
                       row.assetCurrency ?? asset?.currency ?? selectedLoan?.currency ?? 'EUR'
                     }
@@ -437,7 +437,7 @@ export function AssetFinancingSection({
                           amount={new ExactDecimal(decimalField(selectedLoan, 'currentBalance'))
                             .times(row.allocationPercentage || 0)
                             .div(100)
-                            .toNumber()}
+                            .toFixed()}
                           currency={selectedLoan.currency}
                           inline
                         />

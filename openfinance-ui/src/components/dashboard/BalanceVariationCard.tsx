@@ -1,3 +1,5 @@
+import { useFormatCurrency } from '@/hooks/useFormatCurrency';
+import { decimalValue } from '@/utils/exact-decimal';
 import { formatDecimal } from '@/utils/format';
 import { useMemo, useState } from 'react';
 import {
@@ -47,7 +49,11 @@ const CustomTooltip = ({
       <div className="bg-surface-elevated border border-border rounded-lg p-3 shadow-lg">
         <p className="text-text-primary font-semibold text-sm mb-1">{data.year}</p>
         <p className="text-primary font-mono text-sm">
-          <ConvertedAmount amount={data.amount} currency={currency} inline />
+          <ConvertedAmount
+            amount={decimalValue(data, 'amount') ?? data.amount}
+            currency={currency}
+            inline
+          />
         </p>
         {data.variationPercentage != null && (
           <p
@@ -70,6 +76,7 @@ export default function BalanceVariationCard({
 }: BalanceVariationCardProps) {
   const { t } = useTranslation('dashboard');
   const { isAmountsVisible } = useVisibility();
+  const { formatCompact } = useFormatCurrency();
   const { data: yearlyData, isLoading, error } = useYearlyBalance();
 
   const [selection, setSelection] = useState<SelectionValue>('netWorth');
@@ -229,9 +236,7 @@ export default function BalanceVariationCard({
                 tick={{ fill: '#9ca3af', fontSize: 12 }}
                 tickFormatter={(value: number) => {
                   if (!isAmountsVisible) return '••••';
-                  if (Math.abs(value) >= 1_000_000) return `${(value / 1_000_000).toFixed(1)}M`;
-                  if (Math.abs(value) >= 1_000) return `${(value / 1_000).toFixed(0)}k`;
-                  return value.toString();
+                  return formatCompact(value, effectiveCurrency, { showSymbol: false });
                 }}
               />
               <Tooltip
@@ -272,9 +277,7 @@ export default function BalanceVariationCard({
                 tick={{ fill: '#9ca3af', fontSize: 12 }}
                 tickFormatter={(value: number) => {
                   if (!isAmountsVisible) return '••••';
-                  if (Math.abs(value) >= 1_000_000) return `${(value / 1_000_000).toFixed(1)}M`;
-                  if (Math.abs(value) >= 1_000) return `${(value / 1_000).toFixed(0)}k`;
-                  return value.toString();
+                  return formatCompact(value, effectiveCurrency, { showSymbol: false });
                 }}
               />
               <Tooltip
@@ -301,7 +304,11 @@ export default function BalanceVariationCard({
             <div key={d.year} className="bg-surface-elevated rounded-md p-2 text-center">
               <div className="text-text-secondary font-medium">{d.year}</div>
               <div className="text-text-primary font-mono font-semibold truncate">
-                <ConvertedAmount amount={d.amount} currency={effectiveCurrency} inline />
+                <ConvertedAmount
+                  amount={decimalValue(d, 'amount') ?? d.amount}
+                  currency={effectiveCurrency}
+                  inline
+                />
               </div>
               {d.variationPercentage != null && (
                 <div

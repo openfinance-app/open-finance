@@ -7,15 +7,16 @@ import { useLiabilities } from '@/hooks/useLiabilities';
 import { useSecondaryConversion } from '@/hooks/useSecondaryConversion';
 import { ConvertedAmount } from '@/components/ui/ConvertedAmount';
 import { cn } from '@/lib/utils';
-import { DEFAULT_CURRENCY } from '@/utils/currency';
-import { add, multiply, percentage, subtract, sum } from '@/utils/money';
+import { DEFAULT_CURRENCY, type MonetaryValue } from '@/utils/currency';
+import { percentage } from '@/utils/money';
+import { decimalValue, ExactDecimal, exactSum } from '@/utils/exact-decimal';
 import { formatDecimal } from '@/utils/format';
 
 interface InstitutionGroup {
   id: number | null;
   name: string;
   logo?: string;
-  totalBalance: number;
+  totalBalance: string;
   accountCount: number;
 }
 
@@ -29,7 +30,7 @@ export default function InstitutionBreakdown({
   const accounts = useAccounts();
   const assets = useAssets();
   const liabilities = useLiabilities();
-  const { convert, secondaryCurrency, secondaryExchangeRate } =
+  const { convert, convertExact, secondaryCurrency, secondaryExchangeRate } =
     useSecondaryConversion(baseCurrency);
   const groups = new Map<number | null, InstitutionGroup>();
   let unavailable = false;
@@ -40,18 +41,18 @@ export default function InstitutionBreakdown({
         id,
         name: institution?.name ?? t('institutionBreakdown.noInstitution'),
         logo: institution?.logo,
-        totalBalance: 0,
+        totalBalance: '0',
         accountCount: 0,
       });
     return groups.get(id)!;
   };
   const converted = (
-    amount: number,
+    amount: MonetaryValue,
     currency: string,
-    baseAmount?: number,
+    baseAmount?: MonetaryValue,
     isConverted?: boolean
-  ): number | undefined => {
-    if (currency === baseCurrency || amount === 0) return amount;
+  ): MonetaryValue | undefined => {
+    if (currency === baseCurrency || new ExactDecimal(amount).isZero()) return amount;
     if (baseAmount != null && isConverted) return baseAmount;
     unavailable = true;
     return undefined;
@@ -61,26 +62,30 @@ export default function InstitutionBreakdown({
     const row = group(account.institution);
     row.accountCount += 1;
     const value = converted(
-      account.ownBalance,
+      decimalValue(account, 'ownBalance') ?? 0,
       account.currency,
-      account.exchangeRate != null ? multiply(account.ownBalance, account.exchangeRate) : undefined,
+      account.exchangeRate != null
+        ? new ExactDecimal(decimalValue(account, 'ownBalance') ?? 0)
+            .times(decimalValue(account, 'exchangeRate')!)
+            .toFixed()
+        : undefined,
       account.isConverted
     );
     if (value == null) continue;
-    row.totalBalance = add(row.totalBalance, value);
+    row.totalBalance = exactSum([row.totalBalance, value]);
   }
   for (const asset of assets.data ?? []) {
     if (asset.isActive === false || asset.acquisitionType === 'PLANNED') continue;
     const account = accounts.data?.find(a => a.id === asset.accountId);
     const value = converted(
-      asset.totalValue,
+      decimalValue(asset, 'totalValue') ?? 0,
       asset.currency,
-      asset.valueInBaseCurrency,
+      decimalValue(asset, 'valueInBaseCurrency'),
       asset.isConverted
     );
     if (value != null) {
       const row = group(account?.institution);
-      row.totalBalance = add(row.totalBalance, value);
+      row.totalBalance = exactSum([row.totalBalance, value]);
     }
   }
   for (const liability of liabilities.data ?? []) {
@@ -88,25 +93,26 @@ export default function InstitutionBreakdown({
     if (liability.representedByAccountId != null) continue;
     const row = group(liability.institution);
     const value = converted(
-      liability.currentBalance,
+      decimalValue(liability, 'currentBalance') ?? 0,
       liability.currency,
-      liability.balanceInBaseCurrency,
+      decimalValue(liability, 'balanceInBaseCurrency'),
       liability.isConverted
     );
-    if (value != null) row.totalBalance = subtract(row.totalBalance, value);
+    if (value != null) row.totalBalance = new ExactDecimal(row.totalBalance).minus(value).toFixed();
   }
   const rows = [...groups.values()].sort(
-    (a, b) => b.totalBalance - a.totalBalance || a.name.localeCompare(b.name)
+    (a, b) =>
+      new ExactDecimal(b.totalBalance).comparedTo(a.totalBalance) || a.name.localeCompare(b.name)
   );
-  const grandTotal = sum(rows.map(row => row.totalBalance));
+  const grandTotal = exactSum(rows.map(row => row.totalBalance));
   const loading = accounts.isLoading || assets.isLoading || liabilities.isLoading;
   const error = accounts.error || assets.error || liabilities.error;
-  const amount = (value: number) => (
+  const amount = (value: MonetaryValue) => (
     <ConvertedAmount
       amount={value}
       currency={baseCurrency}
       isConverted={false}
-      secondaryAmount={convert(value)}
+      secondaryAmount={convertExact ? convertExact(value) : convert(value)}
       secondaryCurrency={secondaryCurrency}
       secondaryExchangeRate={secondaryExchangeRate}
       inline
@@ -172,7 +178,7 @@ export default function InstitutionBreakdown({
               const RowTag = clickable ? 'button' : 'div';
               // Percentages are only meaningful against a positive total —
               // with a zero/negative net total they would all read 0.0%.
-              const showPercent = grandTotal > 0;
+              const showPercent = new ExactDecimal(grandTotal).gt(0);
               const percent = showPercent ? percentage(row.totalBalance, grandTotal) : 0;
               return (
                 <RowTag

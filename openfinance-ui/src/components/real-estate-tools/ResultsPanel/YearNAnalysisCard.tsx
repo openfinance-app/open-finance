@@ -1,3 +1,4 @@
+import { decimalValue } from '@/utils/exact-decimal';
 import { formatDecimal } from '@/utils/format';
 import React from 'react';
 import { Calendar, TrendingUp, Home, Key, ArrowRight, AlertCircle } from 'lucide-react';
@@ -68,7 +69,7 @@ export const YearNAnalysisCard: React.FC<YearNAnalysisCardProps> = ({ analysis, 
                   <TableCell className="font-medium">{t('results.propertyValue')}</TableCell>
                   <TableCell className="text-right text-green-600">
                     <ConvertedAmount
-                      amount={analysis.propertyValue}
+                      amount={decimalValue(analysis, 'propertyValue') ?? analysis.propertyValue}
                       currency={baseCurrency}
                       inline
                     />
@@ -78,7 +79,9 @@ export const YearNAnalysisCard: React.FC<YearNAnalysisCardProps> = ({ analysis, 
                   <TableCell className="font-medium">{t('results.remainingCapital')}</TableCell>
                   <TableCell className="text-right text-red-600">
                     <ConvertedAmount
-                      amount={analysis.remainingCapital}
+                      amount={
+                        decimalValue(analysis, 'remainingCapital') ?? analysis.remainingCapital
+                      }
                       currency={baseCurrency}
                       inline
                     />
@@ -88,7 +91,7 @@ export const YearNAnalysisCard: React.FC<YearNAnalysisCardProps> = ({ analysis, 
                   <TableCell className="font-medium">{t('results.accumulatedSavings')}</TableCell>
                   <TableCell className="text-right">
                     <ConvertedAmount
-                      amount={analysis.buySavings ?? 0}
+                      amount={decimalValue(analysis, 'buySavings') ?? analysis.buySavings ?? 0}
                       currency={baseCurrency}
                       inline
                     />
@@ -97,14 +100,18 @@ export const YearNAnalysisCard: React.FC<YearNAnalysisCardProps> = ({ analysis, 
                 <TableRow>
                   <TableCell className="font-medium">{t('results.netWorth')}</TableCell>
                   <TableCell className="text-right font-bold text-primary">
-                    <ConvertedAmount amount={analysis.netWorth} currency={baseCurrency} inline />
+                    <ConvertedAmount
+                      amount={decimalValue(analysis, 'netWorth') ?? analysis.netWorth}
+                      currency={baseCurrency}
+                      inline
+                    />
                   </TableCell>
                 </TableRow>
                 <TableRow>
                   <TableCell className="font-medium">{t('results.costsTotal')}</TableCell>
                   <TableCell className="text-right">
                     <ConvertedAmount
-                      amount={analysis.totalCostsBuy}
+                      amount={decimalValue(analysis, 'totalCostsBuy') ?? analysis.totalCostsBuy}
                       currency={baseCurrency}
                       inline
                     />
@@ -114,7 +121,7 @@ export const YearNAnalysisCard: React.FC<YearNAnalysisCardProps> = ({ analysis, 
                   <TableCell className="font-medium">{t('results.netExpense')}</TableCell>
                   <TableCell className="text-right text-red-600">
                     <ConvertedAmount
-                      amount={analysis.netExpenseBuy}
+                      amount={decimalValue(analysis, 'netExpenseBuy') ?? analysis.netExpenseBuy}
                       currency={baseCurrency}
                       inline
                     />
@@ -134,14 +141,17 @@ export const YearNAnalysisCard: React.FC<YearNAnalysisCardProps> = ({ analysis, 
                     components={{
                       minPrice: (
                         <ConvertedAmount
-                          amount={analysis.minimumResalePrice}
+                          amount={
+                            decimalValue(analysis, 'minimumResalePrice') ??
+                            analysis.minimumResalePrice
+                          }
                           currency={baseCurrency}
                           inline
                         />
                       ),
                       propertyValue: (
                         <ConvertedAmount
-                          amount={analysis.propertyValue}
+                          amount={decimalValue(analysis, 'propertyValue') ?? analysis.propertyValue}
                           currency={baseCurrency}
                           inline
                         />
@@ -189,20 +199,28 @@ export const YearNAnalysisCard: React.FC<YearNAnalysisCardProps> = ({ analysis, 
                 <TableRow>
                   <TableCell className="font-medium">{t('results.accumulatedSavings')}</TableCell>
                   <TableCell className="text-right font-bold text-green-600">
-                    <ConvertedAmount amount={analysis.rentSavings} currency={baseCurrency} inline />
+                    <ConvertedAmount
+                      amount={decimalValue(analysis, 'rentSavings') ?? analysis.rentSavings}
+                      currency={baseCurrency}
+                      inline
+                    />
                   </TableCell>
                 </TableRow>
                 <TableRow>
                   <TableCell className="font-medium">{t('results.netWorth')}</TableCell>
                   <TableCell className="text-right font-bold text-warning">
-                    <ConvertedAmount amount={analysis.rentSavings} currency={baseCurrency} inline />
+                    <ConvertedAmount
+                      amount={decimalValue(analysis, 'rentSavings') ?? analysis.rentSavings}
+                      currency={baseCurrency}
+                      inline
+                    />
                   </TableCell>
                 </TableRow>
                 <TableRow>
                   <TableCell className="font-medium">{t('results.costsTotal')}</TableCell>
                   <TableCell className="text-right">
                     <ConvertedAmount
-                      amount={analysis.totalCostsRent}
+                      amount={decimalValue(analysis, 'totalCostsRent') ?? analysis.totalCostsRent}
                       currency={baseCurrency}
                       inline
                     />
@@ -212,7 +230,7 @@ export const YearNAnalysisCard: React.FC<YearNAnalysisCardProps> = ({ analysis, 
                   <TableCell className="font-medium">{t('results.netExpense')}</TableCell>
                   <TableCell className="text-right text-red-600">
                     <ConvertedAmount
-                      amount={analysis.netExpenseRent}
+                      amount={decimalValue(analysis, 'netExpenseRent') ?? analysis.netExpenseRent}
                       currency={baseCurrency}
                       inline
                     />

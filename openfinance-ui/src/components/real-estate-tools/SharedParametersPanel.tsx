@@ -1,3 +1,4 @@
+import { decimalValue } from '@/utils/exact-decimal';
 /**
  * SharedParametersPanel Component
  *
@@ -46,7 +47,11 @@ export const SharedParametersPanel: React.FC<SharedParametersPanelProps> = ({ sh
             <div>
               <p className="text-xs text-muted-foreground">{t('sharedParameters.propertyPrice')}</p>
               <p className="font-medium">
-                <ConvertedAmount amount={sharedData.totalPrice} currency={baseCurrency} inline />
+                <ConvertedAmount
+                  amount={decimalValue(sharedData, 'totalPrice') ?? sharedData.totalPrice}
+                  currency={baseCurrency}
+                  inline
+                />
               </p>
             </div>
           </div>
@@ -58,7 +63,10 @@ export const SharedParametersPanel: React.FC<SharedParametersPanelProps> = ({ sh
               <p className="text-xs text-muted-foreground">{t('sharedParameters.creditPayment')}</p>
               <p className="font-medium">
                 <ConvertedAmount
-                  amount={sharedData.credit.monthlyPayment}
+                  amount={
+                    decimalValue(sharedData.credit, 'monthlyPayment') ??
+                    sharedData.credit.monthlyPayment
+                  }
                   currency={baseCurrency}
                   inline
                 />
@@ -73,7 +81,11 @@ export const SharedParametersPanel: React.FC<SharedParametersPanelProps> = ({ sh
             <div>
               <p className="text-xs text-muted-foreground">{t('sharedParameters.propertyTax')}</p>
               <p className="font-medium">
-                <ConvertedAmount amount={sharedData.propertyTax} currency={baseCurrency} inline />
+                <ConvertedAmount
+                  amount={decimalValue(sharedData, 'propertyTax') ?? sharedData.propertyTax}
+                  currency={baseCurrency}
+                  inline
+                />
                 {t('sharedParameters.propertyTaxPerYear')}
               </p>
             </div>
@@ -88,7 +100,9 @@ export const SharedParametersPanel: React.FC<SharedParametersPanelProps> = ({ sh
               </p>
               <p className="font-medium">
                 <ConvertedAmount
-                  amount={sharedData.coOwnershipCharges}
+                  amount={
+                    decimalValue(sharedData, 'coOwnershipCharges') ?? sharedData.coOwnershipCharges
+                  }
                   currency={baseCurrency}
                   inline
                 />

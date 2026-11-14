@@ -1,3 +1,4 @@
+import { ExactDecimal, decimalValue } from '@/utils/exact-decimal';
 import { formatDecimal } from '@/utils/format';
 /**
  * RegimeCard Component
@@ -102,7 +103,11 @@ export const RegimeCard: React.FC<RegimeCardProps> = ({
                     className={`text-lg font-bold ${(result.performance.monthlyCashFlow ?? 0) >= 0 ? 'text-green-600' : 'text-red-600'}`}
                   >
                     <ConvertedAmount
-                      amount={result.performance.monthlyCashFlow ?? 0}
+                      amount={
+                        decimalValue(result.performance, 'monthlyCashFlow') ??
+                        result.performance.monthlyCashFlow ??
+                        0
+                      }
                       currency={baseCurrency}
                       inline
                     />
@@ -135,7 +140,10 @@ export const RegimeCard: React.FC<RegimeCardProps> = ({
                       <TableCell className="py-1 text-sm">{t('regimeCard.totalPrice')}</TableCell>
                       <TableCell className="py-1 text-right font-medium">
                         <ConvertedAmount
-                          amount={result.investment.totalPrice}
+                          amount={
+                            decimalValue(result.investment, 'totalPrice') ??
+                            result.investment.totalPrice
+                          }
                           currency={baseCurrency}
                           inline
                         />
@@ -147,7 +155,10 @@ export const RegimeCard: React.FC<RegimeCardProps> = ({
                       </TableCell>
                       <TableCell className="py-1 text-right">
                         <ConvertedAmount
-                          amount={result.investment.annualCreditCost}
+                          amount={
+                            decimalValue(result.investment, 'annualCreditCost') ??
+                            result.investment.annualCreditCost
+                          }
                           currency={baseCurrency}
                           inline
                         />
@@ -159,7 +170,10 @@ export const RegimeCard: React.FC<RegimeCardProps> = ({
                       </TableCell>
                       <TableCell className="py-1 text-right">
                         <ConvertedAmount
-                          amount={result.investment.monthlyCreditPayment}
+                          amount={
+                            decimalValue(result.investment, 'monthlyCreditPayment') ??
+                            result.investment.monthlyCreditPayment
+                          }
                           currency={baseCurrency}
                           inline
                         />
@@ -181,7 +195,7 @@ export const RegimeCard: React.FC<RegimeCardProps> = ({
                       <TableCell className="py-1 text-sm">{t('regimeCard.gross')}</TableCell>
                       <TableCell className="py-1 text-right">
                         <ConvertedAmount
-                          amount={result.revenue.gross}
+                          amount={decimalValue(result.revenue, 'gross') ?? result.revenue.gross}
                           currency={baseCurrency}
                           inline
                         />
@@ -192,7 +206,11 @@ export const RegimeCard: React.FC<RegimeCardProps> = ({
                       <TableCell className="py-1 text-right text-red-600">
                         -
                         <ConvertedAmount
-                          amount={Math.abs(result.revenue.deduction)}
+                          amount={new ExactDecimal(
+                            decimalValue(result.revenue, 'deduction') ?? result.revenue.deduction
+                          )
+                            .abs()
+                            .toFixed()}
                           currency={baseCurrency}
                           inline
                         />
@@ -204,7 +222,7 @@ export const RegimeCard: React.FC<RegimeCardProps> = ({
                       </TableCell>
                       <TableCell className="py-1 text-right font-medium">
                         <ConvertedAmount
-                          amount={result.revenue.taxable}
+                          amount={decimalValue(result.revenue, 'taxable') ?? result.revenue.taxable}
                           currency={baseCurrency}
                           inline
                         />
@@ -226,7 +244,7 @@ export const RegimeCard: React.FC<RegimeCardProps> = ({
                       <TableCell className="py-1 text-sm">{t('regimeCard.credit')}</TableCell>
                       <TableCell className="py-1 text-right">
                         <ConvertedAmount
-                          amount={result.charges.credit}
+                          amount={decimalValue(result.charges, 'credit') ?? result.charges.credit}
                           currency={baseCurrency}
                           inline
                         />
@@ -236,7 +254,7 @@ export const RegimeCard: React.FC<RegimeCardProps> = ({
                       <TableCell className="py-1 text-sm">{t('regimeCard.other')}</TableCell>
                       <TableCell className="py-1 text-right">
                         <ConvertedAmount
-                          amount={result.charges.other}
+                          amount={decimalValue(result.charges, 'other') ?? result.charges.other}
                           currency={baseCurrency}
                           inline
                         />
@@ -248,7 +266,7 @@ export const RegimeCard: React.FC<RegimeCardProps> = ({
                       </TableCell>
                       <TableCell className="py-1 text-right font-medium">
                         <ConvertedAmount
-                          amount={result.charges.total}
+                          amount={decimalValue(result.charges, 'total') ?? result.charges.total}
                           currency={baseCurrency}
                           inline
                         />
@@ -270,7 +288,11 @@ export const RegimeCard: React.FC<RegimeCardProps> = ({
                       <TableCell className="py-1 text-sm">{t('regimeCard.incomeTax')}</TableCell>
                       <TableCell className="py-1 text-right">
                         <ConvertedAmount
-                          amount={result.taxation.incomeTax ?? 0}
+                          amount={
+                            decimalValue(result.taxation, 'incomeTax') ??
+                            result.taxation.incomeTax ??
+                            0
+                          }
                           currency={baseCurrency}
                           inline
                         />
@@ -282,7 +304,11 @@ export const RegimeCard: React.FC<RegimeCardProps> = ({
                       </TableCell>
                       <TableCell className="py-1 text-right">
                         <ConvertedAmount
-                          amount={result.taxation.socialContributions ?? 0}
+                          amount={
+                            decimalValue(result.taxation, 'socialContributions') ??
+                            result.taxation.socialContributions ??
+                            0
+                          }
                           currency={baseCurrency}
                           inline
                         />
@@ -294,7 +320,11 @@ export const RegimeCard: React.FC<RegimeCardProps> = ({
                       </TableCell>
                       <TableCell className="py-1 text-right font-medium text-red-600">
                         <ConvertedAmount
-                          amount={result.taxation.totalTaxes ?? 0}
+                          amount={
+                            decimalValue(result.taxation, 'totalTaxes') ??
+                            result.taxation.totalTaxes ??
+                            0
+                          }
                           currency={baseCurrency}
                           inline
                         />

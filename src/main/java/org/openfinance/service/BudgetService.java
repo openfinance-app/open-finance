@@ -919,7 +919,10 @@ public class BudgetService {
 
             // Average per non-empty sub-period, then ceiling-round to nearest whole unit
             BigDecimal averageSpent =
-                    totalSpent.divide(BigDecimal.valueOf(filledWindows), 2, RoundingMode.HALF_UP);
+                    totalSpent.divide(
+                            BigDecimal.valueOf(filledWindows),
+                            org.openfinance.util.MoneyPrecision.CALCULATION_SCALE,
+                            RoundingMode.HALF_UP);
             BigDecimal suggestedAmount = averageSpent.setScale(0, RoundingMode.CEILING);
 
             // Check for existing budget using COUNT-based exists query (REQ-2.9.1.5: flag

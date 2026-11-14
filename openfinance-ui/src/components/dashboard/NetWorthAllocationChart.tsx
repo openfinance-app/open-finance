@@ -1,3 +1,4 @@
+import { decimalValue } from '@/utils/exact-decimal';
 import { formatPercentage } from '@/utils/format';
 import { useMemo } from 'react';
 import { ResponsiveContainer, Treemap, Tooltip } from 'recharts';
@@ -23,7 +24,7 @@ const CustomTooltip = ({ active, payload, currency, formatFn }: any) => {
         <p className="font-semibold">{data.name}</p>
         <p>
           <ConvertedAmount
-            amount={data.originalValue}
+            amount={decimalValue(data, 'originalValue') ?? data.originalValue}
             currency={data.currency ?? currency}
             inline
           />
@@ -98,7 +99,7 @@ export default function NetWorthAllocationChart({
           defaultValue: item.category,
         }),
         value: Math.abs(item.value), // Use absolute value for chart sizing
-        originalValue: item.value,
+        originalValue: decimalValue(item, 'value') ?? item.value,
         percentage: item.percentage,
         isLiability: item.isLiability,
         currency: item.currency,

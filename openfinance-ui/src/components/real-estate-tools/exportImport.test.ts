@@ -12,12 +12,14 @@ import {
   importFromJSON,
   printToPDF,
 } from '@/components/real-estate-tools/exportImport';
+import { setDecimalPlacesOverride } from '@/utils/currency';
 import { PRINT_PREVIEW_DELAY_MS } from '@/constants/timing';
 
 beforeEach(async () => {
   await i18n.changeLanguage('en');
 });
 afterEach(() => {
+  setDecimalPlacesOverride(null);
   vi.restoreAllMocks();
   vi.unstubAllGlobals();
   vi.useRealTimers();
@@ -56,9 +58,19 @@ describe('simulation data portability', () => {
     const lines = exportBuyRentToCSV(inputs, results).split('\n');
     expect(lines).toHaveLength(results.years.length + 2);
     expect(lines[1].split(';')).toHaveLength(12);
-    expect(lines[1].split(';')[9]).toBe(results.years[0].buy.netWorth!.toFixed(2));
+    expect(lines[1].split(';')[9]).toBe(String(results.years[0].buy.netWorth));
     expect(lines.every(line => line.endsWith('EUR') || line === lines[0])).toBe(true);
-    expect(lines.at(-1)?.split(';')[9]).toBe(results.summary.buy.netWorth.toFixed(2));
+    expect(lines.at(-1)?.split(';')[9]).toBe(String(results.summary.buy.netWorth));
+  });
+  it('exports underlying fractional values independently of display preferences', () => {
+    const fractional = structuredClone(results);
+    fractional.years[0].buy.netWorth = 1.4753632849315;
+    for (const places of [1, 2, 4, 8, null]) {
+      setDecimalPlacesOverride(places);
+      expect(exportBuyRentToCSV(inputs, fractional).split('\n')[1].split(';')[9]).toBe(
+        '1.4753632849315'
+      );
+    }
   });
   it('exports all four investment regimes and leaves unknown tax amounts blank', () => {
     const investment = createInvestmentInputs();

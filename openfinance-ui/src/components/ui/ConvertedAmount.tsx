@@ -35,22 +35,24 @@ import type { ReactNode } from 'react';
 import { useCurrencyDisplay } from '@/context/CurrencyDisplayContext';
 import type { AmountDisplayMode } from '@/context/CurrencyDisplayContext';
 import { useNumberFormat } from '@/context/NumberFormatContext';
+import { useDecimalPlaces } from '@/context/DecimalPlacesContext';
 import type { NumberFormat } from '@/context/NumberFormatContext';
 import { PrivateAmount } from '@/components/ui/PrivateAmount';
 import { AnimatedNumber } from '@/components/ui/AnimatedNumber';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/Tooltip';
-import { formatCurrency, formatExchangeRate } from '@/utils/currency';
+import { formatCurrency, formatExchangeRate, type MonetaryValue } from '@/utils/currency';
+import { divide } from '@/utils/money';
 import { useSecondaryConversion } from '@/hooks/useSecondaryConversion';
 import { cn } from '@/lib/utils';
 
 export interface ConvertedAmountProps {
   /** Native (original) amount in the asset's own currency */
-  amount: number;
+  amount: MonetaryValue;
   /** Native currency code (ISO 4217) — e.g. "XOF" */
   currency: string;
 
   /** Amount converted to the user's base currency (null/undefined if unavailable) */
-  convertedAmount?: number | null;
+  convertedAmount?: MonetaryValue | null;
   /** User's base currency code (ISO 4217) — e.g. "USD" */
   baseCurrency?: string | null;
   /**
@@ -58,7 +60,7 @@ export interface ConvertedAmountProps {
    * 1 unit of {@code currency} = {@code exchangeRate} units of {@code baseCurrency}.
    * Shown in the tooltip as "1 {currency} = {rate} {baseCurrency}".
    */
-  exchangeRate?: number | null;
+  exchangeRate?: MonetaryValue | null;
   /**
    * Whether a successful base-currency conversion took place.
    * false or undefined means the native currency is the same as base, or rate was unavailable.
@@ -70,7 +72,7 @@ export interface ConvertedAmountProps {
    * Null/undefined when no secondary currency is configured or rate was unavailable.
    * Requirement REQ-7.3
    */
-  secondaryAmount?: number | null;
+  secondaryAmount?: MonetaryValue | null;
   /**
    * ISO 4217 code of the secondary currency.
    * Should be provided whenever secondaryAmount is provided.
@@ -82,7 +84,7 @@ export interface ConvertedAmountProps {
    * 1 unit of {@code currency} = {@code secondaryExchangeRate} units of {@code secondaryCurrency}.
    * Shown in the tooltip as "1 {currency} = {rate} {secondaryCurrency}".
    */
-  secondaryExchangeRate?: number | null;
+  secondaryExchangeRate?: MonetaryValue | null;
 
   /** Show comparisons directly inside an existing chart tooltip. */
   showComparisons?: boolean;
@@ -91,7 +93,7 @@ export interface ConvertedAmountProps {
   conversionDate?: string;
 
   /** Recorded monetary equivalents take precedence over secondary market estimates. */
-  recordedAmounts?: ReadonlyArray<{ amount: number; currency: string }>;
+  recordedAmounts?: ReadonlyArray<{ amount: MonetaryValue; currency: string }>;
 
   /** Use compact K/M notation (default: false) */
   compact?: boolean;
@@ -118,7 +120,7 @@ export interface ConvertedAmountProps {
 function formatRate(
   fromCurrency: string,
   toCurrency: string,
-  rate: number | null | undefined
+  rate: MonetaryValue | null | undefined
 ): string | null {
   if (rate == null) return null;
   const formatted = formatExchangeRate(rate);
@@ -139,28 +141,29 @@ function formatRate(
  * Requirement REQ-8.5: tooltip only renders when there is at least one line.
  */
 function buildTooltipLines(
-  amount: number,
+  amount: MonetaryValue,
   currency: string,
-  convertedAmount: number | null | undefined,
+  convertedAmount: MonetaryValue | null | undefined,
   baseCurrency: string | null | undefined,
-  exchangeRate: number | null | undefined,
+  exchangeRate: MonetaryValue | null | undefined,
   isConverted: boolean | undefined,
-  secondaryAmount: number | null | undefined,
+  secondaryAmount: MonetaryValue | null | undefined,
   secondaryCurrency: string | null | undefined,
-  secondaryExchangeRate: number | null | undefined,
+  secondaryExchangeRate: MonetaryValue | null | undefined,
   displayMode: AmountDisplayMode,
   compact: boolean,
-  numberFormat: NumberFormat
+  numberFormat: NumberFormat,
+  decimals: number | null
 ): string[] {
   const lines: string[] = [];
-  const opts = { compact, numberFormat };
+  const opts = { compact, numberFormat, decimals };
 
   /** Appends the rate hint to an amount string when available. */
   const withRate = (
     amountStr: string,
     from: string,
     to: string,
-    rate: number | null | undefined
+    rate: MonetaryValue | null | undefined
   ): string => {
     const rateStr = formatRate(from, to, rate);
     return rateStr ? `${amountStr}  (${rateStr})` : amountStr;
@@ -236,18 +239,19 @@ function buildTooltipLines(
  * Requirement REQ-7.4: 'both' shows "base · native" inline, or native only if same currency.
  */
 function buildPrimaryDisplay(
-  amount: number,
+  amount: MonetaryValue,
   currency: string,
-  convertedAmount: number | null | undefined,
+  convertedAmount: MonetaryValue | null | undefined,
   baseCurrency: string | null | undefined,
   isConverted: boolean | undefined,
   displayMode: AmountDisplayMode,
   compact: boolean,
   inline: boolean,
   numberFormat: NumberFormat,
-  animate: boolean
+  animate: boolean,
+  decimals: number | null
 ): ReactNode {
-  const opts = { compact, numberFormat };
+  const opts = { compact, numberFormat, decimals };
   const canShowBase = isConverted === true && convertedAmount != null && baseCurrency;
 
   if (displayMode === 'base') {
@@ -255,8 +259,14 @@ function buildPrimaryDisplay(
       <PrivateAmount inline={inline}>
         {animate ? (
           <AnimatedNumber
-            value={convertedAmount!}
-            format={v => formatCurrency(v, baseCurrency!, opts)}
+            value={Number(convertedAmount!)}
+            format={v =>
+              formatCurrency(
+                v === Number(convertedAmount) ? convertedAmount! : v,
+                baseCurrency!,
+                opts
+              )
+            }
           />
         ) : (
           formatCurrency(convertedAmount!, baseCurrency!, opts)
@@ -265,7 +275,10 @@ function buildPrimaryDisplay(
     ) : (
       <PrivateAmount inline={inline}>
         {animate ? (
-          <AnimatedNumber value={amount} format={v => formatCurrency(v, currency, opts)} />
+          <AnimatedNumber
+            value={Number(amount)}
+            format={v => formatCurrency(v === Number(amount) ? amount : v, currency, opts)}
+          />
         ) : (
           formatCurrency(amount, currency, opts)
         )}
@@ -277,7 +290,10 @@ function buildPrimaryDisplay(
     return (
       <PrivateAmount inline={inline}>
         {animate ? (
-          <AnimatedNumber value={amount} format={v => formatCurrency(v, currency, opts)} />
+          <AnimatedNumber
+            value={Number(amount)}
+            format={v => formatCurrency(v === Number(amount) ? amount : v, currency, opts)}
+          />
         ) : (
           formatCurrency(amount, currency, opts)
         )}
@@ -292,8 +308,14 @@ function buildPrimaryDisplay(
         <PrivateAmount inline className="whitespace-nowrap">
           {animate ? (
             <AnimatedNumber
-              value={convertedAmount!}
-              format={v => formatCurrency(v, baseCurrency!, opts)}
+              value={Number(convertedAmount!)}
+              format={v =>
+                formatCurrency(
+                  v === Number(convertedAmount) ? convertedAmount! : v,
+                  baseCurrency!,
+                  opts
+                )
+              }
             />
           ) : (
             formatCurrency(convertedAmount!, baseCurrency!, opts)
@@ -314,7 +336,10 @@ function buildPrimaryDisplay(
   return (
     <PrivateAmount inline={inline}>
       {animate ? (
-        <AnimatedNumber value={amount} format={v => formatCurrency(v, currency, opts)} />
+        <AnimatedNumber
+          value={Number(amount)}
+          format={v => formatCurrency(v === Number(amount) ? amount : v, currency, opts)}
+        />
       ) : (
         formatCurrency(amount, currency, opts)
       )}
@@ -346,7 +371,9 @@ export function ConvertedAmount(props: ConvertedAmountProps) {
         {...props}
         secondaryCurrency={recorded.currency}
         secondaryAmount={recorded.amount}
-        secondaryExchangeRate={props.amount === 0 ? null : recorded.amount / props.amount}
+        secondaryExchangeRate={
+          Number(props.amount) === 0 ? null : divide(recorded.amount, props.amount)
+        }
       />
     );
   }
@@ -367,15 +394,13 @@ export function ConvertedAmount(props: ConvertedAmountProps) {
 }
 
 function SecondaryConvertedAmount(props: ConvertedAmountProps) {
-  const { convert, secondaryCurrency, secondaryExchangeRate } = useSecondaryConversion(
-    props.currency,
-    props.conversionDate
-  );
+  const { convert, convertExact, secondaryCurrency, secondaryExchangeRate } =
+    useSecondaryConversion(props.currency, props.conversionDate);
   return (
     <AmountDisplay
       {...props}
       secondaryCurrency={secondaryCurrency}
-      secondaryAmount={convert(props.amount)}
+      secondaryAmount={convertExact ? convertExact(props.amount) : convert(props.amount)}
       secondaryExchangeRate={secondaryExchangeRate}
     />
   );
@@ -399,6 +424,7 @@ function AmountDisplay({
 }: ConvertedAmountProps) {
   const { displayMode, secondaryCurrency: ctxSecondaryCurrency } = useCurrencyDisplay();
   const { numberFormat } = useNumberFormat();
+  const { effectiveDecimals } = useDecimalPlaces();
   const tooltipId = useId();
   const [open, setOpen] = useState(false);
   const touchInteraction = useRef(false);
@@ -420,7 +446,8 @@ function AmountDisplay({
         secondaryExchangeRate,
         displayMode,
         compact,
-        numberFormat
+        numberFormat,
+        effectiveDecimals
       ),
     [
       amount,
@@ -435,6 +462,7 @@ function AmountDisplay({
       displayMode,
       compact,
       numberFormat,
+      effectiveDecimals,
     ]
   );
 
@@ -450,7 +478,8 @@ function AmountDisplay({
         compact,
         inline,
         numberFormat,
-        animate
+        animate,
+        effectiveDecimals
       ),
     [
       amount,
@@ -462,6 +491,7 @@ function AmountDisplay({
       compact,
       inline,
       numberFormat,
+      effectiveDecimals,
       animate,
     ]
   );

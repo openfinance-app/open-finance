@@ -1,3 +1,4 @@
+import { decimalValue, ExactDecimal } from '@/utils/exact-decimal';
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Controller, useForm, useWatch } from 'react-hook-form';
@@ -31,7 +32,6 @@ import type {
 } from '@/hooks/usePropertyConversion';
 import { PropertyType, getPropertyTypeName } from '@/types/realEstate';
 import { isValidDecimalString } from '@/utils/money';
-import { ExactDecimal } from '@/utils/exact-decimal';
 import { apiErrorMessage } from '@/utils/api-error';
 
 interface Props {
@@ -144,7 +144,7 @@ function ConversionFlow({ initialAssetId, onClose, onConverted }: Props) {
                       {item.accountName}
                     </span>
                     <ConvertedAmount
-                      amount={item.currentValue}
+                      amount={decimalValue(item, 'currentValue') ?? item.currentValue}
                       currency={item.currency}
                       className="text-sm font-mono tabular-nums"
                     />
@@ -356,14 +356,14 @@ function ConversionDetails({
             <ReviewRow label={t('conversion.recordedSince')}>{date(source.purchaseDate)}</ReviewRow>
             <ReviewRow label={t('conversion.cost')}>
               <ConvertedAmount
-                amount={source.purchasePrice}
+                amount={decimalValue(source, 'purchasePrice') ?? source.purchasePrice}
                 currency={source.currency}
                 className="font-mono tabular-nums"
               />
             </ReviewRow>
             <ReviewRow label={t('conversion.value')}>
               <ConvertedAmount
-                amount={source.currentValue}
+                amount={decimalValue(source, 'currentValue') ?? source.currentValue}
                 currency={source.currency}
                 className="font-mono tabular-nums"
               />
@@ -376,7 +376,7 @@ function ConversionDetails({
             {values.rentalIncome && (
               <ReviewRow label={t('form.monthlyRentalIncome')}>
                 <ConvertedAmount
-                  amount={Number(values.rentalIncome)}
+                  amount={decimalValue(values, 'rentalIncome') ?? values.rentalIncome}
                   currency={source.currency}
                   className="font-mono tabular-nums"
                 />

@@ -1,7 +1,6 @@
 package org.openfinance.util;
 
 import java.math.BigDecimal;
-import java.math.MathContext;
 import java.time.LocalDate;
 import java.util.Comparator;
 import java.util.List;
@@ -85,16 +84,19 @@ public final class InvestmentHoldings {
                     BigDecimal basis =
                             cost.add(giftContribution == null ? BigDecimal.ZERO : giftContribution);
                     BigDecimal released =
-                            basis.multiply(change.abs()).divide(quantity, MathContext.DECIMAL128);
+                            basis.multiply(change.abs())
+                                    .divide(quantity, MoneyPrecision.CALCULATION_CONTEXT);
                     realizedGain =
                             realizedGain.add(acquisitionCost(asset, movement).subtract(released));
                 }
-                cost = cost.multiply(quantity.add(change)).divide(quantity, MathContext.DECIMAL128);
+                cost =
+                        cost.multiply(quantity.add(change))
+                                .divide(quantity, MoneyPrecision.CALCULATION_CONTEXT);
                 if (giftContribution != null) {
                     giftContribution =
                             giftContribution
                                     .multiply(quantity.add(change))
-                                    .divide(quantity, MathContext.DECIMAL128);
+                                    .divide(quantity, MoneyPrecision.CALCULATION_CONTEXT);
                 }
             }
             quantity = quantity.add(change);

@@ -1,7 +1,6 @@
 package org.openfinance.util;
 
 import java.math.BigDecimal;
-import java.math.MathContext;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
@@ -76,7 +75,10 @@ public final class ImportedPropertyValuations {
                 value = tx.getAmount();
             BigDecimal price = tx.getInvestmentPrice();
             if (price == null && value != null)
-                price = value.divide(tx.getInvestmentQuantity().abs(), MathContext.DECIMAL128);
+                price =
+                        value.divide(
+                                tx.getInvestmentQuantity().abs(),
+                                MoneyPrecision.CALCULATION_CONTEXT);
             if (price != null && price.signum() >= 0)
                 availableFallbacks
                         .computeIfAbsent(

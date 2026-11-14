@@ -183,6 +183,24 @@ class BudgetServiceAnalyzeTest {
     }
 
     @Test
+    void suggestionCeilingUsesTheUnroundedAverage() {
+        testTransaction.setAmount(new BigDecimal("250.0001"));
+        when(categoryRepository.findByUserId(1L)).thenReturn(List.of(testCategory1));
+        when(transactionRepository.findByCategoryIdInAndDateRange(anyList(), any(), any(), eq(1L)))
+                .thenReturn(List.of(testTransaction));
+        List<BudgetSuggestion> suggestions =
+                budgetService.analyzeCategorySpending(1L, BudgetPeriod.MONTHLY, 6, null);
+        assertThat(suggestions)
+                .singleElement()
+                .satisfies(
+                        suggestion -> {
+                            assertThat(suggestion.getAverageSpent())
+                                    .isEqualByComparingTo("250.0001");
+                            assertThat(suggestion.getSuggestedAmount()).isEqualByComparingTo("251");
+                        });
+    }
+
+    @Test
     void shouldSetHasExistingBudgetFlagCorrectly() {
         // Given
         List<Category> categories = Arrays.asList(testCategory1);

@@ -1,3 +1,4 @@
+import { decimalValue } from '@/utils/exact-decimal';
 import { FormDialog } from '@/components/ui/FormDialog';
 import { useViewState } from '@/hooks/useViewState';
 import { OwnershipIntentChoice } from '@/components/assets/OwnershipIntentChoice';
@@ -236,7 +237,8 @@ export default function AssetsPage() {
   );
 
   const {
-    convert,
+    convert: convertNumber,
+    convertExact: convert = convertNumber,
     secondaryCurrency: secCurrency,
     secondaryExchangeRate,
   } = useSecondaryConversion(globalSummary.currency);
@@ -477,10 +479,12 @@ export default function AssetsPage() {
               </span>
             </div>
             <ConvertedAmount
-              amount={globalSummary.totalValue}
+              amount={decimalValue(globalSummary, 'totalValue') ?? globalSummary.totalValue}
               currency={globalSummary.currency}
               isConverted={false}
-              secondaryAmount={convert(globalSummary.totalValue)}
+              secondaryAmount={convert(
+                decimalValue(globalSummary, 'totalValue') ?? globalSummary.totalValue
+              )}
               secondaryCurrency={secCurrency}
               secondaryExchangeRate={secondaryExchangeRate}
               className="text-2xl font-bold text-foreground"
@@ -492,10 +496,12 @@ export default function AssetsPage() {
               <p className="text-xs font-mono text-text-tertiary mt-1">
                 {t('filtered')}{' '}
                 <ConvertedAmount
-                  amount={filteredSummary.totalValue}
+                  amount={decimalValue(filteredSummary, 'totalValue') ?? filteredSummary.totalValue}
                   currency={filteredSummary.currency}
                   isConverted={false}
-                  secondaryAmount={convert(filteredSummary.totalValue)}
+                  secondaryAmount={convert(
+                    decimalValue(filteredSummary, 'totalValue') ?? filteredSummary.totalValue
+                  )}
                   secondaryCurrency={secCurrency}
                   secondaryExchangeRate={secondaryExchangeRate}
                   inline
@@ -519,10 +525,12 @@ export default function AssetsPage() {
               </span>
             </div>
             <ConvertedAmount
-              amount={globalSummary.totalCost}
+              amount={decimalValue(globalSummary, 'totalCost') ?? globalSummary.totalCost}
               currency={globalSummary.currency}
               isConverted={false}
-              secondaryAmount={convert(globalSummary.totalCost)}
+              secondaryAmount={convert(
+                decimalValue(globalSummary, 'totalCost') ?? globalSummary.totalCost
+              )}
               secondaryCurrency={secCurrency}
               secondaryExchangeRate={secondaryExchangeRate}
               className="text-2xl font-bold text-foreground"
@@ -532,10 +540,12 @@ export default function AssetsPage() {
               <p className="text-xs font-mono text-text-tertiary mt-1">
                 {t('filtered')}{' '}
                 <ConvertedAmount
-                  amount={filteredSummary.totalCost}
+                  amount={decimalValue(filteredSummary, 'totalCost') ?? filteredSummary.totalCost}
                   currency={filteredSummary.currency}
                   isConverted={false}
-                  secondaryAmount={convert(filteredSummary.totalCost)}
+                  secondaryAmount={convert(
+                    decimalValue(filteredSummary, 'totalCost') ?? filteredSummary.totalCost
+                  )}
                   secondaryCurrency={secCurrency}
                   secondaryExchangeRate={secondaryExchangeRate}
                   inline
@@ -566,10 +576,12 @@ export default function AssetsPage() {
             </div>
             {globalSummary.hasPerformance ? (
               <ConvertedAmount
-                amount={globalSummary.totalGain}
+                amount={decimalValue(globalSummary, 'totalGain') ?? globalSummary.totalGain}
                 currency={globalSummary.currency}
                 isConverted={false}
-                secondaryAmount={convert(globalSummary.totalGain)}
+                secondaryAmount={convert(
+                  decimalValue(globalSummary, 'totalGain') ?? globalSummary.totalGain
+                )}
                 secondaryCurrency={secCurrency}
                 secondaryExchangeRate={secondaryExchangeRate}
                 className={`text-2xl font-bold ${getGainLossColor(globalSummary.totalGain)}`}

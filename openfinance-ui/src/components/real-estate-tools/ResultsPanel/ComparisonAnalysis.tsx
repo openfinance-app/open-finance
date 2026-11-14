@@ -1,3 +1,4 @@
+import { decimalValue } from '@/utils/exact-decimal';
 import { formatDecimal } from '@/utils/format';
 import React from 'react';
 import { TrendingUp, Wallet, Calendar, CheckCircle } from 'lucide-react';
@@ -101,7 +102,11 @@ export const ComparisonAnalysis: React.FC<ComparisonAnalysisProps> = ({ results 
                 <div className="flex justify-between mb-1">
                   <span className="text-sm">{t('comparison.buy')}</span>
                   <span className="text-sm font-semibold">
-                    <ConvertedAmount amount={buy.netWorth} currency={baseCurrency} inline />
+                    <ConvertedAmount
+                      amount={decimalValue(buy, 'netWorth') ?? buy.netWorth}
+                      currency={baseCurrency}
+                      inline
+                    />
                   </span>
                 </div>
                 <Progress value={(buy.netWorth / Math.max(buy.netWorth, rent.netWorth)) * 100} />
@@ -110,7 +115,11 @@ export const ComparisonAnalysis: React.FC<ComparisonAnalysisProps> = ({ results 
                 <div className="flex justify-between mb-1">
                   <span className="text-sm">{t('comparison.rent')}</span>
                   <span className="text-sm font-semibold">
-                    <ConvertedAmount amount={rent.netWorth} currency={baseCurrency} inline />
+                    <ConvertedAmount
+                      amount={decimalValue(rent, 'netWorth') ?? rent.netWorth}
+                      currency={baseCurrency}
+                      inline
+                    />
                   </span>
                 </div>
                 <Progress value={(rent.netWorth / Math.max(buy.netWorth, rent.netWorth)) * 100} />
@@ -122,7 +131,10 @@ export const ComparisonAnalysis: React.FC<ComparisonAnalysisProps> = ({ results 
                 >
                   {comparison.netWorthDifference >= 0 ? '+' : ''}
                   <ConvertedAmount
-                    amount={comparison.netWorthDifference}
+                    amount={
+                      decimalValue(comparison, 'netWorthDifference') ??
+                      comparison.netWorthDifference
+                    }
                     currency={baseCurrency}
                     inline
                   />
@@ -152,7 +164,11 @@ export const ComparisonAnalysis: React.FC<ComparisonAnalysisProps> = ({ results 
                     buy.averageMonthlyCost < rent.averageMonthlyCost ? 'default' : 'secondary'
                   }
                 >
-                  <ConvertedAmount amount={buy.averageMonthlyCost} currency={baseCurrency} inline />
+                  <ConvertedAmount
+                    amount={decimalValue(buy, 'averageMonthlyCost') ?? buy.averageMonthlyCost}
+                    currency={baseCurrency}
+                    inline
+                  />
                   /{t('comparison.perMonth')}
                 </Badge>
               </div>
@@ -164,7 +180,7 @@ export const ComparisonAnalysis: React.FC<ComparisonAnalysisProps> = ({ results 
                   }
                 >
                   <ConvertedAmount
-                    amount={rent.averageMonthlyCost}
+                    amount={decimalValue(rent, 'averageMonthlyCost') ?? rent.averageMonthlyCost}
                     currency={baseCurrency}
                     inline
                   />
@@ -177,8 +193,12 @@ export const ComparisonAnalysis: React.FC<ComparisonAnalysisProps> = ({ results 
                   className={`text-xl font-bold ${comparison.monthlyGap >= 0 ? 'text-green-600' : 'text-red-600'}`}
                 >
                   {comparison.monthlyGap >= 0 ? '+' : ''}
-                  <ConvertedAmount amount={comparison.monthlyGap} currency={baseCurrency} inline />/
-                  {t('comparison.perMonth')}
+                  <ConvertedAmount
+                    amount={decimalValue(comparison, 'monthlyGap') ?? comparison.monthlyGap}
+                    currency={baseCurrency}
+                    inline
+                  />
+                  /{t('comparison.perMonth')}
                 </p>
                 <p className="text-xs text-muted-foreground">
                   {Math.abs(comparison.monthlyGap) < 0.005
@@ -205,25 +225,41 @@ export const ComparisonAnalysis: React.FC<ComparisonAnalysisProps> = ({ results 
               <div>
                 <p className="text-sm text-muted-foreground">{t('comparison.totalBuyCost')}</p>
                 <p className="text-lg font-semibold">
-                  <ConvertedAmount amount={buy.totalCost} currency={baseCurrency} inline />
+                  <ConvertedAmount
+                    amount={decimalValue(buy, 'totalCost') ?? buy.totalCost}
+                    currency={baseCurrency}
+                    inline
+                  />
                 </p>
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">{t('comparison.totalRentCost')}</p>
                 <p className="text-lg font-semibold">
-                  <ConvertedAmount amount={rent.totalCost} currency={baseCurrency} inline />
+                  <ConvertedAmount
+                    amount={decimalValue(rent, 'totalCost') ?? rent.totalCost}
+                    currency={baseCurrency}
+                    inline
+                  />
                 </p>
               </div>
               <div className="pt-2 border-t">
                 <p className="text-sm text-muted-foreground">{t('comparison.netBuyExpense')}</p>
                 <p className="text-lg font-semibold text-red-600">
-                  <ConvertedAmount amount={buy.netExpense} currency={baseCurrency} inline />
+                  <ConvertedAmount
+                    amount={decimalValue(buy, 'netExpense') ?? buy.netExpense}
+                    currency={baseCurrency}
+                    inline
+                  />
                 </p>
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">{t('comparison.netRentExpense')}</p>
                 <p className="text-lg font-semibold text-red-600">
-                  <ConvertedAmount amount={rent.netExpense} currency={baseCurrency} inline />
+                  <ConvertedAmount
+                    amount={decimalValue(rent, 'netExpense') ?? rent.netExpense}
+                    currency={baseCurrency}
+                    inline
+                  />
                 </p>
               </div>
             </div>

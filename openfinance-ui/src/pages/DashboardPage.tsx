@@ -1,3 +1,4 @@
+import { decimalValue, ExactDecimal } from '@/utils/exact-decimal';
 import { useDateFormatter } from '@/hooks/useDateFormatter';
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Plus, ChevronDown, GripVertical, SlidersHorizontal } from 'lucide-react';
@@ -50,7 +51,7 @@ import FinancialMap from '../components/dashboard/FinancialMap';
 import { ConvertedAmount } from '@/components/ui/ConvertedAmount';
 import { AnimatedNumber } from '@/components/ui/AnimatedNumber';
 import { useSecondaryConversion } from '@/hooks/useSecondaryConversion';
-import { subtract, percentage } from '@/utils/money';
+import { percentage } from '@/utils/money';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/Button';
 import { CreateTransactionDialog } from '@/components/transactions/CreateTransactionDialog';
@@ -398,7 +399,8 @@ export default function DashboardPage() {
   // useTransactions mutation hooks).
   const { data: summary, isLoading: summaryLoading, error: summaryError } = useDashboardSummary();
   const {
-    convert,
+    convert: convertNumber,
+    convertExact: convert = convertNumber,
     secondaryCurrency: secCurrency,
     secondaryExchangeRate,
   } = useSecondaryConversion(summary?.baseCurrency);
@@ -442,11 +444,18 @@ export default function DashboardPage() {
     if (historyError || !netWorthHistory || !lastObservation) return null;
     const closingDate = navDateRange.to > today ? lastObservation.date : navDateRange.to;
     if (navDateRange.from >= closingDate) return null;
-    const openingValue = netWorthHistory.find(point => point.date === navDateRange.from)?.netWorth;
-    const closingValue = netWorthHistory.find(point => point.date === closingDate)?.netWorth;
-    if (openingValue == null || openingValue === 0 || closingValue == null) return null;
-    const changeAmount = subtract(closingValue, openingValue);
-    const changePercent = percentage(changeAmount, Math.abs(openingValue));
+    const openingValue = decimalValue(
+      netWorthHistory.find(point => point.date === navDateRange.from),
+      'netWorth'
+    );
+    const closingValue = decimalValue(
+      netWorthHistory.find(point => point.date === closingDate),
+      'netWorth'
+    );
+    if (openingValue == null || new ExactDecimal(openingValue).isZero() || closingValue == null)
+      return null;
+    const changeAmount = new ExactDecimal(closingValue).minus(openingValue).toFixed();
+    const changePercent = percentage(changeAmount, new ExactDecimal(openingValue).abs().toFixed());
     return { amount: changeAmount, percentage: changePercent };
   }, [netWorthHistory, historyError, today, navDateRange, lastObservation]);
 
@@ -993,10 +1002,12 @@ export default function DashboardPage() {
         <div className="min-w-0 bg-surface rounded-[var(--radius-card)] p-4 border border-border shadow-plate">
           <div className="plate-label mb-1.5">{t('stats.totalAssets')}</div>
           <ConvertedAmount
-            amount={summary.netWorth.totalAssets}
+            amount={decimalValue(summary.netWorth, 'totalAssets') ?? summary.netWorth.totalAssets}
             currency={summary.baseCurrency}
             isConverted={false}
-            secondaryAmount={convert(summary.netWorth.totalAssets)}
+            secondaryAmount={convert(
+              decimalValue(summary.netWorth, 'totalAssets') ?? summary.netWorth.totalAssets
+            )}
             secondaryCurrency={secCurrency}
             secondaryExchangeRate={secondaryExchangeRate}
             animate
@@ -1006,10 +1017,16 @@ export default function DashboardPage() {
         <div className="min-w-0 bg-surface rounded-[var(--radius-card)] p-4 border border-border shadow-plate">
           <div className="plate-label mb-1.5">{t('stats.totalLiabilities')}</div>
           <ConvertedAmount
-            amount={summary.netWorth.totalLiabilities}
+            amount={
+              decimalValue(summary.netWorth, 'totalLiabilities') ??
+              summary.netWorth.totalLiabilities
+            }
             currency={summary.baseCurrency}
             isConverted={false}
-            secondaryAmount={convert(summary.netWorth.totalLiabilities)}
+            secondaryAmount={convert(
+              decimalValue(summary.netWorth, 'totalLiabilities') ??
+                summary.netWorth.totalLiabilities
+            )}
             secondaryCurrency={secCurrency}
             secondaryExchangeRate={secondaryExchangeRate}
             animate

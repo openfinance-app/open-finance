@@ -1,9 +1,9 @@
+import { ExactDecimal, decimalValue, decimalField } from '@/utils/exact-decimal';
 import { Link } from 'react-router';
 import { useViewScroll } from '@/hooks/useViewScroll';
 import { useViewState } from '@/hooks/useViewState';
 import { useAnimatedClose } from '@/hooks/useAnimatedClose';
 import { OwnershipActions } from '@/components/assets/OwnershipActions';
-import { decimalField } from '@/utils/exact-decimal';
 import type { RealEstateProperty } from '@/types/realEstate';
 import { formatDecimal } from '@/utils/format';
 import { useDateFormatter } from '@/hooks/useDateFormatter';
@@ -250,13 +250,23 @@ export function PropertyDetailView({
                           <p className="text-2xl font-bold text-text-primary">
                             {/* REQ-2.4: Show converted base-currency value when available */}
                             <ConvertedAmount
-                              amount={property.currentValue}
+                              amount={
+                                decimalValue(property, 'currentValue') ?? property.currentValue
+                              }
                               currency={property.currency}
-                              convertedAmount={property.valueInBaseCurrency}
+                              convertedAmount={
+                                decimalValue(property, 'valueInBaseCurrency') ??
+                                property.valueInBaseCurrency
+                              }
                               baseCurrency={property.baseCurrency}
-                              exchangeRate={property.exchangeRate}
+                              exchangeRate={
+                                decimalValue(property, 'exchangeRate') ?? property.exchangeRate
+                              }
                               isConverted={property.isConverted}
-                              secondaryAmount={property.valueInSecondaryCurrency}
+                              secondaryAmount={
+                                decimalValue(property, 'valueInSecondaryCurrency') ??
+                                property.valueInSecondaryCurrency
+                              }
                               secondaryCurrency={property.secondaryCurrency}
                             />
                           </p>
@@ -281,7 +291,11 @@ export function PropertyDetailView({
                             >
                               {property.appreciation >= 0 ? '+' : '-'}
                               <ConvertedAmount
-                                amount={Math.abs(property.appreciation)}
+                                amount={new ExactDecimal(
+                                  decimalValue(property, 'appreciation') ?? property.appreciation
+                                )
+                                  .abs()
+                                  .toFixed()}
                                 currency={property.currency}
                                 convertedAmount={
                                   property.exchangeRate != null
@@ -292,7 +306,9 @@ export function PropertyDetailView({
                                     : undefined
                                 }
                                 baseCurrency={property.baseCurrency}
-                                exchangeRate={property.exchangeRate}
+                                exchangeRate={
+                                  decimalValue(property, 'exchangeRate') ?? property.exchangeRate
+                                }
                                 isConverted={property.isConverted}
                                 inline
                               />{' '}
@@ -355,7 +371,9 @@ export function PropertyDetailView({
                           </p>
                           <p className="text-text-primary">
                             <ConvertedAmount
-                              amount={property.purchasePrice}
+                              amount={
+                                decimalValue(property, 'purchasePrice') ?? property.purchasePrice
+                              }
                               currency={property.currency}
                               convertedAmount={
                                 property.exchangeRate != null
@@ -363,7 +381,9 @@ export function PropertyDetailView({
                                   : undefined
                               }
                               baseCurrency={property.baseCurrency}
-                              exchangeRate={property.exchangeRate}
+                              exchangeRate={
+                                decimalValue(property, 'exchangeRate') ?? property.exchangeRate
+                              }
                               isConverted={property.isConverted}
                             />
                           </p>
@@ -379,7 +399,10 @@ export function PropertyDetailView({
                                 t('propertyDetail.na')
                               ) : (
                                 <CurrencyAmount
-                                  amount={property.receivedValue}
+                                  amount={
+                                    decimalValue(property, 'receivedValue') ??
+                                    property.receivedValue
+                                  }
                                   currency={property.currency}
                                   conversionDate={property.purchaseDate}
                                 />
@@ -408,7 +431,9 @@ export function PropertyDetailView({
                             </p>
                             <p className="text-primary font-medium">
                               <ConvertedAmount
-                                amount={property.rentalIncome}
+                                amount={
+                                  decimalValue(property, 'rentalIncome') ?? property.rentalIncome
+                                }
                                 currency={property.currency}
                                 convertedAmount={
                                   property.exchangeRate != null
@@ -416,7 +441,9 @@ export function PropertyDetailView({
                                     : undefined
                                 }
                                 baseCurrency={property.baseCurrency}
-                                exchangeRate={property.exchangeRate}
+                                exchangeRate={
+                                  decimalValue(property, 'exchangeRate') ?? property.exchangeRate
+                                }
                                 isConverted={property.isConverted}
                                 inline
                               />
@@ -500,7 +527,7 @@ export function PropertyDetailView({
                             )}
                           >
                             <ConvertedAmount
-                              amount={equity.equity}
+                              amount={decimalValue(equity, 'equity') ?? equity.equity}
                               currency={equity.currency}
                               convertedAmount={
                                 property.exchangeRate != null
@@ -508,7 +535,9 @@ export function PropertyDetailView({
                                   : undefined
                               }
                               baseCurrency={property.baseCurrency}
-                              exchangeRate={property.exchangeRate}
+                              exchangeRate={
+                                decimalValue(property, 'exchangeRate') ?? property.exchangeRate
+                              }
                               isConverted={property.isConverted}
                             />
                           </p>
@@ -534,7 +563,9 @@ export function PropertyDetailView({
                               <span className="text-text-secondary">{t('form.currentValue')}</span>
                               <span className="text-text-primary font-semibold">
                                 <ConvertedAmount
-                                  amount={equity.currentValue}
+                                  amount={
+                                    decimalValue(equity, 'currentValue') ?? equity.currentValue
+                                  }
                                   currency={equity.currency}
                                   convertedAmount={
                                     property.exchangeRate != null
@@ -542,7 +573,9 @@ export function PropertyDetailView({
                                       : undefined
                                   }
                                   baseCurrency={property.baseCurrency}
-                                  exchangeRate={property.exchangeRate}
+                                  exchangeRate={
+                                    decimalValue(property, 'exchangeRate') ?? property.exchangeRate
+                                  }
                                   isConverted={property.isConverted}
                                 />
                               </span>
@@ -558,7 +591,10 @@ export function PropertyDetailView({
                                   <span className="text-error font-semibold">
                                     -{' '}
                                     <ConvertedAmount
-                                      amount={equity.mortgageBalance}
+                                      amount={
+                                        decimalValue(equity, 'mortgageBalance') ??
+                                        equity.mortgageBalance
+                                      }
                                       currency={equity.currency}
                                       convertedAmount={
                                         property.exchangeRate != null
@@ -566,7 +602,10 @@ export function PropertyDetailView({
                                           : undefined
                                       }
                                       baseCurrency={property.baseCurrency}
-                                      exchangeRate={property.exchangeRate}
+                                      exchangeRate={
+                                        decimalValue(property, 'exchangeRate') ??
+                                        property.exchangeRate
+                                      }
                                       isConverted={property.isConverted}
                                       inline
                                     />
@@ -585,7 +624,7 @@ export function PropertyDetailView({
                                       )}
                                     >
                                       <ConvertedAmount
-                                        amount={equity.equity}
+                                        amount={decimalValue(equity, 'equity') ?? equity.equity}
                                         currency={equity.currency}
                                         convertedAmount={
                                           property.exchangeRate != null
@@ -593,7 +632,10 @@ export function PropertyDetailView({
                                             : undefined
                                         }
                                         baseCurrency={property.baseCurrency}
-                                        exchangeRate={property.exchangeRate}
+                                        exchangeRate={
+                                          decimalValue(property, 'exchangeRate') ??
+                                          property.exchangeRate
+                                        }
                                         isConverted={property.isConverted}
                                       />
                                     </span>
@@ -706,7 +748,9 @@ export function PropertyDetailView({
                                   t('propertyDetail.na')
                                 ) : (
                                   <ConvertedAmount
-                                    amount={roi.performanceBasis}
+                                    amount={
+                                      decimalValue(roi, 'performanceBasis') ?? roi.performanceBasis
+                                    }
                                     currency={roi.currency}
                                     convertedAmount={
                                       property.exchangeRate != null
@@ -714,7 +758,10 @@ export function PropertyDetailView({
                                         : undefined
                                     }
                                     baseCurrency={property.baseCurrency}
-                                    exchangeRate={property.exchangeRate}
+                                    exchangeRate={
+                                      decimalValue(property, 'exchangeRate') ??
+                                      property.exchangeRate
+                                    }
                                     isConverted={property.isConverted}
                                   />
                                 )}
@@ -727,7 +774,7 @@ export function PropertyDetailView({
                               </p>
                               <p className="text-text-primary font-medium">
                                 <ConvertedAmount
-                                  amount={roi.currentValue}
+                                  amount={decimalValue(roi, 'currentValue') ?? roi.currentValue}
                                   currency={roi.currency}
                                   convertedAmount={
                                     property.exchangeRate != null
@@ -735,7 +782,9 @@ export function PropertyDetailView({
                                       : undefined
                                   }
                                   baseCurrency={property.baseCurrency}
-                                  exchangeRate={property.exchangeRate}
+                                  exchangeRate={
+                                    decimalValue(property, 'exchangeRate') ?? property.exchangeRate
+                                  }
                                   isConverted={property.isConverted}
                                 />
                               </p>
@@ -761,7 +810,11 @@ export function PropertyDetailView({
                                   <>
                                     {roi.appreciation >= 0 ? '+' : '-'}
                                     <ConvertedAmount
-                                      amount={Math.abs(roi.appreciation)}
+                                      amount={new ExactDecimal(
+                                        decimalValue(roi, 'appreciation') ?? roi.appreciation
+                                      )
+                                        .abs()
+                                        .toFixed()}
                                       currency={roi.currency}
                                       convertedAmount={
                                         property.exchangeRate != null
@@ -772,7 +825,10 @@ export function PropertyDetailView({
                                           : undefined
                                       }
                                       baseCurrency={property.baseCurrency}
-                                      exchangeRate={property.exchangeRate}
+                                      exchangeRate={
+                                        decimalValue(property, 'exchangeRate') ??
+                                        property.exchangeRate
+                                      }
                                       isConverted={property.isConverted}
                                       inline
                                     />{' '}
@@ -812,7 +868,10 @@ export function PropertyDetailView({
                                 </p>
                                 <p className="text-primary font-bold text-lg">
                                   <ConvertedAmount
-                                    amount={roi.monthlyRentalIncome}
+                                    amount={
+                                      decimalValue(roi, 'monthlyRentalIncome') ??
+                                      roi.monthlyRentalIncome
+                                    }
                                     currency={roi.currency}
                                     convertedAmount={
                                       property.exchangeRate != null
@@ -820,7 +879,10 @@ export function PropertyDetailView({
                                         : undefined
                                     }
                                     baseCurrency={property.baseCurrency}
-                                    exchangeRate={property.exchangeRate}
+                                    exchangeRate={
+                                      decimalValue(property, 'exchangeRate') ??
+                                      property.exchangeRate
+                                    }
                                     isConverted={property.isConverted}
                                     inline
                                   />
@@ -835,7 +897,10 @@ export function PropertyDetailView({
                                   </p>
                                   <p className="text-text-primary font-medium">
                                     <ConvertedAmount
-                                      amount={roi.totalRentalIncome}
+                                      amount={
+                                        decimalValue(roi, 'totalRentalIncome') ??
+                                        roi.totalRentalIncome
+                                      }
                                       currency={roi.currency}
                                       convertedAmount={
                                         property.exchangeRate != null
@@ -843,7 +908,10 @@ export function PropertyDetailView({
                                           : undefined
                                       }
                                       baseCurrency={property.baseCurrency}
-                                      exchangeRate={property.exchangeRate}
+                                      exchangeRate={
+                                        decimalValue(property, 'exchangeRate') ??
+                                        property.exchangeRate
+                                      }
                                       isConverted={property.isConverted}
                                     />
                                   </p>

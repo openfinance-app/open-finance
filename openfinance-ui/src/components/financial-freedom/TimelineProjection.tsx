@@ -1,3 +1,4 @@
+import { decimalValue } from '@/utils/exact-decimal';
 import { useTranslation } from 'react-i18next';
 import type { YearlyProjection } from '../../types/calculator';
 import { ConvertedAmount } from '@/components/ui/ConvertedAmount';
@@ -77,15 +78,25 @@ export function TimelineProjection({
                   {projection.year === 0 ? t('timelineProjection.now') : `+${projection.year}`}
                 </td>
                 <td className="py-3 px-4 text-right text-text-primary font-medium">
-                  <ConvertedAmount amount={projection.endingBalance} currency={currency} inline />
+                  <ConvertedAmount
+                    amount={decimalValue(projection, 'endingBalance') ?? projection.endingBalance}
+                    currency={currency}
+                    inline
+                  />
                 </td>
                 <td className="py-3 px-4 text-right text-text-secondary">
-                  <ConvertedAmount amount={projection.contributions} currency={currency} inline />
+                  <ConvertedAmount
+                    amount={decimalValue(projection, 'contributions') ?? projection.contributions}
+                    currency={currency}
+                    inline
+                  />
                 </td>
                 <td className="py-3 px-4 text-right text-success">
                   +
                   <ConvertedAmount
-                    amount={projection.investmentReturns}
+                    amount={
+                      decimalValue(projection, 'investmentReturns') ?? projection.investmentReturns
+                    }
                     currency={currency}
                     inline
                   />

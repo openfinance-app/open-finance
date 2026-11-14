@@ -1,3 +1,4 @@
+import { decimalValue } from '@/utils/exact-decimal';
 import { SelectionCheckbox } from '@/components/bulk/BulkSelection';
 import { useDateFormatter } from '@/hooks/useDateFormatter';
 /**
@@ -182,7 +183,7 @@ export function RecurringTransactionCard({
             {isIncome && '+'}
             {isExpense && '-'}
             <ConvertedAmount
-              amount={recurringTransaction.amount}
+              amount={decimalValue(recurringTransaction, 'amount') ?? recurringTransaction.amount}
               currency={recurringTransaction.currency}
               baseCurrency={baseCurrency}
               convertedAmount={convertedAmount}

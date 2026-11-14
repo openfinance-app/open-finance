@@ -1,3 +1,4 @@
+import { ExactDecimal } from '@/utils/exact-decimal';
 import { formatDecimal } from '@/utils/format';
 /**
  * Export/Import Utilities for Real Estate Tools
@@ -18,6 +19,10 @@ import { PRINT_PREVIEW_DELAY_MS } from '@/constants/timing';
 import i18n from '@/i18n';
 
 export type ExportFormat = 'json' | 'csv' | 'pdf';
+
+function exportDecimal(value: number | string | null | undefined): string {
+  return value == null ? '' : new ExactDecimal(value).toFixed();
+}
 
 /**
  * Export simulation to JSON
@@ -60,16 +65,19 @@ export function exportBuyRentToCSV(inputs: BuyRentInputs, results: BuyRentResult
 
   const rows = results.years.map(year => [
     year.year,
-    year.buy.annualCost.toFixed(2),
-    year.buy.cumulativeCost.toFixed(2),
-    year.buy.propertyValue.toFixed(2),
-    year.buy.remainingCapital.toFixed(2),
-    year.buy.minimumResalePrice.toFixed(2),
-    year.rent.annualCost.toFixed(2),
-    year.rent.cumulativeCost.toFixed(2),
-    year.rent.savings.toFixed(2),
-    (year.buy.netWorth ?? year.buy.propertyValue - year.buy.remainingCapital).toFixed(2),
-    (year.rent.netWorth ?? year.rent.savings).toFixed(2),
+    exportDecimal(year.buy.annualCost),
+    exportDecimal(year.buy.cumulativeCost),
+    exportDecimal(year.buy.propertyValue),
+    exportDecimal(year.buy.remainingCapital),
+    exportDecimal(year.buy.minimumResalePrice),
+    exportDecimal(year.rent.annualCost),
+    exportDecimal(year.rent.cumulativeCost),
+    exportDecimal(year.rent.savings),
+    exportDecimal(
+      year.buy.netWorth ??
+        new ExactDecimal(year.buy.propertyValue).minus(year.buy.remainingCapital).toFixed()
+    ),
+    exportDecimal(year.rent.netWorth ?? year.rent.savings),
     inputs.currency ?? 'UNKNOWN',
   ]);
 
@@ -77,15 +85,15 @@ export function exportBuyRentToCSV(inputs: BuyRentInputs, results: BuyRentResult
   const summaryRow = [
     i18n.t('realEstate:exportImport.total'),
     '',
-    results.summary.buy.totalCost.toFixed(2),
-    results.summary.buy.finalPropertyValue.toFixed(2),
-    results.summary.buy.remainingCapital.toFixed(2),
+    exportDecimal(results.summary.buy.totalCost),
+    exportDecimal(results.summary.buy.finalPropertyValue),
+    exportDecimal(results.summary.buy.remainingCapital),
     '',
     '',
-    results.summary.rent.totalCost.toFixed(2),
-    results.summary.rent.accumulatedSavings.toFixed(2),
-    results.summary.buy.netWorth.toFixed(2),
-    results.summary.rent.netWorth.toFixed(2),
+    exportDecimal(results.summary.rent.totalCost),
+    exportDecimal(results.summary.rent.accumulatedSavings),
+    exportDecimal(results.summary.buy.netWorth),
+    exportDecimal(results.summary.rent.netWorth),
     inputs.currency ?? 'UNKNOWN',
   ];
 
@@ -127,13 +135,13 @@ export function exportInvestmentToCSV(
       result.eligible
         ? i18n.t('realEstate:exportImport.yes')
         : i18n.t('realEstate:exportImport.no'),
-      result.revenue.gross.toFixed(2),
-      result.revenue.deduction.toFixed(2),
-      result.revenue.taxable.toFixed(2),
-      result.taxation.incomeTax?.toFixed(2) ?? '',
-      result.taxation.socialContributions?.toFixed(2) ?? '',
-      result.taxation.totalTaxes?.toFixed(2) ?? '',
-      result.performance.monthlyCashFlow?.toFixed(2) ?? '',
+      exportDecimal(result.revenue.gross),
+      exportDecimal(result.revenue.deduction),
+      exportDecimal(result.revenue.taxable),
+      exportDecimal(result.taxation.incomeTax),
+      exportDecimal(result.taxation.socialContributions),
+      exportDecimal(result.taxation.totalTaxes),
+      exportDecimal(result.performance.monthlyCashFlow),
       result.performance.grossYield.toFixed(2),
       result.performance.netYield?.toFixed(2) ?? '',
     ];

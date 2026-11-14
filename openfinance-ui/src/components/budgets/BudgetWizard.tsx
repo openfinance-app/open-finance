@@ -1,3 +1,4 @@
+import { decimalValue } from '@/utils/exact-decimal';
 /**
  * BudgetWizard Component
  * TASK-8.6.10: 3-step wizard dialog for automatic budget creation from transaction history.
@@ -372,7 +373,11 @@ export function BudgetWizard({ open, onClose }: BudgetWizardProps) {
                           </div>
                           <p className="text-xs text-text-secondary mt-0.5">
                             {t('wizard.step2.avg')}{' '}
-                            <ConvertedAmount amount={s.averageSpent} currency={s.currency} inline />{' '}
+                            <ConvertedAmount
+                              amount={decimalValue(s, 'averageSpent') ?? s.averageSpent}
+                              currency={s.currency}
+                              inline
+                            />{' '}
                             / {s.period.toLowerCase()} ·{' '}
                             {t('wizard.step2.transactions', { count: s.transactionCount })}
                           </p>
@@ -489,8 +494,12 @@ export function BudgetWizard({ open, onClose }: BudgetWizardProps) {
                   >
                     <span className="text-text-primary">{b.categoryName}</span>
                     <span className="text-text-secondary">
-                      <ConvertedAmount amount={Number(b.amount)} currency={b.currency} inline /> /{' '}
-                      {b.period.toLowerCase()}
+                      <ConvertedAmount
+                        amount={decimalValue(b, 'amount') ?? b.amount}
+                        currency={b.currency}
+                        inline
+                      />{' '}
+                      / {b.period.toLowerCase()}
                     </span>
                   </div>
                 ))}

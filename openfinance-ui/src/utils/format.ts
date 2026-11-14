@@ -7,7 +7,11 @@
  * These helpers remain for backward-compat and simple use-cases.
  */
 
-import { DEFAULT_CURRENCY, getCurrencyDecimals, applyNumberFormat } from '@/utils/currency';
+import {
+  formatCurrency as sharedFormatCurrency,
+  formatCurrencyCompact,
+  applyNumberFormat,
+} from '@/utils/currency';
 import { numberLocale, preferredNumberFormat } from '@/utils/number-preference';
 import Decimal from 'decimal.js';
 
@@ -34,17 +38,7 @@ export interface FormatOptions {
 }
 
 export function formatCurrency(amount: number, currency?: string, options?: FormatOptions): string {
-  // Default to the app default currency if none provided
-  const actualCurrency = currency ?? DEFAULT_CURRENCY;
-  const formatter = new Intl.NumberFormat(numberLocale(), {
-    style: 'currency',
-    currency: actualCurrency,
-    notation: options?.compact ? 'compact' : 'standard',
-    minimumFractionDigits: 0,
-    maximumFractionDigits: getCurrencyDecimals(actualCurrency),
-  });
-
-  return formatter.format(amount);
+  return sharedFormatCurrency(amount, currency, options);
 }
 
 /**
@@ -84,15 +78,7 @@ export function formatNumber(value: number): string {
  * Example: formatCompactCurrency(1048396, 'EUR') => "1.05M €"
  */
 export function formatCompactCurrency(amount: number, currency: string): string {
-  const formatter = new Intl.NumberFormat(numberLocale(), {
-    style: 'currency',
-    currency: currency,
-    notation: 'compact',
-    minimumFractionDigits: 0,
-    maximumFractionDigits: getCurrencyDecimals(currency),
-  });
-
-  return formatter.format(amount);
+  return formatCurrencyCompact(amount, currency);
 }
 
 /**

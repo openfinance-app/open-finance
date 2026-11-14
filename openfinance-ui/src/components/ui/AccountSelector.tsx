@@ -1,3 +1,4 @@
+import { decimalValue } from '@/utils/exact-decimal';
 /**
  * AccountSelector component
  *
@@ -244,11 +245,14 @@ export function AccountSelector({
                   {account.balance !== undefined && (
                     <span className="text-xs text-text-muted shrink-0 whitespace-nowrap pt-0.5">
                       <ConvertedAmount
-                        amount={account.balance}
+                        amount={decimalValue(account, 'balance') ?? account.balance}
                         currency={account.currency}
-                        convertedAmount={account.balanceInBaseCurrency}
+                        convertedAmount={
+                          decimalValue(account, 'balanceInBaseCurrency') ??
+                          account.balanceInBaseCurrency
+                        }
                         baseCurrency={account.baseCurrency}
-                        exchangeRate={account.exchangeRate}
+                        exchangeRate={decimalValue(account, 'exchangeRate') ?? account.exchangeRate}
                         isConverted={account.isConverted}
                         inline
                       />

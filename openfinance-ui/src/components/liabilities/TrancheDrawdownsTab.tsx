@@ -1,3 +1,4 @@
+import { decimalValue } from '@/utils/exact-decimal';
 import { useDateFormatter } from '@/hooks/useDateFormatter';
 import { useReverseDirectDraw } from '@/hooks/useTranches';
 /**
@@ -257,11 +258,11 @@ export function TrancheDrawdownsTab({ liability }: { liability: Liability }) {
                 {t('drawdowns.planned')}:{' '}
                 <span className="font-mono text-text-primary">
                   <CurrencyAmount
-                    amount={tranche.plannedAmount}
+                    amount={decimalValue(tranche, 'plannedAmount') ?? tranche.plannedAmount}
                     currency={tranche.currency ?? liability.currency}
                     inline
                     baseCurrency={liability.baseCurrency}
-                    exchangeRate={liability.exchangeRate}
+                    exchangeRate={decimalValue(liability, 'exchangeRate') ?? liability.exchangeRate}
                     isConverted={liability.isConverted}
                   />
                 </span>
@@ -270,7 +271,7 @@ export function TrancheDrawdownsTab({ liability }: { liability: Liability }) {
                 {t('drawdowns.drawn')}:{' '}
                 <span className="font-mono text-text-primary">
                   <CurrencyAmount
-                    amount={tranche.drawnAmount ?? 0}
+                    amount={decimalValue(tranche, 'drawnAmount') ?? tranche.drawnAmount ?? 0}
                     currency={tranche.currency ?? liability.currency}
                     inline
                     conversionDate={tranche.drawnDate ?? undefined}
@@ -281,11 +282,11 @@ export function TrancheDrawdownsTab({ liability }: { liability: Liability }) {
                 {t('drawdowns.remaining')}:{' '}
                 <span className="font-mono font-semibold text-text-primary">
                   <CurrencyAmount
-                    amount={tranche.remaining}
+                    amount={decimalValue(tranche, 'remaining') ?? tranche.remaining}
                     currency={tranche.currency ?? liability.currency}
                     inline
                     baseCurrency={liability.baseCurrency}
-                    exchangeRate={liability.exchangeRate}
+                    exchangeRate={decimalValue(liability, 'exchangeRate') ?? liability.exchangeRate}
                     isConverted={liability.isConverted}
                   />
                 </span>

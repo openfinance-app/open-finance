@@ -3,16 +3,16 @@ package org.openfinance.service;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Set;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.openfinance.entity.Currency;
 import org.openfinance.entity.CurrencyType;
 import org.openfinance.repository.CurrencyRepository;
+import org.openfinance.util.MoneyPrecision;
 import org.springframework.stereotype.Service;
 
 /**
- * Single cached source of truth for a currency's {@link CurrencyType} and its display decimal
+ * Single cached source of truth for a currency's {@link CurrencyType} and its calculation
  * precision. Backs {@code ExchangeRateService.isCryptocurrency()} and interest/precision rounding.
  *
  * <p>Holds an in-memory {@code code -> type} snapshot that is lazily loaded on first use and can be
@@ -22,12 +22,6 @@ import org.springframework.stereotype.Service;
 @Service
 @RequiredArgsConstructor
 public class CurrencyTypeResolver {
-
-    /** Fiat currencies that use zero decimal places (not a crypto concern). */
-    private static final Set<String> ZERO_DECIMAL_CURRENCIES =
-            Set.of("JPY", "KRW", "VND", "CLP", "ISK");
-
-    private static final int DEFAULT_DECIMALS = 2;
 
     private final CurrencyRepository currencyRepository;
 
@@ -67,20 +61,14 @@ public class CurrencyTypeResolver {
     }
 
     /**
-     * @return decimal places for display/rounding: {@code 8} for crypto, {@code 0} for zero-decimal
-     *     fiat, otherwise {@code 2} (also the fallback for {@code null}/blank/unknown).
+     * Calculation precision, independent of display preferences. Unknown/crypto codes retain 18
+     * digits.
      */
     public int decimalsFor(String code) {
         if (code == null || code.isBlank()) {
-            return DEFAULT_DECIMALS;
+            return 18;
         }
         String normalized = code.trim().toUpperCase(Locale.ROOT);
-        if (snapshot().get(normalized) == CurrencyType.CRYPTO) {
-            return 8;
-        }
-        if (ZERO_DECIMAL_CURRENCIES.contains(normalized)) {
-            return 0;
-        }
-        return DEFAULT_DECIMALS;
+        return isCrypto(normalized) ? 18 : MoneyPrecision.scale(normalized);
     }
 }

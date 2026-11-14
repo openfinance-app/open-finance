@@ -4,15 +4,19 @@ import { screen } from '@testing-library/react';
 import { renderWithProviders, mockAuthentication } from '@/test/test-utils';
 import { ProgressChart } from '@/components/financial-freedom/ProgressChart';
 
-const chart = vi.hoisted(() => ({ active: true }));
+type ChartPoint = { savings?: number; target?: number; exactValues?: Record<string, string> };
+const chart = vi.hoisted(() => ({ active: true, data: [] as ChartPoint[] }));
 vi.mock('recharts', () => ({
   ResponsiveContainer: ({ children }: { children: ReactNode }) => <div>{children}</div>,
-  ComposedChart: ({ data, children }: { data: unknown; children: ReactNode }) => (
-    <div>
-      <output aria-label="Projected balances">{JSON.stringify(data)}</output>
-      {children}
-    </div>
-  ),
+  ComposedChart: ({ data, children }: { data: ChartPoint[]; children: ReactNode }) => {
+    chart.data = data;
+    return (
+      <div>
+        <output aria-label="Projected balances">{JSON.stringify(data)}</output>
+        {children}
+      </div>
+    );
+  },
   Line: () => null,
   XAxis: () => null,
   CartesianGrid: () => null,
@@ -28,8 +32,18 @@ vi.mock('recharts', () => ({
       active: chart.active,
       label: '2',
       payload: [
-        { value: 12345, dataKey: 'savings', color: 'blue' },
-        { value: 20000, dataKey: 'target', color: 'green' },
+        {
+          value: chart.data[0]?.savings ?? 12345,
+          dataKey: 'savings',
+          color: 'blue',
+          payload: chart.data[0],
+        },
+        {
+          value: chart.data[0]?.target ?? 20000,
+          dataKey: 'target',
+          color: 'green',
+          payload: chart.data[0],
+        },
       ],
     }),
   ReferenceLine: ({ x, y, label }: { x?: number; y?: number; label: { value: string } }) => (
@@ -70,7 +84,7 @@ it('plots ending balances, keeps contributions separate, and labels target and f
   expect(screen.getByLabelText('Target')).toHaveTextContent('20000');
   expect(screen.getByLabelText('Current')).toHaveTextContent('1000');
   expect(screen.getByLabelText('Freedom!')).toHaveTextContent('3');
-  expect(screen.getByText('£500 £2K £1.2M')).toBeInTheDocument();
+  expect(screen.getByText('£500.00 £2.00K £1.20M')).toBeInTheDocument();
   expect(screen.getByText('£12,345.00')).toBeInTheDocument();
   expect(screen.getByText('£20,000.00')).toBeInTheDocument();
 });
@@ -81,4 +95,29 @@ it('does not display hover details or a freedom marker when neither is available
   );
   expect(screen.queryByText('Year 2')).not.toBeInTheDocument();
   expect(screen.queryByLabelText('Freedom!')).not.toBeInTheDocument();
+});
+
+it('uses exact projection values in hover details even when chart coordinates have lost digits', () => {
+  renderWithProviders(
+    <ProgressChart
+      data={[
+        {
+          year: 1,
+          startingBalance: 1,
+          endingBalance: 1.005,
+          contributions: 0,
+          investmentReturns: 0.005,
+          withdrawals: 0,
+          progressTowardTarget: 50,
+          targetReached: false,
+          exactValues: { endingBalance: '1.004999999999999999' },
+        },
+      ]}
+      currentSavings={1}
+      targetAmount={2}
+      currency="EUR"
+    />
+  );
+  expect(screen.getByText('€1.00')).toBeInTheDocument();
+  expect(screen.queryByText('€1.01')).not.toBeInTheDocument();
 });

@@ -1,12 +1,13 @@
 import type { Asset } from '@/types/asset';
-import { multiply, sum, subtract, percentage } from '@/utils/money';
+import { percentage } from '@/utils/money';
+import { decimalValue, ExactDecimal, exactSum } from '@/utils/exact-decimal';
 
 /** Never add an unconverted native amount to a reporting-currency total. */
 export function computeAssetSummary(assets: Asset[], currency: string) {
-  const values: number[] = [];
-  const costs: number[] = [];
-  const gains: number[] = [];
-  const bases: number[] = [];
+  const values: string[] = [];
+  const costs: string[] = [];
+  const gains: string[] = [];
+  const bases: string[] = [];
   let excludedFromPerformance = 0;
   const missingCurrencies = new Set<string>();
   for (const asset of assets) {
@@ -15,39 +16,45 @@ export function computeAssetSummary(assets: Asset[], currency: string) {
       asset.currency === currency
         ? 1
         : asset.isConverted && asset.baseCurrency === currency
-          ? asset.exchangeRate
+          ? decimalValue(asset, 'exchangeRate')
           : undefined;
-    if (rate == null || !Number.isFinite(rate) || rate <= 0) {
+    if (rate == null || !new ExactDecimal(rate).isFinite() || new ExactDecimal(rate).lte(0)) {
       missingCurrencies.add(asset.currency);
       continue;
     }
     const nativeValue = asset.isPhysical
-      ? (asset.totalValue ?? asset.conditionAdjustedValue ?? asset.depreciatedValue ?? 0)
-      : asset.totalValue;
-    values.push(multiply(nativeValue, rate));
-    costs.push(multiply(asset.totalCost, rate));
+      ? (decimalValue(asset, 'totalValue') ??
+        decimalValue(asset, 'conditionAdjustedValue') ??
+        decimalValue(asset, 'depreciatedValue') ??
+        0)
+      : (decimalValue(asset, 'totalValue') ?? 0);
+    values.push(new ExactDecimal(nativeValue).times(rate).toFixed());
+    costs.push(new ExactDecimal(decimalValue(asset, 'totalCost') ?? 0).times(rate).toFixed());
     const basis =
       asset.performanceBasis !== undefined
-        ? asset.performanceBasis
+        ? decimalValue(asset, 'performanceBasis')
         : asset.acquisitionType === 'GIFT'
           ? null
-          : asset.totalCost;
+          : decimalValue(asset, 'totalCost');
     if (basis != null) {
-      gains.push(multiply(subtract(nativeValue, basis), rate));
-      bases.push(multiply(basis, rate));
+      gains.push(new ExactDecimal(nativeValue).minus(basis).times(rate).toFixed());
+      bases.push(new ExactDecimal(basis).times(rate).toFixed());
     } else {
       excludedFromPerformance++;
     }
   }
-  const totalValue = sum(values);
-  const totalCost = sum(costs);
-  const totalGain = sum(gains);
-  const performanceBasis = sum(bases);
+  const totalValue = exactSum(values);
+  const totalCost = exactSum(costs);
+  const totalGain = exactSum(gains);
+  const performanceBasis = exactSum(bases);
   return {
-    totalValue,
-    totalCost,
-    totalGain,
-    gainPct: performanceBasis > 0 ? percentage(totalGain, performanceBasis) : null,
+    totalValue: Number(totalValue),
+    totalCost: Number(totalCost),
+    totalGain: Number(totalGain),
+    exactValues: { totalValue, totalCost, totalGain },
+    gainPct: new ExactDecimal(performanceBasis).gt(0)
+      ? percentage(totalGain, performanceBasis)
+      : null,
     hasPerformance: gains.length > 0,
     excludedFromPerformance,
     currency,

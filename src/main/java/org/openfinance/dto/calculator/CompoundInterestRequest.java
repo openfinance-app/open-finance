@@ -23,7 +23,7 @@ import org.openfinance.util.ExactIntegerDeserializer;
 @AllArgsConstructor
 public class CompoundInterestRequest {
 
-    /** Calculation currency. Omission retains the legacy USD (two-decimal) API default. */
+    /** Calculation currency. Display and settlement precision do not limit this projection. */
     @Builder.Default
     @NotBlank
     @Pattern(regexp = "[A-Z][A-Z0-9]{2,9}")

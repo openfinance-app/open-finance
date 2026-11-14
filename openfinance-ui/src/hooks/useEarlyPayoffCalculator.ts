@@ -10,203 +10,179 @@ import type {
 } from '../types/calculator';
 import { DEFAULT_EARLY_PAYOFF_INPUT } from '../types/calculator';
 import type { EarlyPayoffCountryConfig } from '@/configs/tools/earlyPayoffConfig';
-import { add, divide, multiply, pow, subtract, sum } from '@/utils/money';
+import type Decimal from 'decimal.js';
+import { calculatedAmounts, decimalValue, ExactDecimal } from '@/utils/exact-decimal';
 
 // ── Pure calculation helpers ─────────────────────────────────────────────────
 
-function calcMonthlyPayment(balance: number, monthlyRate: number, months: number): number {
-  if (months <= 0 || balance <= 0) return 0;
-  if (monthlyRate === 0) return divide(balance, months);
-  return divide(multiply(balance, monthlyRate), subtract(1, pow(add(1, monthlyRate), -months)));
+function calcMonthlyPayment(balance: Decimal, monthlyRate: Decimal, months: number): Decimal {
+  if (months <= 0 || balance.lte(0)) return new ExactDecimal(0);
+  if (monthlyRate.isZero()) return balance.div(months);
+  return balance
+    .times(monthlyRate)
+    .div(new ExactDecimal(1).minus(monthlyRate.plus(1).pow(-months)));
 }
 
-/**
- * Early-repayment penalty calculation driven by country config.
- * Uses the lower of:
- *   (a) iraMonthsInterestCap months of interest on the reimbursed amount
- *   (b) iraCapitalPercentCap × outstanding capital before repayment
- */
+/** Apply the existing country-configured penalty caps at calculation precision. */
 function computeIRA(
-  lumpSumAmount: number,
-  balanceBefore: number,
-  monthlyRate: number,
+  lumpSumAmount: Decimal,
+  balanceBefore: Decimal,
+  monthlyRate: Decimal,
   cfg: EarlyPayoffCountryConfig
-): number {
-  if (!cfg.hasIRA || lumpSumAmount <= 0) return 0;
-  const cap1 =
+): Decimal {
+  if (!cfg.hasIRA || lumpSumAmount.lte(0)) return new ExactDecimal(0);
+  const interestCap =
     cfg.iraMonthsInterestCap > 0
-      ? multiply(multiply(lumpSumAmount, monthlyRate), cfg.iraMonthsInterestCap)
-      : Infinity;
-  const cap2 =
-    cfg.iraCapitalPercentCap > 0 ? multiply(balanceBefore, cfg.iraCapitalPercentCap) : Infinity;
-  return Math.min(cap1, cap2);
+      ? lumpSumAmount.times(monthlyRate).times(cfg.iraMonthsInterestCap)
+      : new ExactDecimal(Infinity);
+  const capitalCap =
+    cfg.iraCapitalPercentCap > 0
+      ? balanceBefore.times(cfg.iraCapitalPercentCap)
+      : new ExactDecimal(Infinity);
+  return ExactDecimal.min(interestCap, capitalCap);
 }
 
 interface MonthRow {
   month: number;
-  payment: number;
-  principal: number;
-  interest: number;
-  lumpSum: number;
-  ira: number;
-  balance: number;
+  payment: Decimal;
+  principal: Decimal;
+  interest: Decimal;
+  lumpSum: Decimal;
+  ira: Decimal;
+  balance: Decimal;
 }
 
-/**
- * Simulate one amortisation path.
- *
- * @param mode
- *   'base'           – no lump sums, standard schedule
- *   'reduceDuration' – apply lump sums, keep monthly payment → shorter term
- *   'reducePayment'  – apply lump sums, keep original end-date → lower payment
- */
+/** Keep working values throughout each path; bound only the result records. */
 function simulate(
-  initialBalance: number,
-  monthlyRate: number,
+  initialBalance: number | string,
+  monthlyRate: Decimal,
   totalRemainingMonths: number,
   lumpSums: LumpSumPayment[],
-  monthlyExtraPayment: number,
+  monthlyExtraPayment: number | string,
   mode: 'base' | 'reduceDuration' | 'reducePayment',
   cfg: EarlyPayoffCountryConfig,
   currency: string
-): { rows: MonthRow[]; baseMonthlyPayment: number; finalMonthlyPayment: number } {
-  const basePayment = calcMonthlyPayment(initialBalance, monthlyRate, totalRemainingMonths);
-
-  // Aggregate lump sums by month
-  const lumpSumByMonth = new Map<number, number>();
+): { rows: MonthRow[]; baseMonthlyPayment: Decimal; finalMonthlyPayment: Decimal } {
+  const basePayment = calcMonthlyPayment(
+    new ExactDecimal(initialBalance),
+    monthlyRate,
+    totalRemainingMonths
+  );
+  const lumpSumByMonth = new Map<number, Decimal>();
   if (mode !== 'base') {
     for (const ls of lumpSums) {
-      if (ls.amount > 0 && ls.month > 0) {
-        lumpSumByMonth.set(ls.month, add(lumpSumByMonth.get(ls.month) ?? 0, ls.amount));
+      if (new ExactDecimal(ls.amount).gt(0) && ls.month > 0) {
+        lumpSumByMonth.set(
+          ls.month,
+          new ExactDecimal(lumpSumByMonth.get(ls.month) ?? 0).plus(ls.amount)
+        );
       }
     }
   }
-
-  // Monthly extra payment is only applied in non-base scenarios
-  const effectiveMonthlyExtra = mode !== 'base' ? monthlyExtraPayment : 0;
-
-  let balance = initialBalance;
+  const effectiveMonthlyExtra = new ExactDecimal(mode !== 'base' ? monthlyExtraPayment : 0);
+  let balance = new ExactDecimal(initialBalance);
   let currentMonthlyPayment = basePayment;
   const rows: MonthRow[] = [];
   const maxMonths = Math.max(totalRemainingMonths * 2, 600);
-  const payoffTolerance = 0.5 * 10 ** -getMonetaryScale(currency);
-
-  for (let month = 1; month <= maxMonths && balance > 0; month++) {
-    const interest = multiply(balance, monthlyRate);
-    // Cap payment at remaining balance + interest (handles last payment rounding)
-    let payment = Math.min(currentMonthlyPayment, add(balance, interest));
-    let principal = Math.max(0, subtract(payment, interest));
-    balance = Math.max(0, subtract(balance, principal));
-
-    // Apply monthly extra payment if balance remains
-    let extraApplied = 0;
-    if (effectiveMonthlyExtra > 0 && balance > 0) {
-      extraApplied = Math.min(effectiveMonthlyExtra, balance);
-      balance = Math.max(0, subtract(balance, extraApplied));
-    }
-
-    let lumpSumApplied = 0;
-    let iraApplied = 0;
-    const lsAmount = lumpSumByMonth.get(month) ?? 0;
-
-    if (lsAmount > 0 && balance > 0) {
-      const balanceBefore = balance;
-      lumpSumApplied = Math.min(lsAmount, balance);
-      iraApplied = computeIRA(lumpSumApplied, balanceBefore, monthlyRate, cfg);
-      balance = Math.max(0, subtract(balance, lumpSumApplied));
-
-      if (balance > 0) {
-        if (mode === 'reducePayment') {
-          // Maintain original payoff date: recalculate payment for remaining original months
-          const origRemainingFromHere = totalRemainingMonths - month;
-          if (origRemainingFromHere > 0) {
-            currentMonthlyPayment = calcMonthlyPayment(balance, monthlyRate, origRemainingFromHere);
-          }
-        }
-        // For 'reduceDuration': keep same payment; the loop naturally ends sooner.
+  // Include the remaining settlement-unit fraction in the final payment; never drop debt.
+  const payoffTolerance = new ExactDecimal(10).pow(-getMonetaryScale(currency)).div(2);
+  for (let month = 1; month <= maxMonths && balance.gt(0); month++) {
+    const interest = balance.times(monthlyRate);
+    let payment = ExactDecimal.min(currentMonthlyPayment, balance.plus(interest));
+    let principal = ExactDecimal.max(0, payment.minus(interest));
+    balance = ExactDecimal.max(0, balance.minus(principal));
+    const extraApplied = ExactDecimal.min(effectiveMonthlyExtra, balance);
+    balance = ExactDecimal.max(0, balance.minus(extraApplied));
+    let lumpSumApplied = new ExactDecimal(0);
+    let iraApplied = new ExactDecimal(0);
+    const lsAmount = lumpSumByMonth.get(month) ?? new ExactDecimal(0);
+    if (lsAmount.gt(0) && balance.gt(0)) {
+      lumpSumApplied = ExactDecimal.min(lsAmount, balance);
+      iraApplied = computeIRA(lumpSumApplied, balance, monthlyRate, cfg);
+      balance = ExactDecimal.max(0, balance.minus(lumpSumApplied));
+      if (balance.gt(0) && mode === 'reducePayment' && totalRemainingMonths > month) {
+        currentMonthlyPayment = calcMonthlyPayment(
+          balance,
+          monthlyRate,
+          totalRemainingMonths - month
+        );
       }
     }
-
-    // Include the final fractional-unit remainder in cash and principal rather than
-    // ending the schedule with an unpaid floating-point residue.
-    if (balance > 0 && balance <= payoffTolerance) {
-      payment = add(payment, balance);
-      principal = add(principal, balance);
-      balance = 0;
+    if (balance.gt(0) && balance.lte(payoffTolerance)) {
+      payment = payment.plus(balance);
+      principal = principal.plus(balance);
+      balance = new ExactDecimal(0);
     }
-
-    // Accumulate extra payment into lump sum for reporting purposes
-    const totalLumpSumThisMonth = add(lumpSumApplied, extraApplied);
     rows.push({
       month,
       payment,
       principal,
       interest,
-      lumpSum: totalLumpSumThisMonth,
+      lumpSum: lumpSumApplied.plus(extraApplied),
       ira: iraApplied,
       balance,
     });
-    if (balance <= 0) break;
   }
-
   return { rows, baseMonthlyPayment: basePayment, finalMonthlyPayment: currentMonthlyPayment };
 }
 
-/** Aggregate monthly rows into a yearly schedule summary. */
+type YearAmounts = Record<
+  'totalPayment' | 'principalPaid' | 'interestPaid' | 'lumpSum' | 'ira' | 'endBalance',
+  Decimal
+>;
 function buildYearlySchedule(rows: MonthRow[]): EarlyPayoffYearRow[] {
-  const map = new Map<number, EarlyPayoffYearRow>();
+  const map = new Map<number, YearAmounts>();
   for (const row of rows) {
     const year = Math.ceil(row.month / 12);
     const existing = map.get(year) ?? {
-      year,
-      totalPayment: 0,
-      principalPaid: 0,
-      interestPaid: 0,
-      lumpSum: 0,
-      ira: 0,
-      endBalance: 0,
+      totalPayment: new ExactDecimal(0),
+      principalPaid: new ExactDecimal(0),
+      interestPaid: new ExactDecimal(0),
+      lumpSum: new ExactDecimal(0),
+      ira: new ExactDecimal(0),
+      endBalance: new ExactDecimal(0),
     };
-    existing.totalPayment = add(existing.totalPayment, sum([row.payment, row.lumpSum, row.ira]));
-    existing.principalPaid = add(existing.principalPaid, add(row.principal, row.lumpSum));
-    existing.interestPaid = add(existing.interestPaid, row.interest);
-    existing.lumpSum = add(existing.lumpSum, row.lumpSum);
-    existing.ira = add(existing.ira, row.ira);
+    existing.totalPayment = existing.totalPayment.plus(row.payment).plus(row.lumpSum).plus(row.ira);
+    existing.principalPaid = existing.principalPaid.plus(row.principal).plus(row.lumpSum);
+    existing.interestPaid = existing.interestPaid.plus(row.interest);
+    existing.lumpSum = existing.lumpSum.plus(row.lumpSum);
+    existing.ira = existing.ira.plus(row.ira);
     existing.endBalance = row.balance;
     map.set(year, existing);
   }
-  return Array.from(map.values());
+  return Array.from(map, ([year, amounts]) => ({ year, ...calculatedAmounts(amounts) }));
 }
 
 function buildScenario(
   rows: MonthRow[],
-  baseMonthlyPayment: number,
-  finalMonthlyPayment: number,
+  baseMonthlyPayment: Decimal,
+  finalMonthlyPayment: Decimal,
   baseScenario: EarlyPayoffScenario | null
 ): EarlyPayoffScenario {
-  const totalInterest = sum(rows.map(r => r.interest));
-  const totalIRA = sum(rows.map(r => r.ira));
-  const totalLumpSum = sum(rows.map(r => r.lumpSum));
-  const totalMonths = rows.length;
-  const totalPayments = sum(rows.map(r => r.payment));
-  const totalCost = sum([totalPayments, totalLumpSum, totalIRA]);
-
+  const total = (field: keyof Omit<MonthRow, 'month'>): Decimal =>
+    rows.reduce((sum, row) => sum.plus(row[field]), new ExactDecimal(0));
+  const totalInterest = total('interest');
+  const totalIRA = total('ira');
+  const totalLumpSum = total('lumpSum');
   const interestSaved = baseScenario
-    ? Math.max(0, subtract(baseScenario.totalInterest, totalInterest))
-    : 0;
-  const timeSavedMonths = baseScenario ? Math.max(0, baseScenario.totalMonths - totalMonths) : 0;
-  const netSavings = subtract(interestSaved, totalIRA);
-
+    ? ExactDecimal.max(
+        0,
+        new ExactDecimal(decimalValue(baseScenario, 'totalInterest') ?? 0).minus(totalInterest)
+      )
+    : new ExactDecimal(0);
   return {
-    monthlyPayment: baseMonthlyPayment,
-    finalMonthlyPayment,
-    totalMonths,
-    totalInterest,
-    totalIRA,
-    totalLumpSum,
-    totalCost,
-    interestSaved,
-    timeSavedMonths,
-    netSavings,
+    ...calculatedAmounts({
+      monthlyPayment: baseMonthlyPayment,
+      finalMonthlyPayment,
+      totalInterest,
+      totalIRA,
+      totalLumpSum,
+      totalCost: total('payment').plus(totalLumpSum).plus(totalIRA),
+      interestSaved,
+      netSavings: interestSaved.minus(totalIRA),
+    }),
+    totalMonths: rows.length,
+    timeSavedMonths: baseScenario ? Math.max(0, baseScenario.totalMonths - rows.length) : 0,
     yearlySchedule: buildYearlySchedule(rows),
   };
 }
@@ -248,16 +224,19 @@ export function useEarlyPayoffCalculator(
     setError(null);
   }, []);
 
-  const updateLumpSum = useCallback((id: string, field: 'month' | 'amount', value: number) => {
-    setInput(prev => ({
-      ...prev,
-      lumpSumPayments: prev.lumpSumPayments.map(ls =>
-        ls.id === id ? { ...ls, [field]: value } : ls
-      ),
-    }));
-    setResult(null);
-    setError(null);
-  }, []);
+  const updateLumpSum = useCallback(
+    <K extends 'month' | 'amount'>(id: string, field: K, value: LumpSumPayment[K]) => {
+      setInput(prev => ({
+        ...prev,
+        lumpSumPayments: prev.lumpSumPayments.map(ls =>
+          ls.id === id ? { ...ls, [field]: value } : ls
+        ),
+      }));
+      setResult(null);
+      setError(null);
+    },
+    []
+  );
 
   const removeLumpSum = useCallback((id: string) => {
     setInput(prev => ({
@@ -291,7 +270,7 @@ export function useEarlyPayoffCalculator(
       return;
     }
 
-    const monthlyRate = divide(divide(annualRate, 100), 12);
+    const monthlyRate = new ExactDecimal(annualRate).div(1200);
     const totalRemainingMonths = remainingYears * 12 + remainingMonthsExtra;
 
     // No-IRA config for base scenario (never penalise the base)

@@ -105,12 +105,14 @@ class FinanceManagementCorrectionsIntegrationTest {
         assertThat(
                         json("GET", "/accounts/" + id + "/interest-estimate", null, 200)
                                 .get("estimate")
-                                .decimalValue())
+                                .decimalValue()
+                                .setScale(2, java.math.RoundingMode.HALF_UP))
                 .isEqualByComparingTo(today.isLeapYear() ? "40.72" : "40.60");
         assertThat(
                         json("GET", "/dashboard/estimated-interest?period=YTD", null, 200)
                                 .get("totalProjected")
-                                .decimalValue())
+                                .decimalValue()
+                                .setScale(2, java.math.RoundingMode.HALF_UP))
                 .isEqualByComparingTo(today.isLeapYear() ? "40.72" : "40.60");
     }
 
@@ -205,14 +207,17 @@ class FinanceManagementCorrectionsIntegrationTest {
                                                 : today.minusDays(1),
                                         today.withMonth(12).withDayOfMonth(31))
                                 + 1);
-        assertThat(summary.get("totalProjected").decimalValue())
+        assertThat(new BigDecimal(summary.path("exactValues").path("totalProjected").asText()))
                 .isEqualByComparingTo(
                         new BigDecimal("350.50")
                                 .multiply(priorDays)
                                 .add(new BigDecimal("300.50").multiply(currentDays))
                                 .multiply(new BigDecimal("-0.18"))
-                                .divide(new BigDecimal("365"), 2, java.math.RoundingMode.HALF_UP));
-        assertThat(summary.get("totalEarned").decimalValue()).isEqualByComparingTo("-0.47");
+                                .divide(new BigDecimal("365"), 18, java.math.RoundingMode.HALF_UP));
+        assertThat(new BigDecimal(summary.path("exactValues").path("totalEarned").asText()))
+                .isEqualByComparingTo(
+                        new BigDecimal("-171.27")
+                                .divide(new BigDecimal("365"), 18, java.math.RoundingMode.HALF_UP));
         assertThat(
                         json("GET", "/dashboard/summary", null, 200)
                                 .get("netWorth")
@@ -223,19 +228,26 @@ class FinanceManagementCorrectionsIntegrationTest {
         summary = json("GET", "/dashboard/estimated-interest?period=ALL", null, 200);
         BigDecimal repaidDays =
                 BigDecimal.valueOf(today.minusDays(1).isBefore(today.withDayOfYear(1)) ? 0 : 1);
-        assertThat(summary.get("totalProjected").decimalValue())
+        assertThat(new BigDecimal(summary.path("exactValues").path("totalProjected").asText()))
                 .isEqualByComparingTo(
                         new BigDecimal("350.50")
                                 .multiply(priorDays)
                                 .add(new BigDecimal("300.50").multiply(repaidDays))
                                 .multiply(new BigDecimal("-0.18"))
-                                .divide(new BigDecimal("365"), 2, java.math.RoundingMode.HALF_UP));
-        assertThat(summary.get("totalEarned").decimalValue()).isEqualByComparingTo("-0.32");
+                                .divide(new BigDecimal("365"), 18, java.math.RoundingMode.HALF_UP));
+        assertThat(new BigDecimal(summary.path("exactValues").path("totalEarned").asText()))
+                .isEqualByComparingTo(
+                        new BigDecimal("-117.18")
+                                .divide(new BigDecimal("365"), 18, java.math.RoundingMode.HALF_UP));
         assertThat(
-                        interest(today.minusDays(2), today.minusDays(2))
-                                .get("totalEarned")
-                                .decimalValue())
-                .isEqualByComparingTo("-0.17");
+                        new BigDecimal(
+                                interest(today.minusDays(2), today.minusDays(2))
+                                        .path("exactValues")
+                                        .path("totalEarned")
+                                        .asText()))
+                .isEqualByComparingTo(
+                        new BigDecimal("-63.09")
+                                .divide(new BigDecimal("365"), 18, java.math.RoundingMode.HALF_UP));
     }
 
     @Test

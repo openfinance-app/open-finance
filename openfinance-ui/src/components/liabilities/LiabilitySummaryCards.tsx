@@ -1,3 +1,4 @@
+import { decimalValue, ExactDecimal, exactSum } from '@/utils/exact-decimal';
 import { formatDecimal } from '@/utils/format';
 /**
  * LiabilitySummaryCards Component
@@ -16,7 +17,7 @@ import { useTranslation } from 'react-i18next';
 import { ConvertedAmount } from '@/components/ui/ConvertedAmount';
 import { useAuthContext } from '@/context/AuthContext';
 import { useSecondaryConversion } from '@/hooks/useSecondaryConversion';
-import { add, multiply, sum, divide } from '@/utils/money';
+import { divide } from '@/utils/money';
 import type { Liability } from '@/types/liability';
 
 interface LiabilitySummaryCardsProps {
@@ -29,11 +30,11 @@ interface LiabilitySummaryCardsProps {
 }
 
 interface BaseCurrencyTotals {
-  totalBalance: number;
-  totalPrincipal: number;
-  totalMinimumPayment: number;
+  totalBalance: string;
+  totalPrincipal: string;
+  totalMinimumPayment: string;
   missingPayments: number;
-  liabilitiesWithInterest: { balance: number; rate: number }[];
+  liabilitiesWithInterest: { balance: number | string; rate: number }[];
   /** Currencies that could not be converted and were excluded from totals */
   excludedCurrencies: Set<string>;
 }
@@ -52,7 +53,7 @@ function aggregateToBaseCurrency(
 ): BaseCurrencyTotals {
   return liabilities.reduce<BaseCurrencyTotals>(
     (acc, liability) => {
-      const rate = liability.exchangeRate ?? 1;
+      const rate = decimalValue(liability, 'exchangeRate') ?? 1;
       const useConverted = liability.isConverted === true && liability.exchangeRate != null;
       const isNativeCurrency = liability.currency === baseCurrency;
 
@@ -64,27 +65,32 @@ function aggregateToBaseCurrency(
 
       // Balance
       const balance = useConverted
-        ? (liability.balanceInBaseCurrency ?? multiply(liability.currentBalance, rate))
-        : liability.currentBalance;
+        ? (decimalValue(liability, 'balanceInBaseCurrency') ??
+          new ExactDecimal(decimalValue(liability, 'currentBalance') ?? 0).times(rate).toFixed())
+        : (decimalValue(liability, 'currentBalance') ?? 0);
 
       // Principal (no pre-converted field from backend — multiply by rate)
-      const principal = useConverted ? multiply(liability.principal, rate) : liability.principal;
+      const principal = new ExactDecimal(decimalValue(liability, 'principal') ?? 0)
+        .times(useConverted ? rate : 1)
+        .toFixed();
 
       // Minimum payment
       const payment =
         liability.currentBalance <= 0
           ? 0
           : liability.effectiveMonthlyPayment !== undefined
-            ? liability.effectiveMonthlyPayment
+            ? decimalValue(liability, 'effectiveMonthlyPayment')
             : liability.minimumPayment && liability.minimumPayment > 0
-              ? liability.minimumPayment
+              ? decimalValue(liability, 'minimumPayment')
               : null;
-      if (payment === null) acc.missingPayments += 1;
-      const minimumPayment = useConverted ? multiply(payment ?? 0, rate) : (payment ?? 0);
+      if (payment == null) acc.missingPayments += 1;
+      const minimumPayment = new ExactDecimal(payment ?? 0)
+        .times(useConverted ? rate : 1)
+        .toFixed();
 
-      acc.totalBalance = add(acc.totalBalance, balance);
-      acc.totalPrincipal = add(acc.totalPrincipal, principal);
-      acc.totalMinimumPayment = add(acc.totalMinimumPayment, minimumPayment);
+      acc.totalBalance = exactSum([acc.totalBalance, balance]);
+      acc.totalPrincipal = exactSum([acc.totalPrincipal, principal]);
+      acc.totalMinimumPayment = exactSum([acc.totalMinimumPayment, minimumPayment]);
 
       if (liability.interestRate && liability.interestRate > 0) {
         acc.liabilitiesWithInterest.push({ balance, rate: liability.interestRate });
@@ -93,9 +99,9 @@ function aggregateToBaseCurrency(
       return acc;
     },
     {
-      totalBalance: 0,
-      totalPrincipal: 0,
-      totalMinimumPayment: 0,
+      totalBalance: '0',
+      totalPrincipal: '0',
+      totalMinimumPayment: '0',
       missingPayments: 0,
       liabilitiesWithInterest: [],
       excludedCurrencies: new Set<string>(),
@@ -107,12 +113,14 @@ function aggregateToBaseCurrency(
 function weightedAvgRate(totals: BaseCurrencyTotals): string {
   if (totals.liabilitiesWithInterest.length === 0) return 'N/A';
 
-  const totalWeightedRate = sum(
-    totals.liabilitiesWithInterest.map(item => multiply(item.balance, item.rate))
+  const totalWeightedRate = exactSum(
+    totals.liabilitiesWithInterest.map(item =>
+      new ExactDecimal(item.balance).times(item.rate).toFixed()
+    )
   );
-  const totalBalance = sum(totals.liabilitiesWithInterest.map(item => item.balance));
+  const totalBalance = exactSum(totals.liabilitiesWithInterest.map(item => item.balance));
 
-  if (totalBalance === 0) return 'N/A';
+  if (new ExactDecimal(totalBalance).isZero()) return 'N/A';
   return `${formatDecimal(divide(totalWeightedRate, totalBalance), 2)}%`;
 }
 
@@ -123,7 +131,8 @@ export function LiabilitySummaryCards({
 }: LiabilitySummaryCardsProps) {
   const { baseCurrency } = useAuthContext();
   const {
-    convert,
+    convert: convertNumber,
+    convertExact: convert = convertNumber,
     secondaryCurrency: secCurrency,
     secondaryExchangeRate,
   } = useSecondaryConversion(baseCurrency);
@@ -157,10 +166,12 @@ export function LiabilitySummaryCards({
         <div className="text-sm text-text-secondary mb-1">{t('summary.totalLiabilities')}</div>
         <div className="text-2xl font-bold text-text-primary">
           <ConvertedAmount
-            amount={globalTotals.totalBalance}
+            amount={decimalValue(globalTotals, 'totalBalance') ?? globalTotals.totalBalance}
             currency={baseCurrency}
             isConverted={false}
-            secondaryAmount={convert(globalTotals.totalBalance)}
+            secondaryAmount={convert(
+              decimalValue(globalTotals, 'totalBalance') ?? globalTotals.totalBalance
+            )}
             secondaryCurrency={secCurrency}
             secondaryExchangeRate={secondaryExchangeRate}
             inline
@@ -181,10 +192,12 @@ export function LiabilitySummaryCards({
           <div className="text-xs text-text-tertiary mt-1">
             {t('summary.filtered')}:{' '}
             <ConvertedAmount
-              amount={filteredTotals.totalBalance}
+              amount={decimalValue(filteredTotals, 'totalBalance') ?? filteredTotals.totalBalance}
               currency={baseCurrency}
               isConverted={false}
-              secondaryAmount={convert(filteredTotals.totalBalance)}
+              secondaryAmount={convert(
+                decimalValue(filteredTotals, 'totalBalance') ?? filteredTotals.totalBalance
+              )}
               secondaryCurrency={secCurrency}
               secondaryExchangeRate={secondaryExchangeRate}
               inline
@@ -198,10 +211,12 @@ export function LiabilitySummaryCards({
         <div className="text-sm text-text-secondary mb-1">{t('summary.originalPrincipal')}</div>
         <div className="text-2xl font-bold text-text-primary">
           <ConvertedAmount
-            amount={globalTotals.totalPrincipal}
+            amount={decimalValue(globalTotals, 'totalPrincipal') ?? globalTotals.totalPrincipal}
             currency={baseCurrency}
             isConverted={false}
-            secondaryAmount={convert(globalTotals.totalPrincipal)}
+            secondaryAmount={convert(
+              decimalValue(globalTotals, 'totalPrincipal') ?? globalTotals.totalPrincipal
+            )}
             secondaryCurrency={secCurrency}
             secondaryExchangeRate={secondaryExchangeRate}
             inline
@@ -214,10 +229,14 @@ export function LiabilitySummaryCards({
           <div className="text-xs text-text-tertiary">
             {t('summary.filtered')}:{' '}
             <ConvertedAmount
-              amount={filteredTotals.totalPrincipal}
+              amount={
+                decimalValue(filteredTotals, 'totalPrincipal') ?? filteredTotals.totalPrincipal
+              }
               currency={baseCurrency}
               isConverted={false}
-              secondaryAmount={convert(filteredTotals.totalPrincipal)}
+              secondaryAmount={convert(
+                decimalValue(filteredTotals, 'totalPrincipal') ?? filteredTotals.totalPrincipal
+              )}
               secondaryCurrency={secCurrency}
               secondaryExchangeRate={secondaryExchangeRate}
               inline
@@ -255,10 +274,16 @@ export function LiabilitySummaryCards({
             t('summary.incompletePayments')
           ) : (
             <ConvertedAmount
-              amount={globalTotals.totalMinimumPayment}
+              amount={
+                decimalValue(globalTotals, 'totalMinimumPayment') ??
+                globalTotals.totalMinimumPayment
+              }
               currency={baseCurrency}
               isConverted={false}
-              secondaryAmount={convert(globalTotals.totalMinimumPayment)}
+              secondaryAmount={convert(
+                decimalValue(globalTotals, 'totalMinimumPayment') ??
+                  globalTotals.totalMinimumPayment
+              )}
               secondaryCurrency={secCurrency}
               secondaryExchangeRate={secondaryExchangeRate}
               inline
@@ -268,7 +293,7 @@ export function LiabilitySummaryCards({
         <div className="text-xs text-text-tertiary mt-1">
           {globalTotals.missingPayments > 0
             ? t('summary.missingPayments', { count: globalTotals.missingPayments })
-            : globalTotals.totalMinimumPayment > 0
+            : new ExactDecimal(globalTotals.totalMinimumPayment).gt(0)
               ? t('summary.minimumDue')
               : t('summary.noPaymentsSet')}
         </div>
@@ -279,10 +304,16 @@ export function LiabilitySummaryCards({
               t('summary.incompletePayments')
             ) : (
               <ConvertedAmount
-                amount={filteredTotals.totalMinimumPayment}
+                amount={
+                  decimalValue(filteredTotals, 'totalMinimumPayment') ??
+                  filteredTotals.totalMinimumPayment
+                }
                 currency={baseCurrency}
                 isConverted={false}
-                secondaryAmount={convert(filteredTotals.totalMinimumPayment)}
+                secondaryAmount={convert(
+                  decimalValue(filteredTotals, 'totalMinimumPayment') ??
+                    filteredTotals.totalMinimumPayment
+                )}
                 secondaryCurrency={secCurrency}
                 secondaryExchangeRate={secondaryExchangeRate}
                 inline

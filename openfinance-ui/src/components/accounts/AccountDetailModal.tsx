@@ -1,3 +1,4 @@
+import { decimalValue } from '@/utils/exact-decimal';
 import { FormDialog } from '@/components/ui/FormDialog';
 import { useAnimatedClose } from '@/hooks/useAnimatedClose';
 import { buildTransactionsLink } from '@/utils/navigation';
@@ -268,13 +269,19 @@ export function AccountDetailModal({
                     {t(account.type === 'INVESTMENT' ? 'card.totalValue' : 'detail.currentBalance')}
                   </p>
                   <ConvertedAmount
-                    amount={account.balance}
+                    amount={decimalValue(account, 'balance') ?? account.balance}
                     currency={account.currency}
-                    convertedAmount={account.balanceInBaseCurrency}
+                    convertedAmount={
+                      decimalValue(account, 'balanceInBaseCurrency') ??
+                      account.balanceInBaseCurrency
+                    }
                     baseCurrency={account.baseCurrency}
-                    exchangeRate={account.exchangeRate}
+                    exchangeRate={decimalValue(account, 'exchangeRate') ?? account.exchangeRate}
                     isConverted={account.isConverted}
-                    secondaryAmount={account.balanceInSecondaryCurrency}
+                    secondaryAmount={
+                      decimalValue(account, 'balanceInSecondaryCurrency') ??
+                      account.balanceInSecondaryCurrency
+                    }
                     secondaryCurrency={account.secondaryCurrency}
                     className={cn(
                       'text-3xl font-bold font-mono',
@@ -380,15 +387,26 @@ export function AccountDetailModal({
                                   <div className="rounded-lg border border-border bg-surface p-3 text-sm">
                                     <p>{label ? formatDate(String(label)) : ''}</p>
                                     <ConvertedAmount
-                                      amount={point.balance}
+                                      amount={decimalValue(point, 'balance') ?? point.balance}
                                       currency={point.currency ?? account.currency}
-                                      convertedAmount={point.balanceInBaseCurrency}
+                                      convertedAmount={
+                                        decimalValue(point, 'balanceInBaseCurrency') ??
+                                        point.balanceInBaseCurrency
+                                      }
                                       baseCurrency={point.baseCurrency}
                                       isConverted={point.isConverted}
-                                      exchangeRate={point.exchangeRate}
-                                      secondaryAmount={point.balanceInSecondaryCurrency}
+                                      exchangeRate={
+                                        decimalValue(point, 'exchangeRate') ?? point.exchangeRate
+                                      }
+                                      secondaryAmount={
+                                        decimalValue(point, 'balanceInSecondaryCurrency') ??
+                                        point.balanceInSecondaryCurrency
+                                      }
                                       secondaryCurrency={point.secondaryCurrency}
-                                      secondaryExchangeRate={point.secondaryExchangeRate}
+                                      secondaryExchangeRate={
+                                        decimalValue(point, 'secondaryExchangeRate') ??
+                                        point.secondaryExchangeRate
+                                      }
                                       conversionDate={point.date}
                                       showComparisons
                                     />

@@ -4,9 +4,9 @@
  * Wraps currency formatting with privacy blur functionality and the user's
  * number format preference from NumberFormatContext.
  */
-import { useNumberFormat } from '@/context/NumberFormatContext';
+import { useFormatCurrency } from '@/hooks/useFormatCurrency';
 import { PrivateAmount } from '@/components/ui/PrivateAmount';
-import { DEFAULT_CURRENCY, formatCurrency, type FormatCurrencyOptions } from './currency';
+import { DEFAULT_CURRENCY, type MonetaryValue, type FormatCurrencyOptions } from '@/utils/currency';
 
 /**
  * Hook-based private currency formatter that respects the user's number format.
@@ -19,14 +19,14 @@ import { DEFAULT_CURRENCY, formatCurrency, type FormatCurrencyOptions } from './
  *   return <>{formatPrivate(1234.56, 'USD')}</>;
  */
 export function usePrivateCurrencyFormatter() {
-  const { numberFormat } = useNumberFormat();
+  const { format } = useFormatCurrency();
 
   const formatPrivate = (
-    amount: number,
+    amount: MonetaryValue,
     currencyCode: string = DEFAULT_CURRENCY,
     options: FormatCurrencyOptions = {}
   ) => {
-    const formatted = formatCurrency(amount, currencyCode, { numberFormat, ...options });
+    const formatted = format(amount, currencyCode, options);
     return <PrivateAmount inline>{formatted}</PrivateAmount>;
   };
 
@@ -46,11 +46,22 @@ export function usePrivateCurrencyFormatter() {
  * @returns JSX element with formatted currency wrapped in PrivateAmount
  */
 export function formatPrivateCurrency(
-  amount: number,
+  amount: MonetaryValue,
   currencyCode: string = DEFAULT_CURRENCY,
   options: FormatCurrencyOptions = {}
 ) {
-  const formatted = formatCurrency(amount, currencyCode, options);
+  return <PrivateCurrency amount={amount} currency={currencyCode} options={options} />;
+}
 
-  return <PrivateAmount inline>{formatted}</PrivateAmount>;
+function PrivateCurrency({
+  amount,
+  currency,
+  options,
+}: {
+  amount: MonetaryValue;
+  currency: string;
+  options: FormatCurrencyOptions;
+}) {
+  const { format } = useFormatCurrency();
+  return <PrivateAmount inline>{format(amount, currency, options)}</PrivateAmount>;
 }

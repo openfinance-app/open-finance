@@ -73,4 +73,15 @@ class ExactDecimalJsonConfigTest {
         response.setBalance(new BigDecimal("1.23"));
         assertThat(new ObjectMapper().writeValueAsString(response)).doesNotContain("exactValues");
     }
+
+    @Test
+    void controllerRecordsCarryExactCalculatedAmounts() throws Exception {
+        BigDecimal estimate = new BigDecimal("1.475349999999999999");
+        Object response =
+                new org.openfinance.controller.InterestRateVariationController
+                        .InterestEstimateResponse(estimate, estimate, BigDecimal.ZERO);
+        JsonNode json = mapper.readTree(mapper.writeValueAsBytes(response));
+        assertThat(json.at("/exactValues/estimate").asText()).isEqualTo("1.475349999999999999");
+        assertThat(json.path("estimate").isNumber()).isTrue();
+    }
 }

@@ -19,6 +19,8 @@ import { useMemo } from 'react';
 import { useCurrencyDisplay } from '@/context/CurrencyDisplayContext';
 import { useExchangeRate, useLatestExchangeRate } from '@/hooks/useCurrency';
 import { multiply } from '@/utils/money';
+import { decimalValue, ExactDecimal } from '@/utils/exact-decimal';
+import type { MonetaryValue } from '@/utils/currency';
 
 export interface SecondaryConversionResult {
   /** ISO 4217 code of the secondary currency, or null when not applicable. */
@@ -34,7 +36,9 @@ export interface SecondaryConversionResult {
    * Returns null when the secondary currency is not configured, equals the
    * source currency, or the rate has not yet loaded.
    */
-  convert: (amount: number | null | undefined) => number | null;
+  convert: (amount: MonetaryValue | null | undefined) => number | null;
+  /** Text result for monetary displays; numeric results remain available for chart geometry. */
+  convertExact: (amount: MonetaryValue | null | undefined) => string | null;
 }
 
 /**
@@ -67,19 +71,30 @@ export function useSecondaryConversion(
   const rateData = date ? datedRate : latestRate;
 
   const rate = enabled && rateData ? rateData.rate : null;
+  const exactRate = enabled ? decimalValue(rateData, 'rate') : null;
 
   const convert = useMemo(
     () =>
-      (amount: number | null | undefined): number | null => {
+      (amount: MonetaryValue | null | undefined): number | null => {
         if (amount == null || rate == null) return null;
         return multiply(amount, rate);
       },
     [rate]
   );
 
+  const convertExact = useMemo(
+    () =>
+      (amount: MonetaryValue | null | undefined): string | null =>
+        amount == null || exactRate == null
+          ? null
+          : new ExactDecimal(amount).times(exactRate).toFixed(),
+    [exactRate]
+  );
+
   return {
     secondaryCurrency: enabled ? secondaryCurrency : null,
     secondaryExchangeRate: rate,
     convert,
+    convertExact,
   };
 }

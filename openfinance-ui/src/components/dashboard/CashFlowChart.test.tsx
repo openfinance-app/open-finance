@@ -150,13 +150,13 @@ describe('CashFlowChart', () => {
     expect(screen.getByText(/Expenses/)).toBeInTheDocument();
   });
 
-  it('Y-axis formatter returns "k" suffix for values >= 1000', () => {
+  it('Y-axis formatter uses shared currency precision and compact notation', () => {
     renderChart();
     const formatter = (window as any).__yAxisTickFormatter;
     expect(formatter).toBeDefined();
-    expect(formatter(1000)).toBe('1k');
-    expect(formatter(2500)).toBe('3k'); // toFixed(0) rounds
-    expect(formatter(500)).toBe('500');
+    expect(formatter(1000)).toBe('1.00K');
+    expect(formatter(2500)).toBe('2.50K');
+    expect(formatter(500)).toBe('500.00');
   });
 
   it('Y-axis formatter returns dots when amounts hidden', () => {

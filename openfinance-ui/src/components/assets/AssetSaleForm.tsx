@@ -205,7 +205,7 @@ export function AssetSaleForm({ target, onClose }: { target: SaleTarget; onClose
             <ConvertedAmount
               className="font-mono tabular-nums"
               inline
-              amount={net.toNumber()}
+              amount={net.toFixed()}
               currency={target.currency}
             />
           </dd>
@@ -227,7 +227,7 @@ export function AssetSaleForm({ target, onClose }: { target: SaleTarget; onClose
                 .minus(
                   new ExactDecimal(target.currentValue).times(values.quantity).div(target.quantity)
                 )
-                .toNumber()}
+                .toFixed()}
             />
           </dd>
         </dl>

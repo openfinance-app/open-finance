@@ -824,10 +824,7 @@ public class InsightService {
                             new BigDecimal("1000000000000"));
             BigDecimal taxableIncome =
                     annualIncome.subtract(standardDeduction).max(BigDecimal.ZERO);
-            BigDecimal estimatedTax =
-                    taxableIncome
-                            .multiply(baseRate)
-                            .divide(MathConstants.HUNDRED, 2, RoundingMode.HALF_UP);
+            BigDecimal estimatedTax = taxableIncome.multiply(baseRate).movePointLeft(2);
             BigDecimal effectiveRate =
                     annualIncome.compareTo(BigDecimal.ZERO) > 0
                             ? estimatedTax
@@ -1089,7 +1086,7 @@ public class InsightService {
             BigDecimal price =
                     AIInsightDataValidator.number(
                             offer, "competitorPrice", BigDecimal.ZERO, costs.get(id));
-            BigDecimal savings = costs.get(id).subtract(price).setScale(2, RoundingMode.HALF_UP);
+            BigDecimal savings = costs.get(id).subtract(price);
             if (savings.signum() <= 0) continue;
             String competitor = offer.path("competitorName").asText().trim();
             if (competitor.isBlank() || competitor.length() > 100)
@@ -1149,9 +1146,15 @@ public class InsightService {
             case MONTHLY:
                 return amount;
             case QUARTERLY:
-                return amount.divide(MONTHS_PER_QUARTER, 2, RoundingMode.HALF_UP);
+                return amount.divide(
+                        MONTHS_PER_QUARTER,
+                        org.openfinance.util.MoneyPrecision.CALCULATION_SCALE,
+                        RoundingMode.HALF_UP);
             case YEARLY:
-                return amount.divide(MONTHS_PER_YEAR, 2, RoundingMode.HALF_UP);
+                return amount.divide(
+                        MONTHS_PER_YEAR,
+                        org.openfinance.util.MoneyPrecision.CALCULATION_SCALE,
+                        RoundingMode.HALF_UP);
             default:
                 return amount;
         }
@@ -1184,7 +1187,10 @@ public class InsightService {
             log.debug(
                     "No income found in last 30 days for user {}; falling back to 12-month average",
                     userId);
-            return yearTotal.divide(MONTHS_PER_YEAR, 2, RoundingMode.HALF_UP);
+            return yearTotal.divide(
+                    MONTHS_PER_YEAR,
+                    org.openfinance.util.MoneyPrecision.CALCULATION_SCALE,
+                    RoundingMode.HALF_UP);
         }
 
         return BigDecimal.ZERO;

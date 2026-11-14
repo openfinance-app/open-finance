@@ -1,3 +1,4 @@
+import { decimalValue } from '@/utils/exact-decimal';
 import { AssetTradeActions } from '@/components/assets/AssetTradeActions';
 import { useTranslation } from 'react-i18next';
 import { Home } from 'lucide-react';
@@ -52,7 +53,7 @@ export function PropertyAssetCard({
               : undefined
           }
           baseCurrency={asset.baseCurrency}
-          exchangeRate={asset.exchangeRate}
+          exchangeRate={decimalValue(asset, 'exchangeRate') ?? asset.exchangeRate}
           isConverted={asset.isConverted}
           className="text-xl font-semibold"
         />

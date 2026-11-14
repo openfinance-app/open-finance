@@ -1,9 +1,9 @@
+import { decimalValue, ExactDecimal } from '@/utils/exact-decimal';
 import { useTranslation } from 'react-i18next';
 import type { Asset } from '@/types/asset';
 import { ConvertedAmount } from '@/components/ui/ConvertedAmount';
 import { PrivateAmount } from '@/components/ui/PrivateAmount';
 import { formatPercentage, getGainLossColor } from '@/utils/portfolio';
-import { multiply } from '@/utils/money';
 
 /** A missing baseline is unknown, never a zero return or a gift counted as profit. */
 export function AssetReturn({
@@ -21,27 +21,27 @@ export function AssetReturn({
   ) {
     return <span className="text-text-muted">{t('notApplicable')}</span>;
   }
-  const gain = asset.unrealizedGain;
+  const gain = new ExactDecimal(decimalValue(asset, 'unrealizedGain') ?? 0);
   const percentage =
     asset.gainPercentage == null
       ? t('notApplicable')
       : formatPercentage(asset.gainPercentage * 100);
   return (
-    <span className={getGainLossColor(gain)}>
+    <span className={getGainLossColor(gain.toNumber())}>
       {mode !== 'percentage' && (
         <>
-          {gain >= 0 ? '+' : '-'}
+          {gain.gte(0) ? '+' : '-'}
           <ConvertedAmount
             inline
-            amount={Math.abs(gain)}
+            amount={gain.abs().toFixed()}
             currency={asset.currency}
             convertedAmount={
               asset.isConverted && asset.exchangeRate
-                ? multiply(Math.abs(gain), asset.exchangeRate)
+                ? gain.abs().times(decimalValue(asset, 'exchangeRate')!).toFixed()
                 : undefined
             }
             baseCurrency={asset.baseCurrency}
-            exchangeRate={asset.exchangeRate}
+            exchangeRate={decimalValue(asset, 'exchangeRate') ?? asset.exchangeRate}
             isConverted={asset.isConverted}
           />
         </>

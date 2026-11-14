@@ -49,8 +49,8 @@ export async function calculateTimeline(
  * @returns Promise with longevity calculation result
  */
 export async function calculateLongevity(
-  currentSavings: number,
-  monthlyExpenses: number,
+  currentSavings: number | string,
+  monthlyExpenses: number | string,
   annualReturnRate: number
 ): Promise<SavingsLongevityResult> {
   const response = await apiClient.post('/calculator/financial-freedom/longevity', {

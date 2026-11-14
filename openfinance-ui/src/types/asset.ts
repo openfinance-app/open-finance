@@ -39,9 +39,9 @@ export interface AssetFilters {
   symbol?: string;
   purchaseDateFrom?: string;
   purchaseDateTo?: string;
-  valueMin?: number;
-  valueMax?: number;
-  valueExact?: number;
+  valueMin?: number | string;
+  valueMax?: number | string;
+  valueExact?: number | string;
   amountCurrencyMode?: AmountCurrencyMode;
   // Pagination
   page?: number;

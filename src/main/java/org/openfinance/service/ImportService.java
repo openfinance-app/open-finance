@@ -2975,13 +2975,7 @@ public class ImportService {
                         "Using source account balance delta for imported transaction {} because historical FX conversion failed: {}",
                         importedTx.getReferenceNumber(),
                         ex.getMessage());
-                return importedTx.isSplitTransaction()
-                        ? importedTx
-                                .getSourceAccountBalanceDelta()
-                                .setScale(
-                                        currencyTypeResolver.decimalsFor(transactionCurrency),
-                                        java.math.RoundingMode.HALF_UP)
-                        : importedTx.getSourceAccountBalanceDelta();
+                return importedTx.getSourceAccountBalanceDelta();
             }
             throw ex;
         }

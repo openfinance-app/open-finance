@@ -1,3 +1,4 @@
+import { decimalValue } from '@/utils/exact-decimal';
 /**
  * PropertySelector Component
  *
@@ -17,7 +18,7 @@ import {
 import { useTranslation } from 'react-i18next';
 import { useConvertCurrency } from '@/hooks/useCurrency';
 import { useCountryToolConfig } from '@/hooks/useCountryToolConfig';
-import { multiply, roundToDecimals } from '@/utils/money';
+import { multiply } from '@/utils/money';
 import { useProperties } from '@/hooks/useRealEstate';
 import { useAuthContext } from '@/context/AuthContext';
 import { ConvertedAmount } from '@/components/ui/ConvertedAmount';
@@ -85,12 +86,12 @@ export const PropertySelector: React.FC<PropertySelectorProps> = ({
       const rent =
         property.rentalIncome == null
           ? buyVsRentInitialInputs.rental.monthlyRent
-          : roundToDecimals(multiply(Number(property.rentalIncome), rate), 2);
+          : multiply(property.rentalIncome, rate);
       onPropertySelect({
         ...buyVsRentInitialInputs,
         purchase: {
           ...buyVsRentInitialInputs.purchase,
-          propertyPrice: roundToDecimals(multiply(Number(property.purchasePrice), rate), 2),
+          propertyPrice: multiply(property.purchasePrice, rate),
         },
         rental: { ...buyVsRentInitialInputs.rental, monthlyRent: rent, securityDeposit: rent },
       });
@@ -177,7 +178,7 @@ export const PropertySelector: React.FC<PropertySelectorProps> = ({
                   <div className="flex items-center gap-2 text-xs text-muted-foreground">
                     <span>
                       <ConvertedAmount
-                        amount={Number(property.purchasePrice)}
+                        amount={decimalValue(property, 'purchasePrice') ?? property.purchasePrice}
                         currency={property.currency || baseCurrency}
                         inline
                       />

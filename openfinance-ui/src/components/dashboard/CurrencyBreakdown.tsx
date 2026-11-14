@@ -1,4 +1,5 @@
-import { formatDecimal, formatExactNumber } from '@/utils/format';
+import { decimalValue, ExactDecimal, exactSum } from '@/utils/exact-decimal';
+import { formatDecimal } from '@/utils/format';
 /**
  * CurrencyBreakdown - Shows asset distribution across multiple currencies
  * Sprint 6 - Task 6.2.16: Multi-currency dashboard summary
@@ -20,18 +21,17 @@ import { useAccounts } from '@/hooks/useAccounts';
 import { useAssets } from '@/hooks/useAssets';
 import { useLatestExchangeRates } from '@/hooks/useCurrency';
 import { DEFAULT_CURRENCY, formatExchangeRate, isCryptoCurrency } from '@/utils/currency';
-import { add, multiply, sum, percentage } from '@/utils/money';
+import { percentage } from '@/utils/money';
 import { ConvertedAmount } from '@/components/ui/ConvertedAmount';
 import { useSecondaryConversion } from '@/hooks/useSecondaryConversion';
-import { PrivateAmount } from '@/components/ui/PrivateAmount';
 import { getCryptoCurrency } from '@/utils/asset-symbol';
 
 interface CurrencyPosition {
   key: string;
   currency: string;
-  balance: number;
+  balance: string;
   valuationCurrency: string;
-  value: number;
+  value: string;
   isCrypto: boolean;
   href: string;
 }
@@ -39,11 +39,11 @@ interface CurrencyPosition {
 interface CurrencyBalance {
   key: string;
   currency: string;
-  balance: number;
-  balanceInBase: number;
+  balance: string;
+  balanceInBase: string;
   accountCount: number;
   percentage?: number;
-  rate?: number;
+  rate?: number | string;
   isCrypto: boolean;
   href: string;
   isLoading: boolean;
@@ -120,14 +120,14 @@ export default function CurrencyBreakdown({
   const positions: CurrencyPosition[] = [];
   (accounts ?? []).forEach(account => {
     // Account totals can include linked investments; count only their own positive cash.
-    const cash = account.ownBalance ?? account.balance;
-    if (account.isActive === false || cash <= 0) return;
+    const cash = decimalValue(account, 'ownBalance') ?? decimalValue(account, 'balance') ?? 0;
+    if (account.isActive === false || new ExactDecimal(cash).lte(0)) return;
     positions.push({
       key: account.currency,
       currency: account.currency,
-      balance: cash,
+      balance: String(cash),
       valuationCurrency: account.currency,
-      value: cash,
+      value: String(cash),
       isCrypto: isCryptoCurrency(account.currency),
       href: `/assets?currency=${encodeURIComponent(account.currency)}`,
     });
@@ -141,9 +141,9 @@ export default function CurrencyBreakdown({
     positions.push({
       key: isCrypto && !coin ? `asset:${asset.id}` : currency,
       currency,
-      balance: isCrypto ? asset.quantity : asset.totalValue,
+      balance: String(decimalValue(asset, isCrypto ? 'quantity' : 'totalValue') ?? 0),
       valuationCurrency: asset.currency,
-      value: asset.totalValue,
+      value: String(decimalValue(asset, 'totalValue') ?? 0),
       isCrypto,
       href: isCrypto
         ? coin
@@ -179,6 +179,7 @@ function CurrencyBreakdownContent({
   const { t } = useTranslation('dashboard');
   const {
     convert,
+    convertExact,
     secondaryCurrency: secCurrency,
     secondaryExchangeRate,
   } = useSecondaryConversion(baseCurrency);
@@ -190,22 +191,26 @@ function CurrencyBreakdownContent({
   positions.forEach(position => {
     const isForeignValuation = position.valuationCurrency !== baseCurrency;
     const quote = rates[valuationCurrencies.indexOf(position.valuationCurrency)];
-    const rate = isForeignValuation ? quote?.data?.rate : 1;
-    const hasRate = rate != null && Number.isFinite(rate) && rate > 0;
+    const rate = isForeignValuation ? decimalValue(quote?.data, 'rate') : 1;
+    const hasRate =
+      rate != null && new ExactDecimal(rate).isFinite() && new ExactDecimal(rate).gt(0);
     const isLoading = !hasRate && !!quote?.isLoading;
     const group = groups.get(position.key) ?? {
       key: position.key,
       currency: position.currency,
-      balance: 0,
-      balanceInBase: 0,
+      balance: '0',
+      balanceInBase: '0',
       accountCount: 0,
       isCrypto: position.isCrypto,
       href: position.href,
       isLoading: false,
       isUnavailable: false,
     };
-    group.balance = add(group.balance, position.balance);
-    group.balanceInBase = add(group.balanceInBase, hasRate ? multiply(position.value, rate) : 0);
+    group.balance = exactSum([group.balance, position.balance]);
+    group.balanceInBase = exactSum([
+      group.balanceInBase,
+      hasRate ? new ExactDecimal(position.value).times(rate!).toFixed() : 0,
+    ]);
     group.accountCount += 1;
     group.isCrypto ||= position.isCrypto;
     group.isLoading ||= isLoading;
@@ -219,12 +224,12 @@ function CurrencyBreakdownContent({
   const isLoadingRates = balancesWithRates.some(balance => balance.isLoading);
   const missingRates = balancesWithRates.some(balance => balance.isUnavailable);
   const totalsReady = !isLoadingRates && !missingRates;
-  const grandTotal = sum(balancesWithRates.map(cb => cb.balanceInBase));
+  const grandTotal = exactSum(balancesWithRates.map(cb => cb.balanceInBase));
 
   // Calculate percentages
   const balancesWithPercentages = balancesWithRates.map(cb => {
     const pct = totalsReady
-      ? grandTotal > 0
+      ? new ExactDecimal(grandTotal).gt(0)
         ? percentage(cb.balanceInBase, grandTotal)
         : 0
       : undefined;
@@ -232,7 +237,9 @@ function CurrencyBreakdownContent({
   });
 
   // Sort by balance in base currency (descending)
-  const sortedBalances = balancesWithPercentages.sort((a, b) => b.balanceInBase - a.balanceInBase);
+  const sortedBalances = balancesWithPercentages.sort((a, b) =>
+    new ExactDecimal(b.balanceInBase).comparedTo(a.balanceInBase)
+  );
 
   return (
     <div className="bg-surface rounded-lg p-6 border border-border hover:border-border/70 transition-colors h-full flex flex-col">
@@ -253,7 +260,7 @@ function CurrencyBreakdownContent({
               amount={grandTotal}
               currency={baseCurrency}
               isConverted={false}
-              secondaryAmount={convert(grandTotal)}
+              secondaryAmount={convertExact ? convertExact(grandTotal) : convert(grandTotal)}
               secondaryCurrency={secCurrency}
               secondaryExchangeRate={secondaryExchangeRate}
               inline
@@ -307,6 +314,7 @@ function CurrencyBalanceRow({ currencyBalance, baseCurrency, onOpen }: CurrencyB
   const isLoading = currencyBalance.isLoading;
   const {
     convert,
+    convertExact,
     secondaryCurrency: secCurrency,
     secondaryExchangeRate,
   } = useSecondaryConversion(baseCurrency);
@@ -344,10 +352,17 @@ function CurrencyBalanceRow({ currencyBalance, baseCurrency, onOpen }: CurrencyB
               ) : (
                 <div className="text-sm font-mono text-text-primary">
                   <ConvertedAmount
-                    amount={currencyBalance.balanceInBase}
+                    amount={
+                      decimalValue(currencyBalance, 'balanceInBase') ??
+                      currencyBalance.balanceInBase
+                    }
                     currency={baseCurrency}
                     isConverted={false}
-                    secondaryAmount={convert(currencyBalance.balanceInBase)}
+                    secondaryAmount={
+                      convertExact
+                        ? convertExact(currencyBalance.balanceInBase)
+                        : convert(currencyBalance.balanceInBase)
+                    }
                     secondaryCurrency={secCurrency}
                     secondaryExchangeRate={secondaryExchangeRate}
                     inline
@@ -355,26 +370,24 @@ function CurrencyBalanceRow({ currencyBalance, baseCurrency, onOpen }: CurrencyB
                 </div>
               )}
               <div className="text-xs text-text-secondary">
-                {currencyBalance.isCrypto ? (
-                  <PrivateAmount inline>
-                    {formatExactNumber(currencyBalance.balance)} {currencyBalance.currency}
-                  </PrivateAmount>
-                ) : (
-                  <ConvertedAmount
-                    amount={currencyBalance.balance}
-                    currency={currencyBalance.currency}
-                    inline
-                  />
-                )}
+                <ConvertedAmount
+                  amount={currencyBalance.balance}
+                  currency={currencyBalance.currency}
+                  inline
+                />
               </div>
             </>
           ) : (
             <div className="text-sm font-mono text-text-primary">
               <ConvertedAmount
-                amount={currencyBalance.balance}
+                amount={decimalValue(currencyBalance, 'balance') ?? currencyBalance.balance}
                 currency={currencyBalance.currency}
                 isConverted={false}
-                secondaryAmount={convert(currencyBalance.balance)}
+                secondaryAmount={
+                  convertExact
+                    ? convertExact(currencyBalance.balance)
+                    : convert(currencyBalance.balance)
+                }
                 secondaryCurrency={secCurrency}
                 secondaryExchangeRate={secondaryExchangeRate}
                 inline

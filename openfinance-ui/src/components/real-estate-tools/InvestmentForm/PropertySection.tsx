@@ -1,3 +1,4 @@
+import { decimalValue } from '@/utils/exact-decimal';
 /**
  * PropertySection Component
  *
@@ -109,7 +110,12 @@ export const PropertySection: React.FC<PropertySectionProps> = ({
                 {furnishingOptions.map(option => (
                   <SelectItem key={option.value} value={option.value}>
                     {option.label} (+
-                    <ConvertedAmount amount={option.price} currency={baseCurrency} inline />)
+                    <ConvertedAmount
+                      amount={decimalValue(option, 'price') ?? option.price}
+                      currency={baseCurrency}
+                      inline
+                    />
+                    )
                   </SelectItem>
                 ))}
               </SelectContent>

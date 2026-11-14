@@ -1,4 +1,5 @@
 import { useId } from 'react';
+import { ExactDecimal } from '@/utils/exact-decimal';
 import { useTranslation } from 'react-i18next';
 import { NumberInput } from '@/components/ui/NumberInput';
 import { useAuthContext } from '@/context/AuthContext';
@@ -30,8 +31,15 @@ export function AmountFilterControls({
   const { baseCurrency } = useAuthContext();
   const id = useId();
   const updateAmount = (field: 'min' | 'max' | 'exact', canonical: string): void => {
-    const value = canonical === '' ? undefined : Number(canonical);
-    if (value !== undefined && (!Number.isFinite(value) || (!allowNegative && value < 0))) return;
+    const value = canonical === '' ? undefined : canonical;
+    if (value !== undefined) {
+      try {
+        const decimal = new ExactDecimal(value);
+        if (!decimal.isFinite() || (!allowNegative && decimal.lt(0))) return;
+      } catch {
+        return;
+      }
+    }
     onChange({
       min: field === 'exact' && value !== undefined ? undefined : min,
       max: field === 'exact' && value !== undefined ? undefined : max,

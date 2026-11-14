@@ -1,4 +1,5 @@
 import { preferredNumberFormat } from '@/utils/number-preference';
+import { ExactDecimal } from '@/utils/exact-decimal';
 /**
  * Currency formatting and handling utilities
  * Task 2.2.14: Add currency formatting utility
@@ -11,6 +12,17 @@ import { useTranslation } from 'react-i18next';
 import type { NumberFormat } from '@/context/NumberFormatContext';
 import type { Currency } from '@/types/currency';
 import type { TFunction } from 'i18next';
+
+/** API decimal text must reach formatting without first passing through a JS number. */
+export type MonetaryValue = number | string;
+
+function monetaryDecimal(value: MonetaryValue): InstanceType<typeof ExactDecimal> {
+  try {
+    return new ExactDecimal(value);
+  } catch {
+    return new ExactDecimal(NaN);
+  }
+}
 
 /** Crypto names are universal and come from the currency catalog. */
 export function getCurrencyDisplayName(currency: Currency, t: TFunction<'currencies'>): string {
@@ -161,6 +173,10 @@ export function getCurrencyDecimals(currencyCode: string | null | undefined): nu
   if (decimalPlacesOverride !== null) {
     return decimalPlacesOverride;
   }
+  return defaultCurrencyDecimals(currencyCode);
+}
+
+function defaultCurrencyDecimals(currencyCode: string | null | undefined): number {
   currencyCode = currencyCode || DEFAULT_CURRENCY;
   if (isCryptoCurrency(currencyCode)) {
     return 8;
@@ -201,8 +217,8 @@ export interface FormatCurrencyOptions {
   compact?: boolean;
   /** Show currency symbol (default: true) */
   showSymbol?: boolean;
-  /** Override default decimal places */
-  decimals?: number;
+  /** Override decimal places; null uses currency defaults without the global override. */
+  decimals?: number | null;
   /** Show positive sign for positive numbers */
   showPositiveSign?: boolean;
   /** Use accounting format (parentheses for negative) */
@@ -288,7 +304,7 @@ export function applyNumberFormat(formattedEnUS: string, fmt: NumberFormat | und
  * @returns Formatted currency string (e.g., "$1,234.56", "€1.234,56", "₿0.00123456")
  */
 export function formatCurrency(
-  amount: number,
+  amount: MonetaryValue,
   currencyCode: string | null | undefined = DEFAULT_CURRENCY,
   options: FormatCurrencyOptions = {}
 ): string {
@@ -299,41 +315,44 @@ export function formatCurrency(
     decimals,
     showPositiveSign = false,
     accounting = false,
-    numberFormat,
+    numberFormat = preferredNumberFormat(),
   } = options;
 
   // Handle invalid numbers
-  if (!isFinite(amount)) {
-    return showSymbol ? `${getCurrencySymbol(currencyCode)}0.00` : '0.00';
-  }
+  const value = monetaryDecimal(amount);
+  if (!value.isFinite()) return '—';
 
   // Determine decimal places
-  const decimalPlaces = decimals ?? getCurrencyDecimals(currencyCode);
+  const decimalPlaces =
+    decimals === null
+      ? defaultCurrencyDecimals(currencyCode)
+      : (decimals ?? getCurrencyDecimals(currencyCode));
 
   // Format in compact mode
   if (compact) {
     return formatCurrencyCompact(amount, currencyCode, {
       showSymbol,
-      decimals: decimalPlaces,
+      decimals,
       numberFormat,
     });
   }
 
   // Format number with locale-appropriate separators (always en-US base, then convert)
-  const absAmount = Math.abs(amount);
+  const [whole, fraction] = value
+    .abs()
+    .toFixed(decimalPlaces, ExactDecimal.ROUND_HALF_UP)
+    .split('.');
+  const grouped = whole.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
   const formattedNumber = applyNumberFormat(
-    new Intl.NumberFormat('en-US', {
-      minimumFractionDigits: decimalPlaces,
-      maximumFractionDigits: decimalPlaces,
-    }).format(absAmount),
+    fraction === undefined ? grouped : `${grouped}.${fraction}`,
     numberFormat
   );
 
   // Handle sign
   let sign = '';
-  if (amount < 0) {
+  if (value.isNegative() && !value.isZero()) {
     sign = accounting ? '(' : '-';
-  } else if (amount > 0 && showPositiveSign) {
+  } else if (value.gt(0) && showPositiveSign) {
     sign = '+';
   }
 
@@ -345,7 +364,7 @@ export function formatCurrency(
 
   // Build formatted string
   let formatted: string;
-  if (accounting && amount < 0) {
+  if (accounting && value.lt(0)) {
     // Accounting format: ($1,234.56)
     formatted = symbolAfter ? `(${formattedNumber} ${symbol})` : `(${symbol}${formattedNumber})`;
   } else {
@@ -366,47 +385,48 @@ export function formatCurrency(
  * @returns Compact formatted string (e.g., "$1.5K", "€2.3M", "₿1.2B")
  */
 export function formatCurrencyCompact(
-  amount: number,
+  amount: MonetaryValue,
   currencyCode: string | null | undefined = DEFAULT_CURRENCY,
-  options: { showSymbol?: boolean; decimals?: number; numberFormat?: NumberFormat } = {}
+  options: { showSymbol?: boolean; decimals?: number | null; numberFormat?: NumberFormat } = {}
 ): string {
   currencyCode = currencyCode || DEFAULT_CURRENCY;
-  const { showSymbol = true, decimals = 1, numberFormat } = options;
+  const { showSymbol = true, numberFormat = preferredNumberFormat() } = options;
+  const decimals =
+    options.decimals === null
+      ? defaultCurrencyDecimals(currencyCode)
+      : (options.decimals ?? getCurrencyDecimals(currencyCode));
 
   // Handle invalid numbers
-  if (!isFinite(amount)) {
-    return showSymbol ? `${getCurrencySymbol(currencyCode)}0` : '0';
-  }
+  const value = monetaryDecimal(amount);
+  if (!value.isFinite()) return '—';
 
-  const absAmount = Math.abs(amount);
-  const sign = amount < 0 ? '-' : '';
+  const absAmount = value.abs();
+  const sign = value.lt(0) ? '-' : '';
   const symbol = showSymbol ? getCurrencySymbol(currencyCode) : '';
   const symbolAfter = SYMBOL_AFTER_CURRENCIES.includes(currencyCode.toUpperCase());
 
-  let value: number;
+  let scale: number;
   let suffix: string;
 
-  if (absAmount >= 1e9) {
-    value = absAmount / 1e9;
+  if (absAmount.gte(1e9)) {
+    scale = 1e9;
     suffix = 'B';
-  } else if (absAmount >= 1e6) {
-    value = absAmount / 1e6;
+  } else if (absAmount.gte(1e6)) {
+    scale = 1e6;
     suffix = 'M';
-  } else if (absAmount >= 1e3) {
-    value = absAmount / 1e3;
+  } else if (absAmount.gte(1e3)) {
+    scale = 1e3;
     suffix = 'K';
   } else {
     // For small amounts, show full value with proper decimals
-    const decimalPlaces = getCurrencyDecimals(currencyCode);
-    value = absAmount;
-    suffix = '';
-    const formatted = applyNumberFormat(value.toFixed(decimalPlaces), numberFormat);
-    return symbolAfter ? `${sign}${formatted} ${symbol}`.trim() : `${sign}${symbol}${formatted}`;
+    return formatCurrency(amount, currencyCode, { ...options, numberFormat, compact: false });
   }
 
   // Format with specified decimals; apply number format to decimal separator only
   // (compact suffixes like K/M/B don't have thousands separators)
-  const rawFormatted = value.toFixed(decimals);
+  const rawFormatted = new ExactDecimal(absAmount)
+    .div(scale)
+    .toFixed(decimals, ExactDecimal.ROUND_HALF_UP);
   // For compact, only the decimal separator matters — apply format conversion
   const formatted = applyNumberFormat(rawFormatted, numberFormat);
 
@@ -451,7 +471,7 @@ export function parseCurrency(value: string): number | null {
  * @returns Object with formatted string and CSS class
  */
 export function formatCurrencyWithColor(
-  amount: number,
+  amount: MonetaryValue,
   currencyCode: string | null | undefined = DEFAULT_CURRENCY,
   options: FormatCurrencyOptions = {}
 ): { formatted: string; className: string } {
@@ -462,9 +482,10 @@ export function formatCurrencyWithColor(
   });
 
   let className: string;
-  if (amount > 0) {
+  const value = monetaryDecimal(amount);
+  if (value.gt(0)) {
     className = 'text-green-500';
-  } else if (amount < 0) {
+  } else if (value.lt(0)) {
     className = 'text-red-500';
   } else {
     className = 'text-text-muted';
@@ -487,11 +508,11 @@ export function formatCurrencyWithColor(
  *   95000.12             → "95000.1"
  *   1.0                  → "1"
  */
-export function formatExchangeRate(rate: number): string {
-  if (!isFinite(rate) || rate === 0) return '0';
+export function formatExchangeRate(rate: MonetaryValue): string {
+  if (!isFinite(Number(rate)) || Number(rate) === 0) return '0';
   // toPrecision gives 6 significant figures; parseFloat strips trailing zeros.
   return new Intl.NumberFormat(
     { '1,234.56': 'en-US', '1.234,56': 'de-DE', '1 234,56': 'fr-FR' }[preferredNumberFormat()],
     { maximumSignificantDigits: 6, useGrouping: false }
-  ).format(rate);
+  ).format(Number(rate));
 }

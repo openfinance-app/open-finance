@@ -143,7 +143,18 @@ describe('CompoundInterestCalculator', () => {
       const principalInput = screen.getByLabelText(/Initial Principal/i);
       fireEvent.change(principalInput, { target: { value: '25000' } });
 
-      expect(mockUpdateInput).toHaveBeenCalledWith('principal', 25000);
+      expect(mockUpdateInput).toHaveBeenCalledWith('principal', '25000');
+    });
+
+    it('preserves every entered principal digit before calculation', () => {
+      renderWithProviders(<CompoundInterestCalculator />);
+      fireEvent.change(screen.getByLabelText(/Initial Principal/i), {
+        target: { value: '123456789012345.123456789012345678' },
+      });
+      expect(mockUpdateInput).toHaveBeenCalledWith(
+        'principal',
+        '123456789012345.123456789012345678'
+      );
     });
 
     it('calls updateInput when annual rate is changed', () => {

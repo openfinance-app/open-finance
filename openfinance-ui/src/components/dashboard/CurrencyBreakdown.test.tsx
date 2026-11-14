@@ -217,7 +217,7 @@ describe('CurrencyBreakdown underlying positions', () => {
       renderWithProviders(<CurrencyBreakdown baseCurrency="EUR" />);
 
       const row = screen.getByRole('button', { name: 'View assets in BTC' });
-      expect(within(row).getByText('1 BTC')).toBeInTheDocument();
+      expect(within(row).getByText('1')).toBeInTheDocument();
       expect(within(row).getByText('73284.26')).toBeInTheDocument();
       expect(within(row).getByText('100.0% of total')).toBeInTheDocument();
       expect(screen.queryByRole('button', { name: 'View assets in EUR' })).not.toBeInTheDocument();
@@ -266,7 +266,7 @@ describe('CurrencyBreakdown underlying positions', () => {
     renderWithProviders(<CurrencyBreakdown baseCurrency="EUR" />);
 
     const bitcoin = screen.getByRole('button', { name: 'View assets in BTC' });
-    expect(within(bitcoin).getByText('1.5 BTC')).toBeInTheDocument();
+    expect(within(bitcoin).getByText('1.5')).toBeInTheDocument();
     expect(within(bitcoin).getByText('106000')).toBeInTheDocument();
     expect(
       within(screen.getByRole('button', { name: 'View assets in EUR' })).getByText('100')
@@ -317,7 +317,7 @@ describe('CurrencyBreakdown underlying positions', () => {
     renderWithProviders(<CurrencyBreakdown baseCurrency="EUR" />);
 
     const row = screen.getByRole('button', { name: 'View assets in BTC' });
-    expect(within(row).getByText('1 BTC')).toBeInTheDocument();
+    expect(within(row).getByText('1')).toBeInTheDocument();
     expect(screen.queryByText('80000')).not.toBeInTheDocument();
     expect(screen.queryByText('100.0% of total')).not.toBeInTheDocument();
     expect(screen.getByRole(isLoading ? 'status' : 'alert')).toHaveTextContent(

@@ -1,3 +1,4 @@
+import { decimalValue } from '@/utils/exact-decimal';
 import { formatDecimal } from '@/utils/format';
 /**
  * LiabilityBreakdownPanel Component
@@ -67,7 +68,7 @@ function BreakdownRow({
           currency={liability.currency}
           convertedAmount={convertedAmount}
           baseCurrency={liability.baseCurrency}
-          exchangeRate={liability.exchangeRate}
+          exchangeRate={decimalValue(liability, 'exchangeRate') ?? liability.exchangeRate}
           isConverted={liability.isConverted}
           inline
         />
@@ -208,7 +209,7 @@ export function LiabilityBreakdownPanel({ liability }: LiabilityBreakdownPanelPr
         <div className="flex justify-between text-xs text-text-tertiary mt-1">
           <span>
             <ConvertedAmount
-              amount={breakdown.principalPaid}
+              amount={decimalValue(breakdown, 'principalPaid') ?? breakdown.principalPaid}
               currency={liability.currency}
               convertedAmount={toBase(breakdown.principalPaid)}
               baseCurrency={liability.baseCurrency}
@@ -220,7 +221,7 @@ export function LiabilityBreakdownPanel({ liability }: LiabilityBreakdownPanelPr
           </span>
           <span>
             <ConvertedAmount
-              amount={breakdown.currentBalance}
+              amount={decimalValue(breakdown, 'currentBalance') ?? breakdown.currentBalance}
               currency={liability.currency}
               convertedAmount={toBase(breakdown.currentBalance)}
               baseCurrency={liability.baseCurrency}

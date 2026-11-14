@@ -110,7 +110,7 @@ describe('Linked operation display', () => {
     const section = screen.getByText('Operation').nextElementSibling!;
     expect(within(section).getByText('Units withdrawn')).toBeInTheDocument();
     expect(within(section).getByText('0.003776500000000001')).toBeInTheDocument();
-    expect(within(section).getByText('100,000.00000000001 EUR')).toBeInTheDocument();
+    expect(within(section).getByText('100,000.00 EUR')).toBeInTheDocument();
     expect(within(section).getByText('Estimated price per unit')).toBeInTheDocument();
     expect(within(section).queryByText('Price source')).not.toBeInTheDocument();
     expect(within(section).queryByText('Recorded investment value')).not.toBeInTheDocument();
@@ -124,7 +124,7 @@ describe('Linked operation display', () => {
   it('masks recorded quantities and prices when privacy is enabled', () => {
     localStorage.setItem('open_finance_amounts_visible', 'false');
     renderDetails();
-    for (const value of ['0.003776500000000001', '100,000.00000000001 EUR']) {
+    for (const value of ['0.003776500000000001', '100,000.00 EUR']) {
       expect(screen.getByText(value)).toHaveAttribute('aria-hidden', 'true');
     }
   });
@@ -132,7 +132,7 @@ describe('Linked operation display', () => {
   it('retains a recorded investment value only when it differs from the main transaction amount', () => {
     renderDetails({ ...investment, investmentValue: 410, investmentCurrency: 'USD' });
     expect(screen.getByText('Recorded investment value')).toBeInTheDocument();
-    expect(screen.getByText('410 USD')).toBeInTheDocument();
+    expect(screen.getByText('410.00 USD')).toBeInTheDocument();
   });
 
   it('keeps a different quote date alongside the unit price', () => {
@@ -161,7 +161,7 @@ describe('Linked operation display', () => {
       'href',
       '/liabilities?highlight=4'
     );
-    expect(screen.getByText('800 USD')).toBeInTheDocument();
+    expect(screen.getByText('800.00 USD')).toBeInTheDocument();
     expect(screen.queryByText('800 EUR')).not.toBeInTheDocument();
   });
 

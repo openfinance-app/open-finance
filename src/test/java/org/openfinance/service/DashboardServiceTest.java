@@ -36,6 +36,7 @@ import org.openfinance.entity.AccountType;
 import org.openfinance.entity.Asset;
 import org.openfinance.entity.AssetType;
 import org.openfinance.entity.Category;
+import org.openfinance.entity.Liability;
 import org.openfinance.entity.NetWorth;
 import org.openfinance.entity.Transaction;
 import org.openfinance.entity.TransactionType;
@@ -59,6 +60,35 @@ import org.openfinance.security.EncryptionService;
 @MockitoSettings(strictness = Strictness.LENIENT)
 @DisplayName("DashboardService Unit Tests")
 class DashboardServiceTest {
+
+    @Test
+    void estimatedLiabilityInterestRetainsFractionalCents() {
+        LocalDate today = LocalDate.now();
+        Liability liability = new Liability();
+        liability.setId(2L);
+        liability.setUserId(userId);
+        liability.setName("Loan");
+        liability.setCurrency("EUR");
+        liability.setInterestRate("0.5");
+        liability.setStartDate(today.withDayOfYear(1));
+        when(accountRepository.findByUserIdAndIsActive(userId, true)).thenReturn(List.of());
+        when(liabilityRepository.findByUserIdOrderByCreatedAtDesc(userId))
+                .thenReturn(List.of(liability));
+        when(netWorthService.getStandaloneLiabilityBalanceHistory(
+                        any(Liability.class), any(LocalDate.class), any(LocalDate.class)))
+                .thenReturn(
+                        List.of(
+                                new org.openfinance.dto.BalanceHistoryPoint(
+                                        today, new BigDecimal("1000"))));
+
+        org.openfinance.dto.EstimatedInterestSummary summary =
+                dashboardService.getEstimatedInterestSummary(userId, "YTD", today, today);
+        assertThat(summary.getTotalEarned().setScale(4, java.math.RoundingMode.HALF_UP))
+                .isEqualByComparingTo("-0.0137");
+        assertThat(summary.getTotalProjected()).isEqualByComparingTo(summary.getTotalEarned());
+        assertThat(summary.getAccounts().getFirst().getProjectedInterest())
+                .isEqualByComparingTo(summary.getTotalProjected());
+    }
 
     @Mock private NetWorthService netWorthService;
 

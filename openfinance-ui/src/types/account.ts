@@ -17,9 +17,9 @@ export interface AccountFilters {
   type?: AccountType;
   currency?: string;
   isActive?: boolean;
-  balanceMin?: number;
-  balanceMax?: number;
-  balanceExact?: number;
+  balanceMin?: number | string;
+  balanceMax?: number | string;
+  balanceExact?: number | string;
   amountCurrencyMode?: AmountCurrencyMode;
   institution?: string;
   /** When true, filter to show only accounts with a low (≤ 0) balance */

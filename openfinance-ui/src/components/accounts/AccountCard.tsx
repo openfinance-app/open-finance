@@ -1,3 +1,4 @@
+import { decimalValue } from '@/utils/exact-decimal';
 import { SelectionCheckbox } from '@/components/bulk/BulkSelection';
 import { AccountBalanceBreakdown } from '@/components/accounts/AccountBalanceBreakdown';
 /**
@@ -62,7 +63,8 @@ export function AccountCard({
   const isNegative = account.balance < 0;
   const isClosed = !account.isActive;
   const {
-    convert,
+    convert: convertNumber,
+    convertExact: convert = convertNumber,
     secondaryCurrency: secCurrency,
     secondaryExchangeRate,
   } = useSecondaryConversion(account.currency);
@@ -205,13 +207,18 @@ export function AccountCard({
           >
             {/* Reference REQ-7.1, REQ-7.3: Display account balance with base and secondary currency tooltip */}
             <ConvertedAmount
-              amount={account.balance}
+              amount={decimalValue(account, 'balance') ?? account.balance}
               currency={account.currency}
-              convertedAmount={account.balanceInBaseCurrency}
+              convertedAmount={
+                decimalValue(account, 'balanceInBaseCurrency') ?? account.balanceInBaseCurrency
+              }
               baseCurrency={account.baseCurrency}
-              exchangeRate={account.exchangeRate}
+              exchangeRate={decimalValue(account, 'exchangeRate') ?? account.exchangeRate}
               isConverted={account.isConverted}
-              secondaryAmount={account.balanceInSecondaryCurrency}
+              secondaryAmount={
+                decimalValue(account, 'balanceInSecondaryCurrency') ??
+                account.balanceInSecondaryCurrency
+              }
               secondaryCurrency={account.secondaryCurrency}
               animate
             />
@@ -227,14 +234,22 @@ export function AccountCard({
               <p className="text-xs text-text-muted leading-none mb-0.5">{t('card.totalEarned')}</p>
               <p className="text-sm font-mono font-medium text-text-secondary">
                 <CurrencyAmount
-                  amount={interestData?.historicalAccumulated ?? 0}
+                  amount={
+                    decimalValue(interestData, 'historicalAccumulated') ??
+                    interestData?.historicalAccumulated ??
+                    0
+                  }
                   currency={account.currency}
-                  secondaryAmount={convert(interestData?.historicalAccumulated ?? 0)}
+                  secondaryAmount={convert(
+                    decimalValue(interestData, 'historicalAccumulated') ??
+                      interestData?.historicalAccumulated ??
+                      0
+                  )}
                   secondaryCurrency={secCurrency}
                   secondaryExchangeRate={secondaryExchangeRate}
                   inline
                   baseCurrency={account.baseCurrency}
-                  exchangeRate={account.exchangeRate}
+                  exchangeRate={decimalValue(account, 'exchangeRate') ?? account.exchangeRate}
                   isConverted={account.isConverted}
                 />
               </p>
@@ -247,14 +262,16 @@ export function AccountCard({
               <p className="text-sm font-mono font-semibold text-success flex items-center justify-end gap-1">
                 <TrendingIcon className="h-3 w-3" />
                 <CurrencyAmount
-                  amount={interestData?.estimate ?? 0}
+                  amount={decimalValue(interestData, 'estimate') ?? interestData?.estimate ?? 0}
                   currency={account.currency}
-                  secondaryAmount={convert(interestData?.estimate ?? 0)}
+                  secondaryAmount={convert(
+                    decimalValue(interestData, 'estimate') ?? interestData?.estimate ?? 0
+                  )}
                   secondaryCurrency={secCurrency}
                   secondaryExchangeRate={secondaryExchangeRate}
                   inline
                   baseCurrency={account.baseCurrency}
-                  exchangeRate={account.exchangeRate}
+                  exchangeRate={decimalValue(account, 'exchangeRate') ?? account.exchangeRate}
                   isConverted={account.isConverted}
                 />
               </p>

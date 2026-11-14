@@ -1,3 +1,4 @@
+import { decimalValue } from '@/utils/exact-decimal';
 import { Link } from 'react-router';
 import { buildTransactionsLink } from '@/utils/navigation';
 import { useViewScroll } from '@/hooks/useViewScroll';
@@ -99,7 +100,7 @@ function TotalCostHero({ liability }: { liability: Liability }) {
             currency={liability.currency}
             convertedAmount={toBase(grandTotal)}
             baseCurrency={liability.baseCurrency}
-            exchangeRate={liability.exchangeRate}
+            exchangeRate={decimalValue(liability, 'exchangeRate') ?? liability.exchangeRate}
             isConverted={liability.isConverted}
           />
         </span>
@@ -125,7 +126,7 @@ function TotalCostHero({ liability }: { liability: Liability }) {
                   currency={liability.currency}
                   inline
                   baseCurrency={liability.baseCurrency}
-                  exchangeRate={liability.exchangeRate}
+                  exchangeRate={decimalValue(liability, 'exchangeRate') ?? liability.exchangeRate}
                   isConverted={liability.isConverted}
                 />
               </TooltipContent>
@@ -151,7 +152,7 @@ function TotalCostHero({ liability }: { liability: Liability }) {
                   currency={liability.currency}
                   inline
                   baseCurrency={liability.baseCurrency}
-                  exchangeRate={liability.exchangeRate}
+                  exchangeRate={decimalValue(liability, 'exchangeRate') ?? liability.exchangeRate}
                   isConverted={liability.isConverted}
                 />
               </TooltipContent>
@@ -177,7 +178,7 @@ function TotalCostHero({ liability }: { liability: Liability }) {
                   currency={liability.currency}
                   inline
                   baseCurrency={liability.baseCurrency}
-                  exchangeRate={liability.exchangeRate}
+                  exchangeRate={decimalValue(liability, 'exchangeRate') ?? liability.exchangeRate}
                   isConverted={liability.isConverted}
                 />
               </TooltipContent>
@@ -203,7 +204,7 @@ function TotalCostHero({ liability }: { liability: Liability }) {
                   currency={liability.currency}
                   inline
                   baseCurrency={liability.baseCurrency}
-                  exchangeRate={liability.exchangeRate}
+                  exchangeRate={decimalValue(liability, 'exchangeRate') ?? liability.exchangeRate}
                   isConverted={liability.isConverted}
                 />
               </TooltipContent>
@@ -224,7 +225,7 @@ function TotalCostHero({ liability }: { liability: Liability }) {
               currency={liability.currency}
               convertedAmount={toBase(totalPrincipal)}
               baseCurrency={liability.baseCurrency}
-              exchangeRate={liability.exchangeRate}
+              exchangeRate={decimalValue(liability, 'exchangeRate') ?? liability.exchangeRate}
               isConverted={liability.isConverted}
               inline
             />
@@ -241,7 +242,7 @@ function TotalCostHero({ liability }: { liability: Liability }) {
               currency={liability.currency}
               convertedAmount={toBase(interestPaid)}
               baseCurrency={liability.baseCurrency}
-              exchangeRate={liability.exchangeRate}
+              exchangeRate={decimalValue(liability, 'exchangeRate') ?? liability.exchangeRate}
               isConverted={liability.isConverted}
               inline
             />
@@ -251,7 +252,7 @@ function TotalCostHero({ liability }: { liability: Liability }) {
               currency={liability.currency}
               convertedAmount={toBase(totalInterest)}
               baseCurrency={liability.baseCurrency}
-              exchangeRate={liability.exchangeRate}
+              exchangeRate={decimalValue(liability, 'exchangeRate') ?? liability.exchangeRate}
               isConverted={liability.isConverted}
               inline
             />
@@ -269,7 +270,7 @@ function TotalCostHero({ liability }: { liability: Liability }) {
                 currency={liability.currency}
                 convertedAmount={toBase(insurancePaid)}
                 baseCurrency={liability.baseCurrency}
-                exchangeRate={liability.exchangeRate}
+                exchangeRate={decimalValue(liability, 'exchangeRate') ?? liability.exchangeRate}
                 isConverted={liability.isConverted}
                 inline
               />
@@ -279,7 +280,7 @@ function TotalCostHero({ liability }: { liability: Liability }) {
                 currency={liability.currency}
                 convertedAmount={toBase(totalInsurance)}
                 baseCurrency={liability.baseCurrency}
-                exchangeRate={liability.exchangeRate}
+                exchangeRate={decimalValue(liability, 'exchangeRate') ?? liability.exchangeRate}
                 isConverted={liability.isConverted}
                 inline
               />
@@ -298,7 +299,7 @@ function TotalCostHero({ liability }: { liability: Liability }) {
                 currency={liability.currency}
                 convertedAmount={toBase(totalFees)}
                 baseCurrency={liability.baseCurrency}
-                exchangeRate={liability.exchangeRate}
+                exchangeRate={decimalValue(liability, 'exchangeRate') ?? liability.exchangeRate}
                 isConverted={liability.isConverted}
                 inline
               />
@@ -398,11 +399,11 @@ function LinkedPaymentsTab({ liability }: { liability: Liability }) {
           <span className="font-semibold font-mono text-text-primary">
             {t('breakdown.totalPaid')}:{' '}
             <ConvertedAmount
-              amount={breakdown.totalPaid}
+              amount={decimalValue(breakdown, 'totalPaid') ?? breakdown.totalPaid}
               currency={liability.currency}
               convertedAmount={toBase(breakdown.totalPaid)}
               baseCurrency={liability.baseCurrency}
-              exchangeRate={liability.exchangeRate}
+              exchangeRate={decimalValue(liability, 'exchangeRate') ?? liability.exchangeRate}
               isConverted={liability.isConverted}
               inline
             />
@@ -463,7 +464,7 @@ function LinkedPaymentsTab({ liability }: { liability: Liability }) {
                               `#${allocation.trancheId}`)}
                           {': '}
                           <CurrencyAmount
-                            amount={allocation.amount}
+                            amount={decimalValue(allocation, 'amount') ?? allocation.amount}
                             currency={liability.currency}
                             inline
                             conversionDate={tx.date}
@@ -491,13 +492,13 @@ function LinkedPaymentsTab({ liability }: { liability: Liability }) {
                 <div className="text-sm font-mono font-semibold text-text-primary ml-4 flex-shrink-0">
                   {/* Transactions carry their own currency; use liability conversion for badge */}
                   <ConvertedAmount
-                    amount={tx.amount}
+                    amount={decimalValue(tx, 'amount') ?? tx.amount}
                     currency={tx.currency}
                     convertedAmount={
                       tx.currency === liability.currency ? toBase(tx.amount) : undefined
                     }
                     baseCurrency={liability.baseCurrency}
-                    exchangeRate={liability.exchangeRate}
+                    exchangeRate={decimalValue(liability, 'exchangeRate') ?? liability.exchangeRate}
                     isConverted={tx.currency === liability.currency ? liability.isConverted : false}
                     inline
                   />

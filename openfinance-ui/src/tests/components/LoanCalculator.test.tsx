@@ -128,7 +128,7 @@ describe('LoanCalculator', () => {
       const input = screen.getByLabelText(/Loan Amount/i);
       fireEvent.change(input, { target: { value: '150000' } });
 
-      expect(mockUpdateInput).toHaveBeenCalledWith('principal', 150000);
+      expect(mockUpdateInput).toHaveBeenCalledWith('principal', '150000');
     });
 
     it('calls updateInput when annual rate is changed', () => {

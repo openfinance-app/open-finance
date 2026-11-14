@@ -53,14 +53,17 @@ class CurrencyTypeResolverTest {
     }
 
     @Test
-    @DisplayName("decimalsFor returns 8 for crypto, 0 for zero-decimal fiat, 2 otherwise")
+    @DisplayName("calculation precision follows ISO fiat scales and preserves 18 crypto digits")
     void decimalsFor() {
-        assertThat(resolver.decimalsFor("BTC")).isEqualTo(8);
+        assertThat(resolver.decimalsFor("BTC")).isEqualTo(18);
         assertThat(resolver.decimalsFor("JPY")).isEqualTo(0);
         assertThat(resolver.decimalsFor("USD")).isEqualTo(2);
-        assertThat(resolver.decimalsFor("  btc  ")).isEqualTo(8);
-        assertThat(resolver.decimalsFor(null)).isEqualTo(2);
-        assertThat(resolver.decimalsFor("XYZ")).isEqualTo(2);
+        assertThat(resolver.decimalsFor("KWD")).isEqualTo(3);
+        assertThat(resolver.decimalsFor("XOF")).isEqualTo(0);
+        assertThat(resolver.decimalsFor("CLF")).isEqualTo(4);
+        assertThat(resolver.decimalsFor("  btc  ")).isEqualTo(18);
+        assertThat(resolver.decimalsFor(null)).isEqualTo(18);
+        assertThat(resolver.decimalsFor("XYZ")).isEqualTo(18);
     }
 
     @Test

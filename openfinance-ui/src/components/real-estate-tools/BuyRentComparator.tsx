@@ -1,3 +1,4 @@
+import { decimalValue } from '@/utils/exact-decimal';
 /**
  * BuyRentComparator Component
  *
@@ -13,7 +14,7 @@ import { convertBuyRentInputs } from '@/utils/simulation-currency';
 import type { BuyRentInputs } from '@/types/realEstateTools';
 import { isBuyRentInputs } from '@/validators/simulationShape';
 import { useConvertCurrency } from '@/hooks/useCurrency';
-import { multiply, roundToDecimals } from '@/utils/money';
+import { multiply } from '@/utils/money';
 import { Calculator, Save, ArrowRight, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { ACCORDION_SYNC_BREAKPOINT } from '@/constants/breakpoints';
@@ -178,7 +179,7 @@ export const BuyRentComparator: React.FC<BuyRentComparatorProps> = ({
                 })
               ).exchangeRate;
         if (!Number.isFinite(rate) || rate <= 0) throw new Error('Invalid exchange rate');
-        const amount = (value: number): number => roundToDecimals(multiply(value, rate), 2);
+        const amount = (value: number): number => multiply(value, rate);
         onNavigateToRentalSimulator({
           currency: 'EUR',
           totalPrice: amount(sharedData.totalPrice),
@@ -332,14 +333,20 @@ export const BuyRentComparator: React.FC<BuyRentComparatorProps> = ({
           <div>
             <p className="text-muted-foreground">{t('comparator.totalPrice')}</p>
             <p className="font-semibold">
-              <ConvertedAmount amount={derivedValues.totalPrice} currency={baseCurrency} inline />
+              <ConvertedAmount
+                amount={decimalValue(derivedValues, 'totalPrice') ?? derivedValues.totalPrice}
+                currency={baseCurrency}
+                inline
+              />
             </p>
           </div>
           <div>
             <p className="text-muted-foreground">{t('comparator.borrowedAmount')}</p>
             <p className="font-semibold">
               <ConvertedAmount
-                amount={derivedValues.borrowedAmount}
+                amount={
+                  decimalValue(derivedValues, 'borrowedAmount') ?? derivedValues.borrowedAmount
+                }
                 currency={baseCurrency}
                 inline
               />
@@ -349,7 +356,9 @@ export const BuyRentComparator: React.FC<BuyRentComparatorProps> = ({
             <p className="text-muted-foreground">{t('comparator.monthlyPayment')}</p>
             <p className="font-semibold">
               <ConvertedAmount
-                amount={derivedValues.monthlyPayment}
+                amount={
+                  decimalValue(derivedValues, 'monthlyPayment') ?? derivedValues.monthlyPayment
+                }
                 currency={baseCurrency}
                 inline
               />
@@ -360,7 +369,10 @@ export const BuyRentComparator: React.FC<BuyRentComparatorProps> = ({
             <p className="text-muted-foreground">{t('comparator.suggestedSavings')}</p>
             <p className="font-semibold">
               <ConvertedAmount
-                amount={derivedValues.suggestedMonthlySavings}
+                amount={
+                  decimalValue(derivedValues, 'suggestedMonthlySavings') ??
+                  derivedValues.suggestedMonthlySavings
+                }
                 currency={baseCurrency}
                 inline
               />

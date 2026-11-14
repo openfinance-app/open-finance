@@ -16,9 +16,9 @@ import {
 } from 'recharts';
 import { ConvertedAmount } from '@/components/ui/ConvertedAmount';
 import { useVisibility } from '@/context/VisibilityContext';
-import { useNumberFormat } from '@/context/NumberFormatContext';
 import type { CashFlowGranularity, ICashFlowPeriod } from '@/types/dashboard';
-import { formatCurrency } from '@/utils/currency';
+import { useFormatCurrency } from '@/hooks/useFormatCurrency';
+import { decimalValue, ExactDecimal } from '@/utils/exact-decimal';
 import { subtract } from '@/utils/money';
 import { cn } from '@/lib/utils';
 
@@ -30,14 +30,20 @@ interface CashFlowPeriodViewProps {
 
 function PeriodAmounts({ period, currency }: { period: ICashFlowPeriod; currency: string }) {
   const { t } = useTranslation('dashboard');
-  const net = subtract(period.income, period.expense);
+  const net = new ExactDecimal(decimalValue(period, 'income') ?? 0).minus(
+    decimalValue(period, 'expense') ?? 0
+  );
   return (
     <dl className="grid grid-cols-[auto_1fr] items-baseline gap-x-2 text-xs">
       {(
         [
-          ['income', period.income, 'text-success'],
-          ['expense', period.expense, 'text-error'],
-          ['net', net, net < 0 ? 'text-error' : net > 0 ? 'text-success' : 'text-text-secondary'],
+          ['income', decimalValue(period, 'income') ?? 0, 'text-success'],
+          ['expense', decimalValue(period, 'expense') ?? 0, 'text-error'],
+          [
+            'net',
+            net.toFixed(),
+            net.lt(0) ? 'text-error' : net.gt(0) ? 'text-success' : 'text-text-secondary',
+          ],
         ] as const
       ).map(([key, amount, color]) => (
         <div key={key} className="contents">
@@ -59,7 +65,7 @@ export default function CashFlowPeriodView({
   const { t, i18n } = useTranslation('dashboard');
   const navigate = useNavigate();
   const { isAmountsVisible } = useVisibility();
-  const { numberFormat } = useNumberFormat();
+  const { format: formatCurrency } = useFormatCurrency();
   const locale = i18n.language.startsWith('fr') ? fr : enUS;
   const chartData = useMemo(
     () =>
@@ -120,9 +126,7 @@ export default function CashFlowPeriodView({
                 tick={{ fill: 'var(--color-text-secondary)', fontSize: 10 }}
                 tickLine={false}
                 tickFormatter={(value: number) =>
-                  isAmountsVisible
-                    ? formatCurrency(value, baseCurrency, { compact: true, numberFormat })
-                    : '••••'
+                  isAmountsVisible ? formatCurrency(value, baseCurrency, { compact: true }) : '••••'
                 }
               />
               <ReferenceLine y={0} stroke="var(--color-border)" />

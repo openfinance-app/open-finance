@@ -205,7 +205,7 @@ describe('calculation feedback', () => {
     });
     expect(hook.result.current.formatCurrency(1234.567)).toBe('$1,234.57');
     expect(hook.result.current.formatPercent(5)).toBe('5.00%');
-    expect(hook.result.current.formatCompact(1200000)).toBe('1.2M');
+    expect(hook.result.current.formatCompact(1200000)).toBe('1.20M');
     hook.rerender({ currency: 'JPY' });
     expect(hook.result.current.formatCurrency(1234.567)).toBe('¥1,235');
   });

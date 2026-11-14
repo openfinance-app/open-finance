@@ -1,3 +1,4 @@
+import { decimalValue } from '@/utils/exact-decimal';
 import { useAnimatedClose } from '@/hooks/useAnimatedClose';
 import { useDateFormatter } from '@/hooks/useDateFormatter';
 /**
@@ -208,7 +209,9 @@ export function RecurringTransactionDetailModal({
               <div className={cn('text-3xl font-bold font-mono', typeConfig.color)}>
                 {typeConfig.sign}
                 <ConvertedAmount
-                  amount={recurringTransaction.amount}
+                  amount={
+                    decimalValue(recurringTransaction, 'amount') ?? recurringTransaction.amount
+                  }
                   currency={recurringTransaction.currency}
                   baseCurrency={baseCurrency}
                   convertedAmount={convertedAmount}

@@ -1,3 +1,4 @@
+import { decimalValue, decimalField, exactSum } from '@/utils/exact-decimal';
 import { Fragment, useState } from 'react';
 import { CheckCircle2, ChevronLeft, ChevronRight, Clock3, Download } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
@@ -7,8 +8,6 @@ import { CurrencyAmount } from '@/components/ui/CurrencyAmount';
 import { useDateFormatter } from '@/hooks/useDateFormatter';
 import { useIsMobile } from '@/hooks/useBreakpoint';
 import { DEFAULT_PAGE_SIZE } from '@/constants/pagination';
-import { getMonetaryScale } from '@/utils/currency';
-import { sum, toFixedDecimal } from '@/utils/money';
 import { formatDecimal } from '@/utils/format';
 import { buildTransactionsLink } from '@/utils/navigation';
 import type { AmortizationPayment, AmortizationSchedule as Schedule } from '@/types/liability';
@@ -72,19 +71,35 @@ export function AmortizationSchedule({
     payment => (payment.feePayment ?? 0) !== 0 || (payment.otherCharges ?? 0) !== 0
   );
   const moneyColumns = [
-    { key: 'payment', value: (p: PaymentRow) => p.paymentAmount },
-    { key: 'principal', value: (p: PaymentRow) => p.principalPayment },
-    { key: 'interest', value: (p: PaymentRow) => p.interestPayment },
-    { key: 'insurance', value: (p: PaymentRow) => p.insurancePayment ?? 0 },
+    {
+      key: 'payment',
+      value: (p: PaymentRow) => decimalValue(p, 'paymentAmount') ?? p.paymentAmount,
+    },
+    {
+      key: 'principal',
+      value: (p: PaymentRow) => decimalValue(p, 'principalPayment') ?? p.principalPayment,
+    },
+    {
+      key: 'interest',
+      value: (p: PaymentRow) => decimalValue(p, 'interestPayment') ?? p.interestPayment,
+    },
+    {
+      key: 'insurance',
+      value: (p: PaymentRow) => decimalValue(p, 'insurancePayment') ?? p.insurancePayment ?? 0,
+    },
     ...(hasCharges
       ? [
           {
             key: 'charges',
-            value: (p: PaymentRow) => sum([p.feePayment ?? 0, p.otherCharges ?? 0]),
+            value: (p: PaymentRow) =>
+              exactSum([decimalValue(p, 'feePayment') ?? 0, decimalValue(p, 'otherCharges') ?? 0]),
           },
         ]
       : []),
-    { key: 'remainingBalance', value: (p: PaymentRow) => p.remainingBalance },
+    {
+      key: 'remainingBalance',
+      value: (p: PaymentRow) => decimalValue(p, 'remainingBalance') ?? p.remainingBalance,
+    },
   ];
 
   // Phase boundaries belong to the forecast, independently of recorded payment numbers.
@@ -158,7 +173,6 @@ export function AmortizationSchedule({
       'Other Charges',
       'Remaining Balance',
     ];
-    const money = (amount: number) => toFixedDecimal(amount, getMonetaryScale(schedule.currency));
     const csv = [
       headers.join(','),
       ...visible.map(payment =>
@@ -167,15 +181,17 @@ export function AmortizationSchedule({
           payment.status === 'remaining' ? payment.paymentNumber : '',
           payment.transactionId ?? '',
           payment.paymentDate,
-          ...[
-            payment.paymentAmount,
-            payment.principalPayment,
-            payment.interestPayment,
-            payment.insurancePayment ?? 0,
-            payment.feePayment ?? 0,
-            payment.otherCharges ?? 0,
-            payment.remainingBalance,
-          ].map(money),
+          ...(
+            [
+              'paymentAmount',
+              'principalPayment',
+              'interestPayment',
+              'insurancePayment',
+              'feePayment',
+              'otherCharges',
+              'remainingBalance',
+            ] as const
+          ).map(field => decimalField(payment, field, '0')),
         ].join(',')
       ),
     ].join('\n');
@@ -190,12 +206,12 @@ export function AmortizationSchedule({
   };
 
   const summaries = [
-    { label: 'col.principal', amount: schedule.principal },
+    { label: 'col.principal', amount: decimalValue(schedule, 'principal') },
     { label: 'interestRate', text: `${formatDecimal(schedule.interestRate, 2)}%` },
-    { label: 'monthlyPayment', amount: schedule.monthlyPayment },
+    { label: 'monthlyPayment', amount: decimalValue(schedule, 'monthlyPayment') },
     { label: 'term', text: `${schedule.termMonths} ${t('amortization.months')}` },
-    { label: 'totalInterest', amount: schedule.totalInterest },
-    { label: 'totalAmount', amount: schedule.totalAmount },
+    { label: 'totalInterest', amount: decimalValue(schedule, 'totalInterest') },
+    { label: 'totalAmount', amount: decimalValue(schedule, 'totalAmount') },
     { label: 'totalPayments', text: forecast.length },
     {
       label: 'interestPrincipalRatio',
@@ -230,7 +246,11 @@ export function AmortizationSchedule({
                 <dt className="text-text-secondary mb-1">{t(`amortization.${summary.label}`)}</dt>
                 <dd className="font-semibold text-text-primary">
                   {summary.amount != null ? (
-                    <CurrencyAmount amount={summary.amount} currency={schedule.currency} inline />
+                    <CurrencyAmount
+                      amount={decimalValue(summary, 'amount') ?? summary.amount}
+                      currency={schedule.currency}
+                      inline
+                    />
                   ) : (
                     summary.text
                   )}

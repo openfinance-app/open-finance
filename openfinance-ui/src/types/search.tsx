@@ -69,9 +69,9 @@ export interface AdvancedSearchRequest {
   entityTypes?: SearchResultType[];
   accountIds?: number[];
   categoryIds?: number[];
-  minAmount?: number;
-  maxAmount?: number;
-  exactAmount?: number;
+  minAmount?: number | string;
+  maxAmount?: number | string;
+  exactAmount?: number | string;
   amountCurrencyMode?: AmountCurrencyMode;
   dateFrom?: string;
   dateTo?: string;

@@ -283,7 +283,7 @@ public class DashboardController {
      * @return ResponseEntity containing cash flow data (income, expenses, netCashFlow)
      */
     @GetMapping("/cashflow")
-    public ResponseEntity<Map<String, BigDecimal>> getCashFlow(
+    public ResponseEntity<org.openfinance.dto.CashFlowResponse> getCashFlow(
             Authentication authentication,
             @RequestParam(defaultValue = "30") int period,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
@@ -324,7 +324,11 @@ public class DashboardController {
                 cashFlow.get("expenses"),
                 cashFlow.get("netCashFlow"));
 
-        return ResponseEntity.ok(cashFlow);
+        return ResponseEntity.ok(
+                new org.openfinance.dto.CashFlowResponse(
+                        cashFlow.get("income"),
+                        cashFlow.get("expenses"),
+                        cashFlow.get("netCashFlow")));
     }
 
     /**

@@ -1,3 +1,4 @@
+import { decimalValue } from '@/utils/exact-decimal';
 import { SelectionCheckbox } from '@/components/bulk/BulkSelection';
 import { formatDecimal } from '@/utils/format';
 import { useDateFormatter } from '@/hooks/useDateFormatter';
@@ -207,13 +208,21 @@ export function LiabilityList({
                   {/* REQ-10.2: Display liability balance with base-currency conversion hint */}
                   <div className="text-sm font-semibold text-text-primary font-mono">
                     <ConvertedAmount
-                      amount={liability.currentBalance}
+                      amount={decimalValue(liability, 'currentBalance') ?? liability.currentBalance}
                       currency={liability.currency}
-                      convertedAmount={liability.balanceInBaseCurrency}
+                      convertedAmount={
+                        decimalValue(liability, 'balanceInBaseCurrency') ??
+                        liability.balanceInBaseCurrency
+                      }
                       baseCurrency={liability.baseCurrency}
-                      exchangeRate={liability.exchangeRate}
+                      exchangeRate={
+                        decimalValue(liability, 'exchangeRate') ?? liability.exchangeRate
+                      }
                       isConverted={liability.isConverted}
-                      secondaryAmount={liability.balanceInSecondaryCurrency}
+                      secondaryAmount={
+                        decimalValue(liability, 'balanceInSecondaryCurrency') ??
+                        liability.balanceInSecondaryCurrency
+                      }
                       secondaryCurrency={liability.secondaryCurrency}
                       inline
                     />
@@ -225,7 +234,7 @@ export function LiabilityList({
                   </div>
                   <div className="text-sm font-mono text-text-tertiary">
                     <ConvertedAmount
-                      amount={liability.principal}
+                      amount={decimalValue(liability, 'principal') ?? liability.principal}
                       currency={liability.currency}
                       convertedAmount={
                         liability.isConverted && liability.exchangeRate
@@ -233,7 +242,9 @@ export function LiabilityList({
                           : undefined
                       }
                       baseCurrency={liability.baseCurrency}
-                      exchangeRate={liability.exchangeRate}
+                      exchangeRate={
+                        decimalValue(liability, 'exchangeRate') ?? liability.exchangeRate
+                      }
                       isConverted={liability.isConverted}
                       inline
                     />
@@ -277,7 +288,9 @@ export function LiabilityList({
                             : undefined
                         }
                         baseCurrency={liability.baseCurrency}
-                        exchangeRate={liability.exchangeRate}
+                        exchangeRate={
+                          decimalValue(liability, 'exchangeRate') ?? liability.exchangeRate
+                        }
                         isConverted={liability.isConverted}
                         inline
                       />
@@ -291,22 +304,28 @@ export function LiabilityList({
                   <span>
                     {t('funding.funded')}:{' '}
                     <CurrencyAmount
-                      amount={liability.fundedAmount}
+                      amount={decimalValue(liability, 'fundedAmount') ?? liability.fundedAmount}
                       currency={liability.currency}
                       inline
                       baseCurrency={liability.baseCurrency}
-                      exchangeRate={liability.exchangeRate}
+                      exchangeRate={
+                        decimalValue(liability, 'exchangeRate') ?? liability.exchangeRate
+                      }
                       isConverted={liability.isConverted}
                     />
                   </span>
                   <span>
                     {t('funding.repaid')}:{' '}
                     <CurrencyAmount
-                      amount={liability.principalPaid ?? 0}
+                      amount={
+                        decimalValue(liability, 'principalPaid') ?? liability.principalPaid ?? 0
+                      }
                       currency={liability.currency}
                       inline
                       baseCurrency={liability.baseCurrency}
-                      exchangeRate={liability.exchangeRate}
+                      exchangeRate={
+                        decimalValue(liability, 'exchangeRate') ?? liability.exchangeRate
+                      }
                       isConverted={liability.isConverted}
                     />
                   </span>

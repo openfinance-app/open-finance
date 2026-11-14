@@ -1,3 +1,4 @@
+import { decimalValue, exactSum } from '@/utils/exact-decimal';
 import { FormDialog } from '@/components/ui/FormDialog';
 import { useViewState } from '@/hooks/useViewState';
 import { BulkSelection, BulkToolbar } from '@/components/bulk/BulkSelection';
@@ -28,7 +29,6 @@ import { ConfirmationDialog } from '@/components/ConfirmationDialog';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { ConvertedAmount } from '@/components/ui/ConvertedAmount';
 import { useCurrencyDisplay } from '@/context/CurrencyDisplayContext';
-import { add } from '@/utils/money';
 import { accountBalanceTotal } from '@/utils/account-summary';
 import { useAuthContext } from '@/context/AuthContext';
 import {
@@ -281,18 +281,21 @@ export default function AccountsPage() {
           const currency = account.currency;
           if (!acc[currency]) {
             acc[currency] = {
-              nativeTotal: 0,
-              baseCurrencyTotal: 0,
+              nativeTotal: '0',
+              baseCurrencyTotal: '0',
               baseCurrency: account.baseCurrency,
               hasConversion: false,
             };
           }
-          acc[currency].nativeTotal = add(acc[currency].nativeTotal, account.balance);
+          acc[currency].nativeTotal = exactSum([
+            acc[currency].nativeTotal,
+            decimalValue(account, 'balance') ?? 0,
+          ]);
           if (account.isConverted && account.balanceInBaseCurrency != null) {
-            acc[currency].baseCurrencyTotal = add(
+            acc[currency].baseCurrencyTotal = exactSum([
               acc[currency].baseCurrencyTotal,
-              account.balanceInBaseCurrency
-            );
+              decimalValue(account, 'balanceInBaseCurrency') ?? 0,
+            ]);
             acc[currency].hasConversion = true;
             if (account.baseCurrency) acc[currency].baseCurrency = account.baseCurrency;
           }
@@ -301,8 +304,8 @@ export default function AccountsPage() {
         {} as Record<
           string,
           {
-            nativeTotal: number;
-            baseCurrencyTotal: number;
+            nativeTotal: string;
+            baseCurrencyTotal: string;
             baseCurrency?: string;
             hasConversion: boolean;
           }
@@ -322,18 +325,21 @@ export default function AccountsPage() {
           const currency = account.currency;
           if (!acc[currency]) {
             acc[currency] = {
-              nativeTotal: 0,
-              baseCurrencyTotal: 0,
+              nativeTotal: '0',
+              baseCurrencyTotal: '0',
               baseCurrency: account.baseCurrency,
               hasConversion: false,
             };
           }
-          acc[currency].nativeTotal = add(acc[currency].nativeTotal, account.balance);
+          acc[currency].nativeTotal = exactSum([
+            acc[currency].nativeTotal,
+            decimalValue(account, 'balance') ?? 0,
+          ]);
           if (account.isConverted && account.balanceInBaseCurrency != null) {
-            acc[currency].baseCurrencyTotal = add(
+            acc[currency].baseCurrencyTotal = exactSum([
               acc[currency].baseCurrencyTotal,
-              account.balanceInBaseCurrency
-            );
+              decimalValue(account, 'balanceInBaseCurrency') ?? 0,
+            ]);
             acc[currency].hasConversion = true;
             if (account.baseCurrency) acc[currency].baseCurrency = account.baseCurrency;
           }
@@ -342,8 +348,8 @@ export default function AccountsPage() {
         {} as Record<
           string,
           {
-            nativeTotal: number;
-            baseCurrencyTotal: number;
+            nativeTotal: string;
+            baseCurrencyTotal: string;
             baseCurrency?: string;
             hasConversion: boolean;
           }
@@ -507,7 +513,7 @@ export default function AccountsPage() {
                   {/* Global total is always the primary figure */}
                   <ConvertedAmount
                     className="text-2xl font-mono font-semibold text-text-primary"
-                    amount={totals.nativeTotal}
+                    amount={decimalValue(totals, 'nativeTotal') ?? totals.nativeTotal}
                     currency={currency}
                     convertedAmount={totals.hasConversion ? totals.baseCurrencyTotal : undefined}
                     baseCurrency={totals.baseCurrency}
@@ -519,7 +525,10 @@ export default function AccountsPage() {
                       {t('filtered')}&nbsp;
                       <ConvertedAmount
                         className="text-sm font-mono text-text-tertiary"
-                        amount={filteredTotalsByCurrency[currency].nativeTotal}
+                        amount={
+                          decimalValue(filteredTotalsByCurrency[currency], 'nativeTotal') ??
+                          filteredTotalsByCurrency[currency].nativeTotal
+                        }
                         currency={currency}
                         convertedAmount={
                           filteredTotalsByCurrency[currency].hasConversion

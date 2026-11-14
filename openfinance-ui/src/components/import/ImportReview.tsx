@@ -1,3 +1,4 @@
+import { decimalValue } from '@/utils/exact-decimal';
 /**
  * ImportReview Component
  *
@@ -850,7 +851,7 @@ export function ImportReview({
                               }
                             >
                               <ConvertedAmount
-                                amount={Number(transaction.amount)}
+                                amount={decimalValue(transaction, 'amount') ?? transaction.amount}
                                 currency={
                                   transaction.currency || transaction.reviewCurrency || baseCurrency
                                 }
@@ -1076,7 +1077,7 @@ export function ImportReview({
                                   )}
                                   <span className="font-mono text-text-primary whitespace-nowrap">
                                     <ConvertedAmount
-                                      amount={Number(split.amount)}
+                                      amount={decimalValue(split, 'amount') ?? split.amount ?? 0}
                                       currency={
                                         transaction.currency ||
                                         transaction.reviewCurrency ||

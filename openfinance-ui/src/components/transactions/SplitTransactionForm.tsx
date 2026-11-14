@@ -238,13 +238,13 @@ export function SplitTransactionForm({
         <div className="flex justify-between text-text-secondary">
           <span>{t('splitForm.transactionTotal')}</span>
           <span className="font-mono">
-            <ConvertedAmount amount={Number(totalAmount)} currency={currency} inline />
+            <ConvertedAmount amount={totalAmount} currency={currency} inline />
           </span>
         </div>
         <div className="flex justify-between text-text-secondary mt-1">
           <span>{t('splitForm.splitTotal')}</span>
           <span className="font-mono">
-            <ConvertedAmount amount={Number(splitTotal)} currency={currency} inline />
+            <ConvertedAmount amount={splitTotal} currency={currency} inline />
           </span>
         </div>
         <div
@@ -292,7 +292,7 @@ export function SplitTransactionForm({
               i18nKey={remaining > 0 ? 'splitForm.validation.short' : 'splitForm.validation.over'}
               components={{
                 bold: <strong />,
-                total: <ConvertedAmount amount={Number(totalAmount)} currency={currency} inline />,
+                total: <ConvertedAmount amount={totalAmount} currency={currency} inline />,
                 amount: <ConvertedAmount amount={Math.abs(remaining)} currency={currency} inline />,
               }}
             />

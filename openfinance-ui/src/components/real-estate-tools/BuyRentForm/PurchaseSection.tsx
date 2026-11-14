@@ -1,3 +1,4 @@
+import { decimalValue } from '@/utils/exact-decimal';
 /**
  * PurchaseSection Component
  *
@@ -141,7 +142,7 @@ export const PurchaseSection: React.FC<PurchaseSectionProps> = ({
                   <p className="text-sm text-muted-foreground">{t('purchaseSection.totalPrice')}</p>
                   <p className="text-lg font-semibold text-primary">
                     <ConvertedAmount
-                      amount={derivedValues.totalPrice}
+                      amount={decimalValue(derivedValues, 'totalPrice') ?? derivedValues.totalPrice}
                       currency={baseCurrency}
                       inline
                     />
@@ -170,7 +171,10 @@ export const PurchaseSection: React.FC<PurchaseSectionProps> = ({
                   <p className="text-xs text-muted-foreground">
                     {t('purchaseSection.minimumSuggested')} :{' '}
                     <ConvertedAmount
-                      amount={derivedValues.minimumDownPayment}
+                      amount={
+                        decimalValue(derivedValues, 'minimumDownPayment') ??
+                        derivedValues.minimumDownPayment
+                      }
                       currency={baseCurrency}
                       inline
                     />
@@ -190,7 +194,10 @@ export const PurchaseSection: React.FC<PurchaseSectionProps> = ({
                   </p>
                   <p className="text-lg font-semibold">
                     <ConvertedAmount
-                      amount={derivedValues.borrowedAmount}
+                      amount={
+                        decimalValue(derivedValues, 'borrowedAmount') ??
+                        derivedValues.borrowedAmount
+                      }
                       currency={baseCurrency}
                       inline
                     />
@@ -225,7 +232,10 @@ export const PurchaseSection: React.FC<PurchaseSectionProps> = ({
                   </p>
                   <p className="text-xl font-bold text-primary">
                     <ConvertedAmount
-                      amount={derivedValues.monthlyPayment}
+                      amount={
+                        decimalValue(derivedValues, 'monthlyPayment') ??
+                        derivedValues.monthlyPayment
+                      }
                       currency={baseCurrency}
                       inline
                     />

@@ -1,3 +1,4 @@
+import type { ExactDecimalFields } from '@/utils/exact-decimal';
 /**
  * Financial Freedom Calculator Type Definitions
  *
@@ -9,16 +10,16 @@
  */
 export interface FreedomCalculatorInput {
   /** Current total savings and investments in EUR */
-  currentSavings: number;
+  currentSavings: number | string;
 
   /** Monthly expenses in EUR */
-  monthlyExpenses: number;
+  monthlyExpenses: number | string;
 
   /** Expected annual return rate as percentage (e.g., 7 for 7%) */
   expectedAnnualReturn: number;
 
   /** Monthly contribution to savings in EUR */
-  monthlyContribution?: number;
+  monthlyContribution?: number | string;
 
   /** Withdrawal rate for target calculation (default 4%) */
   withdrawalRate?: number;
@@ -36,7 +37,7 @@ export interface FreedomCalculatorInput {
 /**
  * Result of financial freedom calculation
  */
-export interface FreedomCalculatorResult {
+export interface FreedomCalculatorResult extends ExactDecimalFields {
   /** Years until financial freedom is achieved */
   yearsToFreedom: number;
 
@@ -50,7 +51,7 @@ export interface FreedomCalculatorResult {
   progressPercentage: number;
 
   /** Current progress amount */
-  currentProgress: number;
+  currentProgress: number | string;
 
   /** Estimated annual passive income from investments */
   annualPassiveIncome: number;
@@ -77,7 +78,7 @@ export interface FreedomCalculatorResult {
 /**
  * Individual year projection for display
  */
-export interface YearlyProjection {
+export interface YearlyProjection extends ExactDecimalFields {
   /** Year number (0 = current year) */
   year: number;
 
@@ -150,10 +151,10 @@ export interface SavingsLongevityResult {
   depletionProjections: YearlyProjection[];
 
   /** Current monthly expenses */
-  monthlyExpenses: number;
+  monthlyExpenses: number | string;
 
   /** Current savings balance */
-  currentSavings: number;
+  currentSavings: number | string;
 
   /** Expected annual return rate used for calculation */
   annualReturnRate: number;
@@ -251,7 +252,7 @@ export interface TimelineApiResponse {
   monthsToFreedom: number;
   targetSavingsAmount: number;
   progressPercentage: number;
-  currentProgress: number;
+  currentProgress: number | string;
   annualPassiveIncome: number;
   isSustainableIndefinitely: boolean;
   isAchievable: boolean;
@@ -298,15 +299,15 @@ export interface CompoundInterestInput {
   /** Calculation currency; the UI supplies the current base currency. */
   currency?: string;
   /** Initial investment (principal). */
-  principal: number;
+  principal: number | string;
   /** Annual interest rate as a percentage (e.g. 5 for 5%). */
-  annualRate: number;
+  annualRate: number | string;
   /** Number of compounding periods per year. */
   compoundingFrequency: CompoundingFrequency;
   /** Investment duration in years. */
   years: number;
   /** Regular contribution per period. Defaults to 0. */
-  regularContribution: number;
+  regularContribution: number | string;
   /** Whether contributions are made at the beginning of each period. */
   contributionAtBeginning: boolean;
 }
@@ -345,12 +346,12 @@ export const DEFAULT_COMPOUND_INTEREST_INPUT: CompoundInterestInput = {
 
 // Loan Calculator Types
 export interface LoanCalculatorInput {
-  principal: number;
+  principal: number | string;
   annualRate: number;
   years: number;
 }
 
-export interface LoanAmortizationEntry {
+export interface LoanAmortizationEntry extends ExactDecimalFields {
   paymentNumber: number;
   paymentAmount: number;
   principalPortion: number;
@@ -359,7 +360,7 @@ export interface LoanAmortizationEntry {
   cumulativeInterest: number;
 }
 
-export interface LoanCalculatorResult {
+export interface LoanCalculatorResult extends ExactDecimalFields {
   monthlyPayment: number;
   totalInterest: number;
   totalPayment: number;
@@ -381,12 +382,12 @@ export interface LumpSumPayment {
   id: string;
   /** Month number relative to now (1 = after next regular payment). */
   month: number;
-  amount: number;
+  amount: number | string;
 }
 
 export interface EarlyPayoffInput {
   /** Current outstanding loan balance. */
-  loanBalance: number;
+  loanBalance: number | string;
   /** Annual nominal interest rate as a percentage (e.g. 4.2 for 4.2 %). */
   annualRate: number;
   /** Remaining full years in the loan term. */
@@ -396,11 +397,11 @@ export interface EarlyPayoffInput {
   /** List of planned lump-sum prepayments. */
   lumpSumPayments: LumpSumPayment[];
   /** Fixed extra amount paid every month on top of the scheduled payment. */
-  monthlyExtraPayment: number;
+  monthlyExtraPayment: number | string;
 }
 
 /** One row of the yearly amortization summary table. */
-export interface EarlyPayoffYearRow {
+export interface EarlyPayoffYearRow extends ExactDecimalFields {
   year: number;
   totalPayment: number;
   principalPaid: number;
@@ -411,7 +412,7 @@ export interface EarlyPayoffYearRow {
 }
 
 /** Full result for one payoff scenario (base / reduce-duration / reduce-payment). */
-export interface EarlyPayoffScenario {
+export interface EarlyPayoffScenario extends ExactDecimalFields {
   /** Base monthly payment at start. */
   monthlyPayment: number;
   /** Final monthly payment (only differs from monthlyPayment in reduce-payment mode). */

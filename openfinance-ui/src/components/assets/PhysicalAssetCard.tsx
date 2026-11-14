@@ -1,3 +1,4 @@
+import { decimalValue, ExactDecimal } from '@/utils/exact-decimal';
 import { AssetTradeActions } from '@/components/assets/AssetTradeActions';
 import { SelectionCheckbox } from '@/components/bulk/BulkSelection';
 import { useTranslation } from 'react-i18next';
@@ -16,7 +17,7 @@ import { CurrencyAmount } from '@/components/ui/CurrencyAmount';
 import { AssetCoverImage } from './AssetCoverImage';
 import { useSecondaryConversion } from '@/hooks/useSecondaryConversion';
 import { getConditionBadgeVariant, getAssetTypeBadgeVariant } from '@/hooks/useAssets';
-import { subtract, percentage } from '@/utils/money';
+import { percentage } from '@/utils/money';
 import { Package, Shield, TrendingDown, Calendar, Info } from 'lucide-react';
 import type { Asset } from '@/types/asset';
 
@@ -30,7 +31,8 @@ export function PhysicalAssetCard({ asset, onClick, onCompletePurchase }: Physic
   const { t } = useTranslation('assets');
   const { date } = useDateFormatter();
   const {
-    convert,
+    convert: convertNumber,
+    convertExact: convert = convertNumber,
     secondaryCurrency: secCurrency,
     secondaryExchangeRate,
   } = useSecondaryConversion(asset.currency);
@@ -39,8 +41,12 @@ export function PhysicalAssetCard({ asset, onClick, onCompletePurchase }: Physic
   // Actual market value change: purchase cost vs current market value
   const currentValue = asset.totalValue; // quantity × currentPrice (actual market value)
   const basis = asset.performanceBasis ?? (asset.acquisitionType === 'GIFT' ? 0 : asset.totalCost);
-  const valueLoss = subtract(basis, currentValue);
-  const lossPercent = basis > 0 ? percentage(valueLoss, basis) : 0;
+  const valueLoss = new ExactDecimal(
+    decimalValue(asset, 'performanceBasis') ??
+      (asset.acquisitionType === 'GIFT' ? 0 : decimalValue(asset, 'totalCost')) ??
+      0
+  ).minus(decimalValue(asset, 'totalValue') ?? 0);
+  const lossPercent = basis > 0 ? percentage(valueLoss.toFixed(), basis) : 0;
   const retainedPercent = basis > 0 ? Math.min(percentage(currentValue, basis), 100) : 0;
   const isPlanned = asset.acquisitionType === 'PLANNED';
   const isClosed = asset.ownershipStatus === 'CLOSED';
@@ -144,16 +150,16 @@ export function PhysicalAssetCard({ asset, onClick, onCompletePurchase }: Physic
               </span>
             </div>
             <span
-              className={`whitespace-nowrap text-xs font-medium ${valueLoss > 0 ? 'text-red-500' : 'text-green-500'}`}
+              className={`whitespace-nowrap text-xs font-medium ${valueLoss.gt(0) ? 'text-red-500' : 'text-green-500'}`}
             >
-              {valueLoss > 0 ? '-' : '+'}
-              {formatDecimal(Math.abs(lossPercent), 0)}% ({valueLoss > 0 ? '-' : '+'}
+              {valueLoss.gt(0) ? '-' : '+'}
+              {formatDecimal(Math.abs(lossPercent), 0)}% ({valueLoss.gt(0) ? '-' : '+'}
               <CurrencyAmount
-                amount={Math.abs(valueLoss)}
+                amount={valueLoss.abs().toFixed()}
                 currency={asset.currency}
                 inline
                 baseCurrency={asset.baseCurrency}
-                exchangeRate={asset.exchangeRate}
+                exchangeRate={decimalValue(asset, 'exchangeRate') ?? asset.exchangeRate}
                 isConverted={asset.isConverted}
               />
               )
@@ -165,7 +171,7 @@ export function PhysicalAssetCard({ asset, onClick, onCompletePurchase }: Physic
             {/* Retained value portion */}
             <div
               className={`absolute inset-y-0 left-0 transition-all duration-300 ${
-                valueLoss > 0
+                valueLoss.gt(0)
                   ? 'bg-gradient-to-r from-green-500 to-green-600'
                   : 'bg-gradient-to-r from-blue-500 to-blue-600'
               }`}
@@ -180,18 +186,18 @@ export function PhysicalAssetCard({ asset, onClick, onCompletePurchase }: Physic
                   currency={asset.currency}
                   inline
                   baseCurrency={asset.baseCurrency}
-                  exchangeRate={asset.exchangeRate}
+                  exchangeRate={decimalValue(asset, 'exchangeRate') ?? asset.exchangeRate}
                   isConverted={asset.isConverted}
                 />
               </span>
-              {valueLoss > 0 && retainedPercent < 85 && (
+              {valueLoss.gt(0) && retainedPercent < 85 && (
                 <span className="min-w-0 flex-1 text-right text-red-600 dark:text-red-400 drop-shadow-sm">
                   <CurrencyAmount
-                    amount={asset.totalCost}
+                    amount={decimalValue(asset, 'totalCost') ?? asset.totalCost}
                     currency={asset.currency}
                     inline
                     baseCurrency={asset.baseCurrency}
-                    exchangeRate={asset.exchangeRate}
+                    exchangeRate={decimalValue(asset, 'exchangeRate') ?? asset.exchangeRate}
                     isConverted={asset.isConverted}
                   />
                 </span>
@@ -203,7 +209,7 @@ export function PhysicalAssetCard({ asset, onClick, onCompletePurchase }: Physic
           <div className="flex items-center gap-4 text-xs text-text-tertiary pt-1">
             <div className="flex items-center gap-1.5">
               <div
-                className={`w-3 h-3 rounded-full ${valueLoss > 0 ? 'bg-green-500' : 'bg-blue-500'}`}
+                className={`w-3 h-3 rounded-full ${valueLoss.gt(0) ? 'bg-green-500' : 'bg-blue-500'}`}
               />
               <span>{t('physicalCard.currentValue')}</span>
             </div>
@@ -225,13 +231,17 @@ export function PhysicalAssetCard({ asset, onClick, onCompletePurchase }: Physic
             <div className="text-lg font-bold text-text-primary">
               {/* Reference REQ-10.1: Show asset value with base-currency conversion hint */}
               <ConvertedAmount
-                amount={asset.totalValue}
+                amount={decimalValue(asset, 'totalValue') ?? asset.totalValue}
                 currency={asset.currency}
-                convertedAmount={asset.valueInBaseCurrency}
+                convertedAmount={
+                  decimalValue(asset, 'valueInBaseCurrency') ?? asset.valueInBaseCurrency
+                }
                 baseCurrency={asset.baseCurrency}
-                exchangeRate={asset.exchangeRate}
+                exchangeRate={decimalValue(asset, 'exchangeRate') ?? asset.exchangeRate}
                 isConverted={asset.isConverted}
-                secondaryAmount={asset.valueInSecondaryCurrency}
+                secondaryAmount={
+                  decimalValue(asset, 'valueInSecondaryCurrency') ?? asset.valueInSecondaryCurrency
+                }
                 secondaryCurrency={asset.secondaryCurrency}
                 inline
               />
@@ -244,14 +254,14 @@ export function PhysicalAssetCard({ asset, onClick, onCompletePurchase }: Physic
           </div>
           <div className="text-lg font-semibold text-text-secondary">
             <CurrencyAmount
-              amount={asset.totalCost}
+              amount={decimalValue(asset, 'totalCost') ?? asset.totalCost}
               currency={asset.currency}
-              secondaryAmount={convert(asset.totalCost)}
+              secondaryAmount={convert(decimalValue(asset, 'totalCost') ?? asset.totalCost)}
               secondaryCurrency={secCurrency}
               secondaryExchangeRate={secondaryExchangeRate}
               inline
               baseCurrency={asset.baseCurrency}
-              exchangeRate={asset.exchangeRate}
+              exchangeRate={decimalValue(asset, 'exchangeRate') ?? asset.exchangeRate}
               isConverted={asset.isConverted}
             />
           </div>

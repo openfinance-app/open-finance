@@ -4,6 +4,26 @@ import type { Asset } from '@/types/asset';
 const holding = (data: Partial<Asset>): Asset =>
   ({ currency: 'USD', totalValue: 100, totalCost: 80, ...data }) as Asset;
 describe('Reporting currency asset aggregates', () => {
+  it('keeps exact recorded values through conversion, summation and gain subtraction', () => {
+    const result = computeAssetSummary(
+      [
+        holding({
+          totalValue: Number('12345678901234567.123456789012345678'),
+          totalCost: Number('12345678901234566.123456789012345678'),
+          exactValues: {
+            totalValue: '12345678901234567.123456789012345678',
+            totalCost: '12345678901234566.123456789012345678',
+          },
+        }),
+      ],
+      'USD'
+    );
+    expect(result.exactValues).toEqual({
+      totalValue: '12345678901234567.123456789012345678',
+      totalCost: '12345678901234566.123456789012345678',
+      totalGain: '1',
+    });
+  });
   it('excludes unavailable conversions rather than adding their native fallback at 1:1', () => {
     const summary = computeAssetSummary(
       [

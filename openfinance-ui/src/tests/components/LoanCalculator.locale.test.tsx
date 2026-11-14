@@ -1,6 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { renderWithProviders } from '@/test/test-utils';
-import i18n from '@/test/i18n-test';
+import { renderWithProviders, mockAuthentication } from '@/test/test-utils';
 import { LoanCalculator } from '@/components/loan-calculator/LoanCalculator';
 
 // Capture the YAxis tickFormatter without relying on Recharts layout (which does not
@@ -51,36 +50,24 @@ vi.mock('@/hooks/useLoanCalculator', () => ({
   }),
 }));
 
-vi.mock('@/hooks/useFormatCurrency', () => ({
-  useFormatCurrency: () => ({ format: (a: number) => `$${a.toFixed(2)}` }),
+const settings = {
+  userId: 1,
+  numberFormat: '1 234,56',
+  decimalPlacesOverrideEnabled: true,
+  preferredDecimalPlaces: 4,
+};
+vi.mock('@/hooks/useUserSettings', () => ({
+  useUserSettings: () => ({ data: settings, isLoading: false }),
+  useUpdateUserSettings: () => ({ mutateAsync: vi.fn() }),
 }));
 
-describe('LoanCalculator Y-axis locale', () => {
+describe('LoanCalculator Y-axis formatting', () => {
   beforeEach(() => {
+    mockAuthentication();
     rechartsMocks.yTickFormatter = undefined;
   });
-
-  it('formats Y-axis ticks with the active i18n locale, not a hardcoded en-US', () => {
+  it('uses the shared number and decimal preferences for chart axes', () => {
     renderWithProviders(<LoanCalculator />);
-
-    expect(rechartsMocks.yTickFormatter).toBeTypeOf('function');
-
-    // Record the locale each Intl.NumberFormat is constructed with, only around the
-    // explicit tick call, to avoid capturing unrelated formatting during render.
-    const locales: unknown[] = [];
-    const OrigNumberFormat = Intl.NumberFormat;
-    // @ts-expect-error deliberately override the Intl constructor for this assertion
-    Intl.NumberFormat = function (locale: string, opts: Intl.NumberFormatOptions) {
-      locales.push(locale);
-      return new OrigNumberFormat(locale, opts);
-    } as unknown as typeof Intl.NumberFormat;
-    try {
-      rechartsMocks.yTickFormatter!(1_000_000);
-    } finally {
-      Intl.NumberFormat = OrigNumberFormat;
-    }
-
-    expect(locales).toContain(i18n.language); // 'en' in the test harness
-    expect(locales).not.toContain('en-US');
+    expect(rechartsMocks.yTickFormatter?.(1500)).toBe('1,5000K');
   });
 });

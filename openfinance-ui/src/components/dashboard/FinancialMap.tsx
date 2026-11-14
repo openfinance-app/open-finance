@@ -1,3 +1,4 @@
+import { decimalValue, ExactDecimal, exactSum } from '@/utils/exact-decimal';
 /**
  * FinancialMap – Dashboard card showing a world map of where the user's finances
  * are located.
@@ -32,7 +33,6 @@ import { useUserSettings } from '@/hooks/useUserSettings';
 import { useSecondaryConversion } from '@/hooks/useSecondaryConversion';
 import { ConvertedAmount } from '../ui/ConvertedAmount';
 import { DEFAULT_CURRENCY } from '@/utils/currency';
-import { add } from '@/utils/money';
 import { countryFlagClass } from '@/utils/countryUtils';
 import {
   WORLD_TOPOLOGY,
@@ -50,9 +50,9 @@ interface FinancialMapProps {
 
 interface CountryDatum {
   code: string;
-  amount: number;
-  institutionsAmount: number;
-  realEstateAmount: number;
+  amount: string;
+  institutionsAmount: string;
+  realEstateAmount: string;
   accountCount: number;
   propertyCount: number;
 }
@@ -62,7 +62,7 @@ interface Aggregation {
   maxAbs: number;
   userCountry?: string;
   unmappedPropertyCount: number;
-  unmappedPropertyAmount: number;
+  unmappedPropertyAmount: string;
 }
 
 /** Shape of a geography passed to the `<Geographies>` render prop. */
@@ -93,7 +93,8 @@ export default function FinancialMap({ baseCurrency = DEFAULT_CURRENCY }: Financ
   } = useProperties();
   const { data: settings } = useUserSettings();
   const {
-    convert,
+    convert: convertNumber,
+    convertExact: convert = convertNumber,
     secondaryCurrency: secCurrency,
     secondaryExchangeRate,
   } = useSecondaryConversion(baseCurrency);
@@ -125,22 +126,22 @@ export default function FinancialMap({ baseCurrency = DEFAULT_CURRENCY }: Financ
   const aggregation = useMemo<Aggregation>(() => {
     const map = new Map<string, CountryDatum>();
 
-    const bump = (code: string, value: number, kind: 'institution' | 'realEstate') => {
+    const bump = (code: string, value: string | number, kind: 'institution' | 'realEstate') => {
       const key = normalizeAlpha2(code);
       const existing = map.get(key) ?? {
         code: key,
-        amount: 0,
-        institutionsAmount: 0,
-        realEstateAmount: 0,
+        amount: '0',
+        institutionsAmount: '0',
+        realEstateAmount: '0',
         accountCount: 0,
         propertyCount: 0,
       };
-      existing.amount = add(existing.amount, value);
+      existing.amount = exactSum([existing.amount, value]);
       if (kind === 'institution') {
-        existing.institutionsAmount = add(existing.institutionsAmount, value);
+        existing.institutionsAmount = exactSum([existing.institutionsAmount, value]);
         existing.accountCount += 1;
       } else {
-        existing.realEstateAmount = add(existing.realEstateAmount, value);
+        existing.realEstateAmount = exactSum([existing.realEstateAmount, value]);
         existing.propertyCount += 1;
       }
       map.set(key, existing);
@@ -153,16 +154,23 @@ export default function FinancialMap({ baseCurrency = DEFAULT_CURRENCY }: Financ
       for (const account of accounts) {
         const country = account.institution?.country;
         if (!country) continue;
-        bump(country, account.balanceInBaseCurrency ?? account.balance, 'institution');
+        bump(
+          country,
+          decimalValue(account, 'balanceInBaseCurrency') ?? decimalValue(account, 'balance') ?? 0,
+          'institution'
+        );
       }
     }
 
     // Real estate → reverse-geocode coordinates, else infer from the address
     let unmappedPropertyCount = 0;
-    let unmappedPropertyAmount = 0;
+    let unmappedPropertyAmount = '0';
     if (properties) {
       for (const property of properties) {
-        const value = property.valueInBaseCurrency ?? property.currentValue;
+        const value =
+          decimalValue(property, 'valueInBaseCurrency') ??
+          decimalValue(property, 'currentValue') ??
+          0;
         let country: string | undefined;
         if (property.latitude != null && property.longitude != null) {
           country = countryOfPoint(property.longitude, property.latitude);
@@ -174,15 +182,15 @@ export default function FinancialMap({ baseCurrency = DEFAULT_CURRENCY }: Financ
           bump(country, value, 'realEstate');
         } else {
           unmappedPropertyCount += 1;
-          unmappedPropertyAmount = add(unmappedPropertyAmount, value);
+          unmappedPropertyAmount = exactSum([unmappedPropertyAmount, value]);
         }
       }
     }
 
-    const countries = Array.from(map.values()).sort(
-      (a, b) => Math.abs(b.amount) - Math.abs(a.amount)
+    const countries = Array.from(map.values()).sort((a, b) =>
+      new ExactDecimal(b.amount).abs().comparedTo(new ExactDecimal(a.amount).abs())
     );
-    const maxAbs = countries.reduce((max, c) => Math.max(max, Math.abs(c.amount)), 0);
+    const maxAbs = countries.reduce((max, c) => Math.max(max, Math.abs(Number(c.amount))), 0);
 
     return {
       countries,
@@ -230,10 +238,11 @@ export default function FinancialMap({ baseCurrency = DEFAULT_CURRENCY }: Financ
     aggregation;
   const userCentroid = userCountry ? countryCentroid(userCountry) : null;
 
-  const dotRadius = (amount: number): number => {
+  const dotRadius = (amount: string): number => {
     if (maxAbs <= 0) return 0;
     return (
-      MIN_DOT_RADIUS + (MAX_DOT_RADIUS - MIN_DOT_RADIUS) * Math.sqrt(Math.abs(amount) / maxAbs)
+      MIN_DOT_RADIUS +
+      (MAX_DOT_RADIUS - MIN_DOT_RADIUS) * Math.sqrt(Math.abs(Number(amount)) / maxAbs)
     );
   };
 
@@ -245,12 +254,12 @@ export default function FinancialMap({ baseCurrency = DEFAULT_CURRENCY }: Financ
   const tooltipDatum = tooltip ? countries.find(c => c.code === tooltip.code) : undefined;
 
   // Overall aggregates for the legend (not a per-country breakdown).
-  const institutionsTotal = countries.reduce((s, c) => add(s, c.institutionsAmount), 0);
-  const realEstateTotal = add(
-    countries.reduce((s, c) => add(s, c.realEstateAmount), 0),
-    unmappedPropertyAmount
-  );
-  const grandTotal = add(institutionsTotal, realEstateTotal);
+  const institutionsTotal = exactSum(countries.map(c => c.institutionsAmount));
+  const realEstateTotal = exactSum([
+    ...countries.map(c => c.realEstateAmount),
+    unmappedPropertyAmount,
+  ]);
+  const grandTotal = exactSum([institutionsTotal, realEstateTotal]);
   const totalAccounts = countries.reduce((s, c) => s + c.accountCount, 0);
   const totalProperties =
     countries.reduce((s, c) => s + c.propertyCount, 0) + unmappedPropertyCount;
@@ -430,10 +439,12 @@ export default function FinancialMap({ baseCurrency = DEFAULT_CURRENCY }: Financ
               <>
                 <div className="font-mono text-text-primary mt-1">
                   <ConvertedAmount
-                    amount={tooltipDatum.amount}
+                    amount={decimalValue(tooltipDatum, 'amount') ?? tooltipDatum.amount}
                     currency={baseCurrency}
                     isConverted={false}
-                    secondaryAmount={convert(tooltipDatum.amount)}
+                    secondaryAmount={convert(
+                      decimalValue(tooltipDatum, 'amount') ?? tooltipDatum.amount
+                    )}
                     secondaryCurrency={secCurrency}
                     secondaryExchangeRate={secondaryExchangeRate}
                     inline

@@ -6,9 +6,9 @@ import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.when;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.util.List;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -17,9 +17,11 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.openfinance.dto.AccountResponse;
 import org.openfinance.dto.BalanceHistoryPoint;
+import org.openfinance.dto.InterestPreviewRequest;
 import org.openfinance.entity.InterestDayCountBasis;
 import org.openfinance.entity.InterestPeriod;
 import org.openfinance.entity.InterestRateVariation;
+import org.openfinance.entity.InterestValueDateMode;
 import org.openfinance.repository.InterestRateVariationRepository;
 
 /**
@@ -34,28 +36,8 @@ class InterestCalculatorServiceTest {
 
     @Mock private InterestRateVariationRepository variationRepository;
     @Mock private AccountService accountService;
-    @Mock private CurrencyTypeResolver currencyTypeResolver;
 
     @InjectMocks private InterestCalculatorService service;
-
-    @BeforeEach
-    void stubDecimals() {
-        // Mirror the real resolver so tests keep asserting per-currency scale (BTC=8, JPY=0,
-        // otherwise 2). lenient() because early-return tests never reach the setScale call.
-        lenient()
-                .when(currencyTypeResolver.decimalsFor(any()))
-                .thenAnswer(
-                        invocation -> {
-                            String code = invocation.getArgument(0);
-                            if ("BTC".equalsIgnoreCase(code)) {
-                                return 8;
-                            }
-                            if ("JPY".equalsIgnoreCase(code)) {
-                                return 0;
-                            }
-                            return 2;
-                        });
-    }
 
     private void givenAccount(BigDecimal balance, InterestPeriod period) {
         AccountResponse account =
@@ -123,12 +105,123 @@ class InterestCalculatorServiceTest {
     }
 
     @Test
+    @DisplayName("Four-decimal projection retains accrued fractions of a cent")
+    void projectionRetainsSubCentInterestWithFortnightValueDates() {
+        givenAccount(BigDecimal.ZERO, InterestPeriod.ANNUAL, "EUR");
+        InterestRateVariation rate =
+                InterestRateVariation.builder()
+                        .id(1L)
+                        .rate(new BigDecimal("0.5"))
+                        .taxRate(new BigDecimal("31.4"))
+                        .validFrom(LocalDate.of(2026, 1, 1))
+                        .dayCountBasis(InterestDayCountBasis.ACTUAL_365)
+                        .creditValueDateMode(InterestValueDateMode.FORTNIGHT)
+                        .debitValueDateMode(InterestValueDateMode.FORTNIGHT)
+                        .build();
+        when(variationRepository.findByAccountIdOrderByValidFromDesc(ACCOUNT_ID))
+                .thenReturn(List.of(rate));
+        givenClosingSavingsMovements();
+
+        BigDecimal estimate =
+                service.calculateYear(ACCOUNT_ID, USER_ID, 2026).calendarYearEstimate();
+        assertThat(estimate.setScale(4, RoundingMode.HALF_UP)).isEqualByComparingTo("1.4754");
+        assertThat(estimate).isBetween(new BigDecimal("1.47536328"), new BigDecimal("1.47536329"));
+    }
+
+    private void givenClosingSavingsMovements() {
+        when(accountService.getAccountBalanceHistory(
+                        ACCOUNT_ID, USER_ID, LocalDate.of(2026, 1, 1), LocalDate.of(2026, 12, 31)))
+                .thenReturn(
+                        List.of(
+                                new BalanceHistoryPoint(
+                                        LocalDate.of(2026, 1, 1), new BigDecimal("20386.62")),
+                                new BalanceHistoryPoint(
+                                        LocalDate.of(2026, 1, 7), new BigDecimal("10386.62")),
+                                new BalanceHistoryPoint(
+                                        LocalDate.of(2026, 1, 26), new BigDecimal("10")),
+                                new BalanceHistoryPoint(
+                                        LocalDate.of(2026, 5, 28), new BigDecimal("11.47")),
+                                new BalanceHistoryPoint(
+                                        LocalDate.of(2026, 5, 29), BigDecimal.ZERO)));
+        when(accountService.getCashMovements(
+                        org.mockito.ArgumentMatchers.eq(ACCOUNT_ID),
+                        org.mockito.ArgumentMatchers.eq(USER_ID),
+                        any(LocalDate.class),
+                        any(LocalDate.class)))
+                .thenReturn(
+                        List.of(
+                                new AccountService.CashMovement(
+                                        LocalDate.of(2026, 1, 7), new BigDecimal("-10000")),
+                                new AccountService.CashMovement(
+                                        LocalDate.of(2026, 1, 26), new BigDecimal("-10376.62")),
+                                new AccountService.CashMovement(
+                                        LocalDate.of(2026, 5, 28), new BigDecimal("1.47")),
+                                new AccountService.CashMovement(
+                                        LocalDate.of(2026, 5, 29), new BigDecimal("-11.47"))));
+    }
+
+    @Test
+    void historicalAndSelectedPeriodAccrualsRetainSubCentPrecision() {
+        givenAccount(new BigDecimal("100"), InterestPeriod.ANNUAL, "EUR");
+        LocalDate day = LocalDate.now().minusDays(1);
+        when(variationRepository.findByAccountIdOrderByValidFromDesc(ACCOUNT_ID))
+                .thenReturn(
+                        List.of(
+                                InterestRateVariation.builder()
+                                        .id(1L)
+                                        .rate(new BigDecimal("0.5"))
+                                        .taxRate(new BigDecimal("31.4"))
+                                        .validFrom(day)
+                                        .build()));
+        when(accountService.getAccountBalanceHistory(ACCOUNT_ID, USER_ID, "ALL"))
+                .thenReturn(List.of(new BalanceHistoryPoint(day, new BigDecimal("100"))));
+        BigDecimal lifetime = service.calculateHistoricalAccumulated(ACCOUNT_ID, USER_ID, "ALL");
+        BigDecimal selected = service.calculateHistoricalAccumulated(ACCOUNT_ID, USER_ID, day, day);
+        assertThat(selected.setScale(4, RoundingMode.HALF_UP)).isEqualByComparingTo("0.0009");
+        assertThat(lifetime.setScale(4, RoundingMode.HALF_UP)).isEqualByComparingTo("0.0019");
+        assertThat(lifetime).isEqualByComparingTo(selected.multiply(BigDecimal.TWO));
+    }
+
+    @Test
+    void formPreviewRetainsGrossTaxAndNetEstimatePrecision() {
+        LocalDate opening = LocalDate.now().withDayOfYear(1);
+        InterestCalculatorService.Preview preview =
+                service.preview(
+                        new InterestPreviewRequest(
+                                new BigDecimal("100"),
+                                new BigDecimal("1.005"),
+                                new BigDecimal("31.4"),
+                                opening,
+                                InterestPeriod.ANNUAL,
+                                "EUR"));
+        BigDecimal gross =
+                new BigDecimal("1.005")
+                        .multiply(BigDecimal.valueOf(opening.lengthOfYear()))
+                        .divide(new BigDecimal("365"), 18, RoundingMode.HALF_UP);
+        assertThat(preview.grossInterest())
+                .isCloseTo(
+                        gross,
+                        org.assertj.core.data.Offset.offset(new BigDecimal("0.000000000001")));
+        assertThat(preview.taxAmount())
+                .isCloseTo(
+                        gross.multiply(new BigDecimal("0.314")),
+                        org.assertj.core.data.Offset.offset(new BigDecimal("0.000000000001")));
+        assertThat(preview.netInterest())
+                .isCloseTo(
+                        gross.multiply(new BigDecimal("0.686")),
+                        org.assertj.core.data.Offset.offset(new BigDecimal("0.000000000001")));
+    }
+
+    @Test
     @DisplayName("Annual compounding, no tax: 5% on 10,000 = 500.00")
     void annualNoTax() {
         givenAccount(new BigDecimal("10000"), InterestPeriod.ANNUAL);
         givenRate("5", "0");
 
-        assertThat(service.calculateYear(ACCOUNT_ID, USER_ID, 2026).calendarYearEstimate())
+        assertThat(
+                        service.calculateYear(ACCOUNT_ID, USER_ID, 2026)
+                                .calendarYearEstimate()
+                                .setScale(2, RoundingMode.HALF_UP))
                 .isEqualByComparingTo("500.00");
     }
 
@@ -139,7 +232,10 @@ class InterestCalculatorServiceTest {
         givenRate("12", "0");
 
         // (1 + 0.12/12)^12 − 1 = 1.01^12 − 1 = 0.12682503... × 10000 = 1268.2503 → 1268.25
-        assertThat(service.calculateYear(ACCOUNT_ID, USER_ID, 2026).calendarYearEstimate())
+        assertThat(
+                        service.calculateYear(ACCOUNT_ID, USER_ID, 2026)
+                                .calendarYearEstimate()
+                                .setScale(2, RoundingMode.HALF_UP))
                 .isEqualByComparingTo("1268.25");
     }
 
@@ -149,7 +245,10 @@ class InterestCalculatorServiceTest {
         givenAccount(new BigDecimal("10000"), InterestPeriod.ANNUAL);
         givenRate("5", "30");
 
-        assertThat(service.calculateYear(ACCOUNT_ID, USER_ID, 2026).calendarYearEstimate())
+        assertThat(
+                        service.calculateYear(ACCOUNT_ID, USER_ID, 2026)
+                                .calendarYearEstimate()
+                                .setScale(2, RoundingMode.HALF_UP))
                 .isEqualByComparingTo("350.00");
     }
 
@@ -158,7 +257,10 @@ class InterestCalculatorServiceTest {
     void zeroBalance() {
         givenAccount(BigDecimal.ZERO, InterestPeriod.ANNUAL);
 
-        assertThat(service.calculateYear(ACCOUNT_ID, USER_ID, 2026).calendarYearEstimate())
+        assertThat(
+                        service.calculateYear(ACCOUNT_ID, USER_ID, 2026)
+                                .calendarYearEstimate()
+                                .setScale(2, RoundingMode.HALF_UP))
                 .isEqualByComparingTo("0");
     }
 
@@ -187,40 +289,52 @@ class InterestCalculatorServiceTest {
                                                         ? BigDecimal.ZERO
                                                         : account.getOwnBalance())));
 
-        assertThat(service.calculateYear(ACCOUNT_ID, USER_ID, 2026).calendarYearEstimate())
+        assertThat(
+                        service.calculateYear(ACCOUNT_ID, USER_ID, 2026)
+                                .calendarYearEstimate()
+                                .setScale(2, RoundingMode.HALF_UP))
                 .isEqualByComparingTo("0");
     }
 
     @Test
-    @DisplayName("Crypto (BTC) account preserves 8-decimal precision instead of clamping to 2")
+    @DisplayName("Crypto estimates keep calculation precision before display rounding")
     void cryptoAccountPreservesPrecision() {
         givenAccount(new BigDecimal("1"), InterestPeriod.MONTHLY, "BTC");
         givenRate("12", "0");
 
         // 1 × ((1 + 0.12/12)^12 − 1) = 0.126825030... BTC
-        // At 2 decimals this would clamp to 0.13, destroying value; 8 decimals keeps it.
+        // The API retains working precision; a display preference does not change the estimate.
         BigDecimal result = service.calculateYear(ACCOUNT_ID, USER_ID, 2026).calendarYearEstimate();
-        assertThat(result.scale()).isEqualTo(8);
-        assertThat(result).isEqualByComparingTo("0.12682503");
+        assertThat(result.scale()).isEqualTo(18);
+        assertThat(result)
+                .isCloseTo(
+                        new BigDecimal("0.126825030131969720"),
+                        org.assertj.core.data.Offset.offset(new BigDecimal("0.000000000000001")));
     }
 
     @Test
-    @DisplayName("Zero-decimal (JPY) account rounds interest to whole units")
-    void zeroDecimalAccountRoundsToWholeUnits() {
+    @DisplayName("JPY estimates retain fractions until display or settlement")
+    void zeroDecimalAccountRetainsEstimatePrecision() {
         givenAccount(new BigDecimal("10000"), InterestPeriod.MONTHLY, "JPY");
         givenRate("12", "0");
 
-        // 10000 × 0.12682503... = 1268.2503 → 1268 at 0 decimals
+        // Currency settlement precision must not discard the unposted estimate.
         BigDecimal result = service.calculateYear(ACCOUNT_ID, USER_ID, 2026).calendarYearEstimate();
-        assertThat(result.scale()).isEqualTo(0);
-        assertThat(result).isEqualByComparingTo("1268");
+        assertThat(result.scale()).isEqualTo(18);
+        assertThat(result)
+                .isCloseTo(
+                        new BigDecimal("1268.250301319697"),
+                        org.assertj.core.data.Offset.offset(new BigDecimal("0.000000000001")));
     }
 
     @Test
     void quarterlyProjectionUsesFourCompoundingPeriods() {
         givenAccount(new BigDecimal("1000"), InterestPeriod.QUARTERLY);
         givenRate("4", "0");
-        assertThat(service.calculateYear(ACCOUNT_ID, USER_ID, 2026).calendarYearEstimate())
+        assertThat(
+                        service.calculateYear(ACCOUNT_ID, USER_ID, 2026)
+                                .calendarYearEstimate()
+                                .setScale(2, RoundingMode.HALF_UP))
                 .isEqualByComparingTo("40.60");
     }
 
@@ -235,7 +349,10 @@ class InterestCalculatorServiceTest {
                                         .validFrom(LocalDate.of(2026, 7, 1))
                                         .rate(new BigDecimal("4"))
                                         .build()));
-        assertThat(service.calculateYear(ACCOUNT_ID, USER_ID, 2026).calendarYearEstimate())
+        assertThat(
+                        service.calculateYear(ACCOUNT_ID, USER_ID, 2026)
+                                .calendarYearEstimate()
+                                .setScale(2, RoundingMode.HALF_UP))
                 .isEqualByComparingTo("20.16");
     }
 

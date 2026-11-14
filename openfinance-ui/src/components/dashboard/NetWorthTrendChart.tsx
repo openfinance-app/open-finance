@@ -1,3 +1,5 @@
+import { useFormatCurrency } from '@/hooks/useFormatCurrency';
+import { decimalValue, ExactDecimal } from '@/utils/exact-decimal';
 import { formatDecimal } from '@/utils/format';
 /**
  * NetWorthTrendChart Component
@@ -20,7 +22,7 @@ import { ConvertedAmount } from '@/components/ui/ConvertedAmount';
 import { useVisibility } from '@/context/VisibilityContext';
 import { useUserSettings } from '@/hooks/useUserSettings';
 import { formatDate as globalFormatDate } from '@/utils/date';
-import { subtract, percentage } from '@/utils/money';
+import { percentage } from '@/utils/money';
 import { useTranslation } from 'react-i18next';
 import { addDays, differenceInCalendarDays, parseISO } from 'date-fns';
 import type { DateRange } from '@/utils/dashboard-period';
@@ -56,9 +58,11 @@ const CustomTooltip = ({
 }: CustomTooltipProps & { dateFormat?: string }) => {
   if (active && payload && payload.length) {
     const data = payload[0].payload;
-    const change = subtract(data.netWorth, data.previousNetWorth || data.netWorth);
+    const change = new ExactDecimal(decimalValue(data, 'netWorth') ?? 0).minus(
+      data.previousNetWorth ?? decimalValue(data, 'netWorth') ?? 0
+    );
     const changePercent = data.previousNetWorth
-      ? formatDecimal(percentage(change, data.previousNetWorth), 2)
+      ? formatDecimal(percentage(change.toFixed(), data.previousNetWorth), 2)
       : formatDecimal(0, 2);
 
     return (
@@ -70,22 +74,22 @@ const CustomTooltip = ({
           <ConvertedAmount
             conversionDate={data.date}
             showComparisons
-            amount={data.netWorth}
+            amount={decimalValue(data, 'netWorth') ?? data.netWorth}
             currency={currency}
             inline
           />
         </p>
         {data.previousNetWorth && (
-          <p className={`text-sm ${change >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-            {change >= 0 ? '+' : '-'}
+          <p className={`text-sm ${change.gte(0) ? 'text-green-600' : 'text-red-600'}`}>
+            {change.gte(0) ? '+' : '-'}
             <ConvertedAmount
-              amount={Math.abs(change)}
+              amount={change.abs().toFixed()}
               currency={currency}
               conversionDate={data.date}
               showComparisons
               inline
             />{' '}
-            ({change >= 0 ? '+' : ''}
+            ({change.gte(0) ? '+' : ''}
             {changePercent}%)
           </p>
         )}
@@ -98,19 +102,6 @@ const CustomTooltip = ({
 /**
  * Format currency for Y-axis
  */
-const formatYAxis = (value: number, isVisible: boolean) => {
-  if (!isVisible) {
-    return '••••';
-  }
-  // Abbreviate large numbers
-  if (Math.abs(value) >= 1000000) {
-    return `${(value / 1000000).toFixed(1)}M`;
-  }
-  if (Math.abs(value) >= 1000) {
-    return `${(value / 1000).toFixed(0)}K`;
-  }
-  return value.toFixed(0);
-};
 
 export default function NetWorthTrendChart({
   data,
@@ -119,13 +110,16 @@ export default function NetWorthTrendChart({
   dateRange,
 }: NetWorthTrendChartProps) {
   const { isAmountsVisible } = useVisibility();
+  const { formatCompact } = useFormatCurrency();
+  const formatYAxis = (value: number, visible: boolean) =>
+    visible ? formatCompact(value, currency, { showSymbol: false }) : '••••';
   const { data: settings } = useUserSettings();
   const { t } = useTranslation('dashboard');
   // Add previousNetWorth for change calculation in tooltip
   const chartData = data.map((point, index) => ({
     ...point,
     timestamp: parseISO(point.date).getTime(),
-    previousNetWorth: index > 0 ? data[index - 1].netWorth : null,
+    previousNetWorth: index > 0 ? decimalValue(data[index - 1], 'netWorth') : null,
   }));
   const lastDate = data.at(-1)?.date;
   const observedThrough = dateRange && lastDate && lastDate < dateRange.to ? lastDate : undefined;
@@ -160,17 +154,19 @@ export default function NetWorthTrendChart({
   }
 
   // Calculate overall trend
-  const firstValue = data[0]?.netWorth || 0;
-  const lastValue = data[data.length - 1]?.netWorth || 0;
-  const overallChange = subtract(lastValue, firstValue);
-  const overallChangePercent =
-    firstValue !== 0
-      ? formatDecimal(percentage(overallChange, Math.abs(firstValue)), 2)
-      : formatDecimal(0, 2);
+  const firstValue = decimalValue(data[0], 'netWorth') ?? 0;
+  const lastValue = decimalValue(data.at(-1), 'netWorth') ?? 0;
+  const overallChange = new ExactDecimal(lastValue).minus(firstValue);
+  const overallChangePercent = !new ExactDecimal(firstValue).isZero()
+    ? formatDecimal(
+        percentage(overallChange.toFixed(), new ExactDecimal(firstValue).abs().toFixed()),
+        2
+      )
+    : formatDecimal(0, 2);
 
   const getTrendIcon = () => {
-    if (overallChange > 0) return <TrendingUp className="h-5 w-5 text-green-500" />;
-    if (overallChange < 0) return <TrendingDown className="h-5 w-5 text-red-500" />;
+    if (overallChange.gt(0)) return <TrendingUp className="h-5 w-5 text-green-500" />;
+    if (overallChange.lt(0)) return <TrendingDown className="h-5 w-5 text-red-500" />;
     return <Minus className="h-5 w-5 text-text-muted" />;
   };
 
@@ -213,13 +209,17 @@ export default function NetWorthTrendChart({
             {getTrendIcon()}
             <div className="text-right">
               <p
-                className={`whitespace-nowrap text-sm font-semibold ${overallChange >= 0 ? 'text-green-500' : 'text-red-500'}`}
+                className={`whitespace-nowrap text-sm font-semibold ${overallChange.gte(0) ? 'text-green-500' : 'text-red-500'}`}
               >
-                {overallChange >= 0 ? '+' : '-'}
-                <ConvertedAmount amount={Math.abs(overallChange)} currency={currency} inline />
+                {overallChange.gte(0) ? '+' : '-'}
+                <ConvertedAmount
+                  amount={overallChange.abs().toFixed()}
+                  currency={currency}
+                  inline
+                />
               </p>
-              <p className={`text-xs ${overallChange >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-                {overallChange >= 0 ? '+' : ''}
+              <p className={`text-xs ${overallChange.gte(0) ? 'text-green-500' : 'text-red-500'}`}>
+                {overallChange.gte(0) ? '+' : ''}
                 {overallChangePercent}%
               </p>
             </div>

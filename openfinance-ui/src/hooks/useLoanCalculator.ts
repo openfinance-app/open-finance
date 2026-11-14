@@ -6,7 +6,7 @@ import {
   type LoanCalculatorResult,
   type LoanAmortizationEntry,
 } from '../types/calculator';
-import { add, divide, multiply, pow, subtract } from '@/utils/money';
+import { calculatedAmounts, ExactDecimal } from '@/utils/exact-decimal';
 
 interface LoanCalculatorState {
   input: LoanCalculatorInput;
@@ -49,60 +49,45 @@ export function useLoanCalculator() {
       return;
     }
 
-    const monthlyRate = divide(divide(annualRate, 100), 12);
+    const monthlyRate = new ExactDecimal(annualRate).div(1200);
     const totalPayments = Math.round(years * 12);
-
-    let monthlyPayment = 0;
-
-    if (monthlyRate === 0) {
-      monthlyPayment = divide(principal, totalPayments);
-    } else {
-      const factor = pow(add(1, monthlyRate), totalPayments);
-      monthlyPayment = divide(
-        multiply(multiply(principal, monthlyRate), factor),
-        subtract(factor, 1)
-      );
-    }
-
+    const balance = new ExactDecimal(principal);
+    const factor = monthlyRate.plus(1).pow(totalPayments);
+    const monthlyPayment = monthlyRate.isZero()
+      ? balance.div(totalPayments)
+      : balance.times(monthlyRate).times(factor).div(factor.minus(1));
     const schedule: LoanAmortizationEntry[] = [];
-    let remainingBalance = principal;
-    let cumulativeInterest = 0;
-    let totalInterest = 0;
-
+    let remainingBalance = balance;
+    let cumulativeInterest = new ExactDecimal(0);
     for (let i = 1; i <= totalPayments; i++) {
-      const interestPortion = multiply(remainingBalance, monthlyRate);
-      let principalPortion = subtract(monthlyPayment, interestPortion);
-
-      if (i === totalPayments) {
-        principalPortion = remainingBalance;
-        monthlyPayment = add(principalPortion, interestPortion);
-      }
-
-      remainingBalance = subtract(remainingBalance, principalPortion);
-      if (remainingBalance < 0) remainingBalance = 0;
-
-      cumulativeInterest = add(cumulativeInterest, interestPortion);
-
+      const interestPortion = remainingBalance.times(monthlyRate);
+      const principalPortion =
+        i === totalPayments
+          ? remainingBalance
+          : ExactDecimal.min(remainingBalance, monthlyPayment.minus(interestPortion));
+      remainingBalance = ExactDecimal.max(0, remainingBalance.minus(principalPortion));
+      cumulativeInterest = cumulativeInterest.plus(interestPortion);
       schedule.push({
         paymentNumber: i,
-        paymentAmount: monthlyPayment,
-        principalPortion,
-        interestPortion,
-        remainingBalance,
-        cumulativeInterest,
+        ...calculatedAmounts({
+          paymentAmount: principalPortion.plus(interestPortion),
+          principalPortion,
+          interestPortion,
+          remainingBalance,
+          cumulativeInterest,
+        }),
       });
     }
-
-    totalInterest = cumulativeInterest;
-    const totalPayment = add(principal, totalInterest);
 
     setState(prev => ({
       ...prev,
       error: null,
       result: {
-        monthlyPayment,
-        totalInterest,
-        totalPayment,
+        ...calculatedAmounts({
+          monthlyPayment,
+          totalInterest: cumulativeInterest,
+          totalPayment: balance.plus(cumulativeInterest),
+        }),
         amortizationSchedule: schedule,
       },
     }));

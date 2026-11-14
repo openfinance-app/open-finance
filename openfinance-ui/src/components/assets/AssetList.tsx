@@ -1,3 +1,4 @@
+import { decimalValue } from '@/utils/exact-decimal';
 import { Link } from 'react-router';
 import { AssetTradeActions } from '@/components/assets/AssetTradeActions';
 import { useViewState } from '@/hooks/useViewState';
@@ -329,13 +330,18 @@ export function AssetList({
                       <td className="py-3 px-4 text-sm text-text-primary text-right font-mono">
                         {/* REQ-2.2: Show converted base-currency value when available */}
                         <ConvertedAmount
-                          amount={asset.totalValue}
+                          amount={decimalValue(asset, 'totalValue') ?? asset.totalValue}
                           currency={asset.currency}
-                          convertedAmount={asset.valueInBaseCurrency}
+                          convertedAmount={
+                            decimalValue(asset, 'valueInBaseCurrency') ?? asset.valueInBaseCurrency
+                          }
                           baseCurrency={asset.baseCurrency}
-                          exchangeRate={asset.exchangeRate}
+                          exchangeRate={decimalValue(asset, 'exchangeRate') ?? asset.exchangeRate}
                           isConverted={asset.isConverted}
-                          secondaryAmount={asset.valueInSecondaryCurrency}
+                          secondaryAmount={
+                            decimalValue(asset, 'valueInSecondaryCurrency') ??
+                            asset.valueInSecondaryCurrency
+                          }
                           secondaryCurrency={asset.secondaryCurrency}
                           inline
                         />
@@ -344,7 +350,7 @@ export function AssetList({
                         {/* Show totalCost in base currency when conversion is available */}
                         <ConvertedAmount
                           inline
-                          amount={asset.totalCost}
+                          amount={decimalValue(asset, 'totalCost') ?? asset.totalCost}
                           currency={asset.currency}
                           convertedAmount={
                             asset.isConverted && asset.exchangeRate
@@ -352,7 +358,7 @@ export function AssetList({
                               : undefined
                           }
                           baseCurrency={asset.baseCurrency}
-                          exchangeRate={asset.exchangeRate}
+                          exchangeRate={decimalValue(asset, 'exchangeRate') ?? asset.exchangeRate}
                           isConverted={asset.isConverted}
                         />
                       </td>
@@ -496,13 +502,18 @@ export function AssetList({
                       <span className="text-text-primary font-mono font-medium">
                         {/* REQ-2.2: Show converted base-currency value when available */}
                         <ConvertedAmount
-                          amount={asset.totalValue}
+                          amount={decimalValue(asset, 'totalValue') ?? asset.totalValue}
                           currency={asset.currency}
-                          convertedAmount={asset.valueInBaseCurrency}
+                          convertedAmount={
+                            decimalValue(asset, 'valueInBaseCurrency') ?? asset.valueInBaseCurrency
+                          }
                           baseCurrency={asset.baseCurrency}
-                          exchangeRate={asset.exchangeRate}
+                          exchangeRate={decimalValue(asset, 'exchangeRate') ?? asset.exchangeRate}
                           isConverted={asset.isConverted}
-                          secondaryAmount={asset.valueInSecondaryCurrency}
+                          secondaryAmount={
+                            decimalValue(asset, 'valueInSecondaryCurrency') ??
+                            asset.valueInSecondaryCurrency
+                          }
                           secondaryCurrency={asset.secondaryCurrency}
                           inline
                         />
@@ -514,7 +525,7 @@ export function AssetList({
                         {/* Show totalCost in base currency when conversion is available */}
                         <ConvertedAmount
                           inline
-                          amount={asset.totalCost}
+                          amount={decimalValue(asset, 'totalCost') ?? asset.totalCost}
                           currency={asset.currency}
                           convertedAmount={
                             asset.isConverted && asset.exchangeRate
@@ -522,7 +533,7 @@ export function AssetList({
                               : undefined
                           }
                           baseCurrency={asset.baseCurrency}
-                          exchangeRate={asset.exchangeRate}
+                          exchangeRate={decimalValue(asset, 'exchangeRate') ?? asset.exchangeRate}
                           isConverted={asset.isConverted}
                         />
                       </span>

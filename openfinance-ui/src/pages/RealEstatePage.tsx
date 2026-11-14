@@ -1,3 +1,4 @@
+import { decimalValue, exactSum, ExactDecimal } from '@/utils/exact-decimal';
 import { useProperty } from '@/hooks/useRealEstate';
 import { useViewState } from '@/hooks/useViewState';
 import { useAsset } from '@/hooks/useAssets';
@@ -47,7 +48,6 @@ import { ConvertedAmount } from '@/components/ui/ConvertedAmount';
 import { RegexToggle } from '@/components/ui/RegexToggle';
 import { useAuthContext } from '@/context/AuthContext';
 import { useSecondaryConversion } from '@/hooks/useSecondaryConversion';
-import { sum, multiply, subtract } from '@/utils/money';
 import type {
   RealEstateProperty,
   PropertySearchFilters,
@@ -68,7 +68,8 @@ export default function RealEstatePage() {
   const { data: linkedAsset } = useAsset(assetId);
   const { baseCurrency } = useAuthContext();
   const {
-    convert,
+    convert: convertNumber,
+    convertExact: convert = convertNumber,
     secondaryCurrency: secCurrency,
     secondaryExchangeRate,
   } = useSecondaryConversion(baseCurrency);
@@ -236,31 +237,39 @@ export default function RealEstatePage() {
       return false;
     };
 
-    const totalValue = sum(
+    const totalValue = exactSum(
       list
         .filter(isIncludable)
-        .map(p =>
-          p.isConverted && p.valueInBaseCurrency != null ? p.valueInBaseCurrency : p.currentValue
+        .map(
+          p =>
+            decimalValue(
+              p,
+              p.isConverted && p.valueInBaseCurrency != null
+                ? 'valueInBaseCurrency'
+                : 'currentValue'
+            ) ?? 0
         )
     );
 
     // Reset excludedCount — it was inflated once per metric above; track once.
     excludedCount = list.filter(p => !isIncludable(p)).length;
 
-    const totalMortgageDebt = sum(
+    const totalMortgageDebt = exactSum(
       list
         .filter(isIncludable)
         .map(p =>
-          p.isConverted ? multiply(p.allocatedDebt, p.exchangeRate ?? 1) : p.allocatedDebt
+          new ExactDecimal(decimalValue(p, 'allocatedDebt') ?? 0)
+            .times(p.isConverted ? (decimalValue(p, 'exchangeRate') ?? 1) : 1)
+            .toFixed()
         )
     );
-    const totalEquity = subtract(totalValue, totalMortgageDebt);
+    const totalEquity = new ExactDecimal(totalValue).minus(totalMortgageDebt).toFixed();
 
-    const totalRentalIncome = sum(
+    const totalRentalIncome = exactSum(
       list.filter(isIncludable).map(p => {
-        const income = p.rentalIncome || 0;
-        const rate = p.exchangeRate ?? 1;
-        return p.isConverted ? multiply(income, rate) : income;
+        const income = decimalValue(p, 'rentalIncome') ?? 0;
+        const rate = decimalValue(p, 'exchangeRate') ?? 1;
+        return p.isConverted ? new ExactDecimal(income).times(rate).toFixed() : income;
       })
     );
 
@@ -581,7 +590,7 @@ export default function RealEstatePage() {
           <Card className="p-4">
             <p className="text-sm text-text-secondary mb-1">{t('summary.totalPortfolioValue')}</p>
             <ConvertedAmount
-              amount={summary.totalValue}
+              amount={decimalValue(summary, 'totalValue') ?? summary.totalValue}
               currency={summary.currency}
               className="text-2xl font-bold text-text-primary"
             />
@@ -589,10 +598,12 @@ export default function RealEstatePage() {
               <p className="text-xs text-text-tertiary mt-1">
                 {t('filtered')}{' '}
                 <ConvertedAmount
-                  amount={filteredSummary.totalValue}
+                  amount={decimalValue(filteredSummary, 'totalValue') ?? filteredSummary.totalValue}
                   currency={filteredSummary.currency}
                   isConverted={false}
-                  secondaryAmount={convert(filteredSummary.totalValue)}
+                  secondaryAmount={convert(
+                    decimalValue(filteredSummary, 'totalValue') ?? filteredSummary.totalValue
+                  )}
                   secondaryCurrency={secCurrency}
                   secondaryExchangeRate={secondaryExchangeRate}
                   inline
@@ -605,10 +616,10 @@ export default function RealEstatePage() {
           <Card className="p-4">
             <p className="text-sm text-text-secondary mb-1">{t('summary.totalEquity')}</p>
             <ConvertedAmount
-              amount={summary.totalEquity}
+              amount={decimalValue(summary, 'totalEquity') ?? summary.totalEquity}
               currency={summary.currency}
               className={
-                summary.totalEquity < 0
+                new ExactDecimal(summary.totalEquity).lt(0)
                   ? 'text-2xl font-bold text-error'
                   : 'text-2xl font-bold text-green-400'
               }
@@ -617,10 +628,14 @@ export default function RealEstatePage() {
               <p className="text-xs text-text-tertiary mt-1">
                 {t('filtered')}{' '}
                 <ConvertedAmount
-                  amount={filteredSummary.totalEquity}
+                  amount={
+                    decimalValue(filteredSummary, 'totalEquity') ?? filteredSummary.totalEquity
+                  }
                   currency={filteredSummary.currency}
                   isConverted={false}
-                  secondaryAmount={convert(filteredSummary.totalEquity)}
+                  secondaryAmount={convert(
+                    decimalValue(filteredSummary, 'totalEquity') ?? filteredSummary.totalEquity
+                  )}
                   secondaryCurrency={secCurrency}
                   secondaryExchangeRate={secondaryExchangeRate}
                   inline
@@ -633,7 +648,7 @@ export default function RealEstatePage() {
           <Card className="p-4">
             <p className="text-sm text-text-secondary mb-1">{t('summary.totalMortgageDebt')}</p>
             <ConvertedAmount
-              amount={summary.totalMortgageDebt}
+              amount={decimalValue(summary, 'totalMortgageDebt') ?? summary.totalMortgageDebt}
               currency={summary.currency}
               className="text-2xl font-bold text-error"
             />
@@ -641,10 +656,16 @@ export default function RealEstatePage() {
               <p className="text-xs text-text-tertiary mt-1">
                 {t('filtered')}{' '}
                 <ConvertedAmount
-                  amount={filteredSummary.totalMortgageDebt}
+                  amount={
+                    decimalValue(filteredSummary, 'totalMortgageDebt') ??
+                    filteredSummary.totalMortgageDebt
+                  }
                   currency={filteredSummary.currency}
                   isConverted={false}
-                  secondaryAmount={convert(filteredSummary.totalMortgageDebt)}
+                  secondaryAmount={convert(
+                    decimalValue(filteredSummary, 'totalMortgageDebt') ??
+                      filteredSummary.totalMortgageDebt
+                  )}
                   secondaryCurrency={secCurrency}
                   secondaryExchangeRate={secondaryExchangeRate}
                   inline
@@ -658,7 +679,7 @@ export default function RealEstatePage() {
             <p className="text-sm text-text-secondary mb-1">{t('summary.monthlyRentalIncome')}</p>
             <div className="flex items-baseline gap-1">
               <ConvertedAmount
-                amount={summary.totalRentalIncome}
+                amount={decimalValue(summary, 'totalRentalIncome') ?? summary.totalRentalIncome}
                 currency={summary.currency}
                 className="text-2xl font-bold text-primary"
               />
@@ -668,10 +689,16 @@ export default function RealEstatePage() {
               <p className="text-xs text-text-tertiary mt-1">
                 {t('filtered')}{' '}
                 <ConvertedAmount
-                  amount={filteredSummary.totalRentalIncome}
+                  amount={
+                    decimalValue(filteredSummary, 'totalRentalIncome') ??
+                    filteredSummary.totalRentalIncome
+                  }
                   currency={filteredSummary.currency}
                   isConverted={false}
-                  secondaryAmount={convert(filteredSummary.totalRentalIncome)}
+                  secondaryAmount={convert(
+                    decimalValue(filteredSummary, 'totalRentalIncome') ??
+                      filteredSummary.totalRentalIncome
+                  )}
                   secondaryCurrency={secCurrency}
                   secondaryExchangeRate={secondaryExchangeRate}
                   inline

@@ -16,6 +16,7 @@ import {
   formatCurrencyCompact,
   formatCurrencyWithColor,
   type FormatCurrencyOptions,
+  type MonetaryValue,
 } from '@/utils/currency';
 
 export function useFormatCurrency() {
@@ -23,10 +24,14 @@ export function useFormatCurrency() {
   const { effectiveDecimals } = useDecimalPlaces();
 
   const format = useCallback(
-    (amount: number, currencyCode?: string | null, options?: FormatCurrencyOptions): string =>
+    (
+      amount: MonetaryValue,
+      currencyCode?: string | null,
+      options?: FormatCurrencyOptions
+    ): string =>
       formatCurrency(amount, currencyCode, {
         numberFormat,
-        ...(effectiveDecimals !== null ? { decimals: effectiveDecimals } : {}),
+        decimals: effectiveDecimals,
         ...options,
       }),
     [numberFormat, effectiveDecimals]
@@ -34,13 +39,13 @@ export function useFormatCurrency() {
 
   const formatCompact = useCallback(
     (
-      amount: number,
+      amount: MonetaryValue,
       currencyCode?: string | null,
       options?: Omit<FormatCurrencyOptions, 'compact'>
     ): string =>
       formatCurrencyCompact(amount, currencyCode, {
         numberFormat,
-        ...(effectiveDecimals !== null ? { decimals: effectiveDecimals } : {}),
+        decimals: effectiveDecimals,
         ...options,
       }),
     [numberFormat, effectiveDecimals]
@@ -48,13 +53,13 @@ export function useFormatCurrency() {
 
   const formatWithColor = useCallback(
     (
-      amount: number,
+      amount: MonetaryValue,
       currencyCode?: string | null,
       options?: FormatCurrencyOptions
     ): { formatted: string; className: string } =>
       formatCurrencyWithColor(amount, currencyCode, {
         numberFormat,
-        ...(effectiveDecimals !== null ? { decimals: effectiveDecimals } : {}),
+        decimals: effectiveDecimals,
         ...options,
       }),
     [numberFormat, effectiveDecimals]

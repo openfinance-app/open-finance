@@ -95,10 +95,7 @@ class FinancialDashboardCalculationsTest {
         assertThat(result.getAnalysisPeriod()).isEqualTo(days);
         assertThat(result.getMonthlyIncome()).isEqualByComparingTo(expectedMonthly);
         assertThat(result.getMonthlyExpenses())
-                .isEqualByComparingTo(
-                        expectedMonthly
-                                .divide(BigDecimal.TEN)
-                                .setScale(2, java.math.RoundingMode.HALF_UP));
+                .isEqualByComparingTo(expectedMonthly.divide(BigDecimal.TEN));
     }
 
     @Test
@@ -118,7 +115,7 @@ class FinancialDashboardCalculationsTest {
     void newlyOpenedDebtProjectsOnlyItsDaysWithinTheCurrentCalendarYear() {
         loan(today, "1000", "12");
         EstimatedInterestSummary result = dashboardService.getEstimatedInterestSummary(1L, "1Y");
-        assertThat(result.getTotalEarned()).isEqualByComparingTo("-0.33");
+        assertThat(result.getTotalEarned()).isEqualByComparingTo("-0.328767123287671233");
         assertThat(result.getTotalProjected())
                 .isEqualByComparingTo(
                         new BigDecimal("-120")
@@ -127,7 +124,7 @@ class FinancialDashboardCalculationsTest {
                                                 daysThisYear(
                                                         today,
                                                         today.withMonth(12).withDayOfMonth(31))))
-                                .divide(new BigDecimal("365"), 2, java.math.RoundingMode.HALF_UP));
+                                .divide(new BigDecimal("365"), 18, java.math.RoundingMode.HALF_UP));
     }
 
     @Test

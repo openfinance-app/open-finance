@@ -12,7 +12,7 @@ import { useQuery } from '@tanstack/react-query';
 import apiClient from '@/services/apiClient';
 import { useAssets } from '@/hooks/useAssets';
 import { apiErrorMessage } from '@/utils/api-error';
-import { ExactDecimal } from '@/utils/exact-decimal';
+import { ExactDecimal, decimalField } from '@/utils/exact-decimal';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/Button';
@@ -23,7 +23,6 @@ import { useDisburseLiability } from '@/hooks/useLiabilities';
 import { useAccounts } from '@/hooks/useAccounts';
 import { getToday } from '@/utils/date';
 import { isValidDecimalString } from '@/utils/money';
-import { decimalField } from '@/utils/exact-decimal';
 import type { Liability, LiabilityTranche } from '@/types/liability';
 
 type DisburseRoute = 'account' | 'property';
@@ -317,7 +316,7 @@ export function DisburseForm({ liability, tranche, onDone }: DisburseFormProps) 
               inline
               amount={new ExactDecimal(decimalField(liability, 'currentBalance'))
                 .plus(amount)
-                .toNumber()}
+                .toFixed()}
               currency={liability.currency}
             />
           </dd>

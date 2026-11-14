@@ -1,3 +1,4 @@
+import { decimalValue } from '@/utils/exact-decimal';
 import { Wallet, CreditCard, PiggyBank, TrendingUp, Banknote, HelpCircle } from 'lucide-react';
 import { useNavigate } from 'react-router';
 import { ROUTES } from '@/constants/routes';
@@ -106,7 +107,11 @@ export default function AccountsSummaryCard({ accounts }: AccountsSummaryCardPro
                   {/* REQ-8.1: Display account balance using ConvertedAmount.
                       IAccountSummary lacks conversion fields, so ConvertedAmount
                       gracefully falls back to native currency display. */}
-                  <ConvertedAmount amount={account.balance} currency={account.currency} inline />
+                  <ConvertedAmount
+                    amount={decimalValue(account, 'balance') ?? account.balance}
+                    currency={account.currency}
+                    inline
+                  />
                 </div>
               </div>
             </div>

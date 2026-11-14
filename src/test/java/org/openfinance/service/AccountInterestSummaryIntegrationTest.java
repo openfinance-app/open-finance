@@ -11,6 +11,73 @@ import org.junit.jupiter.api.Test;
 /** Proves the three fixed interest scopes and refresh after dated rate mutations. */
 class AccountInterestSummaryIntegrationTest extends AuditApiTestSupport {
     @Test
+    void accountYearAndDashboardApisRetainSubCentEstimates() throws Exception {
+        LocalDate opening = LocalDate.now().withDayOfYear(1);
+        long account = createPrecisionSavings(opening);
+        JsonNode accountEstimate =
+                json("GET", "/accounts/" + account + "/interest-estimate", null, owner, 200);
+        JsonNode yearEstimate =
+                json(
+                        "GET",
+                        "/accounts/" + account + "/interest-year?year=" + opening.getYear(),
+                        null,
+                        owner,
+                        200);
+        JsonNode dashboard =
+                json("GET", "/dashboard/estimated-interest?period=YTD", null, owner, 200);
+        BigDecimal projected = accountEstimate.path("estimate").decimalValue();
+        assertThat(projected)
+                .isCloseTo(
+                        new BigDecimal("1.47536"),
+                        org.assertj.core.data.Offset.offset(new BigDecimal("0.000000000001")));
+        money(yearEstimate, "calendarYearEstimate", projected.toPlainString());
+        money(dashboard, "totalProjected", projected.toPlainString());
+        money(dashboard.path("accounts").get(0), "projectedInterest", projected.toPlainString());
+        money(json("GET", "/accounts/" + account, null, owner, 200), "ownBalance", "100");
+    }
+
+    private long createPrecisionSavings(LocalDate opening) throws Exception {
+        long account =
+                json(
+                                "POST",
+                                "/accounts",
+                                data(
+                                        "name",
+                                        "Precision savings",
+                                        "type",
+                                        "SAVINGS",
+                                        "currency",
+                                        "EUR",
+                                        "initialBalance",
+                                        "100",
+                                        "openingDate",
+                                        opening.toString(),
+                                        "isInterestEnabled",
+                                        true,
+                                        "interestPeriod",
+                                        "ANNUAL"),
+                                owner,
+                                201)
+                        .path("id")
+                        .asLong();
+        json(
+                "POST",
+                "/accounts/" + account + "/interest-variations",
+                data(
+                        "rate",
+                        "1.47536",
+                        "taxRate",
+                        "0",
+                        "validFrom",
+                        opening.toString(),
+                        "dayCountBasis",
+                        "THIRTY_360"),
+                owner,
+                201);
+        return account;
+    }
+
+    @Test
     void summariesUseCalendarYearYearToDateAndLifetimeAndRecalculateRates() throws Exception {
         LocalDate today = LocalDate.now();
         LocalDate opening = today.withDayOfYear(1).minusMonths(1);

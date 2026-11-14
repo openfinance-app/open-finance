@@ -42,7 +42,7 @@ describe('split currency display', () => {
 
   it('does not assign the whole parent total to a subset of split lines', () => {
     expect(splitCurrencyAmounts(splits.slice(0, 1), transaction)).toEqual([
-      [{ amount: 0.33, currency: 'EUR' }],
+      [{ amount: '0.33', currency: 'EUR' }],
     ]);
   });
 
@@ -65,8 +65,21 @@ describe('split currency display', () => {
       originalAmount: 6,
     });
     expect(
-      values.every(row => row.some(value => value.currency === 'GBP' && value.amount === 2))
+      values.every(row => row.some(value => value.currency === 'GBP' && value.amount === '2'))
     ).toBe(true);
+  });
+
+  it('retains sub-cent recorded equivalents when allocating the parent total', () => {
+    const values = splitCurrencyAmounts(splits, {
+      ...transaction,
+      amountInBaseCurrency: 1.23456789,
+      exactValues: { amountInBaseCurrency: '1.23456789123456789' },
+    });
+    expect(values.map(row => row[0].amount)).toEqual([
+      '0.41152263041152263',
+      '0.41152263041152263',
+      '0.41152263041152263',
+    ]);
   });
 
   it('does not invent base amounts when conversion failed', () => {

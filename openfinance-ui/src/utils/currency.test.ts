@@ -201,12 +201,11 @@ describe('formatCurrency', () => {
   });
   it('handles Infinity', () => {
     const result = formatCurrency(Infinity, 'USD');
-    expect(result).toContain('$');
-    expect(result).toContain('0.00');
+    expect(result).toBe('—');
   });
   it('handles NaN', () => {
     const result = formatCurrency(NaN, 'USD');
-    expect(result).toContain('0.00');
+    expect(result).toBe('—');
   });
   it('shows positive sign when requested', () => {
     const result = formatCurrency(100, 'USD', { showPositiveSign: true });
@@ -244,17 +243,36 @@ describe('formatCurrency', () => {
 });
 
 describe('formatCurrencyCompact', () => {
+  it('rounds halfway values consistently with standard currency formatting', () => {
+    expect(formatCurrency(1.005, 'EUR')).toBe('€1.01');
+    expect(formatCurrencyCompact(1.005, 'EUR')).toBe('€1.01');
+    expect(formatCurrencyCompact(1005, 'EUR', { decimals: 2 })).toBe('€1.01K');
+  });
+
+  it('uses the same compact precision through either entry point', () => {
+    expect(formatCurrency(1234, 'EUR', { compact: true })).toBe('€1.23K');
+    expect(formatCurrencyCompact(1234, 'EUR')).toBe('€1.23K');
+    setDecimalPlacesOverride(3);
+    try {
+      expect(formatCurrency(1234, 'EUR', { compact: true })).toBe('€1.234K');
+      expect(formatCurrencyCompact(1234, 'EUR')).toBe('€1.234K');
+      expect(formatCurrencyCompact(1.23456, 'EUR')).toBe('€1.235');
+    } finally {
+      setDecimalPlacesOverride(null);
+    }
+  });
+
   it('formats thousands as K', () => {
     const result = formatCurrencyCompact(1500, 'USD');
-    expect(result).toContain('1.5K');
+    expect(result).toContain('1.50K');
   });
   it('formats millions as M', () => {
     const result = formatCurrencyCompact(2300000, 'USD');
-    expect(result).toContain('2.3M');
+    expect(result).toContain('2.30M');
   });
   it('formats billions as B', () => {
     const result = formatCurrencyCompact(1200000000, 'USD');
-    expect(result).toContain('1.2B');
+    expect(result).toContain('1.20B');
   });
   it('shows full value for small amounts', () => {
     const result = formatCurrencyCompact(42.5, 'USD');
@@ -267,7 +285,7 @@ describe('formatCurrencyCompact', () => {
   });
   it('handles Infinity', () => {
     const result = formatCurrencyCompact(Infinity, 'USD');
-    expect(result).toContain('0');
+    expect(result).toBe('—');
   });
   it('defaults to EUR when null', () => {
     const result = formatCurrencyCompact(100, null);

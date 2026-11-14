@@ -1,3 +1,4 @@
+import { decimalValue } from '@/utils/exact-decimal';
 import { useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
@@ -195,11 +196,16 @@ export function LiabilitySelector({
                   </span>
                   <span className="text-xs text-text-muted shrink-0 whitespace-nowrap pt-0.5">
                     <ConvertedAmount
-                      amount={liability.currentBalance}
+                      amount={decimalValue(liability, 'currentBalance') ?? liability.currentBalance}
                       currency={liability.currency}
-                      convertedAmount={liability.balanceInBaseCurrency}
+                      convertedAmount={
+                        decimalValue(liability, 'balanceInBaseCurrency') ??
+                        liability.balanceInBaseCurrency
+                      }
                       baseCurrency={liability.baseCurrency}
-                      exchangeRate={liability.exchangeRate}
+                      exchangeRate={
+                        decimalValue(liability, 'exchangeRate') ?? liability.exchangeRate
+                      }
                       isConverted={liability.isConverted}
                       inline
                       compact
