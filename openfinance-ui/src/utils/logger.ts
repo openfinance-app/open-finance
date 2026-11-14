@@ -155,8 +155,12 @@ class Logger {
    * Log API response
    */
   logApiResponse(method: string, url: string, status: number, data?: unknown): void {
-    const level = status >= 400 ? 'error' : 'debug';
-    this[level](`API Response: ${method} ${url} - ${status}`, { data });
+    // error() takes (message, error, context): pass data as context, not error.
+    if (status >= 400) {
+      this.error(`API Response: ${method} ${url} - ${status}`, undefined, { data });
+    } else {
+      this.debug(`API Response: ${method} ${url} - ${status}`, { data });
+    }
   }
 
   /**

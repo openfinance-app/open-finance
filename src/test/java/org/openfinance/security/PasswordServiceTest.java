@@ -279,6 +279,93 @@ class PasswordServiceTest {
     }
 
     @Test
+    @DisplayName("Should report rehash needed for a BCrypt hash below the current strength")
+    void shouldNeedRehashForWeakBcryptHash() {
+        String weakHash = new BCryptPasswordEncoder(4).encode("SomePassword123!");
+        assertTrue(passwordService.needsRehash(weakHash));
+    }
+
+    @Test
+    @DisplayName("Should not report rehash for a freshly hashed long (PBKDF2) password")
+    void shouldNotNeedRehashForLongPasswordHash() {
+        String longPassword = "a".repeat(100);
+        String hash = passwordService.hashPassword(longPassword);
+        assertTrue(hash.startsWith("{pbkdf2-sha256}"));
+        assertFalse(passwordService.needsRehash(hash));
+        assertTrue(passwordService.validatePassword(longPassword, hash));
+    }
+
+    @Test
+    @DisplayName("Should conservatively report rehash for unrecognised hash formats")
+    void shouldNeedRehashForGarbageHash() {
+        assertTrue(passwordService.needsRehash("not-a-bcrypt-hash"));
+        assertTrue(passwordService.needsRehash("   "));
+    }
+
+    @Test
+    @DisplayName("Should report rehash when the configured encoder is not BCrypt")
+    void shouldNeedRehashForUnknownEncoder() {
+        PasswordEncoder identity =
+                new PasswordEncoder() {
+                    @Override
+                    public String encode(CharSequence rawPassword) {
+                        return rawPassword.toString();
+                    }
+
+                    @Override
+                    public boolean matches(CharSequence rawPassword, String encodedPassword) {
+                        return rawPassword.toString().equals(encodedPassword);
+                    }
+                };
+        PasswordService custom = new PasswordService(identity);
+        // PasswordEncoder.upgradeEncoding defaults to false, so the service defers to the
+        // encoder; the "unknown encoder -> rehash" fallback below it is currently unreachable.
+        assertFalse(custom.needsRehash("anything"));
+        assertTrue(custom.needsRehash(null));
+    }
+
+    @Test
+    @DisplayName("Should return false (not throw) when validating against a malformed hash")
+    void shouldRejectMalformedHashWithoutThrowing() {
+        assertFalse(passwordService.validatePassword("Whatever123!", "not-a-bcrypt-hash"));
+        assertFalse(passwordService.validatePassword("Whatever123!", "$2a$broken"));
+    }
+
+    @Test
+    @DisplayName("Should wrap encoder failures during hashing in IllegalStateException")
+    void shouldWrapHashingFailures() {
+        PasswordEncoder failing =
+                new PasswordEncoder() {
+                    @Override
+                    public String encode(CharSequence rawPassword) {
+                        throw new RuntimeException("encoder exploded");
+                    }
+
+                    @Override
+                    public boolean matches(CharSequence rawPassword, String encodedPassword) {
+                        return false;
+                    }
+                };
+        PasswordService custom = new PasswordService(failing);
+        IllegalStateException ex =
+                assertThrows(
+                        IllegalStateException.class, () -> custom.hashPassword("SomePassword123!"));
+        assertEquals("Failed to hash password", ex.getMessage());
+    }
+
+    @Test
+    @DisplayName("Should count UTF-8 bytes (not chars) at the 72-byte BCrypt boundary")
+    void shouldUseByteLengthAtBcryptBoundary() {
+        // 'é' is 2 UTF-8 bytes: 36 chars = 72 bytes (BCrypt), 37 chars = 74 bytes (PBKDF2).
+        String exactly72Bytes = "é".repeat(36);
+        String over72Bytes = "é".repeat(37);
+        assertTrue(passwordService.hashPassword(exactly72Bytes).startsWith("$2"));
+        assertTrue(passwordService.hashPassword(over72Bytes).startsWith("{pbkdf2-sha256}"));
+        assertTrue(
+                passwordService.validatePassword(
+                        over72Bytes, passwordService.hashPassword(over72Bytes)));
+    }
+
     @DisplayName("Should be timing-attack resistant")
     void shouldBeTimingAttackResistant() {
         // Given

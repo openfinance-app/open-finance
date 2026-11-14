@@ -172,3 +172,4 @@ docs/wiki/demo/*
 !docs/wiki/demo/demo-tour-poster.jpg
 src/main/java/org/openfinance/service/history/README.md
 samples/
+.codex/

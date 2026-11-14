@@ -281,7 +281,7 @@ export function countryCentroid(alpha2: string): [number, number] | null {
 export function countryOfPoint(longitude: number, latitude: number): string | undefined {
   for (const f of FEATURES) {
     if (geoContains(f, [longitude, latitude])) {
-      return NUMERIC_TO_ALPHA2[String(f.id)];
+      return alpha2FromNumericId(String(f.id));
     }
   }
   return undefined;
@@ -289,7 +289,8 @@ export function countryOfPoint(longitude: number, latitude: number): string | un
 
 /** Maps a world-atlas ISO numeric id (feature id) to an ISO alpha-2 code, if known. */
 export function alpha2FromNumericId(id: string | number): string | undefined {
-  return NUMERIC_TO_ALPHA2[String(id)];
+  // Keys are zero-padded ISO numeric codes ('004'); callers may pass 4 or '4'.
+  return NUMERIC_TO_ALPHA2[String(id).padStart(3, '0')];
 }
 
 // ── Name / address resolution ──────────────────────────────────────────────
@@ -358,10 +359,18 @@ export function countryFromAddress(address?: string | null): string | undefined 
     if (/^[A-Z]{2}$/.test(upper) && codeSet.has(upper)) return upper;
   }
 
-  // Fall back to scanning the whole address for any country name.
-  const whole = normalize(address);
+  // Fall back to scanning the whole address for any country name. Match on
+  // word boundaries (normalized text is space-separated) and prefer the
+  // longest name, so "Nigeria" does not resolve to Niger, "Somalia" not to
+  // Mali, and "Indiana" not to India.
+  const whole = ` ${normalize(address)} `;
+  let best: string | undefined;
+  let bestLength = 0;
   for (const [name, code] of nameToAlpha2) {
-    if (name.length >= 4 && whole.includes(name)) return code;
+    if (name.length >= 4 && name.length > bestLength && whole.includes(` ${name} `)) {
+      best = code;
+      bestLength = name.length;
+    }
   }
-  return undefined;
+  return best;
 }

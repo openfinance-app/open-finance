@@ -3,6 +3,7 @@ import {
   srOnly,
   focusVisible,
   FocusTrap,
+  useFocusTrap,
   announceToScreenReader,
   isElementVisible,
   getNextFocusableElement,
@@ -396,6 +397,221 @@ describe('Accessibility Utilities', () => {
 
       const animClass = getAnimationClass('animate-fade-in');
       expect(animClass).toBe('');
+    });
+  });
+
+  // jsdom reports offsetParent=null for every element, which makes the
+  // FocusTrap visibility filter drop everything. Mock it per element so the
+  // wrap-around behaviour is genuinely exercised instead of passing vacuously.
+  describe('FocusTrap wrap-around (visible elements)', () => {
+    let container: HTMLElement;
+    let first: HTMLButtonElement;
+    let middle: HTMLButtonElement;
+    let last: HTMLButtonElement;
+
+    const makeVisible = (el: HTMLElement) =>
+      Object.defineProperty(el, 'offsetParent', { configurable: true, get: () => document.body });
+
+    const tabKey = (shiftKey = false) =>
+      new KeyboardEvent('keydown', { key: 'Tab', shiftKey, bubbles: true, cancelable: true });
+
+    beforeEach(() => {
+      container = document.createElement('div');
+      first = document.createElement('button');
+      middle = document.createElement('button');
+      last = document.createElement('button');
+      container.append(first, middle, last);
+      document.body.appendChild(container);
+      [first, middle, last].forEach(makeVisible);
+    });
+
+    afterEach(() => {
+      document.body.removeChild(container);
+    });
+
+    it('focuses the first focusable element on activate', () => {
+      new FocusTrap(container).activate();
+      expect(document.activeElement).toBe(first);
+    });
+
+    it('wraps Tab on the last element back to the first', () => {
+      new FocusTrap(container).activate();
+      last.focus();
+      const event = tabKey();
+      container.dispatchEvent(event);
+      expect(event.defaultPrevented).toBe(true);
+      expect(document.activeElement).toBe(first);
+    });
+
+    it('wraps Shift+Tab on the first element to the last', () => {
+      new FocusTrap(container).activate();
+      first.focus();
+      const event = tabKey(true);
+      container.dispatchEvent(event);
+      expect(event.defaultPrevented).toBe(true);
+      expect(document.activeElement).toBe(last);
+    });
+
+    it('leaves Tab in the middle untouched', () => {
+      new FocusTrap(container).activate();
+      middle.focus();
+      const event = tabKey();
+      container.dispatchEvent(event);
+      expect(event.defaultPrevented).toBe(false);
+      expect(document.activeElement).toBe(middle);
+    });
+
+    it('ignores non-Tab keys', () => {
+      new FocusTrap(container).activate();
+      last.focus();
+      const event = new KeyboardEvent('keydown', {
+        key: 'Enter',
+        bubbles: true,
+        cancelable: true,
+      });
+      container.dispatchEvent(event);
+      expect(event.defaultPrevented).toBe(false);
+      expect(document.activeElement).toBe(last);
+    });
+
+    it('skips aria-hidden elements when picking the first focusable', () => {
+      first.setAttribute('aria-hidden', 'true');
+      new FocusTrap(container).activate();
+      expect(document.activeElement).toBe(middle);
+    });
+
+    it('stops trapping after deactivate', () => {
+      const trap = new FocusTrap(container);
+      trap.activate();
+      trap.deactivate();
+      last.focus();
+      const event = tabKey();
+      container.dispatchEvent(event);
+      expect(event.defaultPrevented).toBe(false);
+    });
+
+    it('handles an empty container without throwing or trapping', () => {
+      const empty = document.createElement('div');
+      document.body.appendChild(empty);
+      const trap = new FocusTrap(empty);
+      expect(() => trap.activate()).not.toThrow();
+      const event = tabKey();
+      expect(() => empty.dispatchEvent(event)).not.toThrow();
+      expect(event.defaultPrevented).toBe(false);
+      expect(() => trap.deactivate()).not.toThrow();
+      document.body.removeChild(empty);
+    });
+  });
+
+  describe('useFocusTrap ref callback', () => {
+    let container: HTMLElement;
+    let button: HTMLButtonElement;
+
+    beforeEach(() => {
+      container = document.createElement('div');
+      button = document.createElement('button');
+      container.appendChild(button);
+      document.body.appendChild(container);
+      Object.defineProperty(button, 'offsetParent', {
+        configurable: true,
+        get: () => document.body,
+      });
+    });
+
+    afterEach(() => {
+      document.body.removeChild(container);
+    });
+
+    it('activates on node attach and restores focus on detach', () => {
+      const outside = document.createElement('button');
+      document.body.appendChild(outside);
+      outside.focus();
+
+      const ref = useFocusTrap(true);
+      ref(container);
+      expect(document.activeElement).toBe(button);
+
+      ref(null);
+      expect(document.activeElement).toBe(outside);
+      document.body.removeChild(outside);
+    });
+
+    it('does nothing when disabled', () => {
+      const ref = useFocusTrap(false);
+      ref(container);
+      expect(document.activeElement).not.toBe(button);
+      expect(() => ref(null)).not.toThrow();
+    });
+  });
+
+  describe('isElementVisible viewport checks', () => {
+    const elementAt = (top: number, bottom: number): HTMLElement => {
+      const el = document.createElement('div');
+      document.body.appendChild(el);
+      Object.defineProperty(el, 'offsetParent', { configurable: true, get: () => document.body });
+      el.getBoundingClientRect = () => ({ top, bottom }) as DOMRect;
+      return el;
+    };
+
+    afterEach(() => {
+      document.body.innerHTML = '';
+    });
+
+    it('returns true for an element inside the viewport', () => {
+      expect(isElementVisible(elementAt(10, 110))).toBe(true);
+    });
+
+    it('returns false for an element fully above the viewport', () => {
+      expect(isElementVisible(elementAt(-200, -10))).toBe(false);
+    });
+
+    it('returns false for an element fully below the viewport', () => {
+      const belowTop = Math.max(document.documentElement.clientHeight, window.innerHeight) + 10;
+      expect(isElementVisible(elementAt(belowTop, belowTop + 50))).toBe(false);
+    });
+  });
+
+  describe('getNextFocusableElement (visible elements)', () => {
+    let buttons: HTMLButtonElement[] = [];
+
+    beforeEach(() => {
+      buttons = [0, 1, 2].map(() => {
+        const button = document.createElement('button');
+        document.body.appendChild(button);
+        Object.defineProperty(button, 'offsetParent', {
+          configurable: true,
+          get: () => document.body,
+        });
+        return button;
+      });
+    });
+
+    afterEach(() => {
+      buttons.forEach(button => document.body.removeChild(button));
+    });
+
+    it('returns the immediate neighbours in document order', () => {
+      expect(getNextFocusableElement(buttons[0], 'next')).toBe(buttons[1]);
+      expect(getNextFocusableElement(buttons[2], 'previous')).toBe(buttons[1]);
+    });
+
+    it('returns null beyond both ends', () => {
+      expect(getNextFocusableElement(buttons[2], 'next')).toBeNull();
+      expect(getNextFocusableElement(buttons[0], 'previous')).toBeNull();
+    });
+
+    it('returns null for an element that is not focusable-listed', () => {
+      const detached = document.createElement('button');
+      expect(getNextFocusableElement(detached, 'next')).toBeNull();
+    });
+  });
+
+  describe('getSkipLinkProps missing target', () => {
+    it('does not throw when the target does not exist', () => {
+      const props = getSkipLinkProps('no-such-id');
+      const event = { preventDefault: vi.fn() } as unknown as React.MouseEvent<HTMLAnchorElement>;
+      expect(() => props.onClick(event)).not.toThrow();
+      expect(event.preventDefault).toHaveBeenCalled();
     });
   });
 });

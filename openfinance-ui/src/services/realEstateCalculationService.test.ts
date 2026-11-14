@@ -146,6 +146,96 @@ describe('RealEstateCalculationService', () => {
     });
   });
 
+  describe('calculateYearNAnalysis', () => {
+    const yearRow = (overrides: Record<string, unknown> = {}) => ({
+      year: 1,
+      buy: {
+        annualCost: 12000,
+        cumulativeCost: 62000,
+        propertyValue: 210000,
+        remainingCapital: 150000,
+        minimumResalePrice: 180000,
+        netWorth: 60000,
+        netExpense: 4000,
+        savings: 3000,
+      },
+      rent: {
+        annualCost: 11000,
+        cumulativeCost: 11800,
+        savings: 5000,
+        netWorth: 5000,
+        netExpense: 9000,
+      },
+      ...overrides,
+    });
+
+    it('rejects target years outside the projection instead of reading past the array', () => {
+      const results = { years: [yearRow()], summary: {} } as unknown as BuyRentResults;
+      expect(RealEstateCalculationService.calculateYearNAnalysis(results, 0)).toBeNull();
+      expect(RealEstateCalculationService.calculateYearNAnalysis(results, 2)).toBeNull();
+      expect(RealEstateCalculationService.calculateYearNAnalysis(results, -1)).toBeNull();
+      expect(RealEstateCalculationService.calculateYearNAnalysis(results, 1.5)).toBeNull();
+      expect(RealEstateCalculationService.calculateYearNAnalysis(results, NaN)).toBeNull();
+    });
+
+    it('analyses the requested year from a full comparison run', () => {
+      const results = RealEstateCalculationService.calculateBuyRentComparison(makeInputs());
+      const analysis = RealEstateCalculationService.calculateYearNAnalysis(results, 10, 8);
+      expect(analysis).not.toBeNull();
+      expect(analysis!.year).toBe(10);
+      expect(analysis!.propertyValue).toBe(results.years[9].buy.propertyValue);
+      expect(analysis!.annualProfitability).not.toBeNull();
+    });
+
+    it('returns null profitability when cash flows never change sign (no IRR exists)', () => {
+      // Property is worth less than the remaining capital at resale, so the
+      // sale proceeds never make any cash flow positive.
+      const underwater = yearRow({
+        buy: {
+          annualCost: 12000,
+          cumulativeCost: 62000,
+          propertyValue: 100000,
+          remainingCapital: 150000,
+          minimumResalePrice: 0,
+        },
+      });
+      const results = { years: [underwater], summary: {} } as unknown as BuyRentResults;
+      const analysis = RealEstateCalculationService.calculateYearNAnalysis(results, 1);
+      expect(analysis).not.toBeNull();
+      expect(analysis!.annualProfitability).toBeNull();
+    });
+
+    it('falls back to property value minus remaining capital when net worth is absent', () => {
+      const row = yearRow();
+      delete (row.buy as Record<string, unknown>).netWorth;
+      delete (row.rent as Record<string, unknown>).netWorth;
+      delete (row.buy as Record<string, unknown>).netExpense;
+      delete (row.rent as Record<string, unknown>).netExpense;
+      delete (row.buy as Record<string, unknown>).savings;
+      const results = { years: [row], summary: {} } as unknown as BuyRentResults;
+      const analysis = RealEstateCalculationService.calculateYearNAnalysis(results, 1);
+      expect(analysis!.netWorth).toBe(60000); // 210000 - 150000
+      expect(analysis!.netExpenseBuy).toBe(0);
+      expect(analysis!.buySavings).toBe(0);
+      expect(analysis!.rentSavings).toBe(5000);
+    });
+  });
+
+  describe('getRecommendation tie', () => {
+    it('reports a tie without claiming either side wins', () => {
+      const results = {
+        years: [{ year: 1 }],
+        summary: {
+          buy: {},
+          rent: {},
+          comparison: { winner: 'tie', netWorthDifference: 0, netExpenseDifference: 0 },
+        },
+      } as unknown as BuyRentResults;
+      const msg = RealEstateCalculationService.getRecommendation(results, 'EUR');
+      expect(msg).toContain('même patrimoine');
+    });
+  });
+
   describe('exportToCSV', () => {
     it('returns CSV with headers and rows', () => {
       const results = {

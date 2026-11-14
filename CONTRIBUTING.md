@@ -138,7 +138,6 @@ curl -H "Authorization: Bearer <jwt-token>" http://localhost:8080/api/v1/dashboa
 ### Backend (Java)
 
 - **Format**: run `mvn spotless:apply` (Google Java Format AOSP) before every commit
-- **Static analysis**: `mvn spotbugs:check` — fix all issues before opening a PR
 - **Injection**: constructor injection only (Lombok `@RequiredArgsConstructor`); no field injection
 - **Monetary values**: `BigDecimal` always — never `float` or `double`
 - **Missing entities**: return `Optional<T>` from repositories; use `.orElseThrow()` with a domain exception

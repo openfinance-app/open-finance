@@ -312,7 +312,14 @@ function AlertSettingItem({
 
       {/* Threshold Display/Edit */}
       {isEditing ? (
-        <div className="flex-1 flex flex-wrap items-center gap-2">
+        <form
+          className="flex-1 flex flex-wrap items-center gap-2"
+          noValidate
+          onSubmit={event => {
+            event.preventDefault();
+            handleSaveEdit();
+          }}
+        >
           <NumberInput
             min="1"
             max="150"
@@ -327,13 +334,14 @@ function AlertSettingItem({
           />
           <span className="text-sm text-text-secondary">%</span>
           <button
-            onClick={handleSaveEdit}
+            type="submit"
             className="p-1 text-green-400 hover:text-green-300 transition-colors"
             aria-label={t('alerts.save')}
           >
             <Check className="w-4 h-4" />
           </button>
           <button
+            type="button"
             onClick={handleCancelEdit}
             className="p-1 text-text-secondary hover:text-text-primary transition-colors"
             aria-label={t('alerts.cancel')}
@@ -345,7 +353,7 @@ function AlertSettingItem({
               {t('alerts.thresholdInvalid')}
             </p>
           )}
-        </div>
+        </form>
       ) : (
         <div className="flex-1 flex items-center gap-2">
           <span className="text-sm font-semibold text-text-primary">{alert.threshold}%</span>

@@ -328,9 +328,13 @@ public class RealEstateProperty {
      */
     public BigDecimal getAcquisitionValue() {
         if (acquisitionType == AcquisitionType.PLANNED) return null;
-        return acquisitionType == AcquisitionType.GIFT
-                ? receivedValue == null ? null : receivedValue.add(getPurchasePriceDecimal())
-                : getPurchasePriceDecimal();
+        if (acquisitionType != AcquisitionType.GIFT) {
+            return getPurchasePriceDecimal();
+        }
+        if (receivedValue == null) return null;
+        // A gift may have no recorded purchase price (fees); the received value alone is the basis.
+        BigDecimal price = getPurchasePriceDecimal();
+        return price == null ? receivedValue : receivedValue.add(price);
     }
 
     public BigDecimal getAppreciation() {

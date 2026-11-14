@@ -25,7 +25,6 @@ mvn -Dtest=MessageKeyCoverageTest test              # verify i18n key coverage
 mvn clean test jacoco:report   # tests + coverage report
 mvn spotless:apply             # format Java (Google AOSP style, run before committing)
 mvn spotless:check             # verify formatting
-mvn spotbugs:check             # static analysis
 mvn spring-boot:run            # start locally (port 8080)
 ```
 

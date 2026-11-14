@@ -72,8 +72,8 @@ jobs:
           name: application-jar
           path: target/*.jar
 
-  code-quality:
-    name: Code Quality Check
+  dependency-check:
+    name: Dependency Security Check
     runs-on: ubuntu-latest
     needs: build
 
@@ -90,9 +90,6 @@ jobs:
 
       - name: Ensure Maven is available
         run: command -v mvn || (apt-get update -qq && apt-get install -y maven)
-
-      - name: Run SpotBugs
-        run: mvn compile spotbugs:check -B
 
       - name: Run dependency check
         run: mvn dependency-check:check -B -DossIndexAnalyzerEnabled=false

@@ -2,11 +2,15 @@ package org.openfinance.util;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
+import java.util.regex.Pattern;
 import lombok.extern.slf4j.Slf4j;
 import org.aspectj.lang.ProceedingJoinPoint;
+import org.aspectj.lang.Signature;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
 import org.aspectj.lang.annotation.Pointcut;
+import org.aspectj.lang.reflect.MethodSignature;
 import org.springframework.stereotype.Component;
 
 /**
@@ -29,8 +33,32 @@ public class LoggingAspect {
      */
     static final long SLOW_EXECUTION_THRESHOLD_MS = 500;
 
+    /**
+     * Normalized (lower-case, alphanumeric-only) markers of credential-bearing arguments. Arguments
+     * are normalized the same way before matching, so {@code api_key}, {@code api-key}, {@code
+     * apiKey} and {@code mot de passe} are all caught. Errs on redacting too much: a false positive
+     * hides a debug value, a false negative leaks a credential into logs.
+     */
     private static final List<String> SENSITIVE_ARG_TOKENS =
-            List.of("password", "secret", "token", "apikey", "motdepasse", "x-encryption-session");
+            List.of(
+                    "password",
+                    "passcode",
+                    "pwd",
+                    "motdepasse",
+                    "secret",
+                    "token",
+                    "apikey",
+                    "credential",
+                    "authorization",
+                    "bearer",
+                    "privatekey",
+                    "encryptionkey",
+                    "encryptionsession",
+                    "xencryptionsession");
+
+    /** Raw JWT values carry no keyword to match on; detect their three-segment shape instead. */
+    private static final Pattern JWT_SHAPE =
+            Pattern.compile("eyJ[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+");
 
     /** Pointcut for all methods in service layer */
     @Pointcut("within(org.openfinance.service..*)")
@@ -85,7 +113,7 @@ public class LoggingAspect {
                     layer,
                     className,
                     methodName,
-                    sanitizeArguments(args));
+                    sanitizeArguments(args, joinPoint.getSignature()));
         }
 
         try {
@@ -144,39 +172,49 @@ public class LoggingAspect {
     }
 
     /**
-     * Sanitizes arguments to prevent logging sensitive data
+     * Sanitizes arguments to prevent logging sensitive data. Package-private for testing.
      *
      * @param args the method arguments
      * @return sanitized string representation
      */
-    private String sanitizeArguments(Object[] args) {
+    String sanitizeArguments(Object[] args) {
         if (args == null || args.length == 0) {
             return "[]";
         }
 
-        return Arrays.stream(args)
-                .map(
-                        arg -> {
-                            if (arg == null) {
-                                return "null";
-                            }
+        return Arrays.stream(args).map(this::sanitizeArgument).toList().toString();
+    }
 
-                            String argString = arg.toString();
+    private String sanitizeArguments(Object[] args, Signature signature) {
+        if (args == null || !(signature instanceof MethodSignature method)) {
+            return sanitizeArguments(args);
+        }
+        String[] names = method.getParameterNames();
+        if (names == null) return sanitizeArguments(args);
 
-                            // Mask sensitive data in argument strings
-                            String lower = argString.toLowerCase();
-                            if (SENSITIVE_ARG_TOKENS.stream().anyMatch(lower::contains)) {
-                                return "[REDACTED]";
-                            }
+        // Raw passwords and opaque session tokens need not contain a recognizable keyword.
+        // Use parameter metadata too, without changing the arguments the method receives.
+        Object[] sanitized = args.clone();
+        for (int i = 0; i < Math.min(names.length, sanitized.length); i++) {
+            if (isSensitive(names[i])) sanitized[i] = "[REDACTED]";
+        }
+        return sanitizeArguments(sanitized);
+    }
 
-                            // Truncate long strings
-                            if (argString.length() > 100) {
-                                return argString.substring(0, 100) + "...";
-                            }
+    private String sanitizeArgument(Object argument) {
+        if (argument == null) return "null";
+        try {
+            String value = argument.toString();
+            if (isSensitive(value) || JWT_SHAPE.matcher(value).find()) return "[REDACTED]";
+            return value.length() > 100 ? value.substring(0, 100) + "..." : value;
+        } catch (RuntimeException exception) {
+            // Diagnostic rendering (e.g. a detached JPA proxy) must not prevent execution.
+            return "[UNAVAILABLE]";
+        }
+    }
 
-                            return argString;
-                        })
-                .toList()
-                .toString();
+    private boolean isSensitive(String value) {
+        String normalized = value.toLowerCase(Locale.ROOT).replaceAll("[^a-z0-9]", "");
+        return SENSITIVE_ARG_TOKENS.stream().anyMatch(normalized::contains);
     }
 }

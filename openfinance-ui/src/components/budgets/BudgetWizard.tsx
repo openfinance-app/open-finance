@@ -1,4 +1,4 @@
-import { decimalValue } from '@/utils/exact-decimal';
+import { decimalField, decimalValue } from '@/utils/exact-decimal';
 /**
  * BudgetWizard Component
  * TASK-8.6.10: 3-step wizard dialog for automatic budget creation from transaction history.
@@ -9,7 +9,7 @@ import { decimalValue } from '@/utils/exact-decimal';
  *
  * REQ-2.9.1.5: Automatic budget creation from transaction history analysis
  */
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { CheckSquare, Square, Wand2, AlertTriangle } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/Dialog';
@@ -70,6 +70,7 @@ function SkeletonRow() {
  */
 export function BudgetWizard({ open, onClose }: BudgetWizardProps) {
   // ── wizard state ────────────────────────────────────────────────────────────
+  const requestVersion = useRef(0);
   const [step, setStep] = useState<WizardStep>(1);
   const [period, setPeriod] = useState<BudgetPeriod>('MONTHLY');
   const [lookbackMonths, setLookbackMonths] = useState<number>(6);
@@ -102,6 +103,8 @@ export function BudgetWizard({ open, onClose }: BudgetWizardProps) {
 
   /** Reset all state to initial values. */
   const reset = () => {
+    // Pending requests may finish after this wizard is closed and reopened.
+    requestVersion.current += 1;
     setStep(1);
     setPeriod('MONTHLY');
     setLookbackMonths(6);
@@ -121,11 +124,13 @@ export function BudgetWizard({ open, onClose }: BudgetWizardProps) {
 
   /** Step 1 → trigger analysis. */
   const handleAnalyze = async () => {
+    const version = requestVersion.current;
     try {
       const result = await analyzeMutation.mutateAsync({
         period,
         lookbackMonths,
       });
+      if (version !== requestVersion.current) return;
       setSuggestions(result);
       // Pre-select all suggestions that don't already have a budget
       const preSelected = new Set(result.filter(s => !s.hasExistingBudget).map(s => s.categoryId));
@@ -133,7 +138,7 @@ export function BudgetWizard({ open, onClose }: BudgetWizardProps) {
       // Initialise editable amounts from suggested values
       const amounts: Record<number, string> = {};
       result.forEach(s => {
-        amounts[s.categoryId] = String(s.suggestedAmount);
+        amounts[s.categoryId] = decimalField(s, 'suggestedAmount');
       });
       setEditedAmounts(amounts);
       setStep(2);
@@ -165,13 +170,14 @@ export function BudgetWizard({ open, onClose }: BudgetWizardProps) {
   /** Step 2 → bulk-create selected suggestions. */
   const handleCreate = async () => {
     const selected = suggestions.filter(s => selectedIds.has(s.categoryId));
+    if (selected.length === 0 || bulkCreateMutation.isPending) return;
     setValidateAmounts(true);
     if (selected.some(s => !validAmount(s))) return;
     const startDate = today();
 
     const budgets = selected.map(s => ({
       categoryId: s.categoryId,
-      amount: editedAmounts[s.categoryId] ?? String(s.suggestedAmount),
+      amount: editedAmounts[s.categoryId] ?? decimalField(s, 'suggestedAmount'),
       currency: s.currency,
       period: s.period,
       startDate,
@@ -179,8 +185,10 @@ export function BudgetWizard({ open, onClose }: BudgetWizardProps) {
       rollover: false,
     }));
 
+    const version = requestVersion.current;
     try {
       const result = await bulkCreateMutation.mutateAsync({ budgets });
+      if (version !== requestVersion.current) return;
       setBulkResult(result);
       setStep(3);
     } catch {
@@ -192,7 +200,8 @@ export function BudgetWizard({ open, onClose }: BudgetWizardProps) {
 
   const selectedCount = selectedIds.size;
   const validAmount = (suggestion: BudgetSuggestion): boolean => {
-    const amount = editedAmounts[suggestion.categoryId] ?? String(suggestion.suggestedAmount);
+    const amount =
+      editedAmounts[suggestion.categoryId] ?? decimalField(suggestion, 'suggestedAmount');
     return isValidDecimalString(amount) && Number(amount) > 0;
   };
 
@@ -291,7 +300,14 @@ export function BudgetWizard({ open, onClose }: BudgetWizardProps) {
 
         {/* ── Step 2 — Review Suggestions ─────────────────────────────────── */}
         {step === 2 && (
-          <div className="space-y-4">
+          <form
+            className="space-y-4"
+            noValidate
+            onSubmit={event => {
+              event.preventDefault();
+              void handleCreate();
+            }}
+          >
             {analyzeMutation.isPending ? (
               // Loading skeletons
               <div className="space-y-2">
@@ -304,7 +320,7 @@ export function BudgetWizard({ open, onClose }: BudgetWizardProps) {
               <div className="py-10 text-center text-text-secondary">
                 <p className="text-sm">{t('wizard.step2.noData', { months: lookbackMonths })}</p>
                 <p className="text-xs mt-1">{t('wizard.step2.noDataHint')}</p>
-                <Button variant="outline" className="mt-4" onClick={() => setStep(1)}>
+                <Button type="button" variant="outline" className="mt-4" onClick={() => setStep(1)}>
                   {t('wizard.back')}
                 </Button>
               </div>
@@ -320,6 +336,7 @@ export function BudgetWizard({ open, onClose }: BudgetWizardProps) {
                   </p>
                   <div className="flex gap-2">
                     <button
+                      type="button"
                       className="text-xs text-primary underline hover:no-underline"
                       onClick={selectAll}
                     >
@@ -327,6 +344,7 @@ export function BudgetWizard({ open, onClose }: BudgetWizardProps) {
                     </button>
                     <span className="text-text-tertiary">·</span>
                     <button
+                      type="button"
                       className="text-xs text-primary underline hover:no-underline"
                       onClick={deselectAll}
                     >
@@ -389,11 +407,14 @@ export function BudgetWizard({ open, onClose }: BudgetWizardProps) {
                             <span className="text-xs text-text-tertiary">{s.currency}</span>
                             <NumberInput
                               min="0"
+                              disabled={!isSelected || bulkCreateMutation.isPending}
                               aria-label={t('wizard.step2.amountFor', { category: s.categoryName })}
                               aria-invalid={
                                 validateAmounts && selectedIds.has(s.categoryId) && !validAmount(s)
                               }
-                              value={editedAmounts[s.categoryId] ?? String(s.suggestedAmount)}
+                              value={
+                                editedAmounts[s.categoryId] ?? decimalField(s, 'suggestedAmount')
+                              }
                               onChange={value =>
                                 setEditedAmounts(prev => ({
                                   ...prev,
@@ -423,16 +444,21 @@ export function BudgetWizard({ open, onClose }: BudgetWizardProps) {
 
                 {/* Actions */}
                 <div className="flex justify-between gap-2 pt-2">
-                  <Button variant="ghost" onClick={() => setStep(1)}>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    onClick={() => setStep(1)}
+                    disabled={bulkCreateMutation.isPending}
+                  >
                     {t('wizard.back')}
                   </Button>
                   <div className="flex gap-2">
-                    <Button variant="ghost" onClick={handleClose}>
+                    <Button type="button" variant="ghost" onClick={handleClose}>
                       {t('wizard.cancel')}
                     </Button>
                     <Button
+                      type="submit"
                       variant="primary"
-                      onClick={handleCreate}
                       disabled={selectedCount === 0 || bulkCreateMutation.isPending}
                     >
                       {bulkCreateMutation.isPending
@@ -443,7 +469,7 @@ export function BudgetWizard({ open, onClose }: BudgetWizardProps) {
                 </div>
               </>
             )}
-          </div>
+          </form>
         )}
 
         {/* ── Step 3 — Result ─────────────────────────────────────────────── */}

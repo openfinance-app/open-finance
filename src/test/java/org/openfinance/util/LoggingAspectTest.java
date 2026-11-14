@@ -28,4 +28,65 @@ class LoggingAspectTest {
         assertThat(aspect.isSlowExecution(500)).isFalse();
         assertThat(aspect.isSlowExecution(0)).isFalse();
     }
+
+    @Test
+    @DisplayName("Sanitizer renders empty and null arguments safely")
+    void sanitizerHandlesEmptyArguments() {
+        assertThat(aspect.sanitizeArguments(null)).isEqualTo("[]");
+        assertThat(aspect.sanitizeArguments(new Object[0])).isEqualTo("[]");
+        assertThat(aspect.sanitizeArguments(new Object[] {null, "plain"}))
+                .isEqualTo("[null, plain]");
+    }
+
+    @Test
+    @DisplayName("Sanitizer truncates long non-sensitive arguments at 100 characters")
+    void sanitizerTruncatesLongArguments() {
+        String longValue = "a".repeat(150);
+        String sanitized = aspect.sanitizeArguments(new Object[] {longValue});
+        assertThat(sanitized).hasSize(105); // '[' + 100 chars + "..." + ']'
+        assertThat(sanitized).endsWith("...]");
+    }
+
+    @Test
+    @DisplayName("Sanitizer redacts credential-bearing arguments in all common spellings")
+    void sanitizerRedactsCredentialSpellings() {
+        String[] sensitive = {
+            "password=hunter2",
+            "motDePasse=hunter2",
+            "mot de passe: hunter2",
+            "api_key=sk-live-123",
+            "api-key=sk-live-123",
+            "apiKey=sk-live-123",
+            "encryptionKey=abc123",
+            "encryption_key=abc123",
+            "encryption_session=abc123",
+            "X-Encryption-Session: abc123",
+            "privateKey=abc123",
+            "private_key=abc123",
+            "credentials={user:bob}",
+            "Authorization: Bearer abc123",
+            "clientSecret=abc123",
+            "pwd=hunter2",
+            "userToken=abc123",
+        };
+        for (String arg : sensitive) {
+            assertThat(aspect.sanitizeArguments(new Object[] {arg}))
+                    .as("argument should be redacted: %s", arg)
+                    .isEqualTo("[[REDACTED]]");
+        }
+    }
+
+    @Test
+    @DisplayName("Sanitizer redacts raw JWT-shaped values even without a keyword")
+    void sanitizerRedactsRawJwt() {
+        String jwt = "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJib2IifQ.signaturepart";
+        assertThat(aspect.sanitizeArguments(new Object[] {jwt})).isEqualTo("[[REDACTED]]");
+    }
+
+    @Test
+    @DisplayName("Sanitizer keeps ordinary arguments readable")
+    void sanitizerKeepsOrdinaryArguments() {
+        assertThat(aspect.sanitizeArguments(new Object[] {"groceries", 42, true}))
+                .isEqualTo("[groceries, 42, true]");
+    }
 }

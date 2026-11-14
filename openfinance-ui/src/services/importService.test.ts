@@ -197,4 +197,81 @@ describe('importService', () => {
       expect(result).toEqual([mockSession]);
     });
   });
+
+  describe('updateAccount', () => {
+    it('PUTs the account id as a query param', async () => {
+      mockApiClient.put.mockResolvedValue({ data: mockSession });
+
+      const result = await importService.updateAccount(5, 42);
+
+      expect(mockApiClient.put).toHaveBeenCalledWith(
+        '/import/sessions/5/account?accountId=42',
+        {},
+        { headers: { 'X-Encryption-Session': MOCK_ENCRYPTION_KEY } }
+      );
+      expect(result).toEqual(mockSession);
+    });
+
+    it('omits the query param entirely when clearing the account (null)', async () => {
+      mockApiClient.put.mockResolvedValue({ data: mockSession });
+
+      await importService.updateAccount(5, null);
+
+      const url: string = mockApiClient.put.mock.calls[0][0];
+      expect(url).toBe('/import/sessions/5/account');
+      expect(url).not.toContain('null');
+    });
+
+    it('throws when encryption key is missing', async () => {
+      sessionStorage.removeItem('encryption_session');
+      await expect(importService.updateAccount(5, 42)).rejects.toThrow('Encryption key not found');
+      expect(mockApiClient.put).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('updateTransactions', () => {
+    const transactions = [{ payee: 'A' }] as never;
+
+    it('PUTs the bare transaction list to the transactions endpoint by default', async () => {
+      mockApiClient.put.mockResolvedValue({ data: mockSession });
+
+      await importService.updateTransactions(5, transactions);
+
+      expect(mockApiClient.put).toHaveBeenCalledWith(
+        '/import/sessions/5/transactions',
+        transactions,
+        {
+          headers: { 'X-Encryption-Session': MOCK_ENCRYPTION_KEY },
+        }
+      );
+    });
+
+    it('switches to the review endpoint and wraps options with the transactions', async () => {
+      mockApiClient.put.mockResolvedValue({ data: mockSession });
+      const reviewOptions = { categoryMappings: { Food: 3 }, skipDuplicates: false };
+
+      await importService.updateTransactions(5, transactions, true, reviewOptions);
+
+      expect(mockApiClient.put).toHaveBeenCalledWith(
+        '/import/sessions/5/review',
+        { transactions, categoryMappings: { Food: 3 }, skipDuplicates: false },
+        { headers: { 'X-Encryption-Session': MOCK_ENCRYPTION_KEY } }
+      );
+    });
+
+    it('sends no encryption header when encryption is disabled', async () => {
+      sessionStorage.removeItem('encryption_session');
+      mockApiClient.put.mockResolvedValue({ data: mockSession });
+
+      await importService.updateTransactions(5, transactions, false);
+
+      expect(mockApiClient.put).toHaveBeenCalledWith(
+        '/import/sessions/5/transactions',
+        transactions,
+        {
+          headers: {},
+        }
+      );
+    });
+  });
 });

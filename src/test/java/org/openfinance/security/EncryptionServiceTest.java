@@ -556,4 +556,123 @@ class EncryptionServiceTest {
                         + encryptionService.keyCacheSize()
                         + ")");
     }
+
+    // ========== Key Cache Accessors ==========
+
+    @Test
+    @DisplayName("getCachedKey returns null on a miss and the stored instance on a hit")
+    void cachedKeyLookup() {
+        encryptionService.clearKeyCache();
+        assertNull(encryptionService.getCachedKey("missing"));
+        assertEquals(0, encryptionService.keyCacheSize());
+
+        SecretKey stored = encryptionService.cacheKey("fingerprint-1", testKey);
+        assertSame(testKey, stored);
+        assertSame(testKey, encryptionService.getCachedKey("fingerprint-1"));
+    }
+
+    @Test
+    @DisplayName("cacheKey returns the existing instance instead of replacing it")
+    void cacheKeyDoesNotReplaceExisting() throws Exception {
+        encryptionService.clearKeyCache();
+        SecretKey other =
+                keyManagementService.deriveKey(
+                        "OtherPassword123!".toCharArray(), keyManagementService.generateSalt());
+        encryptionService.cacheKey("fp", testKey);
+        assertSame(testKey, encryptionService.cacheKey("fp", other));
+        assertSame(testKey, encryptionService.getCachedKey("fp"));
+    }
+
+    @Test
+    @DisplayName("cacheKey rejects null arguments")
+    void cacheKeyRejectsNulls() {
+        assertThrows(
+                IllegalArgumentException.class, () -> encryptionService.cacheKey(null, testKey));
+        assertThrows(IllegalArgumentException.class, () -> encryptionService.cacheKey("fp", null));
+    }
+
+    @Test
+    @DisplayName("clearKeyCache evicts every cached key (key rotation / logout hygiene)")
+    void clearKeyCacheEvictsAll() {
+        encryptionService.cacheKey("a", testKey);
+        encryptionService.cacheKey("b", testKey);
+        encryptionService.clearKeyCache();
+        assertEquals(0, encryptionService.keyCacheSize());
+        assertNull(encryptionService.getCachedKey("a"));
+        assertNull(encryptionService.getCachedKey("b"));
+    }
+
+    // ========== Binary (Attachment) Encryption ==========
+
+    @Test
+    @DisplayName("Binary round-trip preserves arbitrary bytes including empty payloads")
+    void binaryRoundTrip() {
+        byte[] data = new byte[] {0, 1, 2, (byte) 0xFF, 42, (byte) 0x80};
+        byte[] encrypted = encryptionService.encryptBytes(data, testKey);
+        assertFalse(Arrays.equals(data, encrypted));
+        assertArrayEquals(data, encryptionService.decryptBytes(encrypted, testKey));
+
+        byte[] emptyEncrypted = encryptionService.encryptBytes(new byte[0], testKey);
+        assertArrayEquals(new byte[0], encryptionService.decryptBytes(emptyEncrypted, testKey));
+    }
+
+    @Test
+    @DisplayName("Binary ciphertext layout is IV (12) + ciphertext + GCM tag (16)")
+    void binaryCiphertextLayout() {
+        byte[] encrypted = encryptionService.encryptBytes(new byte[] {1, 2, 3}, testKey);
+        assertEquals(12 + 3 + 16, encrypted.length);
+        // Fresh IV per call: same input encrypts differently.
+        assertFalse(
+                Arrays.equals(
+                        encrypted, encryptionService.encryptBytes(new byte[] {1, 2, 3}, testKey)));
+    }
+
+    @Test
+    @DisplayName("Tampered binary ciphertext is rejected as an authentication failure")
+    void tamperedBinaryCiphertextRejected() {
+        byte[] encrypted = encryptionService.encryptBytes("attachment".getBytes(), testKey);
+        encrypted[encrypted.length - 1] ^= 0x01;
+        IllegalStateException ex =
+                assertThrows(
+                        IllegalStateException.class,
+                        () -> encryptionService.decryptBytes(encrypted, testKey));
+        assertTrue(ex.getMessage().contains("tampered"));
+    }
+
+    @Test
+    @DisplayName("Decrypting with the wrong key fails authentication instead of returning garbage")
+    void wrongKeyRejectedForBytes() {
+        byte[] encrypted = encryptionService.encryptBytes("attachment".getBytes(), testKey);
+        SecretKey wrongKey =
+                keyManagementService.deriveKey(
+                        "WrongPassword123!".toCharArray(), keyManagementService.generateSalt());
+        assertThrows(
+                IllegalStateException.class,
+                () -> encryptionService.decryptBytes(encrypted, wrongKey));
+    }
+
+    @Test
+    @DisplayName("Binary helpers validate null and too-short inputs")
+    void binaryInputValidation() {
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> encryptionService.encryptBytes(null, testKey));
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> encryptionService.encryptBytes(new byte[] {1}, null));
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> encryptionService.decryptBytes(null, testKey));
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> encryptionService.decryptBytes(new byte[] {1}, null));
+        // Exactly IV-sized input has no room for ciphertext+tag.
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> encryptionService.decryptBytes(new byte[12], testKey));
+        // IV + 1 byte passes the length gate but must fail GCM authentication.
+        assertThrows(
+                IllegalStateException.class,
+                () -> encryptionService.decryptBytes(new byte[13], testKey));
+    }
 }

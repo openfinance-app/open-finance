@@ -1,6 +1,7 @@
 package org.openfinance.scheduler;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
@@ -184,6 +185,40 @@ class NetWorthSnapshotSchedulerTest {
             scheduler.createDailyNetWorthSnapshots();
 
             verify(netWorthService).saveNetWorthSnapshot(eq(2L), any(), eq("EUR"));
+        }
+
+        @Test
+        @DisplayName("Manual snapshot for one user delegates to the single-user overload")
+        void manualSnapshotSingleUser() {
+            scheduler.triggerManualSnapshot(5L);
+
+            verify(netWorthService).saveNetWorthSnapshot(5L);
+            verify(userRepository, never()).findAll();
+        }
+
+        @Test
+        @DisplayName("Manual snapshot failure surfaces as RuntimeException naming the user")
+        void manualSnapshotFailurePropagates() {
+            doThrow(new IllegalStateException("db down"))
+                    .when(netWorthService)
+                    .saveNetWorthSnapshot(5L);
+
+            assertThatThrownBy(() -> scheduler.triggerManualSnapshot(5L))
+                    .isInstanceOf(RuntimeException.class)
+                    .hasMessage("Failed to create snapshot for user 5")
+                    .hasCauseInstanceOf(IllegalStateException.class);
+        }
+
+        @Test
+        @DisplayName("Manual snapshot with null user runs the daily job for every user")
+        void manualSnapshotAllUsers() {
+            User user = User.builder().id(3L).username("carol").baseCurrency("GBP").build();
+            when(userRepository.findAll()).thenReturn(List.of(user));
+
+            scheduler.triggerManualSnapshot(null);
+
+            verify(netWorthService).saveNetWorthSnapshot(eq(3L), any(), eq("GBP"));
+            verify(netWorthService, never()).saveNetWorthSnapshot(anyLong());
         }
     }
 }

@@ -5,11 +5,16 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.Date;
+import java.util.HexFormat;
+import java.util.Map;
+import java.util.UUID;
 import javax.crypto.SecretKey;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -286,6 +291,117 @@ class JwtServiceTest {
         assertThatThrownBy(() -> jwtService.extractUsername("invalid.token"))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("Invalid JWT token");
+    }
+
+    @Test
+    @DisplayName("Legacy tokens without a sid claim get a stable SHA-256 session id")
+    void legacyTokenSessionIdFallsBackToTokenHash() throws Exception {
+        String legacy = craftToken(Map.of("userId", 7L), null);
+
+        String expected =
+                HexFormat.of()
+                        .formatHex(
+                                MessageDigest.getInstance("SHA-256")
+                                        .digest(legacy.getBytes(StandardCharsets.UTF_8)));
+
+        assertThat(jwtService.extractSessionId(legacy)).isEqualTo(expected);
+        // Stable across calls and distinct from another token's id
+        assertThat(jwtService.extractSessionId(legacy)).isEqualTo(expected);
+        String other = craftToken(Map.of("userId", 8L, "jti", UUID.randomUUID().toString()), null);
+        assertThat(jwtService.extractSessionId(other)).isNotEqualTo(expected);
+    }
+
+    @Test
+    @DisplayName("Blank sid claim falls back to the token hash and renewal preserves it")
+    void blankSidFallsBackAndSurvivesRenewal() {
+        String blankSid = craftToken(Map.of("userId", 7L, "sid", "  "), null);
+        String sessionId = jwtService.extractSessionId(blankSid);
+        assertThat(sessionId).matches("[0-9a-f]{64}");
+        assertThat(jwtService.extractSessionId(jwtService.renewToken(blankSid)))
+                .isEqualTo(sessionId);
+    }
+
+    @Test
+    @DisplayName("Renewing a legacy token embeds its hash session id as a real sid claim")
+    void renewalMigratesLegacySessionId() {
+        String legacy = craftToken(Map.of("userId", 7L), null);
+        String renewed = jwtService.renewToken(legacy);
+        assertThat(jwtService.extractSessionId(renewed))
+                .isEqualTo(jwtService.extractSessionId(legacy));
+    }
+
+    @Test
+    @DisplayName("Extracts userId stored as a numeric string claim")
+    void extractUserIdFromStringClaim() {
+        String token = craftToken(Map.of("userId", "42"), null);
+        assertThat(jwtService.extractUserId(token)).isEqualTo(42L);
+    }
+
+    @Test
+    @DisplayName("Returns null userId when the claim is absent")
+    void extractUserIdMissingClaim() {
+        String token = craftToken(Map.of("other", "x"), null);
+        assertThat(jwtService.extractUserId(token)).isNull();
+    }
+
+    @Test
+    @DisplayName("Rejects a non-numeric userId claim instead of coercing it")
+    void extractUserIdNonNumericClaim() {
+        String token = craftToken(Map.of("userId", "not-a-number"), null);
+        assertThatThrownBy(() -> jwtService.extractUserId(token))
+                .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
+    @DisplayName("Tokens issued before versioning report token version 0")
+    void tokenVersionDefaultsToZero() {
+        String token = craftToken(Map.of("userId", 7L), null);
+        assertThat(jwtService.extractTokenVersion(token)).isZero();
+    }
+
+    @Test
+    @DisplayName("isTokenExpired treats fresh tokens as live and any invalid token as expired")
+    void isTokenExpiredSemantics() {
+        String fresh = jwtService.generateToken(createTestUser(1L, "john_doe"));
+        assertThat(jwtService.isTokenExpired(fresh)).isFalse();
+        assertThat(jwtService.isTokenExpired("not.a.token")).isTrue();
+        assertThat(jwtService.isTokenExpired(null)).isTrue();
+        assertThat(jwtService.isTokenExpired("")).isTrue();
+
+        JwtService later = serviceAt(Instant.now().plus(Duration.ofDays(40)));
+        assertThat(later.isTokenExpired(fresh)).isTrue();
+    }
+
+    @Test
+    @DisplayName("validateToken rejects tampered payloads and tokens signed with another secret")
+    void validateTokenRejectsTampering() {
+        String token = jwtService.generateToken(createTestUser(1L, "john_doe"));
+        String[] parts = token.split("\\.");
+        String tamperedPayload =
+                parts[0] + "." + parts[1].substring(0, parts[1].length() - 2) + "AA." + parts[2];
+        assertThat(jwtService.validateToken(tamperedPayload)).isFalse();
+
+        JwtService otherSecret =
+                new JwtService(
+                        "another-secret-key-that-is-also-at-least-256-bits-long-for-hs256",
+                        Duration.ofDays(31).toMillis());
+        assertThat(
+                        jwtService.validateToken(
+                                otherSecret.generateToken(createTestUser(1L, "john_doe"))))
+                .isFalse();
+        assertThat(jwtService.validateToken("   ")).isFalse();
+    }
+
+    /** Builds a correctly-signed token with raw claims, bypassing generateToken's claim set. */
+    private String craftToken(Map<String, Object> claims, String subject) {
+        SecretKey key = Keys.hmacShaKeyFor(TEST_JWT_SECRET.getBytes(StandardCharsets.UTF_8));
+        return Jwts.builder()
+                .claims(claims)
+                .subject(subject == null ? "john_doe" : subject)
+                .issuedAt(new Date())
+                .expiration(new Date(System.currentTimeMillis() + Duration.ofDays(1).toMillis()))
+                .signWith(key)
+                .compact();
     }
 
     // Helper methods

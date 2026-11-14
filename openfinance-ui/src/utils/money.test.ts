@@ -11,8 +11,10 @@ import {
   subtract,
   sum,
   sumToDecimals,
+  toFixedDecimal,
   toMinorUnits,
 } from './money';
+import { ExactDecimal } from './exact-decimal';
 
 /**
  * Precise decimal arithmetic helpers, backed by `decimal.js`.
@@ -298,5 +300,38 @@ describe('split remainder allocation', () => {
     expect(distributeRemainder('0.010000000000000001', ['0.005', '0.005'], 18)).toEqual([
       0.005000000000000001, 0.005,
     ]);
+  });
+});
+
+describe('toFixedDecimal', () => {
+  it('formats plain decimal text with half-away-from-zero rounding for exports', () => {
+    expect(toFixedDecimal('1.005', 2)).toBe('1.01');
+    expect(toFixedDecimal('-1.005', 2)).toBe('-1.01');
+    expect(toFixedDecimal(2, 2)).toBe('2.00');
+    expect(toFixedDecimal('0.1', 8)).toBe('0.10000000');
+  });
+
+  it('never emits exponential notation for tiny or huge amounts', () => {
+    expect(toFixedDecimal('0.000000001', 9)).toBe('0.000000001');
+    expect(toFixedDecimal('123456789012345678', 2)).toBe('123456789012345678.00');
+  });
+
+  it('renders invalid input as NaN text instead of throwing', () => {
+    expect(toFixedDecimal(null, 2)).toBe('NaN');
+    expect(toFixedDecimal('garbage', 2)).toBe('NaN');
+  });
+});
+
+describe('never-throw contract for untyped API values', () => {
+  it('accepts Decimal instances directly', () => {
+    expect(add(new ExactDecimal('0.1'), new ExactDecimal('0.2'))).toBe(0.3);
+    expect(sum([new ExactDecimal('1.10'), '2.20', 3.3])).toBe(6.6);
+  });
+
+  it('propagates NaN (never throws) for values decimal.js rejects outright', () => {
+    const garbage = {} as unknown as string;
+    expect(() => add(garbage, 1)).not.toThrow();
+    expect(Number.isNaN(add(garbage, 1))).toBe(true);
+    expect(Number.isNaN(sum([1, garbage]))).toBe(true);
   });
 });

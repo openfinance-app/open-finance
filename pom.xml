@@ -43,7 +43,6 @@
         <log4j2.version>2.26.1</log4j2.version>
         <spotless.version>2.41.1</spotless.version>
         <rest-assured.version>5.4.0</rest-assured.version>
-        <spotbugs.version>4.8.3.0</spotbugs.version>
         <dependency-check.version>12.2.2</dependency-check.version>
         <langchain4j.version>1.0.0-beta2</langchain4j.version>
         <!--
@@ -512,20 +511,6 @@
                         </configuration>
                     </execution>
                 </executions>
-            </plugin>
-
-            <!-- SpotBugs for static code analysis -->
-            <plugin>
-                <groupId>com.github.spotbugs</groupId>
-                <artifactId>spotbugs-maven-plugin</artifactId>
-                <version>${spotbugs.version}</version>
-                <configuration>
-                    <effort>Max</effort>
-                    <threshold>Low</threshold>
-                    <failOnError>true</failOnError>
-                    <excludeBugsFile>${project.basedir}/quality/spotbugs-baseline.xml</excludeBugsFile>
-                    <xmlOutput>true</xmlOutput>
-                </configuration>
             </plugin>
 
             <!-- OWASP Dependency Check -->

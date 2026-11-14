@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { screen, fireEvent, waitFor, act } from '@testing-library/react';
-import { renderWithProviders, mockAuthentication } from '@/test/test-utils';
+import { renderWithProviders, mockAuthentication, userEvent } from '@/test/test-utils';
 import { AlertSettings } from '@/components/alerts/AlertSettings';
 import type { BudgetAlert } from '@/types/alert';
 
@@ -283,6 +283,30 @@ describe('AlertSettings', () => {
       expect(mockUpdateAlertMutate).not.toHaveBeenCalled();
     });
 
+    it('keeps malformed threshold drafts visible instead of saving the last valid value', async () => {
+      const user = userEvent.setup();
+      mockUseAlertsByBudget.mockReturnValue({ data: [makeAlert()], isLoading: false });
+      renderWithProviders(<AlertSettings budgetId={1} />);
+      await user.click(screen.getByRole('button', { name: /edit threshold/i }));
+      const input = screen.getByRole('textbox', { name: 'Alert Threshold' });
+      await user.clear(input);
+      await user.type(input, '90-');
+      await user.click(screen.getByRole('button', { name: /save/i }));
+
+      expect(mockUpdateAlertMutate).not.toHaveBeenCalled();
+      expect(input).toHaveValue('90-');
+      expect(screen.getByRole('alert')).toBeVisible();
+
+      await user.clear(input);
+      await user.type(input, '90');
+      await user.keyboard('{Enter}');
+      expect(mockUpdateAlertMutate).toHaveBeenCalledWith(
+        { alertId: '1', data: { threshold: 90 } },
+        expect.objectContaining({ onError: expect.any(Function) })
+      );
+      expect(screen.queryByRole('textbox', { name: 'Alert Threshold' })).not.toBeInTheDocument();
+    });
+
     it('keeps an invalid threshold edit visible and explains the error', () => {
       mockUseAlertsByBudget.mockReturnValue({ data: [makeAlert()], isLoading: false });
       renderWithProviders(<AlertSettings budgetId={1} />);
@@ -291,7 +315,7 @@ describe('AlertSettings', () => {
         target: { value: '0' },
       });
       fireEvent.click(screen.getByRole('button', { name: /save/i }));
-      expect(screen.getByRole('alert')).toHaveTextContent(/between 1% and 150%/i);
+      expect(screen.getByRole('alert')).toHaveTextContent('Enter a value of at least 1.');
       expect(screen.getByRole('textbox', { name: 'Alert Threshold' })).toHaveAttribute(
         'aria-invalid',
         'true'

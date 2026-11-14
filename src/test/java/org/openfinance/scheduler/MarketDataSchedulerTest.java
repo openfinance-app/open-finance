@@ -1,9 +1,11 @@
 package org.openfinance.scheduler;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import java.time.LocalDate;
@@ -161,5 +163,93 @@ class MarketDataSchedulerTest {
 
         verify(service).updateAssetPrices(1L);
         assertThat(EncryptionContext.getKey()).isNull();
+    }
+
+    @Test
+    @DisplayName("Manual update sums per-user counts and isolates a failing user")
+    void manualUpdateIsolatesFailures() {
+        MarketDataService service = mock(MarketDataService.class);
+        UserRepository users = mock(UserRepository.class);
+        EncryptionProperties encryption = new EncryptionProperties();
+        encryption.setEnabled(false);
+        when(users.findAll())
+                .thenReturn(List.of(User.builder().id(1L).build(), User.builder().id(2L).build()));
+        when(service.updateAssetPrices(1L)).thenThrow(new IllegalStateException("provider down"));
+        when(service.updateAssetPrices(2L)).thenReturn(3);
+
+        String message =
+                new MarketDataScheduler(
+                                service,
+                                users,
+                                new SchedulerProperties(),
+                                new EncryptionKeyCache(),
+                                encryption,
+                                new UserEncryptionLock())
+                        .triggerManualUpdate();
+
+        assertThat(message).isEqualTo("Manual update completed. Assets updated: 3");
+        verify(service).updateAssetPrices(1L);
+        verify(service).updateAssetPrices(2L);
+    }
+
+    @Test
+    @DisplayName("Manual update reports a fatal failure instead of propagating it")
+    void manualUpdateFatalFailure() {
+        UserRepository users = mock(UserRepository.class);
+        when(users.findAll()).thenThrow(new IllegalStateException("db gone"));
+
+        String message =
+                new MarketDataScheduler(
+                                mock(MarketDataService.class),
+                                users,
+                                new SchedulerProperties(),
+                                new EncryptionKeyCache(),
+                                new EncryptionProperties(),
+                                new UserEncryptionLock())
+                        .triggerManualUpdate();
+
+        assertThat(message).isEqualTo("Manual update failed: db gone");
+    }
+
+    @Test
+    @DisplayName("Scheduled update with no users is a no-op")
+    void scheduledUpdateNoUsers() {
+        MarketDataService service = mock(MarketDataService.class);
+        UserRepository users = mock(UserRepository.class);
+        SchedulerProperties props = new SchedulerProperties();
+        props.getMarketData().setMode(SchedulerProperties.SchedulingMode.EVERY_HOUR);
+        when(users.findAll()).thenReturn(List.of());
+
+        new MarketDataScheduler(
+                        service,
+                        users,
+                        props,
+                        new EncryptionKeyCache(),
+                        new EncryptionProperties(),
+                        new UserEncryptionLock())
+                .updateAssetPrices();
+
+        verifyNoInteractions(service);
+    }
+
+    @Test
+    @DisplayName("Scheduled update swallows fatal repository failures")
+    void scheduledUpdateFatalFailure() {
+        MarketDataService service = mock(MarketDataService.class);
+        UserRepository users = mock(UserRepository.class);
+        SchedulerProperties props = new SchedulerProperties();
+        props.getMarketData().setMode(SchedulerProperties.SchedulingMode.EVERY_HOUR);
+        when(users.findAll()).thenThrow(new IllegalStateException("db gone"));
+
+        MarketDataScheduler scheduler =
+                new MarketDataScheduler(
+                        service,
+                        users,
+                        props,
+                        new EncryptionKeyCache(),
+                        new EncryptionProperties(),
+                        new UserEncryptionLock());
+        assertThatCode(scheduler::updateAssetPrices).doesNotThrowAnyException();
+        verifyNoInteractions(service);
     }
 }

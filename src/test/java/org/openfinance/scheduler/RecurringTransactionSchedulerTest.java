@@ -5,6 +5,7 @@ import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 import java.util.Collections;
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import javax.crypto.SecretKey;
@@ -56,14 +57,13 @@ class RecurringTransactionSchedulerTest {
         when(encryptionProperties.isEnabled()).thenReturn(false);
         when(encryptionKeyCache.getKey(1L)).thenReturn(java.util.Optional.empty());
         when(userRepository.findAll())
-                .thenReturn(
-                        java.util.List.of(org.openfinance.entity.User.builder().id(1L).build()));
+                .thenReturn(List.of(org.openfinance.entity.User.builder().id(1L).build()));
         when(recurringTransactionService.processRecurringTransactionsForUser(1L))
                 .thenAnswer(
                         invocation -> {
                             assertThat(EncryptionContext.getKey()).isNull();
                             return new RecurringTransactionService.ProcessingResult(
-                                    1, 0, java.util.List.of());
+                                    1, 0, List.of());
                         });
         scheduler.processRecurringTransactions();
         verify(recurringTransactionService).processRecurringTransactionsForUser(1L);
@@ -196,6 +196,40 @@ class RecurringTransactionSchedulerTest {
             scheduler.processRecurringTransactions();
 
             verifyNoInteractions(recurringTransactionService);
+        }
+
+        @Test
+        @DisplayName("Manual trigger reports processed/failed/error counts")
+        void manualTriggerReportsCounts() {
+            when(recurringTransactionService.processRecurringTransactions())
+                    .thenReturn(
+                            new RecurringTransactionService.ProcessingResult(
+                                    3, 1, List.of("tx 9 failed")));
+
+            String message = scheduler.triggerManualProcessing();
+
+            assertThat(message)
+                    .isEqualTo("Manual processing completed. Processed: 3, Failed: 1, Errors: 1");
+        }
+
+        @Test
+        @DisplayName("Manual trigger reports a clean run without an error section")
+        void manualTriggerCleanRun() {
+            when(recurringTransactionService.processRecurringTransactions())
+                    .thenReturn(new RecurringTransactionService.ProcessingResult(2, 0, List.of()));
+
+            assertThat(scheduler.triggerManualProcessing())
+                    .isEqualTo("Manual processing completed. Processed: 2, Failed: 0, Errors: 0");
+        }
+
+        @Test
+        @DisplayName("Manual trigger swallows service failures into the returned message")
+        void manualTriggerSwallowsFailures() {
+            when(recurringTransactionService.processRecurringTransactions())
+                    .thenThrow(new IllegalStateException("database locked"));
+
+            assertThat(scheduler.triggerManualProcessing())
+                    .isEqualTo("Manual processing failed: database locked");
         }
     }
 }

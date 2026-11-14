@@ -1,4 +1,8 @@
 import { describe, it, expect, afterEach } from 'vitest';
+import { renderHook } from '@testing-library/react';
+import { I18nextProvider } from 'react-i18next';
+import React from 'react';
+import testI18n from '@/test/i18n-test';
 import {
   getMonetaryScale,
   getCurrencySymbol,
@@ -10,8 +14,11 @@ import {
   isCryptoCurrency,
   formatCurrency,
   formatCurrencyCompact,
+  formatCurrencyWithColor,
+  formatExchangeRate,
   parseCurrency,
   applyNumberFormat,
+  useCurrencyName,
   CURRENCIES,
 } from './currency';
 
@@ -344,4 +351,82 @@ it('preserves KWD precision in both supported number formats', () => {
   expect(formatCurrency(1.234, 'KWD')).toBe('KWD1.2');
   expect(getMonetaryScale('KWD')).toBe(3);
   setDecimalPlacesOverride(null);
+});
+
+describe('getMonetaryScale invalid codes', () => {
+  it('falls back to 18 for codes Intl rejects instead of throwing', () => {
+    expect(() => getMonetaryScale('XX')).not.toThrow();
+    expect(getMonetaryScale('XX')).toBe(18);
+    expect(getMonetaryScale('')).toBe(18);
+  });
+});
+
+describe('formatCurrencyWithColor', () => {
+  afterEach(() => setDecimalPlacesOverride(null));
+
+  it('marks positive amounts green and forces a leading sign', () => {
+    const result = formatCurrencyWithColor('12.5', 'EUR');
+    expect(result.className).toBe('text-green-500');
+    expect(result.formatted).toContain('+');
+    expect(result.formatted).toContain('12.50');
+  });
+
+  it('marks negative amounts red', () => {
+    expect(formatCurrencyWithColor(-3, 'EUR').className).toBe('text-red-500');
+  });
+
+  it('marks exact zero as muted in every representation', () => {
+    expect(formatCurrencyWithColor(0, 'EUR').className).toBe('text-text-muted');
+    expect(formatCurrencyWithColor('0.00', 'EUR').className).toBe('text-text-muted');
+    expect(formatCurrencyWithColor('-0.00', 'EUR').className).toBe('text-text-muted');
+  });
+
+  it('colours sub-cent amounts by their true sign, not the rounded display', () => {
+    // Displays as -0.00 at 2dp but must still read as a loss.
+    expect(formatCurrencyWithColor('-0.001', 'EUR').className).toBe('text-red-500');
+    expect(formatCurrencyWithColor('0.001', 'EUR').className).toBe('text-green-500');
+  });
+
+  it('defaults the currency when omitted, null or undefined', () => {
+    expect(formatCurrencyWithColor(5).formatted).toContain('5.00');
+    expect(formatCurrencyWithColor(5, null).className).toBe('text-green-500');
+    expect(formatCurrencyWithColor(5, undefined).className).toBe('text-green-500');
+  });
+
+  it('honours caller formatting options but always shows the sign', () => {
+    const result = formatCurrencyWithColor('1234.5', 'EUR', { showPositiveSign: false });
+    expect(result.formatted).toContain('+');
+  });
+});
+
+describe('formatExchangeRate', () => {
+  it('returns 0 for zero and non-finite rates instead of NaN/Infinity text', () => {
+    expect(formatExchangeRate(0)).toBe('0');
+    expect(formatExchangeRate('0')).toBe('0');
+    expect(formatExchangeRate(NaN)).toBe('0');
+    expect(formatExchangeRate(Infinity)).toBe('0');
+  });
+
+  it('keeps 6 significant figures for very small rates', () => {
+    expect(formatExchangeRate('0.00176385510712862')).toBe('0.00176386');
+    expect(formatExchangeRate(1)).toBe('1');
+  });
+});
+
+describe('useCurrencyName', () => {
+  const wrapper = ({ children }: { children: React.ReactNode }) =>
+    React.createElement(I18nextProvider, { i18n: testI18n }, children);
+
+  it('resolves localised names and falls back to the English name/code', () => {
+    const { result } = renderHook(() => useCurrencyName(), { wrapper });
+    expect(result.current('USD')).toBe('US Dollar');
+    expect(result.current('XYZ')).toBe('XYZ');
+  });
+
+  it('defaults to EUR for nullish codes', () => {
+    const { result } = renderHook(() => useCurrencyName(), { wrapper });
+    expect(result.current(null)).toBe('Euro');
+    expect(result.current(undefined)).toBe('Euro');
+    expect(result.current('')).toBe('Euro');
+  });
 });

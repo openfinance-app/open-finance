@@ -7,6 +7,8 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -453,5 +455,128 @@ class FileValidationServiceTest {
         // Then
         assertFalse(result.isValid());
         assertTrue(result.getErrorMessage().contains("disabled"));
+    }
+
+    @Test
+    @DisplayName("Should reject an executable (MZ) disguised as a CSV")
+    void shouldRejectExecutableSignature() {
+        byte[] exe = "MZ this is not a spreadsheet".getBytes(StandardCharsets.UTF_8);
+        MultipartFile file = new MockMultipartFile("file", "evil.csv", "text/csv", exe);
+        FileValidationService.ValidationResult result = fileValidationService.validate(file);
+        assertFalse(result.isValid());
+        assertTrue(result.getErrorMessage().contains("malicious"));
+    }
+
+    @Test
+    @DisplayName("Should reject a ZIP (PK) disguised as a CSV")
+    void shouldRejectZipSignature() {
+        byte[] zip = "PK\u0003\u0004 archive body".getBytes(StandardCharsets.UTF_8);
+        MultipartFile file = new MockMultipartFile("file", "evil.csv", "text/csv", zip);
+        assertFalse(fileValidationService.validate(file).isValid());
+    }
+
+    @Test
+    @DisplayName("Should reject filenames without a usable extension")
+    void shouldRejectExtensionlessFilenames() {
+        byte[] csv = "a,b\n1,2".getBytes(StandardCharsets.UTF_8);
+        assertFalse(
+                fileValidationService
+                        .validate(new MockMultipartFile("file", "noextension", "text/csv", csv))
+                        .isValid());
+        assertFalse(
+                fileValidationService
+                        .validate(new MockMultipartFile("file", "trailingdot.", "text/csv", csv))
+                        .isValid());
+        // Hidden-file style name: the dot is at index 0, so there is no extension either.
+        assertFalse(
+                fileValidationService
+                        .validate(new MockMultipartFile("file", ".csv", "text/csv", csv))
+                        .isValid());
+    }
+
+    @Test
+    @DisplayName("Should accept an uppercase file extension")
+    void shouldAcceptUppercaseExtension() {
+        byte[] csv = "a,b\n1,2".getBytes(StandardCharsets.UTF_8);
+        MultipartFile file = new MockMultipartFile("file", "EXPORT.CSV", "text/csv", csv);
+        assertTrue(fileValidationService.validate(file).isValid());
+    }
+
+    @Test
+    @DisplayName("Should fail closed when the upload stream cannot be read")
+    void shouldFailClosedOnUnreadableUpload() {
+        MultipartFile broken =
+                new MockMultipartFile("file", "data.csv", "text/csv", "a,b".getBytes()) {
+                    @Override
+                    public InputStream getInputStream() throws IOException {
+                        throw new IOException("disk gone");
+                    }
+                };
+        FileValidationService.ValidationResult result = fileValidationService.validate(broken);
+        assertFalse(result.isValid());
+        assertTrue(result.getErrorMessage().contains("Failed to read"));
+    }
+
+    @Test
+    @DisplayName("Should detect unknown format for an empty-content stream")
+    void shouldDetectUnknownForEmptyStream() throws IOException {
+        // MockMultipartFile.isEmpty() short-circuits validate(); detectFileFormat itself must cope.
+        MultipartFile file =
+                new MockMultipartFile("file", "data.csv", "text/csv", new byte[0]) {
+                    @Override
+                    public boolean isEmpty() {
+                        return false;
+                    }
+                };
+        assertEquals("unknown", fileValidationService.detectFileFormat(file));
+    }
+
+    @Test
+    @DisplayName("Should parse GB and bare-byte size limits")
+    void shouldParseGbAndBareByteSizes() {
+        FileValidationService gbService =
+                new FileValidationService(".csv", "1GB", new ImportProperties());
+        byte[] csv = "a,b\n1,2".getBytes(StandardCharsets.UTF_8);
+        assertTrue(
+                gbService
+                        .validate(new MockMultipartFile("file", "data.csv", "text/csv", csv))
+                        .isValid());
+
+        FileValidationService byteService =
+                new FileValidationService(".csv", "4", new ImportProperties());
+        FileValidationService.ValidationResult result =
+                byteService.validate(new MockMultipartFile("file", "data.csv", "text/csv", csv));
+        assertFalse(result.isValid());
+        assertTrue(result.getErrorMessage().contains("exceeds maximum allowed size (4 bytes)"));
+    }
+
+    @Test
+    @DisplayName("Should reject malformed max-size configuration at startup")
+    void shouldRejectMalformedSizeConfig() {
+        assertThrows(
+                NumberFormatException.class,
+                () -> new FileValidationService(".csv", "10.5MB", new ImportProperties()));
+        assertThrows(
+                NumberFormatException.class,
+                () -> new FileValidationService(".csv", "ten", new ImportProperties()));
+    }
+
+    @Test
+    @DisplayName("Malicious scan only inspects the first 100 lines (documented performance bound)")
+    void maliciousScanIsBoundedToFirst100Lines() {
+        StringBuilder padded = new StringBuilder("a,b\n");
+        for (int i = 0; i < 110; i++) {
+            padded.append("x,y\n");
+        }
+        padded.append("<script>alert(1)</script>\n");
+        MultipartFile file =
+                new MockMultipartFile(
+                        "file",
+                        "padded.csv",
+                        "text/csv",
+                        padded.toString().getBytes(StandardCharsets.UTF_8));
+        // The script tag sits past the 100-line scan window, so this passes validation today.
+        // Downstream parsers treat rows as data; pinning the bound makes the limit explicit.
+        assertTrue(fileValidationService.validate(file).isValid());
     }
 }

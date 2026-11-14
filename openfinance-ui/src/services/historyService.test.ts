@@ -83,6 +83,67 @@ describe('historyService', () => {
     });
   });
 
+  describe('getDetails', () => {
+    it('fetches the first details page by default with a fixed size of 20', async () => {
+      const page = { content: [], totalElements: 0, totalPages: 0, size: 20, number: 0 };
+      mockApiClient.get.mockResolvedValue({ data: page });
+
+      const result = await historyService.getDetails(9);
+
+      expect(mockApiClient.get).toHaveBeenCalledWith('/history/9/details', {
+        params: { page: 0, size: 20 },
+      });
+      expect(result).toEqual(page);
+    });
+
+    it('passes an explicit page through unchanged', async () => {
+      mockApiClient.get.mockResolvedValue({ data: mockPageableResponse });
+
+      await historyService.getDetails(9, 3);
+
+      expect(mockApiClient.get).toHaveBeenCalledWith('/history/9/details', {
+        params: { page: 3, size: 20 },
+      });
+    });
+  });
+
+  describe('getHistory filters', () => {
+    it('includes operationType and until only when provided', async () => {
+      mockApiClient.get.mockResolvedValue({ data: mockPageableResponse });
+
+      await historyService.getHistory(
+        0,
+        20,
+        undefined,
+        undefined,
+        'DELETE',
+        '2026-02-01T00:00:00Z'
+      );
+
+      const url: string = mockApiClient.get.mock.calls[0][0];
+      expect(url).toContain('operationType=DELETE');
+      expect(url).toContain('until=2026-02-01T00%3A00%3A00Z');
+      expect(url).not.toContain('entityType=');
+      expect(url).not.toContain('since=');
+    });
+
+    it('omits undefined filter params entirely instead of serialising "undefined"', async () => {
+      mockApiClient.get.mockResolvedValue({ data: mockPageableResponse });
+
+      await historyService.getHistory(1, 10);
+
+      const url: string = mockApiClient.get.mock.calls[0][0];
+      expect(url).not.toContain('undefined');
+      expect(url).not.toContain('operationType');
+      expect(url).not.toContain('until');
+    });
+
+    it('propagates API failures to the caller', async () => {
+      mockApiClient.get.mockRejectedValue(new Error('offline'));
+      await expect(historyService.getHistory()).rejects.toThrow('offline');
+    });
+  });
+
   describe('undo', () => {
     it('should call POST /history/:id/undo', async () => {
       mockApiClient.post.mockResolvedValue({ data: mockHistoryEntry });

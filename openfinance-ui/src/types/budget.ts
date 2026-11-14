@@ -142,6 +142,7 @@ export interface BudgetSuggestionRequest {
  * REQ-2.9.1.5
  */
 export interface BudgetSuggestion {
+  exactValues?: Record<string, string>;
   categoryId: number;
   categoryName: string;
   /** Ceiling-rounded average spend per target period — recommended budget amount. */
