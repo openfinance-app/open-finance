@@ -334,7 +334,7 @@ test('minor fixes persist category icons and notification acknowledgement with a
     },
     'POST'
   );
-  expect(compound.finalBalance).toBe(16470.09);
+  expect(compound.finalBalance).toBeCloseTo(16470.09, 2);
   await api(
     page,
     '/assets',

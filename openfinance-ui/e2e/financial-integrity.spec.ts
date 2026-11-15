@@ -173,8 +173,15 @@ test('a repayment before origination is rejected through the transaction form', 
   await dialog.getByLabel('Operation', { exact: true }).selectOption('LOAN_PAYMENT');
   await dialog.getByLabel('Loan', { exact: true }).click();
   await page.getByRole('option', { name: /Audit loan/ }).click();
-  await dialog.getByRole('checkbox', { name: /apply split/i }).uncheck();
-  await dialog.locator('#principalAmount').fill('100');
+  await dialog.getByRole('button', { name: 'Enter actual breakdown', exact: true }).click();
+  await dialog
+    .getByRole('combobox', { name: 'Loan component 1', exact: true })
+    .selectOption('PRINCIPAL');
+  await dialog
+    .getByRole('combobox', { name: 'Loan component 2', exact: true })
+    .selectOption('PRINCIPAL');
+  await dialog.getByLabel('Split 1 amount', { exact: true }).fill('50');
+  await dialog.getByLabel('Split 2 amount', { exact: true }).fill('50');
   const rejected = page.waitForResponse(
     r => r.url().endsWith('/transactions') && r.request().method() === 'POST'
   );

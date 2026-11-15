@@ -1,4 +1,4 @@
-import { fireEvent, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, screen, waitFor } from '@testing-library/react';
 import type { ComponentProps } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { mockAuthentication, renderWithProviders } from '@/test/test-utils';
@@ -99,8 +99,10 @@ vi.mock('@/components/import/ImportReview', () => ({
 }));
 const mount = () => renderWithProviders(<ImportWizard />);
 async function upload() {
-  fireEvent.click(screen.getByRole('button', { name: 'Upload statement' }));
-  await waitFor(() => expect(state.start).toHaveBeenCalledOnce());
+  await act(async () => {
+    fireEvent.click(screen.getByRole('button', { name: 'Upload statement' }));
+  });
+  expect(state.start).toHaveBeenCalledOnce();
 }
 async function review() {
   await upload();

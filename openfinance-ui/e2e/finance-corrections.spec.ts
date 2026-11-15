@@ -6,7 +6,7 @@ test.setTimeout(120_000);
 
 // Every financial record in these tests is created through the real forms.
 // Response observation checks persistence; the purchase route deliberately loses one response.
-async function newUser(page: Page) {
+async function newUser(page: Page, amountDisplayMode: 'base' | 'native' = 'base'): Promise<void> {
   const username = `corr_${randomUUID().replaceAll('-', '')}`;
   const user = {
     username,
@@ -20,6 +20,9 @@ async function newUser(page: Page) {
   await page.getByRole('button', { name: /USD —/ }).click();
   await page.getByRole('option', { name: 'EUR Euro', exact: true }).click();
   await page.getByRole('button', { name: 'DD/MM/YYYY', exact: true }).click();
+  if (amountDisplayMode === 'native') {
+    await page.getByRole('radio', { name: /^Native currency/ }).check();
+  }
   await page.getByRole('button', { name: 'Get Started', exact: true }).click();
   await page.getByRole('heading', { name: 'Dashboard', exact: true }).waitFor();
 }
@@ -50,7 +53,7 @@ async function account(page: Page, name: string, amount: string, currency = 'EUR
   await page.getByRole('button', { name: 'Add Account', exact: true }).first().click();
   await page.getByLabel('Account Name *', { exact: true }).fill(name);
   if (currency !== 'EUR') {
-    await page.getByRole('button', { name: /EUR —/ }).click();
+    await page.getByRole('button', { name: 'Currency *', exact: true }).click();
     await page.getByRole('combobox', { name: 'Search currency', exact: true }).fill(currency);
     await page.getByRole('option', { name: new RegExp(`^${currency} `) }).click();
   }
@@ -73,7 +76,7 @@ async function liability(
   await page.getByLabel('Original or approved principal *', { exact: true }).fill(principal);
   await page.getByLabel('Current Balance *', { exact: true }).fill(balance);
   if (currency !== 'EUR') {
-    await page.getByRole('button', { name: /EUR —/ }).click();
+    await page.getByRole('button', { name: 'Currency *', exact: true }).click();
     await page.getByRole('combobox', { name: 'Search currency', exact: true }).fill(currency);
     await page.getByRole('option', { name: new RegExp(`^${currency} `) }).click();
   }
@@ -228,7 +231,7 @@ test('lost purchase response retries once and the complete purchase can be undon
 });
 
 test('dedicated drawdown form preserves a small BTC amount', async ({ page }, info) => {
-  await newUser(page);
+  await newUser(page, 'native');
   await account(page, 'Bitcoin account', '0', 'BTC');
   await liability(page, 'Bitcoin loan', '1', '0', 'BTC');
   await createLiability(page, 'Bitcoin loan');
@@ -284,7 +287,9 @@ test('payoff removes future insurance and the monthly payment from the loan card
   await liability(page, 'Payoff loan', '10000', '10000');
   await page.getByText('Repayment terms & fees (optional)', { exact: true }).click();
   await page.getByLabel('Interest Rate (% Annual)', { exact: true }).fill('0');
-  await page.getByLabel('Minimum Monthly Payment', { exact: true }).fill('10000');
+  await page
+    .getByLabel('Minimum Monthly Payment (excluding insurance)', { exact: true })
+    .fill('10000');
   await page.getByLabel('Insurance Rate (% Annual)', { exact: true }).fill('1.2');
   const year = new Date().getFullYear() + 1;
   await page.getByLabel('End Date (Optional)', { exact: true }).fill(`30/09/${year}`);
@@ -385,7 +390,9 @@ test('interest-only payment card includes current interest without scheduled pri
   await liability(page, 'Interest-only mortgage', '300000', '0');
   await page.getByText('Repayment terms & fees (optional)', { exact: true }).click();
   await page.getByLabel('Interest Rate (% Annual)', { exact: true }).fill('4.1');
-  await page.getByLabel('Minimum Monthly Payment', { exact: true }).fill('2000');
+  await page
+    .getByLabel('Minimum Monthly Payment (excluding insurance)', { exact: true })
+    .fill('2000');
   await createLiability(page, 'Interest-only mortgage');
   await loanCard(page, 'Interest-only mortgage')
     .getByRole('button', { name: 'View liability details', exact: true })

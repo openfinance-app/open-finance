@@ -1,6 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
 import Decimal from 'decimal.js';
-import { loginAs, registerWithRetry } from './helpers/auth';
+import { loginAs, refreshStoredUser, registerWithRetry } from './helpers/auth';
 import accountEn from '../public/locales/en/accounts.json' with { type: 'json' };
 import accountFr from '../public/locales/fr/accounts.json' with { type: 'json' };
 import budgetEn from '../public/locales/en/budgets.json' with { type: 'json' };
@@ -77,6 +77,7 @@ for (const language of ['en', 'fr'] as const) {
       amountDisplayMode: 'base',
     });
     await api(page, '/users/me/base-currency', 'PUT', { baseCurrency: 'EUR' });
+    await refreshStoredUser(page);
     const category = await api<{ id: number }>(page, '/categories', 'POST', {
       name: 'Alimentation',
     });
@@ -371,7 +372,8 @@ for (const language of ['en', 'fr'] as const) {
       yearToDate: number;
       historicalAccumulated: number;
     }>(page, `/accounts/${savings.id}/interest-estimate`);
-    expect(summary.estimate).toBe(Number(expectedProjection.slice(1)));
+    // The API preserves precision; the visible projection is rounded to cents.
+    expect(summary.estimate).toBeCloseTo(Number(expectedProjection.slice(1)), 2);
     expect(summary.historicalAccumulated).toBeGreaterThan(summary.yearToDate);
     const money = (value: number) => `€${value.toFixed(2)}`;
     await expect(earned).toContainText(money(summary.yearToDate));

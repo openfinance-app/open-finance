@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { registerWithRetry } from './helpers/auth';
+import { loginWithRetry, registerWithRetry } from './helpers/auth';
 import en from '../public/locales/en/realEstate.json' with { type: 'json' };
 import fr from '../public/locales/fr/realEstate.json' with { type: 'json' };
 import importEn from '../public/locales/en/import.json' with { type: 'json' };
@@ -28,7 +28,7 @@ for (const language of ['en', 'fr'] as const) {
       skipSeeding: true,
     });
     expect(registration.status()).toBe(201);
-    const login = await page.request.post('/api/v1/auth/login', { data: credentials });
+    const login = await loginWithRetry(page.request, credentials);
     expect(login.ok()).toBe(true);
     const auth = await login.json();
     const headers = {

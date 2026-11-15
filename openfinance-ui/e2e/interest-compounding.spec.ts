@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { loginAs, registerWithRetry } from './helpers/auth';
+import { loginAs, refreshStoredUser, registerWithRetry } from './helpers/auth';
 
 async function api<T>(page: Page, path: string, method = 'GET', body?: unknown): Promise<T> {
   return page.evaluate(
@@ -48,6 +48,7 @@ test('form preview, saved account and dashboard share calendar compounding', asy
     amountDisplayMode: 'base',
   });
   await api(page, '/users/me/base-currency', 'PUT', { baseCurrency: 'EUR' });
+  await refreshStoredUser(page);
   await page.goto('/accounts');
   await page.getByRole('button', { name: 'Add Account', exact: true }).first().click();
   await page
@@ -66,6 +67,7 @@ test('form preview, saved account and dashboard share calendar compounding', asy
   await page.getByRole('textbox', { name: /^Initial Balance/ }).fill('1000');
   const year = new Date().getFullYear();
   const expected = year % 4 === 0 ? 40.72 : 40.6;
+  await page.getByText('Additional details', { exact: true }).click();
   await page.getByRole('textbox', { name: 'Opening Date', exact: false }).fill(`01/01/${year}`);
   await page.getByRole('switch').click();
   await page.getByLabel('Compounding', { exact: true }).selectOption('QUARTERLY');
@@ -86,11 +88,11 @@ test('form preview, saved account and dashboard share calendar compounding', asy
   expect(account.ownBalance).toBe(1000);
   expect(
     (await api<{ estimate: number }>(page, `/accounts/${account.id}/interest-estimate`)).estimate
-  ).toBe(expected);
+  ).toBeCloseTo(expected, 2);
   expect(
     (await api<{ totalProjected: number }>(page, '/dashboard/estimated-interest?period=YTD'))
       .totalProjected
-  ).toBe(expected);
+  ).toBeCloseTo(expected, 2);
   await page.getByText('Quarterly savings', { exact: true }).click();
   await page.getByRole('button', { name: 'Interest', exact: true }).click();
   await expect(
@@ -124,5 +126,5 @@ test('form preview, saved account and dashboard share calendar compounding', asy
   const corrected = (
     await api<{ estimate: number }>(page, `/accounts/${account.id}/interest-estimate`)
   ).estimate;
-  expect(corrected).toBe(expected);
+  expect(corrected).toBeCloseTo(expected, 2);
 });

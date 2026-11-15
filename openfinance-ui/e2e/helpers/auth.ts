@@ -28,13 +28,46 @@ export async function registerWithRetry(
   request: APIRequestContext,
   data: Record<string, unknown>
 ): Promise<APIResponse> {
+  return authenticateWithRetry(request, '/api/v1/auth/register', data);
+}
+
+/** API sign-in must honor the same rate limit as registration and the login form. */
+export async function loginWithRetry(
+  request: APIRequestContext,
+  data: Record<string, unknown>
+): Promise<APIResponse> {
+  return authenticateWithRetry(request, '/api/v1/auth/login', data);
+}
+
+async function authenticateWithRetry(
+  request: APIRequestContext,
+  path: string,
+  data: Record<string, unknown>
+): Promise<APIResponse> {
   for (let attempt = 0; ; attempt++) {
-    const response = await request.post('/api/v1/auth/register', { data });
+    const response = await request.post(path, { data });
     if (response.status() !== 429 || attempt === 4) return response;
     await new Promise(resolve =>
       setTimeout(resolve, retryDelay(response.headers()['retry-after']))
     );
   }
+}
+
+/** Refresh the login snapshot after API-only fixture edits, before navigating. */
+export async function refreshStoredUser(page: Page): Promise<void> {
+  await page.evaluate(async () => {
+    const storage = localStorage.getItem('auth_token') ? localStorage : sessionStorage;
+    const response = await fetch('/api/v1/users/me', {
+      headers: {
+        Authorization: `Bearer ${storage.getItem('auth_token')}`,
+        'X-Encryption-Session': sessionStorage.getItem('encryption_session') || '',
+      },
+    });
+    if (!response.ok) throw new Error(`Profile refresh failed: HTTP ${response.status}`);
+    const profile: Record<string, unknown> = await response.json();
+    const stored: Record<string, unknown> = JSON.parse(storage.getItem('auth_user') || '{}');
+    storage.setItem('auth_user', JSON.stringify({ ...stored, ...profile }));
+  });
 }
 
 function retryDelay(header: string | undefined): number {

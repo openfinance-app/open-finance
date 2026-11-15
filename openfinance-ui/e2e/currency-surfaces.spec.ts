@@ -1,5 +1,5 @@
 import { expect, test, type Locator } from '@playwright/test';
-import { registerWithRetry } from './helpers/auth';
+import { loginWithRetry, registerWithRetry } from './helpers/auth';
 
 // Disposable API fixtures; the XOF/EUR peg makes the conversion independent of live quotes.
 for (const language of ['en', 'fr'] as const) {
@@ -20,7 +20,7 @@ for (const language of ['en', 'fr'] as const) {
       skipSeeding: true,
     });
     expect(registration.status()).toBe(201);
-    const login = await page.request.post('/api/v1/auth/login', { data: credentials });
+    const login = await loginWithRetry(page.request, credentials);
     expect(login.ok()).toBe(true);
     const auth = await login.json();
     const headers = {

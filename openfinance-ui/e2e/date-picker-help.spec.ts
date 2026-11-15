@@ -1,5 +1,5 @@
 import { expect, test, type Locator, type Page } from '@playwright/test';
-import { loginAs, registerWithRetry } from './helpers/auth';
+import { loginAs, refreshStoredUser, registerWithRetry } from './helpers/auth';
 import accountEn from '../public/locales/en/accounts.json' with { type: 'json' };
 import accountFr from '../public/locales/fr/accounts.json' with { type: 'json' };
 import budgetEn from '../public/locales/en/budgets.json' with { type: 'json' };
@@ -47,17 +47,18 @@ async function checkPickerAnchor(page: Page, field: Locator, openLabel: string):
 }
 
 async function checkHelp(page: Page, text: string, screenshotPath: string): Promise<void> {
+  const tooltip = page.getByRole('tooltip', { name: text, exact: true });
   await expect(page.getByText(text, { exact: true })).toHaveCount(0);
   await page.getByRole('button', { name: text, exact: true }).focus();
-  await expect(page.getByRole('tooltip')).toHaveText(text);
-  await expect(page.getByRole('tooltip').locator('..')).toHaveCSS('opacity', '1');
-  const bounds = await page.getByRole('tooltip').locator('..').boundingBox();
+  await expect(tooltip).toHaveText(text);
+  await expect(tooltip.locator('..')).toHaveCSS('opacity', '1');
+  const bounds = await tooltip.locator('..').boundingBox();
   expect(bounds).not.toBeNull();
   expect(bounds!.x).toBeGreaterThanOrEqual(0);
   expect(bounds!.x + bounds!.width).toBeLessThanOrEqual(page.viewportSize()!.width);
   await page.screenshot({ path: screenshotPath, animations: 'disabled' });
   await page.keyboard.press('Tab');
-  await expect(page.getByRole('tooltip')).not.toBeVisible();
+  await expect(tooltip).not.toBeVisible();
 }
 
 for (const language of ['en', 'fr'] as const) {
@@ -101,6 +102,7 @@ for (const language of ['en', 'fr'] as const) {
       amountDisplayMode: 'base',
     });
     await api(page, '/users/me/base-currency', { baseCurrency: 'EUR' }, 'PUT');
+    await refreshStoredUser(page);
     await api(page, '/categories', { name: 'Groceries' });
 
     await page.goto('/budget');
