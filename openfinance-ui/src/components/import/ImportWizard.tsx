@@ -16,6 +16,8 @@ import { useNavigate, useBeforeUnload } from 'react-router';
 import { ROUTES } from '@/constants/routes';
 import { useTranslation } from 'react-i18next';
 import { useQueryClient } from '@tanstack/react-query';
+import { ImportFileAccounts } from '@/components/import/ImportFileAccounts';
+import { readImportFiles } from '@/utils/import-files';
 import { FileUpload } from '@/components/import/FileUpload';
 import { SkroogeRulesNotice } from '@/components/import/SkroogeRulesNotice';
 import { SkroogeInterestNotice } from '@/components/import/SkroogeInterestNotice';
@@ -106,6 +108,14 @@ export function ImportWizard() {
   const initialDraft = useRef(savedDraft.userId === user?.id ? savedDraft.draft : null).current;
   const recovery = useRef(!initialDraft && user ? readImportRecovery(user.id) : null).current;
   const [stepError, setStepError] = useState<string | null>(null);
+  const [uploadedFiles, setUploadedFiles] = useState<FileUploadResponse[]>(
+    initialDraft?.uploadedFiles ?? []
+  );
+  const [fileAccountOverrides, setFileAccountOverrides] = useState<Record<string, number | null>>(
+    initialDraft?.fileAccountOverrides ?? {}
+  );
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadSelectionKey, setUploadSelectionKey] = useState(0);
 
   // ── Wizard state ─────────────────────────────────────────────────────────
   const [selectedStep, setCurrentStep] = useState<ImportWizardStep>(
@@ -188,6 +198,20 @@ export function ImportWizard() {
       : selectedStep;
 
   const fileName = uploadedFileName || session?.fileName || '';
+  const sourceFiles = useMemo(() => readImportFiles(session?.metadata), [session?.metadata]);
+  const isMultiFile = sourceFiles.length > 0 || uploadedFiles.length > 1;
+  const sourceAccountNames = Object.fromEntries(
+    sourceFiles.map(file => {
+      const id =
+        file.uploadId in fileAccountOverrides
+          ? fileAccountOverrides[file.uploadId]
+          : file.accountId;
+      return [
+        file.uploadId,
+        accounts.find(account => account.id === id)?.name ?? file.suggestedAccountName ?? '',
+      ];
+    })
+  );
   const savedReviewOptions = useMemo(
     () => readImportReviewOptions(session?.metadata),
     [session?.metadata]
@@ -211,6 +235,8 @@ export function ImportWizard() {
       newCategoryNames,
       skipDuplicates,
       editedTransactions,
+      uploadedFiles,
+      fileAccountOverrides,
     });
   }, [
     user,
@@ -224,6 +250,8 @@ export function ImportWizard() {
     newCategoryNames,
     skipDuplicates,
     editedTransactions,
+    uploadedFiles,
+    fileAccountOverrides,
   ]);
 
   // ── Refresh dependent data once the async import actually completes ───────
@@ -253,7 +281,7 @@ export function ImportWizard() {
   }, [session?.status, queryClient]);
 
   // ── Prevent accidental navigation when midway ───────────────
-  const isMidway = !!sessionId && currentStep !== 'progress';
+  const isMidway = (!!sessionId && currentStep !== 'progress') || isUploading;
 
   // Block tab-close / page refresh
   useBeforeUnload(
@@ -271,24 +299,17 @@ export function ImportWizard() {
 
   // ── Handlers ─────────────────────────────────────────────────────────────
 
-  const handleUploadSuccess = async (response: FileUploadResponse) => {
-    if (!response.uploadId) return;
-
+  const startUploadedFiles = async (files: FileUploadResponse[]): Promise<void> => {
     setStepError(null);
-    setLocalTransactions(null);
-    setCategoryMappings({});
-    setNewCategoryNames([]);
-    setAccountId(undefined);
-    setUploadId(response.uploadId);
-    setFileName(response.fileName);
-    setCurrentStep('account');
-
+    const requests = files.map(file => ({
+      uploadId: file.uploadId!,
+      accountId: null,
+      originalFileName: file.fileName,
+    }));
     try {
-      const result = await startImport.mutateAsync({
-        uploadId: response.uploadId,
-        accountId: null,
-        originalFileName: response.fileName,
-      });
+      const result = await startImport.mutateAsync(
+        requests.length > 1 ? { files: requests } : requests[0]
+      );
       setSessionId(result.id);
     } catch (error) {
       console.error('Failed to start import:', error);
@@ -296,11 +317,46 @@ export function ImportWizard() {
     }
   };
 
+  const handleUploadSuccess = async (
+    response: FileUploadResponse,
+    additionalUploads: FileUploadResponse[] = []
+  ): Promise<void> => {
+    const files = [response, ...additionalUploads];
+    if (files.some(file => !file.uploadId)) return;
+    setUploadedFiles(files);
+    setFileAccountOverrides({});
+    setSessionId(null);
+    setLocalTransactions(null);
+    setCategoryMappings({});
+    setNewCategoryNames([]);
+    setAccountId(undefined);
+    setSkipDuplicates(true);
+    setUploadId(response.uploadId);
+    setFileName(files.map(file => file.fileName).join(', '));
+    setCurrentStep('account');
+    await startUploadedFiles(files);
+  };
+
   const handleApplyAccount = async () => {
     if (!sessionId) return;
     setStepError(null);
     try {
-      await updateAccount.mutateAsync({ sessionId, accountId: accountId ?? null });
+      await updateAccount.mutateAsync({
+        sessionId,
+        accountId: accountId ?? null,
+        ...(isMultiFile
+          ? {
+              fileAccounts: Object.fromEntries(
+                sourceFiles.map(file => [
+                  file.uploadId,
+                  file.uploadId in fileAccountOverrides
+                    ? fileAccountOverrides[file.uploadId]
+                    : file.accountId,
+                ])
+              ),
+            }
+          : {}),
+      });
       setLocalTransactions(null); // Use review recalculated for the selected destination.
     } catch (err) {
       console.error('Failed to update account:', err);
@@ -341,6 +397,9 @@ export function ImportWizard() {
     setCategoryMappings({});
     setNewCategoryNames([]);
     setSkipDuplicates(true);
+    setUploadedFiles([]);
+    setFileAccountOverrides({});
+    setUploadSelectionKey(key => key + 1);
     importCompletedRef.current = false;
   };
 
@@ -546,7 +605,13 @@ export function ImportWizard() {
           <div>
             <h2 className="text-2xl font-bold text-text-primary flex items-center space-x-2">
               <StepIcon className="h-6 w-6 text-primary" />
-              <span>{t(STEP_INFO[currentStep].title)}</span>
+              <span>
+                {t(
+                  isMultiFile && currentStep === 'account'
+                    ? 'wizard.files.title'
+                    : STEP_INFO[currentStep].title
+                )}
+              </span>
             </h2>
             <p className="text-sm text-text-secondary mt-1">
               {currentStep === 'upload' && !skroogeJsonEnabled
@@ -554,7 +619,17 @@ export function ImportWizard() {
                 : t(STEP_INFO[currentStep].description)}
             </p>
           </div>
-          <Button variant="ghost" size="sm" onClick={handleCancel}>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleCancel}
+            disabled={
+              isUploading ||
+              startImport.isPending ||
+              confirmImport.isPending ||
+              session?.status === 'IMPORTING'
+            }
+          >
             <X className="h-4 w-4 mr-2" />
             {t('common:buttons.cancel')}
           </Button>
@@ -592,7 +667,11 @@ export function ImportWizard() {
                       />
                     </div>
                     <div className="text-xs mt-2 text-center hidden sm:block text-text-secondary">
-                      {t(STEP_INFO[step].title)}
+                      {t(
+                        isMultiFile && step === 'account'
+                          ? 'wizard.files.title'
+                          : STEP_INFO[step].title
+                      )}
                     </div>
                   </div>
                   {index < STEPS.length - 1 && (
@@ -614,6 +693,8 @@ export function ImportWizard() {
         {/* Step 1 — Upload */}
         {currentStep === 'upload' && (
           <FileUpload
+            key={uploadSelectionKey}
+            onUploadingChange={setIsUploading}
             onUploadSuccess={handleUploadSuccess}
             onUploadError={error => console.error(error)}
             acceptedFormats={acceptedFormats}
@@ -624,48 +705,63 @@ export function ImportWizard() {
         {currentStep === 'account' && (
           <div className="space-y-5">
             <p className="text-sm text-text-secondary">
-              {t('wizard.accountSelection.description')}
+              {t(isMultiFile ? 'wizard.files.description' : 'wizard.accountSelection.description')}
             </p>
             <p className="text-sm text-text-secondary">{t('wizard.openingDateNotice')}</p>
 
             {/* ── Scenario banners ─────────────────────────────────────────── */}
 
-            {/* Scenario 1: account detected AND matched to an existing account */}
-            {session?.accountId && session?.suggestedAccountName && (
-              <div className="flex items-start gap-3 p-3 rounded-lg border border-green-200 bg-green-50 text-sm text-green-800">
-                <CheckCircle className="h-4 w-4 mt-0.5 flex-shrink-0 text-green-600" />
-                <div>
-                  <span className="font-semibold">{t('wizard.accountSelection.matched')}</span>{' '}
-                  <span className="font-mono">{session.suggestedAccountName}</span>{' '}
-                  {t('wizard.accountSelection.matchedSuffix')}
-                </div>
-              </div>
-            )}
+            {!isMultiFile && (
+              <>
+                {/* Scenario 1: account detected AND matched to an existing account */}
+                {session?.accountId && session?.suggestedAccountName && (
+                  <div className="flex items-start gap-3 p-3 rounded-lg border border-green-200 bg-green-50 text-sm text-green-800">
+                    <CheckCircle className="h-4 w-4 mt-0.5 flex-shrink-0 text-green-600" />
+                    <div>
+                      <span className="font-semibold">{t('wizard.accountSelection.matched')}</span>{' '}
+                      <span className="font-mono">{session.suggestedAccountName}</span>{' '}
+                      {t('wizard.accountSelection.matchedSuffix')}
+                    </div>
+                  </div>
+                )}
 
-            {/* Scenario 2: account detected but NOT matched to any existing account */}
-            {!session?.accountId && session?.suggestedAccountName && (
-              <div className="flex items-start gap-3 p-3 rounded-lg border border-amber-200 bg-amber-50 text-sm text-amber-800">
-                <Users className="h-4 w-4 mt-0.5 flex-shrink-0 text-amber-600" />
-                <div>
-                  <span className="font-semibold">{t('wizard.accountSelection.detected')}</span>{' '}
-                  <span className="font-mono">{session.suggestedAccountName}</span>.{' '}
-                  {t('wizard.accountSelection.detectedSuffix', {
-                    name: session.suggestedAccountName,
-                  })}
-                </div>
-              </div>
-            )}
+                {/* Scenario 2: account detected but NOT matched to any existing account */}
+                {!session?.accountId && session?.suggestedAccountName && (
+                  <div className="flex items-start gap-3 p-3 rounded-lg border border-amber-200 bg-amber-50 text-sm text-amber-800">
+                    <Users className="h-4 w-4 mt-0.5 flex-shrink-0 text-amber-600" />
+                    <div>
+                      <span className="font-semibold">{t('wizard.accountSelection.detected')}</span>{' '}
+                      <span className="font-mono">{session.suggestedAccountName}</span>.{' '}
+                      {t('wizard.accountSelection.detectedSuffix', {
+                        name: session.suggestedAccountName,
+                      })}
+                    </div>
+                  </div>
+                )}
 
-            {/* Scenario 3: no account information in the file at all */}
-            {!session?.suggestedAccountName && session?.readyForReview && (
-              <div className="flex items-start gap-3 p-3 rounded-lg border border-border bg-app-bg text-sm text-text-secondary">
-                <FileSearch className="h-4 w-4 mt-0.5 flex-shrink-0 text-text-tertiary" />
-                <div>
-                  {t('wizard.accountSelection.noneFound', {
-                    name: fileName.replace(/\.[^.]+$/, '') || 'Imported',
-                  })}
-                </div>
-              </div>
+                {/* Scenario 3: no account information in the file at all */}
+                {!session?.suggestedAccountName && session?.readyForReview && (
+                  <div className="flex items-start gap-3 p-3 rounded-lg border border-border bg-app-bg text-sm text-text-secondary">
+                    <FileSearch className="h-4 w-4 mt-0.5 flex-shrink-0 text-text-tertiary" />
+                    <div>
+                      {t('wizard.accountSelection.noneFound', {
+                        name: fileName.replace(/\.[^.]+$/, '') || 'Imported',
+                      })}
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+            {isMultiFile && session?.readyForReview && (
+              <ImportFileAccounts
+                files={sourceFiles}
+                accounts={accounts}
+                overrides={fileAccountOverrides}
+                onChange={(id, value) =>
+                  setFileAccountOverrides(current => ({ ...current, [id]: value }))
+                }
+                disabled={updateAccount.isPending}
+              />
             )}
 
             {/* ── Parsing in progress ──────────────────────────────────────── */}
@@ -693,7 +789,16 @@ export function ImportWizard() {
                     </span>
                   </div>
                 </div>
-                <div className="mt-2 ml-7">
+                <div className="mt-2 ml-7 flex flex-wrap gap-2">
+                  {uploadedFiles.length > 0 && !sessionId && (
+                    <Button
+                      variant="secondary"
+                      onClick={() => startUploadedFiles(uploadedFiles)}
+                      disabled={startImport.isPending}
+                    >
+                      {t('upload.tryAgain')}
+                    </Button>
+                  )}
                   <Button variant="outline" size="sm" onClick={resetWizard} className="bg-white">
                     {t('wizard.accountSelection.startOver')}
                   </Button>
@@ -722,43 +827,45 @@ export function ImportWizard() {
             )}
 
             {/* ── Account dropdown ─────────────────────────────────────────── */}
-            <div>
-              <label
-                htmlFor="import-destination-account"
-                className="block text-sm font-medium text-text-primary mb-1.5"
-              >
-                {t('wizard.accountSelection.label')}{' '}
-                <span className="text-text-tertiary text-xs font-normal">
-                  ({t('common:labels.optional')})
-                </span>
-              </label>
-              <SimpleSelect
-                id="import-destination-account"
-                value={accountId?.toString() ?? ''}
-                onChange={e => setAccountId(e.target.value ? parseInt(e.target.value, 10) : null)}
-                disabled={isLoadingSession || startImport.isPending || updateAccount.isPending}
-              >
-                <option value="">
-                  {session?.suggestedAccountName
-                    ? t('wizard.accountSelection.autoCreateLabel', {
-                        name: session.suggestedAccountName,
-                      })
-                    : fileName
+            {!isMultiFile && (
+              <div>
+                <label
+                  htmlFor="import-destination-account"
+                  className="block text-sm font-medium text-text-primary mb-1.5"
+                >
+                  {t('wizard.accountSelection.label')}{' '}
+                  <span className="text-text-tertiary text-xs font-normal">
+                    ({t('common:labels.optional')})
+                  </span>
+                </label>
+                <SimpleSelect
+                  id="import-destination-account"
+                  value={accountId?.toString() ?? ''}
+                  onChange={e => setAccountId(e.target.value ? parseInt(e.target.value, 10) : null)}
+                  disabled={isLoadingSession || startImport.isPending || updateAccount.isPending}
+                >
+                  <option value="">
+                    {session?.suggestedAccountName
                       ? t('wizard.accountSelection.autoCreateLabel', {
-                          name: fileName.replace(/\.[^.]+$/, '') || 'Imported',
+                          name: session.suggestedAccountName,
                         })
-                      : t('wizard.accountSelection.leaveBlank')}
-                </option>
-                {accounts.map(account => (
-                  <option key={account.id} value={account.id}>
-                    {account.name} ({account.type})
+                      : fileName
+                        ? t('wizard.accountSelection.autoCreateLabel', {
+                            name: fileName.replace(/\.[^.]+$/, '') || 'Imported',
+                          })
+                        : t('wizard.accountSelection.leaveBlank')}
                   </option>
-                ))}
-              </SimpleSelect>
-            </div>
+                  {accounts.map(account => (
+                    <option key={account.id} value={account.id}>
+                      {account.name} ({account.type})
+                    </option>
+                  ))}
+                </SimpleSelect>
+              </div>
+            )}
 
             {/* ── File name ────────────────────────────────────────────────── */}
-            {fileName && (
+            {!isMultiFile && fileName && (
               <div className="text-xs text-text-tertiary">
                 {t('summary.file')}:{' '}
                 <span className="text-text-secondary font-medium">{fileName}</span>
@@ -803,6 +910,7 @@ export function ImportWizard() {
               </div>
             ) : (
               <ImportReview
+                sourceAccountNames={sourceAccountNames}
                 transactions={localTransactions}
                 onTransactionsChange={setLocalTransactions}
                 categoryMappings={categoryMappings}
@@ -820,28 +928,39 @@ export function ImportWizard() {
             <h3 className="plate-label ">{t('summary.title')}</h3>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="bg-app-bg border border-border rounded-lg p-4">
-                <div className="text-sm text-text-secondary">{t('summary.file')}</div>
-                <div className="text-base font-medium text-text-primary mt-1 truncate">
-                  {fileName}
+              {isMultiFile ? (
+                <div className="sm:col-span-2">
+                  <ImportFileAccounts
+                    files={sourceFiles}
+                    accounts={accounts}
+                    overrides={fileAccountOverrides}
+                  />
                 </div>
-              </div>
+              ) : (
+                <>
+                  <div className="bg-app-bg border border-border rounded-lg p-4">
+                    <div className="text-sm text-text-secondary">{t('summary.file')}</div>
+                    <div className="text-base font-medium text-text-primary mt-1 truncate">
+                      {fileName}
+                    </div>
+                  </div>
 
-              <div className="bg-app-bg border border-border rounded-lg p-4">
-                <div className="text-sm text-text-secondary">{t('summary.account')}</div>
-                <div className="text-base font-medium text-text-primary mt-1">
-                  {accountId
-                    ? (accounts.find(a => a.id === accountId)?.name ?? 'Unknown')
-                    : session?.suggestedAccountName
-                      ? t('wizard.accountSelection.autoCreateLabel', {
-                          name: session.suggestedAccountName,
-                        })
-                      : t('wizard.accountSelection.autoCreateLabel', {
-                          name: fileName.replace(/\.[^.]+$/, '') || 'Imported',
-                        })}
-                </div>
-              </div>
-
+                  <div className="bg-app-bg border border-border rounded-lg p-4">
+                    <div className="text-sm text-text-secondary">{t('summary.account')}</div>
+                    <div className="text-base font-medium text-text-primary mt-1">
+                      {accountId
+                        ? (accounts.find(a => a.id === accountId)?.name ?? 'Unknown')
+                        : session?.suggestedAccountName
+                          ? t('wizard.accountSelection.autoCreateLabel', {
+                              name: session.suggestedAccountName,
+                            })
+                          : t('wizard.accountSelection.autoCreateLabel', {
+                              name: fileName.replace(/\.[^.]+$/, '') || 'Imported',
+                            })}
+                    </div>
+                  </div>
+                </>
+              )}
               <div className="bg-app-bg border border-border rounded-lg p-4">
                 <div className="text-sm text-text-secondary">
                   {t('summary.transactionsToImport')}
@@ -919,8 +1038,15 @@ export function ImportWizard() {
         )}
         {currentStep === 'review' && session?.status !== 'COMPLETED' && (
           <div className="mt-6 empty:hidden [&>section:last-child]:mb-0">
-            <SkroogeRulesNotice metadata={session?.metadata} completed={false} />
-            <SkroogeInterestNotice metadata={session?.metadata} completed={false} />
+            {(sourceFiles.length
+              ? sourceFiles.map(file => file.metadata)
+              : [session?.metadata]
+            ).map((metadata, index) => (
+              <div key={index} className="empty:hidden">
+                <SkroogeRulesNotice metadata={metadata} completed={false} />
+                <SkroogeInterestNotice metadata={metadata} completed={false} />
+              </div>
+            ))}
           </div>
         )}
       </div>

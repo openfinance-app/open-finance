@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { ImportTransactionDTO, ImportWizardStep } from '@/types/import';
+import type { ImportTransactionDTO, ImportWizardStep, FileUploadResponse } from '@/types/import';
 
 export interface ImportDraft {
   selectedStep: ImportWizardStep;
@@ -11,6 +11,8 @@ export interface ImportDraft {
   newCategoryNames: string[];
   skipDuplicates: boolean;
   editedTransactions: ImportTransactionDTO[] | null;
+  uploadedFiles?: FileUploadResponse[];
+  fileAccountOverrides?: Record<string, number | null>;
 }
 
 interface ImportDraftStore {

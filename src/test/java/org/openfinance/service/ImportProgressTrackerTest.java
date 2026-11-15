@@ -11,6 +11,19 @@ import org.springframework.transaction.support.TransactionSynchronizationManager
 
 class ImportProgressTrackerTest {
     @Test
+    void reportsOverallProgressAcrossFilesWithoutClosingTheParentTask() {
+        ImportProgressTracker tracker = new ImportProgressTracker();
+        try (ImportProgressTracker.Task batch = tracker.start(1L, 2L)) {
+            try (ImportProgressTracker.Task second = batch.slice(10, 30)) {
+                second.update(Phase.IMPORTING, 5, 20);
+            }
+            assertThat(tracker.get(1L, 2L))
+                    .isEqualTo(new ImportProgressResponse(Phase.IMPORTING, 15, 30));
+        }
+        assertThat(tracker.get(1L, 2L).phase()).isEqualTo(Phase.IDLE);
+    }
+
+    @Test
     void publishesCountersAcrossThreadsAndKeepsFinalizingUntilCommit() {
         ImportProgressTracker tracker = new ImportProgressTracker();
         TransactionSynchronizationManager.initSynchronization();

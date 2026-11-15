@@ -47,7 +47,7 @@ export type ImportSessionStatus =
 /**
  * File format types
  */
-export type FileFormat = 'QIF' | 'OFX' | 'CSV' | 'JSON';
+export type FileFormat = 'QIF' | 'OFX' | 'CSV' | 'JSON' | 'BATCH';
 
 /** Live work counters; rows are committed when the import session completes. */
 export interface ImportProgressResponse {
@@ -128,6 +128,7 @@ export interface ImportTransactionDTO {
   validationErrors: string[];
   potentialDuplicate: boolean;
   sourceFileName: string;
+  sourceUploadId?: string;
   rawData: string | null;
   splitTransaction?: boolean;
 }
@@ -140,6 +141,19 @@ export interface ImportProcessRequest {
   accountId: number | null;
   /** Original filename shown to the user; used to name auto-created accounts */
   originalFileName?: string;
+}
+
+/** All files share one account-selection step, preview and confirmation. */
+export type StartImportRequest = ImportProcessRequest | { files: ImportProcessRequest[] };
+
+export interface ImportSourceFile {
+  uploadId: string;
+  fileName: string;
+  fileFormat: FileFormat;
+  accountId: number | null;
+  suggestedAccountName: string | null;
+  totalTransactions: number;
+  metadata?: string;
 }
 
 /**

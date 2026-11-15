@@ -49,6 +49,97 @@ describe('transaction file selection and upload', () => {
     expect(screen.getByRole('button', { name: tr('upload.browse') })).toBeInTheDocument();
   });
 
+  it.each(['picker', 'drop'])(
+    'uploads all files selected by %s before advancing once',
+    async method => {
+      const first = new File(['date,amount\n2026-01-01,-10'], 'first.csv');
+      const second = new File(['!Type:Bank\nD1/1/2026\nT-20\n^'], 'second.qif');
+      const secondResponse = { ...response, uploadId: 'upload-2', fileName: second.name };
+      let finishSecond!: (value: { data: FileUploadResponse }) => void;
+      const post = vi
+        .spyOn(apiClient, 'post')
+        .mockResolvedValueOnce({ data: response })
+        .mockImplementationOnce(
+          () =>
+            new Promise(resolve => {
+              finishSecond = resolve;
+            })
+        );
+      const success = vi.fn();
+      const { container } = renderWithProviders(<FileUpload onUploadSuccess={success} />);
+      const picker = container.querySelector<HTMLInputElement>('input[type="file"]')!;
+      expect(picker.multiple).toBe(true);
+      if (method === 'picker') fireEvent.change(picker, { target: { files: [first, second] } });
+      else fireEvent.drop(picker.parentElement!, { dataTransfer: { files: [first, second] } });
+      await userEvent.click(screen.getByRole('button', { name: tr('upload.startBatch') }));
+      await waitFor(() => expect(post).toHaveBeenCalledTimes(2));
+      expect(success).not.toHaveBeenCalled();
+      finishSecond({ data: secondResponse });
+      await waitFor(() =>
+        expect(success).toHaveBeenCalledExactlyOnceWith(response, [secondResponse])
+      );
+      expect(post.mock.calls.map(call => (call[1] as FormData).get('file'))).toEqual([
+        first,
+        second,
+      ]);
+    }
+  );
+
+  it('uploads distinct files even when their names, sizes and modification times match', async () => {
+    const files = [
+      new File(['first'], 'statement.csv', { lastModified: 100 }),
+      new File(['other'], 'statement.csv', { lastModified: 100 }),
+    ];
+    const post = vi.spyOn(apiClient, 'post').mockResolvedValue({ data: response });
+    const success = vi.fn();
+    const { container } = renderWithProviders(<FileUpload onUploadSuccess={success} />);
+    fireEvent.change(container.querySelector('input[type="file"]')!, { target: { files } });
+    await userEvent.click(screen.getByRole('button', { name: tr('upload.startBatch') }));
+    await waitFor(() => expect(success).toHaveBeenCalledOnce());
+    expect(post.mock.calls.map(call => (call[1] as FormData).get('file'))).toEqual(files);
+  });
+
+  it('retries a failed file without reuploading completed files or losing the selection', async () => {
+    const first = new File(['first'], 'first.csv');
+    const second = new File(['second'], 'second.csv');
+    const post = vi
+      .spyOn(apiClient, 'post')
+      .mockResolvedValueOnce({ data: response })
+      .mockRejectedValueOnce(new Error('Offline'))
+      .mockResolvedValueOnce({ data: { ...response, uploadId: 'upload-2' } });
+    const success = vi.fn();
+    const { container } = renderWithProviders(<FileUpload onUploadSuccess={success} />);
+    fireEvent.change(container.querySelector('input[type="file"]')!, {
+      target: { files: [first, second] },
+    });
+    await userEvent.click(screen.getByRole('button', { name: tr('upload.startBatch') }));
+    await screen.findByText('second.csv: Offline');
+    expect(success).not.toHaveBeenCalled();
+    await userEvent.click(screen.getByRole('button', { name: tr('upload.tryAgain') }));
+    expect(screen.getByText('first.csv')).toBeInTheDocument();
+    expect(screen.getByText('second.csv')).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: tr('upload.startBatch') }));
+    await waitFor(() => expect(success).toHaveBeenCalledOnce());
+    expect(post.mock.calls.map(call => (call[1] as FormData).get('file'))).toEqual([
+      first,
+      second,
+      second,
+    ]);
+  });
+
+  it('keeps valid files, deduplicates additions, and lets a selection be removed', async () => {
+    const file = new File(['ok'], 'first.csv');
+    const { container } = renderWithProviders(<FileUpload />);
+    const picker = container.querySelector('input[type="file"]')!;
+    fireEvent.change(picker, { target: { files: [file, new File(['no'], 'bad.exe')] } });
+    expect(screen.getByRole('alert')).toHaveTextContent('bad.exe');
+    fireEvent.change(picker, { target: { files: [file, new File(['ok'], 'second.qif')] } });
+    expect(screen.getAllByText('first.csv')).toHaveLength(1);
+    await userEvent.click(screen.getByRole('button', { name: 'Remove first.csv' }));
+    expect(screen.queryByText('first.csv')).not.toBeInTheDocument();
+    expect(screen.getByText('second.qif')).toBeInTheDocument();
+  });
+
   it('accepts uppercase extensions, submits the actual file, and can start another upload', async () => {
     const post = vi.spyOn(apiClient, 'post').mockResolvedValue({ data: response });
     const success = vi.fn();
@@ -59,7 +150,7 @@ describe('transaction file selection and upload', () => {
     await userEvent.click(
       screen.getByRole('button', { name: i18n.t('buttons.upload', { ns: 'common' }) })
     );
-    await waitFor(() => expect(success).toHaveBeenCalledWith(response));
+    await waitFor(() => expect(success).toHaveBeenCalledWith(response, []));
     expect((post.mock.calls[0][1] as FormData).get('file')).toBe(file);
     await userEvent.click(screen.getByRole('button', { name: tr('upload.uploadAnother') }));
     expect(screen.queryByText('bank.CSV')).not.toBeInTheDocument();
@@ -76,8 +167,8 @@ describe('transaction file selection and upload', () => {
     await userEvent.click(
       screen.getByRole('button', { name: i18n.t('buttons.upload', { ns: 'common' }) })
     );
-    expect(await screen.findByText('Invalid CSV columns')).toBeInTheDocument();
-    expect(error).toHaveBeenCalledWith('Invalid CSV columns');
+    expect(await screen.findByText('bank.csv: Invalid CSV columns')).toBeInTheDocument();
+    expect(error).toHaveBeenCalledWith('bank.csv: Invalid CSV columns');
     await userEvent.click(screen.getByRole('button', { name: tr('upload.tryAgain') }));
     selectFile(container, new File(['valid'], 'replacement.csv'));
     expect(screen.getByText('replacement.csv')).toBeInTheDocument();
@@ -95,7 +186,7 @@ describe('transaction file selection and upload', () => {
       dataTransfer: { files: [new File(['x'.repeat(2048)], 'bank.ofx')] },
     });
     expect(screen.getByText('2.00 KB')).toBeInTheDocument();
-    await userEvent.click(screen.getByRole('button', { name: tr('upload.removeFile') }));
+    await userEvent.click(screen.getByRole('button', { name: 'Remove bank.ofx' }));
     expect(screen.queryByText('bank.ofx')).not.toBeInTheDocument();
     const picker = container.querySelector<HTMLInputElement>('input[type="file"]')!;
     const click = vi.spyOn(picker, 'click');

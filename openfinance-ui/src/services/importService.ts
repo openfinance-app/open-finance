@@ -6,7 +6,7 @@
  */
 import apiClient from '@/services/apiClient';
 import type {
-  ImportProcessRequest,
+  StartImportRequest,
   ImportConfirmRequest,
   ImportSessionResponse,
   ImportTransactionDTO,
@@ -35,12 +35,17 @@ export const importService = {
    * Start import process from uploaded file
    */
   startImport: async (
-    data: ImportProcessRequest,
+    data: StartImportRequest,
     encryptionEnabled = true
   ): Promise<ImportSessionResponse> => {
-    const response = await apiClient.post<ImportSessionResponse>('/import/process', data, {
-      headers: buildEncryptionHeaders(encryptionEnabled),
-    });
+    const response = await apiClient.post<ImportSessionResponse>(
+      'files' in data ? '/import/process-files' : '/import/process',
+      'files' in data ? data.files : data,
+      {
+        headers: buildEncryptionHeaders(encryptionEnabled),
+        ...('files' in data ? { timeout: 600000 } : {}),
+      }
+    );
     return response.data;
   },
 
@@ -135,6 +140,19 @@ export const importService = {
       {
         headers: buildEncryptionHeaders(encryptionEnabled),
       }
+    );
+    return response.data;
+  },
+
+  updateFileAccounts: async (
+    sessionId: number,
+    accounts: Record<string, number | null>,
+    encryptionEnabled = true
+  ): Promise<ImportSessionResponse> => {
+    const response = await apiClient.put<ImportSessionResponse>(
+      `/import/sessions/${sessionId}/accounts`,
+      accounts,
+      { headers: buildEncryptionHeaders(encryptionEnabled) }
     );
     return response.data;
   },

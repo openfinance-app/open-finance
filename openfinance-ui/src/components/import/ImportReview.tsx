@@ -47,6 +47,7 @@ import type { ImportTransactionDTO } from '@/types/import';
 
 export interface ImportReviewProps {
   transactions: ImportTransactionDTO[];
+  sourceAccountNames?: Record<string, string>;
   onTransactionsChange: (transactions: ImportTransactionDTO[]) => void;
   /** Category mappings collected from the review step (sourceCategory → categoryId) */
   categoryMappings: Record<string, number>;
@@ -98,6 +99,7 @@ function autoAssignCategory(
 
 export function ImportReview({
   transactions,
+  sourceAccountNames = {},
   onTransactionsChange,
   categoryMappings,
   onCategoryMappingsChange,
@@ -105,6 +107,7 @@ export function ImportReview({
   onNewCategoryNamesChange,
 }: ImportReviewProps) {
   const { t } = useTranslation('import');
+  const showSource = transactions.some(transaction => transaction.sourceUploadId);
   const { t: tCategories } = useTranslation('categories');
 
   // Translate known backend validation error strings to the current locale
@@ -742,6 +745,11 @@ export function ImportReview({
                 <th className="text-left py-3 px-4 text-xs font-medium text-text-secondary uppercase tracking-wide whitespace-nowrap">
                   {t('review.table.date')}
                 </th>
+                {showSource && (
+                  <th className="text-left py-3 px-4 text-xs font-medium text-text-secondary uppercase tracking-wide">
+                    {t('review.table.source')}
+                  </th>
+                )}
                 <th className="text-left py-3 px-4 text-xs font-medium text-text-secondary uppercase tracking-wide">
                   {t('review.table.payee')}
                 </th>
@@ -764,7 +772,10 @@ export function ImportReview({
             <tbody>
               {filteredTransactions.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="py-12 text-center text-text-secondary text-sm">
+                  <td
+                    colSpan={showSource ? 9 : 8}
+                    className="py-12 text-center text-text-secondary text-sm"
+                  >
                     {t('review.table.noResults')}
                   </td>
                 </tr>
@@ -821,6 +832,16 @@ export function ImportReview({
                             ? formatDate(transaction.transactionDate)
                             : t('review.table.missingDate')}
                         </td>
+
+                        {showSource && (
+                          <td className="py-2.5 px-4 text-sm text-text-secondary min-w-40 max-w-64">
+                            <p className="break-all">{transaction.sourceFileName}</p>
+                            <p className="mt-1 text-xs">
+                              {sourceAccountNames[transaction.sourceUploadId ?? ''] ||
+                                transaction.accountName}
+                            </p>
+                          </td>
+                        )}
 
                         {/* Payee */}
                         <td className="py-2.5 px-4 text-sm text-text-primary font-medium">
@@ -1035,7 +1056,7 @@ export function ImportReview({
 
                       {hasErrors && isExpanded && (
                         <tr>
-                          <td colSpan={8} className="px-4 py-3">
+                          <td colSpan={showSource ? 9 : 8} className="px-4 py-3">
                             <div className="flex items-start space-x-2 text-sm">
                               <AlertCircle className="h-4 w-4 text-red-500 mt-0.5 flex-shrink-0" />
                               <div>
@@ -1055,7 +1076,7 @@ export function ImportReview({
 
                       {hasSplits && isExpanded && (
                         <tr>
-                          <td colSpan={8} className="px-4 py-3">
+                          <td colSpan={showSource ? 9 : 8} className="px-4 py-3">
                             <div className="font-medium text-text-primary text-sm mb-2">
                               {t('review.table.splitLines')}
                             </div>

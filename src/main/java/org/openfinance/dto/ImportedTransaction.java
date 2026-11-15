@@ -100,6 +100,9 @@ public class ImportedTransaction {
     /** Import source file name */
     private String sourceFileName;
 
+    /** Stable file identity within a multi-file import, including identically named files. */
+    private String sourceUploadId;
+
     /** Raw line from import file (for debugging) */
     private String rawData;
 

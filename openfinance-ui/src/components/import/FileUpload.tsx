@@ -9,9 +9,12 @@ import { Upload, X, File, CheckCircle2, AlertCircle, Loader2 } from 'lucide-reac
 import { useFileUpload } from '@/hooks/useFileUpload';
 import { useTranslation } from 'react-i18next';
 import type { FileUploadResponse } from '@/types/import';
+import { Button } from '@/components/ui/Button';
 
 interface FileUploadProps {
-  onUploadSuccess?: (response: FileUploadResponse) => void;
+  /** Advance only once every selected file has been uploaded. */
+  onUploadSuccess?: (response: FileUploadResponse, additionalUploads: FileUploadResponse[]) => void;
+  onUploadingChange?: (uploading: boolean) => void;
   onUploadError?: (error: string) => void;
   maxSizeMB?: number;
   acceptedFormats?: string[];
@@ -23,11 +26,15 @@ const DEFAULT_MAX_SIZE_MB = 10;
 export function FileUpload({
   onUploadSuccess,
   onUploadError,
+  onUploadingChange,
   maxSizeMB = DEFAULT_MAX_SIZE_MB,
   acceptedFormats = DEFAULT_ACCEPTED_FORMATS,
 }: FileUploadProps) {
   const { t } = useTranslation('import');
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const selectedFile = selectedFiles[0];
+  const uploadedFiles = useRef(new Map<File, FileUploadResponse>());
+  const [uploadingFileName, setUploadingFileName] = useState('');
   const [isDragging, setIsDragging] = useState(false);
   const [uploadStatus, setUploadStatus] = useState<'idle' | 'uploading' | 'success' | 'error'>(
     'idle'
@@ -39,45 +46,39 @@ export function FileUpload({
 
   // Handle file selection
   const handleFileSelect = useCallback(
-    (file: File) => {
+    (files: File[]) => {
+      if (uploadStatus === 'uploading' || uploadStatus === 'success') return;
       // Reset previous state
       setErrorMessage('');
       setUploadStatus('idle');
-
-      // Validate file extension
-      const fileExtension = '.' + file.name.split('.').pop()?.toLowerCase();
-      if (!acceptedFormats.includes(fileExtension)) {
-        const error = t('upload.invalidFormat', { formats: acceptedFormats.join(', ') });
-        setErrorMessage(error);
-        setUploadStatus('error');
-        onUploadError?.(error);
-        return;
+      const validFiles: File[] = [];
+      const errors: string[] = [];
+      for (const file of files) {
+        const extension = '.' + file.name.split('.').pop()?.toLowerCase();
+        const sizeMB = file.size / (1024 * 1024);
+        const error = !acceptedFormats.includes(extension)
+          ? t('upload.invalidFormat', { formats: acceptedFormats.join(', ') })
+          : file.size === 0
+            ? t('upload.fileEmpty')
+            : sizeMB > maxSizeMB
+              ? t('upload.fileTooLarge', { max: maxSizeMB, actual: sizeMB.toFixed(2) })
+              : null;
+        if (error) errors.push(`${file.name}: ${error}`);
+        else validFiles.push(file);
       }
-
-      // Validate file size — reject empty files
-      if (file.size === 0) {
-        const error = t(
-          'upload.fileEmpty',
-          'Le fichier sélectionné est vide (0 B). Veuillez sélectionner un fichier valide.'
-        );
-        setErrorMessage(error);
-        setUploadStatus('error');
-        onUploadError?.(error);
-        return;
+      const combined = [...selectedFiles];
+      for (const file of validFiles) {
+        if (!combined.includes(file)) combined.push(file);
       }
-
-      const fileSizeMB = file.size / (1024 * 1024);
-      if (fileSizeMB > maxSizeMB) {
-        const error = t('upload.fileTooLarge', { max: maxSizeMB, actual: fileSizeMB.toFixed(2) });
-        setErrorMessage(error);
-        setUploadStatus('error');
-        onUploadError?.(error);
-        return;
+      setSelectedFiles(combined);
+      if (errors.length > 0) {
+        const message = errors.join('\n');
+        setErrorMessage(message);
+        if (combined.length === 0) setUploadStatus('error');
+        onUploadError?.(message);
       }
-
-      setSelectedFile(file);
     },
-    [acceptedFormats, maxSizeMB, onUploadError]
+    [acceptedFormats, maxSizeMB, onUploadError, selectedFiles, t, uploadStatus]
   );
 
   // Handle drag and drop events
@@ -106,7 +107,7 @@ export function FileUpload({
 
       const files = Array.from(e.dataTransfer.files);
       if (files.length > 0) {
-        handleFileSelect(files[0]);
+        handleFileSelect(files);
       }
     },
     [handleFileSelect]
@@ -117,8 +118,9 @@ export function FileUpload({
     (e: React.ChangeEvent<HTMLInputElement>) => {
       const files = e.target.files;
       if (files && files.length > 0) {
-        handleFileSelect(files[0]);
+        handleFileSelect(Array.from(files));
       }
+      e.target.value = '';
     },
     [handleFileSelect]
   );
@@ -130,7 +132,8 @@ export function FileUpload({
 
   // Clear selected file
   const handleClearFile = useCallback(() => {
-    setSelectedFile(null);
+    setSelectedFiles([]);
+    uploadedFiles.current.clear();
     setUploadStatus('idle');
     setErrorMessage('');
     if (fileInputRef.current) {
@@ -139,26 +142,42 @@ export function FileUpload({
   }, []);
 
   // Upload file
-  const handleUpload = useCallback(() => {
-    if (!selectedFile) return;
-
+  const handleUpload = useCallback(async () => {
+    if (!selectedFiles.length || uploadStatus === 'uploading') return;
     setUploadStatus('uploading');
     setErrorMessage('');
-
-    uploadFile.mutate(selectedFile, {
-      onSuccess: response => {
-        setUploadStatus('success');
-        onUploadSuccess?.(response);
-      },
-      onError: error => {
-        const axiosError = error as unknown as { response?: { data?: { message?: string } } };
-        const errorMsg = axiosError?.response?.data?.message || error.message || t('upload.failed');
-        setErrorMessage(errorMsg);
-        setUploadStatus('error');
-        onUploadError?.(errorMsg);
-      },
-    });
-  }, [selectedFile, uploadFile, onUploadSuccess, onUploadError]);
+    onUploadingChange?.(true);
+    let currentFile: File | undefined;
+    try {
+      const responses: FileUploadResponse[] = [];
+      for (const file of selectedFiles) {
+        currentFile = file;
+        setUploadingFileName(file.name);
+        const response = uploadedFiles.current.get(file) ?? (await uploadFile.mutateAsync(file));
+        if (!response.uploadId) throw new Error(response.message || t('upload.failed'));
+        uploadedFiles.current.set(file, response);
+        responses.push(response);
+      }
+      setUploadStatus('success');
+      onUploadSuccess?.(responses[0], responses.slice(1));
+    } catch (error) {
+      const detail = error as { message?: string; response?: { data?: { message?: string } } };
+      const message = `${currentFile?.name}: ${detail.response?.data?.message || detail.message || t('upload.failed')}`;
+      setErrorMessage(message);
+      setUploadStatus('error');
+      onUploadError?.(message);
+    } finally {
+      onUploadingChange?.(false);
+    }
+  }, [
+    selectedFiles,
+    uploadStatus,
+    uploadFile,
+    onUploadSuccess,
+    onUploadError,
+    onUploadingChange,
+    t,
+  ]);
 
   // Format file size
   const formatFileSize = (bytes: number): string => {
@@ -189,6 +208,8 @@ export function FileUpload({
         <input
           ref={fileInputRef}
           type="file"
+          multiple
+          disabled={uploadStatus === 'uploading'}
           accept={acceptedFormats.join(',')}
           onChange={handleFileInputChange}
           className="hidden"
@@ -204,12 +225,9 @@ export function FileUpload({
             <div>
               <p className="text-lg font-medium text-text-primary mb-1">{t('upload.dropHere')}</p>
               <p className="text-sm text-text-secondary mb-4">{t('upload.orBrowse')}</p>
-              <button
-                onClick={handleBrowseClick}
-                className="px-4 py-2 bg-primary text-white rounded-md hover:bg-primary-hover transition-colors"
-              >
+              <Button type="button" onClick={handleBrowseClick}>
                 {t('upload.browse')}
-              </button>
+              </Button>
             </div>
             <div className="text-xs text-text-tertiary space-y-1">
               <p>{t('upload.acceptedFormats', { formats: acceptedFormats.join(', ') })}</p>
@@ -220,35 +238,52 @@ export function FileUpload({
 
         {selectedFile && uploadStatus === 'idle' && (
           <div className="space-y-4">
-            <div className="flex items-center justify-between bg-app-bg border border-border-subtle rounded-md p-4">
-              <div className="flex items-center space-x-3">
-                <File className="h-8 w-8 text-primary" />
-                <div className="text-left">
-                  <p className="font-medium text-text-primary">{selectedFile.name}</p>
-                  <p className="text-sm text-text-tertiary">{formatFileSize(selectedFile.size)}</p>
-                </div>
-              </div>
-              <button
-                onClick={handleClearFile}
-                className="p-2 hover:bg-surface-hover rounded-md transition-colors"
-                title={t('upload.removeFile')}
-              >
-                <X className="h-5 w-5 text-text-tertiary" />
-              </button>
-            </div>
-            <div className="flex space-x-3 justify-center">
-              <button
-                onClick={handleUpload}
-                className="px-6 py-2 bg-primary text-white rounded-md hover:bg-primary-hover transition-colors"
-              >
-                {t('common:buttons.upload', 'Upload File')}
-              </button>
-              <button
-                onClick={handleClearFile}
-                className="px-6 py-2 border border-border-subtle text-text-secondary rounded-md hover:bg-surface-hover transition-colors"
-              >
+            <p className="text-sm text-text-secondary">
+              {t('upload.selected', { count: selectedFiles.length })}
+            </p>
+            {selectedFiles.length > 1 && (
+              <p className="text-sm text-text-secondary">{t('upload.batchHint')}</p>
+            )}
+            {errorMessage && (
+              <p role="alert" className="whitespace-pre-line break-words text-sm text-error">
+                {errorMessage}
+              </p>
+            )}
+            <ul className="max-h-72 overflow-y-auto divide-y divide-border text-left">
+              {selectedFiles.map((file, index) => (
+                <li
+                  key={`${file.name}-${index}`}
+                  className="flex items-center justify-between gap-3 py-3"
+                >
+                  <File className="h-6 w-6 shrink-0 text-primary" />
+                  <div className="min-w-0 flex-1">
+                    <p className="break-all font-medium text-text-primary">{file.name}</p>
+                    <p className="text-sm text-text-tertiary">{formatFileSize(file.size)}</p>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    aria-label={t('upload.removeNamedFile', { name: file.name })}
+                    onClick={() =>
+                      setSelectedFiles(files => files.filter((_, fileIndex) => fileIndex !== index))
+                    }
+                  >
+                    <X className="h-5 w-5 text-text-tertiary" />
+                  </Button>
+                </li>
+              ))}
+            </ul>
+            <div className="flex flex-wrap gap-3 justify-center">
+              <Button type="button" onClick={handleUpload}>
+                {selectedFiles.length > 1 ? t('upload.startBatch') : t('common:buttons.upload')}
+              </Button>
+              <Button type="button" variant="secondary" onClick={handleBrowseClick}>
+                {t('upload.addFiles')}
+              </Button>
+              <Button type="button" variant="ghost" onClick={handleClearFile}>
                 {t('common:buttons.cancel')}
-              </button>
+              </Button>
             </div>
           </div>
         )}
@@ -259,6 +294,7 @@ export function FileUpload({
               <Loader2 className="h-12 w-12 text-primary animate-spin" />
             </div>
             <p className="text-lg font-medium text-text-primary">{t('upload.uploading')}</p>
+            <p className="break-all text-sm text-text-secondary">{uploadingFileName}</p>
             <p className="text-sm text-text-tertiary">{t('upload.validating')}</p>
           </div>
         )}
@@ -274,12 +310,9 @@ export function FileUpload({
               <p className="text-lg font-medium text-green-500 mb-1">{t('upload.success')}</p>
               <p className="text-sm text-text-tertiary">{t('upload.successDesc')}</p>
             </div>
-            <button
-              onClick={handleClearFile}
-              className="px-4 py-2 border border-border-subtle text-text-secondary rounded-md hover:bg-surface-hover transition-colors"
-            >
+            <Button type="button" variant="secondary" onClick={handleClearFile}>
               {t('upload.uploadAnother')}
-            </button>
+            </Button>
           </div>
         )}
 
@@ -292,14 +325,22 @@ export function FileUpload({
             </div>
             <div>
               <p className="text-lg font-medium text-red-500 mb-1">{t('upload.failed')}</p>
-              <p className="text-sm text-text-secondary">{errorMessage}</p>
+              <p
+                role="alert"
+                className="whitespace-pre-line break-words text-sm text-text-secondary"
+              >
+                {errorMessage}
+              </p>
             </div>
-            <button
-              onClick={handleClearFile}
-              className="px-4 py-2 bg-primary text-white rounded-md hover:bg-primary-hover transition-colors"
+            <Button
+              type="button"
+              onClick={() => {
+                setUploadStatus('idle');
+                setErrorMessage('');
+              }}
             >
               {t('upload.tryAgain')}
-            </button>
+            </Button>
           </div>
         )}
       </div>

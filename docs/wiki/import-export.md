@@ -27,24 +27,30 @@ CSV files must include a header row. Supported column names: `date`, `amount`, `
 
 ## Import Process
 
-### Step 1 — Upload Your File
+### Step 1 — Select Your Files
 
-Go to **Import → Import Transactions**. Select your account and upload your bank export file (OFX, QFX, or QIF). Open-Finance parses the file and shows a preview of the transactions it found.
+Go to **Import → Import Transactions**. Select one or more bank export files in the file picker, or drag and drop them together. You can add or remove files before starting. Each file is validated separately against the supported formats and size limit.
+
+Click **Start import** for multiple files, or **Upload File** for one file. Open-Finance uploads and parses every selected file in one import. It tries to match an account for each file and shows those matches together so you can override them before continuing.
 
 ### Step 2 — Review the Preview
 
-The preview table shows each transaction with:
+One preview combines the transactions from all selected files. Each row shows:
 
 - Parsed date, payee, amount, and memo
 - Auto-detected category (via [Transaction Rules](transaction-rules.md))
 - A **Duplicate** flag if the transaction appears to already exist in your account
-- The suggested account name from the file
+- The source file and its selected account
 
 You can adjust categories, exclude specific rows, or override duplicate flags before continuing.
 
 ### Step 3 — Confirm
 
-Click **Confirm Import** to save the selected transactions to your account. Only the rows you approve are imported.
+Click **Confirm Import** to save the selected transactions to their accounts. Only the rows you approve are imported.
+
+One confirmation imports the reviewed transactions from all selected files into their chosen accounts. Each file keeps its format-specific data, including currencies and opening balances. Cancelling cancels the entire unfinished import.
+
+Once the files are uploaded and parsed, the combined import can be restored after navigating away or reloading the page.
 
 ---
 

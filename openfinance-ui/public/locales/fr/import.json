@@ -58,9 +58,9 @@
   },
   "wizard": {
     "upload": {
-      "title": "Téléverser le fichier",
-      "description": "Sélectionnez un fichier QIF, OFX/QFX, CSV ou JSON Skrooge à importer",
-      "descriptionNoJson": "Sélectionnez un fichier QIF, OFX/QFX ou CSV à importer"
+      "title": "Sélectionner des fichiers",
+      "description": "Sélectionnez des fichiers QIF, OFX/QFX, CSV ou JSON Skrooge à importer",
+      "descriptionNoJson": "Sélectionnez des fichiers QIF, OFX/QFX ou CSV à importer"
     },
     "account": {
       "title": "Sélectionner le compte",
@@ -103,14 +103,21 @@
       "leaveBlank": "Laissez vide pour créer automatiquement",
       "label": "Compte"
     },
-    "openingDateNotice": "Si une opération importée précède la date d’ouverture du compte, cette date est avancée pour inclure l’opération dans l’historique des soldes."
+    "openingDateNotice": "Si une opération importée précède la date d’ouverture du compte, cette date est avancée pour inclure l’opération dans l’historique des soldes.",
+    "files": {
+      "description": "Vérifiez le compte associé à chaque fichier et modifiez-le si nécessaire. Toutes les opérations apparaîtront ensemble à l’étape suivante.",
+      "transactions_one": "{{count}} opération",
+      "transactions_other": "{{count}} opérations",
+      "accountFor": "Compte pour {{name}}",
+      "title": "Sélectionner les comptes"
+    }
   },
   "upload": {
-    "dropHere": "Déposez votre fichier ici",
+    "dropHere": "Déposez vos fichiers ici",
     "orBrowse": "ou cliquez pour parcourir",
     "browse": "Parcourir les fichiers",
     "acceptedFormats": "Formats acceptés : {{formats}}",
-    "maxSize": "Taille maximale du fichier : {{size}}Mo",
+    "maxSize": "Taille maximale par fichier : {{size}} Mo",
     "uploading": "Téléversement en cours...",
     "validating": "Veuillez patienter pendant que nous validons votre fichier",
     "success": "Téléversement réussi !",
@@ -121,7 +128,13 @@
     "removeFile": "Supprimer le fichier",
     "invalidFormat": "Format de fichier non valide. Formats acceptés : {{formats}}",
     "fileTooLarge": "La taille du fichier dépasse la limite de {{max}} Mo ({{actual}} Mo)",
-    "fileEmpty": "Le fichier sélectionné est vide (0 octet). Veuillez sélectionner un fichier valide."
+    "fileEmpty": "Le fichier sélectionné est vide (0 octet). Veuillez sélectionner un fichier valide.",
+    "selected_one": "{{count}} fichier sélectionné",
+    "selected_other": "{{count}} fichiers sélectionnés",
+    "batchHint": "Tous les fichiers sont téléversés ensemble. Vérifiez les comptes associés, puis toutes les opérations dans un aperçu commun.",
+    "startBatch": "Commencer l’importation",
+    "addFiles": "Ajouter des fichiers",
+    "removeNamedFile": "Retirer {{name}}"
   },
   "review": {
     "loadingTitle": "Analyse des transactions",
@@ -185,7 +198,8 @@
       "validationErrors": "Erreurs de validation",
       "splitLines": "Lignes ventilées",
       "missingDate": "Date manquante",
-      "missingAmount": "Montant manquant"
+      "missingAmount": "Montant manquant",
+      "source": "Fichier / Compte"
     },
     "autoAssignedCount_one": "{{count}} transaction automatiquement assignée.",
     "autoAssignedCount_other": "{{count}} transactions automatiquement assignées.",
@@ -276,7 +290,7 @@
   },
   "errors": {
     "session": "Impossible de charger cet import. Vous pouvez démarrer un nouvel import ou recharger cette page.",
-    "start": "Impossible de démarrer l’import. Envoyez à nouveau le fichier pour réessayer.",
+    "start": "Impossible de démarrer l’importation. Réessayez ou sélectionnez un autre fichier.",
     "account": "Impossible d’enregistrer le compte sélectionné. Veuillez réessayer.",
     "reviewSave": "Impossible d’enregistrer la vérification. Vos modifications sont conservées ; veuillez réessayer.",
     "confirm": "Impossible de confirmer l’import. Votre vérification est conservée. Veuillez réessayer."

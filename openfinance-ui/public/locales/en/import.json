@@ -58,9 +58,9 @@
   },
   "wizard": {
     "upload": {
-      "title": "Upload File",
-      "description": "Select a QIF, OFX/QFX, CSV, or Skrooge JSON file to import",
-      "descriptionNoJson": "Select a QIF, OFX/QFX, or CSV file to import"
+      "title": "Select Files",
+      "description": "Select QIF, OFX/QFX, CSV, or Skrooge JSON files to import",
+      "descriptionNoJson": "Select QIF, OFX/QFX, or CSV files to import"
     },
     "account": {
       "title": "Select Account",
@@ -103,14 +103,21 @@
       "leaveBlank": "Leave blank to auto-create",
       "label": "Account"
     },
-    "openingDateNotice": "If an imported transaction predates the account opening date, that date moves back to include the transaction in balance history."
+    "openingDateNotice": "If an imported transaction predates the account opening date, that date moves back to include the transaction in balance history.",
+    "files": {
+      "description": "Check the matched account for each file and change it if needed. All transactions will appear together in the next step.",
+      "transactions_one": "{{count}} transaction",
+      "transactions_other": "{{count}} transactions",
+      "accountFor": "Account for {{name}}",
+      "title": "Select Accounts"
+    }
   },
   "upload": {
-    "dropHere": "Drop your file here",
+    "dropHere": "Drop your files here",
     "orBrowse": "or click to browse",
     "browse": "Browse Files",
     "acceptedFormats": "Accepted formats: {{formats}}",
-    "maxSize": "Maximum file size: {{size}}MB",
+    "maxSize": "Maximum size per file: {{size}}MB",
     "uploading": "Uploading...",
     "validating": "Please wait while we validate your file",
     "success": "Upload Successful!",
@@ -121,7 +128,13 @@
     "removeFile": "Remove file",
     "invalidFormat": "Invalid file format. Accepted formats: {{formats}}",
     "fileTooLarge": "File size exceeds {{max}}MB limit ({{actual}}MB)",
-    "fileEmpty": "The selected file is empty (0 bytes). Please select a valid file."
+    "fileEmpty": "The selected file is empty (0 bytes). Please select a valid file.",
+    "selected_one": "{{count}} file selected",
+    "selected_other": "{{count}} files selected",
+    "batchHint": "All files are uploaded together. Check their matched accounts, then review all transactions in one preview.",
+    "startBatch": "Start import",
+    "addFiles": "Add files",
+    "removeNamedFile": "Remove {{name}}"
   },
   "review": {
     "loadingTitle": "Analyzing transactions",
@@ -185,7 +198,8 @@
       "validationErrors": "Validation Errors",
       "splitLines": "Split Lines",
       "missingDate": "Missing date",
-      "missingAmount": "Missing amount"
+      "missingAmount": "Missing amount",
+      "source": "File / Account"
     },
     "autoAssignedCount_one": "{{count}} transaction automatically assigned.",
     "autoAssignedCount_other": "{{count}} transactions automatically assigned.",
@@ -276,7 +290,7 @@
   },
   "errors": {
     "session": "Could not load this import. You can start a new import or try loading this page again.",
-    "start": "Could not start the import. Upload the file again to retry.",
+    "start": "Could not start the import. Try again or select another file.",
     "account": "Could not save the selected account. Please try again.",
     "reviewSave": "Could not save your review. Your edits are still here; please try again.",
     "confirm": "Could not confirm the import. Your review is preserved. Please try again."

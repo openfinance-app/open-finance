@@ -9,11 +9,9 @@ import static org.openfinance.service.ImportedAccountRouting.resolveImportedDest
 import static org.openfinance.service.ImportedAccountRouting.shouldUseImportedAccountRouting;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
-import java.io.InputStream;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -33,13 +31,13 @@ import lombok.extern.slf4j.Slf4j;
 import org.openfinance.config.ImportProperties;
 import org.openfinance.dto.AccountRequest;
 import org.openfinance.dto.AccountResponse;
-import org.openfinance.dto.ImportParseResult;
+import org.openfinance.dto.ImportProcessRequest;
 import org.openfinance.dto.ImportProgressResponse;
 import org.openfinance.dto.ImportProgressResponse.Phase;
 import org.openfinance.dto.ImportReviewRequest;
+import org.openfinance.dto.ImportSourceFile;
 import org.openfinance.dto.ImportedTransaction;
 import org.openfinance.dto.SkroogeImportMetadata;
-import org.openfinance.dto.SkroogeImportParseResult;
 import org.openfinance.dto.TransactionRequest;
 import org.openfinance.dto.TransactionSplitRequest;
 import org.openfinance.entity.Account;
@@ -55,7 +53,6 @@ import org.openfinance.entity.Transaction;
 // Import TransactionType enum
 import org.openfinance.entity.TransactionType;
 import org.openfinance.entity.User;
-import org.openfinance.entity.UserSettings;
 import org.openfinance.exception.ResourceNotFoundException;
 import org.openfinance.repository.AccountRepository;
 import org.openfinance.repository.CategoryRepository;
@@ -69,7 +66,6 @@ import org.openfinance.repository.UserRepository;
 import org.openfinance.repository.UserSettingsRepository;
 import org.openfinance.service.history.ReversibleOperation;
 import org.openfinance.service.parser.CsvParser;
-import org.openfinance.service.parser.ImportParseContext;
 import org.openfinance.service.parser.OfxParser;
 import org.openfinance.service.parser.QifParser;
 import org.openfinance.service.parser.SkroogeJsonParser;
@@ -104,11 +100,6 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 @Slf4j
 public class ImportService {
-
-    private static final TypeReference<Map<String, Object>> METADATA_TYPE =
-            new TypeReference<>() {};
-    private static final TypeReference<List<ImportedTransaction>> TRANSACTIONS_TYPE =
-            new TypeReference<>() {};
 
     private static final int TRANSACTION_DESCRIPTION_MAX_LENGTH = 255;
     private static final int TRANSACTION_NOTES_MAX_LENGTH = 1000;
@@ -167,6 +158,154 @@ public class ImportService {
     private final OperationHistoryService operationHistoryService;
     private final ImportProgressTracker progressTracker;
 
+    private List<ImportSourceFile> sourceFiles(ImportSession session) {
+        return new ImportSessionMetadata(objectMapper).sourceFiles(session);
+    }
+
+    private String serializeFileMetadata(List<ImportSourceFile> files, Map<String, Object> extra) {
+        return new ImportSessionMetadata(objectMapper).serializeFileMetadata(files, extra);
+    }
+
+    private void identifySourceRows(ImportSourceFile file, List<ImportedTransaction> rows) {
+        new ImportSessionMetadata(objectMapper).identifySourceRows(file, rows);
+    }
+
+    private Map<String, List<ImportedTransaction>> partitionSourceRows(
+            List<ImportSourceFile> files, List<ImportedTransaction> transactions) {
+        return new ImportSessionMetadata(objectMapper).partitionSourceRows(files, transactions);
+    }
+
+    /** Preserve separate source namespaces while flagging overlapping bank statements. */
+    private void detectCrossFileDuplicates(
+            List<ImportSourceFile> files, List<ImportedTransaction> transactions, Long userId) {
+        Map<String, List<ImportedTransaction>> byFile = partitionSourceRows(files, transactions);
+        Set<String> references = new java.util.HashSet<>();
+        for (ImportSourceFile file : files) {
+            if (!isReferenceAuthoritative(file.getFileFormat())) continue;
+            List<ImportedTransaction> rows = byFile.get(file.getUploadId());
+            Map<String, Long> accounts = duplicateAccountScopes(rows, file.getAccountId(), userId);
+            for (ImportedTransaction row : rows) {
+                if (row.getReferenceNumber() == null
+                        || row.getReferenceNumber().isBlank()
+                        || Boolean.FALSE.equals(row.getAuthoritativeReference())
+                        || row.hasErrors()) continue;
+                String key =
+                        ImportStatementPositions.accountKey(
+                                row.getAccountName(), row.getAccountNumber());
+                Long accountId = key == null ? file.getAccountId() : accounts.get(key);
+                String scope =
+                        accountId != null
+                                ? "account:" + accountId
+                                : key != null ? "source:" + key : "file:" + file.getUploadId();
+                if (!references.add(scope + "|" + row.getReferenceNumber())
+                        && !row.isPotentialDuplicate()) {
+                    markDuplicate(
+                            row,
+                            "DUPLICATE: Same reference already appears in another selected file for this account");
+                }
+            }
+        }
+    }
+
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
+    public ImportSession updateFileAccounts(
+            Long sessionId, Map<String, Long> accounts, Long userId) {
+        ImportSession session = getSessionForUser(sessionId, userId);
+        if (!session.isReadyForReview())
+            throw new IllegalStateException("Import is not ready for review");
+        List<ImportSourceFile> files = sourceFiles(session);
+        Set<String> uploads =
+                files.stream().map(ImportSourceFile::getUploadId).collect(Collectors.toSet());
+        if (files.isEmpty() || !uploads.containsAll(accounts.keySet())) {
+            throw new IllegalArgumentException("Unknown import source file");
+        }
+        for (ImportSourceFile file : files) {
+            if (!accounts.containsKey(file.getUploadId())) continue;
+            Long accountId = accounts.get(file.getUploadId());
+            if (accountId != null) {
+                Account account =
+                        accountRepository
+                                .findByIdAndUserId(accountId, userId)
+                                .orElseThrow(
+                                        () ->
+                                                new ResourceNotFoundException(
+                                                        "Account not found: " + accountId));
+                requireActiveImportAccount(account);
+            }
+            file.setAccountId(accountId);
+        }
+        String metadata = serializeFileMetadata(files, preserveMetadata(session.getMetadata()));
+        if (importSessionRepository.saveReview(
+                        sessionId,
+                        userId,
+                        metadata,
+                        session.getTotalTransactions(),
+                        LocalDateTime.now())
+                != 1) {
+            throw new IllegalStateException("Import is no longer available for review");
+        }
+        return getSessionForUser(sessionId, userId);
+    }
+
+    private ImportSession confirmFiles(
+            ImportSession session,
+            List<ImportSourceFile> files,
+            Map<String, Long> categoryMappings,
+            boolean skipDuplicates,
+            ImportProgressTracker.Task progress) {
+        int imported = 0;
+        int errors = 0;
+        int duplicates = 0;
+        int skipped = 0;
+        int processed = 0;
+        for (ImportSourceFile file : files) {
+            if (file.getTotalTransactions() == 0 && !"JSON".equals(file.getFileFormat())) continue;
+            ImportSession source = file.toSession(session.getUserId());
+            executeConfirmation(
+                    source,
+                    session.getUserId(),
+                    file.getAccountId(),
+                    categoryMappings,
+                    skipDuplicates,
+                    progress.slice(processed, session.getTotalTransactions()));
+            processed += file.getTotalTransactions();
+            imported += source.getImportedCount();
+            errors += source.getErrorCount();
+            duplicates += source.getDuplicateCount();
+            skipped += source.getSkippedCount();
+            file.setAccountId(source.getAccountId());
+            file.setMetadata(source.getMetadata());
+        }
+        session.setImportedCount(imported);
+        session.setErrorCount(errors);
+        session.setDuplicateCount(duplicates);
+        session.setSkippedCount(skipped);
+        session.setStatus(ImportStatus.COMPLETED);
+        session.setCompletedAt(LocalDateTime.now());
+        session.setMetadata(serializeFileMetadata(files, preserveMetadata(session.getMetadata())));
+        recordImportCompletion(session);
+        importSessionRepository.save(session);
+        budgetAlertService.checkBudgetAlertsAfterTransaction(session.getUserId());
+        return session;
+    }
+
+    private void persistImportSession(ImportSession session) {
+        if (session.getId() != null) importSessionRepository.save(session);
+    }
+
+    private void recordImportCompletion(ImportSession session) {
+        if (session.getId() != null) {
+            operationHistoryService.record(
+                    session.getUserId(),
+                    EntityType.IMPORT,
+                    session.getId(),
+                    session.getFileName(),
+                    OperationType.CREATE,
+                    (Object) null,
+                    null);
+        }
+    }
+
     @Transactional(readOnly = true)
     public ImportProgressResponse getProgress(Long sessionId, Long userId) {
         ImportStatus status =
@@ -201,6 +340,53 @@ public class ImportService {
 
     @Transactional
     public ImportSession startImport(
+            String uploadId, Long userId, Long accountId, String originalFileName) {
+        ImportSession session = createFileSession(uploadId, userId, accountId, originalFileName);
+        session = importSessionRepository.save(session);
+        parseFileAsync(session.getId());
+        return session;
+    }
+
+    /** Parse all selections into one session, retaining each file's account and format context. */
+    @Transactional
+    public ImportSession startMultiFileImport(List<ImportProcessRequest> requests, Long userId) {
+        if (requests == null || requests.isEmpty()) {
+            throw new IllegalArgumentException("At least one uploaded file is required");
+        }
+        if (requests.stream().map(ImportProcessRequest::getUploadId).distinct().count()
+                != requests.size()) {
+            throw new IllegalArgumentException("The same upload cannot be selected twice");
+        }
+        List<ImportSourceFile> files =
+                requests.stream()
+                        .map(
+                                request ->
+                                        ImportSourceFile.fromSession(
+                                                createFileSession(
+                                                        request.getUploadId(),
+                                                        userId,
+                                                        request.getAccountId(),
+                                                        request.getOriginalFileName())))
+                        .toList();
+        ImportSession session =
+                ImportSession.builder()
+                        .userId(userId)
+                        .uploadId(files.getFirst().getUploadId())
+                        .fileName(
+                                truncate(
+                                        files.stream()
+                                                .map(ImportSourceFile::getFileName)
+                                                .collect(Collectors.joining(", ")),
+                                        255))
+                        .fileFormat("BATCH")
+                        .metadata(serializeFileMetadata(files, Map.of()))
+                        .build();
+        session = importSessionRepository.save(session);
+        parseFileAsync(session.getId());
+        return session;
+    }
+
+    private ImportSession createFileSession(
             String uploadId, Long userId, Long accountId, String originalFileName) {
         log.info(
                 "Starting import for uploadId={}, userId={}, accountId={}",
@@ -253,47 +439,10 @@ public class ImportService {
                         .status(ImportStatus.PENDING)
                         .build();
 
-        session = importSessionRepository.save(session);
-        log.info("Created import session: {}", session.getId());
-
-        // Start parsing asynchronously (non-blocking)
-        // Client should poll GET /api/v1/import/sessions/{id} for status updates
-        parseFileAsync(session.getId());
-
         return session;
     }
 
-    /**
-     * Parse the uploaded file asynchronously and extract transactions. Updates the session status
-     * to PARSING ΓåÆ PARSED (or FAILED on error).
-     *
-     * <p>This method runs in a background thread managed by the taskExecutor. The HTTP request
-     * returns immediately with the session ID, and the client should poll GET
-     * /api/v1/import/sessions/{id} to check progress.
-     *
-     * <p><strong>Status Transitions:</strong>
-     *
-     * <ul>
-     *   <li>PENDING ΓåÆ PARSING (when parsing starts)
-     *   <li>PARSING ΓåÆ PARSED (on success)
-     *   <li>PARSING ΓåÆ FAILED (on error)
-     * </ul>
-     *
-     * <p><strong>Transaction Management:</strong>
-     *
-     * <p>Note: No @Transactional annotation on this async method. Each repository operation runs in
-     * its own transaction, which is actually desirable because:
-     *
-     * <ul>
-     *   <li>Status updates (PARSING ΓåÆ PARSED/FAILED) are persisted immediately
-     *   <li>No risk of long-running transaction holding database locks
-     *   <li>Partial commits are acceptable (we want to persist FAILED status)
-     * </ul>
-     *
-     * <p>Requirement REQ-2.5.1.8: Asynchronous file parsing
-     *
-     * @param sessionId the import session ID
-     */
+    /** Parse all uploaded sources, persisting one PARSED or FAILED session for review. */
     @Async("taskExecutor")
     public void parseFileAsync(Long sessionId) {
         log.info("Starting async parsing for session: {}", sessionId);
@@ -312,160 +461,25 @@ public class ImportService {
             session.setStatus(ImportStatus.PARSING);
             importSessionRepository.save(session);
 
-            // Get file content
-            InputStream fileStream =
-                    fileStorageService.getFileContent(session.getUploadId(), session.getUserId());
-
-            // Parse based on format
-            List<ImportedTransaction> transactions;
-            BigDecimal ledgerBalance = null;
-            Map<String, BigDecimal> ledgerBalances = Map.of();
-            String fileCurrency = defaultCurrencyProvider.getDefaultCurrency();
-            try {
-                User user = userRepository.findById(session.getUserId()).orElse(null);
-                if (user != null && user.getBaseCurrency() != null) {
-                    fileCurrency = user.getBaseCurrency();
+            List<ImportSourceFile> files = sourceFiles(session);
+            if (files.isEmpty()) {
+                parseUploadedFile(session);
+            } else {
+                List<ImportSourceFile> parsedFiles = new ArrayList<>();
+                int errors = 0;
+                for (ImportSourceFile file : files) {
+                    ImportSession source = file.toSession(session.getUserId());
+                    parseUploadedFile(source);
+                    parsedFiles.add(ImportSourceFile.fromSession(source));
+                    errors += source.getErrorCount();
                 }
-            } catch (Exception e) {
-                log.warn("Could not fetch user base currency, defaulting to USD", e);
-            }
-
-            // Capture the user's parsing preferences (date ordering, message locale) up
-            // front —
-            // this method runs on a background thread where the request locale is
-            // unavailable.
-            ImportParseContext parseContext = buildParseContext(session.getUserId());
-
-            switch (session.getFileFormat().toUpperCase(Locale.ROOT)) {
-                case "QIF":
-                    transactions =
-                            qifParser.parseFile(fileStream, session.getFileName(), parseContext);
-                    break;
-                case "OFX":
-                case "QFX":
-                    ImportParseResult ofxResult =
-                            ofxParser.parseFileToResult(
-                                    fileStream, session.getFileName(), parseContext);
-                    transactions = ofxResult.getTransactions();
-                    if (ofxResult.getLedgerBalance() != null) {
-                        ledgerBalance = ofxResult.getLedgerBalance();
-                        ledgerBalances = ofxResult.getLedgerBalances();
-                    }
-                    if (ofxResult.getCurrency() != null) {
-                        fileCurrency = ofxResult.getCurrency();
-                    }
-                    break;
-                case "CSV":
-                    transactions =
-                            csvParser.parseFile(fileStream, session.getFileName(), parseContext);
-                    break;
-                case "JSON":
-                    if (!importProperties.isSkroogeJsonEnabled()) {
-                        throw new IllegalArgumentException(
-                                "Skrooge JSON import is currently disabled");
-                    }
-                    SkroogeImportParseResult skroogeResult =
-                            skroogeJsonParser.parseFile(fileStream, session.getFileName());
-                    transactions = skroogeResult.getTransactions();
-                    if (skroogeResult.getCurrency() != null) {
-                        fileCurrency = skroogeResult.getCurrency();
-                    }
-                    session.setMetadata(
-                            serializeTransactions(
-                                    transactions,
-                                    ledgerBalance,
-                                    fileCurrency,
-                                    Map.of("skroogeMetadata", skroogeResult.getSkroogeMetadata())));
-                    break;
-                default:
-                    throw new IllegalArgumentException(
-                            "Unsupported file format: " + session.getFileFormat());
-            }
-
-            transferImportService.resolveOfxTransfers(session, transactions);
-
-            // Attempt to detect account automatically if not provided
-            if (session.getAccountId() == null && !transactions.isEmpty()) {
-                String detectedAccountName = null;
-                for (ImportedTransaction tx : transactions) {
-                    if (tx.getAccountName() != null && !tx.getAccountName().trim().isEmpty()) {
-                        detectedAccountName = tx.getAccountName().trim();
-                        break;
-                    }
-                }
-
-                if (detectedAccountName != null) {
-                    session.setSuggestedAccountName(formatAccountSuggestion(detectedAccountName));
-                    // Try to find matching account
-                    List<Account> userAccounts =
-                            accountRepository.findByUserId(session.getUserId());
-                    for (Account acc : userAccounts) {
-                        if (acc.getDeletedDate() != null || !Boolean.TRUE.equals(acc.getIsActive()))
-                            continue;
-                        String normalizedDetected =
-                                detectedAccountName
-                                        .replaceAll("[^a-zA-Z0-9]", "")
-                                        .toLowerCase(Locale.ROOT);
-                        String normalizedAccName =
-                                acc.getName()
-                                        .replaceAll("[^a-zA-Z0-9]", "")
-                                        .toLowerCase(Locale.ROOT);
-                        String normalizedAccNum =
-                                acc.getAccountNumber() != null
-                                        ? acc.getAccountNumber()
-                                                .replaceAll("[^a-zA-Z0-9]", "")
-                                                .toLowerCase(Locale.ROOT)
-                                        : "";
-
-                        if (normalizedAccName.equals(normalizedDetected)
-                                || normalizedAccNum.equals(normalizedDetected)) {
-                            session.setAccountId(acc.getId());
-                            log.info(
-                                    "Automatically matched account '{}' (id={}) for session {}",
-                                    acc.getName(),
-                                    acc.getId(),
-                                    sessionId);
-                            break;
-                        }
-                    }
-                } else {
-                    // Fallback to filename (without extension)
-                    String nameWithoutExt = session.getFileName();
-                    int dotIndex = nameWithoutExt.lastIndexOf('.');
-                    if (dotIndex > 0) {
-                        nameWithoutExt = nameWithoutExt.substring(0, dotIndex);
-                    }
-                    session.setSuggestedAccountName(nameWithoutExt);
-                }
-            }
-
-            // Update session with parsing results
-            session.setTotalTransactions(transactions.size());
-            session.setErrorCount(
-                    (int) transactions.stream().filter(ImportedTransaction::hasErrors).count());
-            session.setStatus(ImportStatus.PARSED);
-
-            log.info(
-                    "Async parsing complete for session {}: {} transactions extracted, {} with errors",
-                    sessionId,
-                    transactions.size(),
-                    session.getErrorCount());
-
-            // Store parsed transactions in metadata (JSON format)
-            // Note: In production, consider storing in separate table for large imports
-            if (!"JSON".equalsIgnoreCase(session.getFileFormat())) {
-                session.setMetadata(
-                        serializeTransactions(
-                                transactions,
-                                ledgerBalance,
-                                fileCurrency,
-                                Map.of(
-                                        "ledgerBalances",
-                                        ledgerBalances == null ? Map.of() : ledgerBalances,
-                                        "statementNetAmounts",
-                                        ImportStatementPositions.netAmounts(transactions),
-                                        "statementOpeningDates",
-                                        ImportStatementPositions.openingDates(transactions))));
+                session.setMetadata(serializeFileMetadata(parsedFiles, Map.of()));
+                session.setTotalTransactions(
+                        parsedFiles.stream()
+                                .mapToInt(ImportSourceFile::getTotalTransactions)
+                                .sum());
+                session.setErrorCount(errors);
+                session.setStatus(ImportStatus.PARSED);
             }
 
             importSessionRepository.save(session);
@@ -488,20 +502,21 @@ public class ImportService {
         }
     }
 
-    /**
-     * Build the parsing context (date ordering, message locale) from the user's settings. Falls
-     * back to locale-derived defaults when the user has no settings or they cannot be loaded.
-     */
-    private ImportParseContext buildParseContext(Long userId) {
-        try {
-            UserSettings settings = userSettingsRepository.findByUserId(userId).orElse(null);
-            if (settings != null) {
-                return ImportParseContext.from(settings);
-            }
-        } catch (Exception e) {
-            log.warn("Could not load settings for user {}; using parse defaults", userId, e);
-        }
-        return ImportParseContext.defaults();
+    private void parseUploadedFile(ImportSession session) throws IOException {
+        new ImportFileParser(
+                        fileStorageService,
+                        qifParser,
+                        ofxParser,
+                        csvParser,
+                        skroogeJsonParser,
+                        userRepository,
+                        userSettingsRepository,
+                        accountRepository,
+                        defaultCurrencyProvider,
+                        importProperties,
+                        transferImportService,
+                        objectMapper)
+                .parse(session);
     }
 
     /**
@@ -526,14 +541,34 @@ public class ImportService {
         // Never write a detached session here: confirmation may have completed while
         // categorization was running. Saved review edits must not run through rules again.
         try (ImportProgressTracker.Task progress = progressTracker.start(sessionId, userId)) {
-            List<ImportedTransaction> transactions = deserializeTransactions(session.getMetadata());
-            prepareUnreviewedTransactions(session, transactions, userId, progress);
-            progress.update(Phase.PREPARING, 0, transactions.size());
-            validateImportedSplitAmounts(transactions, session.getAccountId(), userId);
-            detectDuplicates(transactions, session.getAccountId(), session.getFileFormat(), userId);
-            resolveReviewCurrencies(session, transactions, userId);
+            List<ImportSourceFile> files = sourceFiles(session);
+            if (files.isEmpty()) return reviewFile(session, progress);
+            List<ImportedTransaction> transactions = new ArrayList<>();
+            int processed = 0;
+            for (ImportSourceFile file : files) {
+                List<ImportedTransaction> rows =
+                        reviewFile(
+                                file.toSession(userId),
+                                progress.slice(processed, session.getTotalTransactions()));
+                processed += rows.size();
+                identifySourceRows(file, rows);
+                transactions.addAll(rows);
+            }
+            detectCrossFileDuplicates(files, transactions, userId);
             return transactions;
         }
+    }
+
+    private List<ImportedTransaction> reviewFile(
+            ImportSession session, ImportProgressTracker.Task progress) {
+        Long userId = session.getUserId();
+        List<ImportedTransaction> transactions = deserializeTransactions(session.getMetadata());
+        prepareUnreviewedTransactions(session, transactions, userId, progress);
+        progress.update(Phase.PREPARING, 0, transactions.size());
+        validateImportedSplitAmounts(transactions, session.getAccountId(), userId);
+        detectDuplicates(transactions, session.getAccountId(), session.getFileFormat(), userId);
+        resolveReviewCurrencies(session, transactions, userId);
+        return transactions;
     }
 
     private void resolveReviewCurrencies(
@@ -631,6 +666,44 @@ public class ImportService {
                     "Session is not ready for review. Current status: " + session.getStatus());
         }
 
+        List<ImportSourceFile> files = sourceFiles(session);
+        String metadata;
+        if (files.isEmpty()) {
+            metadata = reviewedFileMetadata(session, transactions, userId, review);
+        } else {
+            Map<String, List<ImportedTransaction>> byFile =
+                    partitionSourceRows(files, transactions);
+            for (ImportSourceFile file : files) {
+                List<ImportedTransaction> rows = byFile.get(file.getUploadId());
+                file.setMetadata(
+                        reviewedFileMetadata(file.toSession(userId), rows, userId, review));
+                file.setTotalTransactions(rows.size());
+            }
+            Map<String, Object> options = preserveMetadata(session.getMetadata());
+            if (review != null) {
+                options.put(
+                        "reviewOptions",
+                        Map.of(
+                                "categoryMappings",
+                                review.getCategoryMappings(),
+                                "skipDuplicates",
+                                review.isSkipDuplicates()));
+            }
+            metadata = serializeFileMetadata(files, options);
+        }
+        if (importSessionRepository.saveReview(
+                        sessionId, userId, metadata, transactions.size(), LocalDateTime.now())
+                != 1) {
+            throw new IllegalStateException("Import is no longer available for review");
+        }
+        return getSessionForUser(sessionId, userId);
+    }
+
+    private String reviewedFileMetadata(
+            ImportSession session,
+            List<ImportedTransaction> transactions,
+            Long userId,
+            ImportReviewRequest review) {
         transferImportService.resolveOfxTransfers(session, transactions);
         // Detect duplicates with the currently selected account
         validateImportedSplitAmounts(transactions, session.getAccountId(), userId);
@@ -672,14 +745,7 @@ public class ImportService {
                             "categoryMappings", review.getCategoryMappings(),
                             "skipDuplicates", review.isSkipDuplicates()));
         }
-        String metadata =
-                serializeTransactions(transactions, ledgerBalance, fileCurrency, extraMetadata);
-        if (importSessionRepository.saveReview(
-                        sessionId, userId, metadata, transactions.size(), LocalDateTime.now())
-                != 1) {
-            throw new IllegalStateException("Import is no longer available for review");
-        }
-        return getSessionForUser(sessionId, userId);
+        return serializeTransactions(transactions, ledgerBalance, fileCurrency, extraMetadata);
     }
 
     /**
@@ -801,8 +867,11 @@ public class ImportService {
         }
 
         try (ImportProgressTracker.Task progress = progressTracker.start(sessionId, userId)) {
-            return executeConfirmation(
-                    session, userId, accountId, categoryMappings, skipDuplicates, progress);
+            List<ImportSourceFile> files = sourceFiles(session);
+            return files.isEmpty()
+                    ? executeConfirmation(
+                            session, userId, accountId, categoryMappings, skipDuplicates, progress)
+                    : confirmFiles(session, files, categoryMappings, skipDuplicates, progress);
         }
     }
 
@@ -928,7 +997,7 @@ public class ImportService {
         // Update session status
         session.setStatus(ImportStatus.IMPORTING);
         session.setAccountId(targetAccountId);
-        importSessionRepository.save(session);
+        persistImportSession(session);
 
         try {
             // Separate blocking-error transactions from importable ones
@@ -1059,14 +1128,7 @@ public class ImportService {
                             + saveFailed
                             + openingBalanceTxs.size());
             session.setStatus(ImportStatus.COMPLETED);
-            operationHistoryService.record(
-                    session.getUserId(),
-                    EntityType.IMPORT,
-                    session.getId(),
-                    session.getFileName(),
-                    OperationType.CREATE,
-                    (Object) null,
-                    null);
+            recordImportCompletion(session);
             session.setCompletedAt(LocalDateTime.now());
 
             log.info(
@@ -1078,8 +1140,9 @@ public class ImportService {
 
             invalidateImportedSnapshots(userId, toImport);
 
-            importSessionRepository.save(session);
-            budgetAlertService.checkBudgetAlertsAfterTransaction(userId);
+            persistImportSession(session);
+            if (session.getId() != null)
+                budgetAlertService.checkBudgetAlertsAfterTransaction(userId);
 
             return session;
 
@@ -1087,7 +1150,7 @@ public class ImportService {
             log.error("Error confirming import for session {}: {}", sessionId, e.getMessage(), e);
             session.setStatus(ImportStatus.FAILED);
             session.setErrorMessage("Failed to import transactions: " + e.getMessage());
-            importSessionRepository.save(session);
+            persistImportSession(session);
             throw new RuntimeException("Failed to confirm import", e);
         }
     }
@@ -1342,9 +1405,9 @@ public class ImportService {
             Account existing = findMatchingAccount(accounts, descriptor);
             scopes.put(
                     descriptor.key(),
-                    existing != null
-                            ? existing.getId()
-                            : descriptors.size() == 1 ? fallbackAccountId : null);
+                    descriptors.size() == 1 && fallbackAccountId != null
+                            ? fallbackAccountId
+                            : existing != null ? existing.getId() : null);
         }
         return scopes;
     }
@@ -1367,25 +1430,6 @@ public class ImportService {
      */
     private boolean isReferenceAuthoritative(String fileFormat) {
         return "OFX".equalsIgnoreCase(fileFormat) || "QFX".equalsIgnoreCase(fileFormat);
-    }
-
-    /**
-     * Format a raw account identifier (e.g. a long bank account number) into a friendlier display
-     * name. Long numeric IDs are shortened to show only the last 4 digits (e.g. "00011234567890189"
-     * ΓåÆ "Account ΓÇóΓÇóΓÇó0189").
-     *
-     * @param rawId the raw account identifier from the imported file
-     * @return a human-readable account name suggestion
-     */
-    private String formatAccountSuggestion(String rawId) {
-        if (rawId == null || rawId.isBlank()) return rawId;
-        // If it's a long numeric string (looks like a bank account number), abbreviate
-        if (rawId.replaceAll("[^0-9]", "").length() >= 9
-                && rawId.replaceAll("[^0-9]", "").equals(rawId.replaceAll("\\s", ""))) {
-            String last4 = rawId.substring(Math.max(0, rawId.length() - 4));
-            return "Account \u2022\u2022\u2022" + last4;
-        }
-        return rawId;
     }
 
     /**
@@ -1653,7 +1697,7 @@ public class ImportService {
             List<ImportedTransaction> transactions,
             ImportProgressTracker.Task progress) {
         session.setStatus(ImportStatus.IMPORTING);
-        importSessionRepository.save(session);
+        persistImportSession(session);
 
         List<ImportedTransaction> errorTxs =
                 transactions.stream()
@@ -1683,7 +1727,8 @@ public class ImportService {
                         skroogeMetadata,
                         institutionIdsBySource,
                         userId,
-                        accountSourcesWithTransactions);
+                        accountSourcesWithTransactions,
+                        session.getAccountId());
         Map<Long, Long> categoryIdsBySource =
                 ensureCategories(skroogeMetadata, userId, categoryMappings);
         // Persist rules only after confirmation; do not rerun them over reviewed transactions.
@@ -1794,14 +1839,7 @@ public class ImportService {
         session.setErrorCount(errorTxs.size() + saveFailed);
         session.setSkippedCount(duplicatesSkipped + ruleSkipped + errorTxs.size() + saveFailed);
         session.setStatus(ImportStatus.COMPLETED);
-        operationHistoryService.record(
-                session.getUserId(),
-                EntityType.IMPORT,
-                session.getId(),
-                session.getFileName(),
-                OperationType.CREATE,
-                (Object) null,
-                null);
+        recordImportCompletion(session);
         session.setCompletedAt(LocalDateTime.now());
         if (accountIdsBySource.size() == 1) {
             session.setAccountId(accountIdsBySource.values().iterator().next());
@@ -1809,8 +1847,8 @@ public class ImportService {
 
         invalidateImportedSnapshots(userId, toImport);
 
-        importSessionRepository.save(session);
-        budgetAlertService.checkBudgetAlertsAfterTransaction(userId);
+        persistImportSession(session);
+        if (session.getId() != null) budgetAlertService.checkBudgetAlertsAfterTransaction(userId);
         return session;
     }
 
@@ -1898,7 +1936,7 @@ public class ImportService {
             List<ImportedTransaction> transactions,
             ImportProgressTracker.Task progress) {
         session.setStatus(ImportStatus.IMPORTING);
-        importSessionRepository.save(session);
+        persistImportSession(session);
 
         List<ImportedTransaction> errorTxs =
                 transactions.stream()
@@ -2130,14 +2168,7 @@ public class ImportService {
         session.setErrorCount(errorTxs.size() + saveFailed);
         session.setSkippedCount(duplicatesSkipped + ruleSkipped + errorTxs.size() + saveFailed);
         session.setStatus(ImportStatus.COMPLETED);
-        operationHistoryService.record(
-                session.getUserId(),
-                EntityType.IMPORT,
-                session.getId(),
-                session.getFileName(),
-                OperationType.CREATE,
-                (Object) null,
-                null);
+        recordImportCompletion(session);
         session.setCompletedAt(LocalDateTime.now());
 
         Set<Long> resolvedAccountIds = new java.util.HashSet<>(affectedAccountIds);
@@ -2147,8 +2178,8 @@ public class ImportService {
 
         invalidateImportedSnapshots(userId, toImport);
 
-        importSessionRepository.save(session);
-        budgetAlertService.checkBudgetAlertsAfterTransaction(userId);
+        persistImportSession(session);
+        if (session.getId() != null) budgetAlertService.checkBudgetAlertsAfterTransaction(userId);
         return session;
     }
 
@@ -2306,11 +2337,21 @@ public class ImportService {
             SkroogeImportMetadata metadata,
             Map<Long, Long> institutionIdsBySource,
             Long userId,
-            Set<Long> accountSourcesWithTransactions) {
+            Set<Long> accountSourcesWithTransactions,
+            Long requestedAccountId) {
         Map<Long, Long> accountIdsBySource = new HashMap<>();
         List<Account> existingAccounts = accountRepository.findByUserId(userId);
         for (SkroogeImportMetadata.SkroogeAccount account : metadata.getAccounts()) {
-            Account matchingAccount = findMatchingAccount(existingAccounts, account);
+            Account matchingAccount =
+                    requestedAccountId != null && metadata.getAccounts().size() == 1
+                            ? accountRepository
+                                    .findByIdAndUserId(requestedAccountId, userId)
+                                    .orElseThrow(
+                                            () ->
+                                                    new ResourceNotFoundException(
+                                                            "Account not found: "
+                                                                    + requestedAccountId))
+                            : findMatchingAccount(existingAccounts, account);
             if (matchingAccount != null) {
                 String description =
                         SkroogeJsonParser.mergeAccountDescription(
@@ -2502,7 +2543,7 @@ public class ImportService {
                         ? accountName.trim()
                         : existing != null && existing.name() != null
                                 ? existing.name()
-                                : formatAccountSuggestion(accountNumber);
+                                : ImportFileParser.formatAccountSuggestion(accountNumber);
         String resolvedNumber =
                 accountNumber != null && !accountNumber.isBlank()
                         ? accountNumber.trim()
@@ -2556,13 +2597,15 @@ public class ImportService {
         List<Account> existingAccounts = accountRepository.findByUserId(userId);
         for (ImportedAccountDescriptor descriptor : descriptorsByKey.values()) {
             Account matchingAccount =
-                    fallbackAccount != null
-                                    && matchesImportedAccount(
-                                            fallbackAccount,
-                                            descriptor.name(),
-                                            descriptor.accountNumber())
+                    fallbackAccount != null && descriptorsByKey.size() == 1
                             ? fallbackAccount
-                            : findMatchingAccount(existingAccounts, descriptor);
+                            : fallbackAccount != null
+                                            && matchesImportedAccount(
+                                                    fallbackAccount,
+                                                    descriptor.name(),
+                                                    descriptor.accountNumber())
+                                    ? fallbackAccount
+                                    : findMatchingAccount(existingAccounts, descriptor);
             if (matchingAccount == null
                     && fallbackAccount != null
                     && descriptorsByKey.size() == 1) {
@@ -2906,35 +2949,16 @@ public class ImportService {
     }
 
     private Map<String, Object> preserveMetadata(String metadata) {
-        Map<String, Object> preserved = readMetadataMap(metadata);
-        preserved.remove("transactions");
-        preserved.remove("count");
-        preserved.remove("ledgerBalance");
-        preserved.remove("fileCurrency");
-        preserved.remove("timestamp");
-        return preserved;
+        return new ImportSessionMetadata(objectMapper).preserveMetadata(metadata);
     }
 
     private Map<String, Object> deserializeMetadata(String metadata)
             throws JsonProcessingException {
-        // Untyped JSON otherwise becomes Double before convertValue can bind BigDecimal fields.
-        // Use a local reader so transactions, splits and opening balances retain source precision.
-        return objectMapper
-                .readerFor(METADATA_TYPE)
-                .with(DeserializationFeature.USE_BIG_DECIMAL_FOR_FLOATS)
-                .readValue(metadata);
+        return new ImportSessionMetadata(objectMapper).deserializeMetadata(metadata);
     }
 
     private Map<String, Object> readMetadataMap(String metadata) {
-        if (metadata == null || metadata.trim().isEmpty()) {
-            return new HashMap<>();
-        }
-        try {
-            return deserializeMetadata(metadata);
-        } catch (JsonProcessingException ex) {
-            log.warn("Failed to read import metadata: {}", ex.getMessage());
-            return new HashMap<>();
-        }
+        return new ImportSessionMetadata(objectMapper).readMetadataMap(metadata);
     }
 
     private String resolveTransactionCurrency(ImportedTransaction importedTx, Long accountId) {
@@ -3289,15 +3313,6 @@ public class ImportService {
         return normalized;
     }
 
-    /**
-     * Serialize transactions to JSON string for metadata storage. Uses Jackson ObjectMapper for
-     * proper JSON serialization.
-     *
-     * @param transactions list of imported transactions
-     * @param ledgerBalance starting balance from the file
-     * @param fileCurrency currency from the file
-     * @return JSON string representation
-     */
     private String serializeTransactions(
             List<ImportedTransaction> transactions, BigDecimal ledgerBalance, String fileCurrency) {
         return serializeTransactions(transactions, ledgerBalance, fileCurrency, Map.of());
@@ -3308,55 +3323,12 @@ public class ImportService {
             BigDecimal ledgerBalance,
             String fileCurrency,
             Map<String, Object> extraMetadata) {
-        try {
-            Map<String, Object> metadata = new HashMap<>();
-            if (extraMetadata != null && !extraMetadata.isEmpty()) {
-                metadata.putAll(extraMetadata);
-            }
-            metadata.put("transactions", transactions);
-            metadata.put("count", transactions.size());
-            metadata.put("ledgerBalance", ledgerBalance);
-            metadata.put("fileCurrency", fileCurrency);
-            metadata.put("timestamp", LocalDateTime.now().toString());
-            return objectMapper.writeValueAsString(metadata);
-        } catch (JsonProcessingException e) {
-            log.error("Error serializing transactions: {}", e.getMessage(), e);
-            // Fallback to simple JSON
-            return String.format(
-                    "{\"count\": %d, \"timestamp\": \"%s\", \"error\": \"Serialization failed\"}",
-                    transactions.size(), LocalDateTime.now());
-        }
+        return new ImportSessionMetadata(objectMapper)
+                .serializeTransactions(transactions, ledgerBalance, fileCurrency, extraMetadata);
     }
 
-    /**
-     * Deserialize transactions from JSON metadata. Uses Jackson ObjectMapper for proper JSON
-     * deserialization.
-     *
-     * @param metadata JSON string containing transactions
-     * @return list of imported transactions
-     */
     private List<ImportedTransaction> deserializeTransactions(String metadata) {
-        if (metadata == null || metadata.trim().isEmpty()) {
-            log.warn("Metadata is empty, returning empty transaction list");
-            return new ArrayList<>();
-        }
-
-        try {
-            Map<String, Object> metadataMap = deserializeMetadata(metadata);
-
-            if (!metadataMap.containsKey("transactions")) {
-                log.warn("Metadata does not contain transactions field");
-                return new ArrayList<>();
-            }
-
-            // Deserialize transactions list
-            Object transactionsObj = metadataMap.get("transactions");
-            return objectMapper.convertValue(transactionsObj, TRANSACTIONS_TYPE);
-
-        } catch (JsonProcessingException e) {
-            log.error("Error deserializing transactions: {}", e.getMessage(), e);
-            return new ArrayList<>();
-        }
+        return new ImportSessionMetadata(objectMapper).deserializeTransactions(metadata);
     }
 
     private record ImportedAccountDescriptor(

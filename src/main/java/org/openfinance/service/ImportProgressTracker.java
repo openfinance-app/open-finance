@@ -31,19 +31,35 @@ public class ImportProgressTracker {
 
     public final class Task implements AutoCloseable {
         private final Key key;
+        private final Task parent;
+        private final int offset;
+        private final int batchTotal;
         private volatile ImportProgressResponse snapshot =
                 new ImportProgressResponse(Phase.PREPARING, 0, 0);
 
         private Task(Key key) {
+            this(key, null, 0, 0);
+        }
+
+        private Task(Key key, Task parent, int offset, int batchTotal) {
             this.key = key;
+            this.parent = parent;
+            this.offset = offset;
+            this.batchTotal = batchTotal;
+        }
+
+        public Task slice(int offset, int total) {
+            return new Task(key, this, offset, total);
         }
 
         public void update(Phase phase, int processed, int total) {
-            snapshot = new ImportProgressResponse(phase, processed, total);
+            if (parent == null) snapshot = new ImportProgressResponse(phase, processed, total);
+            else parent.update(phase, offset + processed, batchTotal);
         }
 
         @Override
         public void close() {
+            if (parent != null) return;
             if (TransactionSynchronizationManager.isSynchronizationActive()) {
                 TransactionSynchronizationManager.registerSynchronization(
                         new TransactionSynchronization() {

@@ -74,6 +74,62 @@ class ImportControllerTest {
     private static final String TEST_ENCRYPTION_SESSION = "test-encryption-session";
 
     @Test
+    void processesAllSelectedFilesAsOneSession() throws Exception {
+        List<ImportProcessRequest> files =
+                List.of(
+                        ImportProcessRequest.builder()
+                                .uploadId(UPLOAD_ID)
+                                .originalFileName("first.csv")
+                                .build(),
+                        ImportProcessRequest.builder()
+                                .uploadId("second-upload")
+                                .originalFileName("second.qif")
+                                .build());
+        when(importService.startMultiFileImport(files, USER_ID))
+                .thenReturn(createImportSession(SESSION_ID, ImportStatus.PARSED, 2));
+        mockMvc.perform(
+                        post("/api/v1/import/process-files")
+                                .with(csrf())
+                                .with(authentication(createAuthentication(USER_ID)))
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(files)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.totalTransactions").value(2));
+        verify(importService).startMultiFileImport(files, USER_ID);
+    }
+
+    @Test
+    void rejectsAnEmptySelectionAndInvalidIndividualUploadIds() throws Exception {
+        for (String body : List.of("[]", "[{\"uploadId\":\"valid\"},{\"uploadId\":\"\"}]")) {
+            mockMvc.perform(
+                            post("/api/v1/import/process-files")
+                                    .with(csrf())
+                                    .with(authentication(createAuthentication(USER_ID)))
+                                    .contentType(MediaType.APPLICATION_JSON)
+                                    .content(body))
+                    .andExpect(status().isBadRequest());
+        }
+        verify(importService, never()).startMultiFileImport(any(), any());
+    }
+
+    @Test
+    void appliesFileAccountOverridesForTheAuthenticatedOwner() throws Exception {
+        Map<String, Long> accounts = new HashMap<>();
+        accounts.put(UPLOAD_ID, ACCOUNT_ID);
+        accounts.put("second-upload", null);
+        when(importService.updateFileAccounts(SESSION_ID, accounts, USER_ID))
+                .thenReturn(createImportSession(SESSION_ID, ImportStatus.REVIEWING, 2));
+        mockMvc.perform(
+                        put("/api/v1/import/sessions/{id}/accounts", SESSION_ID)
+                                .with(csrf())
+                                .with(authentication(createAuthentication(USER_ID)))
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(accounts)))
+                .andExpect(status().isOk());
+        verify(importService).updateFileAccounts(SESSION_ID, accounts, USER_ID);
+    }
+
+    @Test
     void exposesLightweightProgressForTheAuthenticatedOwner() throws Exception {
         when(importService.getProgress(SESSION_ID, USER_ID))
                 .thenReturn(new ImportProgressResponse(Phase.IMPORTING, 500, 3083));

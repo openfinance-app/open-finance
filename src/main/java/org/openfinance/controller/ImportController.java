@@ -1,7 +1,9 @@
 package org.openfinance.controller;
 
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotEmpty;
 import java.util.List;
+import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.openfinance.dto.ImportConfirmRequest;
@@ -78,6 +80,25 @@ import org.springframework.web.bind.annotation.RestController;
 public class ImportController {
 
     private final ImportService importService;
+
+    @PostMapping("/process-files")
+    public ResponseEntity<ImportSession> processFiles(
+            @Valid @RequestBody @NotEmpty List<@Valid ImportProcessRequest> files,
+            Authentication authentication) {
+        return ResponseEntity.ok(
+                importService.startMultiFileImport(
+                        files, ControllerUtil.extractUserId(authentication)));
+    }
+
+    @PutMapping("/sessions/{id}/accounts")
+    public ResponseEntity<ImportSession> updateFileAccounts(
+            @PathVariable Long id,
+            @RequestBody Map<String, Long> accounts,
+            Authentication authentication) {
+        return ResponseEntity.ok(
+                importService.updateFileAccounts(
+                        id, accounts, ControllerUtil.extractUserId(authentication)));
+    }
 
     @GetMapping("/sessions/{id}/progress")
     public ResponseEntity<ImportProgressResponse> getProgress(

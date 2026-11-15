@@ -14,7 +14,7 @@ import {
 import { resolveEncryptionEnabled, useSecurityConfig } from '@/hooks/useSecurityConfig';
 import { importService } from '@/services/importService';
 import type {
-  ImportProcessRequest,
+  StartImportRequest,
   ImportSessionResponse,
   ImportSessionStatus,
   ImportTransactionDTO,
@@ -57,13 +57,13 @@ export function useImportProgress(
 export function useStartImport(): UseMutationResult<
   ImportSessionResponse,
   Error,
-  ImportProcessRequest
+  StartImportRequest
 > {
   const queryClient = useQueryClient();
   const securityConfig = useSecurityConfig();
   const encryptionEnabled = resolveEncryptionEnabled(securityConfig.data, securityConfig.isError);
 
-  return useMutation<ImportSessionResponse, Error, ImportProcessRequest>({
+  return useMutation<ImportSessionResponse, Error, StartImportRequest>({
     mutationFn: data => importService.startImport(data, encryptionEnabled),
     onSuccess: data => {
       // Cache the session data
@@ -207,28 +207,32 @@ export function useConfirmImport(): UseMutationResult<
 export function useUpdateAccount(): UseMutationResult<
   ImportSessionResponse,
   Error,
-  { sessionId: number; accountId: number | null }
+  { sessionId: number; accountId: number | null; fileAccounts?: Record<string, number | null> }
 > {
   const queryClient = useQueryClient();
   const securityConfig = useSecurityConfig();
   const encryptionEnabled = resolveEncryptionEnabled(securityConfig.data, securityConfig.isError);
 
-  return useMutation<ImportSessionResponse, Error, { sessionId: number; accountId: number | null }>(
-    {
-      mutationFn: ({ sessionId, accountId }) =>
-        importService.updateAccount(sessionId, accountId, encryptionEnabled),
-      onSuccess: async (data, variables) => {
-        // Invalidation alone reuses an initial fetch with no cached data. Cancel it
-        // first so a response calculated for the old account cannot win the race.
-        await queryClient.cancelQueries({ queryKey: ['import-transactions', variables.sessionId] });
-        queryClient.setQueryData(['import-sessions', variables.sessionId, encryptionEnabled], data);
-        await Promise.all([
-          queryClient.invalidateQueries({ queryKey: ['import-sessions'] }),
-          queryClient.invalidateQueries({ queryKey: ['import-transactions', variables.sessionId] }),
-        ]);
-      },
-    }
-  );
+  return useMutation<
+    ImportSessionResponse,
+    Error,
+    { sessionId: number; accountId: number | null; fileAccounts?: Record<string, number | null> }
+  >({
+    mutationFn: ({ sessionId, accountId, fileAccounts }) =>
+      fileAccounts
+        ? importService.updateFileAccounts(sessionId, fileAccounts, encryptionEnabled)
+        : importService.updateAccount(sessionId, accountId, encryptionEnabled),
+    onSuccess: async (data, variables) => {
+      // Invalidation alone reuses an initial fetch with no cached data. Cancel it
+      // first so a response calculated for the old account cannot win the race.
+      await queryClient.cancelQueries({ queryKey: ['import-transactions', variables.sessionId] });
+      queryClient.setQueryData(['import-sessions', variables.sessionId, encryptionEnabled], data);
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['import-sessions'] }),
+        queryClient.invalidateQueries({ queryKey: ['import-transactions', variables.sessionId] }),
+      ]);
+    },
+  });
 }
 
 /**

@@ -6,6 +6,7 @@
  */
 import { CheckCircle2, XCircle, Loader2, ExternalLink, AlertTriangle } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { readImportFiles } from '@/utils/import-files';
 import { Button } from '@/components/ui/Button';
 import { SkroogeRulesNotice } from '@/components/import/SkroogeRulesNotice';
 import { SkroogeInterestNotice } from '@/components/import/SkroogeInterestNotice';
@@ -98,7 +99,7 @@ export function ImportProgress({
 
         <div className="text-center" role="status" aria-live="polite">
           <h3 className="plate-label  mb-2">{getStatusMessage()}</h3>
-          <p className="text-sm text-text-secondary">{session.fileName}</p>
+          <p className="break-all text-sm text-text-secondary">{session.fileName}</p>
         </div>
       </div>
 
@@ -150,8 +151,16 @@ export function ImportProgress({
         </div>
       </div>
 
-      {isComplete && <SkroogeRulesNotice metadata={session.metadata} completed />}
-      {isComplete && <SkroogeInterestNotice metadata={session.metadata} completed />}
+      {isComplete &&
+        (readImportFiles(session.metadata).length
+          ? readImportFiles(session.metadata).map(file => file.metadata)
+          : [session.metadata]
+        ).map((metadata, index) => (
+          <div key={index} className="empty:hidden">
+            <SkroogeRulesNotice metadata={metadata} completed />
+            <SkroogeInterestNotice metadata={metadata} completed />
+          </div>
+        ))}
 
       {/* Skipped Count (if any) */}
       {session.skippedCount > 0 && (

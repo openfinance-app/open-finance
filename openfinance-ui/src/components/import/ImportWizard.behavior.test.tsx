@@ -3,7 +3,11 @@ import type { ComponentProps } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { mockAuthentication, renderWithProviders } from '@/test/test-utils';
 import { useImportDraftStore } from '@/stores/importDraft';
-import type { ImportSessionResponse, ImportTransactionDTO } from '@/types/import';
+import type {
+  ImportSessionResponse,
+  ImportTransactionDTO,
+  FileUploadResponse,
+} from '@/types/import';
 import { ImportWizard } from '@/components/import/ImportWizard';
 import i18n from '@/test/i18n-test';
 const state = vi.hoisted(() => ({
@@ -24,6 +28,7 @@ const state = vi.hoisted(() => ({
   fileName: 'statement.csv',
   rows: [] as ImportTransactionDTO[],
   uploadId: 'upload-1',
+  extraUploads: [] as FileUploadResponse[],
   config: true,
 }));
 vi.mock('@/hooks/useImport', () => ({
@@ -70,16 +75,19 @@ vi.mock('@/components/import/FileUpload', () => ({
   }: ComponentProps<typeof import('@/components/import/FileUpload').FileUpload>) => (
     <button
       onClick={() =>
-        onUploadSuccess({
-          uploadId: state.uploadId,
-          fileName: state.fileName,
-          fileSize: 100,
-          fileType: 'text/csv',
-          status: 'VALIDATED',
-          message: '',
-          uploadedAt: '',
-          recordCount: 1,
-        })
+        onUploadSuccess(
+          {
+            uploadId: state.uploadId,
+            fileName: state.fileName,
+            fileSize: 100,
+            fileType: 'text/csv',
+            status: 'VALIDATED',
+            message: '',
+            uploadedAt: '',
+            recordCount: 1,
+          },
+          state.extraUploads
+        )
       }
     >
       Upload statement
@@ -138,11 +146,59 @@ describe('Import wizard failures and destination choices', () => {
     state.fetchingReview = false;
     state.fileName = 'statement.csv';
     state.uploadId = 'upload-1';
+    state.extraUploads = [];
     state.config = true;
     state.rows = [{ date: '2025-01-01', amount: -10, payee: 'Shop', validationErrors: [] }];
     vi.spyOn(console, 'error').mockImplementation(() => {});
   });
   afterEach(() => vi.restoreAllMocks());
+
+  it('matches all files in one step, applies overrides, and saves one combined review', async () => {
+    state.extraUploads = [{ uploadId: 'upload-2', fileName: 'savings.qif' } as FileUploadResponse];
+    state.session.accountId = null;
+    state.session.metadata = JSON.stringify({
+      importFiles: [
+        { uploadId: 'upload-1', fileName: 'statement.csv', accountId: 7, totalTransactions: 1 },
+        { uploadId: 'upload-2', fileName: 'savings.qif', accountId: 8, totalTransactions: 1 },
+      ],
+    });
+    state.rows = [
+      { ...state.rows[0], sourceUploadId: 'upload-1', sourceFileName: 'statement.csv' },
+      { ...state.rows[0], sourceUploadId: 'upload-2', sourceFileName: 'savings.qif' },
+    ];
+    const rendered = mount();
+    await upload();
+    expect(state.start).toHaveBeenCalledWith({
+      files: [
+        { uploadId: 'upload-1', accountId: null, originalFileName: 'statement.csv' },
+        { uploadId: 'upload-2', accountId: null, originalFileName: 'savings.qif' },
+      ],
+    });
+    expect(screen.getByRole('combobox', { name: 'Account for statement.csv' })).toHaveValue('7');
+    expect(screen.getByRole('combobox', { name: 'Account for savings.qif' })).toHaveValue('8');
+    fireEvent.change(screen.getByRole('combobox', { name: 'Account for statement.csv' }), {
+      target: { value: '8' },
+    });
+    rendered.rerender(<div />);
+    rendered.rerender(<ImportWizard />);
+    expect(screen.getByRole('combobox', { name: 'Account for statement.csv' })).toHaveValue('8');
+    next();
+    await screen.findByText('2 review rows');
+    expect(state.apply).toHaveBeenCalledExactlyOnceWith({
+      sessionId: 42,
+      accountId: null,
+      fileAccounts: { 'upload-1': 8, 'upload-2': 8 },
+    });
+    expect(state.confirm).not.toHaveBeenCalled();
+    next();
+    await waitFor(() =>
+      expect(state.save).toHaveBeenCalledWith(expect.objectContaining({ transactions: state.rows }))
+    );
+    fireEvent.click(
+      await screen.findByRole('button', { name: i18n.t('import:wizard.confirm.title') })
+    );
+    await waitFor(() => expect(state.confirm).toHaveBeenCalledOnce());
+  });
 
   it('ignores an upload response that has no server upload identifier', () => {
     state.uploadId = '';
