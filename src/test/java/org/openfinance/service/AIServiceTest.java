@@ -75,6 +75,46 @@ class AIServiceTest {
     private Long userId;
     private User testUser;
 
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.NullAndEmptySource
+    @org.junit.jupiter.params.provider.ValueSource(strings = {" ", "[]"})
+    void emptyLegacyConversationsHaveNoInventedMessages(String messages) {
+        AIConversation conversation =
+                AIConversation.builder()
+                        .id(42L)
+                        .user(testUser)
+                        .title("Empty")
+                        .messages(messages)
+                        .build();
+        when(conversationRepository.findByIdAndUser_Id(42L, userId))
+                .thenReturn(Optional.of(conversation));
+        assertThat(aiService.getConversation(userId, 42L).getMessages()).isEmpty();
+        verifyNoInteractions(aiProvider, conversationWriter);
+    }
+
+    @Test
+    void clarificationPromptsBypassTheProviderAndPersistABoundedTitleInTheDefaultLocale() {
+        UserSettings settings = new UserSettings();
+        settings.setLanguage(null);
+        when(userSettingsRepository.findByUserId(userId)).thenReturn(Optional.of(settings));
+        when(contextBuilder.buildMinimalContext(userId, Locale.ENGLISH))
+                .thenReturn("[CLARIFICATION] Which account should I use?");
+        String question = "Explain my account history ".repeat(10).trim();
+        AIDto.ChatResponse response =
+                aiService.askQuestion(
+                        userId,
+                        AIDto.ChatRequest.builder()
+                                .question(question)
+                                .includeFullContext(false)
+                                .build());
+        assertThat(response.getResponse()).isEqualTo("Which account should I use?");
+        verify(aiProvider, never()).sendStructuredPrompt(anyString(), anyString(), any());
+        ArgumentCaptor<AIConversation> saved = ArgumentCaptor.forClass(AIConversation.class);
+        verify(conversationWriter).save(saved.capture());
+        assertThat(saved.getValue().getTitle()).isEqualTo(question.substring(0, 197) + "...");
+        assertThat(saved.getValue().getMessages()).contains("Which account should I use?");
+    }
+
     private String jsonAnswer(String text) {
         com.fasterxml.jackson.databind.node.ObjectNode answer =
                 new ObjectMapper().createObjectNode();

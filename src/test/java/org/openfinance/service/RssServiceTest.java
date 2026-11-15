@@ -56,6 +56,78 @@ class RssServiceTest {
                 .containsExactly("Headline");
     }
 
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(strings = {"null", "malformed"})
+    void emptyOrMalformedProvidersDoNotHideHealthyHeadlines(String kind) {
+        RestTemplate client = mock(RestTemplate.class);
+        when(client.exchange(
+                        anyString(), eq(HttpMethod.GET), any(HttpEntity.class), eq(byte[].class)))
+                .thenReturn(
+                        kind.equals("null")
+                                ? ResponseEntity.ok().build()
+                                : ResponseEntity.ok("invalid XML".getBytes(StandardCharsets.UTF_8)))
+                .thenReturn(ResponseEntity.ok(MINIMAL_RSS_XML.getBytes(StandardCharsets.UTF_8)));
+        assertThat(new RssService(client).getFinanceFeeds(Locale.ENGLISH))
+                .extracting(RssFeedItem::getTitle)
+                .containsExactly("Headline");
+    }
+
+    @Test
+    void frenchReadersUseConfiguredFrenchSourcesAndMissingMetadataStaysUsable() {
+        RestTemplate client = mock(RestTemplate.class);
+        org.openfinance.config.RssFeedProperties properties =
+                new org.openfinance.config.RssFeedProperties();
+        properties.getFeeds().setFr(List.of("https://example.invalid/fr"));
+        String xml =
+                "<rss version=\"2.0\"><channel><item><title>French headline</title></item></channel></rss>";
+        when(client.exchange(
+                        eq("https://example.invalid/fr"),
+                        eq(HttpMethod.GET),
+                        any(HttpEntity.class),
+                        eq(byte[].class)))
+                .thenReturn(ResponseEntity.ok(xml.getBytes(StandardCharsets.UTF_8)));
+        List<RssFeedItem> items =
+                new RssService(client, properties).getFinanceFeeds(Locale.CANADA_FRENCH);
+        assertThat(items).hasSize(1);
+        assertThat(items.getFirst().getSource()).isEqualTo("Unknown Source");
+        assertThat(items.getFirst().getDescription()).isEmpty();
+        assertThat(items.getFirst().getPubDate()).isNull();
+    }
+
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(ints = {99, 100, 101})
+    void limitsTheMergedFeedAfterSortingNewestFirst(int count) {
+        RestTemplate client = mock(RestTemplate.class);
+        org.openfinance.config.RssFeedProperties properties =
+                new org.openfinance.config.RssFeedProperties();
+        properties.getFeeds().setEn(List.of("https://example.invalid/en"));
+        StringBuilder xml =
+                new StringBuilder(
+                        "<rss version=\"2.0\"><channel><title>News</title><item><title>Undated</title></item>");
+        for (int index = 0; index < count; index++) {
+            String date =
+                    java.time.format.DateTimeFormatter.RFC_1123_DATE_TIME.format(
+                            java.time.ZonedDateTime.of(
+                                            2024, 1, 1, 0, 0, 0, 0, java.time.ZoneOffset.UTC)
+                                    .plusDays(index));
+            xml.append("<item><title>Headline ")
+                    .append(index)
+                    .append("</title><pubDate>")
+                    .append(date)
+                    .append("</pubDate></item>");
+        }
+        xml.append("</channel></rss>");
+        when(client.exchange(
+                        anyString(), eq(HttpMethod.GET), any(HttpEntity.class), eq(byte[].class)))
+                .thenReturn(ResponseEntity.ok(xml.toString().getBytes(StandardCharsets.UTF_8)));
+        List<RssFeedItem> items =
+                new RssService(client, properties).getFinanceFeeds(Locale.ENGLISH);
+        assertThat(items).hasSize(100);
+        assertThat(items.getFirst().getTitle()).isEqualTo("Headline " + (count - 1));
+        assertThat(items.getLast().getTitle())
+                .isEqualTo(count == 99 ? "Undated" : "Headline " + (count - 100));
+    }
+
     private static final String MINIMAL_RSS_XML =
             "<?xml version=\"1.0\" encoding=\"UTF-8\"?>"
                     + "<rss version=\"2.0\"><channel>"

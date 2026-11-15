@@ -283,12 +283,14 @@ export function BudgetDetailModal({ budgetId, onClose: onClosed }: BudgetDetailM
     [chartSpentKey]: entry.future ? null : entry.spent,
   }));
 
-  const totalAvailable = historyData
-    ? historyData.totalBudgeted + (historyData.initialCarryover ?? 0)
+  const totalAvailable = new ExactDecimal(decimalValue(historyData, 'totalBudgeted') ?? 0).plus(
+    decimalValue(historyData, 'initialCarryover') ?? 0
+  );
+  const totalSpent = new ExactDecimal(decimalValue(historyData, 'totalSpent') ?? 0);
+  const overallPercentage = totalAvailable.gt(0)
+    ? totalSpent.div(totalAvailable).times(100).toNumber()
     : 0;
-  const overallPercentage =
-    historyData && totalAvailable > 0 ? (historyData.totalSpent / totalAvailable) * 100 : 0;
-  const isOverBudget = historyData ? historyData.totalSpent > totalAvailable : false;
+  const isOverBudget = totalSpent.gt(totalAvailable);
 
   return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center">

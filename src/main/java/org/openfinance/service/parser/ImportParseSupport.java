@@ -186,6 +186,7 @@ final class ImportParseSupport {
         return switch (symbol.trim()) {
             case "€" -> "EUR";
             case "$" -> "USD";
+            case "£" -> "GBP";
             default -> "CFA".equalsIgnoreCase(symbol.trim()) ? "XOF" : null;
         };
     }

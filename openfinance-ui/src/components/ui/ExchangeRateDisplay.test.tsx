@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { screen } from '@testing-library/react';
+import { screen, fireEvent } from '@testing-library/react';
 import { ExchangeRateDisplay, ExchangeRateInline } from './ExchangeRateDisplay';
 import { renderWithProviders, mockAuthentication } from '@/test/test-utils';
 import { useLatestExchangeRate } from '@/hooks/useCurrency';
@@ -58,6 +58,50 @@ describe('ExchangeRateDisplay', () => {
     mockAuthentication();
     const { useLatestExchangeRate } = await import('@/hooks/useCurrency');
     (useLatestExchangeRate as ReturnType<typeof vi.fn>).mockReturnValue(defaultRate);
+  });
+
+  it.each([true, false])(
+    'refresh requests work in compact mode %s and lock while fetching',
+    compact => {
+      const refetch = vi.fn();
+      const hook = useLatestExchangeRate as ReturnType<typeof vi.fn>;
+      hook.mockReturnValue({
+        ...defaultRate,
+        data: { rate: 0.9, inverseRate: 1 / 0.9, fromCurrency: 'USD', toCurrency: 'EUR' },
+        refetch,
+      });
+      const { rerender } = renderWithProviders(
+        <ExchangeRateDisplay from="USD" to="EUR" compact={compact} showRefresh />
+      );
+      const button = compact
+        ? screen.getByTitle('Refresh exchange rate')
+        : screen.getByRole('button', { name: 'Refresh' });
+      fireEvent.click(button);
+      expect(refetch).toHaveBeenCalledOnce();
+      hook.mockReturnValue({
+        ...defaultRate,
+        data: { rate: 0.9, inverseRate: 1 / 0.9 },
+        refetch,
+        isFetching: true,
+      });
+      rerender(<ExchangeRateDisplay from="USD" to="EUR" compact={compact} showRefresh />);
+      expect(
+        compact
+          ? screen.getByTitle('Refresh exchange rate')
+          : screen.getByRole('button', { name: 'Refresh' })
+      ).toBeDisabled();
+    }
+  );
+  it('retries a failed rate request through the displayed recovery action', () => {
+    const refetch = vi.fn();
+    (useLatestExchangeRate as ReturnType<typeof vi.fn>).mockReturnValue({
+      ...defaultRate,
+      isError: true,
+      refetch,
+    });
+    renderWithProviders(<ExchangeRateDisplay from="USD" to="EUR" showRefresh />);
+    fireEvent.click(screen.getByRole('button', { name: 'Retry' }));
+    expect(refetch).toHaveBeenCalledOnce();
   });
 
   it('renders "Same currency" when from and to are the same', () => {
@@ -222,6 +266,32 @@ describe('ExchangeRateInline', () => {
     const { useLatestExchangeRate } = await import('@/hooks/useCurrency');
     (useLatestExchangeRate as ReturnType<typeof vi.fn>).mockReturnValue(defaultRate);
   });
+
+  it('omits a redundant same-currency exchange rate', () => {
+    renderWithProviders(<ExchangeRateInline from="EUR" to="EUR" />);
+    expect(screen.queryByText(/1 EUR|unavailable|Loading/)).not.toBeInTheDocument();
+  });
+  it.each(['loading', 'error', 'available'] as const)(
+    'shows the fetched inline rate state: %s',
+    state => {
+      (useLatestExchangeRate as ReturnType<typeof vi.fn>).mockReturnValue({
+        ...defaultRate,
+        isLoading: state === 'loading',
+        isError: state === 'error',
+        data: { rate: 0.9 },
+      });
+      renderWithProviders(<ExchangeRateInline from="USD" to="EUR" />);
+      expect(
+        screen.getByText(
+          state === 'loading'
+            ? 'Loading rate...'
+            : state === 'error'
+              ? 'Rate unavailable'
+              : '1 USD = 0.9000 EUR'
+        )
+      ).toBeVisible();
+    }
+  );
 
   it('renders a provided fixed rate with the hint and does not depend on the fetched rate', () => {
     // Fixed-rate mode ignores the fetched rate (mocked to undefined above).

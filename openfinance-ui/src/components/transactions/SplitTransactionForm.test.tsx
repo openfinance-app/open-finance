@@ -104,6 +104,20 @@ function renderForm({
 // ── Tests ─────────────────────────────────────────────────────────────────────
 
 describe('SplitTransactionForm', () => {
+  it('converts an exact split total without first rounding it to a JavaScript number', () => {
+    renderWithProviders(
+      <SplitTransactionForm
+        totalAmount="9007199254740993.25"
+        currency="USD"
+        accountCurrency="EUR"
+        exchangeRate={0.5}
+        splits={[{ amount: '9007199254740993.25', categoryId: 10 }]}
+        onChange={vi.fn()}
+      />
+    );
+    expect(screen.getByText('€4,503,599,627,370,496.63')).toBeInTheDocument();
+  });
+
   it('adds and clears tags on one part without changing the other part', () => {
     function Editor() {
       const [splits, setSplits] = useState<TransactionSplitRequest[]>([

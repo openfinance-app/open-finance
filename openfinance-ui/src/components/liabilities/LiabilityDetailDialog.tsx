@@ -1,4 +1,4 @@
-import { decimalValue } from '@/utils/exact-decimal';
+import { decimalValue, ExactDecimal } from '@/utils/exact-decimal';
 import { Link } from 'react-router';
 import { buildTransactionsLink } from '@/utils/navigation';
 import { useViewScroll } from '@/hooks/useViewScroll';
@@ -36,7 +36,6 @@ import { LiabilityBreakdownPanel } from '@/components/liabilities/LiabilityBreak
 import { TrancheDrawdownsTab } from '@/components/liabilities/TrancheDrawdownsTab';
 import { AttachmentList, AttachmentUpload } from '@/components/attachments';
 import { AttachmentEntityType } from '@/types/attachment';
-import { multiply } from '@/utils/money';
 import { getToday } from '@/utils/date';
 import {
   useAmortizationSchedule,
@@ -71,21 +70,34 @@ function TotalCostHero({ liability }: { liability: Liability }) {
   if (breakdown.totalProjectedCost == null) return null;
 
   // Grand total = what has already been paid + what is still projected to be paid
-  const grandTotal = breakdown.totalPaid + breakdown.totalProjectedCost;
+  const grandTotal = new ExactDecimal(decimalValue(breakdown, 'totalPaid') ?? breakdown.totalPaid)
+    .plus(decimalValue(breakdown, 'totalProjectedCost') ?? breakdown.totalProjectedCost)
+    .toFixed();
 
   // Component totals across the full lifetime of the loan.
   // additionalFees is a one-time fee already counted in feesPaid; projectedFees is always 0.
-  const interestPaid = breakdown.interestPaid;
-  const insurancePaid = breakdown.insurancePaid;
-  const totalInterest = breakdown.interestPaid + (breakdown.projectedInterest ?? 0);
-  const totalInsurance = breakdown.insurancePaid + (breakdown.projectedInsurance ?? 0);
-  const totalFees = breakdown.feesPaid; // one-time fee — no projected portion
-  const totalPrincipal = liability.fundedAmount ?? breakdown.principal;
+  const interestPaid = decimalValue(breakdown, 'interestPaid') ?? breakdown.interestPaid;
+  const insurancePaid = decimalValue(breakdown, 'insurancePaid') ?? breakdown.insurancePaid;
+  const totalInterest = new ExactDecimal(interestPaid)
+    .plus(decimalValue(breakdown, 'projectedInterest') ?? 0)
+    .toFixed();
+  const totalInsurance = new ExactDecimal(insurancePaid)
+    .plus(decimalValue(breakdown, 'projectedInsurance') ?? 0)
+    .toFixed();
+  const totalFees = decimalValue(breakdown, 'feesPaid') ?? breakdown.feesPaid; // one-time fee — no projected portion
+  const totalPrincipal =
+    decimalValue(liability, 'fundedAmount') ??
+    decimalValue(breakdown, 'principal') ??
+    breakdown.principal;
+  const share = (amount: string | number) =>
+    new ExactDecimal(amount).dividedBy(grandTotal).times(100).toNumber();
 
   /** Convert a native amount to base currency if the liability has conversion data */
-  const toBase = (amount: number): number | undefined =>
+  const toBase = (amount: number | string): string | undefined =>
     liability.isConverted && liability.exchangeRate != null
-      ? multiply(amount, liability.exchangeRate)
+      ? new ExactDecimal(amount)
+          .times(decimalValue(liability, 'exchangeRate') ?? liability.exchangeRate)
+          .toFixed()
       : undefined;
 
   return (
@@ -107,13 +119,13 @@ function TotalCostHero({ liability }: { liability: Liability }) {
       </div>
       {/* Breakdown bar */}
       <div className="flex rounded-full overflow-hidden h-3 mb-3">
-        {totalPrincipal > 0 && (
+        {new ExactDecimal(totalPrincipal).gt(0) && (
           <TooltipProvider delayDuration={150}>
             <Tooltip>
               <TooltipTrigger asChild>
                 <div
                   className="bg-primary transition-all"
-                  style={{ width: `${(totalPrincipal / grandTotal) * 100}%` }}
+                  style={{ width: `${share(totalPrincipal)}%` }}
                 />
               </TooltipTrigger>
               <TooltipContent
@@ -133,13 +145,13 @@ function TotalCostHero({ liability }: { liability: Liability }) {
             </Tooltip>
           </TooltipProvider>
         )}
-        {totalInterest > 0 && (
+        {new ExactDecimal(totalInterest).gt(0) && (
           <TooltipProvider delayDuration={150}>
             <Tooltip>
               <TooltipTrigger asChild>
                 <div
                   className="bg-warning transition-all"
-                  style={{ width: `${(totalInterest / grandTotal) * 100}%` }}
+                  style={{ width: `${share(totalInterest)}%` }}
                 />
               </TooltipTrigger>
               <TooltipContent
@@ -159,13 +171,13 @@ function TotalCostHero({ liability }: { liability: Liability }) {
             </Tooltip>
           </TooltipProvider>
         )}
-        {totalInsurance > 0 && (
+        {new ExactDecimal(totalInsurance).gt(0) && (
           <TooltipProvider delayDuration={150}>
             <Tooltip>
               <TooltipTrigger asChild>
                 <div
                   className="bg-info transition-all"
-                  style={{ width: `${(totalInsurance / grandTotal) * 100}%` }}
+                  style={{ width: `${share(totalInsurance)}%` }}
                 />
               </TooltipTrigger>
               <TooltipContent
@@ -185,13 +197,13 @@ function TotalCostHero({ liability }: { liability: Liability }) {
             </Tooltip>
           </TooltipProvider>
         )}
-        {totalFees > 0 && (
+        {new ExactDecimal(totalFees).gt(0) && (
           <TooltipProvider delayDuration={150}>
             <Tooltip>
               <TooltipTrigger asChild>
                 <div
                   className="bg-error transition-all"
-                  style={{ width: `${(totalFees / grandTotal) * 100}%` }}
+                  style={{ width: `${share(totalFees)}%` }}
                 />
               </TooltipTrigger>
               <TooltipContent
@@ -258,7 +270,7 @@ function TotalCostHero({ liability }: { liability: Liability }) {
             />
           </span>
         </div>
-        {totalInsurance > 0 && (
+        {new ExactDecimal(totalInsurance).gt(0) && (
           <div className="flex items-center justify-between">
             <span className="flex items-center gap-1.5 text-text-secondary">
               <span className="h-2 w-2 rounded-full bg-info inline-block" />
@@ -287,7 +299,7 @@ function TotalCostHero({ liability }: { liability: Liability }) {
             </span>
           </div>
         )}
-        {totalFees > 0 && (
+        {new ExactDecimal(totalFees).gt(0) && (
           <div className="flex items-center justify-between">
             <span className="flex items-center gap-1.5 text-text-secondary">
               <span className="h-2 w-2 rounded-full bg-error inline-block" />
@@ -372,9 +384,11 @@ function LinkedPaymentsTab({ liability }: { liability: Liability }) {
   }
 
   /** Convert a native amount to base using the parent liability's rate */
-  const toBase = (amount: number): number | undefined =>
+  const toBase = (amount: number | string): string | undefined =>
     liability.isConverted && liability.exchangeRate != null
-      ? multiply(amount, liability.exchangeRate)
+      ? new ExactDecimal(amount)
+          .times(decimalValue(liability, 'exchangeRate') ?? liability.exchangeRate)
+          .toFixed()
       : undefined;
 
   return (
@@ -401,7 +415,7 @@ function LinkedPaymentsTab({ liability }: { liability: Liability }) {
             <ConvertedAmount
               amount={decimalValue(breakdown, 'totalPaid') ?? breakdown.totalPaid}
               currency={liability.currency}
-              convertedAmount={toBase(breakdown.totalPaid)}
+              convertedAmount={toBase(decimalValue(breakdown, 'totalPaid') ?? breakdown.totalPaid)}
               baseCurrency={liability.baseCurrency}
               exchangeRate={decimalValue(liability, 'exchangeRate') ?? liability.exchangeRate}
               isConverted={liability.isConverted}
@@ -495,7 +509,9 @@ function LinkedPaymentsTab({ liability }: { liability: Liability }) {
                     amount={decimalValue(tx, 'amount') ?? tx.amount}
                     currency={tx.currency}
                     convertedAmount={
-                      tx.currency === liability.currency ? toBase(tx.amount) : undefined
+                      tx.currency === liability.currency
+                        ? toBase(decimalValue(tx, 'amount') ?? tx.amount)
+                        : undefined
                     }
                     baseCurrency={liability.baseCurrency}
                     exchangeRate={decimalValue(liability, 'exchangeRate') ?? liability.exchangeRate}

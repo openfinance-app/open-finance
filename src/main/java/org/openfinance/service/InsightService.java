@@ -316,7 +316,7 @@ public class InsightService {
                                     messageSource.getMessage(
                                             "insight.spending.anomaly.description",
                                             new Object[] {
-                                                categoryName.toLowerCase(),
+                                                categoryName.toLowerCase(Locale.ROOT),
                                                 percentChange.multiply(MathConstants.HUNDRED),
                                                 currentSpending,
                                                 previousSpending
@@ -382,7 +382,7 @@ public class InsightService {
                                 messageSource.getMessage(
                                         "insight.budget.exceeded.description",
                                         new Object[] {
-                                            categoryName.toLowerCase(),
+                                            categoryName.toLowerCase(Locale.ROOT),
                                             overspent,
                                             percentUsed
                                                     .subtract(BigDecimal.ONE)
@@ -411,7 +411,7 @@ public class InsightService {
                                         "insight.budget.warning.description",
                                         new Object[] {
                                             percentUsed.multiply(MathConstants.HUNDRED),
-                                            categoryName.toLowerCase(),
+                                            categoryName.toLowerCase(Locale.ROOT),
                                             spent,
                                             budgetAmount,
                                             remaining
@@ -461,9 +461,13 @@ public class InsightService {
                                     ? nameKey.contains("subscription")
                                             || nameKey.contains("streaming")
                                             || nameKey.contains("membership")
-                                    : categoryName.toLowerCase().contains("subscription")
-                                            || categoryName.toLowerCase().contains("streaming")
-                                            || categoryName.toLowerCase().contains("membership");
+                                    : categoryName.toLowerCase(Locale.ROOT).contains("subscription")
+                                            || categoryName
+                                                    .toLowerCase(Locale.ROOT)
+                                                    .contains("streaming")
+                                            || categoryName
+                                                    .toLowerCase(Locale.ROOT)
+                                                    .contains("membership");
                     if (isSubscriptionLike) {
 
                         BigDecimal monthlySpending =
@@ -482,7 +486,8 @@ public class InsightService {
                                     messageSource.getMessage(
                                             "insight.subscription.description",
                                             new Object[] {
-                                                monthlySpending, categoryName.toLowerCase()
+                                                monthlySpending,
+                                                categoryName.toLowerCase(Locale.ROOT)
                                             },
                                             LocaleContextHolder.getLocale());
                             insights.add(

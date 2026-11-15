@@ -17,7 +17,7 @@ export function ImprovementValuationFields({
 }: {
   amount: string;
   currency: string;
-  cashEffect?: { amount: number | null; currency: string };
+  cashEffect?: { amount: number | string | null; currency: string };
   value: string;
   onChange: (value: string) => void;
   error?: string;

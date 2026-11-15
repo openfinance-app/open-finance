@@ -217,16 +217,21 @@ export function generatePDFContent(
         </thead>
         <tbody>
           ${brResults.years
-            .map(
-              y => `
+            .map(y => {
+              const buyNetWorth = new ExactDecimal(
+                y.buy.netWorth ??
+                  new ExactDecimal(y.buy.propertyValue).minus(y.buy.remainingCapital)
+              );
+              const rentNetWorth = new ExactDecimal(y.rent.netWorth ?? y.rent.savings);
+              return `
             <tr>
               <td>${y.year}</td>
-              <td>${formatCurrency(y.buy.propertyValue - y.buy.remainingCapital, baseCurrency)}</td>
-              <td>${formatCurrency(y.rent.savings, baseCurrency)}</td>
-              <td>${y.buy.propertyValue - y.buy.remainingCapital > y.rent.savings ? i18n.t('realEstate:exportImport.winnerBuy') : i18n.t('realEstate:exportImport.winnerRent')}</td>
+              <td>${formatCurrency(buyNetWorth.toFixed(), baseCurrency)}</td>
+              <td>${formatCurrency(rentNetWorth.toFixed(), baseCurrency)}</td>
+              <td>${buyNetWorth.gt(rentNetWorth) ? i18n.t('realEstate:exportImport.winnerBuy') : i18n.t('realEstate:exportImport.winnerRent')}</td>
             </tr>
-          `
-            )
+          `;
+            })
             .join('')}
         </tbody>
       </table>

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { screen, waitFor } from '@testing-library/react';
+import { fireEvent, screen, waitFor } from '@testing-library/react';
 import {
   renderWithProviders,
   mockAuthentication,
@@ -7,6 +7,7 @@ import {
   userEvent,
 } from '@/test/test-utils';
 import HistoryPage from '@/pages/HistoryPage';
+import i18n from '@/test/i18n-test';
 import type { OperationHistoryResponse } from '@/types/history';
 
 // ---------------------------------------------------------------------------
@@ -103,6 +104,96 @@ describe('HistoryPage', () => {
     clearAuthentication();
     mockAuthentication();
     Element.prototype.scrollIntoView = vi.fn();
+  });
+
+  it.each(['2024-03-31', '2024-10-27'])(
+    'sends an inclusive local-day range for %s and clears both boundaries',
+    async day => {
+      const { historyService } = await import('@/services/historyService');
+      vi.mocked(historyService.getHistory).mockResolvedValue(
+        mockHistoryPage as Awaited<ReturnType<typeof historyService.getHistory>>
+      );
+      renderWithProviders(<HistoryPage />);
+      await screen.findByText('Weekly groceries');
+      fireEvent.change(screen.getByLabelText(i18n.t('history:fromDate')), {
+        target: { value: day },
+      });
+      fireEvent.change(screen.getByLabelText(i18n.t('history:toDate')), { target: { value: day } });
+      const start = new Date(`${day}T00:00:00`);
+      const end = new Date(start);
+      end.setDate(end.getDate() + 1);
+      await waitFor(() =>
+        expect(historyService.getHistory).toHaveBeenLastCalledWith(
+          0,
+          20,
+          undefined,
+          start.toISOString(),
+          undefined,
+          end.toISOString()
+        )
+      );
+      fireEvent.change(screen.getByLabelText(i18n.t('history:fromDate')), {
+        target: { value: '' },
+      });
+      fireEvent.change(screen.getByLabelText(i18n.t('history:toDate')), { target: { value: '' } });
+      await waitFor(() =>
+        expect(historyService.getHistory).toHaveBeenLastCalledWith(
+          0,
+          20,
+          undefined,
+          undefined,
+          undefined,
+          undefined
+        )
+      );
+    }
+  );
+  it('clears entity and operation filters without leaving a stale selection', async () => {
+    const { historyService } = await import('@/services/historyService');
+    vi.mocked(historyService.getHistory).mockResolvedValue(
+      mockHistoryPage as Awaited<ReturnType<typeof historyService.getHistory>>
+    );
+    renderWithProviders(<HistoryPage />);
+    await screen.findByText('Weekly groceries');
+    fireEvent.change(screen.getByRole('combobox', { name: i18n.t('history:entityType') }), {
+      target: { value: 'REAL_ESTATE' },
+    });
+    fireEvent.change(screen.getByRole('combobox', { name: i18n.t('history:operation') }), {
+      target: { value: 'DELETE' },
+    });
+    await waitFor(() =>
+      expect(historyService.getHistory).toHaveBeenLastCalledWith(
+        0,
+        20,
+        'REAL_ESTATE',
+        undefined,
+        'DELETE',
+        undefined
+      )
+    );
+    fireEvent.change(screen.getByRole('combobox', { name: i18n.t('history:entityType') }), {
+      target: { value: '' },
+    });
+    fireEvent.change(screen.getByRole('combobox', { name: i18n.t('history:operation') }), {
+      target: { value: '' },
+    });
+    await waitFor(() =>
+      expect(historyService.getHistory).toHaveBeenLastCalledWith(
+        0,
+        20,
+        undefined,
+        undefined,
+        undefined,
+        undefined
+      )
+    );
+  });
+  it('reports a failed history query without showing an empty-success state', async () => {
+    const { historyService } = await import('@/services/historyService');
+    vi.mocked(historyService.getHistory).mockRejectedValueOnce(new Error('offline'));
+    renderWithProviders(<HistoryPage />);
+    expect(await screen.findByRole('alert')).toHaveTextContent(i18n.t('history:loadError'));
+    expect(screen.queryByText('Weekly groceries')).not.toBeInTheDocument();
   });
 
   describe('Data display', () => {
@@ -346,5 +437,24 @@ describe('HistoryPage', () => {
 
     await user.click(screen.getByRole('button', { name: /clear filters/i }));
     expect(entitySelect).toHaveValue('');
+  });
+  it.each([
+    new Error('offline'),
+    { isAxiosError: true },
+    { isAxiosError: true, response: { status: 500 } },
+    { isAxiosError: true, response: { data: {} } },
+  ])('keeps undo usable after an error without a server message: %j', async error => {
+    const { historyService } = await import('@/services/historyService');
+    vi.mocked(historyService.getHistory).mockReset().mockResolvedValue(mockHistoryPage);
+    vi.mocked(historyService.undo)
+      .mockReset()
+      .mockResolvedValue(mockHistoryItems[0])
+      .mockRejectedValueOnce(error);
+    renderWithProviders(<HistoryPage />);
+    await screen.findByText('Weekly groceries');
+    fireEvent.click(screen.getAllByRole('button', { name: /undo/i })[0]);
+    expect(await screen.findByRole('alert')).toHaveTextContent(i18n.t('history:actionError'));
+    expect(screen.getByText('Weekly groceries')).toBeVisible();
+    expect(screen.getAllByRole('button', { name: /undo/i })[0]).toBeEnabled();
   });
 });

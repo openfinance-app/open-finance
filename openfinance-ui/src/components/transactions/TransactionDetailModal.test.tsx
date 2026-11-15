@@ -133,6 +133,63 @@ describe('TransactionDetailModal', () => {
     vi.clearAllMocks();
   });
 
+  it.each([
+    [{ description: '', payee: 'Merchant' }, 'Merchant'],
+    [{ description: '', payee: '' }, 'Transaction'],
+  ] as const)(
+    'uses a meaningful title when the imported description is absent (%s)',
+    (fields, title) => {
+      renderWithProviders(
+        <TransactionDetailModal transaction={{ ...baseTransaction, ...fields }} onClose={onClose} />
+      );
+      expect(screen.getByRole('dialog')).toHaveAccessibleName(title as string);
+      expect(screen.getByRole('heading', { name: title as string })).toBeVisible();
+    }
+  );
+  it.each([true, false])(
+    'shows category metadata and payment method with nested category (%s)',
+    nested => {
+      renderWithProviders(
+        <TransactionDetailModal
+          transaction={{
+            ...baseTransaction,
+            accountName: undefined,
+            paymentMethod: 'CREDIT_CARD',
+            categoryName: 'Travel',
+            category: nested ? { id: 1, userId: 1, name: 'Holiday', icon: '☀' } : undefined,
+          }}
+          onClose={onClose}
+        />
+      );
+      expect(screen.getByRole('button', { name: 'Open account details' })).toHaveTextContent(
+        'Account #10'
+      );
+      expect(screen.getByText(nested ? 'Holiday' : 'Travel')).toBeVisible();
+      if (nested) expect(screen.getByText('☀')).toBeVisible();
+      expect(screen.getByText('Credit Card')).toBeVisible();
+    }
+  );
+  it.each(['EUR', undefined])(
+    'shows conversion details using the supplied or native base currency (%s)',
+    baseCurrency => {
+      renderWithProviders(
+        <TransactionDetailModal
+          transaction={{ ...baseTransaction, isConverted: true, exchangeRate: 0.9, baseCurrency }}
+          onClose={onClose}
+        />
+      );
+      expect(screen.getByText(/1 USD =/)).toHaveTextContent('0.90');
+    }
+  );
+  it('does not close on unrelated keys or an Escape already handled by a nested control', () => {
+    renderWithProviders(<TransactionDetailModal transaction={baseTransaction} onClose={onClose} />);
+    fireEvent.keyDown(document, { key: 'ArrowDown' });
+    const event = new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true });
+    event.preventDefault();
+    document.dispatchEvent(event);
+    expect(onClose).not.toHaveBeenCalled();
+  });
+
   it('includes the linked operation in the existing Details fields without an extra section', () => {
     renderWithProviders(
       <TransactionDetailModal

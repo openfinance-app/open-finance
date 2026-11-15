@@ -19,6 +19,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.NullAndEmptySource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
@@ -50,6 +51,75 @@ class LogoFetchServiceTest {
         // reaches inferDomain.
         lenient().when(properties.getDefaultTld()).thenReturn("com");
         lenient().when(properties.getDomainOverrides()).thenReturn(Map.of());
+    }
+
+    @ParameterizedTest
+    @NullAndEmptySource
+    @ValueSource(
+            strings = {
+                " ",
+                "https://user:password@s.yimg.com/lb/brands/logo.png",
+                "https://s2.coinmarketcap.com/not-a-logo",
+                "https://s.yimg.com:444/lb/brands/logo.png"
+            })
+    void absentOrDisallowedProviderUrlsNeverMakeARequest(String url) {
+        when(properties.isEnabled()).thenReturn(true);
+        assertThat(logoFetchService.fetchMarketLogo(url)).isEmpty();
+        verifyNoInteractions(restTemplate);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"missing-body", "too-small", "too-large", "missing-type", "svg"})
+    void rejectsMalformedOrOversizedProviderImageResponses(String invalid) {
+        when(properties.isEnabled()).thenReturn(true);
+        if (!invalid.equals("missing-body")) when(properties.getMinResponseBytes()).thenReturn(100);
+        byte[] body =
+                switch (invalid) {
+                    case "missing-body" -> null;
+                    case "too-small" -> new byte[99];
+                    case "too-large" -> new byte[512001];
+                    default -> new byte[100];
+                };
+        MediaType type =
+                invalid.equals("missing-type")
+                        ? null
+                        : invalid.equals("svg")
+                                ? MediaType.parseMediaType("image/svg+xml")
+                                : MediaType.IMAGE_PNG;
+        URI uri = URI.create("https://s.yimg.com/lb/brands/logo.png");
+        when(restTemplate.getForEntity(uri, byte[].class))
+                .thenReturn(ResponseEntity.ok().contentType(type).body(body));
+        assertThat(logoFetchService.fetchMarketLogo(uri.toString())).isEmpty();
+    }
+
+    @ParameterizedTest
+    @CsvSource({
+        "100,image/png",
+        "512000,image/jpeg",
+        "100,image/gif",
+        "100,image/webp",
+        "100,image/x-icon",
+        "100,image/vnd.microsoft.icon"
+    })
+    void acceptsInclusiveSizeBoundsAndSupportedRasterMimeTypes(int size, String contentType) {
+        when(properties.isEnabled()).thenReturn(true);
+        when(properties.getMinResponseBytes()).thenReturn(100);
+        URI uri = URI.create("https://s2.coinmarketcap.com:443/static/img/coins/64x64/1.png");
+        when(restTemplate.getForEntity(uri, byte[].class))
+                .thenReturn(
+                        ResponseEntity.ok()
+                                .contentType(MediaType.parseMediaType(contentType))
+                                .body(new byte[size]));
+        String result = logoFetchService.fetchMarketLogo(uri.toString()).orElseThrow();
+        assertThat(result).startsWith("data:" + contentType + ";base64,");
+        assertThat(java.util.Base64.getDecoder().decode(result.substring(result.indexOf(',') + 1)))
+                .hasSize(size);
+    }
+
+    @Test
+    void blankDomainOverridesFallBackToNormalInference() {
+        when(properties.getDomainOverrides()).thenReturn(Map.of("example", " "));
+        assertThat(logoFetchService.inferDomain("Example")).isEqualTo("example.com");
     }
 
     // -------------------------------------------------------------------------

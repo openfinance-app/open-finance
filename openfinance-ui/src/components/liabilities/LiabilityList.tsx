@@ -1,4 +1,4 @@
-import { decimalValue } from '@/utils/exact-decimal';
+import { decimalValue, ExactDecimal } from '@/utils/exact-decimal';
 import { SelectionCheckbox } from '@/components/bulk/BulkSelection';
 import { formatDecimal } from '@/utils/format';
 import { useDateFormatter } from '@/hooks/useDateFormatter';
@@ -21,7 +21,6 @@ import { ConfirmationDialog } from '@/components/ConfirmationDialog';
 import { ConvertedAmount } from '@/components/ui/ConvertedAmount';
 import { CurrencyAmount } from '@/components/ui/CurrencyAmount';
 import { cn } from '@/lib/utils';
-import { multiply } from '@/utils/money';
 import {
   getLiabilityTypeName,
   getLiabilityTypeBadgeVariant,
@@ -78,7 +77,7 @@ export function LiabilityList({
       setDeletingLiability(null);
     } catch (error) {
       setDeleteError(
-        isAxiosError<{ message?: string }>(error) && error.response?.data.message
+        isAxiosError<{ message?: string }>(error) && error.response?.data?.message
           ? error.response.data.message
           : t('deleteError')
       );
@@ -120,7 +119,9 @@ export function LiabilityList({
           const monthsRemaining = calculateMonthsRemaining(liability.endDate);
           const monthlyPayment =
             liability.currentBalance > 0
-              ? (liability.effectiveMonthlyPayment ?? liability.minimumPayment ?? 0)
+              ? (decimalValue(liability, 'effectiveMonthlyPayment') ??
+                decimalValue(liability, 'minimumPayment') ??
+                0)
               : 0;
 
           return (
@@ -238,7 +239,13 @@ export function LiabilityList({
                       currency={liability.currency}
                       convertedAmount={
                         liability.isConverted && liability.exchangeRate
-                          ? multiply(liability.principal, liability.exchangeRate)
+                          ? new ExactDecimal(
+                              decimalValue(liability, 'principal') ?? liability.principal
+                            )
+                              .times(
+                                decimalValue(liability, 'exchangeRate') ?? liability.exchangeRate
+                              )
+                              .toFixed()
                           : undefined
                       }
                       baseCurrency={liability.baseCurrency}
@@ -284,7 +291,11 @@ export function LiabilityList({
                         currency={liability.currency}
                         convertedAmount={
                           liability.isConverted && liability.exchangeRate
-                            ? multiply(monthlyPayment, liability.exchangeRate)
+                            ? new ExactDecimal(monthlyPayment)
+                                .times(
+                                  decimalValue(liability, 'exchangeRate') ?? liability.exchangeRate
+                                )
+                                .toFixed()
                             : undefined
                         }
                         baseCurrency={liability.baseCurrency}

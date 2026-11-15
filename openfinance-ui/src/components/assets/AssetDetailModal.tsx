@@ -1,4 +1,4 @@
-import { decimalValue, decimalField } from '@/utils/exact-decimal';
+import { decimalValue, decimalField, ExactDecimal } from '@/utils/exact-decimal';
 import { useAnimatedClose } from '@/hooks/useAnimatedClose';
 import { useViewScroll } from '@/hooks/useViewScroll';
 import { useViewState } from '@/hooks/useViewState';
@@ -38,7 +38,6 @@ import {
 import type { Asset } from '@/types/asset';
 import { useHistoricalPrices } from '@/hooks/useMarketData';
 import { getGainLossColor } from '@/utils/portfolio';
-import { multiply } from '@/utils/money';
 import { useFormatCurrency } from '@/hooks/useFormatCurrency';
 import { useSecondaryConversion } from '@/hooks/useSecondaryConversion';
 import { LastUpdatedIndicator } from './LastUpdatedIndicator';
@@ -129,6 +128,10 @@ export function AssetDetailModal({
   const { startDate, endDate } = getDateRange();
   const isConverted = asset.isConverted && !!asset.baseCurrency && !!asset.exchangeRate;
   const chartCurrency = isConverted && asset.baseCurrency ? asset.baseCurrency : asset.currency;
+  const unitPrice = (field: 'currentPrice' | 'purchasePrice'): string => {
+    const amount = new ExactDecimal(decimalValue(asset, field) ?? asset[field]);
+    return (isConverted ? amount.times(decimalValue(asset, 'exchangeRate')!) : amount).toFixed();
+  };
   const symbol = asset.symbol?.trim();
   const historySymbol =
     asset.type === 'CRYPTO' && symbol && !symbol.includes('-')
@@ -313,20 +316,12 @@ export function AssetDetailModal({
                           />
                         </p>
                         <p className="text-xs text-muted-foreground mt-1">
-                          {formatExactNumber(asset.quantity)} ×{' '}
+                          {formatExactNumber(decimalValue(asset, 'quantity') ?? asset.quantity)} ×{' '}
                           <ConvertedAmount
-                            amount={
-                              isConverted && asset.exchangeRate
-                                ? multiply(asset.currentPrice, asset.exchangeRate)
-                                : asset.currentPrice
-                            }
+                            amount={unitPrice('currentPrice')}
                             currency={chartCurrency}
                             isConverted={false}
-                            secondaryAmount={convertChart(
-                              isConverted && asset.exchangeRate
-                                ? multiply(asset.currentPrice, asset.exchangeRate)
-                                : asset.currentPrice
-                            )}
+                            secondaryAmount={convertChart(unitPrice('currentPrice'))}
                             secondaryCurrency={secCurrencyChart}
                             secondaryExchangeRate={secExRateChart}
                             inline
@@ -351,8 +346,12 @@ export function AssetDetailModal({
                           amount={decimalValue(asset, 'totalCost') ?? asset.totalCost}
                           currency={asset.currency}
                           convertedAmount={
-                            asset.isConverted && asset.exchangeRate
-                              ? multiply(asset.totalCost, asset.exchangeRate)
+                            asset.isConverted && decimalValue(asset, 'exchangeRate') != null
+                              ? new ExactDecimal(
+                                  decimalValue(asset, 'totalCost') ?? asset.totalCost
+                                )
+                                  .times(decimalValue(asset, 'exchangeRate')!)
+                                  .toFixed()
                               : undefined
                           }
                           baseCurrency={asset.baseCurrency}
@@ -361,20 +360,12 @@ export function AssetDetailModal({
                         />
                       </p>
                       <p className="text-xs text-muted-foreground mt-1">
-                        {formatExactNumber(asset.quantity)} ×{' '}
+                        {formatExactNumber(decimalValue(asset, 'quantity') ?? asset.quantity)} ×{' '}
                         <ConvertedAmount
-                          amount={
-                            isConverted && asset.exchangeRate
-                              ? multiply(asset.purchasePrice, asset.exchangeRate)
-                              : asset.purchasePrice
-                          }
+                          amount={unitPrice('purchasePrice')}
                           currency={chartCurrency}
                           isConverted={false}
-                          secondaryAmount={convertChart(
-                            isConverted && asset.exchangeRate
-                              ? multiply(asset.purchasePrice, asset.exchangeRate)
-                              : asset.purchasePrice
-                          )}
+                          secondaryAmount={convertChart(unitPrice('purchasePrice'))}
                           secondaryCurrency={secCurrencyChart}
                           secondaryExchangeRate={secExRateChart}
                           inline

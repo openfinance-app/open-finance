@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { screen, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import type { ReactNode } from 'react';
 import { renderWithProviders } from '@/test/test-utils';
 import { CompoundInterestCalculator } from '@/components/compound-interest/CompoundInterestCalculator';
 
@@ -8,6 +9,29 @@ import { CompoundInterestCalculator } from '@/components/compound-interest/Compo
 // Mock hooks — prevents any real API calls and provides controlled state
 // ---------------------------------------------------------------------------
 
+type TooltipItem = { dataKey?: string; payload?: { exactValues?: Record<string, string> } };
+let tooltipFormatter: (value: number | undefined, name: string, item: TooltipItem) => string;
+let chartRows: Array<Record<string, unknown>>;
+let axisFormatter: (value: number) => string;
+vi.mock('recharts', () => ({
+  ResponsiveContainer: ({ children }: { children: ReactNode }) => <div>{children}</div>,
+  AreaChart: ({ children, data }: { children: ReactNode; data: typeof chartRows }) => {
+    chartRows = data;
+    return <svg>{children}</svg>;
+  },
+  Tooltip: ({ formatter }: { formatter: typeof tooltipFormatter }) => {
+    tooltipFormatter = formatter;
+    return null;
+  },
+  YAxis: ({ tickFormatter }: { tickFormatter: typeof axisFormatter }) => {
+    axisFormatter = tickFormatter;
+    return null;
+  },
+  XAxis: () => null,
+  Area: () => null,
+  CartesianGrid: () => null,
+  Legend: () => null,
+}));
 const mockUseAuthContext = vi.fn();
 vi.mock('@/context/AuthContext', async importOriginal => {
   const actual = await importOriginal<typeof import('@/context/AuthContext')>();
@@ -27,7 +51,8 @@ vi.mock('@/hooks/useCompoundInterest', () => ({
 
 vi.mock('@/hooks/useFormatCurrency', () => ({
   useFormatCurrency: () => ({
-    format: (amount: number) => `$${amount.toFixed(2)}`,
+    format: (amount: number | string) =>
+      typeof amount === 'string' ? `$${amount}` : `$${amount.toFixed(2)}`,
     formatCompact: (amount: number) => `$${amount.toFixed(2)}`,
     formatWithColor: () => null,
   }),
@@ -83,6 +108,51 @@ describe('CompoundInterestCalculator', () => {
     vi.clearAllMocks();
     mockUseAuthContext.mockReturnValue({ baseCurrency: 'USD', isAuthenticated: true });
     mockUseCompoundInterest.mockReturnValue(defaultHookState);
+  });
+
+  it.each([
+    ['Initial Principal', 'principal'],
+    ['Regular Contribution', 'regularContribution'],
+  ])('clearing %s submits zero rather than an invalid empty amount', (label, field) => {
+    renderWithProviders(<CompoundInterestCalculator />);
+    fireEvent.change(screen.getByLabelText(new RegExp(label, 'i')), { target: { value: '' } });
+    expect(mockUpdateInput).toHaveBeenCalledWith(field, '0');
+  });
+
+  it('uses precise stacked chart values and tolerates missing hover values', () => {
+    mockUseCompoundInterest.mockReturnValue({
+      ...defaultHookState,
+      result: {
+        ...mockResult,
+        yearlyBreakdown: [
+          {
+            ...mockResult.yearlyBreakdown[0],
+            exactValues: {
+              startingBalance: '10000.000000000000000001',
+              cumulativePrincipal: '12400.000000000000000003',
+              cumulativeInterest: '845.570000000000000001',
+            },
+          },
+        ],
+      },
+    });
+    renderWithProviders(<CompoundInterestCalculator />);
+    expect(chartRows[0].exactValues).toEqual({
+      Principal: '10000.000000000000000001',
+      Contributions: '2400.000000000000000002',
+      Interest: '845.570000000000000001',
+    });
+    expect(
+      tooltipFormatter(845.57, 'Interest', { dataKey: 'Interest', payload: chartRows[0] })
+    ).toBe('$845.570000000000000001');
+    expect(tooltipFormatter(845.57, 'Interest', { payload: chartRows[0] })).toBe(
+      '$845.570000000000000001'
+    );
+    expect(tooltipFormatter(25, 'Interest', {})).toBe('$25.00');
+    expect(tooltipFormatter(25, 'Interest', { payload: {} })).toBe('$25.00');
+    expect(tooltipFormatter(25, 'Interest', { payload: { exactValues: {} } })).toBe('$25.00');
+    expect(tooltipFormatter(undefined, 'Interest', {})).toBe('');
+    expect(axisFormatter(100)).toBe('$100.00');
   });
 
   // -------------------------------------------------------------------------

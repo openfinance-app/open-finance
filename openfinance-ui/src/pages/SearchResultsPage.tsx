@@ -61,6 +61,7 @@ export default function SearchResultsPage() {
   const [filters, setFilters] = useViewState<AdvancedSearchRequest>('filters', {
     query: queryParam,
     limit: 100,
+    regex: searchParams.get('regex') === 'true' || undefined,
   });
   const [expandedTypes, setExpandedTypes] = useViewState<Set<string> | null>(
     'expandedTypes',
@@ -97,7 +98,11 @@ export default function SearchResultsPage() {
   useEffect(() => {
     const q = searchParams.get('q') || '';
     setQuery(q);
-    setFilters(prev => ({ ...prev, query: q }));
+    setFilters(prev => ({
+      ...prev,
+      query: q,
+      regex: searchParams.get('regex') === 'true' || undefined,
+    }));
   }, [searchParams, setQuery, setFilters]);
 
   // Set initial results from simple search
@@ -130,7 +135,7 @@ export default function SearchResultsPage() {
     if (query.trim().length >= 2) {
       setAppliedFilters(null);
       setExpandedTypes(null);
-      setSearchParams({ q: query.trim() });
+      setSearchParams({ q: query.trim(), ...(filters.regex ? { regex: 'true' } : {}) });
       setFilters(prev => ({ ...prev, query: query.trim() }));
     }
   };
@@ -163,7 +168,10 @@ export default function SearchResultsPage() {
 
     // Update URL if query changed
     if (search.filters.query) {
-      setSearchParams({ q: search.filters.query });
+      setSearchParams({
+        q: search.filters.query,
+        ...(search.filters.regex ? { regex: 'true' } : {}),
+      });
     }
 
     // Execute search

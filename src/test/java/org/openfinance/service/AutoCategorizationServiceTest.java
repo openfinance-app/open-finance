@@ -8,6 +8,7 @@ import static org.mockito.Mockito.when;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Locale;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -23,6 +24,29 @@ import org.openfinance.repository.TransactionRepository;
 
 @ExtendWith(MockitoExtension.class)
 class AutoCategorizationServiceTest {
+
+    @Test
+    void importedPayeeCaseMatchingDoesNotDependOnTheServerLanguage() {
+        Locale original = Locale.getDefault();
+        try {
+            Locale.setDefault(Locale.forLanguageTag("tr-TR"));
+            when(transactionRepository.findByUserId(1L))
+                    .thenReturn(
+                            List.of(Transaction.builder().categoryId(1L).payee("IKEA").build()));
+            org.mockito.Mockito.lenient()
+                    .when(categoryRepository.findById(1L))
+                    .thenReturn(Optional.of(Category.builder().id(1L).name("Furniture").build()));
+            Optional<AutoCategorizationService.Prediction> result =
+                    autoCategorizationService.predictCategoryAndPayee(
+                            ImportedTransaction.builder().payee("ikea").build(), 1L);
+            assertTrue(result.isPresent());
+            assertEquals("Furniture", result.orElseThrow().suggestedCategoryName());
+            assertEquals("IKEA", result.orElseThrow().suggestedPayee());
+            assertEquals(1.0, result.orElseThrow().confidenceScore());
+        } finally {
+            Locale.setDefault(original);
+        }
+    }
 
     @Mock private TransactionRepository transactionRepository;
 

@@ -76,7 +76,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
     // Enter to send, Shift+Enter for new line
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
-      if (value.trim() && !isLoading && !disabled) {
+      if (value.trim() && !isLoading && !disabled && value.length <= maxLength) {
         onSubmit();
       }
     }
@@ -84,7 +84,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (value.trim() && !isLoading && !disabled) {
+    if (value.trim() && !isLoading && !disabled && value.length <= maxLength) {
       onSubmit();
     }
   };

@@ -111,7 +111,10 @@ public class FinancialContextBuilder {
             selected.addAll(accounts);
         }
         String scoped = selectFacts(context, selected);
-        if (query.mentions("spen[dt]|expenses?|income|earn|cash ?flow|depens|revenu|gagne|cout")) {
+        // Budget spending already has a category and budget-period scope in the selected facts.
+        if (!query.mentions("\\bbudget")
+                && query.mentions(
+                        "spen[dt]|expenses?|income|earn|cash ?flow|depens|revenu|gagne|cout")) {
             return spendingContext(userId, locale, query, scoped);
         }
         // General advice and unrelated questions need no numeric account facts.

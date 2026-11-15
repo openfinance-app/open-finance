@@ -723,13 +723,17 @@ export function ImportWizard() {
 
             {/* ── Account dropdown ─────────────────────────────────────────── */}
             <div>
-              <label className="block text-sm font-medium text-text-primary mb-1.5">
+              <label
+                htmlFor="import-destination-account"
+                className="block text-sm font-medium text-text-primary mb-1.5"
+              >
                 {t('wizard.accountSelection.label')}{' '}
                 <span className="text-text-tertiary text-xs font-normal">
                   ({t('common:labels.optional')})
                 </span>
               </label>
               <SimpleSelect
+                id="import-destination-account"
                 value={accountId?.toString() ?? ''}
                 onChange={e => setAccountId(e.target.value ? parseInt(e.target.value, 10) : null)}
                 disabled={isLoadingSession || startImport.isPending || updateAccount.isPending}

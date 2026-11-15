@@ -132,3 +132,114 @@ describe('browser export lifecycle', () => {
     expect(print).toHaveBeenCalledOnce();
   });
 });
+
+describe('export decision boundaries', () => {
+  it.each(['en', 'fr'])(
+    'prints known and unknown tax outcomes without substituting zero (%s)',
+    async language => {
+      await i18n.changeLanguage(language);
+      const investment = createInvestmentInputs();
+      const computed = RealEstateCalculationService.calculateInvestment(investment);
+      const regimes = [
+        computed.microFoncier,
+        computed.reelFoncier,
+        computed.lmnpReel,
+        computed.microBic,
+      ];
+      for (const eligible of [true, false]) {
+        for (const result of regimes) {
+          result.eligible = eligible;
+          result.performance.netYield = eligible ? 2.5 : null;
+          result.performance.monthlyCashFlow = eligible ? -12.5 : null;
+        }
+        const html = generatePDFContent(
+          "Owner's rental",
+          investment,
+          computed,
+          'rental_investment'
+        );
+        const document = new DOMParser().parseFromString(html, 'text/html');
+        const rows = [...document.querySelectorAll('tbody tr')];
+        expect(rows).toHaveLength(4);
+        for (const row of rows) {
+          expect(row.children[1].textContent).toBe(
+            i18n.t(`realEstate:exportImport.${eligible ? 'yes' : 'no'}`)
+          );
+          expect(row.children[2].textContent).toBe(
+            eligible ? (language === 'fr' ? '2,50%' : '2.50%') : '—%'
+          );
+          if (!eligible) expect(row.children[3].textContent).toBe('—');
+        }
+        const csv = exportInvestmentToCSV(investment, computed).split('\n');
+        for (const row of csv.slice(1)) {
+          expect(row.split(';')[1]).toBe(
+            i18n.t(`realEstate:exportImport.${eligible ? 'yes' : 'no'}`)
+          );
+          expect(row.split(';').at(-1)).toBe(eligible ? '2.50' : '');
+        }
+        expect(document.querySelector('h1')?.textContent).toBe("Owner's rental");
+      }
+    }
+  );
+
+  it('keeps legacy year exports readable when explicit net-worth fields are missing', () => {
+    const legacy = structuredClone(results);
+    legacy.years = [legacy.years[0]];
+    delete legacy.years[0].buy.netWorth;
+    delete legacy.years[0].rent.netWorth;
+    legacy.years[0].buy.propertyValue = 100.2;
+    legacy.years[0].buy.remainingCapital = 99.9;
+    legacy.years[0].rent.savings = 0.4;
+    const row = exportBuyRentToCSV({ ...inputs, currency: undefined }, legacy)
+      .split('\n')[1]
+      .split(';');
+    expect(row.slice(9)).toEqual(['0.3', '0.4', 'UNKNOWN']);
+  });
+
+  it.each(['buy', 'rent'] as const)('prints the %s summary winner', winner => {
+    const computed = structuredClone(results);
+    computed.summary.comparison.winner = winner;
+    const html = generatePDFContent('Decision', inputs, computed, 'buy_rent');
+    const document = new DOMParser().parseFromString(html, 'text/html');
+    expect(document.querySelector('.summary')?.textContent).toContain(
+      i18n.t(`realEstate:exportImport.${winner === 'buy' ? 'winnerBuy' : 'winnerRent'}`)
+    );
+  });
+
+  it('uses complete buyer and renter net worth in the printed annual comparison', () => {
+    const computed = structuredClone(results);
+    computed.years = [computed.years[0]];
+    Object.assign(computed.years[0].buy, {
+      propertyValue: 100,
+      remainingCapital: 60,
+      savings: 70,
+      netWorth: 110,
+    });
+    Object.assign(computed.years[0].rent, { savings: 50, netWorth: 80 });
+    const document = new DOMParser().parseFromString(
+      generatePDFContent('Decision', inputs, computed, 'buy_rent', 'EUR'),
+      'text/html'
+    );
+    const cells = document.querySelectorAll('tbody tr td');
+    expect(cells[1].textContent).toBe('€110.00');
+    expect(cells[2].textContent).toBe('€80.00');
+    expect(cells[3].textContent).toBe(i18n.t('realEstate:exportImport.winnerBuy'));
+  });
+
+  it.each([undefined, '2.0.0'])(
+    'imports a structurally valid %s version without losing precision',
+    version => {
+      const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      const imported = importFromJSON(
+        JSON.stringify({
+          metadata: simulation.metadata,
+          inputs: { ...inputs, precisionProbe: '0.123456789012345678' },
+          version,
+        })
+      );
+      expect(imported.success).toBe(true);
+      expect(imported.data?.data).toMatchObject({ precisionProbe: '0.123456789012345678' });
+      expect(warn).toHaveBeenCalledTimes(version ? 1 : 0);
+    }
+  );
+});

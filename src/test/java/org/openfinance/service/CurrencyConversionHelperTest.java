@@ -46,6 +46,58 @@ class CurrencyConversionHelperTest {
                         });
     }
 
+    @Test
+    void anonymousSameCurrencyAmountsDoNotRequireUserLookup() {
+        ConversionResult result =
+                helper.convert(null, "EUR", BigDecimal.TEN, true, null, "preview");
+        assertThat(result.amountInBaseCurrency()).isEqualByComparingTo("10");
+        verifyNoInteractions(userRepository, exchangeRateService);
+    }
+
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.CsvSource({"USD,,GBP", ",10,GBP", "EUR,10,' '"})
+    void missingAmountsCurrenciesAndBlankSecondarySettingsCannotTriggerInventedConversions(
+            String currency, String amount, String secondary) {
+        stubUser("EUR", secondary);
+        BigDecimal nativeAmount = amount == null ? null : new BigDecimal(amount);
+        ConversionResult result =
+                helper.convert(USER_ID, currency, nativeAmount, true, null, "preview");
+        assertThat(result.amountInBaseCurrency()).isEqualTo(nativeAmount);
+        assertThat(result.amountInSecondaryCurrency()).isNull();
+        verifyNoInteractions(exchangeRateService);
+    }
+
+    @Test
+    void historicalSecondaryAmountsUseTheSamePostingDateAsTheBaseAmount() {
+        stubUser("EUR", "GBP");
+        java.time.LocalDate date = java.time.LocalDate.of(2024, 1, 31);
+        when(exchangeRateService.getExchangeRate("EUR", "GBP", date))
+                .thenReturn(new BigDecimal("0.8"));
+        when(exchangeRateService.convert(BigDecimal.TEN, "EUR", "GBP", date))
+                .thenReturn(new BigDecimal("8"));
+        ConversionResult result =
+                helper.convert(USER_ID, "EUR", BigDecimal.TEN, true, null, "transaction", date);
+        assertThat(result.amountInSecondaryCurrency()).isEqualByComparingTo("8");
+        assertThat(result.secondaryExchangeRate()).isEqualByComparingTo("0.8");
+    }
+
+    @Test
+    void aZeroNativeAmountWithAnExactBookedBaseValueDoesNotDivideByZero() {
+        when(defaultCurrencyProvider.resolveForUser(USER_ID)).thenReturn("EUR");
+        org.openfinance.entity.Transaction tx =
+                org.openfinance.entity.Transaction.builder()
+                        .userId(USER_ID)
+                        .currency("USD")
+                        .amount(BigDecimal.ZERO)
+                        .accountCurrency("EUR")
+                        .accountAmount(BigDecimal.ZERO)
+                        .build();
+        ConversionResult result = helper.convertTransaction(tx, null, null);
+        assertThat(result.amountInBaseCurrency()).isZero();
+        assertThat(result.exchangeRate()).isNull();
+        verifyNoInteractions(exchangeRateService);
+    }
+
     private void stubUser(String baseCurrency, String secondaryCurrency) {
         User user =
                 User.builder()

@@ -50,6 +50,36 @@ class TransactionSplitServiceTest {
     @BeforeEach
     void setUp() {}
 
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.NullSource
+    @org.junit.jupiter.params.provider.ValueSource(
+            strings = {"0", "-0.01", "0.0000000000000000001", "100000000000000000000000000"})
+    void importsRejectNonpositiveMissingAndUnbookableSplitAmounts(String amount) {
+        List<TransactionSplitRequest> splits =
+                List.of(
+                        createSplitRequest(
+                                null,
+                                amount == null ? null : new BigDecimal(amount),
+                                "Invalid part"),
+                        createSplitRequest(null, BigDecimal.ONE, "Valid part"));
+        org.assertj.core.api.Assertions.assertThatThrownBy(
+                        () ->
+                                transactionSplitService.reconcileForImport(
+                                        BigDecimal.TEN, "EUR", splits))
+                .isInstanceOf(org.openfinance.exception.InvalidTransactionException.class);
+    }
+
+    @Test
+    void importsWithNoSplitRowsDoNotInventAnAllocation() {
+        org.assertj.core.api.Assertions.assertThat(
+                        transactionSplitService.reconcileForImport(BigDecimal.TEN, "EUR", null))
+                .isEmpty();
+        List<TransactionSplitRequest> empty = new java.util.ArrayList<>();
+        org.assertj.core.api.Assertions.assertThat(
+                        transactionSplitService.reconcileForImport(BigDecimal.TEN, "EUR", empty))
+                .isSameAs(empty);
+    }
+
     // ---------- Helpers ----------
     private TransactionSplitRequest createSplitRequest(
             Long categoryId, BigDecimal amount, String description) {

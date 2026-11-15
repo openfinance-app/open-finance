@@ -16,6 +16,53 @@ class FinancialFreedomServiceTest {
 
     private FinancialFreedomService service;
 
+    @Test
+    void explicitNullOptionsUseTheSameDefaultsAsOmittedOptions() {
+        FreedomCalculatorRequest request =
+                FreedomCalculatorRequest.builder()
+                        .currentSavings(new BigDecimal("100000"))
+                        .monthlyExpenses(new BigDecimal("1000"))
+                        .expectedAnnualReturn(new BigDecimal("5"))
+                        .withdrawalRate(null)
+                        .inflationRate(null)
+                        .monthlyContribution(null)
+                        .projectionYears(null)
+                        .build();
+        FreedomCalculatorResponse defaults = service.calculateTimeToFreedom(request);
+        request.setWithdrawalRate(new BigDecimal("4"));
+        request.setInflationRate(new BigDecimal("2.5"));
+        request.setMonthlyContribution(BigDecimal.ZERO);
+        request.setProjectionYears(30);
+        FreedomCalculatorResponse explicit = service.calculateTimeToFreedom(request);
+        assertEquals(explicit.getTargetSavingsAmount(), defaults.getTargetSavingsAmount());
+        assertEquals(explicit.getYearsToFreedom(), defaults.getYearsToFreedom());
+        assertEquals(explicit.getYearlyProjections(), defaults.getYearlyProjections());
+    }
+
+    @Test
+    void enormousZeroReturnLongevityDoesNotOverflowOrClaimSavingsAreInfinite() {
+        SavingsLongevityResult result =
+                service.calculateSavingsLongevity(
+                        new BigDecimal("999999999999999"),
+                        new BigDecimal("0.000000000000000001"),
+                        BigDecimal.ZERO);
+        assertFalse(result.isInfinite());
+        assertFalse(result.isWillDeplete());
+        assertTrue(result.isExceedsProjection());
+        assertNull(result.getDepletionYear());
+        assertTrue(result.getFinalBalance().signum() > 0);
+    }
+
+    @Test
+    void savingsDepletingWithinAMonthHaveNoInventedFutureYear() {
+        SavingsLongevityResult result =
+                service.calculateSavingsLongevity(
+                        new BigDecimal("50"), new BigDecimal("100"), BigDecimal.ZERO);
+        assertEquals(1, result.getTotalMonthsUntilDepletion());
+        assertNull(result.getDepletionYear());
+        assertTrue(result.isWillDeplete());
+    }
+
     @org.junit.jupiter.params.ParameterizedTest
     @org.junit.jupiter.params.provider.CsvSource({
         ",100,5,4", "-1,100,5,4", "100,,5,4", "100,-1,5,4", "100,100,,4",

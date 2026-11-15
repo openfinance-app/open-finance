@@ -1,12 +1,12 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { screen, waitFor, within } from '@testing-library/react';
+import { screen, waitFor, within, fireEvent } from '@testing-library/react';
 import {
   renderWithProviders,
   mockAuthentication,
   clearAuthentication,
   userEvent,
 } from '@/test/test-utils';
-import CategoriesPage from '@/pages/CategoriesPage';
+import CategoriesPage, { CategoryFormDialog } from '@/pages/CategoriesPage';
 
 let mockCategoryData: any[] = [
   {
@@ -85,9 +85,23 @@ vi.mock('@/hooks/useSecondaryConversion', () => ({
 }));
 
 vi.mock('@/components/ui/CategorySelect', () => ({
-  CategorySelect: () => (
-    <select data-testid="category-select">
-      <option>None</option>
+  CategorySelect: ({
+    id,
+    value,
+    onValueChange,
+  }: {
+    id?: string;
+    value?: number;
+    onValueChange: (value?: number) => void;
+  }) => (
+    <select
+      id={id}
+      data-testid="category-select"
+      value={value ?? ''}
+      onChange={event => onValueChange(event.target.value ? Number(event.target.value) : undefined)}
+    >
+      <option value="">None</option>
+      <option value="1">Food & Dining</option>
     </select>
   ),
 }));
@@ -151,6 +165,36 @@ describe('CategoriesPage', () => {
   it('renders the page heading', () => {
     renderWithProviders(<CategoriesPage />);
     expect(screen.getByText('Categories')).toBeInTheDocument();
+  });
+
+  it('sorts exact category totals without losing sub-cent differences', async () => {
+    mockCategoryData = [
+      {
+        id: 1,
+        name: 'Lower amount',
+        transactionCount: 1,
+        totalAmount: 9007199254740992,
+        exactValues: { totalAmount: '9007199254740992.01' },
+        currency: 'USD',
+        isSystem: false,
+        subcategories: [],
+      },
+      {
+        id: 2,
+        name: 'Higher amount',
+        transactionCount: 1,
+        totalAmount: 9007199254740992,
+        exactValues: { totalAmount: '9007199254740992.02' },
+        currency: 'USD',
+        isSystem: false,
+        subcategories: [],
+      },
+    ];
+    renderWithProviders(<CategoriesPage />);
+    await userEvent.selectOptions(screen.getByRole('combobox', { name: 'Sort by' }), 'amount');
+    const actions = screen.getAllByRole('button', { name: /Actions for/ });
+    expect(actions[0]).toHaveAccessibleName('Actions for Higher amount');
+    expect(actions[1]).toHaveAccessibleName('Actions for Lower amount');
   });
 
   it('displays category names', () => {
@@ -583,5 +627,138 @@ describe('CategoriesPage', () => {
     expect(screen.getAllByRole('button', { name: /Actions for/ })[0]).toHaveAccessibleName(
       'Actions for Salary'
     );
+  });
+  it.each([undefined, 1])(
+    'creates a category with parent %s and the selected icon',
+    async parent => {
+      renderWithProviders(<CategoriesPage />);
+      fireEvent.click(screen.getByRole('button', { name: 'Add Category' }));
+      fireEvent.change(screen.getByRole('textbox', { name: 'Name' }), {
+        target: { value: 'New category' },
+      });
+      if (parent)
+        fireEvent.change(screen.getByLabelText('Parent Category (Optional)'), {
+          target: { value: String(parent) },
+        });
+      fireEvent.click(screen.getByRole('button', { name: 'Choose icon 🎁' }));
+      expect(screen.getByRole('button', { name: 'Choose icon 🎁' })).toHaveAttribute(
+        'aria-pressed',
+        'true'
+      );
+      fireEvent.click(screen.getByRole('button', { name: 'Create' }));
+      await waitFor(() =>
+        expect(mockCreateMutateAsync).toHaveBeenCalledWith({
+          name: 'New category',
+          parentId: parent ?? null,
+          icon: '🎁',
+          color: expect.any(String),
+        })
+      );
+      await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+      expect(mockUpdateMutateAsync).not.toHaveBeenCalled();
+    }
+  );
+
+  it.each([undefined, 1])(
+    'updates a category with parent %s without creating a duplicate',
+    async parent => {
+      renderWithProviders(<CategoriesPage />);
+      await userEvent.click(screen.getByRole('button', { name: 'Actions for Food & Dining' }));
+      await userEvent.click(screen.getByRole('menuitem', { name: 'Edit category' }));
+      fireEvent.change(screen.getByRole('textbox', { name: 'Name' }), {
+        target: { value: 'Renamed' },
+      });
+      fireEvent.change(screen.getByLabelText('Parent Category (Optional)'), {
+        target: { value: parent ? String(parent) : '' },
+      });
+      fireEvent.click(screen.getByRole('button', { name: 'Update' }));
+      await waitFor(() =>
+        expect(mockUpdateMutateAsync).toHaveBeenCalledWith({
+          id: 1,
+          data: {
+            name: 'Renamed',
+            parentId: parent ?? null,
+            icon: expect.any(String),
+            color: expect.any(String),
+          },
+        })
+      );
+      await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+      expect(mockCreateMutateAsync).not.toHaveBeenCalled();
+    }
+  );
+
+  it.each([
+    [{ response: { data: { message: 'Name already exists' } } }, 'Name already exists'],
+    [
+      { response: { data: null } },
+      'Failed to save category. Please check your input and try again.',
+    ],
+    [new Error('Offline'), 'Failed to save category. Please check your input and try again.'],
+  ])(
+    'keeps rejected category input and clears the error when dismissed (%j)',
+    async (error, message) => {
+      mockCreateMutateAsync.mockRejectedValueOnce(error);
+      renderWithProviders(<CategoriesPage />);
+      fireEvent.click(screen.getByRole('button', { name: 'Add Category' }));
+      fireEvent.change(screen.getByRole('textbox', { name: 'Name' }), {
+        target: { value: 'Retry me' },
+      });
+      fireEvent.click(screen.getByRole('button', { name: 'Create' }));
+      expect(await screen.findByText(message as string)).toBeInTheDocument();
+      expect(screen.getByRole('textbox', { name: 'Name' })).toHaveValue('Retry me');
+      fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Add Category' }));
+      expect(screen.queryByText(message as string)).not.toBeInTheDocument();
+      expect(screen.getByRole('textbox', { name: 'Name' })).toHaveValue('');
+    }
+  );
+
+  it('shows the name limit and prevents duplicate submission during saving', () => {
+    const submit = vi.fn();
+    renderWithProviders(
+      <CategoryFormDialog
+        open
+        onOpenChange={vi.fn()}
+        onSubmit={submit}
+        isLoading
+        error="Retry later"
+      />
+    );
+    fireEvent.change(screen.getByRole('textbox', { name: 'Name' }), {
+      target: { value: 'x'.repeat(91) },
+    });
+    expect(screen.getByText('91/100')).toHaveClass('text-red-500');
+    expect(screen.getByRole('textbox', { name: 'Name' })).toHaveAttribute('maxlength', '100');
+    expect(screen.getByRole('button', { name: 'Saving...' })).toBeDisabled();
+    expect(screen.getByText('Retry later')).toBeInTheDocument();
+  });
+
+  it('sorts by transaction count with missing counts treated as zero', async () => {
+    mockCategoryData = [
+      { id: 1, name: 'Zero', subcategories: [], isSystem: false },
+      { id: 2, name: 'Most', transactionCount: 5, subcategories: [], isSystem: false },
+      { id: 3, name: 'Middle', transactionCount: 1, subcategories: [], isSystem: false },
+    ];
+    renderWithProviders(<CategoriesPage />);
+    await userEvent.selectOptions(
+      screen.getByRole('combobox', { name: 'Sort by' }),
+      'transactions'
+    );
+    const names = screen
+      .getAllByRole('button', { name: /^Actions for/ })
+      .map(button => button.getAttribute('aria-label'));
+    expect(names).toEqual(['Actions for Most', 'Actions for Middle', 'Actions for Zero']);
+  });
+
+  it('returns to all groups when the selected root disappears after refresh', async () => {
+    const { rerender } = renderWithProviders(<CategoriesPage />);
+    await userEvent.selectOptions(screen.getByRole('combobox', { name: 'Category group' }), '1');
+    mockCategoryData = [mockCategoryData[1]];
+    rerender(<CategoriesPage />);
+    await waitFor(() =>
+      expect(screen.getByRole('combobox', { name: 'Category group' })).toHaveValue('all')
+    );
+    expect(screen.getByRole('button', { name: 'Actions for Salary' })).toBeInTheDocument();
   });
 });

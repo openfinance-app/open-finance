@@ -306,7 +306,7 @@ export function DisburseForm({ liability, tranche, onDone }: DisburseFormProps) 
           <dd className="text-right font-mono tabular-nums">
             <ConvertedAmount
               inline
-              amount={route === 'account' ? numericAmount : 0}
+              amount={route === 'account' ? amount : 0}
               currency={liability.currency}
             />
           </dd>
@@ -328,7 +328,7 @@ export function DisburseForm({ liability, tranche, onDone }: DisburseFormProps) 
                   <dd className="text-right font-mono tabular-nums">
                     <ConvertedAmount
                       inline
-                      amount={addsPropertyCost ? numericAmount : 0}
+                      amount={addsPropertyCost ? amount : 0}
                       currency={liability.currency}
                     />
                   </dd>
@@ -338,7 +338,7 @@ export function DisburseForm({ liability, tranche, onDone }: DisburseFormProps) 
               <dd className="text-right font-mono tabular-nums">
                 <ConvertedAmount
                   inline
-                  amount={addsPropertyValue ? numericAmount : 0}
+                  amount={addsPropertyValue ? amount : 0}
                   currency={liability.currency}
                 />
               </dd>

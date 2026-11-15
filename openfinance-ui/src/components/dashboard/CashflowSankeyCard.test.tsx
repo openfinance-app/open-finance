@@ -370,4 +370,202 @@ describe('CashflowSankeyCard comparison and zoom', () => {
       '/transactions?categoryId=7&type=EXPENSE&excludeTransfers=true&dateFrom=2026-08-01&dateTo=2026-08-31'
     );
   });
+
+  it.each(['Enter', ' ', 'Escape'])(
+    'only activates an income flow with an activation key (%s)',
+    key => {
+      renderWithProviders(<CashflowSankeyCard dateRange={range} navDateRange={range} />);
+      fireEvent.keyDown(screen.getByRole('button', { name: 'View Salary transactions' }), { key });
+      if (key === 'Escape') {
+        expect(mockNavigate).not.toHaveBeenCalled();
+      } else {
+        expect(mockNavigate).toHaveBeenCalledWith(
+          '/transactions?categoryId=5&type=INCOME&excludeTransfers=true&dateFrom=2026-08-01&dateTo=2026-08-31'
+        );
+      }
+    }
+  );
+
+  it.each(['Enter', ' ', 'Escape'])(
+    'only activates an expense flow with an activation key (%s)',
+    key => {
+      renderWithProviders(<CashflowSankeyCard dateRange={range} />);
+      fireEvent.keyDown(screen.getByRole('button', { name: 'View Groceries transactions' }), {
+        key,
+      });
+      if (key === 'Escape') {
+        expect(mockNavigate).not.toHaveBeenCalled();
+      } else {
+        expect(mockNavigate).toHaveBeenCalledWith(
+          '/transactions?categoryId=7&type=EXPENSE&excludeTransfers=true'
+        );
+      }
+    }
+  );
+
+  it.each(['Uncategorized', 'uncategorized', 'UNSPECIFIED', 'unspecified'])(
+    'translates imported category label %s and preserves uncategorized navigation',
+    name => {
+      mockPeriods({
+        ...current,
+        incomeSources: [{ name, amount: 1200, categoryId: null }],
+        expenseCategories: [],
+      });
+      renderWithProviders(<CashflowSankeyCard dateRange={range} />);
+      const label = name.toLowerCase() === 'uncategorized' ? 'Uncategorized' : 'UNSPECIFIED';
+      fireEvent.click(
+        screen.getByRole('button', { name: `View ${label} transactions`, exact: true })
+      );
+      expect(mockNavigate).toHaveBeenCalledWith(
+        '/transactions?noCategory=1&type=INCOME&excludeTransfers=true'
+      );
+    }
+  );
+
+  it.each([
+    {
+      totalIncome: 0,
+      totalExpenses: 600,
+      surplus: -600,
+      incomeSources: [],
+      expenseCategories: sankeyData.expenseCategories,
+      label: 'Deficit',
+      amount: '$600.00',
+    },
+    {
+      totalIncome: 1000,
+      totalExpenses: 0,
+      surplus: 1000,
+      incomeSources: sankeyData.incomeSources,
+      expenseCategories: [],
+      label: 'Surplus',
+      amount: '$1,000.00',
+    },
+  ])('renders a finite $label diagram with an empty opposite column', data => {
+    mockPeriods({ ...current, ...data });
+    renderWithProviders(<CashflowSankeyCard currency="USD" dateRange={range} />);
+    const viewport = screen.getByRole('group', { name: 'Cash flow diagram' });
+    expect(
+      within(viewport).getByText(`${data.surplus > 0 ? '▲' : '▼'} ${data.label} ${data.amount}`)
+    ).toBeInTheDocument();
+    expect(viewport.innerHTML).not.toMatch(/NaN|Infinity/);
+    expect(screen.getByRole('button', { name: 'View income transactions' })).toHaveTextContent(
+      String(data.totalIncome)
+    );
+    expect(screen.getByRole('button', { name: 'View expense transactions' })).toHaveTextContent(
+      String(data.totalExpenses)
+    );
+  });
+
+  it('does not label a balanced period as a deficit or draw zero-value ribbons', () => {
+    mockPeriods({
+      ...current,
+      totalIncome: 0,
+      totalExpenses: 0,
+      surplus: 0,
+      incomeSources: [{ name: 'Salary', categoryId: 5, amount: 0 }],
+      expenseCategories: [{ name: 'Groceries', categoryId: 7, amount: 0 }],
+    });
+    renderWithProviders(<CashflowSankeyCard currency="USD" dateRange={range} />);
+    const viewport = screen.getByRole('group', { name: 'Cash flow diagram' });
+    expect(within(viewport).queryByText(/▲|▼/)).not.toBeInTheDocument();
+    expect(viewport.querySelectorAll('path[visibility="hidden"]')).toHaveLength(2);
+    expect(viewport.innerHTML).not.toMatch(/NaN|Infinity/);
+    expect(screen.getByRole('button', { name: 'View Salary transactions' })).toHaveTextContent(
+      '$0.00'
+    );
+  });
+
+  it.each([false, true])(
+    'groups small flows without turning Other into uncategorized navigation (comparison %s)',
+    comparison => {
+      const nodes = Array.from({ length: 11 }, (_, index) => ({
+        name: `Source ${index}`,
+        categoryId: index + 10,
+        amount: index < 8 ? 1000 : 0.1,
+        exactValues: { amount: index < 8 ? '1000' : '0.10' },
+      }));
+      mockPeriods(
+        { ...current, incomeSources: nodes, expenseCategories: nodes },
+        {
+          ...previous,
+          incomeSources: nodes,
+          expenseCategories: nodes,
+        }
+      );
+      renderWithProviders(<CashflowSankeyCard currency="USD" dateRange={range} />);
+      if (!comparison)
+        fireEvent.click(screen.getByRole('button', { name: 'Show/hide variations' }));
+      const viewport = screen.getByRole('group', { name: 'Cash flow diagram' });
+      const groups = within(viewport)
+        .getAllByRole('button')
+        .filter(button => button.textContent?.includes('Other'));
+      expect(groups).toHaveLength(2);
+      for (const group of groups) {
+        expect(group).toHaveTextContent('$0.30');
+        fireEvent.click(group);
+        fireEvent.keyDown(group, { key: 'Enter' });
+        fireEvent.keyDown(group, { key: ' ' });
+      }
+      const ribbons = viewport.querySelectorAll('path');
+      expect(ribbons).toHaveLength(18);
+      fireEvent.click(ribbons[8]);
+      fireEvent.click(ribbons[17]);
+      expect(mockNavigate).not.toHaveBeenCalled();
+      fireEvent.click(ribbons[0]);
+      expect(mockNavigate).toHaveBeenLastCalledWith(
+        '/transactions?categoryId=10&type=INCOME&excludeTransfers=true'
+      );
+      fireEvent.click(ribbons[9]);
+      expect(mockNavigate).toHaveBeenLastCalledWith(
+        '/transactions?categoryId=10&type=EXPENSE&excludeTransfers=true'
+      );
+    }
+  );
+
+  it('keeps full category names accessible when diagram labels are shortened', () => {
+    const name = 'A very long descriptive category name';
+    mockPeriods({
+      ...current,
+      incomeSources: [{ name, categoryId: 5, amount: 1200 }],
+      expenseCategories: [{ name, categoryId: 7, amount: 475 }],
+    });
+    renderWithProviders(<CashflowSankeyCard dateRange={range} />);
+    for (const flow of screen.getAllByRole('button', { name: `View ${name} transactions` })) {
+      expect(flow.querySelector('title')).toHaveTextContent(name);
+      expect(flow).toHaveTextContent('A very long descrip…');
+    }
+  });
+
+  it('keeps amounts private in mobile details and still permits category navigation', () => {
+    vi.spyOn(window, 'innerWidth', 'get').mockReturnValue(390);
+    localStorage.setItem('open_finance_amounts_visible', 'false');
+    renderWithProviders(<CashflowSankeyCard currency="USD" dateRange={range} />);
+    const list = screen.getByRole('list', { name: 'Category details' });
+    expect(list).not.toHaveTextContent('$');
+    expect(within(list).getAllByText('••••')).toHaveLength(4);
+    fireEvent.click(within(list).getByRole('button', { name: 'View Salary transactions' }));
+    expect(mockNavigate).toHaveBeenLastCalledWith(
+      '/transactions?categoryId=5&type=INCOME&excludeTransfers=true'
+    );
+    fireEvent.click(within(list).getByRole('button', { name: 'View Uncategorized transactions' }));
+    expect(mockNavigate).toHaveBeenLastCalledWith(
+      '/transactions?noCategory=1&type=EXPENSE&excludeTransfers=true'
+    );
+    vi.restoreAllMocks();
+  });
+
+  it.each([new Error('offline'), null])(
+    'shows the empty state without offering invalid transaction links (%s)',
+    error => {
+      mockUseCashflowSankey.mockReturnValue({
+        data: undefined,
+        error,
+        isLoading: false,
+      } as ReturnType<typeof useCashflowSankey>);
+      renderWithProviders(<CashflowSankeyCard />);
+      expect(screen.getByText('No cashflow data available')).toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: /transactions/ })).not.toBeInTheDocument();
+    }
+  );
 });

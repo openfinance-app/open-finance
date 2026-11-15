@@ -113,6 +113,7 @@ export interface IBorrowingCapacity {
  * Dashboard Net Worth Allocation Card
  */
 export interface INetWorthAllocation {
+  exactValues?: Record<string, string>;
   category: string;
   value: number;
   percentage: number;
@@ -184,6 +185,7 @@ export interface IEstimatedInterestSummary {
  * A single year's data point with amount and variation percentage
  */
 export interface IYearlyDataPoint {
+  exactValues?: Record<string, string>;
   year: number;
   amount: number;
   variationPercentage: number | null;

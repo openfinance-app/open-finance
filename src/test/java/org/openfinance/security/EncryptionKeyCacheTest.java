@@ -1,6 +1,7 @@
 package org.openfinance.security;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.time.Duration;
 import java.util.concurrent.atomic.AtomicLong;
@@ -8,6 +9,9 @@ import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.NullAndEmptySource;
+import org.junit.jupiter.params.provider.ValueSource;
 
 @DisplayName("EncryptionKeyCache Unit Tests")
 class EncryptionKeyCacheTest {
@@ -110,5 +114,60 @@ class EncryptionKeyCacheTest {
         assertThat(encryptionKeyCache.getKeyBySessionToken(failedToken)).isEmpty();
         assertThat(encryptionKeyCache.getUserIdBySessionToken(failedToken)).isEmpty();
         assertThat(encryptionKeyCache.getKey(1L)).contains(existingKey);
+    }
+
+    @ParameterizedTest
+    @NullAndEmptySource
+    @ValueSource(strings = {" ", "\t", "unknown-token"})
+    @DisplayName("Missing or invalid tokens never resolve an identity or encryption key")
+    void absentTokensDoNotAffectOtherSessions(String token) {
+        EncryptionKeyCache cache = new EncryptionKeyCache();
+        SecretKey key = new SecretKeySpec(new byte[32], "AES");
+        String valid = cache.createSession(7L, key);
+        cache.cacheKey(7L, key);
+        assertThat(cache.getKeyBySessionToken(token)).isEmpty();
+        assertThat(cache.getUserIdBySessionToken(token)).isEmpty();
+        cache.invalidateSession(token);
+        cache.invalidateFailedSession(token);
+        assertThat(cache.getKeyBySessionToken(valid)).contains(key);
+        assertThat(cache.getUserIdBySessionToken(valid)).contains(7L);
+        assertThat(cache.getKey(7L)).contains(key);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"owner", "key", "both"})
+    @DisplayName(
+            "Incomplete sessions fail atomically and missing scheduler keys cannot overwrite a valid key")
+    void refusesIncompleteSessionsWithoutMutatingCachedKeys(String missing) {
+        EncryptionKeyCache cache = new EncryptionKeyCache();
+        SecretKey key = new SecretKeySpec(new byte[32], "AES");
+        cache.cacheKey(7L, key);
+        Long user = missing.equals("key") ? 7L : null;
+        SecretKey suppliedKey = missing.equals("owner") ? key : null;
+        assertThatThrownBy(() -> cache.createSession(user, suppliedKey))
+                .isInstanceOf(IllegalArgumentException.class);
+        cache.cacheKey(user, suppliedKey);
+        assertThat(cache.getCachedUserIds()).containsExactly(7L);
+        assertThat(cache.getKey(7L)).contains(key);
+    }
+
+    @Test
+    @DisplayName("Password reset invalidates all of one user's tabs while preserving another user")
+    void invalidatesOnlyTheRequestedOwnersSessions() {
+        EncryptionKeyCache cache = new EncryptionKeyCache();
+        SecretKey key = new SecretKeySpec(new byte[32], "AES");
+        String first = cache.createSession(7L, key),
+                second = cache.createSession(7L, key),
+                other = cache.createSession(8L, key);
+        cache.cacheKey(7L, key);
+        cache.cacheKey(8L, key);
+        cache.invalidateUserSessions(7L);
+        for (String revoked : java.util.List.of(first, second)) {
+            assertThat(cache.getKeyBySessionToken(revoked)).isEmpty();
+            assertThat(cache.getUserIdBySessionToken(revoked)).isEmpty();
+        }
+        assertThat(cache.getCachedUserIds()).containsExactly(8L);
+        assertThat(cache.getKeyBySessionToken(other)).contains(key);
+        assertThat(cache.getUserIdBySessionToken(other)).contains(8L);
     }
 }

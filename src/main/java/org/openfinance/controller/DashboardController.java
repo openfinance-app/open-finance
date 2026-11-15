@@ -302,6 +302,7 @@ public class DashboardController {
 
         Map<String, BigDecimal> cashFlow;
         if (startDate != null && endDate != null) {
+            if (startDate.isAfter(endDate)) return ResponseEntity.badRequest().build();
             log.info(
                     "Fetching cash flow for user {} with custom range: {} to {}",
                     userId,
@@ -447,6 +448,7 @@ public class DashboardController {
 
         Map<String, BigDecimal> spending;
         if (startDate != null && endDate != null) {
+            if (startDate.isAfter(endDate)) return ResponseEntity.badRequest().build();
             log.info(
                     "Fetching spending by category for user {} with custom range: {} to {}",
                     userId,
@@ -790,6 +792,7 @@ public class DashboardController {
 
         List<PortfolioPerformance> performances;
         if (startDate != null && endDate != null) {
+            if (startDate.isAfter(endDate)) return ResponseEntity.badRequest().build();
             log.info(
                     "Fetching portfolio performance for user {} with custom range: {} to {}",
                     userId,
@@ -797,6 +800,7 @@ public class DashboardController {
                     endDate);
             performances = dashboardService.getPortfolioPerformance(userId, startDate, endDate);
         } else {
+            if (period <= 0) return ResponseEntity.badRequest().build();
             log.info("Fetching portfolio performance for user {} over {} days", userId, period);
             performances = dashboardService.getPortfolioPerformance(userId, period);
         }
@@ -877,6 +881,7 @@ public class DashboardController {
 
         BorrowingCapacity capacity;
         if (startDate != null && endDate != null) {
+            if (startDate.isAfter(endDate)) return ResponseEntity.badRequest().build();
             log.info(
                     "Fetching borrowing capacity for user {} with custom range: {} to {}",
                     userId,
@@ -1040,6 +1045,7 @@ public class DashboardController {
 
         CashflowSankeyDto sankey;
         if (startDate != null && endDate != null) {
+            if (startDate.isAfter(endDate)) return ResponseEntity.badRequest().build();
             log.info(
                     "Fetching cashflow sankey for user {} with custom range: {} to {}",
                     userId,

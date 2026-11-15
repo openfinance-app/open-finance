@@ -20,6 +20,8 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.openfinance.config.EncryptionProperties;
@@ -39,6 +41,114 @@ class EncryptionKeyFilterTest {
     @AfterEach
     void tearDown() {
         EncryptionContext.clear();
+    }
+
+    @ParameterizedTest
+    @ValueSource(
+            strings = {
+                "/api/v1/auth/register",
+                "/api/v1/auth/login",
+                "/api/v1/config/security",
+                "/api/v1/ai/health",
+                "/api/v1/health",
+                "/api/v1/health/ready",
+                "/actuator/health",
+                "/actuator/info",
+                "/swagger-ui.html",
+                "/swagger-ui/index.html",
+                "/v3/api-docs",
+                "/v3/api-docs/swagger-config",
+                "/swagger-resources/configuration/ui",
+                "/webjars/swagger.js"
+            })
+    void publicResourcesRemainAccessibleWhenDeployedUnderAContextPath(String path)
+            throws Exception {
+        EncryptionProperties properties = new EncryptionProperties();
+        properties.setEnabled(true);
+        EncryptionKeyFilter filter =
+                new EncryptionKeyFilter(encryptionKeyCache, properties, new UserEncryptionLock());
+        MockHttpServletRequest request = new MockHttpServletRequest("GET", "/finance" + path);
+        request.setContextPath("/finance");
+        request.setServletPath(path);
+        request.setAttribute("userId", 1L);
+        MockHttpServletResponse response = new MockHttpServletResponse();
+        EncryptionContext.setKey(new SecretKeySpec(new byte[32], "AES"));
+
+        filter.doFilter(request, response, filterChain);
+
+        assertThat(response.getStatus()).isEqualTo(200);
+        verify(filterChain).doFilter(request, response);
+        verifyNoInteractions(encryptionKeyCache);
+        assertThat(EncryptionContext.getKey()).isNull();
+    }
+
+    @ParameterizedTest
+    @ValueSource(
+            strings = {
+                "/api/v1/auth/login-extra",
+                "/api/v1/auth/register/extra",
+                "/api/v1/config/security-extra",
+                "/api/v1/ai/healthcheck",
+                "/api/v1/health-private",
+                "/actuator/health/secrets",
+                "/actuator/info-private",
+                "/swagger-ui.html-private",
+                "/swagger-ui-private/index.html",
+                "/v3/api-docs-private",
+                "/swagger-resources-private/config",
+                "/webjars-private/index.js"
+            })
+    void publicLookingPrefixesCannotBypassSessionRequirement(String path) throws Exception {
+        EncryptionProperties properties = new EncryptionProperties();
+        properties.setEnabled(true);
+        EncryptionKeyFilter filter =
+                new EncryptionKeyFilter(encryptionKeyCache, properties, new UserEncryptionLock());
+        MockHttpServletRequest request = new MockHttpServletRequest("GET", path);
+        request.setAttribute("userId", 1L);
+        MockHttpServletResponse response = new MockHttpServletResponse();
+
+        filter.doFilter(request, response, filterChain);
+
+        assertThat(response.getStatus()).isEqualTo(401);
+        assertThat(response.getErrorMessage()).isEqualTo("Encryption session required");
+        verifyNoInteractions(filterChain, encryptionKeyCache);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"", " ", "\t"})
+    void blankTokensAreMissingSessionsRatherThanCacheKeys(String token) throws Exception {
+        EncryptionProperties properties = new EncryptionProperties();
+        properties.setEnabled(true);
+        EncryptionKeyFilter filter =
+                new EncryptionKeyFilter(encryptionKeyCache, properties, new UserEncryptionLock());
+        MockHttpServletRequest request = new MockHttpServletRequest("GET", "/api/v1/accounts");
+        request.setAttribute("userId", 1L);
+        request.addHeader(SESSION_HEADER, token);
+        MockHttpServletResponse response = new MockHttpServletResponse();
+        filter.doFilter(request, response, filterChain);
+        assertThat(response.getStatus()).isEqualTo(401);
+        assertThat(response.getErrorMessage()).isEqualTo("Encryption session required");
+        verifyNoInteractions(filterChain, encryptionKeyCache);
+    }
+
+    @Test
+    void aSessionWithoutAnOwnerCannotInstallItsKey() throws Exception {
+        EncryptionProperties properties = new EncryptionProperties();
+        properties.setEnabled(true);
+        EncryptionKeyFilter filter =
+                new EncryptionKeyFilter(encryptionKeyCache, properties, new UserEncryptionLock());
+        MockHttpServletRequest request = new MockHttpServletRequest("POST", "/api/v1/transactions");
+        request.setAttribute("userId", 1L);
+        request.addHeader(SESSION_HEADER, "orphaned");
+        when(encryptionKeyCache.getKeyBySessionToken("orphaned"))
+                .thenReturn(Optional.of(new SecretKeySpec(new byte[32], "AES")));
+        when(encryptionKeyCache.getUserIdBySessionToken("orphaned")).thenReturn(Optional.empty());
+        MockHttpServletResponse response = new MockHttpServletResponse();
+        filter.doFilter(request, response, filterChain);
+        assertThat(response.getStatus()).isEqualTo(401);
+        assertThat(response.getErrorMessage()).isEqualTo("Invalid or expired encryption session");
+        assertThat(EncryptionContext.getKey()).isNull();
+        verifyNoInteractions(filterChain);
     }
 
     @Test

@@ -1,5 +1,6 @@
 package org.openfinance.service;
 
+import static org.openfinance.service.ImportedAccountRouting.hasImportedDestinationReference;
 import static org.openfinance.service.ImportedAccountRouting.matchesImportedAccount;
 import static org.openfinance.service.ImportedAccountRouting.requireActiveImportAccount;
 import static org.openfinance.service.ImportedAccountRouting.requiresFallbackAccount;
@@ -335,7 +336,7 @@ public class ImportService {
             // unavailable.
             ImportParseContext parseContext = buildParseContext(session.getUserId());
 
-            switch (session.getFileFormat().toUpperCase()) {
+            switch (session.getFileFormat().toUpperCase(Locale.ROOT)) {
                 case "QIF":
                     transactions =
                             qifParser.parseFile(fileStream, session.getFileName(), parseContext);
@@ -402,14 +403,18 @@ public class ImportService {
                         if (acc.getDeletedDate() != null || !Boolean.TRUE.equals(acc.getIsActive()))
                             continue;
                         String normalizedDetected =
-                                detectedAccountName.replaceAll("[^a-zA-Z0-9]", "").toLowerCase();
+                                detectedAccountName
+                                        .replaceAll("[^a-zA-Z0-9]", "")
+                                        .toLowerCase(Locale.ROOT);
                         String normalizedAccName =
-                                acc.getName().replaceAll("[^a-zA-Z0-9]", "").toLowerCase();
+                                acc.getName()
+                                        .replaceAll("[^a-zA-Z0-9]", "")
+                                        .toLowerCase(Locale.ROOT);
                         String normalizedAccNum =
                                 acc.getAccountNumber() != null
                                         ? acc.getAccountNumber()
                                                 .replaceAll("[^a-zA-Z0-9]", "")
-                                                .toLowerCase()
+                                                .toLowerCase(Locale.ROOT)
                                         : "";
 
                         if (normalizedAccName.equals(normalizedDetected)
@@ -1171,7 +1176,8 @@ public class ImportService {
 
     /** Detect file format from filename and content. */
     private String detectFileFormat(String fileName, String uploadId) {
-        String extension = fileName.substring(fileName.lastIndexOf('.') + 1).toLowerCase();
+        String extension =
+                fileName.substring(fileName.lastIndexOf('.') + 1).toLowerCase(Locale.ROOT);
 
         // Validate extension
         if (!List.of("qif", "ofx", "qfx", "csv", "json").contains(extension)) {
@@ -1183,7 +1189,7 @@ public class ImportService {
             return "OFX";
         }
 
-        return extension.toUpperCase();
+        return extension.toUpperCase(Locale.ROOT);
     }
 
     /**
@@ -1974,9 +1980,7 @@ public class ImportService {
                         resolveImportedAccountId(
                                 importedTx, accountIdsByKey, resolvedFallbackAccountId);
 
-                if (importedTx.isTransfer()
-                        && importedTx.getToAccountName() != null
-                        && !importedTx.getToAccountName().isBlank()) {
+                if (importedTx.isTransfer() && hasImportedDestinationReference(importedTx)) {
                     Long destinationAccountId =
                             resolveImportedDestinationAccountId(
                                     importedTx, accountIdsByKey, resolvedFallbackAccountId);
@@ -3376,7 +3380,7 @@ public class ImportService {
         if (qifAccountType == null || qifAccountType.isBlank()) {
             return AccountType.CHECKING;
         }
-        String lower = qifAccountType.trim().toLowerCase();
+        String lower = qifAccountType.trim().toLowerCase(Locale.ROOT);
         switch (lower) {
             case "bank":
                 return AccountType.CHECKING;
@@ -3421,7 +3425,7 @@ public class ImportService {
                 java.text.Normalizer.normalize(rawMode, java.text.Normalizer.Form.NFD)
                         .replaceAll("\\p{InCombiningDiacriticalMarks}+", "")
                         .trim()
-                        .toLowerCase();
+                        .toLowerCase(Locale.ROOT);
         switch (normalized) {
             case "debit":
                 return PaymentMethod.DEBIT_CARD;

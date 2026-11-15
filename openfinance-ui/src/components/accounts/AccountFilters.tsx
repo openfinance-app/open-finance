@@ -40,11 +40,24 @@ export function AccountFilters({ filters, onFiltersChange }: AccountFiltersProps
   ];
   const [localKeyword, setLocalKeyword] = useState<string>(filters.keyword || '');
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const latestFilters = useRef(filters);
+
+  useEffect(() => {
+    latestFilters.current = filters;
+  }, [filters]);
+
+  useEffect(
+    () => () => {
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    },
+    []
+  );
 
   // Sync if external filter changes (e.g., cleared by the 'Clear' button)
   useEffect(() => {
     if (filters.keyword === undefined) {
       setLocalKeyword('');
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
     }
   }, [filters.keyword]);
 
@@ -52,8 +65,9 @@ export function AccountFilters({ filters, onFiltersChange }: AccountFiltersProps
     setLocalKeyword(val);
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
     timeoutRef.current = setTimeout(() => {
+      timeoutRef.current = null;
       onFiltersChange({
-        ...filters,
+        ...latestFilters.current,
         keyword: val || undefined,
         page: 0,
       });
@@ -71,6 +85,8 @@ export function AccountFilters({ filters, onFiltersChange }: AccountFiltersProps
   };
 
   const clearFilters = () => {
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    setLocalKeyword('');
     onFiltersChange({
       sort: 'name,asc',
       page: 0,

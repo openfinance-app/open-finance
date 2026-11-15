@@ -11,6 +11,7 @@ import static org.mockito.Mockito.when;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
@@ -19,6 +20,8 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.NullAndEmptySource;
 import org.junit.jupiter.params.provider.NullSource;
 import org.junit.jupiter.params.provider.ValueSource;
@@ -26,9 +29,11 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.openfinance.dto.AdvancedSearchRequest;
+import org.openfinance.dto.AmountCurrencyMode;
 import org.openfinance.dto.GlobalSearchResponse;
 import org.openfinance.dto.SearchResultDto;
 import org.openfinance.dto.SearchResultDto.SearchResultType;
+import org.openfinance.dto.TransactionSplitResponse;
 import org.openfinance.entity.Account;
 import org.openfinance.entity.AccountType;
 import org.openfinance.entity.Asset;
@@ -76,6 +81,248 @@ class SearchServiceTest {
     @AfterEach
     void clearEncryptionContext() {
         EncryptionContext.clear();
+    }
+
+    @ParameterizedTest
+    @CsvSource({
+        "CHECKING,Banknote,#3b82f6",
+        "SAVINGS,PiggyBank,#10b981",
+        "INVESTMENT,TrendingUp,#8b5cf6",
+        "CREDIT_CARD,CreditCard,#ef4444",
+        "CASH,Wallet,#6b7280",
+        "OTHER,Briefcase,#9ca3af"
+    })
+    void everyAccountTypeRemainsIdentifiableInAdvancedResults(
+            AccountType type, String icon, String color) {
+        Account account = account();
+        account.setType(type);
+        when(accounts.findByUserIdAndIsActive(USER_ID, true)).thenReturn(List.of(account));
+        if (type == AccountType.INVESTMENT)
+            when(accountService.getAccountById(account.getId(), USER_ID))
+                    .thenReturn(
+                            org.openfinance.dto.AccountResponse.builder()
+                                    .balance(new BigDecimal("1234.56"))
+                                    .build());
+        SearchResultDto found =
+                result(
+                        service.advancedSearch(
+                                USER_ID,
+                                AdvancedSearchRequest.builder()
+                                        .query("trip")
+                                        .entityTypes(List.of(SearchResultType.ACCOUNT))
+                                        .build()),
+                        SearchResultType.ACCOUNT);
+        assertThat(found.getIcon()).isEqualTo(icon);
+        assertThat(found.getColor()).isEqualTo(color);
+        assertThat(found.getSubtitle()).isEqualTo(type.name());
+        assertThat(found.getId()).isEqualTo(account.getId());
+    }
+
+    @ParameterizedTest
+    @CsvSource({
+        "STOCK,TrendingUp",
+        "BOND,FileText",
+        "CRYPTO,Bitcoin",
+        "MUTUAL_FUND,PieChart",
+        "ETF,BarChart",
+        "COMMODITY,Package",
+        "REAL_ESTATE,Home",
+        "VEHICLE,Car",
+        "JEWELRY,Gem",
+        "COLLECTIBLE,Star",
+        "ELECTRONICS,Laptop",
+        "FURNITURE,Armchair",
+        "OTHER,DollarSign"
+    })
+    void allAssetKindsKeepTheirSearchIdentityAndExactValue(AssetType type, String icon) {
+        Asset asset = asset();
+        asset.setType(type);
+        asset.setSymbol(null);
+        when(assets.findByUserId(USER_ID)).thenReturn(List.of(asset));
+        SearchResultDto found =
+                result(service.globalSearch(USER_ID, "trip", 20, false), SearchResultType.ASSET);
+        assertThat(found.getIcon()).isEqualTo(icon);
+        assertThat(found.getSubtitle()).isEqualTo(type.name());
+        assertThat(found.getAmount()).isEqualByComparingTo("37.035");
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"start", "end", "payee only", "notes only"})
+    void snippetsKeepAvailableContextWithoutInventingMissingText(String position) {
+        Transaction tx = transaction(1L);
+        tx.setPayee("Trip merchant");
+        switch (position) {
+            case "start" -> tx.setDescription("Trip " + "detail ".repeat(40));
+            case "end" -> tx.setDescription("detail ".repeat(40) + "Trip");
+            case "payee only" -> tx.setDescription("detail ".repeat(40));
+            case "notes only" -> {
+                tx.setDescription(null);
+                tx.setNotes("Trip memo");
+            }
+            default -> throw new AssertionError(position);
+        }
+        when(transactions.findByUserId(USER_ID)).thenReturn(List.of(tx));
+        String snippet =
+                result(
+                                service.globalSearch(USER_ID, "trip", 10, false),
+                                SearchResultType.TRANSACTION)
+                        .getSnippet();
+        switch (position) {
+            case "start" -> assertThat(snippet).startsWith("Trip ").endsWith("...");
+            case "end" -> assertThat(snippet).startsWith("...").endsWith("Trip");
+            case "payee only" -> assertThat(snippet)
+                    .isEqualTo(tx.getDescription().substring(0, 100) + "...");
+            case "notes only" -> assertThat(snippet).endsWith("Trip memo");
+            default -> throw new AssertionError(position);
+        }
+        assertThat(snippet).doesNotContain("null");
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"MONTHLY", "Emergency", "savings", "unmatched"})
+    void budgetsAreSearchableByPeriodCategoryOrNotes(String query) {
+        when(budgets.findByUserId(USER_ID))
+                .thenReturn(
+                        List.of(
+                                Budget.builder()
+                                        .id(6L)
+                                        .category(
+                                                Category.builder()
+                                                        .name("Emergency")
+                                                        .color("#123456")
+                                                        .build())
+                                        .notes("savings")
+                                        .period(BudgetPeriod.MONTHLY)
+                                        .amount("12.345")
+                                        .currency("EUR")
+                                        .build()));
+        GlobalSearchResponse response = service.globalSearch(USER_ID, query, 10, false);
+        if (query.equals("unmatched")) assertThat(response.getTotalResults()).isZero();
+        else {
+            SearchResultDto found = result(response, SearchResultType.BUDGET);
+            assertThat(found.getTitle()).isEqualTo("Emergency");
+            assertThat(found.getAmount()).isEqualByComparingTo("12.345");
+        }
+    }
+
+    @ParameterizedTest
+    @EnumSource(
+            value = SearchResultType.class,
+            names = {"REAL_ESTATE", "LIABILITY", "BUDGET", "RECURRING_TRANSACTION"})
+    void amountFiltersRunBeforeLimitsForEveryFinancialSearchGroup(SearchResultType type) {
+        // Two text matches: only the second satisfies the requested exact amount.
+        switch (type) {
+            case REAL_ESTATE -> {
+                RealEstateProperty first = property();
+                RealEstateProperty second = property();
+                second.setId(44L);
+                second.setCurrentValue("42.01");
+                when(properties.findByUserId(USER_ID)).thenReturn(List.of(first, second));
+            }
+            case LIABILITY -> {
+                Liability first = liability();
+                Liability second = liability();
+                second.setId(44L);
+                second.setCurrentBalance("42.01");
+                when(liabilities.findByUserIdOrderByCreatedAtDesc(USER_ID))
+                        .thenReturn(List.of(first, second));
+            }
+            case BUDGET -> when(budgets.findByUserId(USER_ID))
+                    .thenReturn(
+                            List.of(
+                                    Budget.builder()
+                                            .id(6L)
+                                            .category(Category.builder().name("trip").build())
+                                            .period(BudgetPeriod.MONTHLY)
+                                            .amount("1")
+                                            .currency("EUR")
+                                            .build(),
+                                    Budget.builder()
+                                            .id(44L)
+                                            .category(Category.builder().name("trip").build())
+                                            .period(BudgetPeriod.MONTHLY)
+                                            .amount("42.01")
+                                            .currency("EUR")
+                                            .build()));
+            case RECURRING_TRANSACTION -> when(recurring.findByUserId(USER_ID))
+                    .thenReturn(
+                            List.of(
+                                    RecurringTransaction.builder()
+                                            .id(7L)
+                                            .description("trip")
+                                            .frequency(RecurringFrequency.MONTHLY)
+                                            .type(TransactionType.INCOME)
+                                            .amount(BigDecimal.ONE)
+                                            .currency("EUR")
+                                            .build(),
+                                    RecurringTransaction.builder()
+                                            .id(44L)
+                                            .description("trip")
+                                            .frequency(RecurringFrequency.MONTHLY)
+                                            .type(TransactionType.EXPENSE)
+                                            .amount(new BigDecimal("-42.01"))
+                                            .currency("EUR")
+                                            .build()));
+            default -> throw new AssertionError(type);
+        }
+        GlobalSearchResponse response =
+                service.advancedSearch(
+                        USER_ID,
+                        AdvancedSearchRequest.builder()
+                                .query("trip")
+                                .entityTypes(List.of(type))
+                                .amountCurrencyMode(AmountCurrencyMode.NATIVE)
+                                .exactAmount(new BigDecimal("42.01"))
+                                .limit(1)
+                                .build());
+        assertThat(result(response, type).getId()).isEqualTo(44L);
+        assertThat(response.getHasMore()).isFalse();
+    }
+
+    @ParameterizedTest
+    @CsvSource({",false", "99,false", "8,true"})
+    void splitCategoriesOverrideTheParentTransactionCategory(
+            Long splitCategoryId, boolean matches) {
+        Transaction tx = transaction(1L);
+        tx.setCategoryId(8L);
+        when(transactions.findByUserId(USER_ID)).thenReturn(List.of(tx));
+        when(transactionSplits.getSplitsForTransactions(List.of(1L)))
+                .thenReturn(
+                        Map.of(
+                                1L,
+                                List.of(
+                                        TransactionSplitResponse.builder()
+                                                .id(2L)
+                                                .categoryId(splitCategoryId)
+                                                .amount(new BigDecimal("25.50"))
+                                                .build())));
+        GlobalSearchResponse response =
+                service.advancedSearch(
+                        USER_ID,
+                        AdvancedSearchRequest.builder()
+                                .query("trip")
+                                .entityTypes(List.of(SearchResultType.TRANSACTION))
+                                .categoryIds(List.of(8L))
+                                .build());
+        assertThat(response.getTotalResults()).isEqualTo(matches ? 1 : 0);
+    }
+
+    @ParameterizedTest
+    @CsvSource({"-1,false", "0,true", "1,false"})
+    void assetAcquisitionDateRangeIncludesBothEndpoints(int offset, boolean matches) {
+        Asset asset = asset();
+        asset.setPurchaseDate(DATE.plusDays(offset));
+        when(assets.findByUserId(USER_ID)).thenReturn(List.of(asset));
+        GlobalSearchResponse response =
+                service.advancedSearch(
+                        USER_ID,
+                        AdvancedSearchRequest.builder()
+                                .query("trip")
+                                .entityTypes(List.of(SearchResultType.ASSET))
+                                .dateFrom(DATE)
+                                .dateTo(DATE)
+                                .build());
+        assertThat(response.getTotalResults()).isEqualTo(matches ? 1 : 0);
     }
 
     @ParameterizedTest

@@ -7,6 +7,7 @@
  * are mocked to isolate form logic testing.
  */
 import { describe, it, expect, beforeEach, vi } from 'vitest';
+import type { ComponentProps } from 'react';
 import { screen, waitFor, fireEvent } from '@testing-library/react';
 import {
   renderWithProviders,
@@ -16,11 +17,19 @@ import {
 } from '@/test/test-utils';
 import type { Asset } from '@/types/asset';
 import { AssetForm } from '@/components/assets/AssetForm';
+import type { CurrencySelector } from '@/components/ui/CurrencySelector';
+import type { AccountSelector } from '@/components/ui/AccountSelector';
 
 // Mock complex child components that use their own hooks internally
 vi.mock('@/components/ui/CurrencySelector', () => ({
-  CurrencySelector: ({ value, onValueChange, placeholder }: any) => (
+  CurrencySelector: ({
+    value,
+    onValueChange,
+    placeholder,
+    disabled,
+  }: ComponentProps<typeof CurrencySelector>) => (
     <select
+      disabled={disabled}
       aria-label="Currency"
       data-testid="currency-selector"
       value={value || ''}
@@ -35,8 +44,14 @@ vi.mock('@/components/ui/CurrencySelector', () => ({
 }));
 
 vi.mock('@/components/ui/AccountSelector', () => ({
-  AccountSelector: ({ value, onValueChange, placeholder }: any) => (
+  AccountSelector: ({
+    value,
+    onValueChange,
+    placeholder,
+    disabled,
+  }: ComponentProps<typeof AccountSelector>) => (
     <select
+      disabled={disabled}
       aria-label="Linked account"
       data-testid="account-selector"
       value={value || ''}
@@ -614,6 +629,152 @@ describe('AssetForm', () => {
           condition: null,
           warrantyExpiration: null,
           usefulLifeYears: null,
+        })
+      )
+    );
+  });
+  it('updates the default purchase valuation until the user explicitly changes it', async () => {
+    renderWithProviders(
+      <AssetForm
+        purchaseMode
+        initialType="VEHICLE"
+        onSubmit={mockOnSubmit}
+        onCancel={mockOnCancel}
+      />
+    );
+    fireEvent.change(screen.getByLabelText(/Asset Name/i), { target: { value: 'Car' } });
+    fireEvent.change(screen.getByLabelText(/Purchase price per item/i), {
+      target: { value: '123.000000000000000001' },
+    });
+    expect(screen.getByLabelText(/Estimated value per item/i)).toHaveValue(
+      '123.000000000000000001'
+    );
+    fireEvent.change(screen.getByLabelText(/Estimated value per item/i), {
+      target: { value: '99.000000000000000001' },
+    });
+    fireEvent.change(screen.getByLabelText(/Purchase price per item/i), {
+      target: { value: '150' },
+    });
+    expect(screen.getByLabelText(/Estimated value per item/i)).toHaveValue('99.000000000000000001');
+    fireEvent.click(screen.getByRole('button', { name: /Create Asset/i }));
+    await waitFor(() =>
+      expect(mockOnSubmit).toHaveBeenCalledWith(
+        expect.objectContaining({ purchasePrice: '150', currentPrice: '99.000000000000000001' })
+      )
+    );
+  });
+
+  it.each(['', '0', '0.123456789012345678'])(
+    'preserves an optional gift received value %s',
+    async received => {
+      renderWithProviders(
+        <AssetForm initialType="VEHICLE" onSubmit={mockOnSubmit} onCancel={mockOnCancel} />
+      );
+      fireEvent.change(screen.getByLabelText(/Asset Name/i), { target: { value: 'Gift' } });
+      await userEvent.selectOptions(screen.getByLabelText(/acquisition/i), 'GIFT');
+      fireEvent.change(screen.getByLabelText('Total value when received'), {
+        target: { value: received },
+      });
+      fireEvent.click(screen.getByRole('button', { name: /Create Asset/i }));
+      await waitFor(() =>
+        expect(mockOnSubmit).toHaveBeenCalledWith(
+          expect.objectContaining({ acquisitionType: 'GIFT', receivedValue: received || null })
+        )
+      );
+    }
+  );
+
+  it('rejects a negative gift valuation without submitting it', async () => {
+    renderWithProviders(
+      <AssetForm initialType="VEHICLE" onSubmit={mockOnSubmit} onCancel={mockOnCancel} />
+    );
+    fireEvent.change(screen.getByLabelText(/Asset Name/i), { target: { value: 'Gift' } });
+    await userEvent.selectOptions(screen.getByLabelText(/acquisition/i), 'GIFT');
+    fireEvent.change(screen.getByLabelText('Total value when received'), {
+      target: { value: '-1' },
+    });
+    fireEvent.submit(screen.getByLabelText(/Asset Name/i).closest('form')!);
+    await waitFor(() => expect(screen.getByText(/valid price|at least 0/i)).toBeInTheDocument());
+    expect(mockOnSubmit).not.toHaveBeenCalled();
+  });
+
+  it.each(['PURCHASE', 'GIFT', 'PLANNED'] as const)(
+    'accepts a future date only for PLANNED ownership (%s)',
+    async acquisition => {
+      renderWithProviders(
+        <AssetForm initialType="VEHICLE" onSubmit={mockOnSubmit} onCancel={mockOnCancel} />
+      );
+      fireEvent.change(screen.getByLabelText(/Asset Name/i), { target: { value: 'Future car' } });
+      await userEvent.selectOptions(screen.getByLabelText(/acquisition/i), acquisition);
+      const date = document.getElementById('purchaseDate')!;
+      fireEvent.change(date, { target: { value: '2099-01-01' } });
+      fireEvent.submit(date.closest('form')!);
+      if (acquisition === 'PLANNED')
+        await waitFor(() =>
+          expect(mockOnSubmit).toHaveBeenCalledWith(
+            expect.objectContaining({ purchaseDate: '2099-01-01', currentPrice: '0' })
+          )
+        );
+      else {
+        expect(await screen.findByText(/Choose a date on or before/)).toBeInTheDocument();
+        expect(mockOnSubmit).not.toHaveBeenCalled();
+      }
+    }
+  );
+
+  it('validates currency and notes before submitting an otherwise valid physical item', async () => {
+    renderWithProviders(
+      <AssetForm initialType="VEHICLE" onSubmit={mockOnSubmit} onCancel={mockOnCancel} />
+    );
+    fireEvent.change(screen.getByLabelText(/Asset Name/i), { target: { value: 'Car' } });
+    fireEvent.change(screen.getByRole('combobox', { name: 'Currency' }), { target: { value: '' } });
+    fireEvent.change(screen.getByLabelText(/Notes/i), { target: { value: 'n'.repeat(1001) } });
+    fireEvent.click(screen.getByRole('button', { name: /Create Asset/i }));
+    expect(await screen.findByText('Notes are too long')).toBeInTheDocument();
+    expect(mockOnSubmit).not.toHaveBeenCalled();
+  });
+
+  it('locks investment-ledger ownership fields while allowing a current-price correction', async () => {
+    const asset: Asset = {
+      id: 1,
+      userId: 1,
+      accountId: 1,
+      name: 'Ledger holding',
+      type: 'STOCK',
+      quantity: 2,
+      purchasePrice: 10,
+      currentPrice: 20,
+      currency: 'EUR',
+      purchaseDate: '2024-01-01',
+      lastUpdated: '',
+      createdAt: '',
+      updatedAt: '',
+      totalValue: 40,
+      totalCost: 20,
+      unrealizedGain: 20,
+      gainPercentage: 100,
+      holdingDays: 1,
+      investmentTracked: true,
+    };
+    renderWithProviders(
+      <AssetForm asset={asset} onSubmit={mockOnSubmit} onCancel={mockOnCancel} />
+    );
+    expect(screen.getByRole('combobox', { name: 'Linked account' })).toBeDisabled();
+    expect(screen.getByRole('combobox', { name: 'Currency' })).toBeDisabled();
+    expect(screen.getByLabelText(/Purchase Date/i)).toBeDisabled();
+    expect(screen.getByLabelText(/Quantity/i)).toHaveAttribute('readonly');
+    expect(screen.queryByRole('option', { name: /Vehicle/i })).not.toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText(/Current Price/i), {
+      target: { value: '20.000000000000000001' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: /Update Asset/i }));
+    await waitFor(() =>
+      expect(mockOnSubmit).toHaveBeenCalledWith(
+        expect.objectContaining({
+          currentPrice: '20.000000000000000001',
+          accountId: 1,
+          quantity: '2',
+          purchasePrice: '10',
         })
       )
     );

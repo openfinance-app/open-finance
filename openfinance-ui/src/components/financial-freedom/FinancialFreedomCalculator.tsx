@@ -1,4 +1,4 @@
-import { decimalValue } from '@/utils/exact-decimal';
+import { decimalValue, decimalField } from '@/utils/exact-decimal';
 import { formatDecimal } from '@/utils/format';
 import { useCallback } from 'react';
 import { Trans, useTranslation } from 'react-i18next';
@@ -18,6 +18,7 @@ import { ProgressChart } from './ProgressChart';
 import { TimelineProjection } from './TimelineProjection';
 import { SensitivityAnalysis } from './SensitivityAnalysis';
 import { Calculator, AlertCircle, CheckCircle, RefreshCw, Database } from 'lucide-react';
+import type { FreedomCalculatorResult, SavingsLongevityResult } from '@/types/calculator';
 
 interface FinancialFreedomCalculatorProps {
   className?: string;
@@ -51,8 +52,8 @@ export function FinancialFreedomCalculator({ className }: FinancialFreedomCalcul
   // Handler to populate form with user's actual data
   const handleUseActualData = useCallback(() => {
     if (userData) {
-      updateInput('currentSavings', userData.totalSavings);
-      updateInput('monthlyExpenses', userData.averageMonthlyExpenses);
+      updateInput('currentSavings', decimalField(userData, 'totalSavings'));
+      updateInput('monthlyExpenses', decimalField(userData, 'averageMonthlyExpenses'));
     }
   }, [userData, updateInput]);
 
@@ -84,7 +85,7 @@ export function FinancialFreedomCalculator({ className }: FinancialFreedomCalcul
               currency={userData?.currency || baseCurrency}
             />
 
-            {(result || longevityResult) && (
+            {result && (
               <FreedomResults
                 result={result}
                 longevityResult={longevityResult}
@@ -390,8 +391,8 @@ function FreedomResults({
   longevityResult,
   currency,
 }: {
-  result: any;
-  longevityResult?: any;
+  result: FreedomCalculatorResult;
+  longevityResult?: SavingsLongevityResult | null;
   currency: string;
 }) {
   const { t, i18n } = useTranslation('tools');
@@ -500,14 +501,14 @@ function FreedomResults({
       </div>
 
       {/* Progress Chart */}
-      {result.projections && result.projections.length > 0 && (
+      {result.yearlyProjections.length > 0 && (
         <Card>
           <CardHeader>
             <CardTitle className="text-lg">{t('financialFreedom.results.pathToFreedom')}</CardTitle>
           </CardHeader>
           <CardContent>
             <ProgressChart
-              data={result.projections}
+              data={result.yearlyProjections}
               currentSavings={decimalValue(result, 'currentProgress') ?? result.currentProgress}
               targetAmount={
                 decimalValue(result, 'targetSavingsAmount') ?? result.targetSavingsAmount
@@ -520,14 +521,14 @@ function FreedomResults({
       )}
 
       {/* Timeline Projection Table */}
-      {result.projections && result.projections.length > 0 && (
+      {result.yearlyProjections.length > 0 && (
         <Card>
           <CardHeader>
             <CardTitle className="text-lg">{t('financialFreedom.results.yearByYear')}</CardTitle>
           </CardHeader>
           <CardContent>
             <TimelineProjection
-              projections={result.projections}
+              projections={result.yearlyProjections}
               targetAmount={
                 decimalValue(result, 'targetSavingsAmount') ?? result.targetSavingsAmount
               }

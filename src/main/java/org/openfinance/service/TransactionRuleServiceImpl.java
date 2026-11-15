@@ -370,7 +370,7 @@ public class TransactionRuleServiceImpl implements TransactionRuleService {
             }
             sb.append(tx.getMemo().trim());
         }
-        return sb.toString().toLowerCase();
+        return sb.toString().toLowerCase(Locale.ROOT);
     }
 
     /**
@@ -390,8 +390,8 @@ public class TransactionRuleServiceImpl implements TransactionRuleService {
         if (actual == null) {
             actual = "";
         }
-        String actualLower = actual.toLowerCase();
-        String expectedLower = expected != null ? expected.toLowerCase() : "";
+        String actualLower = actual.toLowerCase(Locale.ROOT);
+        String expectedLower = expected != null ? expected.toLowerCase(Locale.ROOT) : "";
 
         return switch (operator) {
             case CONTAINS -> actualLower.contains(expectedLower);
@@ -408,6 +408,9 @@ public class TransactionRuleServiceImpl implements TransactionRuleService {
     /** Evaluates a numeric operator against a BigDecimal actual value. Requirement: REQ-TR-2.2 */
     private boolean evaluateNumericCondition(
             RuleConditionOperator operator, BigDecimal actual, String expectedStr) {
+        if (expectedStr == null) {
+            return false;
+        }
         BigDecimal expected;
         try {
             expected = new BigDecimal(expectedStr.trim());

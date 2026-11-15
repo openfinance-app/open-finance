@@ -8,6 +8,7 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
+import java.time.format.ResolverStyle;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -77,21 +78,34 @@ public class QifParser {
      * are needed here.
      */
     private static final DateTimeFormatter[] DATE_FORMATS = {
-        DateTimeFormatter.ofPattern("MM/dd/yyyy", Locale.ROOT), // US convention with 4-digit year
-        DateTimeFormatter.ofPattern("dd/MM/yyyy", Locale.ROOT), // International with 4-digit year
-        DateTimeFormatter.ofPattern("yyyy-MM-dd", Locale.ROOT), // ISO format
-        DateTimeFormatter.ofPattern("M/d/yyyy", Locale.ROOT), // US no leading zeros
-        DateTimeFormatter.ofPattern("d/M/yyyy", Locale.ROOT), // International no leading zeros
+        DateTimeFormatter.ofPattern("MM/dd/uuuu", Locale.ROOT)
+                .withResolverStyle(ResolverStyle.STRICT), // US convention with 4-digit year
+        DateTimeFormatter.ofPattern("dd/MM/uuuu", Locale.ROOT)
+                .withResolverStyle(ResolverStyle.STRICT), // International with 4-digit year
+        DateTimeFormatter.ofPattern("uuuu-MM-dd", Locale.ROOT)
+                .withResolverStyle(ResolverStyle.STRICT), // ISO format
+        DateTimeFormatter.ofPattern("M/d/uuuu", Locale.ROOT)
+                .withResolverStyle(ResolverStyle.STRICT), // US no leading zeros
+        DateTimeFormatter.ofPattern("d/M/uuuu", Locale.ROOT)
+                .withResolverStyle(ResolverStyle.STRICT), // International no leading zeros
         // Dash-separated variants
-        DateTimeFormatter.ofPattern("MM-dd-yyyy", Locale.ROOT),
-        DateTimeFormatter.ofPattern("dd-MM-yyyy", Locale.ROOT),
-        DateTimeFormatter.ofPattern("M-d-yyyy", Locale.ROOT),
-        DateTimeFormatter.ofPattern("d-M-yyyy", Locale.ROOT),
+        DateTimeFormatter.ofPattern("MM-dd-uuuu", Locale.ROOT)
+                .withResolverStyle(ResolverStyle.STRICT),
+        DateTimeFormatter.ofPattern("dd-MM-uuuu", Locale.ROOT)
+                .withResolverStyle(ResolverStyle.STRICT),
+        DateTimeFormatter.ofPattern("M-d-uuuu", Locale.ROOT)
+                .withResolverStyle(ResolverStyle.STRICT),
+        DateTimeFormatter.ofPattern("d-M-uuuu", Locale.ROOT)
+                .withResolverStyle(ResolverStyle.STRICT),
         // Dot-separated variants
-        DateTimeFormatter.ofPattern("MM.dd.yyyy", Locale.ROOT),
-        DateTimeFormatter.ofPattern("dd.MM.yyyy", Locale.ROOT),
-        DateTimeFormatter.ofPattern("M.d.yyyy", Locale.ROOT),
-        DateTimeFormatter.ofPattern("d.M.yyyy", Locale.ROOT),
+        DateTimeFormatter.ofPattern("MM.dd.uuuu", Locale.ROOT)
+                .withResolverStyle(ResolverStyle.STRICT),
+        DateTimeFormatter.ofPattern("dd.MM.uuuu", Locale.ROOT)
+                .withResolverStyle(ResolverStyle.STRICT),
+        DateTimeFormatter.ofPattern("M.d.uuuu", Locale.ROOT)
+                .withResolverStyle(ResolverStyle.STRICT),
+        DateTimeFormatter.ofPattern("d.M.uuuu", Locale.ROOT)
+                .withResolverStyle(ResolverStyle.STRICT),
     };
 
     /**

@@ -6,6 +6,7 @@ import { mockAuthentication, renderWithProviders } from '@/test/test-utils';
 import i18n from '@/test/i18n-test';
 import { http, HttpResponse } from 'msw';
 import { server } from '@/test/mocks/server';
+import { useViewStateStore } from '@/stores/viewState';
 
 const bitcoin: Asset = {
   id: 1,
@@ -31,6 +32,7 @@ const bitcoin: Asset = {
 describe('Asset column labels', () => {
   beforeEach(() => {
     mockAuthentication();
+    useViewStateStore.getState().clear();
     Element.prototype.scrollIntoView = vi.fn();
   });
 
@@ -201,5 +203,171 @@ describe('Asset column labels', () => {
     renderWithProviders(<AssetList assets={[]} onEdit={vi.fn()} onDelete={vi.fn()} />);
     expect(screen.getByText(i18n.t('empty.noAssets', { ns: 'assets' }))).toBeInTheDocument();
     expect(screen.queryByRole('table')).not.toBeInTheDocument();
+  });
+
+  it.each([
+    ['currentValue', 'totalValue'],
+    ['costBasis', 'totalCost'],
+    ['gainLoss', 'gainPercentage'],
+  ] as const)(
+    'sorts %s using exact values when numeric values are indistinguishable',
+    (column, field) => {
+      const lower = {
+        ...bitcoin,
+        id: 21,
+        name: 'Lower',
+        [field]: 9007199254740992,
+        exactValues: { [field]: '9007199254740992.01' },
+      };
+      const higher = {
+        ...lower,
+        id: 22,
+        name: 'Higher',
+        exactValues: { [field]: '9007199254740992.02' },
+      };
+      renderWithProviders(
+        <AssetList assets={[higher, lower]} onEdit={vi.fn()} onDelete={vi.fn()} />
+      );
+      const header = screen.getByRole('columnheader', {
+        name: i18n.t(`table.${column}`, { ns: 'assets' }),
+      });
+      fireEvent.click(header);
+      expect(screen.getAllByRole('row')[1]).toHaveTextContent('Lower');
+      fireEvent.click(header);
+      expect(screen.getAllByRole('row')[1]).toHaveTextContent('Higher');
+    }
+  );
+
+  it('retains exact units and converted purchase costs in both layouts', () => {
+    renderWithProviders(
+      <AssetList
+        assets={[
+          {
+            ...bitcoin,
+            totalCost: 9007199254740992,
+            quantity: 9007199254740992,
+            currency: 'USD',
+            baseCurrency: 'EUR',
+            isConverted: true,
+            exchangeRate: 1,
+            exactValues: {
+              totalCost: '9007199254740992.01',
+              quantity: '9007199254740992.01',
+              exchangeRate: '1.000000000000000001',
+            },
+          },
+        ]}
+        onEdit={vi.fn()}
+        onDelete={vi.fn()}
+      />
+    );
+    const row = screen.getByRole('row', { name: /Bitcoin/ });
+    // 9007199254740992.01 * 1.000000000000000001 rounds to .02 at display precision.
+    expect(row).toHaveTextContent('9,007,199,254,740,992.02');
+    expect(within(row).getByRole('cell', { name: '9,007,199,254,740,992.01' })).toBeInTheDocument();
+    expect(screen.getAllByText(/9,007,199,254,740,992\.02/)).toHaveLength(2);
+  });
+
+  it('keeps equal sort values stable and places unknown returns before known returns', () => {
+    const assets = [
+      { ...bitcoin, id: 2, name: 'Known first', gainPercentage: 0 },
+      { ...bitcoin, id: 3, name: 'Unknown first', gainPercentage: undefined },
+      { ...bitcoin, id: 4, name: 'Unknown second', gainPercentage: undefined },
+      { ...bitcoin, id: 5, name: 'Known second', gainPercentage: 0 },
+    ];
+    renderWithProviders(<AssetList assets={assets} onEdit={vi.fn()} onDelete={vi.fn()} />);
+    fireEvent.click(
+      screen.getByRole('columnheader', { name: i18n.t('table.gainLoss', { ns: 'assets' }) })
+    );
+    const names = () =>
+      screen
+        .getAllByRole('row')
+        .slice(1)
+        .map(row => row.querySelector('td')?.textContent);
+    expect(names()).toEqual(['Unknown first', 'Unknown second', 'Known first', 'Known second']);
+    fireEvent.click(
+      screen.getByRole('columnheader', { name: i18n.t('table.gainLoss', { ns: 'assets' }) })
+    );
+    expect(names()).toEqual(['Known first', 'Known second', 'Unknown first', 'Unknown second']);
+  });
+
+  it.each([undefined, false, true])(
+    'renders an unlinked account name and active=%s without a broken link',
+    isActive => {
+      renderWithProviders(
+        <AssetList
+          assets={[
+            {
+              ...bitcoin,
+              isActive,
+              accountName: 'Imported brokerage',
+              symbol: undefined,
+              acquisitionType: 'PLANNED',
+            },
+          ]}
+          onEdit={vi.fn()}
+          onDelete={vi.fn()}
+        />
+      );
+      expect(screen.getAllByText('Imported brokerage')).toHaveLength(2);
+      expect(screen.queryByRole('link', { name: 'Imported brokerage' })).not.toBeInTheDocument();
+      expect(screen.queryAllByText('Inactive')).toHaveLength(isActive === false ? 2 : 0);
+      expect(
+        screen.getAllByText(i18n.t('form.acquisitionTypes.PLANNED', { ns: 'assets' })).length
+      ).toBeGreaterThanOrEqual(2);
+    }
+  );
+
+  it.each([new Error('Cannot remove this holding'), { unexpected: true }])(
+    'shows the deletion error without navigating, and cancelling clears it',
+    async error => {
+      const view = vi.fn();
+      const remove = vi.fn().mockRejectedValue(error);
+      renderWithProviders(
+        <AssetList assets={[bitcoin]} onEdit={vi.fn()} onDelete={remove} onView={view} />
+      );
+      fireEvent.click(screen.getAllByRole('button', { name: /delete asset/i })[1]);
+      fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Delete' }));
+      expect(await screen.findByRole('alert')).toHaveTextContent(
+        i18n.t('deleteError', { ns: 'assets' })
+      );
+      fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Cancel' }));
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+      fireEvent.click(screen.getAllByRole('button', { name: /delete asset/i })[0]);
+      expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+      expect(view).not.toHaveBeenCalled();
+    }
+  );
+
+  it('prevents duplicate deletion while the first request is pending', async () => {
+    let finish!: () => void;
+    const remove = vi.fn(
+      () =>
+        new Promise<void>(resolve => {
+          finish = resolve;
+        })
+    );
+    renderWithProviders(<AssetList assets={[bitcoin]} onEdit={vi.fn()} onDelete={remove} />);
+    fireEvent.click(screen.getAllByRole('button', { name: /delete asset/i })[0]);
+    const confirm = within(screen.getByRole('dialog')).getByRole('button', { name: 'Delete' });
+    fireEvent.click(confirm);
+    expect(confirm).toBeDisabled();
+    fireEvent.click(confirm);
+    expect(remove).toHaveBeenCalledExactlyOnceWith(bitcoin.id);
+    finish();
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+  });
+
+  it.each([1, 999])('scrolls only when highlighted holding %s exists', async highlightedId => {
+    renderWithProviders(
+      <AssetList
+        assets={[bitcoin]}
+        onEdit={vi.fn()}
+        onDelete={vi.fn()}
+        highlightedId={highlightedId}
+      />
+    );
+    await new Promise(resolve => setTimeout(resolve, 350));
+    expect(Element.prototype.scrollIntoView).toHaveBeenCalledTimes(highlightedId === 1 ? 1 : 0);
   });
 });

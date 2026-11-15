@@ -1017,7 +1017,14 @@ public class DashboardService {
         log.debug("Calculating asset allocation for user {}", userId);
 
         // Get all assets for the user
-        List<Asset> assets = assetRepository.findCurrentHoldingsByUserId(userId);
+        List<Asset> assets =
+                assetRepository.findCurrentHoldingsByUserId(userId).stream()
+                        .filter(
+                                asset ->
+                                        asset.getPurchaseDate() == null
+                                                || !asset.getPurchaseDate()
+                                                        .isAfter(LocalDate.now()))
+                        .toList();
 
         if (assets.isEmpty()) {
             log.debug("No assets found for user {}", userId);
@@ -1539,6 +1546,8 @@ public class DashboardService {
             if (excludedAccounts.contains(asset.getAccountId())) continue;
             if (asset.getAcquisitionType() == org.openfinance.entity.AcquisitionType.PLANNED)
                 continue;
+            if (asset.getPurchaseDate() != null && asset.getPurchaseDate().isAfter(LocalDate.now()))
+                continue;
             String category = categorizeAsset(asset.getType());
             categoryMap.computeIfAbsent(
                     category,
@@ -1693,6 +1702,8 @@ public class DashboardService {
                 return "Mortgages";
             case LOAN:
             case PERSONAL_LOAN:
+            case STUDENT_LOAN:
+            case AUTO_LOAN:
                 return "Loans";
             case CREDIT_CARD:
                 return "Credit Cards";

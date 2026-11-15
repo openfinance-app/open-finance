@@ -514,7 +514,7 @@ export function AssetFinancingSection({
           )}
           {save.error && (
             <p role="alert" className="text-sm text-error">
-              {isAxiosError<{ message?: string }>(save.error) && save.error.response?.data.message
+              {isAxiosError<{ message?: string }>(save.error) && save.error.response?.data?.message
                 ? save.error.response.data.message
                 : t('financing.error')}
             </p>

@@ -100,6 +100,7 @@ export default function BalanceVariationCard({
 
     if (viewMode === 'netWorth') {
       return yearlyData.netWorth.map(dp => ({
+        exactValues: dp.exactValues,
         year: dp.year,
         amount: dp.amount,
         variationPercentage: dp.variationPercentage,
@@ -112,6 +113,7 @@ export default function BalanceVariationCard({
     const entry = entries.find(e => e.id === entityId);
     if (entry) {
       return entry.data.map(dp => ({
+        exactValues: dp.exactValues,
         year: dp.year,
         amount: dp.amount,
         variationPercentage: dp.variationPercentage,

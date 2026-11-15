@@ -6,7 +6,7 @@
  * label and interest-only flag. Since Task 9 also covers the "Add tranche"
  * form with the interest-only fields.
  */
-import { screen, act, fireEvent, waitFor } from '@testing-library/react';
+import { screen, act, fireEvent, waitFor, within } from '@testing-library/react';
 import { vi, describe, it, expect, beforeEach } from 'vitest';
 import { mockAuthentication, renderWithProviders } from '@/test/test-utils';
 import { TrancheDrawdownsTab } from '../TrancheDrawdownsTab';
@@ -21,6 +21,7 @@ vi.mock('@/hooks/useTranches', async importOriginal => {
     ...actual,
     useTranches: vi.fn(() => ({ data: [], isLoading: false, error: null })),
     useCreateTranche: vi.fn(),
+    useReverseDirectDraw: vi.fn(),
   };
 });
 
@@ -104,6 +105,11 @@ describe('TrancheDrawdownsTab', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockAuthentication();
+    vi.mocked(useTranchesModule.useReverseDirectDraw).mockReturnValue({
+      mutate: vi.fn(),
+      isPending: false,
+      error: null,
+    } as unknown as ReturnType<typeof useTranchesModule.useReverseDirectDraw>);
     mockUseTranches.mockReturnValue({
       data: mockTranches,
       isLoading: false,
@@ -421,6 +427,128 @@ describe('TrancheDrawdownsTab', () => {
       },
     });
   });
+  it.each(['loading', 'error'])('does not offer draw or create actions while data is %s', state => {
+    mockUseTranches.mockReturnValue({
+      data: undefined,
+      isLoading: state === 'loading',
+      error: state === 'error' ? new Error('Unavailable') : null,
+    } as unknown as ReturnType<typeof useTranchesModule.useTranches>);
+    renderWithProviders(<TrancheDrawdownsTab liability={mockLiability} />);
+    expect(screen.queryByRole('button', { name: /add tranche/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /^draw$/i })).not.toBeInTheDocument();
+    if (state === 'error') expect(screen.getByText(/failed to load/i)).toBeInTheDocument();
+  });
+
+  it.each(['', '0', '-1'])('rejects invalid planned amount %s even on form submission', amount => {
+    renderWithProviders(<TrancheDrawdownsTab liability={mockLiability} />);
+    fireEvent.click(screen.getByRole('button', { name: /add tranche/i }));
+    const input = screen.getByLabelText(/planned amount/i);
+    fireEvent.change(input, { target: { value: amount } });
+    fireEvent.submit(input.closest('form')!);
+    expect(mockUseCreateTranche().mutateAsync).not.toHaveBeenCalled();
+    expect(screen.getByRole('button', { name: /^add$/i })).toBeDisabled();
+  });
+
+  it('retains a failed creation for retry and discards an unchecked interest-only end date', async () => {
+    const mutateAsync = vi
+      .fn()
+      .mockRejectedValueOnce(new Error('Offline'))
+      .mockResolvedValueOnce({});
+    mockUseCreateTranche.mockReturnValue({
+      mutateAsync,
+      isError: true,
+      isPending: false,
+    } as unknown as ReturnType<typeof useTranchesModule.useCreateTranche>);
+    renderWithProviders(<TrancheDrawdownsTab liability={mockLiability} />);
+    fireEvent.click(screen.getByRole('button', { name: /add tranche/i }));
+    fireEvent.change(screen.getByLabelText(/planned amount/i), {
+      target: { value: '0.123456789012345678' },
+    });
+    fireEvent.change(screen.getByLabelText(/planned date/i), { target: { value: '2026-06-01' } });
+    fireEvent.click(screen.getByLabelText('Interest-only'));
+    fireEvent.change(screen.getByLabelText('Interest-only until'), {
+      target: { value: '2027-06-01' },
+    });
+    fireEvent.click(screen.getByLabelText('Interest-only'));
+    fireEvent.click(screen.getByRole('button', { name: /^add$/i }));
+    await waitFor(() => expect(mutateAsync).toHaveBeenCalledTimes(1));
+    expect(screen.getByRole('alert')).toBeInTheDocument();
+    expect(screen.getByLabelText(/planned amount/i)).toHaveValue('0.123456789012345678');
+    fireEvent.click(screen.getByRole('button', { name: /^add$/i }));
+    await waitFor(() => expect(screen.queryByLabelText(/planned amount/i)).not.toBeInTheDocument());
+    expect(mutateAsync).toHaveBeenLastCalledWith({
+      liabilityId: 5,
+      request: {
+        plannedAmount: '0.123456789012345678',
+        plannedDate: '2026-06-01',
+        interestOnly: false,
+        interestOnlyUntil: undefined,
+        currency: 'USD',
+      },
+    });
+  });
+
+  it('shows capitalized costs, dated interest-only phases, reversals and inherited currency', () => {
+    mockUseTranches.mockReturnValue({
+      data: [
+        {
+          ...mockTranches[0],
+          currency: undefined,
+          capitalizedAmount: 50,
+          interestOnly: true,
+          interestOnlyUntil: '2026-06-01',
+          reversedDate: '2026-06-15',
+          directDisbursement: true,
+          status: 'CANCELLED',
+        },
+      ],
+      isLoading: false,
+      error: null,
+    } as unknown as ReturnType<typeof useTranchesModule.useTranches>);
+    renderWithProviders(<TrancheDrawdownsTab liability={mockLiability} />);
+    expect(screen.getByText('Added to property cost')).toBeInTheDocument();
+    expect(screen.getByText(/Interest-only \(/)).toHaveTextContent('2026');
+    expect(screen.getByText(/2026-06-15/)).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /reverse/i })).not.toBeInTheDocument();
+    expect(screen.getAllByText('$100,000.00')).toHaveLength(2);
+  });
+
+  it.each(['success', 'error', 'cancel'])(
+    'handles a direct-draw reversal %s without rebooking the draw',
+    async outcome => {
+      const mutate = vi.fn((_request, options) => {
+        if (outcome === 'success') options.onSuccess();
+      });
+      vi.mocked(useTranchesModule.useReverseDirectDraw).mockReturnValue({
+        mutate,
+        isPending: false,
+        error: outcome === 'error' ? new Error('Conflict') : null,
+      } as unknown as ReturnType<typeof useTranchesModule.useReverseDirectDraw>);
+      mockUseTranches.mockReturnValue({
+        data: [{ ...mockTranches[0], directDisbursement: true }],
+        isLoading: false,
+        error: null,
+      } as unknown as ReturnType<typeof useTranchesModule.useTranches>);
+      renderWithProviders(<TrancheDrawdownsTab liability={mockLiability} />);
+      fireEvent.click(screen.getByRole('button', { name: /reverse/i }));
+      const date = screen.getByLabelText(/reversal date/i);
+      fireEvent.change(date, { target: { value: '2026-06-20' } });
+      const form = date.closest('form')!;
+      if (outcome === 'cancel') {
+        fireEvent.click(within(form).getByRole('button', { name: /cancel/i }));
+        expect(mutate).not.toHaveBeenCalled();
+      } else {
+        fireEvent.submit(form);
+        expect(mutate).toHaveBeenCalledWith(
+          { trancheId: 1, date: '2026-06-20' },
+          expect.any(Object)
+        );
+      }
+      if (outcome === 'error') expect(screen.getByRole('alert')).toBeInTheDocument();
+      else expect(screen.queryByLabelText(/reversal date/i)).not.toBeInTheDocument();
+      expect(mockUseDisburseLiability().mutateAsync).not.toHaveBeenCalled();
+    }
+  );
 });
 
 /** Finds a button by name within a tranche row. */

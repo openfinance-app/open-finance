@@ -4,8 +4,9 @@ import userEvent from '@testing-library/user-event';
 import { mockAuthentication, renderWithProviders } from '@/test/test-utils';
 import { RecordCostForm } from '@/components/assets/RecordCostForm';
 
-const { save, accountState } = vi.hoisted(() => ({
+const { save, accountState, mutationState } = vi.hoisted(() => ({
   save: vi.fn(),
+  mutationState: { error: null as unknown },
   accountState: {
     data: [
       { id: 1, name: 'Checking', currency: 'USD' },
@@ -17,11 +18,12 @@ const { save, accountState } = vi.hoisted(() => ({
 }));
 vi.mock('@/hooks/useAccounts', () => ({ useAccounts: () => accountState }));
 vi.mock('@/hooks/useTransactions', () => ({
-  useCreateTransaction: () => ({ mutateAsync: save, isPending: false, error: null }),
+  useCreateTransaction: () => ({ mutateAsync: save, isPending: false, error: mutationState.error }),
 }));
 
 beforeEach(() => {
   mockAuthentication();
+  mutationState.error = null;
   save.mockReset().mockResolvedValue({ id: 12 });
   Element.prototype.scrollIntoView = vi.fn();
 });
@@ -101,8 +103,13 @@ describe('Record cost from the item', () => {
     }
   );
 
-  it('keeps entries and the form open when saving fails', async () => {
-    save.mockRejectedValue(new Error('Offline'));
+  it.each([
+    new Error('Offline'),
+    { isAxiosError: true, response: { status: 500 } },
+    { isAxiosError: true, response: { data: { message: 'Account was closed' } } },
+  ])('keeps entries and the form open when saving fails: %j', async error => {
+    mutationState.error = error;
+    save.mockRejectedValue(error);
     const close = vi.fn();
     renderWithProviders(
       <RecordCostForm
@@ -115,6 +122,7 @@ describe('Record cost from the item', () => {
     await waitFor(() => expect(save).toHaveBeenCalledOnce());
     expect(close).not.toHaveBeenCalled();
     expect(screen.getByLabelText('Description')).toHaveValue('Engine repair');
+    expect(screen.getByRole('alert')).not.toBeEmptyDOMElement();
   });
 
   it('blocks empty or invalid costs without posting an expense', async () => {

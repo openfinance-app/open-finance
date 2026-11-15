@@ -1,4 +1,4 @@
-import { decimalValue } from '@/utils/exact-decimal';
+import { decimalValue, ExactDecimal } from '@/utils/exact-decimal';
 import { Link } from 'react-router';
 import { AssetTradeActions } from '@/components/assets/AssetTradeActions';
 import { useViewState } from '@/hooks/useViewState';
@@ -28,7 +28,6 @@ import { ConfirmationDialog } from '@/components/ConfirmationDialog';
 import { PhysicalAssetCard } from './PhysicalAssetCard';
 import { ConvertedAmount } from '@/components/ui/ConvertedAmount';
 import { cn } from '@/lib/utils';
-import { multiply } from '@/utils/money';
 import { getAssetTypeName, getAssetTypeBadgeVariant } from '@/hooks/useAssets';
 import type { Asset } from '@/types/asset';
 
@@ -159,17 +158,13 @@ export function AssetList({
           bVal = b.type.toLowerCase();
           break;
         case 'totalValue':
-          aVal = a.totalValue;
-          bVal = b.totalValue;
-          break;
         case 'totalCost':
-          aVal = a.totalCost;
-          bVal = b.totalCost;
-          break;
         case 'gainPercentage':
-          aVal = a.gainPercentage ?? -Infinity;
-          bVal = b.gainPercentage ?? -Infinity;
-          break;
+          return (
+            new ExactDecimal(decimalValue(a, sortConfig.key) ?? -Infinity).comparedTo(
+              decimalValue(b, sortConfig.key) ?? -Infinity
+            ) * (sortConfig.direction === 'asc' ? 1 : -1)
+          );
         default:
           return 0;
       }
@@ -325,7 +320,7 @@ export function AssetList({
                         {asset.symbol || '—'}
                       </td>
                       <td className="py-3 px-4 text-sm text-text-primary text-right font-mono">
-                        {formatExactNumber(asset.quantity)}
+                        {formatExactNumber(decimalValue(asset, 'quantity') ?? asset.quantity)}
                       </td>
                       <td className="py-3 px-4 text-sm text-text-primary text-right font-mono">
                         {/* REQ-2.2: Show converted base-currency value when available */}
@@ -353,8 +348,12 @@ export function AssetList({
                           amount={decimalValue(asset, 'totalCost') ?? asset.totalCost}
                           currency={asset.currency}
                           convertedAmount={
-                            asset.isConverted && asset.exchangeRate
-                              ? multiply(asset.totalCost, asset.exchangeRate)
+                            asset.isConverted && decimalValue(asset, 'exchangeRate') != null
+                              ? new ExactDecimal(
+                                  decimalValue(asset, 'totalCost') ?? asset.totalCost
+                                )
+                                  .times(decimalValue(asset, 'exchangeRate')!)
+                                  .toFixed()
                               : undefined
                           }
                           baseCurrency={asset.baseCurrency}
@@ -528,8 +527,12 @@ export function AssetList({
                           amount={decimalValue(asset, 'totalCost') ?? asset.totalCost}
                           currency={asset.currency}
                           convertedAmount={
-                            asset.isConverted && asset.exchangeRate
-                              ? multiply(asset.totalCost, asset.exchangeRate)
+                            asset.isConverted && decimalValue(asset, 'exchangeRate') != null
+                              ? new ExactDecimal(
+                                  decimalValue(asset, 'totalCost') ?? asset.totalCost
+                                )
+                                  .times(decimalValue(asset, 'exchangeRate')!)
+                                  .toFixed()
                               : undefined
                           }
                           baseCurrency={asset.baseCurrency}
@@ -547,7 +550,7 @@ export function AssetList({
                     <div className="flex justify-between text-sm">
                       <span className="text-text-secondary">{t('table.quantity')}:</span>
                       <span className="text-text-primary font-mono">
-                        {formatExactNumber(asset.quantity)}
+                        {formatExactNumber(decimalValue(asset, 'quantity') ?? asset.quantity)}
                       </span>
                     </div>
                     {asset.accountName && (

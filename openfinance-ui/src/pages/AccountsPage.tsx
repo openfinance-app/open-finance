@@ -284,7 +284,7 @@ export default function AccountsPage() {
               nativeTotal: '0',
               baseCurrencyTotal: '0',
               baseCurrency: account.baseCurrency,
-              hasConversion: false,
+              hasConversion: true,
             };
           }
           acc[currency].nativeTotal = exactSum([
@@ -296,8 +296,9 @@ export default function AccountsPage() {
               acc[currency].baseCurrencyTotal,
               decimalValue(account, 'balanceInBaseCurrency') ?? 0,
             ]);
-            acc[currency].hasConversion = true;
             if (account.baseCurrency) acc[currency].baseCurrency = account.baseCurrency;
+          } else {
+            acc[currency].hasConversion = false;
           }
           return acc;
         },
@@ -328,7 +329,7 @@ export default function AccountsPage() {
               nativeTotal: '0',
               baseCurrencyTotal: '0',
               baseCurrency: account.baseCurrency,
-              hasConversion: false,
+              hasConversion: true,
             };
           }
           acc[currency].nativeTotal = exactSum([
@@ -340,8 +341,9 @@ export default function AccountsPage() {
               acc[currency].baseCurrencyTotal,
               decimalValue(account, 'balanceInBaseCurrency') ?? 0,
             ]);
-            acc[currency].hasConversion = true;
             if (account.baseCurrency) acc[currency].baseCurrency = account.baseCurrency;
+          } else {
+            acc[currency].hasConversion = false;
           }
           return acc;
         },
@@ -569,11 +571,7 @@ export default function AccountsPage() {
       {!isLoading && accounts && accounts.length === 0 && (
         <EmptyState
           title={t('empty.noResults')}
-          description={
-            filters.keyword || filters.type || filters.currency || filters.institution
-              ? t('empty.noMatch')
-              : t('empty.noAccounts')
-          }
+          description={isFiltered ? t('empty.noMatch') : t('empty.noAccounts')}
           action={{
             label: t('addAccount'),
             onClick: handleCreate,

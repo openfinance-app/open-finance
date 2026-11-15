@@ -20,6 +20,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.NullAndEmptySource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -27,17 +29,26 @@ import org.openfinance.dto.AmortizationScheduleEntry;
 import org.openfinance.dto.LiabilityRequest;
 import org.openfinance.dto.LiabilityResponse;
 import org.openfinance.dto.LiabilityTrancheResponse;
+import org.openfinance.entity.Account;
+import org.openfinance.entity.AccountType;
+import org.openfinance.entity.Institution;
 import org.openfinance.entity.Liability;
 import org.openfinance.entity.LiabilityTranche;
 import org.openfinance.entity.LiabilityType;
+import org.openfinance.entity.MovementType;
 import org.openfinance.entity.TrancheStatus;
 import org.openfinance.entity.Transaction;
 import org.openfinance.entity.User;
+import org.openfinance.exception.InstitutionNotFoundException;
 import org.openfinance.exception.InvalidLiabilityStateException;
+import org.openfinance.exception.InvalidTransactionException;
 import org.openfinance.exception.LiabilityNotFoundException;
+import org.openfinance.repository.AccountRepository;
 import org.openfinance.repository.CurrencyRepository;
+import org.openfinance.repository.InstitutionRepository;
 import org.openfinance.repository.LiabilityRepository;
 import org.openfinance.repository.LiabilityTrancheRepository;
+import org.openfinance.repository.NetWorthRepository;
 import org.openfinance.repository.RealEstateRepository;
 import org.openfinance.repository.TransactionRepository;
 import org.openfinance.repository.UserRepository;
@@ -74,6 +85,10 @@ class LiabilityServiceTest {
     @Mock private LiabilityTrancheService liabilityTrancheService;
 
     @Mock private NetWorthService netWorthService;
+    @Mock private NetWorthRepository netWorthRepository;
+    @Mock private AccountRepository accountRepository;
+    @Mock private InstitutionRepository institutionRepository;
+    @Mock private AssetFinancingService assetFinancingService;
 
     @InjectMocks private LiabilityService liabilityService;
 
@@ -353,6 +368,306 @@ class LiabilityServiceTest {
     }
 
     // ============ Update Liability Tests ============
+
+    @ParameterizedTest
+    @ValueSource(strings = {"liability", "user", "request"})
+    void updateRequiresItsIdentifiersAndRequest(String missing) {
+        assertThatThrownBy(
+                        () ->
+                                liabilityService.updateLiability(
+                                        missing.equals("liability") ? null : 100L,
+                                        missing.equals("user") ? null : testUserId,
+                                        missing.equals("request") ? null : createValidRequest()))
+                .isInstanceOf(IllegalArgumentException.class);
+        org.mockito.Mockito.verifyNoInteractions(liabilityRepository);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"new balance source", "later historical boundary"})
+    void convertedLoansKeepTheirOriginalAccountingBoundary(String change) {
+        Liability loan = createLiabilityEntity(100L, testUserId);
+        loan.setConvertedFromAccountId(9L);
+        loan.setBalanceStartDate(loan.getStartDate());
+        LiabilityRequest request = createValidRequest();
+        if (change.equals("new balance source")) request.setRepresentedByAccountId(10L);
+        else request.setStartDate(loan.getStartDate().plusDays(1));
+        when(liabilityRepository.findByIdAndUserId(100L, testUserId)).thenReturn(Optional.of(loan));
+        assertThatThrownBy(() -> liabilityService.updateLiability(100L, testUserId, request))
+                .isInstanceOf(InvalidTransactionException.class)
+                .hasMessageContaining("historical");
+        verify(liabilityRepository, never()).save(any());
+    }
+
+    @ParameterizedTest
+    @ValueSource(
+            strings = {"transactions", "drawn tranche", "converted account", "represented account"})
+    void currencyCannotChangeWhenAnyAccountingHistoryOwnsTheBalance(String history) {
+        Liability loan = createLiabilityEntity(100L, testUserId);
+        LiabilityRequest request = createValidRequest();
+        request.setCurrency("EUR");
+        switch (history) {
+            case "transactions" -> when(transactionRepository.findByLiabilityIdAndUserId(
+                            100L, testUserId))
+                    .thenReturn(
+                            List.of(
+                                    Transaction.builder()
+                                            .date(loan.getStartDate())
+                                            .principalAmount(BigDecimal.ZERO)
+                                            .build()));
+            case "drawn tranche" -> when(liabilityTrancheRepository.findByLiabilityIdAndUserId(
+                            100L, testUserId))
+                    .thenReturn(
+                            List.of(
+                                    LiabilityTranche.builder()
+                                            .drawnAmount(BigDecimal.ONE)
+                                            .status(TrancheStatus.DRAWN)
+                                            .build()));
+            case "converted account" -> {
+                loan.setConvertedFromAccountId(9L);
+                loan.setBalanceStartDate(loan.getStartDate());
+            }
+            case "represented account" -> {
+                loan.setRepresentedByAccountId(9L);
+                loan.setType(LiabilityType.CREDIT_CARD);
+                request.setRepresentedByAccountId(9L);
+                request.setType(LiabilityType.CREDIT_CARD);
+                when(accountRepository.findByIdAndUserId(9L, testUserId))
+                        .thenReturn(Optional.of(creditCard("-250000")));
+            }
+            default -> throw new AssertionError(history);
+        }
+        when(liabilityRepository.findByIdAndUserId(100L, testUserId)).thenReturn(Optional.of(loan));
+        assertThatThrownBy(() -> liabilityService.updateLiability(100L, testUserId, request))
+                .isInstanceOf(InvalidTransactionException.class)
+                .hasMessageContaining("currency");
+        verify(liabilityRepository, never()).save(any());
+    }
+
+    @Test
+    void anUndrawnLoanCanChangeCurrencyAndItsPlannedTranchesFollow() {
+        Liability loan = createLiabilityEntity(100L, testUserId);
+        LiabilityRequest request = createValidRequest();
+        request.setCurrency("EUR");
+        LiabilityTranche tranche =
+                LiabilityTranche.builder()
+                        .id(10L)
+                        .status(TrancheStatus.PLANNED)
+                        .plannedAmount(new BigDecimal("12000.01"))
+                        .currency("USD")
+                        .build();
+        when(liabilityRepository.findByIdAndUserId(100L, testUserId)).thenReturn(Optional.of(loan));
+        when(liabilityTrancheRepository.findByLiabilityIdAndUserId(100L, testUserId))
+                .thenReturn(List.of(tranche));
+        when(liabilityRepository.save(any())).thenAnswer(call -> call.getArgument(0));
+        LiabilityResponse result = liabilityService.updateLiability(100L, testUserId, request);
+        assertThat(result.getCurrency()).isEqualTo("EUR");
+        assertThat(tranche.getCurrency()).isEqualTo("EUR");
+        assertThat(tranche.getPlannedAmount()).isEqualByComparingTo("12000.01");
+        verify(liabilityTrancheRepository).save(tranche);
+    }
+
+    @ParameterizedTest
+    @CsvSource({
+        "transaction,-1,false",
+        "transaction,0,true",
+        "transaction,1,true",
+        "tranche,-1,false",
+        "tranche,0,true",
+        "tranche,1,true",
+        "planned,0,true"
+    })
+    void originationCanMoveOnlyAsFarAsTheFirstRecordedMovement(
+            String source, int offset, boolean allowed) {
+        Liability loan = createLiabilityEntity(100L, testUserId);
+        LiabilityRequest request = createValidRequest();
+        LocalDate original = loan.getStartDate();
+        LocalDate proposed = original.plusDays(10);
+        request.setStartDate(proposed);
+        if (source.equals("transaction")) {
+            when(transactionRepository.findByLiabilityIdAndUserId(100L, testUserId))
+                    .thenReturn(
+                            List.of(
+                                    Transaction.builder()
+                                            .date(proposed.plusDays(offset))
+                                            .isDeleted(false)
+                                            .movementType(MovementType.REPAYMENT)
+                                            .principalAmount(BigDecimal.ZERO)
+                                            .build()));
+        } else {
+            when(liabilityTrancheRepository.findByLiabilityIdAndUserId(100L, testUserId))
+                    .thenReturn(
+                            List.of(
+                                    LiabilityTranche.builder()
+                                            .status(
+                                                    source.equals("planned")
+                                                            ? TrancheStatus.PLANNED
+                                                            : TrancheStatus.DRAWN)
+                                            .drawnDate(
+                                                    source.equals("planned")
+                                                            ? null
+                                                            : proposed.plusDays(offset))
+                                            .drawnAmount(
+                                                    source.equals("planned")
+                                                            ? null
+                                                            : BigDecimal.ONE)
+                                            .build()));
+        }
+        when(liabilityRepository.findByIdAndUserId(100L, testUserId)).thenReturn(Optional.of(loan));
+        if (allowed) {
+            when(liabilityRepository.save(any())).thenAnswer(call -> call.getArgument(0));
+            assertThat(liabilityService.updateLiability(100L, testUserId, request).getStartDate())
+                    .isEqualTo(proposed);
+            verify(netWorthRepository)
+                    .deleteByUserIdAndSnapshotDateBetween(
+                            testUserId, original.withDayOfMonth(1), LocalDate.now());
+        } else {
+            assertThatThrownBy(() -> liabilityService.updateLiability(100L, testUserId, request))
+                    .isInstanceOf(InvalidTransactionException.class)
+                    .hasMessageContaining("origination");
+            verify(liabilityRepository, never()).save(any());
+        }
+    }
+
+    @ParameterizedTest
+    @CsvSource({
+        "0,false,100,0",
+        "0,true,100,100",
+        "0,,100,0",
+        "120,false,100,120",
+        "50,false,100,100"
+    })
+    void openingPrincipalDistinguishesUndrawnAndPreviouslyFundedLoans(
+            BigDecimal balance, Boolean funded, BigDecimal principal, BigDecimal expected) {
+        Liability loan = createLiabilityEntity(100L, testUserId);
+        LiabilityRequest request = createValidRequest();
+        request.setCurrentBalance(balance);
+        request.setPrincipal(principal);
+        request.setPreviouslyFunded(funded);
+        when(liabilityRepository.findByIdAndUserId(100L, testUserId)).thenReturn(Optional.of(loan));
+        when(liabilityRepository.save(any())).thenAnswer(call -> call.getArgument(0));
+        liabilityService.updateLiability(100L, testUserId, request);
+        assertThat(loan.getOpeningBalance()).isEqualByComparingTo(balance);
+        assertThat(loan.getOpeningPrincipal()).isEqualByComparingTo(expected);
+    }
+
+    @ParameterizedTest
+    @NullAndEmptySource
+    @ValueSource(strings = {" ", "Renegotiated terms"})
+    void clearingOptionalTermsRemovesTheirPreviousValues(String notes) {
+        Liability loan = createLiabilityEntity(100L, testUserId);
+        loan.setInsurancePercentage("0.2");
+        loan.setAdditionalFees("50");
+        loan.setInstitution(Institution.builder().id(8L).name("Old bank").build());
+        LiabilityRequest request = createValidRequest();
+        request.setInterestRate(null);
+        request.setMinimumPayment(null);
+        request.setEndDate(null);
+        request.setNotes(notes);
+        when(liabilityRepository.findByIdAndUserId(100L, testUserId)).thenReturn(Optional.of(loan));
+        when(liabilityRepository.save(any())).thenAnswer(call -> call.getArgument(0));
+        LiabilityResponse result = liabilityService.updateLiability(100L, testUserId, request);
+        assertThat(result.getInterestRate()).isNull();
+        assertThat(result.getMinimumPayment()).isNull();
+        assertThat(result.getInsurancePercentage()).isNull();
+        assertThat(result.getAdditionalFees()).isNull();
+        assertThat(result.getInstitution()).isNull();
+        assertThat(result.getNotes()).isEqualTo(notes == null || notes.isBlank() ? null : notes);
+    }
+
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    void institutionsMustBeVisibleToTheLoanOwner(boolean visible) {
+        Liability loan = createLiabilityEntity(100L, testUserId);
+        LiabilityRequest request = createValidRequest();
+        request.setInstitutionId(8L);
+        Institution bank = Institution.builder().id(8L).name("New bank").build();
+        when(institutionRepository.findVisibleById(8L, testUserId))
+                .thenReturn(visible ? Optional.of(bank) : Optional.empty());
+        when(liabilityRepository.findByIdAndUserId(100L, testUserId)).thenReturn(Optional.of(loan));
+        if (visible) {
+            when(liabilityRepository.save(any())).thenAnswer(call -> call.getArgument(0));
+            assertThat(
+                            liabilityService
+                                    .updateLiability(100L, testUserId, request)
+                                    .getInstitution()
+                                    .getName())
+                    .isEqualTo("New bank");
+        } else {
+            assertThatThrownBy(() -> liabilityService.updateLiability(100L, testUserId, request))
+                    .isInstanceOf(InstitutionNotFoundException.class);
+            verify(liabilityRepository, never()).save(any());
+        }
+    }
+
+    @ParameterizedTest
+    @ValueSource(
+            strings = {
+                "inactive",
+                "unknown active status",
+                "wrong account type",
+                "wrong liability type",
+                "different currency",
+                "different balance",
+                "already represented"
+            })
+    void unsafeCreditCardBalanceSourcesAreRejected(String invalid) {
+        Liability loan = createLiabilityEntity(100L, testUserId);
+        LiabilityRequest request = createValidRequest();
+        request.setRepresentedByAccountId(9L);
+        request.setType(LiabilityType.CREDIT_CARD);
+        Account account = creditCard("-250000");
+        switch (invalid) {
+            case "inactive" -> account.setIsActive(false);
+            case "unknown active status" -> account.setIsActive(null);
+            case "wrong account type" -> account.setType(AccountType.CHECKING);
+            case "wrong liability type" -> request.setType(LiabilityType.MORTGAGE);
+            case "different currency" -> account.setCurrency("EUR");
+            case "different balance" -> account.setBalance(new BigDecimal("-250001"));
+            case "already represented" -> when(liabilityRepository
+                            .existsByRepresentedByAccountIdAndUserId(9L, testUserId))
+                    .thenReturn(true);
+            default -> throw new AssertionError(invalid);
+        }
+        when(accountRepository.findByIdAndUserId(9L, testUserId)).thenReturn(Optional.of(account));
+        when(liabilityRepository.findByIdAndUserId(100L, testUserId)).thenReturn(Optional.of(loan));
+        assertThatThrownBy(() -> liabilityService.updateLiability(100L, testUserId, request))
+                .isInstanceOf(InvalidTransactionException.class)
+                .hasMessageContaining("credit-card account");
+        verify(liabilityRepository, never()).save(any());
+    }
+
+    @ParameterizedTest
+    @CsvSource({"-250000,250000,ACTIVE", "20,0,NO_BALANCE", "0,0,NO_BALANCE"})
+    void aCreditCardAccountOwnsTheDebtAndNeverTurnsACreditIntoNegativeDebt(
+            BigDecimal accountBalance, BigDecimal debt, String status) {
+        Liability loan = createLiabilityEntity(100L, testUserId);
+        LiabilityRequest request = createValidRequest();
+        request.setRepresentedByAccountId(9L);
+        request.setType(LiabilityType.CREDIT_CARD);
+        request.setCurrentBalance(debt);
+        when(accountRepository.findByIdAndUserId(9L, testUserId))
+                .thenReturn(Optional.of(creditCard(accountBalance.toPlainString())));
+        when(liabilityRepository.findByIdAndUserId(100L, testUserId)).thenReturn(Optional.of(loan));
+        when(liabilityRepository.save(any())).thenAnswer(call -> call.getArgument(0));
+        LiabilityResponse result = liabilityService.updateLiability(100L, testUserId, request);
+        assertThat(result.getCurrentBalance()).isEqualByComparingTo(debt);
+        assertThat(result.getRepresentedByAccountId()).isEqualTo(9L);
+        assertThat(result.getBalanceLocked()).isTrue();
+        assertThat(result.getFundingStatus()).isEqualTo(status);
+        assertThat(result.getPrincipalPaid()).isNull();
+        assertThat(result.getFundedAmount()).isNull();
+    }
+
+    private Account creditCard(String balance) {
+        return Account.builder()
+                .id(9L)
+                .userId(testUserId)
+                .type(AccountType.CREDIT_CARD)
+                .currency("USD")
+                .isActive(true)
+                .balance(new BigDecimal(balance))
+                .build();
+    }
 
     @Test
     void shouldUpdateLiability_WhenValid() {

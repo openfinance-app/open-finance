@@ -1,5 +1,6 @@
 package org.openfinance.service;
 
+import static org.openfinance.service.ImportedAccountRouting.hasImportedDestinationReference;
 import static org.openfinance.service.ImportedAccountRouting.resolveImportedAccountId;
 import static org.openfinance.service.ImportedAccountRouting.resolveImportedDestinationAccountId;
 
@@ -21,7 +22,7 @@ final class ImportedTransferMatcher {
         ImportedTransferMatcher matcher = new ImportedTransferMatcher();
         Groups groups = new Groups();
         for (ImportedTransaction row : rows) {
-            if (!row.isTransfer() || row.getToAccountName() == null) continue;
+            if (!row.isTransfer() || !hasImportedDestinationReference(row)) continue;
             Long source = resolveImportedAccountId(row, accountIds, fallback);
             Long target = resolveImportedDestinationAccountId(row, accountIds, fallback);
             if (source == null || target == null) continue;

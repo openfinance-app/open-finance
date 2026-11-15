@@ -11,16 +11,22 @@ const mockDismissMutateAsync = vi.fn();
 const mockDismissAllMutateAsync = vi.fn();
 const mockRefetch = vi.fn();
 let mockDismissAllPending = false;
+let mockGenerationPending = false;
+let mockUnavailableSources: string[] = [];
 let mockUseTopInsightsReturn: {
   data: Insight[] | undefined;
   isLoading: boolean;
-  error: Error | null;
+  error: unknown;
   refetch: typeof mockRefetch;
 };
 
 vi.mock('@/hooks/useInsights', () => ({
   useTopInsights: () => mockUseTopInsightsReturn,
-  useGenerateInsights: () => ({ mutateAsync: mockGenerateMutateAsync, isPending: false }),
+  useGenerateInsights: () => ({
+    mutateAsync: mockGenerateMutateAsync,
+    isPending: mockGenerationPending,
+    unavailableSources: mockUnavailableSources,
+  }),
   useDismissInsight: () => ({ mutateAsync: mockDismissMutateAsync, isPending: false }),
   useDismissAllInsights: () => ({
     mutateAsync: mockDismissAllMutateAsync,
@@ -44,6 +50,10 @@ describe('InsightsCard', () => {
     vi.clearAllMocks();
     mockAuthentication();
     mockDismissAllPending = false;
+    mockGenerationPending = false;
+    mockUnavailableSources = [];
+    mockGenerateMutateAsync.mockReset().mockResolvedValue(undefined);
+    mockDismissMutateAsync.mockReset().mockResolvedValue(undefined);
     mockDismissAllMutateAsync.mockReset().mockResolvedValue(undefined);
     Element.prototype.scrollIntoView = vi.fn();
     await i18n.changeLanguage('en');
@@ -53,6 +63,89 @@ describe('InsightsCard', () => {
       error: null,
       refetch: mockRefetch,
     };
+  });
+
+  it.each(['loading', 'error', 'empty', 'populated'])(
+    'retains a partial-refresh warning in the %s view',
+    state => {
+      mockUnavailableSources = ['market-data'];
+      mockUseTopInsightsReturn = {
+        ...mockUseTopInsightsReturn,
+        isLoading: state === 'loading',
+        error: state === 'error' ? 'offline' : null,
+        data: state === 'populated' ? [makeInsight()] : [],
+      };
+      renderWithProviders(<InsightsCard />);
+      expect(screen.getByRole('status')).toHaveTextContent(
+        i18n.t('dashboard:insightsCard.partialRefresh')
+      );
+      if (state === 'error')
+        expect(screen.getByText(i18n.t('dashboard:errors.unexpected'))).toBeVisible();
+    }
+  );
+
+  it.each(['loading', 'error', 'empty'])(
+    'preserves refresh errors while the query changes to %s',
+    async state => {
+      mockGenerateMutateAsync.mockRejectedValueOnce(new Error('offline'));
+      const { rerender } = renderWithProviders(<InsightsCard />);
+      fireEvent.click(
+        screen.getByRole('button', { name: i18n.t('dashboard:insightsCard.refresh') })
+      );
+      expect(await screen.findByRole('alert')).toHaveTextContent(
+        i18n.t('dashboard:insightsCard.refreshFailed')
+      );
+      mockUseTopInsightsReturn = {
+        ...mockUseTopInsightsReturn,
+        isLoading: state === 'loading',
+        error: state === 'error' ? new Error('query failed') : null,
+        data: [],
+      };
+      rerender(<InsightsCard />);
+      expect(screen.getByRole('alert')).toHaveTextContent(
+        i18n.t('dashboard:insightsCard.refreshFailed')
+      );
+    }
+  );
+
+  it('restores a dismissed card after a failed request so dismissal can be retried', async () => {
+    mockDismissMutateAsync.mockRejectedValueOnce(new Error('offline'));
+    renderWithProviders(<InsightsCard />);
+    const dismiss = screen.getByRole('button', { name: i18n.t('dashboard:insightsCard.dismiss') });
+    fireEvent.click(dismiss);
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      i18n.t('dashboard:insightsCard.dismissFailed')
+    );
+    expect(screen.getByText('High spending in Restaurants').closest('.group')).toHaveClass(
+      'opacity-100'
+    );
+    fireEvent.click(dismiss);
+    await waitFor(() => expect(mockDismissMutateAsync).toHaveBeenCalledTimes(2));
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  });
+
+  it('formats French dates in the card and details and closes details on Escape', async () => {
+    await i18n.changeLanguage('fr');
+    mockUseTopInsightsReturn.data = [
+      makeInsight({ createdAt: new Date(Date.now() - 86400000).toISOString() }),
+    ];
+    renderWithProviders(<InsightsCard />);
+    expect(screen.getByText(/il y a/)).toBeVisible();
+    fireEvent.click(screen.getByText('High spending in Restaurants'));
+    expect(within(screen.getByRole('dialog')).getByText(/il y a/)).toBeVisible();
+    fireEvent.keyDown(screen.getByRole('dialog'), { key: 'Escape' });
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+  });
+
+  it('disables refresh and dismissal during generation', () => {
+    mockGenerationPending = true;
+    renderWithProviders(<InsightsCard />);
+    const refresh = screen.getByRole('button', { name: i18n.t('dashboard:insightsCard.refresh') });
+    expect(refresh).toBeDisabled();
+    expect(refresh).toHaveAttribute('aria-busy', 'true');
+    expect(
+      screen.getByRole('button', { name: i18n.t('dashboard:insightsCard.dismiss') })
+    ).toBeDisabled();
   });
 
   it('renders with data', () => {

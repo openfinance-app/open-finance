@@ -505,7 +505,7 @@ public class CsvParser {
             Integer index = headerMap.get(name);
             if (index != null && index < row.length) {
                 String value = row[index].trim();
-                return value.isEmpty() ? null : value;
+                if (!value.isEmpty()) return value;
             }
         }
         return null; // Not found

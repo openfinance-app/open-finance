@@ -1,3 +1,6 @@
+import { http, HttpResponse } from 'msw';
+import { server } from '@/test/mocks/server';
+import type { LiabilityTranche } from '@/types/liability';
 /**
  * Unit tests for PropertyMovementsSection (Task 8)
  *
@@ -5,15 +8,29 @@
  * realEstateId transaction filter) and the Loan movements section
  * (repayments/disbursements of the property's mortgage).
  */
-import { screen, within } from '@testing-library/react';
+import { screen, within, waitFor } from '@testing-library/react';
 import { vi, describe, it, expect, beforeEach } from 'vitest';
-import { mockAuthentication, renderWithProviders } from '@/test/test-utils';
+import { mockAuthentication, renderWithProviders, userEvent } from '@/test/test-utils';
 import { PropertyMovementsSection } from '@/components/real-estate/PropertyMovementsSection';
 import * as useTransactionsModule from '@/hooks/useTransactions';
 import * as useLiabilitiesModule from '@/hooks/useLiabilities';
 import type { RealEstateProperty } from '@/types/realEstate';
 import type { Transaction } from '@/types/transaction';
 import type { AmountDisplayMode } from '@/context/CurrencyDisplayContext';
+
+vi.mock('@/components/assets/RecordCostForm', () => ({
+  RecordCostForm: ({
+    target,
+    onClose,
+  }: {
+    target: { id: number; kind: string };
+    onClose: () => void;
+  }) => (
+    <section aria-label={`Cost for ${target.kind} ${target.id}`}>
+      <button onClick={onClose}>Close cost form</button>
+    </section>
+  ),
+}));
 
 const currencyDisplay = vi.hoisted(() => ({ mode: 'base' as AmountDisplayMode }));
 vi.mock('@/context/CurrencyDisplayContext', async importOriginal => ({
@@ -112,6 +129,10 @@ const repaymentTx: Transaction = {
 describe('PropertyMovementsSection', () => {
   beforeEach(() => {
     mockAuthentication();
+    server.use(
+      http.get('*/real-estate/7/drawdowns', () => HttpResponse.json([])),
+      http.get('*/real-estate/7/loan-movements', () => HttpResponse.json([]))
+    );
     vi.clearAllMocks();
     currencyDisplay.mode = 'base';
     mockUseTransactions.mockReturnValue({
@@ -344,5 +365,142 @@ describe('PropertyMovementsSection', () => {
     // Costs data is available but loan movements still load → skeleton, not rows
     expect(document.querySelector('.animate-pulse')).toBeInTheDocument();
     expect(screen.queryByText('Kitchen renovation')).not.toBeInTheDocument();
+  });
+  it.each([
+    { isActive: false },
+    { soldDate: '2026-01-01' },
+    { acquisitionType: 'PLANNED' as const },
+  ])('closed or planned properties cannot add costs: %j', fields => {
+    renderWithProviders(<PropertyMovementsSection property={{ ...mockProperty, ...fields }} />);
+    expect(screen.queryByRole('button', { name: 'Add cost' })).not.toBeInTheDocument();
+  });
+
+  it('opens the cost form for the correct property and can close then reopen it', async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<PropertyMovementsSection property={mockProperty} />);
+    const add = screen.getByRole('button', { name: 'Add cost' });
+    await user.click(add);
+    expect(add).toBeDisabled();
+    expect(screen.getByRole('region', { name: 'Cost for property 7' })).toBeVisible();
+    await user.click(screen.getByRole('button', { name: 'Close cost form' }));
+    expect(add).toBeEnabled();
+    await user.click(add);
+    expect(screen.getByRole('region', { name: 'Cost for property 7' })).toBeVisible();
+  });
+
+  it.each([false, true])(
+    'direct funding keeps reversal and capitalized-cost meaning: %s',
+    async reversed => {
+      const draw: LiabilityTranche = {
+        id: 1,
+        liabilityId: 42,
+        trancheNo: 2,
+        plannedAmount: 12,
+        remaining: 0,
+        status: 'DRAWN',
+        currency: 'USD',
+        drawnAmount: 12,
+        drawnDate: '2026-01-02',
+        capitalizedAmount: reversed ? 12 : undefined,
+        reversedDate: reversed ? '2026-01-03' : null,
+        exactValues: { drawnAmount: '12.345' },
+      };
+      server.use(http.get('*/real-estate/7/drawdowns', () => HttpResponse.json([draw])));
+      renderWithProviders(<PropertyMovementsSection property={mockProperty} />);
+      const list = within(await screen.findByRole('region', { name: 'Funding drawdowns' }));
+      expect(list.getByText('$12.35')).toBeVisible();
+      if (reversed) {
+        expect(list.getByText(/reversed 2026-01-03/)).toBeVisible();
+        expect(list.getByText('Added to property cost')).toBeVisible();
+      } else expect(list.queryByText('Added to property cost')).not.toBeInTheDocument();
+    }
+  );
+
+  it.each(['drawdowns', 'loan-movements'])(
+    'reports failed %s requests instead of presenting a partial history as complete',
+    async endpoint => {
+      server.use(
+        http.get(`*/real-estate/7/${endpoint}`, () => new HttpResponse(null, { status: 500 }))
+      );
+      renderWithProviders(<PropertyMovementsSection property={mockProperty} />);
+      expect(await screen.findByText(/Failed to load movements/)).toBeVisible();
+    }
+  );
+
+  it('deduplicates related loans and discards transactions without a loan classification', async () => {
+    server.use(
+      http.get('*/real-estate/7/loan-movements', () =>
+        HttpResponse.json([
+          repaymentTx,
+          { ...repaymentTx, id: 104, description: 'Unclassified', movementType: null },
+          { ...repaymentTx, id: 105, description: 'Unrelated cost', movementType: 'MAINTENANCE' },
+          { ...repaymentTx, id: 106, description: 'Loan fee', movementType: 'FEE' },
+        ])
+      )
+    );
+    renderWithProviders(<PropertyMovementsSection property={mockProperty} />);
+    expect(await screen.findByText('Loan fee')).toBeVisible();
+    expect(screen.getAllByText('Mortgage payment')).toHaveLength(1);
+    expect(screen.queryByText('Unclassified')).not.toBeInTheDocument();
+    expect(screen.queryByText('Unrelated cost')).not.toBeInTheDocument();
+  });
+
+  it('uses a transaction fallback label and the property currency for older cost records', () => {
+    mockUseTransactions.mockReturnValue({
+      data: { content: [{ ...kitchenTx, description: '', currency: '' }], totalPages: 1 },
+      isLoading: false,
+      error: null,
+    } as unknown as ReturnType<typeof useTransactionsModule.useTransactions>);
+    renderWithProviders(<PropertyMovementsSection property={mockProperty} />);
+    expect(screen.getByRole('link', { name: /Transaction #101/ })).toHaveAttribute(
+      'href',
+      '/transactions?realEstateId=7&highlight=101'
+    );
+    expect(screen.getByText('$15,000.00')).toBeVisible();
+  });
+
+  it('ordinary imported holding income is not labeled as a transfer', () => {
+    mockUseTransactions.mockReturnValue({
+      data: {
+        content: [{ ...kitchenTx, assetId: 8, movementType: undefined, type: 'INCOME' }],
+        totalPages: 1,
+      },
+      isLoading: false,
+      error: null,
+    } as unknown as ReturnType<typeof useTransactionsModule.useTransactions>);
+    renderWithProviders(
+      <PropertyMovementsSection
+        property={{
+          ...mockProperty,
+          assetId: 8,
+          convertedFromHolding: true,
+          mortgageId: undefined,
+        }}
+      />
+    );
+    expect(screen.getByRole('link', { name: /Kitchen renovation\s*Income/ })).toBeVisible();
+    expect(mockUseLiabilityTransactions).toHaveBeenCalledWith(null);
+  });
+
+  it('page navigation requests both directions and prevents stepping beyond the last page', async () => {
+    const user = userEvent.setup();
+    mockUseTransactions.mockReturnValue({
+      data: { content: [kitchenTx], totalPages: 2 },
+      isLoading: false,
+      error: null,
+    } as unknown as ReturnType<typeof useTransactionsModule.useTransactions>);
+    renderWithProviders(<PropertyMovementsSection property={mockProperty} />);
+    const previous = screen.getByRole('button', { name: 'Previous' });
+    const next = screen.getByRole('button', { name: 'Next' });
+    expect(previous).toBeDisabled();
+    await user.click(next);
+    await waitFor(() =>
+      expect(mockUseTransactions).toHaveBeenLastCalledWith(expect.objectContaining({ page: 1 }))
+    );
+    expect(next).toBeDisabled();
+    await user.click(previous);
+    await waitFor(() =>
+      expect(mockUseTransactions).toHaveBeenLastCalledWith(expect.objectContaining({ page: 0 }))
+    );
   });
 });

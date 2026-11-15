@@ -244,6 +244,7 @@ public class BudgetService {
         if (!preserved
                 && (!request.getStartDate().equals(budget.getStartDate())
                         || !request.getEndDate().equals(budget.getEndDate())
+                        || request.getPeriod() != budget.getPeriod()
                         || !request.getCategoryId().equals(budget.getCategoryId())
                         || !request.getCurrency().equals(budget.getCurrency())
                         || request.getAmount().compareTo(new BigDecimal(budget.getAmount())) != 0

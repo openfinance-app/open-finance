@@ -41,6 +41,9 @@ public class OpenAIProvider implements AIProvider {
         dev.langchain4j.model.openai.OpenAiTokenizer selected;
         try {
             selected = new dev.langchain4j.model.openai.OpenAiTokenizer(model);
+            // Tokenizer model lookup is lazy; resolve it here so unsupported models use
+            // the conservative fallback instead of failing during context budgeting.
+            selected.estimateTokenCountInText("");
         } catch (IllegalArgumentException ex) {
             selected = null;
         }

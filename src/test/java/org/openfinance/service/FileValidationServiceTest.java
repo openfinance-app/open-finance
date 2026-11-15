@@ -9,9 +9,12 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.Locale;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.openfinance.config.ImportProperties;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.web.multipart.MultipartFile;
@@ -578,5 +581,72 @@ class FileValidationServiceTest {
         // The script tag sits past the 100-line scan window, so this passes validation today.
         // Downstream parsers treat rows as data; pinning the bound makes the limit explicit.
         assertTrue(fileValidationService.validate(file).isValid());
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"en", "tr-TR"})
+    @DisplayName(
+            "Uppercase file extensions and script markers are interpreted independently of server locale")
+    void validatesMachineTokensWithoutLocaleDependence(String language) {
+        Locale previous = Locale.getDefault();
+        Locale.setDefault(Locale.forLanguageTag(language));
+        try {
+            MockMultipartFile valid =
+                    new MockMultipartFile(
+                            "file",
+                            "statement.QIF",
+                            "text/plain",
+                            "!Type:Bank\nD01/15/2024\nT1\n^".getBytes(StandardCharsets.UTF_8));
+            assertTrue(fileValidationService.validate(valid).isValid());
+            MockMultipartFile invalid =
+                    new MockMultipartFile(
+                            "file",
+                            "statement.csv",
+                            "text/csv",
+                            "date,description,amount\n2024-01-15,JAVASCRIPT:alert(1),1"
+                                    .getBytes(StandardCharsets.UTF_8));
+            assertFalse(fileValidationService.validate(invalid).isValid());
+        } finally {
+            Locale.setDefault(previous);
+        }
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"operation", "suboperation", "account"})
+    @DisplayName("Skrooge recognition works with any identifying collection first")
+    void recognizesAlternativeJsonCollectionOrder(String collection) throws Exception {
+        MockMultipartFile file =
+                new MockMultipartFile(
+                        "file",
+                        "export.json",
+                        "application/json",
+                        ("{\"" + collection + "\":[]}").getBytes(StandardCharsets.UTF_8));
+        assertEquals("json", fileValidationService.detectFileFormat(file));
+    }
+
+    @Test
+    @DisplayName("An OFX root on the first line is recognized without a declaration")
+    void recognizesInlineOfxRoot() throws Exception {
+        MockMultipartFile file =
+                new MockMultipartFile(
+                        "file",
+                        "statement.ofx",
+                        "text/plain",
+                        " <OFX><BANKMSGSRSV1></BANKMSGSRSV1></OFX>"
+                                .getBytes(StandardCharsets.UTF_8));
+        assertEquals("ofx", fileValidationService.detectFileFormat(file));
+    }
+
+    @Test
+    @DisplayName("A whitespace-only filename is rejected even when the file has valid content")
+    void rejectsBlankFilename() {
+        MockMultipartFile file =
+                new MockMultipartFile(
+                        "file",
+                        " ",
+                        "text/plain",
+                        "!Type:Bank\n^".getBytes(StandardCharsets.UTF_8));
+        assertEquals(
+                "File name is missing", fileValidationService.validate(file).getErrorMessage());
     }
 }

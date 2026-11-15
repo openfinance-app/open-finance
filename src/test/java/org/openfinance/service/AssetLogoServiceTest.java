@@ -15,6 +15,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.NullAndEmptySource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.openfinance.config.CacheConfig;
@@ -137,5 +139,51 @@ class AssetLogoServiceTest {
 
     private SymbolSearchResult result(String symbol, String type) {
         return SymbolSearchResult.builder().symbol(symbol).type(type).logoUrl(URL).build();
+    }
+
+    @ParameterizedTest
+    @NullAndEmptySource
+    @ValueSource(strings = {" "})
+    void missingCompanyNamesDoNotCauseDomainRequests(String name) {
+        assertThat(service.resolveLogo(AssetType.STOCK, " ", name)).isNull();
+        assertThat(service.resolveLogo(AssetType.ETF, null, "Fund")).isNull();
+        assertThat(service.resolveLogo(null, "ABC", "Unknown")).isNull();
+        verifyNoInteractions(marketDataProvider, logoFetchService);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"BTC/USD", "BTC-USD-EUR", "../BTC", "BTC?token=secret", "BTC USD"})
+    void malformedCryptoSymbolsNeverReachTheProvider(String symbol) {
+        assertThat(service.resolveLogo(AssetType.CRYPTO, symbol, "Coin")).isNull();
+        verifyNoInteractions(marketDataProvider, logoFetchService);
+    }
+
+    @ParameterizedTest
+    @NullAndEmptySource
+    @ValueSource(strings = {" "})
+    void missingDisplayNameUsesOnlyTheMatchedProviderCompanyName(String name) {
+        when(marketDataProvider.searchSymbol("ACME"))
+                .thenReturn(
+                        List.of(
+                                SymbolSearchResult.builder()
+                                        .symbol("ACME")
+                                        .type("EQUITY")
+                                        .name("Acme Ltd")
+                                        .build()));
+        when(logoFetchService.fetchLogo("Acme Ltd")).thenReturn(Optional.of(LOGO));
+        assertThat(service.resolveLogo(AssetType.STOCK, "ACME", name)).isEqualTo(LOGO);
+        verify(logoFetchService).fetchLogo("Acme Ltd");
+    }
+
+    @ParameterizedTest
+    @CsvSource({"ETF,ETF", "MUTUAL_FUND,MUTUALFUND", "CRYPTO,CRYPTOCURRENCY"})
+    void missingFundOrCoinLogoDoesNotBorrowACompanyBrand(AssetType type, String quoteType) {
+        String symbol = type == AssetType.CRYPTO ? "ACME-USD" : "ACME";
+        when(marketDataProvider.searchSymbol(symbol))
+                .thenReturn(List.of(result(symbol, quoteType)));
+        assertThat(service.resolveLogo(type, symbol, "Acme")).isNull();
+        verify(logoFetchService).fetchMarketLogo(URL);
+        org.mockito.Mockito.verify(logoFetchService, org.mockito.Mockito.never())
+                .fetchLogo(org.mockito.ArgumentMatchers.any());
     }
 }

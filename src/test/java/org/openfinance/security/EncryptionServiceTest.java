@@ -12,6 +12,8 @@ import javax.crypto.SecretKey;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 /**
  * Unit tests for EncryptionService.
@@ -674,5 +676,43 @@ class EncryptionServiceTest {
         assertThrows(
                 IllegalStateException.class,
                 () -> encryptionService.decryptBytes(new byte[13], testKey));
+    }
+
+    @ParameterizedTest
+    @ValueSource(ints = {96, 104, 112, 120, 128})
+    @DisplayName("Every supported authentication tag size round-trips and rejects tampering")
+    void supportedTagSizesAuthenticateBothTextAndBinary(int bits) {
+        EncryptionService service = new EncryptionService("AES/GCM/NoPadding", 12, bits);
+        String encrypted = service.encrypt("Account", testKey);
+        assertEquals("Account", service.decrypt(encrypted, testKey));
+        byte[] binary = service.encryptBytes(new byte[0], testKey);
+        assertEquals(12 + bits / 8, binary.length);
+        assertArrayEquals(new byte[0], service.decryptBytes(binary, testKey));
+        binary[binary.length - 1] ^= 1;
+        assertThrows(IllegalStateException.class, () -> service.decryptBytes(binary, testKey));
+    }
+
+    @Test
+    @DisplayName("Missing keys cannot encrypt or decrypt a populated batch")
+    void refusesNullKeysForPopulatedOperations() {
+        String encrypted = encryptionService.encrypt("Account", testKey);
+        assertThrows(
+                IllegalArgumentException.class, () -> encryptionService.encrypt("Account", null));
+        assertThrows(
+                IllegalArgumentException.class, () -> encryptionService.decrypt(encrypted, null));
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> encryptionService.encryptBatch(java.util.List.of("Account"), null));
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> encryptionService.decryptBatch(java.util.List.of(encrypted), null));
+    }
+
+    @Test
+    @DisplayName("Empty decryption batches require no key and whitespace is not ciphertext")
+    void handlesEmptyDecryptInputsWithoutPartialOutput() {
+        assertTrue(encryptionService.decryptBatch(null, null).isEmpty());
+        assertTrue(encryptionService.decryptBatch(java.util.List.of(), null).isEmpty());
+        assertThrows(IllegalArgumentException.class, () -> encryptionService.decrypt(" ", testKey));
     }
 }

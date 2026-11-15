@@ -3,13 +3,14 @@
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { act } from 'react';
-import { screen, waitFor } from '@testing-library/react';
+import { screen, waitFor, fireEvent } from '@testing-library/react';
 import {
   renderWithProviders,
   mockAuthentication,
   clearAuthentication,
   userEvent,
 } from '@/test/test-utils';
+import i18n from '@/test/i18n-test';
 import TransactionsPage from '@/pages/TransactionsPage';
 import type { TransactionFilters } from '@/types/transaction';
 
@@ -147,13 +148,55 @@ vi.mock('@/components/transactions/TransactionForm', () => ({
       >
         Submit
       </button>
+      <button
+        onClick={() =>
+          onSubmit({
+            type: 'TRANSFER',
+            accountId: 1,
+            toAccountId: 2,
+            amount: '10.000000000000000001',
+            currency: 'USD',
+            date: '2026-01-01',
+            description: 'Move cash',
+          })
+        }
+      >
+        Record transfer
+      </button>
       <button onClick={onCancel}>Cancel</button>
     </div>
   ),
 }));
 
 vi.mock('@/components/transactions/TransactionFilters', () => ({
-  TransactionFilters: () => <div data-testid="transaction-filters">Filters</div>,
+  TransactionFilters: ({
+    filters,
+    onFiltersChange,
+  }: {
+    filters: TransactionFilters;
+    onFiltersChange: (filters: TransactionFilters) => void;
+  }) => (
+    <div data-testid="transaction-filters">
+      Filters
+      <button onClick={() => onFiltersChange({ ...filters, keyword: 'unmatched' })}>
+        Search unmatched
+      </button>
+      <button
+        onClick={() =>
+          onFiltersChange({
+            page: 0,
+            size: 20,
+            sort: 'date,asc',
+            keyword: '',
+            payee: undefined,
+            categoryId: null,
+          })
+        }
+      >
+        Clear active filters
+      </button>
+    </div>
+  ),
 }));
 
 vi.mock('@/components/transactions/TransactionDetailModal', () => ({
@@ -206,6 +249,50 @@ describe('TransactionsPage', () => {
   it('renders page heading', () => {
     renderWithProviders(<TransactionsPage />);
     expect(screen.getByRole('heading', { name: 'Transactions' })).toBeInTheDocument();
+  });
+
+  it.each(['category', 'categoryId'])(
+    'applies the %s deep-link filter and explains an empty result',
+    key => {
+      window.history.replaceState({}, '', `/transactions?${key}=12`);
+      mockPagedResponse = { content: [], totalElements: 0, totalPages: 0, number: 0, size: 20 };
+      renderWithProviders(<TransactionsPage />);
+      expect(lastCapturedFilters?.categoryId).toBe(12);
+      expect(screen.getByText(i18n.t('transactions:empty.noMatch'))).toBeVisible();
+      window.history.replaceState({}, '', '/transactions');
+    }
+  );
+  it('consumes the dashboard create action and submits transfers through the transfer mutation', async () => {
+    window.history.replaceState(
+      { usr: { openForm: true }, key: 'from-dashboard', idx: 0 },
+      '',
+      '/transactions'
+    );
+    mockCreateTransferMutateAsync.mockResolvedValueOnce({ id: 8 });
+    renderWithProviders(<TransactionsPage />);
+    fireEvent.click(await screen.findByRole('button', { name: 'Record transfer' }));
+    await waitFor(() =>
+      expect(mockCreateTransferMutateAsync).toHaveBeenCalledWith(
+        expect.objectContaining({ amount: '10.000000000000000001', accountId: 1, toAccountId: 2 })
+      )
+    );
+    expect(mockCreateMutateAsync).not.toHaveBeenCalled();
+    expect(window.history.state.usr).toBeNull();
+  });
+  it('shows safe empty results before the initial query supplies data', () => {
+    mockPagedResponse = undefined;
+    renderWithProviders(<TransactionsPage />);
+    expect(screen.getByText(i18n.t('transactions:empty.noTransactions'))).toBeVisible();
+  });
+  it('distinguishes keyword misses and removes filters without retaining the previous page', () => {
+    window.history.replaceState({}, '', '/transactions?categoryId=12');
+    mockPagedResponse = { content: [], totalElements: 0, totalPages: 0, number: 0, size: 20 };
+    renderWithProviders(<TransactionsPage />);
+    fireEvent.click(screen.getByRole('button', { name: 'Search unmatched' }));
+    expect(screen.getByText(i18n.t('transactions:empty.noKeywordMatch'))).toBeVisible();
+    fireEvent.click(screen.getByRole('button', { name: 'Clear active filters' }));
+    expect(lastCapturedFilters).toMatchObject({ page: 0, size: 20, sort: 'date,asc' });
+    expect(screen.getByText(i18n.t('transactions:empty.noTransactions'))).toBeVisible();
   });
 
   it('displays transactions', () => {

@@ -144,9 +144,9 @@ export function InterestRateVariationsSection({
     [variations]
   );
   const today = toLocalISODate(new Date());
-  const earned = interestEstimate?.yearToDate ?? 0;
-  const projected = interestEstimate?.estimate ?? 0;
-  const totalEarned = interestEstimate?.historicalAccumulated ?? 0;
+  const earned = decimalValue(interestEstimate, 'yearToDate') ?? 0;
+  const projected = decimalValue(interestEstimate, 'estimate') ?? 0;
+  const totalEarned = decimalValue(interestEstimate, 'historicalAccumulated') ?? 0;
   const estimateUnavailable = estimateLoading || estimateError;
 
   if (isLoading) {

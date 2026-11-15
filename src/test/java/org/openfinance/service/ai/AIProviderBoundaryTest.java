@@ -3,6 +3,7 @@ package org.openfinance.service.ai;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sun.net.httpserver.HttpServer;
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
@@ -12,6 +13,9 @@ import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import reactor.test.StepVerifier;
 
 class AIProviderBoundaryTest {
@@ -113,5 +117,124 @@ class AIProviderBoundaryTest {
         assertThat(received.await(1, TimeUnit.SECONDS)).isTrue();
         assertThat(Duration.ofNanos(System.nanoTime() - start)).isLessThan(Duration.ofSeconds(3));
         release.countDown();
+    }
+
+    @ParameterizedTest
+    @CsvSource(
+            value = {
+                "NULL|gpt-4o-mini",
+                "''|gpt-4o-mini",
+                "'  '|gpt-4o-mini",
+                "fixture|NULL",
+                "fixture|''",
+                "fixture|'  '"
+            },
+            delimiter = '|',
+            nullValues = "NULL")
+    void incompleteConfigurationIsUnavailableWithoutAnHttpRequest(String key, String model) {
+        OpenAIProvider provider = new OpenAIProvider(key, model, 0.2, 128, 1, url());
+        assertThat(provider.isAvailable().block()).isFalse();
+        assertThat(received.getCount()).isEqualTo(1);
+    }
+
+    @ParameterizedTest
+    @ValueSource(
+            strings = {
+                "{\"status\":\"completed\",\"output\":[]}",
+                "{\"status\":\"completed\",\"output\":[{\"content\":[{\"type\":\"refusal\",\"refusal\":\"Cannot answer\"}]}]}",
+                "{\"status\":\"completed\",\"output\":[{\"content\":[{\"type\":\"reasoning\",\"text\":\"Hidden reasoning\"}]}]}"
+            })
+    void refusalsAndNonAnswerContentCannotMasqueradeAsSuccessfulAnswers(String body) {
+        response = body;
+        StepVerifier.create(openai().sendPrompt("Question", "Context"))
+                .expectError(AIProviderException.class)
+                .verify();
+    }
+
+    @ParameterizedTest
+    @CsvSource(
+            value = {
+                "url_citation|https://example.test/a|true",
+                        "url_citation|http://example.test/a|true",
+                "url_citation|javascript:alert(1)|false", "url_citation|file:///tmp/report|false",
+                "url_citation|/relative|false", "file_citation|https://example.test/a|false"
+            },
+            delimiter = '|')
+    void onlyHttpCitationsAreEmittedAndBracketedTitlesCannotBreakTheirLabel(
+            String kind, String link, boolean accepted) throws Exception {
+        ObjectMapper json = new ObjectMapper();
+        com.fasterxml.jackson.databind.node.ObjectNode root =
+                json.createObjectNode().put("status", "completed");
+        com.fasterxml.jackson.databind.node.ObjectNode part =
+                root.putArray("output")
+                        .addObject()
+                        .putArray("content")
+                        .addObject()
+                        .put("type", "output_text")
+                        .put("text", "Answer");
+        part.putArray("annotations")
+                .addObject()
+                .put("type", kind)
+                .put("url", link)
+                .put("title", "[Reference]");
+        response = json.writeValueAsString(root);
+        assertThat(openai().sendPrompt("Question", "Context").block())
+                .isEqualTo(accepted ? "Answer\n[Reference](<" + link + ">)" : "Answer");
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"response.failed", "response.refusal.delta", "error"})
+    void terminalStreamingErrorsCannotCompleteSuccessfully(String event) {
+        contentType = "text/event-stream";
+        response = "data: {\"type\":\"" + event + "\"}\n\n";
+        StepVerifier.create(openai().streamResponse("Question", "Context"))
+                .expectError(AIProviderException.class)
+                .verify();
+    }
+
+    @Test
+    void unknownModelsStillReceiveAConservativePositiveTokenBudget() {
+        OpenAIProvider provider =
+                new OpenAIProvider("fixture", "unregistered-local-model", 0.2, 128, 1, url());
+        assertThat(
+                        provider.countInputTokens(
+                                "A lengthy question about recorded spending",
+                                "A financial context"))
+                .isGreaterThan(10);
+    }
+
+    @ParameterizedTest
+    @CsvSource(
+            value = {
+                "fixture|fixture|true",
+                "fixture|fixture:latest|true",
+                "fixture:small|fixture:small|true",
+                "fixture:small|fixture:latest|false",
+                "fixture|different|false"
+            },
+            delimiter = '|')
+    void ollamaReadinessRequiresTheRequestedModelAndTag(
+            String configured, String advertised, boolean ready) {
+        response = "{\"models\":[{\"model\":\"" + advertised + "\"}]}";
+        assertThat(new OllamaAIProvider(url(), configured, 0.2, 128, 2, "  ").isAvailable().block())
+                .isEqualTo(ready);
+    }
+
+    @ParameterizedTest
+    @ValueSource(
+            strings = {
+                "{\"done\":false,\"message\":{\"content\":\"partial\"}}",
+                "{\"done\":true,\"message\":{\"content\":\" \"}}",
+                "{\"done\":true}"
+            })
+    void ollamaRejectsIncompleteAndEmptyStructuredAnswers(String body) throws Exception {
+        response = body;
+        StepVerifier.create(
+                        ollama().sendStructuredPrompt(
+                                        "Question",
+                                        "Context",
+                                        new ObjectMapper().readTree("{\"type\":\"object\"}")))
+                .expectError(AIProviderException.class)
+                .verify();
     }
 }

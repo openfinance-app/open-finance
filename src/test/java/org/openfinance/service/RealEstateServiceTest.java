@@ -19,6 +19,9 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -26,9 +29,14 @@ import org.openfinance.dto.PropertyEquityResponse;
 import org.openfinance.dto.PropertyROIResponse;
 import org.openfinance.dto.RealEstatePropertyRequest;
 import org.openfinance.dto.RealEstatePropertyResponse;
+import org.openfinance.entity.AcquisitionType;
 import org.openfinance.entity.Liability;
+import org.openfinance.entity.LiabilityTranche;
+import org.openfinance.entity.MovementType;
 import org.openfinance.entity.PropertyType;
 import org.openfinance.entity.RealEstateProperty;
+import org.openfinance.entity.TrancheStatus;
+import org.openfinance.entity.Transaction;
 import org.openfinance.entity.User;
 import org.openfinance.exception.RealEstatePropertyNotFoundException;
 import org.openfinance.mapper.RealEstateMapper;
@@ -1180,5 +1188,295 @@ class RealEstateServiceTest {
                                 LocalDate.of(2025, 6, 1),
                                 "EUR"));
         verify(realEstateRepository, never()).save(any());
+    }
+
+    private RealEstateProperty editableProperty() {
+        RealEstateProperty property =
+                RealEstateProperty.builder()
+                        .id(propertyId)
+                        .userId(userId)
+                        .name("Home")
+                        .currency("USD")
+                        .purchasePrice("100")
+                        .currentValue("120")
+                        .purchaseDate(purchaseDate)
+                        .propertyType(PropertyType.RESIDENTIAL)
+                        .isActive(true)
+                        .build();
+        when(realEstateRepository.findByIdAndUserId(propertyId, userId))
+                .thenReturn(Optional.of(property));
+        when(realEstateRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+        when(realEstateMapper.toResponse(property))
+                .thenAnswer(
+                        invocation ->
+                                RealEstatePropertyResponse.builder()
+                                        .id(propertyId)
+                                        .currency(property.getCurrency())
+                                        .build());
+        return property;
+    }
+
+    private RealEstatePropertyRequest.RealEstatePropertyRequestBuilder propertyEdit() {
+        return RealEstatePropertyRequest.builder()
+                .name("Home")
+                .address("")
+                .propertyType(PropertyType.RESIDENTIAL)
+                .purchasePrice(new BigDecimal("100"))
+                .currentValue(new BigDecimal("120"))
+                .currency("USD");
+    }
+
+    @ParameterizedTest
+    @ValueSource(
+            strings = {
+                "other-user",
+                "account-disbursement",
+                "no-property",
+                "planned",
+                "already-capitalized"
+            })
+    void invalidDirectDrawCannotBeCapitalized(String invalid) {
+        LiabilityTranche tranche =
+                LiabilityTranche.builder()
+                        .id(3L)
+                        .userId(userId)
+                        .realEstateId(propertyId)
+                        .directDisbursement(true)
+                        .status(TrancheStatus.DRAWN)
+                        .drawnAmount(BigDecimal.TEN)
+                        .build();
+        switch (invalid) {
+            case "other-user" -> tranche.setUserId(999L);
+            case "account-disbursement" -> tranche.setDirectDisbursement(false);
+            case "no-property" -> tranche.setRealEstateId(null);
+            case "planned" -> tranche.setStatus(TrancheStatus.PLANNED);
+            case "already-capitalized" -> tranche.setCapitalizedAmount(BigDecimal.ZERO);
+            default -> throw new AssertionError(invalid);
+        }
+        assertThatThrownBy(() -> realEstateService.capitalizeDirectDraw(userId, tranche, true))
+                .isInstanceOf(org.openfinance.exception.InvalidTransactionException.class);
+        verify(liabilityTrancheRepository, never()).save(any());
+        verify(valueHistoryRepository, never()).save(any());
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"CAPITAL_IMPROVEMENT", "MAINTENANCE"})
+    void acquisitionCannotBeMovedPastRecordedUpkeep(MovementType movement) {
+        editableProperty();
+        when(transactionRepository.findByRealEstateIdAndUserId(propertyId, userId))
+                .thenReturn(
+                        List.of(
+                                Transaction.builder()
+                                        .date(purchaseDate.plusDays(1))
+                                        .movementType(movement)
+                                        .build()));
+        RealEstatePropertyRequest request =
+                propertyEdit().purchaseDate(purchaseDate.plusDays(2)).build();
+        assertThatThrownBy(() -> realEstateService.updateProperty(propertyId, userId, request))
+                .isInstanceOf(org.openfinance.exception.InvalidTransactionException.class)
+                .hasMessageContaining("Acquisition cannot follow");
+        verify(realEstateRepository, never()).save(any());
+    }
+
+    @ParameterizedTest
+    @CsvSource({"-1,true", "0,true", "1,false"})
+    void acquisitionMayBeOnOrBeforeADirectDraw(int offset, boolean allowed) {
+        editableProperty();
+        when(liabilityTrancheRepository.findByRealEstateIdAndUserId(propertyId, userId))
+                .thenReturn(
+                        List.of(
+                                LiabilityTranche.builder()
+                                        .status(TrancheStatus.DRAWN)
+                                        .capitalizedAmount(BigDecimal.TEN)
+                                        .drawnDate(purchaseDate)
+                                        .build()));
+        RealEstatePropertyRequest request =
+                propertyEdit().purchaseDate(purchaseDate.plusDays(offset)).build();
+        if (allowed) {
+            realEstateService.updateProperty(propertyId, userId, request);
+            verify(realEstateMapper)
+                    .updateEntityFromRequest(
+                            request,
+                            realEstateRepository
+                                    .findByIdAndUserId(propertyId, userId)
+                                    .orElseThrow());
+            verify(realEstateRepository).save(any());
+        } else {
+            assertThatThrownBy(() -> realEstateService.updateProperty(propertyId, userId, request))
+                    .isInstanceOf(org.openfinance.exception.InvalidTransactionException.class);
+            verify(realEstateRepository, never()).save(any());
+        }
+    }
+
+    @ParameterizedTest
+    @ValueSource(
+            strings = {
+                "active-draw",
+                "reversed-draw",
+                "planned-draw",
+                "zero-capitalized",
+                "uncapitalized"
+            })
+    void onlyUnreversedCapitalizedDrawsLockThePropertyCurrency(String state) {
+        editableProperty();
+        LiabilityTranche tranche =
+                LiabilityTranche.builder()
+                        .status(TrancheStatus.DRAWN)
+                        .capitalizedAmount(BigDecimal.TEN)
+                        .drawnDate(purchaseDate)
+                        .build();
+        switch (state) {
+            case "reversed-draw" -> tranche.setReversedDate(purchaseDate.plusDays(1));
+            case "planned-draw" -> tranche.setStatus(TrancheStatus.PLANNED);
+            case "zero-capitalized" -> tranche.setCapitalizedAmount(BigDecimal.ZERO);
+            case "uncapitalized" -> tranche.setCapitalizedAmount(null);
+            default -> {}
+        }
+        when(liabilityTrancheRepository.findByRealEstateIdAndUserId(propertyId, userId))
+                .thenReturn(List.of(tranche));
+        RealEstatePropertyRequest request = propertyEdit().currency("EUR").build();
+        if (state.equals("active-draw")) {
+            assertThatThrownBy(() -> realEstateService.updateProperty(propertyId, userId, request))
+                    .isInstanceOf(org.openfinance.exception.InvalidTransactionException.class)
+                    .hasMessageContaining("correcting its currency");
+            verify(realEstateRepository, never()).save(any());
+        } else {
+            realEstateService.updateProperty(propertyId, userId, request);
+            verify(realEstateRepository).save(any());
+        }
+    }
+
+    @Test
+    void linkedCashMovementsAlsoLockPropertyCurrency() {
+        editableProperty();
+        when(transactionRepository.findByRealEstateIdAndUserId(propertyId, userId))
+                .thenReturn(List.of(Transaction.builder().id(4L).build()));
+        assertThatThrownBy(
+                        () ->
+                                realEstateService.updateProperty(
+                                        propertyId,
+                                        userId,
+                                        RealEstatePropertyRequest.builder()
+                                                .currency("EUR")
+                                                .build()))
+                .isInstanceOf(org.openfinance.exception.InvalidTransactionException.class);
+        verify(realEstateRepository, never()).save(any());
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"other-active", "other-inactive", "same-property"})
+    void mortgageCannotHaveTwoActivePrimaryProperties(String state) {
+        editableProperty();
+        Liability mortgage = new Liability();
+        mortgage.setId(2L);
+        mortgage.setUserId(userId);
+        when(liabilityRepository.findByIdAndUserId(2L, userId)).thenReturn(Optional.of(mortgage));
+        when(liabilityRepository.existsByIdAndUserId(2L, userId)).thenReturn(true);
+        when(realEstateRepository.findByMortgageId(2L))
+                .thenReturn(
+                        List.of(
+                                RealEstateProperty.builder()
+                                        .id(state.equals("same-property") ? propertyId : 90L)
+                                        .isActive(!state.equals("other-inactive"))
+                                        .build()));
+        RealEstatePropertyRequest request = propertyEdit().mortgageId(2L).build();
+        if (state.equals("other-active")) {
+            assertThatThrownBy(() -> realEstateService.updateProperty(propertyId, userId, request))
+                    .isInstanceOf(org.openfinance.exception.InvalidTransactionException.class)
+                    .hasMessageContaining("already has a primary property");
+            verify(realEstateRepository, never()).save(any());
+        } else {
+            realEstateService.updateProperty(propertyId, userId, request);
+            verify(realEstateRepository).save(any());
+        }
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"PURCHASE", "GIFT"})
+    void plansCannotBecomeOwnedWithoutReviewingFunding(AcquisitionType acquisition) {
+        editableProperty().setAcquisitionType(AcquisitionType.PLANNED);
+        assertThatThrownBy(
+                        () ->
+                                realEstateService.updateProperty(
+                                        propertyId,
+                                        userId,
+                                        RealEstatePropertyRequest.builder()
+                                                .acquisitionType(acquisition)
+                                                .build()))
+                .isInstanceOf(org.openfinance.exception.InvalidTransactionException.class)
+                .hasMessageContaining("Complete purchase");
+        verify(realEstateRepository, never()).save(any());
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"0", "0.01"})
+    void onlyZeroValuationIsAllowedOnAPlannedProperty(String value) {
+        editableProperty().setAcquisitionType(AcquisitionType.PLANNED);
+        if (value.equals("0")) {
+            realEstateService.estimateValue(propertyId, userId, BigDecimal.ZERO);
+            verify(realEstateRepository).save(any());
+        } else {
+            assertThatThrownBy(
+                            () ->
+                                    realEstateService.estimateValue(
+                                            propertyId, userId, new BigDecimal(value)))
+                    .isInstanceOf(org.openfinance.exception.InvalidTransactionException.class);
+            verify(realEstateRepository, never()).save(any());
+        }
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"planned", "different-currency"})
+    void improvementsMustBelongToAnAcquiredPropertyInTheSameCurrency(String invalid) {
+        RealEstateProperty property = editableProperty();
+        if (invalid.equals("planned")) property.setAcquisitionType(AcquisitionType.PLANNED);
+        assertThatThrownBy(
+                        () ->
+                                realEstateService.applyCapitalImprovement(
+                                        propertyId,
+                                        userId,
+                                        BigDecimal.TEN,
+                                        purchaseDate,
+                                        invalid.equals("different-currency") ? "EUR" : "USD"))
+                .isInstanceOf(org.openfinance.exception.InvalidTransactionException.class);
+        verify(valueHistoryRepository, never()).save(any());
+    }
+
+    @ParameterizedTest
+    @ValueSource(
+            strings = {
+                "unknown-gift-value",
+                "zero-cost",
+                "undated",
+                "zero-rent",
+                "zero-current-value"
+            })
+    void roiDoesNotInventReturnsFromMissingOrZeroBases(String scenario) {
+        RealEstateProperty property = editableProperty();
+        switch (scenario) {
+            case "unknown-gift-value" -> property.setAcquisitionType(AcquisitionType.GIFT);
+            case "zero-cost" -> property.setPurchasePrice("0");
+            case "undated" -> property.setPurchaseDate(null);
+            case "zero-rent" -> property.setRentalIncome("0");
+            case "zero-current-value" -> {
+                property.setCurrentValue("0");
+                property.setRentalIncome("5");
+            }
+            default -> throw new AssertionError(scenario);
+        }
+        PropertyROIResponse result = realEstateService.calculateROI(propertyId, userId);
+        switch (scenario) {
+            case "unknown-gift-value", "zero-cost" -> {
+                assertThat(result.getAppreciationPercentage()).isNull();
+                assertThat(result.getTotalROI()).isNull();
+            }
+            case "undated" -> {
+                assertThat(result.getYearsOwned()).isZero();
+                assertThat(result.getAnnualizedReturn()).isNull();
+            }
+            case "zero-rent" -> assertThat(result.isRentalProperty()).isFalse();
+            case "zero-current-value" -> assertThat(result.getRentalYield()).isNull();
+            default -> throw new AssertionError(scenario);
+        }
     }
 }

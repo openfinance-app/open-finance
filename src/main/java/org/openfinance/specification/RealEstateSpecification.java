@@ -3,6 +3,7 @@ package org.openfinance.specification;
 import jakarta.persistence.criteria.Predicate;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import org.openfinance.dto.RealEstateSearchCriteria;
 import org.openfinance.entity.RealEstateProperty;
 import org.springframework.data.jpa.domain.Specification;
@@ -64,7 +65,7 @@ public class RealEstateSpecification {
             // Note: This searches encrypted fields, so exact match only
             // For production, consider decrypt-then-search in service layer
             if (criteria.getKeyword() != null && !criteria.getKeyword().trim().isEmpty()) {
-                String keyword = "%" + criteria.getKeyword().toLowerCase() + "%";
+                String keyword = "%" + criteria.getKeyword().toLowerCase(Locale.ROOT) + "%";
                 Predicate nameMatch =
                         criteriaBuilder.like(criteriaBuilder.lower(root.get("name")), keyword);
                 Predicate addressMatch =

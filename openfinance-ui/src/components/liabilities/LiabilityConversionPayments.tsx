@@ -250,7 +250,7 @@ function PaymentRow({
                   key={part.splitId}
                   id={`payment-${candidate.transactionId}-split-${part.splitId}`}
                   label={category(part.categoryName, part.categoryNameKey)}
-                  amount={part.amount}
+                  amount={decimalValue(part, 'amount') ?? part.amount}
                   currency={candidate.currency}
                   value={
                     selected.splits.find(split => split.splitId === part.splitId)?.component || ''
@@ -269,7 +269,7 @@ function PaymentRow({
               <ComponentField
                 id={`payment-${candidate.transactionId}-component`}
                 label={category(candidate.categoryName, candidate.categoryNameKey)}
-                amount={candidate.amount}
+                amount={decimalValue(candidate, 'amount') ?? candidate.amount}
                 currency={candidate.currency}
                 value={selected.component}
                 onChange={component => onChange({ ...selected, component })}
@@ -292,7 +292,7 @@ function ComponentField({
 }: {
   id: string;
   label: string;
-  amount: number;
+  amount: number | string;
   currency: string;
   value: LoanComponent | '';
   onChange: (value: LoanComponent | '') => void;

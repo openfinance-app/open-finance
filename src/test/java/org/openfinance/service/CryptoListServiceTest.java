@@ -18,6 +18,9 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.NullSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.openfinance.config.CryptoListProperties;
@@ -207,5 +210,70 @@ class CryptoListServiceTest {
                                     it.forEach(list::add);
                                     return list.size() == 2;
                                 }));
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"disabled-primary", "unknown-primary", "empty-primary", "null-primary"})
+    void usableFallbackIsSelectedWhenTheConfiguredProviderCannotSupplyCoins(String scenario) {
+        if (scenario.equals("disabled-primary")) when(gecko.isEnabled()).thenReturn(false);
+        else if (scenario.equals("unknown-primary")) properties.setProvider("unconfigured");
+        if (scenario.equals("empty-primary") || scenario.equals("unknown-primary"))
+            when(gecko.fetchTopCryptocurrencies(anyInt())).thenReturn(List.of());
+        if (scenario.equals("null-primary"))
+            when(gecko.fetchTopCryptocurrencies(anyInt())).thenReturn(null);
+        when(cmc.fetchTopCryptocurrencies(anyInt()))
+                .thenReturn(
+                        List.of(
+                                new CryptoCurrencyInfo(
+                                        "BTC", "Bitcoin", "BTC", 1, BigDecimal.ONE)));
+        assertThat(service.refresh()).isEqualTo(1);
+        verify(cmc).fetchTopCryptocurrencies(properties.getLimit());
+        verify(currencyTypeResolver).reload();
+        if (scenario.equals("disabled-primary"))
+            verify(gecko, never()).fetchTopCryptocurrencies(anyInt());
+    }
+
+    @Test
+    void disabledProvidersCannotBeInvokedAsFallbacks() {
+        when(gecko.isEnabled()).thenReturn(false);
+        when(cmc.isEnabled()).thenReturn(false);
+        assertThat(service.refresh()).isZero();
+        verify(gecko, never()).fetchTopCryptocurrencies(anyInt());
+        verify(cmc, never()).fetchTopCryptocurrencies(anyInt());
+        org.mockito.Mockito.verifyNoInteractions(
+                currencyRepository, exchangeRateRepository, currencyTypeResolver);
+    }
+
+    @ParameterizedTest
+    @NullSource
+    @ValueSource(strings = {"0", "-1"})
+    void missingOrNonPositiveQuotesDoNotSeedExchangeRates(String price) {
+        when(gecko.fetchTopCryptocurrencies(anyInt()))
+                .thenReturn(
+                        List.of(
+                                new CryptoCurrencyInfo(
+                                        "BTC",
+                                        "Bitcoin",
+                                        "BTC",
+                                        1,
+                                        price == null ? null : new BigDecimal(price))));
+        assertThat(service.refresh()).isEqualTo(1);
+        verify(currencyRepository).save(any());
+        org.mockito.Mockito.verifyNoInteractions(exchangeRateRepository);
+        verify(currencyTypeResolver).reload();
+    }
+
+    @Test
+    void existingDailyRatesArePreservedInBothDirections() {
+        when(gecko.fetchTopCryptocurrencies(anyInt()))
+                .thenReturn(
+                        List.of(
+                                new CryptoCurrencyInfo(
+                                        "BTC", "Bitcoin", "BTC", 1, new BigDecimal("2"))));
+        when(exchangeRateRepository.findByBaseCurrencyAndTargetCurrencyAndRateDate(
+                        any(), any(), any()))
+                .thenReturn(Optional.of(ExchangeRate.builder().rate(new BigDecimal("3")).build()));
+        assertThat(service.refresh()).isEqualTo(1);
+        verify(exchangeRateRepository, never()).saveAll(any());
     }
 }

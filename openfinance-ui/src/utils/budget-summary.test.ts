@@ -24,6 +24,42 @@ const budget = (
 });
 
 describe('current dashboard budget population', () => {
+  it('recalculates exact totals for the active subset instead of retaining the unfiltered totals', () => {
+    const active = {
+      ...budget(1, '2026-09-01', '2026-09-30', 9007199254740992, 9007199254740992),
+      exactValues: { budgeted: '9007199254740992.01', spent: '9007199254740992.02' },
+    };
+    const summary: BudgetSummaryResponse = {
+      period: 'MONTHLY',
+      currency: 'EUR',
+      totalBudgets: 2,
+      activeBudgets: 1,
+      totalBudgeted: 9007199254741092,
+      totalSpent: 9007199254740992,
+      totalRemaining: 100,
+      averageSpentPercentage: 50,
+      exactValues: {
+        totalBudgeted: '9007199254741092.01',
+        totalSpent: '9007199254740992.02',
+        totalRemaining: '99.99',
+      },
+      budgets: [active, budget(2, '2026-10-01', '2026-10-31', 100, 0)],
+    };
+    const result = activeBudgetSummary(summary, '2026-09-30');
+    expect(result.exactValues).toMatchObject({
+      totalBudgeted: '9007199254740992.01',
+      totalSpent: '9007199254740992.02',
+      totalRemaining: '-0.01',
+    });
+    expect(result.totalRemaining).toBe(-0.01);
+    expect(summary.exactValues?.totalRemaining).toBe('99.99');
+    expect(activeBudgetSummary(summary, '2027-01-01').exactValues).toMatchObject({
+      totalBudgeted: '0',
+      totalSpent: '0',
+      totalRemaining: '0',
+    });
+  });
+
   it('includes both endpoints and excludes past and future budgets from every figure', () => {
     const summary: BudgetSummaryResponse = {
       period: null,

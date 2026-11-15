@@ -1,6 +1,6 @@
 import { useFormDraft } from '@/hooks/useFormDraft';
 import { getToday } from '@/utils/date';
-import { decimalField } from '@/utils/exact-decimal';
+import { decimalField, decimalValue, ExactDecimal } from '@/utils/exact-decimal';
 import { CURRENCY_CODE_PATTERN } from '@/utils/currency-code';
 /**
  * RecurringTransactionForm Component
@@ -28,7 +28,7 @@ import { useAuthContext } from '@/context/AuthContext';
 import { useActivePayees } from '@/hooks/usePayees';
 import { useLatestExchangeRate } from '@/hooks/useCurrency';
 import { DEFAULT_CURRENCY } from '@/utils/currency';
-import { isValidDecimalString, multiply } from '@/utils/money';
+import { isValidDecimalString } from '@/utils/money';
 import type {
   RecurringTransaction,
   RecurringTransactionRequest,
@@ -218,7 +218,9 @@ export function RecurringTransactionForm({
   );
   const convertedAmount =
     amount && exchangeRate && currency !== baseCurrency
-      ? multiply(Number(amount), exchangeRate.rate)
+      ? new ExactDecimal(amount)
+          .times(decimalValue(exchangeRate, 'rate') ?? exchangeRate.rate)
+          .toFixed()
       : null;
 
   // Get payees for auto-fill logic

@@ -1,4 +1,4 @@
-import { decimalValue } from '@/utils/exact-decimal';
+import { decimalValue, ExactDecimal } from '@/utils/exact-decimal';
 import { useViewState } from '@/hooks/useViewState';
 import { BulkSelection, BulkToolbar, SelectionCheckbox } from '@/components/bulk/BulkSelection';
 import { Link } from 'react-router';
@@ -108,7 +108,9 @@ export function PayeeManagementSettings() {
         case 'transactions':
           return (b.transactionCount || 0) - (a.transactionCount || 0);
         case 'amount':
-          return (b.totalAmount || 0) - (a.totalAmount || 0);
+          return new ExactDecimal(decimalValue(b, 'totalAmount') ?? 0).comparedTo(
+            decimalValue(a, 'totalAmount') ?? 0
+          );
         case 'name':
         default:
           return a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' });

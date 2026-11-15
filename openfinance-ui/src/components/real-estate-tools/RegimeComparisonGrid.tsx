@@ -1,4 +1,4 @@
-import { decimalValue } from '@/utils/exact-decimal';
+import { decimalValue, ExactDecimal } from '@/utils/exact-decimal';
 import { formatDecimal } from '@/utils/format';
 /**
  * RegimeComparisonGrid Component
@@ -56,6 +56,18 @@ export const RegimeComparisonGrid: React.FC<RegimeComparisonGridProps> = ({
   }, [forceCollapse]);
 
   const regimes: TaxRegime[] = ['micro_foncier', 'reel_foncier', 'lmnp_reel', 'micro_bic'];
+  const eligibleResults = regimes
+    .filter(isRegimeEligible)
+    .map(getRegimeResult)
+    .filter((result): result is RegimeCalculationResult => result !== null);
+  const bestCashFlow = eligibleResults.reduce<string | undefined>((best, result) => {
+    const amount = decimalValue(result.performance, 'monthlyCashFlow');
+    if (amount == null) return best;
+    return best == null || new ExactDecimal(amount).gt(best) ? String(amount) : best;
+  }, undefined);
+  const netYields = eligibleResults
+    .map(result => result.performance.netYield)
+    .filter((value): value is number => value != null);
 
   const handleExport = () => {
     // Create export data
@@ -129,16 +141,8 @@ export const RegimeComparisonGrid: React.FC<RegimeComparisonGridProps> = ({
             <div>
               <p className="text-sm text-muted-foreground">{t('regimeGrid.bestCashFlow')}</p>
               <p className="text-2xl font-bold text-green-600">
-                {eligibleRegimes.length ? (
-                  <ConvertedAmount
-                    amount={Math.max(
-                      ...regimes
-                        .filter(isRegimeEligible)
-                        .map(r => getRegimeResult(r)?.performance.monthlyCashFlow ?? -Infinity)
-                    )}
-                    currency={baseCurrency}
-                    inline
-                  />
+                {bestCashFlow != null ? (
+                  <ConvertedAmount amount={bestCashFlow} currency={baseCurrency} inline />
                 ) : (
                   '-'
                 )}
@@ -147,16 +151,7 @@ export const RegimeComparisonGrid: React.FC<RegimeComparisonGridProps> = ({
             <div>
               <p className="text-sm text-muted-foreground">{t('regimeGrid.bestNetYield')}</p>
               <p className="text-2xl font-bold text-primary">
-                {eligibleRegimes.length
-                  ? `${formatDecimal(
-                      Math.max(
-                        ...regimes
-                          .filter(isRegimeEligible)
-                          .map(r => getRegimeResult(r)?.performance.netYield ?? -Infinity)
-                      ),
-                      2
-                    )}%`
-                  : '-'}
+                {netYields.length ? `${formatDecimal(Math.max(...netYields), 2)}%` : '-'}
               </p>
             </div>
             <div>

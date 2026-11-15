@@ -14,6 +14,7 @@ import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.openfinance.dto.ExchangeRateLeg;
+import org.openfinance.dto.HistoricalPrice;
 import org.openfinance.dto.MarketQuote;
 import org.openfinance.entity.Currency;
 import org.openfinance.entity.CurrencyType;
@@ -393,20 +394,7 @@ public class ExchangeRateService {
                 List<org.openfinance.dto.HistoricalPrice> prices =
                         marketDataProvider.getHistoricalPrices(symbol, from, date);
                 Optional<org.openfinance.dto.HistoricalPrice> closestPrice =
-                        prices.stream()
-                                .filter(
-                                        price ->
-                                                price.getDate() != null
-                                                        && !price.getDate().isAfter(date))
-                                .filter(
-                                        price ->
-                                                price.getClose() != null
-                                                        && price.getClose()
-                                                                        .compareTo(BigDecimal.ZERO)
-                                                                > 0)
-                                .max(
-                                        Comparator.comparing(
-                                                org.openfinance.dto.HistoricalPrice::getDate));
+                        latestValidClose(prices, date);
                 if (closestPrice.isEmpty()) {
                     log.warn(
                             "No historical close found for symbol {} on or before {}",
@@ -487,21 +475,19 @@ public class ExchangeRateService {
             try {
                 List<org.openfinance.dto.HistoricalPrice> prices =
                         marketDataProvider.getHistoricalPrices(symbol, from, today);
-                if (prices.isEmpty()) {
-                    log.warn("On-demand chart fetch returned no data for symbol {}", symbol);
+                Optional<HistoricalPrice> closest = latestValidClose(prices, today);
+                if (closest.isEmpty()) {
+                    log.warn(
+                            "On-demand chart fetch returned no valid dated close for symbol {}",
+                            symbol);
                     continue;
                 }
-                // Use the most recent close price
-                org.openfinance.dto.HistoricalPrice latest = prices.get(prices.size() - 1);
+                HistoricalPrice latest = closest.get();
                 BigDecimal price = latest.getClose();
-                if (price == null || price.compareTo(BigDecimal.ZERO) <= 0) {
-                    log.warn("Invalid close price for symbol {}: {}", symbol, price);
-                    continue;
-                }
                 // Reuse parseQuoteToExchangeRate by synthesising a MarketQuote
                 MarketQuote syntheticQuote =
                         MarketQuote.builder().symbol(symbol).price(price).build();
-                ExchangeRate rate = parseQuoteToExchangeRate(syntheticQuote, today);
+                ExchangeRate rate = parseQuoteToExchangeRate(syntheticQuote, latest.getDate());
                 if (rate != null) {
                     newRates.add(rate);
                     log.debug("On-demand chart fetch: {} close={}", symbol, price);
@@ -512,6 +498,14 @@ public class ExchangeRateService {
         }
 
         return newRates;
+    }
+
+    private Optional<HistoricalPrice> latestValidClose(
+            List<HistoricalPrice> prices, LocalDate date) {
+        return prices.stream()
+                .filter(price -> price.getDate() != null && !price.getDate().isAfter(date))
+                .filter(price -> price.getClose() != null && price.getClose().signum() > 0)
+                .max(Comparator.comparing(HistoricalPrice::getDate));
     }
 
     /**
@@ -638,9 +632,9 @@ public class ExchangeRateService {
             return;
         }
         if (isCryptocurrency(currencyCode)) {
-            symbols.add(currencyCode.toUpperCase() + "-USD");
+            symbols.add(currencyCode.toUpperCase(Locale.ROOT) + "-USD");
         } else {
-            symbols.add(currencyCode.toUpperCase() + "USD=X");
+            symbols.add(currencyCode.toUpperCase(Locale.ROOT) + "USD=X");
         }
     }
 
@@ -655,7 +649,7 @@ public class ExchangeRateService {
             throw new IllegalArgumentException("Currency code cannot be null or empty");
         }
 
-        if (!currencyRepository.existsByCode(currencyCode.toUpperCase())) {
+        if (!currencyRepository.existsByCode(currencyCode.toUpperCase(Locale.ROOT))) {
             throw new IllegalArgumentException("Currency not found: " + currencyCode);
         }
     }

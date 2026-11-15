@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { fireEvent, screen, waitFor } from '@testing-library/react';
+import { fireEvent, screen, waitFor, within } from '@testing-library/react';
+import type { Payee } from '@/types/payee';
 import i18n from '@/test/i18n-test';
 import {
   renderWithProviders,
@@ -42,7 +43,7 @@ const mockPayees = [
   },
 ];
 
-let mockPayeeData: any[] = mockPayees;
+let mockPayeeData: Payee[] = mockPayees;
 let mockIsLoading = false;
 let mockError: any = null;
 const mockCreateMutateAsync = vi.fn();
@@ -334,5 +335,168 @@ describe('PayeeManagementSettings', () => {
     renderWithProviders(<PayeeManagementSettings />);
     await user.type(screen.getByPlaceholderText(/search/i), 'zzzzzzz');
     expect(screen.queryByText('Amazon')).not.toBeInTheDocument();
+  });
+
+  it.each(['Shopping', 'Entertainment'])(
+    'matches category names without matching the payee name: %s',
+    async search => {
+      renderWithProviders(<PayeeManagementSettings />);
+      await userEvent.type(screen.getByPlaceholderText(/search/i), search.toUpperCase());
+      expect(screen.getAllByRole('heading', { level: 4 }).map(h => h.textContent)).toEqual([
+        search === 'Shopping' ? 'Amazon' : 'Netflix',
+      ]);
+    }
+  );
+
+  it('matches a legacy category when the newer category name is absent', async () => {
+    mockPayeeData = [
+      { id: 9, name: 'Merchant', category: 'Travel', isActive: true, isSystem: false },
+    ];
+    renderWithProviders(<PayeeManagementSettings />);
+    await userEvent.type(screen.getByPlaceholderText(/search/i), 'travel');
+    expect(screen.getByRole('heading', { name: 'Merchant' })).toBeInTheDocument();
+  });
+
+  it.each(['transactions', 'amount', 'name'] as const)(
+    'sorts %s, treats absent totals as zero, and does not mutate query data',
+    async field => {
+      mockPayeeData = [
+        {
+          id: 1,
+          name: 'Merchant 10',
+          isActive: true,
+          isSystem: false,
+          transactionCount: 3,
+          totalAmount: 10,
+        },
+        {
+          id: 2,
+          name: 'Merchant 2',
+          isActive: true,
+          isSystem: false,
+          transactionCount: 1,
+          totalAmount: 30,
+        },
+        { id: 3, name: 'Merchant 3', isActive: true, isSystem: false },
+      ];
+      renderWithProviders(<PayeeManagementSettings />);
+      await userEvent.click(screen.getByRole('button', { name: /Sort by/i }));
+      await userEvent.click(
+        screen.getByRole('menuitem', {
+          name: i18n.t(
+            `payees:${field === 'transactions' ? 'transactionCount' : field === 'amount' ? 'totalAmount' : 'sortName'}`
+          ),
+        })
+      );
+      expect(screen.getAllByRole('heading', { level: 4 }).map(h => h.textContent)).toEqual(
+        field === 'transactions'
+          ? ['Merchant 10', 'Merchant 2', 'Merchant 3']
+          : field === 'amount'
+            ? ['Merchant 2', 'Merchant 10', 'Merchant 3']
+            : ['Merchant 2', 'Merchant 3', 'Merchant 10']
+      );
+      expect(mockPayeeData.map(p => p.id)).toEqual([1, 2, 3]);
+    }
+  );
+
+  it('sorts monetary totals using exact values even when native numbers lose cents', async () => {
+    mockPayeeData = [
+      {
+        id: 1,
+        name: 'Lower',
+        isActive: true,
+        isSystem: false,
+        totalAmount: 9007199254740992,
+        exactValues: { totalAmount: '9007199254740992.01' },
+      },
+      {
+        id: 2,
+        name: 'Higher',
+        isActive: true,
+        isSystem: false,
+        totalAmount: 9007199254740992,
+        exactValues: { totalAmount: '9007199254740992.02' },
+      },
+    ];
+    renderWithProviders(<PayeeManagementSettings />);
+    await userEvent.click(screen.getByRole('button', { name: /Sort by/i }));
+    await userEvent.click(screen.getByRole('menuitem', { name: i18n.t('payees:totalAmount') }));
+    expect(screen.getAllByRole('heading', { level: 4 }).map(h => h.textContent)).toEqual([
+      'Higher',
+      'Lower',
+    ]);
+  });
+
+  it.each([true, false])(
+    'expands and collapses more than twelve payees (system=%s)',
+    async isSystem => {
+      mockPayeeData = Array.from({ length: 14 }, (_, index) => ({
+        id: index + 1,
+        name: `Merchant ${index + 1}`,
+        isActive: true,
+        isSystem,
+      }));
+      renderWithProviders(<PayeeManagementSettings />);
+      expect(screen.getAllByRole('heading', { level: 4 })).toHaveLength(12);
+      const prefix = isSystem ? 'system' : 'custom';
+      await userEvent.click(
+        screen.getByRole('button', { name: i18n.t(`payees:${prefix}.andMore`, { count: 2 }) })
+      );
+      expect(screen.getAllByRole('heading', { level: 4 })).toHaveLength(14);
+      await userEvent.click(
+        screen.getByRole('button', { name: i18n.t(`payees:${prefix}.showFewer`) })
+      );
+      expect(screen.getAllByRole('heading', { level: 4 })).toHaveLength(12);
+    }
+  );
+
+  it.each([
+    new Error('Offline'),
+    { response: { status: 400, data: { message: 'Name contains invalid characters' } } },
+  ])('keeps an edited form available after saving fails: %j', async error => {
+    const log = vi.spyOn(console, 'error').mockImplementation(() => {});
+    mockUpdateMutateAsync.mockRejectedValue(error);
+    mockPayeeData = [
+      { ...mockPayees[0], categoryId: undefined, logo: 'data:image/png;base64,abc' },
+    ];
+    renderWithProviders(<PayeeManagementSettings />);
+    await userEvent.click(screen.getByRole('button', { name: /edit.*amazon/i }));
+    expect(screen.getByAltText('Logo preview')).toHaveAttribute('src', 'data:image/png;base64,abc');
+    await userEvent.click(screen.getByRole('button', { name: /^update$/i }));
+    const message =
+      error instanceof Error ? i18n.t('payees:form.saveFailed') : error.response.data.message;
+    expect(await screen.findByText(message)).toBeInTheDocument();
+    expect(mockUpdateMutateAsync).toHaveBeenCalledWith({
+      id: 1,
+      data: { name: 'Amazon', logo: 'data:image/png;base64,abc', categoryId: null },
+    });
+    await userEvent.click(
+      within(screen.getByRole('dialog')).getByRole('button', { name: /cancel/i })
+    );
+    await userEvent.click(screen.getByRole('button', { name: /add payee/i }));
+    expect(screen.queryByText(message)).not.toBeInTheDocument();
+    log.mockRestore();
+  });
+
+  it('can show a hidden system payee and leaves it in place when the request fails', async () => {
+    const log = vi.spyOn(console, 'error').mockImplementation(() => {});
+    mockToggleMutateAsync.mockRejectedValue(new Error('Offline'));
+    mockPayeeData = [
+      {
+        id: 9,
+        name: 'Hidden merchant',
+        isActive: false,
+        isSystem: true,
+        logo: 'data:image/png;base64,abc',
+      },
+    ];
+    renderWithProviders(<PayeeManagementSettings />);
+    await userEvent.click(screen.getByRole('button', { name: /show hidden/i }));
+    await userEvent.click(screen.getByTitle(i18n.t('payees:system.showPayee')));
+    await waitFor(() => expect(mockToggleMutateAsync).toHaveBeenCalledWith(9));
+    expect(screen.getByRole('heading', { name: 'Hidden merchant' })).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: /hide hidden/i }));
+    expect(screen.queryByRole('heading', { name: 'Hidden merchant' })).not.toBeInTheDocument();
+    log.mockRestore();
   });
 });

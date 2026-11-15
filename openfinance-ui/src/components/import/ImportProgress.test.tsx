@@ -1,6 +1,7 @@
-import { screen, within } from '@testing-library/react';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { screen, within, fireEvent } from '@testing-library/react';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { mockAuthentication, renderWithProviders } from '@/test/test-utils';
+import i18n from '@/test/i18n-test';
 import { ImportProgress } from '@/components/import/ImportProgress';
 import type { ImportSessionResponse } from '@/types/import';
 
@@ -31,6 +32,81 @@ const session: ImportSessionResponse = {
 
 describe('ImportProgress', () => {
   beforeEach(() => mockAuthentication());
+
+  it.each([
+    ['PENDING', 'preparing'],
+    ['PARSING', 'parsing'],
+    ['FAILED', 'failed'],
+    ['CANCELLED', 'cancelled'],
+    ['REVIEWING', 'processing'],
+  ] as const)(
+    'shows the %s status without offering premature transaction navigation',
+    (status, key) => {
+      const close = vi.fn();
+      const view = vi.fn();
+      renderWithProviders(
+        <ImportProgress
+          session={{ ...session, status }}
+          onClose={close}
+          onViewTransactions={view}
+        />
+      );
+      expect(screen.getByRole('status')).toHaveTextContent(i18n.t(`import:progress.${key}`));
+      expect(
+        screen.queryByRole('button', { name: i18n.t('import:progress.viewTransactions') })
+      ).not.toBeInTheDocument();
+      if (status === 'FAILED' || status === 'CANCELLED') {
+        fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+        expect(close).toHaveBeenCalledOnce();
+      } else expect(screen.queryByRole('button')).not.toBeInTheDocument();
+    }
+  );
+  it('reports AI progress separately from rows being committed', () => {
+    renderWithProviders(
+      <ImportProgress
+        session={session}
+        liveProgress={{ phase: 'AI_CATEGORIZING', processed: 2, total: 5 }}
+      />
+    );
+    expect(screen.getByRole('status')).toHaveTextContent(
+      i18n.t('import:review.aiProcessing', { current: 2, total: 5 })
+    );
+    expect(screen.getByRole('progressbar')).not.toHaveAttribute('aria-valuenow');
+  });
+  it('retains a failed import explanation and the count of intentionally skipped rows', () => {
+    renderWithProviders(
+      <ImportProgress
+        session={{
+          ...session,
+          status: 'FAILED',
+          errorMessage: 'Invalid bank statement',
+          skippedCount: 3,
+        }}
+      />
+    );
+    expect(screen.getByRole('status')).toHaveTextContent('Invalid bank statement');
+    expect(screen.getByText(i18n.t('import:progress.skipped', { count: 3 }))).toBeVisible();
+  });
+  it('offers navigation after completion and exposes the recorded completion time', () => {
+    const view = vi.fn();
+    renderWithProviders(
+      <ImportProgress
+        session={{ ...session, status: 'COMPLETED', completedAt: '2024-01-01T12:00:00Z' }}
+        onViewTransactions={view}
+      />
+    );
+    fireEvent.click(
+      screen.getByRole('button', { name: i18n.t('import:progress.viewTransactions') })
+    );
+    expect(view).toHaveBeenCalledOnce();
+    expect(
+      screen.getByText(
+        i18n.t('import:progress.completedAt', {
+          date: new Date('2024-01-01T12:00:00Z').toLocaleString(),
+        })
+      )
+    ).toBeVisible();
+  });
 
   it('renders live processed rows while committed session counts are still zero', () => {
     renderWithProviders(

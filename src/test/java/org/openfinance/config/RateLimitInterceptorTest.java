@@ -13,6 +13,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -167,5 +169,32 @@ class RateLimitInterceptorTest {
 
         // Then
         verify(rateLimitConfig).resolveBucket("ip:10.0.0.1");
+    }
+
+    @ParameterizedTest
+    @CsvSource(
+            value = {
+                "NULL|192.0.2.5",
+                " |192.0.2.5",
+                ",|192.0.2.5",
+                ",,|192.0.2.5",
+                " , 198.51.100.2|192.0.2.5",
+                "203.0.113.1, 198.51.100.2|203.0.113.1"
+            },
+            delimiter = '|',
+            nullValues = "NULL",
+            ignoreLeadingAndTrailingWhitespace = false)
+    void malformedForwardingMetadataDoesNotBypassOrBreakSensitiveRateLimits(
+            String forwarded, String expected) throws Exception {
+        org.springframework.mock.web.MockHttpServletRequest incoming =
+                new org.springframework.mock.web.MockHttpServletRequest();
+        incoming.setRequestURI("/api/v1/auth/login");
+        incoming.setRemoteAddr("192.0.2.5");
+        if (forwarded != null) incoming.addHeader("X-Forwarded-For", forwarded);
+        when(rateLimitConfig.resolveSensitiveBucket("ip:" + expected)).thenReturn(bucket);
+        when(bucket.tryConsumeAndReturnRemaining(1)).thenReturn(probe);
+        when(probe.isConsumed()).thenReturn(true);
+        assertThat(rateLimitInterceptor.preHandle(incoming, response, new Object())).isTrue();
+        verify(rateLimitConfig).resolveSensitiveBucket("ip:" + expected);
     }
 }

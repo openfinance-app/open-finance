@@ -25,6 +25,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -98,6 +100,77 @@ class CategoryServiceTest {
     @AfterEach
     void tearDown() {
         EncryptionContext.clear();
+    }
+
+    @Test
+    void duplicateSiblingNamesAreCaseInsensitiveRegardlessOfServerLocale() {
+        Locale original = Locale.getDefault();
+        Locale.setDefault(Locale.forLanguageTag("tr-TR"));
+        try {
+            Category existing = userCategoryFixture(10L, USER_ID, "INCOME", null);
+            when(categoryRepository.findByUserId(USER_ID)).thenReturn(List.of(existing));
+            CategoryRequest request = CategoryRequest.builder().name("income").build();
+            assertThatThrownBy(() -> categoryService.createCategory(USER_ID, request))
+                    .isInstanceOf(InvalidCategoryException.class)
+                    .hasMessageContaining("already exists");
+            verify(categoryRepository, never()).save(any());
+        } finally {
+            Locale.setDefault(original);
+        }
+    }
+
+    @Test
+    void lockedCategoryListsAndTreesExposeOnlySystemNamesWithoutQueryingPrivateActivity() {
+        EncryptionContext.clear();
+        Category system = systemCategoryFixture(1L, USER_ID, "System"),
+                custom = userCategoryFixture(2L, USER_ID, "Private", null);
+        system.setNameKey(" ");
+        when(categoryRepository.findByUserId(USER_ID)).thenReturn(List.of(system, custom));
+        when(categoryMapper.toResponse(system))
+                .thenReturn(CategoryResponse.builder().id(1L).build());
+        assertThat(categoryService.getAllCategories(USER_ID, Locale.ENGLISH))
+                .extracting(CategoryResponse::getName)
+                .containsExactly("System");
+        assertThat(categoryService.getCategoryTree(USER_ID, Locale.ENGLISH))
+                .extracting(CategoryTreeNode::getName)
+                .containsExactly("System");
+        verify(categoryActivityService, never()).summarize(anyLong(), anyList(), anyString());
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"locked-custom", "locked-system", "plaintext-custom"})
+    void individualReadsRespectEncryptionModeAndSystemCategoryVisibility(String mode) {
+        EncryptionContext.clear();
+        boolean system = mode.equals("locked-system");
+        when(encryptionProperties.isEnabled()).thenReturn(!mode.equals("plaintext-custom"));
+        Category category =
+                system
+                        ? systemCategoryFixture(CATEGORY_ID, USER_ID, "System")
+                        : userCategoryFixture(CATEGORY_ID, USER_ID, "Private", null);
+        when(categoryRepository.findByIdAndUserId(CATEGORY_ID, USER_ID))
+                .thenReturn(Optional.of(category));
+        when(categoryMapper.toResponse(category))
+                .thenReturn(CategoryResponse.builder().id(CATEGORY_ID).build());
+        if (mode.equals("locked-custom"))
+            assertThatThrownBy(() -> categoryService.getCategoryById(USER_ID, CATEGORY_ID))
+                    .isInstanceOf(IllegalArgumentException.class)
+                    .hasMessageContaining("Encryption key required");
+        else
+            assertThat(categoryService.getCategoryById(USER_ID, CATEGORY_ID).getName())
+                    .isEqualTo(system ? "System" : "Private");
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"roots", "children"})
+    void categoryHierarchyCannotBeReadWithoutUserScope(String endpoint) {
+        assertThatThrownBy(
+                        () -> {
+                            if (endpoint.equals("roots")) categoryService.getRootCategories(null);
+                            else categoryService.getSubcategories(null, 1L);
+                        })
+                .isInstanceOf(IllegalArgumentException.class);
+        verify(categoryRepository, never()).findRootCategoriesByUserId(any());
+        verify(categoryRepository, never()).findByUserIdAndParentId(any(), any());
     }
 
     // ============================================================

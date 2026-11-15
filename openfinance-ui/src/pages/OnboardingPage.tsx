@@ -32,10 +32,10 @@ function detectDefaults(): {
   numberFormat: OnboardingRequest['numberFormat'];
 } {
   const lang = navigator.language || 'en-US';
-  const parts = lang.split('-');
-  const langCode = parts[0].toLowerCase();
-  // Country from second part of locale tag, else fall back to language heuristic
-  let countryCode = parts[1]?.toUpperCase() ?? '';
+  const locale = new Intl.Locale(lang);
+  const langCode = locale.language;
+  // Locale tags may contain a script before the region (for example zh-Hant-TW).
+  let countryCode = locale.region ?? '';
   if (!countryCode) {
     countryCode = langCode === 'fr' ? 'FR' : 'US';
   }

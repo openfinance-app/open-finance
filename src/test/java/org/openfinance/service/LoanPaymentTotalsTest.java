@@ -8,6 +8,9 @@ import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -203,5 +206,154 @@ class LoanPaymentTotalsTest {
         loan.setInsurancePercentage("2");
         loan.setAdditionalFees("100");
         assertThat(totals.calculate(loan, List.of()).total()).isZero();
+    }
+
+    private Liability nativeLoan() {
+        Liability loan = new Liability();
+        loan.setCurrency("EUR");
+        return loan;
+    }
+
+    private Transaction payment() {
+        return Transaction.builder()
+                .id(1L)
+                .currency("EUR")
+                .type(TransactionType.EXPENSE)
+                .movementType(MovementType.REPAYMENT)
+                .amount(new BigDecimal("100.01"))
+                .principalAmount(new BigDecimal("80"))
+                .date(java.time.LocalDate.of(2025, 1, 1))
+                .build();
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"deleted", "transfer", "income", "unlinked", "disbursement"})
+    void nonChargesNeverInflateRecordedBorrowingCosts(String kind) {
+        Transaction payment = payment();
+        switch (kind) {
+            case "deleted" -> payment.setIsDeleted(true);
+            case "transfer" -> payment.setTransferId("linked-transfer");
+            case "income" -> payment.setType(TransactionType.INCOME);
+            case "unlinked" -> payment.setMovementType(null);
+            case "disbursement" -> payment.setMovementType(MovementType.DISBURSEMENT);
+            default -> throw new AssertionError(kind);
+        }
+        assertThat(totals.calculate(nativeLoan(), List.of(payment)).total()).isZero();
+        assertThat(totals.byTransaction(nativeLoan(), List.of(payment))).containsOnlyKeys(1L);
+    }
+
+    @ParameterizedTest
+    @CsvSource(
+            value = {
+                "category.interest.expense,INTEREST",
+                "category.insurance,INSURANCE",
+                "category.bank.fees,FEE",
+                "category.loan.repayment,PRINCIPAL",
+                "custom,OTHER",
+                "NULL,OTHER",
+                "MISSING,OTHER"
+            },
+            nullValues = "NULL")
+    void classifiesLegacyRepaymentSplitsByTheirCanonicalCategoryWithoutLosingResidualCosts(
+            String key, String bucket) {
+        Transaction payment = payment();
+        TransactionSplit split =
+                TransactionSplit.builder()
+                        .transactionId(1L)
+                        .categoryId(42L)
+                        .amount(new BigDecimal("20.01"))
+                        .build();
+        when(splits.findByTransactionIdIn(List.of(1L))).thenReturn(List.of(split));
+        when(categories.findById(42L))
+                .thenReturn(
+                        "MISSING".equals(key)
+                                ? Optional.empty()
+                                : Optional.of(Category.builder().id(42L).nameKey(key).build()));
+        LoanPaymentTotals.Paid paid = totals.calculate(nativeLoan(), List.of(payment));
+        assertThat(paid.total()).isEqualByComparingTo("20.01");
+        assertThat(
+                        switch (bucket) {
+                            case "INTEREST" -> paid.interest();
+                            case "INSURANCE" -> paid.insurance();
+                            case "FEE" -> paid.fees();
+                            default -> paid.other();
+                        })
+                .isEqualByComparingTo("20.01");
+    }
+
+    @Test
+    void unallocatedZeroAndNegativeSplitsDoNotDilutePositiveChargeAllocations() {
+        Transaction payment = payment();
+        when(splits.findByTransactionIdIn(List.of(1L)))
+                .thenReturn(
+                        List.of(
+                                TransactionSplit.builder()
+                                        .transactionId(1L)
+                                        .amount(new BigDecimal("80"))
+                                        .build(),
+                                TransactionSplit.builder()
+                                        .transactionId(1L)
+                                        .loanComponent(org.openfinance.entity.LoanComponent.FEE)
+                                        .amount(BigDecimal.ZERO)
+                                        .build(),
+                                TransactionSplit.builder()
+                                        .transactionId(1L)
+                                        .loanComponent(
+                                                org.openfinance.entity.LoanComponent.INSURANCE)
+                                        .amount(new BigDecimal("-10"))
+                                        .build(),
+                                TransactionSplit.builder()
+                                        .transactionId(1L)
+                                        .loanComponent(
+                                                org.openfinance.entity.LoanComponent.INTEREST)
+                                        .amount(new BigDecimal("20.01"))
+                                        .build()));
+        LoanPaymentTotals.Paid paid = totals.calculate(nativeLoan(), List.of(payment));
+        assertThat(paid.interest()).isEqualByComparingTo("20.01");
+        assertThat(paid.total()).isEqualByComparingTo("20.01");
+    }
+
+    @Test
+    void explicitSplitChargesRemainKnownWhenARepaymentHasNoRecordedPrincipal() {
+        Transaction payment = payment();
+        payment.setPrincipalAmount(null);
+        when(splits.findByTransactionIdIn(List.of(1L)))
+                .thenReturn(
+                        List.of(
+                                TransactionSplit.builder()
+                                        .transactionId(1L)
+                                        .loanComponent(
+                                                org.openfinance.entity.LoanComponent.INTEREST)
+                                        .amount(new BigDecimal("12.34"))
+                                        .build()));
+        assertThat(totals.calculate(nativeLoan(), List.of(payment)).interest())
+                .isEqualByComparingTo("12.34");
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"currency", "amount", "rate"})
+    void incompleteBookedConversionFallsBackToTheHistoricalRate(String missing) {
+        Transaction payment = payment();
+        payment.setCurrency("USD");
+        payment.setOriginalCurrency("EUR");
+        payment.setOriginalAmount(new BigDecimal("90.01"));
+        payment.setConversionRate(new BigDecimal("0.9"));
+        switch (missing) {
+            case "currency" -> payment.setOriginalCurrency("GBP");
+            case "amount" -> payment.setOriginalAmount(null);
+            case "rate" -> payment.setConversionRate(null);
+            default -> throw new AssertionError(missing);
+        }
+        when(rates.convert(new BigDecimal("10.01"), "USD", "EUR", payment.getDate()))
+                .thenReturn(new BigDecimal("9.09"));
+        assertThat(totals.amount(nativeLoan(), payment, new BigDecimal("10.01")))
+                .isEqualByComparingTo("9.09");
+    }
+
+    @Test
+    void emptyPaymentHistoryNeedsNoCategoryOrExchangeRateQueries() {
+        assertThat(totals.calculate(nativeLoan(), List.of()).total()).isZero();
+        assertThat(totals.byTransaction(nativeLoan(), List.of())).isEmpty();
+        org.mockito.Mockito.verifyNoInteractions(splits, categories, rates);
     }
 }

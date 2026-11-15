@@ -14,6 +14,9 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Spy;
@@ -566,5 +569,184 @@ class InsightServiceTest {
                 .currency(currency)
                 .frequency(RecurringFrequency.MONTHLY)
                 .build();
+    }
+
+    @ParameterizedTest
+    @CsvSource(
+            value = {
+                "subscription,category.subscription",
+                "streaming,category.streaming",
+                "membership,category.membership",
+                "subscription,NULL",
+                "streaming,NULL",
+                "membership,NULL"
+            },
+            nullValues = "NULL")
+    void recognizesCanonicalAndCustomSubscriptionNamesInAnyServerLocale(String name, String key) {
+        Locale original = Locale.getDefault();
+        try {
+            Locale.setDefault(Locale.forLanguageTag("tr-TR"));
+            Category category =
+                    Category.builder()
+                            .id(31L)
+                            .name(name.toUpperCase(Locale.ROOT))
+                            .nameKey(key)
+                            .build();
+            when(categoryRepository.findByUserId(1L)).thenReturn(List.of(category));
+            when(transactionRepository.findByCategoryIdInAndDateRange(
+                            eq(List.of(31L)), any(), any(), eq(1L)))
+                    .thenReturn(List.of(tx("80", "EUR", TransactionType.EXPENSE)));
+            assertThat(service.generateInsights(1L))
+                    .filteredOn(i -> i.getType() == InsightType.SAVINGS_OPPORTUNITY)
+                    .singleElement()
+                    .satisfies(i -> assertThat(i.getDescription()).contains("80"));
+        } finally {
+            Locale.setDefault(original);
+        }
+    }
+
+    @ParameterizedTest
+    @CsvSource(
+            value = {
+                "custom,category.charity",
+                "custom,category.professional",
+                "custom,category.education",
+                "custom,category.retirement",
+                "DONATION,NULL",
+                "CHARITY,NULL",
+                "PROFESSIONAL,NULL",
+                "EDUCATION,NULL",
+                "RETIREMENT,NULL",
+                "RETRAITE,NULL",
+                "ORDINARY,NULL"
+            },
+            nullValues = "NULL")
+    void deductionCandidatesUseCanonicalKeysAndLocalizedCustomNames(String name, String key) {
+        Category category = Category.builder().id(31L).name(name).nameKey(key).build();
+        when(categoryRepository.findByUserId(1L)).thenReturn(List.of(category));
+        when(transactionRepository.findByCategoryIdInAndDateRange(
+                        eq(List.of(31L)), any(), any(), eq(1L)))
+                .thenReturn(List.of(tx("50", "EUR", TransactionType.EXPENSE)));
+        List<InsightResponse> deductions =
+                service.generateInsights(1L).stream()
+                        .filter(i -> i.getTitle().equals("Potential Tax Deductions"))
+                        .toList();
+        if (name.equals("ORDINARY")) assertThat(deductions).isEmpty();
+        else
+            assertThat(deductions)
+                    .singleElement()
+                    .satisfies(i -> assertThat(i.getDescription()).contains("600 EUR"));
+    }
+
+    @ParameterizedTest
+    @ValueSource(
+            strings = {
+                "not-array",
+                "too-many",
+                "unknown-id",
+                "duplicate-id",
+                "wrong-period",
+                "blank-name",
+                "long-name",
+                "same-price",
+                "valid"
+            })
+    void sourcedCompetitorSuggestionsRejectInconsistentOffersButRetainLocalTotals(String condition)
+            throws Exception {
+        when(recurringTransactionRepository.findByUserIdAndIsActive(1L))
+                .thenReturn(List.of(recurring(1L, "EUR"), recurring(2L, "EUR")));
+        com.fasterxml.jackson.databind.node.ObjectNode offer =
+                objectMapper
+                        .createObjectNode()
+                        .put("originalServiceId", 1)
+                        .put("competitorName", "Comparable provider")
+                        .put("competitorPrice", 75)
+                        .put("period", "MONTHLY")
+                        .put("currency", "EUR")
+                        .put("asOf", LocalDate.now().toString())
+                        .put("sourceUrl", "https://example.test/pricing");
+        switch (condition) {
+            case "unknown-id" -> offer.put("originalServiceId", 999);
+            case "wrong-period" -> offer.put("period", "YEARLY");
+            case "blank-name" -> offer.put("competitorName", " ");
+            case "long-name" -> offer.put("competitorName", "x".repeat(101));
+            case "same-price" -> offer.put("competitorPrice", 100);
+            default -> {}
+        }
+        com.fasterxml.jackson.databind.node.ArrayNode offers =
+                objectMapper.createArrayNode().add(offer);
+        if (condition.equals("duplicate-id") || condition.equals("too-many"))
+            offers.add(offer.deepCopy());
+        if (condition.equals("too-many")) offers.add(offer.deepCopy());
+        String response =
+                objectMapper.writeValueAsString(condition.equals("not-array") ? offer : offers);
+        when(aiProvider.sendPrompt(startsWith("Review these"), anyString()))
+                .thenReturn(Mono.just(response));
+        InsightService.GenerationResult result = service.generateInsightsDetailed(1L);
+        assertThat(result.insights())
+                .filteredOn(i -> i.getTitle().equals("Recurring Expenses Summary"))
+                .hasSize(1);
+        List<InsightResponse> alternatives =
+                result.insights().stream()
+                        .filter(i -> i.getTitle().startsWith("Alternative to review"))
+                        .toList();
+        if (condition.equals("valid")) {
+            assertThat(alternatives)
+                    .singleElement()
+                    .satisfies(
+                            i ->
+                                    assertThat(i.getDescription())
+                                            .contains("25 EUR", "Comparable provider"));
+            assertThat(result.unavailableSources()).doesNotContain(InsightType.RECURRING_BILLING);
+        } else {
+            assertThat(alternatives).isEmpty();
+            if (!condition.equals("same-price"))
+                assertThat(result.unavailableSources()).contains(InsightType.RECURRING_BILLING);
+        }
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"empty", "blank", "invalid", "json-fence", "plain-fence"})
+    void modelFormattingEitherParsesAnExplicitEstimateOrPreservesSourceUnavailability(
+            String format) {
+        String valid = "{\"baseRate\":20,\"topRate\":40,\"standardDeduction\":1000" + provenance();
+        String response =
+                switch (format) {
+                    case "blank" -> "   ";
+                    case "invalid" -> "{not-json}";
+                    case "json-fence" -> "```json\n" + valid + "\n```";
+                    case "plain-fence" -> "```\n" + valid + "\n```";
+                    default -> "";
+                };
+        when(aiProvider.sendPrompt(startsWith("You are a tax"), anyString()))
+                .thenReturn(format.equals("empty") ? Mono.empty() : Mono.just(response));
+        InsightService.GenerationResult result = service.generateInsightsDetailed(1L);
+        if (format.endsWith("fence"))
+            assertThat(result.insights()).anyMatch(i -> i.getType() == InsightType.TAX_OBLIGATION);
+        else {
+            assertThat(result.insights()).noneMatch(i -> i.getType() == InsightType.TAX_OBLIGATION);
+            assertThat(result.unavailableSources()).contains(InsightType.TAX_OBLIGATION);
+        }
+    }
+
+    @ParameterizedTest
+    @CsvSource({
+        "DAILY,3000",
+        "WEEKLY,433",
+        "BIWEEKLY,217",
+        "MONTHLY,100",
+        "QUARTERLY,33.33",
+        "YEARLY,8.33"
+    })
+    void recurringCostUsesItsBillingFrequencyBeforeComparingMonthlyOffers(
+            RecurringFrequency frequency, String monthly) {
+        RecurringTransaction recurring = recurring(1L, "EUR");
+        recurring.setFrequency(frequency);
+        when(recurringTransactionRepository.findByUserIdAndIsActive(1L))
+                .thenReturn(List.of(recurring));
+        assertThat(service.generateInsights(1L))
+                .filteredOn(i -> i.getTitle().equals("Recurring Expenses Summary"))
+                .singleElement()
+                .satisfies(i -> assertThat(i.getDescription()).contains(monthly + " EUR/month"));
     }
 }

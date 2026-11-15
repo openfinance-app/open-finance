@@ -1,4 +1,4 @@
-import { waitFor } from '@testing-library/react';
+import { waitFor, within } from '@testing-library/react';
 import type { ComponentProps } from 'react';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { screen } from '@testing-library/react';
@@ -131,3 +131,131 @@ it('lets the user close a failed detail request without showing stale property d
   await userEvent.click(screen.getAllByRole('button', { name: tr('close') })[0]);
   await waitFor(() => expect(close).toHaveBeenCalledOnce());
 });
+
+it.each([
+  [0, 0],
+  [0, 2.3522],
+  [48.8566, 0],
+  [null, -73.9857],
+  [-33.8688, null],
+] as const)('shows valid coordinates including zero (%s, %s)', (latitude, longitude) => {
+  hooks.property.mockReturnValue({ data: { ...property, latitude, longitude } });
+  renderWithProviders(<PropertyDetailView propertyId={7} onClose={vi.fn()} />);
+  expect(screen.getByRole('heading', { name: tr('location') })).toBeInTheDocument();
+  for (const [name, value] of [
+    ['latitude', latitude],
+    ['longitude', longitude],
+  ] as const) {
+    if (value === null) expect(screen.queryByText(tr(name))).not.toBeInTheDocument();
+    else expect(screen.getByText(tr(name)).parentElement).toHaveTextContent(value.toFixed(6));
+  }
+});
+
+it.each([null, 80000])(
+  'shows gift valuation availability without assuming its cost is its value (%s)',
+  receivedValue => {
+    hooks.property.mockReturnValue({
+      data: {
+        ...property,
+        acquisitionType: 'GIFT',
+        receivedValue,
+        purchasePrice: 1000,
+        appreciation: null,
+        appreciationPercentage: null,
+        isActive: false,
+        mortgageName: 'Home loan',
+        rentalIncome: 700,
+        notes: 'Roof replaced in 2024',
+      },
+    });
+    renderWithProviders(<PropertyDetailView propertyId={7} onClose={vi.fn()} />);
+    expect(screen.getByText(i18n.t('realEstate:form.receivedDate'))).toBeInTheDocument();
+    expect(
+      screen.getByText(i18n.t('realEstate:form.acquisitionCost')).parentElement
+    ).toHaveTextContent('$1,000.00');
+    expect(
+      screen.getByText(i18n.t('realEstate:form.receivedValue')).parentElement
+    ).toHaveTextContent(receivedValue === null ? tr('na') : '$80,000.00');
+    expect(screen.queryByText(i18n.t('realEstate:performanceUnavailable')) !== null).toBe(
+      receivedValue === null
+    );
+    expect(screen.getByText('Home loan')).toBeInTheDocument();
+    expect(screen.getByText('$700.00')).toBeInTheDocument();
+    expect(screen.getByText('Roof replaced in 2024')).toBeInTheDocument();
+    expect(screen.getByText(i18n.t('realEstate:card.inactive'))).toBeInTheDocument();
+  }
+);
+
+it('keeps a closed property out of current valuation and return views', () => {
+  hooks.property.mockReturnValue({
+    data: { ...property, ownershipStatus: 'CLOSED', soldDate: '2025-01-01' },
+  });
+  renderWithProviders(<PropertyDetailView propertyId={7} onClose={vi.fn()} />);
+  expect(screen.queryByRole('button', { name: tr('tab.roi') })).not.toBeInTheDocument();
+  expect(screen.queryByRole('button', { name: tr('tab.equity') })).not.toBeInTheDocument();
+  expect(screen.queryByText(i18n.t('realEstate:form.currentValue'))).not.toBeInTheDocument();
+});
+
+it.each([
+  { hasMortgage: false, mortgageBalance: 0, equity: 120000, equityPercentage: 100 },
+  { hasMortgage: false, mortgageBalance: 125000, equity: -5000, equityPercentage: -4.17 },
+  { hasMortgage: true, mortgageBalance: 0, equity: 0, equityPercentage: null },
+])('explains debt and undefined ratios without inventing equity: %j', async values => {
+  hooks.equity.mockReturnValue({
+    data: {
+      ...values,
+      currentValue: values.equityPercentage === null ? 0 : 120000,
+      currency: 'USD',
+    },
+  });
+  renderWithProviders(<PropertyDetailView propertyId={7} onClose={vi.fn()} />);
+  await userEvent.click(screen.getByRole('button', { name: tr('tab.equity') }));
+  expect(screen.queryByText(tr('noMortgage')) !== null).toBe(
+    !values.hasMortgage && values.mortgageBalance === 0
+  );
+  expect(screen.queryByText(tr('mortgageBalance')) !== null).toBe(
+    values.hasMortgage || values.mortgageBalance > 0
+  );
+  expect(screen.queryByRole('link')).not.toBeInTheDocument();
+  const region = screen.getByRole('region', { name: tr('tab.equity') });
+  expect(region.textContent).not.toMatch(/NaN|Infinity/);
+  if (values.equity < 0) expect(within(region).getAllByText('-$5,000.00')).toHaveLength(2);
+  if (values.equityPercentage === null) expect(region).toHaveTextContent('—');
+});
+
+it.each(['equity', 'roi'] as const)('handles a loading and then failed %s request', async tab => {
+  const hook = hooks[tab];
+  hook.mockReturnValue({ isLoading: true });
+  const { rerender } = renderWithProviders(<PropertyDetailView propertyId={7} onClose={vi.fn()} />);
+  await userEvent.click(screen.getByRole('button', { name: tr(`tab.${tab}`) }));
+  const error = tr(tab === 'equity' ? 'loadEquityError' : 'loadROIError');
+  expect(screen.queryByText(error)).not.toBeInTheDocument();
+  hook.mockReturnValue({ isLoading: false, data: undefined });
+  rerender(<PropertyDetailView propertyId={7} onClose={vi.fn()} />);
+  expect(screen.getByText(error)).toBeInTheDocument();
+});
+
+it.each([null, -20000])(
+  'handles unavailable or negative returns for a non-rental property (%s)',
+  async appreciation => {
+    hooks.roi.mockReturnValue({
+      data: {
+        totalROI: null,
+        annualizedReturn: null,
+        performanceBasis: null,
+        yearsOwned: null,
+        currentValue: 80000,
+        appreciation,
+        appreciationPercentage: appreciation === null ? null : -20,
+        currency: 'USD',
+        isRentalProperty: false,
+      },
+    });
+    renderWithProviders(<PropertyDetailView propertyId={7} onClose={vi.fn()} />);
+    await userEvent.click(screen.getByRole('button', { name: tr('tab.roi') }));
+    const region = screen.getByRole('region', { name: tr('tab.roi') });
+    expect(within(region).getAllByText(tr('na')).length).toBeGreaterThanOrEqual(2);
+    expect(region.textContent).not.toMatch(/NaN|Infinity/);
+    if (appreciation !== null) expect(region).toHaveTextContent('-20.00%');
+  }
+);

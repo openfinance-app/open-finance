@@ -39,18 +39,20 @@ export function PhysicalAssetCard({ asset, onClick, onCompletePurchase }: Physic
   const isWarrantyValid = asset.isWarrantyValid;
 
   // Actual market value change: purchase cost vs current market value
-  const currentValue = asset.totalValue; // quantity × currentPrice (actual market value)
-  const basis = asset.performanceBasis ?? (asset.acquisitionType === 'GIFT' ? 0 : asset.totalCost);
-  const valueLoss = new ExactDecimal(
+  const currentValue = new ExactDecimal(decimalValue(asset, 'totalValue') ?? 0);
+  const basis = new ExactDecimal(
     decimalValue(asset, 'performanceBasis') ??
       (asset.acquisitionType === 'GIFT' ? 0 : decimalValue(asset, 'totalCost')) ??
       0
-  ).minus(decimalValue(asset, 'totalValue') ?? 0);
-  const lossPercent = basis > 0 ? percentage(valueLoss.toFixed(), basis) : 0;
-  const retainedPercent = basis > 0 ? Math.min(percentage(currentValue, basis), 100) : 0;
+  );
+  const valueLoss = basis.minus(currentValue);
+  const lossPercent = basis.gt(0) ? percentage(valueLoss.toFixed(), basis.toFixed()) : 0;
+  const retainedPercent = basis.gt(0)
+    ? Math.min(percentage(currentValue.toFixed(), basis.toFixed()), 100)
+    : 0;
   const isPlanned = asset.acquisitionType === 'PLANNED';
   const isClosed = asset.ownershipStatus === 'CLOSED';
-  const hasValueChange = !isPlanned && !isClosed && basis > 0 && currentValue !== basis;
+  const hasValueChange = !isPlanned && !isClosed && basis.gt(0) && !currentValue.eq(basis);
 
   return (
     <Card
@@ -182,7 +184,7 @@ export function PhysicalAssetCard({ asset, onClick, onCompletePurchase }: Physic
             <div className="relative flex min-h-6 items-center justify-between gap-2 px-3 py-1 text-xs font-medium">
               <span className="min-w-0 flex-1 text-white drop-shadow-md">
                 <CurrencyAmount
-                  amount={currentValue}
+                  amount={currentValue.toFixed()}
                   currency={asset.currency}
                   inline
                   baseCurrency={asset.baseCurrency}

@@ -1,5 +1,5 @@
 import { beforeEach, afterEach, expect, it } from 'vitest';
-import { screen, within } from '@testing-library/react';
+import { fireEvent, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { renderWithProviders, mockAuthentication } from '@/test/test-utils';
 import { AssetPerformanceTable } from '@/components/assets/AssetPerformanceTable';
@@ -77,4 +77,58 @@ it('opens the same holding from its mobile card and explains an empty portfolio'
   expect(window.location.pathname).toBe('/assets/3');
   rerender(<AssetPerformanceTable assets={[]} />);
   expect(screen.getByText('No assets to display')).toBeInTheDocument();
+});
+
+it.each([
+  ['currentValue', 'totalValue'],
+  ['costBasis', 'totalCost'],
+  ['gainLoss', 'unrealizedGain'],
+  ['return', 'gainPercentage'],
+] as const)('sorts exact %s in both directions', (column, field) => {
+  const lower = {
+    ...assets[0],
+    id: 11,
+    name: 'Lower',
+    [field]: 9007199254740992,
+    exactValues: { [field]: '9007199254740992.01' },
+  };
+  const higher = {
+    ...lower,
+    id: 12,
+    name: 'Higher',
+    exactValues: { [field]: '9007199254740992.02' },
+  };
+  renderWithProviders(<AssetPerformanceTable assets={[higher, lower]} />);
+  const button = screen.getByRole('button', { name: i18n.t(`assets:table.${column}`) });
+  fireEvent.click(button);
+  expect(screen.getAllByRole('row')[1]).toHaveTextContent('Lower');
+  fireEvent.click(button);
+  expect(screen.getAllByRole('row')[1]).toHaveTextContent('Higher');
+});
+
+it('preserves exact converted cost and unit prices', () => {
+  renderWithProviders(
+    <AssetPerformanceTable
+      assets={[
+        {
+          ...assets[0],
+          isConverted: true,
+          baseCurrency: 'EUR',
+          exchangeRate: 1,
+          totalCost: 9007199254740992,
+          purchasePrice: 9007199254740992,
+          currentPrice: 9007199254740992,
+          exactValues: {
+            totalCost: '9007199254740992.01',
+            purchasePrice: '9007199254740992.03',
+            currentPrice: '9007199254740992.05',
+            exchangeRate: '1.000000000000000001',
+          },
+        },
+      ]}
+    />
+  );
+  const row = screen.getAllByRole('row')[1];
+  for (const cents of ['02', '04', '06'])
+    expect(row).toHaveTextContent(`9,007,199,254,740,992.${cents}`);
 });

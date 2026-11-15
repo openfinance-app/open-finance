@@ -1,4 +1,4 @@
-import { decimalValue } from '@/utils/exact-decimal';
+import { decimalValue, ExactDecimal } from '@/utils/exact-decimal';
 import { formatDecimal } from '@/utils/format';
 import React from 'react';
 import { TrendingUp, Wallet, Calendar, CheckCircle } from 'lucide-react';
@@ -19,13 +19,24 @@ export const ComparisonAnalysis: React.FC<ComparisonAnalysisProps> = ({ results 
   const { t } = useTranslation('realEstate');
   const { buy, rent, comparison } = results.summary;
 
-  const tied = Math.abs(comparison.netWorthDifference) < 0.005;
-  const buyAdvantage = comparison.netWorthDifference > 0;
-  const worthDifference = Math.abs(comparison.netWorthDifference);
-  const worthDifferencePercent =
-    Math.max(buy.netWorth, rent.netWorth) === 0
-      ? 0
-      : (worthDifference / Math.max(buy.netWorth, rent.netWorth)) * 100;
+  const buyWorth = new ExactDecimal(decimalValue(buy, 'netWorth') ?? 0);
+  const rentWorth = new ExactDecimal(decimalValue(rent, 'netWorth') ?? 0);
+  const difference = new ExactDecimal(decimalValue(comparison, 'netWorthDifference') ?? 0);
+  const monthlyGap = new ExactDecimal(decimalValue(comparison, 'monthlyGap') ?? 0);
+  const tied = difference.abs().lt('0.005');
+  const buyAdvantage = difference.gt(0);
+  const worthDifference = difference.abs().toFixed();
+  const worthScale = ExactDecimal.max(buyWorth.abs(), rentWorth.abs());
+  const worthDifferencePercent = worthScale.isZero()
+    ? 0
+    : difference.abs().dividedBy(worthScale).times(100).toNumber();
+  const positiveWorth = ExactDecimal.max(0, buyWorth, rentWorth);
+  const buyProgress = positiveWorth.isZero()
+    ? 0
+    : buyWorth.dividedBy(positiveWorth).times(100).toNumber();
+  const rentProgress = positiveWorth.isZero()
+    ? 0
+    : rentWorth.dividedBy(positiveWorth).times(100).toNumber();
 
   return (
     <div className="space-y-6">
@@ -109,7 +120,7 @@ export const ComparisonAnalysis: React.FC<ComparisonAnalysisProps> = ({ results 
                     />
                   </span>
                 </div>
-                <Progress value={(buy.netWorth / Math.max(buy.netWorth, rent.netWorth)) * 100} />
+                <Progress value={buyProgress} />
               </div>
               <div>
                 <div className="flex justify-between mb-1">
@@ -122,14 +133,14 @@ export const ComparisonAnalysis: React.FC<ComparisonAnalysisProps> = ({ results 
                     />
                   </span>
                 </div>
-                <Progress value={(rent.netWorth / Math.max(buy.netWorth, rent.netWorth)) * 100} />
+                <Progress value={rentProgress} />
               </div>
               <div className="pt-2 border-t">
                 <p className="text-sm text-muted-foreground">{t('comparison.difference')}</p>
                 <p
-                  className={`text-xl font-bold ${comparison.netWorthDifference >= 0 ? 'text-green-600' : 'text-red-600'}`}
+                  className={`text-xl font-bold ${difference.gte(0) ? 'text-green-600' : 'text-red-600'}`}
                 >
-                  {comparison.netWorthDifference >= 0 ? '+' : ''}
+                  {difference.gte(0) ? '+' : ''}
                   <ConvertedAmount
                     amount={
                       decimalValue(comparison, 'netWorthDifference') ??
@@ -190,9 +201,9 @@ export const ComparisonAnalysis: React.FC<ComparisonAnalysisProps> = ({ results 
               <div className="pt-2 border-t">
                 <p className="text-sm text-muted-foreground">{t('comparison.monthlyGap')}</p>
                 <p
-                  className={`text-xl font-bold ${comparison.monthlyGap >= 0 ? 'text-green-600' : 'text-red-600'}`}
+                  className={`text-xl font-bold ${monthlyGap.gte(0) ? 'text-green-600' : 'text-red-600'}`}
                 >
-                  {comparison.monthlyGap >= 0 ? '+' : ''}
+                  {monthlyGap.gte(0) ? '+' : ''}
                   <ConvertedAmount
                     amount={decimalValue(comparison, 'monthlyGap') ?? comparison.monthlyGap}
                     currency={baseCurrency}
@@ -201,9 +212,9 @@ export const ComparisonAnalysis: React.FC<ComparisonAnalysisProps> = ({ results 
                   /{t('comparison.perMonth')}
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  {Math.abs(comparison.monthlyGap) < 0.005
+                  {monthlyGap.abs().lt('0.005')
                     ? t('comparison.equalPayments')
-                    : comparison.monthlyGap > 0
+                    : monthlyGap.gt(0)
                       ? t('comparison.buyCheaper')
                       : t('comparison.rentCheaper')}
                 </p>
@@ -290,7 +301,7 @@ export const ComparisonAnalysis: React.FC<ComparisonAnalysisProps> = ({ results 
                 <CheckCircle className="h-4 w-4 mt-1 text-green-600" />
                 <span>{t('comparison.buyAdvantage3')}</span>
               </li>
-              {buy.netWorth > rent.netWorth && (
+              {buyWorth.gt(rentWorth) && (
                 <li className="flex items-start gap-2">
                   <TrendingUp className="h-4 w-4 mt-1 text-green-600" />
                   <span>{t('comparison.betterPerformance', { years: results.years.length })}</span>
@@ -321,7 +332,7 @@ export const ComparisonAnalysis: React.FC<ComparisonAnalysisProps> = ({ results 
                 <CheckCircle className="h-4 w-4 mt-1 text-blue-600" />
                 <span>{t('comparison.rentAdvantage3')}</span>
               </li>
-              {rent.netWorth > buy.netWorth && (
+              {rentWorth.gt(buyWorth) && (
                 <li className="flex items-start gap-2">
                   <TrendingUp className="h-4 w-4 mt-1 text-blue-600" />
                   <span>{t('comparison.betterPerformance', { years: results.years.length })}</span>

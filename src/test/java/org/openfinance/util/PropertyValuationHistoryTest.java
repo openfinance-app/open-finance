@@ -1,10 +1,13 @@
 package org.openfinance.util;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.time.LocalDate;
 import java.util.List;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.openfinance.entity.RealEstateProperty;
 import org.openfinance.entity.RealEstateValueHistory;
 
@@ -12,6 +15,49 @@ class PropertyValuationHistoryTest {
     private static final LocalDate START = LocalDate.of(2026, 1, 1);
     private final RealEstateProperty property =
             RealEstateProperty.builder().purchasePrice("1000").currency("EUR").build();
+
+    @Test
+    void improvementsWithoutAnAppraisalUsePurchaseCostAndNeverProduceNegativeWorth() {
+        assertThat(
+                        PropertyValuationHistory.atDate(
+                                        property, List.of(entry(1, 0, "200", true)), START)
+                                .amount())
+                .isEqualByComparingTo("1200");
+        assertThat(
+                        PropertyValuationHistory.atDate(
+                                        property, List.of(entry(1, 0, "-2000", true)), START)
+                                .amount())
+                .isZero();
+        property.setPurchasePrice(null);
+        assertThat(PropertyValuationHistory.atDate(property, List.of(), START).amount()).isZero();
+    }
+
+    @Test
+    void aForeignCurrencyImprovementCannotBeAddedWithoutConversion() {
+        RealEstateValueHistory adjustment = entry(2, 1, "100", true);
+        adjustment.setCurrency("USD");
+        assertThatThrownBy(
+                        () ->
+                                PropertyValuationHistory.atDate(
+                                        property, List.of(adjustment), START.plusMonths(1)))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("currency");
+    }
+
+    @ParameterizedTest
+    @CsvSource({"1,false,1500", "3,false,1600", "3,true,1500"})
+    void legacyEntriesWithoutRecordingTimesUseStableIdsOnlyWhenNoMovementTimeExists(
+            long id, boolean movementTime, String expected) {
+        RealEstateValueHistory anchor = entry(2, 1, "1500", false);
+        RealEstateValueHistory adjustment = entry(id, 0, "100", true);
+        adjustment.setCreatedAt(null);
+        if (movementTime) adjustment.setMovementRecordedAt(START.atStartOfDay());
+        assertThat(
+                        PropertyValuationHistory.atDate(
+                                        property, List.of(anchor, adjustment), START.plusMonths(1))
+                                .amount())
+                .isEqualByComparingTo(expected);
+    }
 
     private RealEstateValueHistory entry(long id, int month, String value, boolean adjustment) {
         return RealEstateValueHistory.builder()

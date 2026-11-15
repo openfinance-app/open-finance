@@ -62,6 +62,56 @@ class DashboardServiceBatchLoadTest {
 
     private final Long userId = 1L;
 
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.NullAndEmptySource
+    @org.junit.jupiter.params.provider.ValueSource(strings = {" ", "Readable"})
+    void optionalImportedDescriptionsAndAccountNamesAreOnlyDisplayedWhenMeaningful(String value) {
+        Transaction tx =
+                Transaction.builder()
+                        .id(1L)
+                        .accountId(10L)
+                        .toAccountId(11L)
+                        .categoryId(12L)
+                        .description(value)
+                        .notes(value)
+                        .type(TransactionType.TRANSFER)
+                        .build();
+        when(transactionRepository.findByUserId(eq(userId), any(Pageable.class)))
+                .thenReturn(new PageImpl<>(List.of(tx)));
+        when(accountRepository.findAllByIds(any()))
+                .thenReturn(
+                        List.of(
+                                Account.builder().id(10L).name(value).build(),
+                                Account.builder().id(11L).name(value).build()));
+        when(transactionMapper.toResponse(tx)).thenReturn(new TransactionResponse());
+        TransactionResponse response = dashboardService.getRecentTransactions(userId, 5).getFirst();
+        String expected = value == null || value.isBlank() ? null : value;
+        assertThat(response.getDescription()).isEqualTo(expected);
+        assertThat(response.getNotes()).isEqualTo(expected);
+        assertThat(response.getAccountName()).isEqualTo(expected);
+        assertThat(response.getToAccountName()).isEqualTo(expected);
+        assertThat(response.getCategoryName()).isNull();
+    }
+
+    @Test
+    void missingTransferDestinationDoesNotBorrowTheSourceAccountName() {
+        Transaction tx =
+                Transaction.builder()
+                        .id(1L)
+                        .accountId(10L)
+                        .toAccountId(11L)
+                        .type(TransactionType.TRANSFER)
+                        .build();
+        when(transactionRepository.findByUserId(eq(userId), any(Pageable.class)))
+                .thenReturn(new PageImpl<>(List.of(tx)));
+        when(accountRepository.findAllByIds(any()))
+                .thenReturn(List.of(Account.builder().id(10L).name("Source").build()));
+        when(transactionMapper.toResponse(tx)).thenReturn(new TransactionResponse());
+        TransactionResponse response = dashboardService.getRecentTransactions(userId, 5).getFirst();
+        assertThat(response.getAccountName()).isEqualTo("Source");
+        assertThat(response.getToAccountName()).isNull();
+    }
+
     @BeforeEach
     void setUp() {
         dashboardService =

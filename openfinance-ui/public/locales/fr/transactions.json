@@ -161,6 +161,7 @@
     }
   },
   "detail": {
+    "title": "Transaction",
     "edit": "Modifier",
     "amountLabel": "Montant",
     "badges": {

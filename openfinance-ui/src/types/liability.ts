@@ -156,6 +156,7 @@ export interface LiabilityFilters {
  * Returned by GET /api/v1/liabilities/{id}/breakdown
  */
 export interface LiabilityBreakdown {
+  exactValues?: Record<string, string>;
   liabilityId: number;
   name: string;
   currency: string;

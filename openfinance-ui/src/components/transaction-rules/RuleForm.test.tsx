@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderWithProviders, screen, fireEvent, waitFor } from '@/test/test-utils';
 import { act } from 'react';
+import i18n from '@/test/i18n-test';
 import { RuleForm } from './RuleForm';
 import type { TransactionRule, TransactionRuleRequest } from '@/types/transactionRules';
 
@@ -132,6 +133,97 @@ describe('RuleForm', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+  });
+
+  it.each([
+    ['priorityNegative', { priority: -1 }],
+    [
+      'conditionValueRequired',
+      { conditions: [{ field: 'DESCRIPTION', operator: 'CONTAINS', value: ' ', sortOrder: 0 }] },
+    ],
+    [
+      'actionValueRequired',
+      { actions: [{ actionType: 'SET_CATEGORY', actionValue: ' ', sortOrder: 0 }] },
+    ],
+  ] as const)('rejects invalid saved-rule fields: %s', (error, overrides) => {
+    renderWithProviders(
+      <RuleForm
+        open
+        onOpenChange={mockOnOpenChange}
+        onSubmit={mockOnSubmit}
+        rule={{ ...mockRule, ...overrides } as TransactionRule}
+      />
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Update Rule' }));
+    expect(mockOnSubmit).not.toHaveBeenCalled();
+    if (error === 'priorityNegative')
+      expect(screen.getByText('Enter a value of at least 0.')).toBeVisible();
+    else expect(screen.getByText(i18n.t(`rules:form.errors.${error}`))).toBeVisible();
+  });
+  it.each([1, 2])('duplicate-name validation excludes only the current rule (%s)', id => {
+    renderWithProviders(
+      <RuleForm
+        open
+        onOpenChange={mockOnOpenChange}
+        onSubmit={mockOnSubmit}
+        rule={mockRule}
+        existingRules={[{ ...mockRule, id, name: 'TEST RULE' }]}
+      />
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Update Rule' }));
+    if (id === 1) expect(mockOnSubmit).toHaveBeenCalledOnce();
+    else {
+      expect(mockOnSubmit).not.toHaveBeenCalled();
+      expect(screen.getByText(i18n.t('rules:form.errors.nameDuplicate'))).toBeVisible();
+    }
+  });
+  it.each([
+    'NaN',
+    'Infinity',
+    'not-a-number',
+    '0.0000000000000000001',
+    '100000000000000000000000000',
+  ])('rejects unbookable split amount %s', amount => {
+    renderWithProviders(
+      <RuleForm
+        open
+        onOpenChange={mockOnOpenChange}
+        onSubmit={mockOnSubmit}
+        rule={{
+          ...mockRule,
+          actions: [
+            {
+              actionType: 'ADD_SPLIT',
+              actionValue: 'Groceries',
+              actionValue2: amount,
+              sortOrder: 0,
+            },
+          ],
+        }}
+      />
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Update Rule' }));
+    expect(mockOnSubmit).not.toHaveBeenCalled();
+    if (['NaN', 'Infinity', 'not-a-number'].includes(amount))
+      expect(
+        screen.getAllByRole('textbox').some(input => input.getAttribute('aria-invalid') === 'true')
+      ).toBe(true);
+    else expect(screen.getByText(i18n.t('rules:form.errors.splitAmountRequired'))).toBeVisible();
+  });
+  it('preserves OR matching, exposes server errors and prevents cancelling a pending save', () => {
+    renderWithProviders(
+      <RuleForm
+        open
+        onOpenChange={mockOnOpenChange}
+        onSubmit={mockOnSubmit}
+        isLoading
+        submitError="Rule could not be saved"
+        rule={{ ...mockRule, conditionMatch: 'OR' }}
+      />
+    );
+    expect(screen.getByText('Rule could not be saved')).toBeVisible();
+    fireEvent.keyDown(screen.getByRole('dialog'), { key: 'Escape' });
+    expect(mockOnOpenChange).not.toHaveBeenCalled();
   });
 
   it.each(['', '0', '-1'])('rejects an Add Split amount of %s', async amount => {

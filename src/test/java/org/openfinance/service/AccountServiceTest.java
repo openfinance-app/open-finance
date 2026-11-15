@@ -8,6 +8,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 import javax.crypto.SecretKey;
@@ -17,17 +18,29 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.openfinance.config.EncryptionProperties;
 import org.openfinance.dto.AccountRequest;
 import org.openfinance.dto.AccountResponse;
+import org.openfinance.dto.AccountSearchCriteria;
+import org.openfinance.dto.AccountSummaryResponse;
 import org.openfinance.entity.Account;
 import org.openfinance.entity.AccountType;
+import org.openfinance.entity.AcquisitionType;
+import org.openfinance.entity.Asset;
+import org.openfinance.entity.AssetType;
+import org.openfinance.entity.Institution;
+import org.openfinance.entity.Transaction;
 import org.openfinance.entity.User;
 import org.openfinance.exception.AccountHasTransactionsException;
 import org.openfinance.exception.AccountNotFoundException;
+import org.openfinance.exception.ExchangeRateUnavailableException;
+import org.openfinance.exception.InvalidTransactionException;
 import org.openfinance.mapper.AccountMapper;
 import org.openfinance.repository.AccountRepository;
 import org.openfinance.repository.AssetRepository;
@@ -37,6 +50,7 @@ import org.openfinance.repository.TransactionRepository;
 import org.openfinance.repository.UserRepository;
 import org.openfinance.security.EncryptionContext;
 import org.openfinance.security.EncryptionService;
+import org.springframework.data.domain.PageRequest;
 
 /** Unit tests for AccountService. */
 @ExtendWith(MockitoExtension.class)
@@ -1358,6 +1372,318 @@ class AccountServiceTest {
                 org.mockito.ArgumentCaptor.forClass(org.openfinance.dto.TransactionRequest.class);
         verify(transactionWriter).createTransaction(eq(1L), capture.capture());
         assertThat(capture.getValue().getAmount()).isEqualByComparingTo("1");
+    }
+
+    @ParameterizedTest
+    @ValueSource(
+            strings = {
+                "update-account",
+                "update-user",
+                "update-request",
+                "read-account",
+                "read-user",
+                "balance-account",
+                "balance-user",
+                "recalculate-account",
+                "recalculate-user",
+                "list-user",
+                "filtered-user",
+                "summary-user",
+                "search-user",
+                "search-criteria",
+                "search-page"
+            })
+    void missingOwnershipAndRequiredArgumentsCannotReadOrWriteAccounts(String operation) {
+        AccountRequest request = AccountRequest.builder().name("Account").build();
+        assertThatThrownBy(
+                        () -> {
+                            switch (operation) {
+                                case "update-account" -> accountService.updateAccount(
+                                        null, 1L, request);
+                                case "update-user" -> accountService.updateAccount(
+                                        1L, null, request);
+                                case "update-request" -> accountService.updateAccount(1L, 1L, null);
+                                case "read-account" -> accountService.getAccountById(null, 1L);
+                                case "read-user" -> accountService.getAccountById(1L, null);
+                                case "balance-account" -> accountService.getAccountBalance(
+                                        null, 1L);
+                                case "balance-user" -> accountService.getAccountBalance(1L, null);
+                                case "recalculate-account" -> accountService.recalculateBalance(
+                                        null, 1L);
+                                case "recalculate-user" -> accountService.recalculateBalance(
+                                        1L, null);
+                                case "list-user" -> accountService.getAccountsByUserId(null);
+                                case "filtered-user" -> accountService
+                                        .getAccountsByUserIdWithFilter(null, true);
+                                case "summary-user" -> accountService.getAccountsSummary(null);
+                                case "search-user" -> accountService.searchAccounts(
+                                        null, new AccountSearchCriteria(), PageRequest.of(0, 10));
+                                case "search-criteria" -> accountService.searchAccounts(
+                                        1L, null, PageRequest.of(0, 10));
+                                case "search-page" -> accountService.searchAccounts(
+                                        1L, new AccountSearchCriteria(), null);
+                                default -> throw new AssertionError(operation);
+                            }
+                        })
+                .isInstanceOf(IllegalArgumentException.class);
+        verifyNoInteractions(accountRepository, transactionRepository, transactionWriter);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"account", "user", "start", "end", "reversed"})
+    void invalidExplicitHistoryRangesDoNotQueryTheLedger(String invalid) {
+        LocalDate start = LocalDate.of(2025, 1, 1);
+        LocalDate end = start.plusDays(1);
+        assertThatThrownBy(
+                        () ->
+                                accountService.getAccountBalanceHistory(
+                                        invalid.equals("account") ? null : 1L,
+                                        invalid.equals("user") ? null : 1L,
+                                        invalid.equals("start")
+                                                ? null
+                                                : invalid.equals("reversed")
+                                                        ? end.plusDays(1)
+                                                        : start,
+                                        invalid.equals("end") ? null : end))
+                .isInstanceOf(IllegalArgumentException.class);
+        verifyNoInteractions(accountRepository, transactionRepository);
+    }
+
+    @ParameterizedTest
+    @CsvSource({"-1,0", "0,0", "1,1", "5,5", "6,none"})
+    void convertedLoanAccountsStopContributingCashAtTheConversionDate(
+            int offset, String zeroOffset) {
+        LocalDate first = LocalDate.of(2025, 1, 1);
+        Account account =
+                Account.builder()
+                        .id(1L)
+                        .userId(1L)
+                        .type(AccountType.CHECKING)
+                        .currency("EUR")
+                        .openingBalance(new BigDecimal("100"))
+                        .openingDate(first.minusDays(10))
+                        .liabilityConvertedAt(first.plusDays(offset))
+                        .build();
+        when(accountRepository.findByIdAndUserId(1L, 1L)).thenReturn(Optional.of(account));
+        List<org.openfinance.dto.BalanceHistoryPoint> history =
+                accountService.getAccountBalanceHistory(1L, 1L, first, first.plusDays(5));
+        if (zeroOffset.equals("none"))
+            assertThat(history)
+                    .allSatisfy(point -> assertThat(point.balance()).isEqualByComparingTo("100"));
+        else
+            assertThat(history.getLast().date())
+                    .isEqualTo(first.plusDays(Long.parseLong(zeroOffset)));
+        if (!zeroOffset.equals("none")) assertThat(history.getLast().balance()).isZero();
+        assertThat(history)
+                .allSatisfy(point -> assertThat(point.date()).isBetween(first, first.plusDays(5)));
+    }
+
+    @Test
+    void historyBeforeAccountOpeningIsEmptyWithoutQueryingTransactions() {
+        LocalDate end = LocalDate.of(2025, 1, 1);
+        Account account = Account.builder().id(1L).userId(1L).openingDate(end.plusDays(1)).build();
+        when(accountRepository.findByIdAndUserId(1L, 1L)).thenReturn(Optional.of(account));
+        assertThat(accountService.getAccountBalanceHistory(1L, 1L, end.minusDays(7), end))
+                .isEmpty();
+        verifyNoInteractions(transactionRepository);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"null", "empty", "spaces", "text"})
+    void optionalMetadataDistinguishesOmittedFieldsFromAnExplicitClear(String mode) {
+        Account account = precisionAccount();
+        account.setDescription("Existing description");
+        account.setAccountNumber("Existing number");
+        String text =
+                switch (mode) {
+                    case "null" -> null;
+                    case "empty" -> "";
+                    case "spaces" -> "  ";
+                    default -> "New text";
+                };
+        accountService.updateAccount(
+                69L,
+                1L,
+                AccountRequest.builder()
+                        .name("Savings")
+                        .currency("EUR")
+                        .type(AccountType.SAVINGS)
+                        .adjustBalance(false)
+                        .description(text)
+                        .accountNumber(text)
+                        .build());
+        assertThat(account.getDescription())
+                .isEqualTo(
+                        mode.equals("null")
+                                ? "Existing description"
+                                : mode.equals("text") ? text : null);
+        assertThat(account.getAccountNumber())
+                .isEqualTo(
+                        mode.equals("null")
+                                ? "Existing number"
+                                : mode.equals("text") ? text : null);
+        verifyNoInteractions(transactionWriter);
+    }
+
+    @ParameterizedTest
+    @CsvSource({
+        "2025-01-10,2025-01-01,2025-01-01",
+        "2025-01-01,2025-01-10,2025-01-01",
+        ",2025-01-10,2025-01-10"
+    })
+    void movingAnOpeningDateInvalidatesHistoryFromTheEarliestAffectedDate(
+            String previous, String changed, String cutoff) {
+        Account account = precisionAccount();
+        account.setOpeningDate(previous == null ? null : LocalDate.parse(previous));
+        AccountRequest request =
+                AccountRequest.builder()
+                        .name("Savings")
+                        .currency("EUR")
+                        .type(AccountType.SAVINGS)
+                        .adjustBalance(false)
+                        .openingDate(LocalDate.parse(changed))
+                        .build();
+        doAnswer(
+                        call -> {
+                            account.setOpeningDate(request.getOpeningDate());
+                            return null;
+                        })
+                .when(accountMapper)
+                .updateEntityFromRequest(request, account);
+        accountService.updateAccount(69L, 1L, request);
+        verify(netWorthRepository)
+                .deleteByUserIdAndSnapshotDateBetween(1L, LocalDate.parse(cutoff), LocalDate.now());
+    }
+
+    @ParameterizedTest
+    @ValueSource(booleans = {false, true})
+    void anOpeningDateCannotMovePastAnExistingNonDeletedMovement(boolean deleted) {
+        Account account =
+                Account.builder()
+                        .id(1L)
+                        .userId(1L)
+                        .name("Account")
+                        .currency("EUR")
+                        .type(AccountType.CHECKING)
+                        .balance(BigDecimal.ZERO)
+                        .build();
+        when(accountRepository.findByIdAndUserId(1L, 1L)).thenReturn(Optional.of(account));
+        Transaction transaction =
+                Transaction.builder().date(LocalDate.of(2025, 1, 1)).isDeleted(deleted).build();
+        when(transactionRepository.findByUserIdAndAccountId(1L, 1L))
+                .thenReturn(List.of(transaction));
+        AccountRequest request =
+                AccountRequest.builder()
+                        .name("Account")
+                        .currency("EUR")
+                        .adjustBalance(false)
+                        .openingDate(LocalDate.of(2025, 1, 2))
+                        .build();
+        if (deleted) {
+            when(accountRepository.save(account)).thenReturn(account);
+            when(accountMapper.toResponse(account))
+                    .thenReturn(
+                            AccountResponse.builder()
+                                    .currency("EUR")
+                                    .balance(BigDecimal.ZERO)
+                                    .build());
+            accountService.updateAccount(1L, 1L, request);
+            verify(accountRepository).save(account);
+        } else {
+            assertThatThrownBy(() -> accountService.updateAccount(1L, 1L, request))
+                    .isInstanceOf(InvalidTransactionException.class);
+            verify(accountRepository, never()).save(any());
+        }
+    }
+
+    @ParameterizedTest
+    @ValueSource(
+            strings = {"institution", "no-institution", "no-type", "inactive", "unknown-active"})
+    void summaryKeepsAccountIdentityAndExactBalanceWithoutCurrencyServices(String variation) {
+        Account account =
+                Account.builder()
+                        .id(9L)
+                        .userId(1L)
+                        .name("Account")
+                        .currency("EUR")
+                        .type(variation.equals("no-type") ? null : AccountType.CHECKING)
+                        .isActive(
+                                variation.equals("unknown-active")
+                                        ? null
+                                        : !variation.equals("inactive"))
+                        .balance(new BigDecimal("9007199254740992.01"))
+                        .build();
+        if (variation.equals("institution"))
+            account.setInstitution(Institution.builder().id(5L).name("Bank").build());
+        when(accountRepository.findByUserIdAndIsActive(1L, true)).thenReturn(List.of(account));
+        AccountSummaryResponse response = accountService.getAccountsSummary(1L).getFirst();
+        assertThat(response.getBalance()).isEqualByComparingTo("9007199254740992.01");
+        assertThat(response.getInstitutionName())
+                .isEqualTo(variation.equals("institution") ? "Bank" : null);
+        assertThat(response.getType()).isEqualTo(variation.equals("no-type") ? null : "CHECKING");
+        assertThat(response.isActive()).isEqualTo(Boolean.TRUE.equals(account.getIsActive()));
+        verifyNoInteractions(exchangeRateService);
+    }
+
+    @ParameterizedTest
+    @ValueSource(
+            strings = {
+                "missing-rate",
+                "null-conversion",
+                "zero-value",
+                "same-currency",
+                "sold",
+                "planned",
+                "physical",
+                "property"
+            })
+    void portfolioCashCannotBeInflatedByUnownedHoldingsOrUnconvertedAmounts(String scenario) {
+        Account account =
+                Account.builder()
+                        .id(1L)
+                        .userId(1L)
+                        .name("Portfolio")
+                        .currency("EUR")
+                        .type(AccountType.INVESTMENT)
+                        .balance(BigDecimal.TEN)
+                        .build();
+        Asset asset =
+                Asset.builder()
+                        .id(2L)
+                        .type(AssetType.STOCK)
+                        .quantity(BigDecimal.TEN)
+                        .currentPrice(BigDecimal.TEN)
+                        .currency(scenario.equals("same-currency") ? "eur" : "USD")
+                        .acquisitionType(AcquisitionType.PURCHASE)
+                        .build();
+        switch (scenario) {
+            case "zero-value" -> asset.setCurrentPrice(BigDecimal.ZERO);
+            case "sold" -> asset.setSoldDate(LocalDate.of(2025, 1, 1));
+            case "planned" -> asset.setAcquisitionType(AcquisitionType.PLANNED);
+            case "physical" -> asset.setType(AssetType.VEHICLE);
+            case "property" -> asset.setType(AssetType.REAL_ESTATE);
+            default -> {}
+        }
+        when(accountRepository.findByIdAndUserId(1L, 1L)).thenReturn(Optional.of(account));
+        when(accountMapper.toResponse(account))
+                .thenReturn(
+                        AccountResponse.builder().currency("EUR").balance(BigDecimal.TEN).build());
+        when(assetRepository.findByAccountId(1L)).thenReturn(List.of(asset));
+        if (scenario.equals("missing-rate"))
+            when(exchangeRateService.convert(new BigDecimal("100"), "USD", "EUR"))
+                    .thenThrow(new IllegalStateException("No quote"));
+        if (scenario.equals("missing-rate") || scenario.equals("null-conversion")) {
+            assertThatThrownBy(() -> accountService.getAccountById(1L, 1L))
+                    .isInstanceOf(ExchangeRateUnavailableException.class);
+        } else {
+            AccountResponse response = accountService.getAccountById(1L, 1L);
+            assertThat(response.getOwnBalance()).isEqualByComparingTo("10");
+            assertThat(response.getHoldingsValue())
+                    .isEqualByComparingTo(scenario.equals("same-currency") ? "100" : "0");
+            assertThat(response.getBalance())
+                    .isEqualByComparingTo(scenario.equals("same-currency") ? "110" : "10");
+            verify(exchangeRateService, never()).convert(any(), eq("USD"), eq("EUR"));
+        }
     }
 
     private Account precisionAccount() {

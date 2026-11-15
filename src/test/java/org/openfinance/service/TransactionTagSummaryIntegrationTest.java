@@ -195,6 +195,42 @@ class TransactionTagSummaryIntegrationTest extends AuditApiTestSupport {
         }
     }
 
+    @Test
+    void payeeSearchAndSummaryShareExactPartialAndUnassignedSemantics() throws Exception {
+        for (String payee : new String[] {null, " ", "IKEA", "IKEA Store", "Bakery"}) {
+            Map<String, Object> request = movement(cash, 10, LocalDate.now());
+            request.put("payee", payee);
+            json("POST", "/transactions", request, owner, 201);
+        }
+        assertCount("noPayee=true", 2);
+        assertCount("payee=ikea", 2);
+        assertCount("payee=ikea&payeeExact=true", 1);
+        assertCount("payee=ikea&payeeExact=false", 2);
+        assertCount("payee=ikea&noPayee=true", 0);
+        assertCount("payee=missing", 0);
+        assertCount("categoryId=999999&includeSubcategories=true", 0);
+    }
+
+    @Test
+    void deletedMovementsAreExcludedFromEncryptedPayeePrefilter() throws Exception {
+        Map<String, Object> request = movement(cash, 10, LocalDate.now());
+        request.put("payee", "IKEA");
+        long id = json("POST", "/transactions", request, owner, 201).path("id").asLong();
+        json("DELETE", "/transactions/" + id, null, owner, 204);
+        assertCount("payee=ikea", 0);
+    }
+
+    @Test
+    void idOrderingIsStableWhenExplicitlyRequested() throws Exception {
+        long first = create("INCOME", 10, null, List.of()).path("id").asLong();
+        long second = create("INCOME", 20, null, List.of()).path("id").asLong();
+        JsonNode page = json("GET", "/transactions/search?sort=id,desc&size=1", null, owner, 200);
+        assertThat(page.path("content").get(0).path("id").asLong()).isEqualTo(second);
+        JsonNode next =
+                json("GET", "/transactions/search?sort=id,desc&size=1&page=1", null, owner, 200);
+        assertThat(next.path("content").get(0).path("id").asLong()).isEqualTo(first);
+    }
+
     private Categories categoryMovements() throws Exception {
         long food = category("Food", null);
         long groceries = category("Groceries", food);

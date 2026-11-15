@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { HelpTooltip } from '@/components/ui/HelpTooltip';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/Dialog';
-import { formatDistanceToNow, differenceInDays, format } from 'date-fns';
+import { formatDistanceToNow, differenceInDays, format, type Locale } from 'date-fns';
 import { fr, enUS } from 'date-fns/locale';
 import { useTranslation } from 'react-i18next';
 import DOMPurify from 'dompurify';
@@ -15,6 +15,14 @@ interface FeedItemProps {
   item: RssFeedItem;
   onClick: () => void;
   onDiscard: (link: string) => void;
+}
+
+function publicationDate(value: string | undefined, locale: Locale, fallback: string): string {
+  const date = value ? new Date(value) : null;
+  if (!date || !Number.isFinite(date.getTime())) return fallback;
+  return differenceInDays(new Date(), date) <= 7
+    ? formatDistanceToNow(date, { addSuffix: true, locale })
+    : format(date, 'PP', { locale });
 }
 
 function FeedItem({ item, onClick, onDiscard }: FeedItemProps) {
@@ -56,14 +64,7 @@ function FeedItem({ item, onClick, onDiscard }: FeedItemProps) {
           </div>
           <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1">
             <span className="max-w-full shrink-0 text-xs text-text-muted">
-              {item.pubDate
-                ? differenceInDays(new Date(), new Date(item.pubDate)) <= 7
-                  ? formatDistanceToNow(new Date(item.pubDate), {
-                      addSuffix: true,
-                      locale: dateLocale,
-                    })
-                  : format(new Date(item.pubDate), 'PP', { locale: dateLocale })
-                : t('cards.rssFeed.recently')}
+              {publicationDate(item.pubDate, dateLocale, t('cards.rssFeed.recently'))}
             </span>
             <Badge
               variant="info"
@@ -173,17 +174,15 @@ export default function RssFeedCard() {
 
   // Filter out discarded links and aggregate top 5 per source
   const filteredFeeds = feeds.filter(item => item.link && !discardedLinks.includes(item.link));
-  const sourceCount: Record<string, number> = {};
+  const sourceCount = new Map<string, number>();
   const displayedFeeds: RssFeedItem[] = [];
 
   for (const feed of filteredFeeds) {
     const source = feed.source || t('cards.rssFeed.unknownSource');
-    if (!sourceCount[source]) {
-      sourceCount[source] = 0;
-    }
-    if (sourceCount[source] < 5) {
+    const count = sourceCount.get(source) ?? 0;
+    if (count < 5) {
       displayedFeeds.push(feed);
-      sourceCount[source]++;
+      sourceCount.set(source, count + 1);
     }
   }
 
@@ -268,13 +267,7 @@ export default function RssFeedCard() {
                 </Badge>
               )}
               <span className="max-w-full shrink-0 text-xs text-text-muted">
-                {selectedItem?.pubDate &&
-                  (differenceInDays(new Date(), new Date(selectedItem.pubDate)) <= 7
-                    ? formatDistanceToNow(new Date(selectedItem.pubDate), {
-                        addSuffix: true,
-                        locale: dateLocale,
-                      })
-                    : format(new Date(selectedItem.pubDate), 'PP', { locale: dateLocale }))}
+                {publicationDate(selectedItem?.pubDate, dateLocale, t('cards.rssFeed.recently'))}
               </span>
             </div>
 

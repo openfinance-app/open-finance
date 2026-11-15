@@ -189,6 +189,14 @@ export default function BackupPage() {
     }
   };
 
+  const handleUploadDialogChange = (open: boolean) => {
+    setIsUploadDialogOpen(open);
+    if (!open) {
+      setMasterPassword('');
+      setSelectedFile(null);
+    }
+  };
+
   // Helper functions
   const getStatusBadge = (status: BackupStatus) => {
     switch (status) {
@@ -408,13 +416,7 @@ export default function BackupPage() {
       </Dialog>
 
       {/* Upload Backup Dialog */}
-      <Dialog
-        open={isUploadDialogOpen}
-        onOpenChange={open => {
-          setIsUploadDialogOpen(open);
-          if (!open) setMasterPassword('');
-        }}
-      >
+      <Dialog open={isUploadDialogOpen} onOpenChange={handleUploadDialogChange}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
             <DialogTitle>{t('uploadDialog.title')}</DialogTitle>
@@ -453,10 +455,7 @@ export default function BackupPage() {
           <DialogFooter>
             <Button
               variant="ghost"
-              onClick={() => {
-                setIsUploadDialogOpen(false);
-                setSelectedFile(null);
-              }}
+              onClick={() => handleUploadDialogChange(false)}
               disabled={uploadAndRestore.isPending}
             >
               {t('uploadDialog.cancel')}

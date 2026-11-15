@@ -651,4 +651,106 @@ class FinancialContextBuilderTest {
         assertThat(context).contains("Budget 99 progress unavailable.");
         assertThat(facts(context)).containsKey("net_worth").doesNotContainKey("budget.99.spent");
     }
+
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.CsvSource({
+        "What remains in my Groceries budget?, budget.1.remaining",
+        "How much have I spent from my Groceries budget?, budget.1.spent",
+        "Show my Groceries budget, budget.1.limit|budget.1.spent|budget.1.remaining",
+        "Show my remaining budget, budget.1.remaining|budget.2.remaining|budget.3.remaining"
+    })
+    void budgetQuestionsKeepTheRequestedCategoryAndMetric(String question, String expected)
+            throws Exception {
+        StringBuilder context = new StringBuilder("[VERIFIED_FINANCIAL_DATA]\n");
+        for (int id = 1; id <= 3; id++) {
+            for (String metric : List.of("limit", "spent", "remaining")) {
+                context.append("[FACT] ")
+                        .append(
+                                objectMapper.writeValueAsString(
+                                        new FinancialFact(
+                                                "budget." + id + "." + metric,
+                                                metric,
+                                                "100",
+                                                "EUR",
+                                                "today",
+                                                id == 1
+                                                        ? "Groceries"
+                                                        : id == 2 ? "Transport" : "")))
+                        .append("\n");
+            }
+        }
+        assertThat(facts(builder.forQuestion(1L, Locale.ENGLISH, question, context.toString())))
+                .containsOnlyKeys(expected.split("\\|"));
+        verifyNoInteractions(transactionRepository);
+    }
+
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(
+            strings = {
+                "Show my balance this year",
+                "Show my balance last quarter",
+                "Show my balance on 2024-01-01"
+            })
+    void historicalSnapshotQuestionsNeverReuseTodaysBalances(String question) {
+        assertThat(builder.forQuestion(1L, Locale.ENGLISH, question, ""))
+                .startsWith("[CLARIFICATION]")
+                .doesNotContain("[FACT]");
+        verifyNoInteractions(transactionRepository, accountRepository);
+    }
+
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.CsvSource({
+        "How much did I earn in September 2024?,requested.income,25.00",
+        "How much did I spend in September 2024?,requested.expenses,10.00",
+        "How much income and expenses in September 2024?,requested.surplus,15.00"
+    })
+    void scopedIncomeAndExpenseQuestionsKeepTheRequestedTotals(
+            String question, String id, String expected) {
+        Transaction deleted = tx("900", "EUR", TransactionType.EXPENSE);
+        deleted.setIsDeleted(true);
+        when(transactionRepository.findByUserIdAndDateBetween(
+                        1L, LocalDate.of(2024, 9, 1), LocalDate.of(2024, 9, 30)))
+                .thenReturn(
+                        List.of(
+                                tx("25", "EUR", TransactionType.INCOME),
+                                tx("10", "EUR", TransactionType.EXPENSE),
+                                deleted));
+        Map<String, FinancialFact> selected =
+                facts(builder.forQuestion(1L, Locale.ENGLISH, question, ""));
+        assertThat(selected.get(id).amount()).isEqualTo(expected);
+        if (!id.endsWith("surplus")) assertThat(selected).hasSize(1);
+    }
+
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(booleans = {true, false})
+    void ambiguousGroceryAliasesAskForACategoryInsteadOfCombiningTotals(boolean sameKey) {
+        when(categoryRepository.findByUserId(1L))
+                .thenReturn(
+                        List.of(
+                                org.openfinance.entity.Category.builder()
+                                        .id(1L)
+                                        .name("Groceries")
+                                        .build(),
+                                org.openfinance.entity.Category.builder()
+                                        .id(2L)
+                                        .name("Food shopping")
+                                        .nameKey(sameKey ? "category.groceries" : "category.other")
+                                        .build()));
+        String answer =
+                builder.forQuestion(
+                        1L,
+                        Locale.ENGLISH,
+                        "How much did I spend on grocery in September 2024?",
+                        "");
+        if (sameKey) {
+            assertThat(answer).startsWith("[CLARIFICATION]");
+            verifyNoInteractions(transactionRepository);
+        } else {
+            assertThat(facts(answer))
+                    .containsOnlyKeys(
+                            "requested.category.1.income",
+                            "requested.category.1.expenses",
+                            "requested.category.1.net");
+        }
+    }
 }

@@ -42,6 +42,7 @@ export interface BudgetResponse {
 }
 
 export interface BudgetProgressResponse {
+  exactValues?: Record<string, string>;
   nativeCurrency?: string;
   nativeBudgeted?: number;
   nativeSpent?: number;
@@ -68,6 +69,7 @@ export interface BudgetProgressResponse {
 }
 
 export interface BudgetSummaryResponse {
+  exactValues?: Record<string, string>;
   period: BudgetPeriod;
   totalBudgets: number;
   activeBudgets: number;
@@ -84,6 +86,7 @@ export interface BudgetSummaryResponse {
  * REQ-2.9.1.4: Budget history per sub-period breakdown
  */
 export interface BudgetHistoryEntry {
+  exactValues?: Record<string, string>;
   label: string;
   periodStart: string; // ISO date "YYYY-MM-DD"
   periodEnd: string;
@@ -103,6 +106,7 @@ export interface BudgetHistoryEntry {
  * REQ-2.9.1.4: Budget history and per-period breakdown
  */
 export interface BudgetHistoryResponse {
+  exactValues?: Record<string, string>;
   budgetId: number;
   categoryName: string;
   amount: number;

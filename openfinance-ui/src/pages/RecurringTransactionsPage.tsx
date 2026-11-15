@@ -339,8 +339,11 @@ export default function RecurringTransactionsPage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
             {/* Account Filter - using AccountSelector */}
             <div>
-              <label className="block text-sm font-medium mb-2">{t('filters.account')}</label>
+              <label htmlFor="recurring-filter-account" className="block text-sm font-medium mb-2">
+                {t('filters.account')}
+              </label>
               <AccountSelector
+                id="recurring-filter-account"
                 value={filters.accountId}
                 onValueChange={val => handleFiltersChange({ ...filters, accountId: val })}
                 placeholder={t('filters.allAccounts')}
@@ -350,8 +353,11 @@ export default function RecurringTransactionsPage() {
 
             {/* Type Filter */}
             <div>
-              <label className="block text-sm font-medium mb-2">{t('filters.type')}</label>
+              <label htmlFor="recurring-filter-type" className="block text-sm font-medium mb-2">
+                {t('filters.type')}
+              </label>
               <select
+                id="recurring-filter-type"
                 className="w-full px-3 pr-8 py-2 bg-background border border-border rounded-md"
                 value={filters.type || 'all'}
                 onChange={e => handleFilterChange('type', e.target.value)}
@@ -365,8 +371,14 @@ export default function RecurringTransactionsPage() {
 
             {/* Frequency Filter */}
             <div>
-              <label className="block text-sm font-medium mb-2">{t('filters.frequency')}</label>
+              <label
+                htmlFor="recurring-filter-frequency"
+                className="block text-sm font-medium mb-2"
+              >
+                {t('filters.frequency')}
+              </label>
               <select
+                id="recurring-filter-frequency"
                 className="w-full px-3 pr-8 py-2 bg-background border border-border rounded-md"
                 value={filters.frequency || 'all'}
                 onChange={e => handleFilterChange('frequency', e.target.value)}
@@ -383,8 +395,11 @@ export default function RecurringTransactionsPage() {
 
             {/* Status Filter */}
             <div>
-              <label className="block text-sm font-medium mb-2">{t('filters.status')}</label>
+              <label htmlFor="recurring-filter-status" className="block text-sm font-medium mb-2">
+                {t('filters.status')}
+              </label>
               <select
+                id="recurring-filter-status"
                 className="w-full px-3 pr-8 py-2 bg-background border border-border rounded-md"
                 value={
                   filters.isActive === undefined ? 'all' : filters.isActive ? 'active' : 'paused'

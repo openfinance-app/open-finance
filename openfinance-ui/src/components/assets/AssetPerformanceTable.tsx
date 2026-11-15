@@ -1,4 +1,4 @@
-import { decimalValue } from '@/utils/exact-decimal';
+import { decimalValue, ExactDecimal } from '@/utils/exact-decimal';
 import { AssetReturn } from '@/components/assets/AssetReturn';
 /**
  * AssetPerformanceTable Component
@@ -11,7 +11,6 @@ import { ArrowUpDown, ArrowUp, ArrowDown, TrendingUp, TrendingDown } from 'lucid
 import { useTranslation } from 'react-i18next';
 import type { Asset } from '@/types/asset';
 import { getGainLossColor, getAssetTypeLabel } from '@/utils/portfolio';
-import { multiply } from '@/utils/money';
 import { LastUpdatedIndicator } from './LastUpdatedIndicator';
 import { ConvertedAmount } from '@/components/ui/ConvertedAmount';
 import { useNavigate } from 'react-router';
@@ -55,21 +54,14 @@ export function AssetPerformanceTable({ assets }: AssetPerformanceTableProps) {
           bValue = b.type;
           break;
         case 'totalValue':
-          aValue = a.totalValue;
-          bValue = b.totalValue;
-          break;
         case 'totalCost':
-          aValue = a.totalCost;
-          bValue = b.totalCost;
-          break;
         case 'unrealizedGain':
-          aValue = a.unrealizedGain ?? -Infinity;
-          bValue = b.unrealizedGain ?? -Infinity;
-          break;
         case 'gainPercentage':
-          aValue = a.gainPercentage ?? -Infinity;
-          bValue = b.gainPercentage ?? -Infinity;
-          break;
+          return (
+            new ExactDecimal(decimalValue(a, field) ?? -Infinity).comparedTo(
+              decimalValue(b, field) ?? -Infinity
+            ) * (direction === 'asc' ? 1 : -1)
+          );
         default:
           return 0;
       }
@@ -203,8 +195,10 @@ export function AssetPerformanceTable({ assets }: AssetPerformanceTableProps) {
                     amount={decimalValue(asset, 'totalCost') ?? asset.totalCost}
                     currency={asset.currency}
                     convertedAmount={
-                      asset.isConverted && asset.exchangeRate
-                        ? multiply(asset.totalCost, asset.exchangeRate)
+                      asset.isConverted && decimalValue(asset, 'exchangeRate') != null
+                        ? new ExactDecimal(decimalValue(asset, 'totalCost') ?? asset.totalCost)
+                            .times(decimalValue(asset, 'exchangeRate')!)
+                            .toFixed()
                         : undefined
                     }
                     baseCurrency={asset.baseCurrency}
@@ -219,8 +213,12 @@ export function AssetPerformanceTable({ assets }: AssetPerformanceTableProps) {
                     amount={decimalValue(asset, 'purchasePrice') ?? asset.purchasePrice}
                     currency={asset.currency}
                     convertedAmount={
-                      asset.isConverted && asset.exchangeRate
-                        ? multiply(asset.purchasePrice, asset.exchangeRate)
+                      asset.isConverted && decimalValue(asset, 'exchangeRate') != null
+                        ? new ExactDecimal(
+                            decimalValue(asset, 'purchasePrice') ?? asset.purchasePrice
+                          )
+                            .times(decimalValue(asset, 'exchangeRate')!)
+                            .toFixed()
                         : undefined
                     }
                     baseCurrency={asset.baseCurrency}
@@ -256,8 +254,12 @@ export function AssetPerformanceTable({ assets }: AssetPerformanceTableProps) {
                     amount={decimalValue(asset, 'currentPrice') ?? asset.currentPrice}
                     currency={asset.currency}
                     convertedAmount={
-                      asset.isConverted && asset.exchangeRate
-                        ? multiply(asset.currentPrice, asset.exchangeRate)
+                      asset.isConverted && decimalValue(asset, 'exchangeRate') != null
+                        ? new ExactDecimal(
+                            decimalValue(asset, 'currentPrice') ?? asset.currentPrice
+                          )
+                            .times(decimalValue(asset, 'exchangeRate')!)
+                            .toFixed()
                         : undefined
                     }
                     baseCurrency={asset.baseCurrency}

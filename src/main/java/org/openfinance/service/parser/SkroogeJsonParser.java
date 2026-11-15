@@ -94,8 +94,13 @@ public class SkroogeJsonParser {
                         .with(DeserializationFeature.USE_BIG_DECIMAL_FOR_FLOATS)
                         .readTree(inputStream);
 
-        if (!root.has("account") || !root.has("operation") || !root.has("suboperation")) {
-            throw new IOException("Invalid Skrooge JSON export: missing required collections");
+        if (root == null
+                || !root.isObject()
+                || !root.path("account").isArray()
+                || !root.path("operation").isArray()
+                || !root.path("suboperation").isArray()) {
+            throw new IOException(
+                    "Invalid Skrooge JSON export: missing required collections or collections are not arrays");
         }
 
         Map<Long, JsonNode> banksById = indexById(root.path("bank"));
@@ -105,6 +110,8 @@ public class SkroogeJsonParser {
         // Skrooge stores trackers in the refund table, linked from each suboperation.
         Map<Long, JsonNode> trackersById = indexById(root.path("refund"));
         Map<Long, JsonNode> unitsById = indexById(root.path("unit"));
+        validateParentChains(unitsById, "rd_unit_id", "unit");
+        validateParentChains(categoriesById, "rd_category_id", "category");
         Map<Long, TreeMap<LocalDate, BigDecimal>> unitValuesByUnitId =
                 indexUnitValues(root.path("unitvalue"));
         Map<Long, BigDecimal> accountBalanceDeltasByOperationId =
@@ -1167,6 +1174,27 @@ public class SkroogeJsonParser {
                 .orElse("USD");
     }
 
+    private void validateParentChains(Map<Long, JsonNode> nodes, String parentField, String label)
+            throws IOException {
+        Set<Long> resolved = new HashSet<>();
+        for (Long id : nodes.keySet()) {
+            Set<Long> path = new HashSet<>();
+            Long current = id;
+            while (current != null && current != 0L && !resolved.contains(current)) {
+                if (!path.add(current)) {
+                    throw new IOException("Cyclic " + label + " parent reference at " + current);
+                }
+                JsonNode node = nodes.get(current);
+                if (node == null
+                        || ("unit".equals(label) && "1".equals(textValue(node, "t_type")))) {
+                    break;
+                }
+                current = longValue(node, parentField);
+            }
+            resolved.addAll(path);
+        }
+    }
+
     private AccountType mapAccountType(String rawType) {
         if (rawType == null) {
             return AccountType.OTHER;
@@ -1301,7 +1329,7 @@ public class SkroogeJsonParser {
             Long unitId = longValue(uv, "rd_unit_id");
             LocalDate date = parseDate(uv);
             BigDecimal quantity = decimalValue(uv, "f_quantity");
-            if (unitId != null && date != null && quantity.compareTo(BigDecimal.ZERO) != 0) {
+            if (unitId != null && date != null && quantity.signum() > 0) {
                 index.computeIfAbsent(unitId, k -> new TreeMap<>()).put(date, quantity);
             }
         }

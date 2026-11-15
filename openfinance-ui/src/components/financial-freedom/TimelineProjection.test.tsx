@@ -51,3 +51,18 @@ it('shows immediate freedom for a zero target without an invalid progress percen
   expect(container).toHaveTextContent('100%');
   expect(container).not.toHaveTextContent(/NaN|Infinity/);
 });
+
+it('accepts an exact target amount and clamps depleted savings without marking a target year', () => {
+  renderWithProviders(
+    <TimelineProjection
+      projections={[projection(0, -10), projection(1, 50)]}
+      targetAmount="100"
+      currency="EUR"
+    />
+  );
+  const rows = screen.getAllByRole('row').slice(1);
+  expect(rows[0]).toHaveTextContent('0%');
+  expect(rows[1]).toHaveTextContent('50%');
+  expect(screen.queryByText(i18n.t('timelineProjection.targetYear'))).not.toBeInTheDocument();
+  expect(screen.getAllByText(i18n.t('timelineProjection.building'))).toHaveLength(2);
+});

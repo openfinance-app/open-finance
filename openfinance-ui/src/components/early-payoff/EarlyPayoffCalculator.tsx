@@ -387,7 +387,13 @@ export function EarlyPayoffCalculator({ className }: { className?: string }) {
                 <Label className="text-base font-semibold">
                   {t('earlyPayoff.fields.lumpSumPayments')}
                 </Label>
-                <Button variant="outline" size="sm" onClick={addLumpSum} className="gap-1">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={addLumpSum}
+                  className="gap-1"
+                >
                   <Plus className="h-3.5 w-3.5" />
                   {t('earlyPayoff.fields.addPayment')}
                 </Button>
@@ -445,6 +451,7 @@ export function EarlyPayoffCalculator({ className }: { className?: string }) {
                       </div>
 
                       <Button
+                        type="button"
                         variant="ghost"
                         size="sm"
                         className="text-destructive hover:text-destructive h-9 w-9 p-0 shrink-0"

@@ -114,7 +114,8 @@ public class SecurityAuditService {
         }
         String xff = request.getHeader("X-Forwarded-For");
         if (xff != null && !xff.isBlank()) {
-            return xff.split(",")[0].trim();
+            String firstClient = xff.split(",", 2)[0].trim();
+            if (!firstClient.isEmpty()) return firstClient;
         }
         String xRealIp = request.getHeader("X-Real-IP");
         if (xRealIp != null && !xRealIp.isBlank()) {

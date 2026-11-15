@@ -260,6 +260,18 @@ export function ImportReview({
     [transactions]
   );
 
+  const isCategorized = useCallback(
+    (transaction: ImportTransactionDTO): boolean => {
+      if (!transaction.category) return false;
+      return (
+        categoryMappings[transaction.category] != null ||
+        matchingCategories(categories, transaction.category).length === 1 ||
+        newCategoryNames.includes(transaction.category)
+      );
+    },
+    [categoryMappings, categories, newCategoryNames]
+  );
+
   const filteredTransactions = useMemo(() => {
     switch (filter) {
       case 'duplicates':
@@ -269,13 +281,13 @@ export function ImportReview({
           t.validationErrors.some(e => !INFO_PREFIXES.some(p => e.startsWith(p)))
         );
       case 'uncategorized':
-        return transactionsWithIndex.filter(t => !t.category);
+        return transactionsWithIndex.filter(t => !isCategorized(t));
       case 'auto_assigned':
         return transactionsWithIndex.filter(t => autoAssignedIndices.has(t.originalIndex));
       default:
         return transactionsWithIndex;
     }
-  }, [transactionsWithIndex, filter, autoAssignedIndices]);
+  }, [transactionsWithIndex, filter, autoAssignedIndices, isCategorized]);
 
   const stats = useMemo(() => {
     const errorCount = transactions.filter(t =>
@@ -286,16 +298,9 @@ export function ImportReview({
       total: transactions.length,
       duplicates: transactions.filter(t => t.potentialDuplicate).length,
       errors: errorCount,
-      categorized: transactions.filter(t => {
-        if (!t.category) return false;
-        return (
-          categoryMappings[t.category] != null ||
-          matchingCategories(categories, t.category).length === 1 ||
-          newCategoryNames.includes(t.category)
-        );
-      }).length,
+      categorized: transactions.filter(isCategorized).length,
     };
-  }, [transactions, categoryMappings, categories, newCategoryNames]);
+  }, [transactions, isCategorized]);
 
   const allSelected =
     filteredTransactions.length > 0 &&

@@ -362,9 +362,11 @@ class ImportServiceMultiAccountTest {
         assertThat(result.getImportedCount()).isEqualTo(1);
     }
 
-    @Test
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.CsvSource({"Savings,", ",SAV-002", "' ',SAV-002"})
     @DisplayName("Should import QIF transfers across parsed source and destination accounts")
-    void shouldImportQifTransfersAcrossMultipleAccounts() throws Exception {
+    void shouldImportQifTransfersAcrossMultipleAccounts(
+            String destinationName, String destinationNumber) throws Exception {
         ImportedTransaction transferTransaction =
                 ImportedTransaction.builder()
                         .transactionDate(LocalDate.of(2024, 1, 15))
@@ -372,7 +374,8 @@ class ImportServiceMultiAccountTest {
                         .memo("Automatic transfer")
                         .amount(new BigDecimal("-500.00"))
                         .accountName("Checking")
-                        .toAccountName("Savings")
+                        .toAccountName(destinationName)
+                        .toAccountNumber(destinationNumber)
                         .transfer(true)
                         .category("Transfer")
                         .currency("USD")

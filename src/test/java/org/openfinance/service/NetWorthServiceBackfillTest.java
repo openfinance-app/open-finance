@@ -14,6 +14,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
@@ -21,6 +23,9 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
 import org.openfinance.entity.Account;
+import org.openfinance.entity.AcquisitionType;
+import org.openfinance.entity.Asset;
+import org.openfinance.entity.AssetType;
 import org.openfinance.entity.Liability;
 import org.openfinance.entity.MovementType;
 import org.openfinance.entity.NetWorth;
@@ -133,6 +138,120 @@ class NetWorthServiceBackfillTest {
         liability.setCurrency("USD");
         liability.setStartDate(LocalDate.of(2025, 6, 1));
         return liability;
+    }
+
+    @ParameterizedTest
+    @CsvSource({
+        "STOCK,PURCHASE,PAST,OWNED,100",
+        "VEHICLE,PURCHASE,PAST,OWNED,100",
+        "STOCK,PLANNED,PAST,OWNED,0",
+        "VEHICLE,PLANNED,PAST,OWNED,0",
+        "STOCK,PURCHASE,FUTURE,OWNED,0",
+        "VEHICLE,PURCHASE,FUTURE,OWNED,0",
+        "STOCK,PURCHASE,PAST,SOLD_TODAY,0",
+        "VEHICLE,PURCHASE,PAST,SOLD_BEFORE,0",
+        "STOCK,PURCHASE,PAST,SOLD_LATER,100",
+        "REAL_ESTATE,PURCHASE,PAST,OWNED,0"
+    })
+    void backfillIncludesOnlyAssetsActuallyOwnedAtTheSnapshotDate(
+            AssetType type,
+            AcquisitionType acquisition,
+            String purchase,
+            String sale,
+            BigDecimal expected) {
+        LocalDate target = LocalDate.of(2025, 6, 15);
+        stubAccountWithBalance(BigDecimal.ZERO);
+        Asset asset =
+                Asset.builder()
+                        .id(8L)
+                        .userId(USER_ID)
+                        .type(type)
+                        .acquisitionType(acquisition)
+                        .quantity(new BigDecimal("2"))
+                        .purchasePrice(new BigDecimal("50"))
+                        .currentPrice(new BigDecimal("200"))
+                        .currency("USD")
+                        .purchaseDate(
+                                purchase.equals("FUTURE")
+                                        ? target.plusDays(1)
+                                        : target.minusDays(1))
+                        .build();
+        if (!sale.equals("OWNED"))
+            asset.setSoldDate(
+                    switch (sale) {
+                        case "SOLD_TODAY" -> target;
+                        case "SOLD_BEFORE" -> target.minusDays(1);
+                        default -> target.plusDays(1);
+                    });
+        when(assetRepository.findByUserId(USER_ID)).thenReturn(List.of(asset));
+        netWorthService.backfillNetWorthHistory(USER_ID, target, target, "USD");
+        ArgumentCaptor<NetWorth> snapshot = ArgumentCaptor.forClass(NetWorth.class);
+        verify(netWorthRepository).save(snapshot.capture());
+        assertThat(snapshot.getValue().getTotalAssets()).isEqualByComparingTo(expected);
+        assertThat(snapshot.getValue().getNetWorth()).isEqualByComparingTo(expected);
+        if (type == AssetType.VEHICLE
+                || type == AssetType.REAL_ESTATE
+                || acquisition == AcquisitionType.PLANNED) {
+            org.mockito.Mockito.verifyNoInteractions(historicalAssetValuation);
+        }
+    }
+
+    @ParameterizedTest
+    @CsvSource({
+        "false,PURCHASE,1000,0,1200",
+        "false,GIFT,800,0,1000",
+        "false,GIFT,,0,200",
+        "true,PURCHASE,1000,1700,1500",
+        "true,GIFT,800,1700,1500"
+    })
+    void physicalHistoryUsesDatedValuationContributionsAndDoesNotAddImprovementPrices(
+            boolean anchored,
+            AcquisitionType acquisition,
+            BigDecimal received,
+            BigDecimal currentValue,
+            BigDecimal expected) {
+        LocalDate target = LocalDate.of(2025, 6, 15);
+        stubAccountWithBalance(BigDecimal.ZERO);
+        Asset asset =
+                Asset.builder()
+                        .id(8L)
+                        .userId(USER_ID)
+                        .type(AssetType.VEHICLE)
+                        .acquisitionType(acquisition)
+                        .quantity(BigDecimal.ONE)
+                        .purchasePrice(new BigDecimal("1000"))
+                        .currentPrice(currentValue)
+                        .receivedValue(received)
+                        .currency("USD")
+                        .purchaseDate(target.minusMonths(1))
+                        .build();
+        if (anchored) asset.setValuationRecordedAt(target.minusDays(5).atTime(12, 0));
+        Transaction earlier = improvement(8L, target.minusDays(10), "200");
+        Transaction later = improvement(8L, target.plusDays(5), "200");
+        Transaction anotherAsset = improvement(9L, target.minusDays(2), "777");
+        Transaction maintenance = improvement(8L, target.minusDays(2), "555");
+        maintenance.setMovementType(MovementType.FEE);
+        when(assetRepository.findByUserId(USER_ID)).thenReturn(List.of(asset));
+        when(transactionRepository.findByUserId(USER_ID))
+                .thenReturn(List.of(earlier, later, anotherAsset, maintenance));
+        netWorthService.backfillNetWorthHistory(USER_ID, target, target, "USD");
+        ArgumentCaptor<NetWorth> snapshot = ArgumentCaptor.forClass(NetWorth.class);
+        verify(netWorthRepository).save(snapshot.capture());
+        assertThat(snapshot.getValue().getTotalAssets()).isEqualByComparingTo(expected);
+    }
+
+    private static Transaction improvement(Long assetId, LocalDate date, String value) {
+        return Transaction.builder()
+                .accountId(2L)
+                .assetId(assetId)
+                .type(TransactionType.EXPENSE)
+                .amount(new BigDecimal("5000"))
+                .valuationChange(new BigDecimal(value))
+                .movementType(MovementType.CAPITAL_IMPROVEMENT)
+                .date(date)
+                .createdAt(date.atStartOfDay())
+                .currency("USD")
+                .build();
     }
 
     /**

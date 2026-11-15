@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import java.math.BigDecimal;
@@ -16,6 +17,8 @@ import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -159,6 +162,101 @@ class BudgetAlertServiceTest {
         when(alertRepository.resetAlertsForBudgets(List.of(1L, 2L))).thenReturn(3);
         assertThat(service.resetAlertsForNewPeriod(List.of(1L, 2L))).isEqualTo(3);
         verify(alertRepository).resetAlertsForBudgets(List.of(1L, 2L));
+    }
+
+    @ParameterizedTest
+    @ValueSource(
+            strings = {
+                "create-user",
+                "update-user",
+                "delete-id",
+                "delete-user",
+                "find-budget",
+                "find-user",
+                "unread-user",
+                "count-user",
+                "read-id",
+                "read-user",
+                "read-all-user"
+            })
+    void incompleteScopeCannotAccessOrChangeAlertState(String invalid) {
+        UUID id = UUID.randomUUID();
+        assertThatThrownBy(
+                        () -> {
+                            switch (invalid) {
+                                case "create-user" -> service.createAlert(1L, null, BigDecimal.TEN);
+                                case "update-user" -> service.updateAlert(id, null, null, null);
+                                case "delete-id" -> service.deleteAlert(null, 7L);
+                                case "delete-user" -> service.deleteAlert(id, null);
+                                case "find-budget" -> service.findAlertsByBudget(null, 7L);
+                                case "find-user" -> service.findAlertsByBudget(1L, null);
+                                case "unread-user" -> service.findUnreadAlerts(null);
+                                case "count-user" -> service.countUnreadAlerts(null);
+                                case "read-id" -> service.markAlertAsRead(null, 7L);
+                                case "read-user" -> service.markAlertAsRead(id, null);
+                                case "read-all-user" -> service.markAllAlertsAsRead(null);
+                            }
+                        })
+                .isInstanceOf(IllegalArgumentException.class);
+        verifyNoInteractions(alertRepository, budgetRepository, budgetService);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"unknown", "0", "1", "-0.01"})
+    void budgetsWithoutAPercentageOnlyTriggerForAnActuallyNegativeRemainder(String remaining) {
+        BudgetAlert alert = alert(1L);
+        BudgetProgressResponse progress =
+                BudgetProgressResponse.builder()
+                        .remaining(remaining.equals("unknown") ? null : new BigDecimal(remaining))
+                        .build();
+        when(alertRepository.findEnabledAlertsByUserId(7L)).thenReturn(List.of(alert));
+        when(budgetService.calculateBudgetProgress(1L, 7L)).thenReturn(progress);
+        assertThat(service.checkBudgetAlertsAfterTransaction(7L))
+                .hasSize(remaining.startsWith("-") ? 1 : 0);
+        assertThat(alert.getLastTriggered() != null).isEqualTo(remaining.startsWith("-"));
+    }
+
+    @Test
+    void consecutiveAlertsWithUnavailableProgressDoNotReuseAnotherBudgetsProgress() {
+        BudgetAlert first = alert(1L),
+                missing = alert(2L),
+                anotherMissing = alert(2L),
+                last = alert(3L);
+        when(alertRepository.findEnabledAlertsByUserId(7L))
+                .thenReturn(List.of(first, missing, anotherMissing, last));
+        when(budgetService.calculateBudgetProgress(1L, 7L)).thenReturn(progress());
+        when(budgetService.calculateBudgetProgress(2L, 7L)).thenReturn(null);
+        when(budgetService.calculateBudgetProgress(3L, 7L)).thenReturn(progress());
+        assertThat(service.checkBudgetAlertsAfterTransaction(7L)).containsExactly(first, last);
+        verify(budgetService).calculateBudgetProgress(2L, 7L);
+        verify(alertRepository, never()).save(missing);
+        verify(alertRepository, never()).save(anotherMissing);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"future", "expired"})
+    void savingAnAlertOutsideItsBudgetPeriodDoesNotEvaluateSpending(String period) {
+        BudgetAlert existing = alert(1L);
+        if (period.equals("future")) existing.getBudget().setStartDate(LocalDate.now().plusDays(1));
+        else existing.getBudget().setEndDate(LocalDate.now().minusDays(1));
+        when(alertRepository.findById(existing.getId())).thenReturn(Optional.of(existing));
+        when(alertRepository.save(existing)).thenReturn(existing);
+        BudgetAlert updated = service.updateAlert(existing.getId(), 7L, null, true);
+        assertThat(updated.getLastTriggered()).isNull();
+        verifyNoInteractions(budgetService);
+    }
+
+    @Test
+    void reapplyingTheSameThresholdDoesNotConflictWithTheAlertItself() {
+        BudgetAlert existing = alert(1L);
+        when(alertRepository.findById(existing.getId())).thenReturn(Optional.of(existing));
+        when(alertRepository.findByBudgetIdAndThreshold(1L, new BigDecimal("80")))
+                .thenReturn(Optional.of(existing));
+        when(alertRepository.save(existing)).thenReturn(existing);
+        assertThat(service.updateAlert(existing.getId(), 7L, new BigDecimal("80"), false))
+                .isSameAs(existing);
+        assertThat(existing.isEnabled()).isFalse();
+        verifyNoInteractions(budgetService);
     }
 
     private BudgetAlert alert(long budgetId) {

@@ -160,7 +160,7 @@ export function TransactionDetailModal({
             </div>
             <div className="min-w-0">
               <h2 className="break-words text-xl font-bold text-foreground">
-                {transaction.description || transaction.payee || 'Transaction'}
+                {transaction.description || transaction.payee || t('detail.title')}
               </h2>
               <p className="break-words text-sm text-muted-foreground">
                 {t('form.types.' + transaction.type)}

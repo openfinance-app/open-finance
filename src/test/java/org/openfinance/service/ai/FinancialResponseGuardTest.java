@@ -1,9 +1,14 @@
 package org.openfinance.service.ai;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.Locale;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.NullAndEmptySource;
+import org.junit.jupiter.params.provider.ValueSource;
 
 class FinancialResponseGuardTest {
     private static final String CONTEXT =
@@ -152,5 +157,88 @@ class FinancialResponseGuardTest {
                         FinancialResponseGuard.verify(
                                 "Examinez un budget adapté.", CONTEXT, Locale.FRENCH))
                 .isEqualTo("Examinez un budget adapté.");
+    }
+
+    @ParameterizedTest
+    @NullAndEmptySource
+    @ValueSource(strings = {" ", "\n"})
+    @DisplayName("Empty model replies are failures, never successful answers")
+    void refusesEmptyReplies(String answer) {
+        assertThatThrownBy(() -> FinancialResponseGuard.verify(answer, CONTEXT, Locale.ENGLISH))
+                .isInstanceOf(AIProviderException.class);
+        assertThatThrownBy(
+                        () ->
+                                FinancialResponseGuard.verifyStructured(
+                                        answer, CONTEXT, Locale.ENGLISH))
+                .isInstanceOf(AIProviderException.class);
+    }
+
+    @ParameterizedTest
+    @ValueSource(
+            strings = {
+                "{}",
+                "{broken",
+                "{\"explanation\":null,\"factIds\":[]}",
+                "{\"explanation\":\"Overview\",\"factIds\":null}",
+                "{\"explanation\":\"Overview\",\"factIds\":[42]}",
+                "{\"explanation\":\"Overview\",\"factIds\":[\"unknown\"]}",
+                "{\"explanation\":\" \",\"factIds\":[]}",
+                "{\"explanation\":\"999 euros\",\"factIds\":[]}"
+            })
+    void invalidStructuredAnswersCannotBecomeSuccessfulChatMessages(String answer) {
+        assertThat(FinancialResponseGuard.verify(answer, CONTEXT, Locale.ENGLISH))
+                .contains("could not verify");
+        assertThatThrownBy(
+                        () ->
+                                FinancialResponseGuard.verifyStructured(
+                                        answer, CONTEXT, Locale.ENGLISH))
+                .isInstanceOf(AIProviderException.class);
+    }
+
+    @Test
+    void fencedAnswersDeduplicateFactReferencesWithoutLosingTheSelectedOrder() {
+        String answer =
+                "```json\n{\"explanation\":\"Overview\",\"factIds\":[\"net_worth\",\"net_worth\",\"budget.1.limit\"]}\n```";
+        String result = FinancialResponseGuard.verify(answer, CONTEXT, Locale.ENGLISH);
+        assertThat(result).containsOnlyOnce("Net worth:").containsOnlyOnce("Budget limit");
+        assertThat(result.indexOf("Net worth:")).isLessThan(result.indexOf("Budget limit"));
+        assertThatThrownBy(
+                        () ->
+                                FinancialResponseGuard.verifyStructured(
+                                        answer, CONTEXT, Locale.ENGLISH))
+                .isInstanceOf(AIProviderException.class);
+    }
+
+    @Test
+    void replySchemaContainsOnlyAvailableFactIdentifiers() {
+        assertThat(
+                        FinancialResponseGuard.responseSchema("")
+                                .path("properties")
+                                .path("factIds")
+                                .path("maxItems")
+                                .asInt(-1))
+                .isZero();
+        assertThat(
+                        FinancialResponseGuard.responseSchema(CONTEXT)
+                                .path("properties")
+                                .path("factIds")
+                                .path("items")
+                                .path("enum")
+                                .toString())
+                .isEqualTo("[\"net_worth\",\"cashflow.expenses\",\"budget.1.limit\"]");
+        assertThatThrownBy(() -> FinancialResponseGuard.responseSchema("[FACT] {broken"))
+                .isInstanceOf(IllegalStateException.class);
+    }
+
+    @Test
+    void malformedFactsCannotBeSilentlyPresentedAsVerifiedAmounts() {
+        String answer = "{\"explanation\":\"Overview\",\"factIds\":[\"net_worth\"]}";
+        assertThat(FinancialResponseGuard.verify(answer, "[FACT] {broken", Locale.ENGLISH))
+                .contains("could not verify");
+        assertThatThrownBy(
+                        () ->
+                                FinancialResponseGuard.verifyRequestedFacts(
+                                        answer, "[FACT] {broken", Locale.ENGLISH))
+                .isInstanceOf(AIProviderException.class);
     }
 }

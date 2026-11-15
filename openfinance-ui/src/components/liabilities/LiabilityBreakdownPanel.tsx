@@ -1,4 +1,4 @@
-import { decimalValue } from '@/utils/exact-decimal';
+import { decimalValue, ExactDecimal } from '@/utils/exact-decimal';
 import { formatDecimal } from '@/utils/format';
 /**
  * LiabilityBreakdownPanel Component
@@ -20,7 +20,7 @@ import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ConvertedAmount } from '@/components/ui/ConvertedAmount';
 import { useLiabilityBreakdown } from '@/hooks/useLiabilities';
-import { multiply, percentage } from '@/utils/money';
+import { percentage } from '@/utils/money';
 import type { Liability } from '@/types/liability';
 
 interface LiabilityBreakdownPanelProps {
@@ -39,7 +39,7 @@ function BreakdownRow({
   secondary,
 }: {
   label: string;
-  value: number | null | undefined;
+  value: number | string | null | undefined;
   liability: Liability;
   highlight?: boolean;
   secondary?: boolean;
@@ -48,7 +48,9 @@ function BreakdownRow({
 
   const convertedAmount =
     liability.isConverted && liability.exchangeRate != null
-      ? multiply(value, liability.exchangeRate)
+      ? new ExactDecimal(value)
+          .times(decimalValue(liability, 'exchangeRate') ?? liability.exchangeRate)
+          .toFixed()
       : undefined;
 
   return (
@@ -139,12 +141,12 @@ export function LiabilityBreakdownPanel({ liability }: LiabilityBreakdownPanelPr
       ? Math.min(100, Math.max(0, percentage(breakdown.principalPaid, breakdown.principal)))
       : 0;
 
-  const rate = liability.exchangeRate;
+  const rate = decimalValue(liability, 'exchangeRate');
   const isConverted = liability.isConverted;
 
   /** Helper: convert a native breakdown amount to base-currency if conversion is available */
-  const toBase = (amount: number): number | undefined =>
-    isConverted && rate != null ? multiply(amount, rate) : undefined;
+  const toBase = (amount: number | string): string | undefined =>
+    isConverted && rate != null ? new ExactDecimal(amount).times(rate).toFixed() : undefined;
 
   return (
     <div className="space-y-4">
@@ -211,7 +213,9 @@ export function LiabilityBreakdownPanel({ liability }: LiabilityBreakdownPanelPr
             <ConvertedAmount
               amount={decimalValue(breakdown, 'principalPaid') ?? breakdown.principalPaid}
               currency={liability.currency}
-              convertedAmount={toBase(breakdown.principalPaid)}
+              convertedAmount={toBase(
+                decimalValue(breakdown, 'principalPaid') ?? breakdown.principalPaid
+              )}
               baseCurrency={liability.baseCurrency}
               exchangeRate={rate}
               isConverted={isConverted}
@@ -223,7 +227,9 @@ export function LiabilityBreakdownPanel({ liability }: LiabilityBreakdownPanelPr
             <ConvertedAmount
               amount={decimalValue(breakdown, 'currentBalance') ?? breakdown.currentBalance}
               currency={liability.currency}
-              convertedAmount={toBase(breakdown.currentBalance)}
+              convertedAmount={toBase(
+                decimalValue(breakdown, 'currentBalance') ?? breakdown.currentBalance
+              )}
               baseCurrency={liability.baseCurrency}
               exchangeRate={rate}
               isConverted={isConverted}
@@ -241,38 +247,38 @@ export function LiabilityBreakdownPanel({ liability }: LiabilityBreakdownPanelPr
       >
         <BreakdownRow
           label={t('breakdown.principalPaid')}
-          value={breakdown.principalPaid}
+          value={decimalValue(breakdown, 'principalPaid')}
           liability={liability}
         />
         <BreakdownRow
           label={t('breakdown.interestPaid')}
-          value={breakdown.interestPaid}
+          value={decimalValue(breakdown, 'interestPaid')}
           liability={liability}
         />
         {breakdown.insurancePaid > 0 && (
           <BreakdownRow
             label={t('breakdown.insurancePaid')}
-            value={breakdown.insurancePaid}
+            value={decimalValue(breakdown, 'insurancePaid')}
             liability={liability}
           />
         )}
         {(breakdown.otherChargesPaid ?? 0) > 0 && (
           <BreakdownRow
             label={t('breakdown.otherChargesPaid')}
-            value={breakdown.otherChargesPaid ?? 0}
+            value={decimalValue(breakdown, 'otherChargesPaid')}
             liability={liability}
           />
         )}
         {breakdown.feesPaid > 0 && (
           <BreakdownRow
             label={t('breakdown.feesPaid')}
-            value={breakdown.feesPaid}
+            value={decimalValue(breakdown, 'feesPaid')}
             liability={liability}
           />
         )}
         <BreakdownRow
           label={t('breakdown.totalPaid')}
-          value={breakdown.totalPaid}
+          value={decimalValue(breakdown, 'totalPaid')}
           liability={liability}
           highlight
         />
@@ -285,24 +291,24 @@ export function LiabilityBreakdownPanel({ liability }: LiabilityBreakdownPanelPr
       >
         <BreakdownRow
           label={t('breakdown.remainingBalance')}
-          value={breakdown.currentBalance}
+          value={decimalValue(breakdown, 'currentBalance')}
           liability={liability}
         />
         <BreakdownRow
           label={t('breakdown.projectedInterest')}
-          value={breakdown.projectedInterest}
+          value={decimalValue(breakdown, 'projectedInterest')}
           liability={liability}
         />
         {(breakdown.projectedInsurance ?? 0) > 0 && (
           <BreakdownRow
             label={t('breakdown.projectedInsurance')}
-            value={breakdown.projectedInsurance}
+            value={decimalValue(breakdown, 'projectedInsurance')}
             liability={liability}
           />
         )}
         <BreakdownRow
           label={t('breakdown.totalProjectedCost')}
-          value={breakdown.totalProjectedCost}
+          value={decimalValue(breakdown, 'totalProjectedCost')}
           liability={liability}
           highlight
         />
@@ -324,14 +330,14 @@ export function LiabilityBreakdownPanel({ liability }: LiabilityBreakdownPanelPr
               label={t('breakdown.annualInsuranceRate', {
                 rate: formatDecimal(liability.insurancePercentage, 2),
               })}
-              value={liability.monthlyInsuranceCost}
+              value={decimalValue(liability, 'monthlyInsuranceCost')}
               liability={liability}
             />
           )}
           {liability.additionalFees && (
             <BreakdownRow
               label={t('breakdown.oneTimeFee')}
-              value={liability.additionalFees}
+              value={decimalValue(liability, 'additionalFees')}
               liability={liability}
             />
           )}

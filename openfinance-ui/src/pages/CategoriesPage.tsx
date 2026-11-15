@@ -1,4 +1,5 @@
 import { useViewState } from '@/hooks/useViewState';
+import { decimalValue, ExactDecimal } from '@/utils/exact-decimal';
 import type { BulkItem } from '@/types/bulk';
 import { BulkSelection, BulkToolbar, SelectionCheckbox } from '@/components/bulk/BulkSelection';
 /**
@@ -482,7 +483,9 @@ export default function CategoriesPage() {
       case 'transactions':
         return (b.transactionCount || 0) - (a.transactionCount || 0);
       case 'amount':
-        return (b.totalAmount || 0) - (a.totalAmount || 0);
+        return new ExactDecimal(decimalValue(b, 'totalAmount') ?? 0).comparedTo(
+          decimalValue(a, 'totalAmount') ?? 0
+        );
       case 'name':
       default:
         return (a.name || '').localeCompare(b.name || '');

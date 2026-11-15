@@ -46,6 +46,29 @@ const bitcoin: Asset = {
 };
 
 describe('Asset price history currencies', () => {
+  it('preserves exact units and converted purchase cost in the holding details', () => {
+    renderWithProviders(
+      <AssetDetailModal
+        asset={{
+          ...bitcoin,
+          currency: 'USD',
+          baseCurrency: 'EUR',
+          isConverted: true,
+          exchangeRate: 1,
+          totalCost: 9007199254740992,
+          quantity: 9007199254740992,
+          exactValues: {
+            totalCost: '9007199254740992.01',
+            quantity: '9007199254740992.01',
+            exchangeRate: '1.000000000000000001',
+          },
+        }}
+        onClose={vi.fn()}
+      />
+    );
+    expect(screen.getByRole('dialog')).toHaveTextContent('9,007,199,254,740,992.02');
+    expect(screen.getAllByText(/9,007,199,254,740,992\.01/).length).toBeGreaterThanOrEqual(2);
+  });
   beforeEach(() => {
     window.history.replaceState({}, '', '/assets');
     mockAuthentication();

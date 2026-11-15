@@ -43,6 +43,7 @@ export type InterestValueDateMode = (typeof INTEREST_VALUE_DATE_MODES)[number];
 export const INTEREST_DAY_COUNT_BASES = ['ACTUAL_365', 'THIRTY_360', 'FORTNIGHT_24'] as const;
 export type InterestDayCountBasis = (typeof INTEREST_DAY_COUNT_BASES)[number];
 export interface InterestEstimate {
+  exactValues?: Record<string, string>;
   /** Net interest for January–December of the current year. */
   estimate: number;
   /** Net interest from January 1 through today. */

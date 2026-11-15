@@ -1,4 +1,4 @@
-import { decimalValue } from '@/utils/exact-decimal';
+import { decimalValue, ExactDecimal } from '@/utils/exact-decimal';
 import { useTranslation } from 'react-i18next';
 import type { YearlyProjection } from '../../types/calculator';
 import { ConvertedAmount } from '@/components/ui/ConvertedAmount';
@@ -6,7 +6,7 @@ import { cn } from '../../lib/utils';
 
 interface TimelineProjectionProps {
   projections: YearlyProjection[];
-  targetAmount: number;
+  targetAmount: number | string;
   currency: string;
   yearsToFreedom?: number;
 }
@@ -29,9 +29,13 @@ export function TimelineProjection({
 }: TimelineProjectionProps) {
   const { t } = useTranslation();
   // Calculate progress percentage
-  const calculateProgress = (savings: number) => {
-    if (targetAmount <= 0) return 100;
-    return Math.min((savings / targetAmount) * 100, 100);
+  const calculateProgress = (savings: number | string) => {
+    const target = new ExactDecimal(targetAmount);
+    if (target.lte(0)) return 100;
+    return ExactDecimal.max(
+      0,
+      ExactDecimal.min(new ExactDecimal(savings).dividedBy(target).times(100), 100)
+    ).toNumber();
   };
 
   return (
@@ -61,7 +65,9 @@ export function TimelineProjection({
         </thead>
         <tbody>
           {projections.map(projection => {
-            const progress = calculateProgress(projection.endingBalance);
+            const progress = calculateProgress(
+              decimalValue(projection, 'endingBalance') ?? projection.endingBalance
+            );
             const isFreedomYear = yearsToFreedom != null && projection.year === yearsToFreedom;
             const isBeyondFreedom = yearsToFreedom != null && projection.year > yearsToFreedom;
 

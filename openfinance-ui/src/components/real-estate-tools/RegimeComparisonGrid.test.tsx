@@ -1,6 +1,6 @@
 import type { ComponentProps } from 'react';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
-import { screen } from '@testing-library/react';
+import { fireEvent, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { renderWithProviders, mockAuthentication } from '@/test/test-utils';
 import { RegimeComparisonGrid } from '@/components/real-estate-tools/RegimeComparisonGrid';
@@ -90,4 +90,111 @@ it('keeps mobile cards independent and exports the complete calculation results'
     reader.readAsText(blob!);
   });
   expect(JSON.parse(text).regimes).toEqual(results);
+});
+
+it.each(['micro_foncier', 'reel_foncier', 'lmnp_reel', 'micro_bic', null] as const)(
+  'shows the recommended regime without changing eligibility: %s',
+  recommended => {
+    renderWithProviders(<RegimeComparisonGrid {...props} recommendedRegime={recommended} />);
+    const labels = {
+      micro_foncier: 'regimeNameMicroFoncier',
+      reel_foncier: 'regimeNameReelFoncier',
+      lmnp_reel: 'regimeNameLmnpReel',
+      micro_bic: 'regimeNameMicroBic',
+    };
+    const summary = screen.getByText(
+      i18n.t('realEstate:regimeGrid.recommendedRegime')
+    ).parentElement!;
+    expect(summary).toHaveTextContent(
+      recommended ? i18n.t(`realEstate:regimeGrid.${labels[recommended]}`) : '-'
+    );
+    expect(screen.getByText('2/4')).toBeVisible();
+  }
+);
+
+it.each(['micro_foncier', 'reel_foncier', 'lmnp_reel', 'micro_bic'] as const)(
+  'keeps the mobile %s panel independent when opening and closing it',
+  regime => {
+    vi.stubGlobal('innerWidth', 375);
+    renderWithProviders(<RegimeComparisonGrid {...props} />);
+    const button = screen.getByRole('button', { name: regime });
+    fireEvent.click(button);
+    expect(button).toHaveAttribute('aria-expanded', 'true');
+    expect(screen.getAllByRole('button', { expanded: true })).toHaveLength(1);
+    fireEvent.click(button);
+    expect(screen.queryAllByRole('button', { expanded: true })).toHaveLength(0);
+  }
+);
+
+it('does not invent returns when no regime is eligible', () => {
+  renderWithProviders(
+    <RegimeComparisonGrid
+      {...props}
+      recommendedRegime={null}
+      eligibleRegimes={[]}
+      isRegimeEligible={() => false}
+    />
+  );
+  expect(screen.getByText('0/4')).toBeVisible();
+  for (const key of ['bestCashFlow', 'bestNetYield']) {
+    expect(
+      within(screen.getByText(i18n.t(`realEstate:regimeGrid.${key}`)).parentElement!).getByText('-')
+    ).toBeVisible();
+  }
+});
+
+it('handles missing calculations without displaying infinite returns', () => {
+  renderWithProviders(<RegimeComparisonGrid {...props} getRegimeResult={() => null} />);
+  expect(screen.queryAllByRole('button', { expanded: false })).toHaveLength(0);
+  for (const key of ['bestCashFlow', 'bestNetYield']) {
+    expect(
+      within(screen.getByText(i18n.t(`realEstate:regimeGrid.${key}`)).parentElement!).getByText('-')
+    ).toBeVisible();
+  }
+  expect(screen.getByRole('table')).not.toHaveTextContent('Infinity');
+});
+
+it('selects and displays the best exact cash flow without rounding the comparison through a number', () => {
+  const exactLookup = {
+    ...lookup,
+    lmnp_reel: {
+      ...lookup.lmnp_reel,
+      performance: {
+        ...lookup.lmnp_reel.performance,
+        monthlyCashFlow: 9007199254740992,
+        exactValues: { monthlyCashFlow: '9007199254740993.01' },
+      },
+    },
+    micro_bic: {
+      ...lookup.micro_bic,
+      performance: {
+        ...lookup.micro_bic.performance,
+        monthlyCashFlow: 9007199254740992,
+        exactValues: { monthlyCashFlow: '9007199254740993.02' },
+      },
+    },
+  };
+  renderWithProviders(
+    <RegimeComparisonGrid
+      {...props}
+      isRegimeEligible={regime => regime === 'lmnp_reel' || regime === 'micro_bic'}
+      getRegimeResult={regime => exactLookup[regime]}
+    />
+  );
+  const summary = screen.getByText(i18n.t('realEstate:regimeGrid.bestCashFlow')).parentElement!;
+  expect(within(summary).getByText('€9,007,199,254,740,993.02')).toBeVisible();
+  expect(within(screen.getByRole('table')).getByText('€9,007,199,254,740,993.01')).toBeVisible();
+});
+
+it('keeps unavailable cash-flow and yield metrics blank instead of presenting infinite returns', () => {
+  const unavailable = {
+    ...lookup.micro_foncier,
+    performance: { ...lookup.micro_foncier.performance, monthlyCashFlow: null, netYield: null },
+  };
+  renderWithProviders(<RegimeComparisonGrid {...props} getRegimeResult={() => unavailable} />);
+  for (const key of ['bestCashFlow', 'bestNetYield']) {
+    expect(
+      within(screen.getByText(i18n.t(`realEstate:regimeGrid.${key}`)).parentElement!).getByText('-')
+    ).toBeVisible();
+  }
 });

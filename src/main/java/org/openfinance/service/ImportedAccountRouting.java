@@ -51,8 +51,13 @@ final class ImportedAccountRouting {
         return (transaction.getAccountName() != null && !transaction.getAccountName().isBlank())
                 || (transaction.getAccountNumber() != null
                         && !transaction.getAccountNumber().isBlank())
-                || (transaction.getToAccountName() != null
-                        && !transaction.getToAccountName().isBlank());
+                || hasImportedDestinationReference(transaction);
+    }
+
+    static boolean hasImportedDestinationReference(ImportedTransaction transaction) {
+        return ImportStatementPositions.accountKey(
+                        transaction.getToAccountName(), transaction.getToAccountNumber())
+                != null;
     }
 
     static boolean matchesImportedAccount(

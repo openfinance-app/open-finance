@@ -3003,6 +3003,31 @@ describe('TransactionForm', () => {
   });
 
   describe('Original currency conversion', () => {
+    it('uses the exact historical rate and amount in the edit preview', () => {
+      renderForm({
+        transaction: {
+          id: 5,
+          userId: 1,
+          accountId: 1,
+          type: 'EXPENSE',
+          currency: 'EUR',
+          amount: 4503599627370497,
+          originalAmount: 9007199254740994,
+          originalCurrency: 'USD',
+          conversionRate: 0.5,
+          exactValues: {
+            amount: '4503599627370496.63',
+            originalAmount: '9007199254740993.25',
+            conversionRate: '0.5',
+          },
+          date: '2024-06-01',
+          isReconciled: false,
+          createdAt: '2024-06-01',
+        },
+      });
+      expect(screen.getByText('€4,503,599,627,370,496.63')).toBeInTheDocument();
+    });
+
     it('previews improvement cash in account currency and cost and valuation in asset currency', async () => {
       renderForm({
         transaction: {

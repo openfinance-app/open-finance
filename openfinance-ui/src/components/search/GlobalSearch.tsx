@@ -166,7 +166,7 @@ export const GlobalSearch = forwardRef<GlobalSearchHandle>((_, ref) => {
     if (query.length < 2) return;
     saveRecentSearch(query);
     setIsOpen(false);
-    navigate(`/search?q=${encodeURIComponent(query)}`);
+    navigate(`/search?q=${encodeURIComponent(query)}${isRegex ? '&regex=true' : ''}`);
   };
 
   // Handle recent search click
@@ -226,6 +226,7 @@ export const GlobalSearch = forwardRef<GlobalSearchHandle>((_, ref) => {
         {!isDebouncing && !searchResult.isLoading && query && (
           <button
             onClick={handleClear}
+            aria-label={t('common:clear')}
             className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-secondary"
           >
             <X className="h-5 w-5" />

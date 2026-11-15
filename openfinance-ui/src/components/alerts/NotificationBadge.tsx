@@ -251,7 +251,12 @@ function SystemNotificationItem({ notification, onClick }: SystemNotificationIte
       onClick={onClick}
       role="button"
       tabIndex={0}
-      onKeyDown={e => e.key === 'Enter' && onClick()}
+      onKeyDown={event => {
+        if (event.target === event.currentTarget && (event.key === 'Enter' || event.key === ' ')) {
+          event.preventDefault();
+          onClick();
+        }
+      }}
       aria-label={notification.title}
     >
       <div className="flex items-start gap-3">
@@ -374,7 +379,12 @@ function BudgetAlertItem({ alert, onNavigate, onMarkRead, isMarkingRead }: Budge
       onClick={onNavigate}
       role="button"
       tabIndex={0}
-      onKeyDown={e => e.key === 'Enter' && onNavigate()}
+      onKeyDown={event => {
+        if (event.target === event.currentTarget && (event.key === 'Enter' || event.key === ' ')) {
+          event.preventDefault();
+          onNavigate();
+        }
+      }}
       aria-label={t('notifications.budgetAlert', { name: alert.budgetName })}
     >
       <div className="flex items-start gap-3">

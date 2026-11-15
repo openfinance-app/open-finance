@@ -1,4 +1,4 @@
-import { decimalValue } from '@/utils/exact-decimal';
+import { decimalValue, ExactDecimal } from '@/utils/exact-decimal';
 import { formatDecimal } from '@/utils/format';
 import React from 'react';
 import { Calendar, TrendingUp, Home, Key, ArrowRight, AlertCircle } from 'lucide-react';
@@ -19,9 +19,18 @@ export interface YearNAnalysisCardProps {
 export const YearNAnalysisCard: React.FC<YearNAnalysisCardProps> = ({ analysis, targetYear }) => {
   const { baseCurrency } = useAuthContext();
   const { t } = useTranslation('realEstate');
-  const tied = Math.abs(analysis.netWorth - analysis.rentSavings) < 0.005;
-  const buyAdvantage = analysis.netWorth > analysis.rentSavings;
-  const minimumPriceAchievable = analysis.propertyValue >= analysis.minimumResalePrice;
+  const netWorth = new ExactDecimal(decimalValue(analysis, 'netWorth') ?? 0);
+  const rentSavings = new ExactDecimal(decimalValue(analysis, 'rentSavings') ?? 0);
+  const worthDifference = netWorth.minus(rentSavings);
+  const expenseDifference = new ExactDecimal(decimalValue(analysis, 'netExpenseBuy') ?? 0).minus(
+    decimalValue(analysis, 'netExpenseRent') ?? 0
+  );
+  const resaleProfit = new ExactDecimal(decimalValue(analysis, 'propertyValue') ?? 0).minus(
+    decimalValue(analysis, 'minimumResalePrice') ?? 0
+  );
+  const tied = worthDifference.abs().lt('0.005');
+  const buyAdvantage = worthDifference.gt(0);
+  const minimumPriceAchievable = resaleProfit.gte(0);
 
   return (
     <div className="space-y-6">
@@ -172,7 +181,7 @@ export const YearNAnalysisCard: React.FC<YearNAnalysisCardProps> = ({ analysis, 
                     components={{
                       profit: (
                         <ConvertedAmount
-                          amount={analysis.propertyValue - analysis.minimumResalePrice}
+                          amount={resaleProfit.toFixed()}
                           currency={baseCurrency}
                           inline
                         />
@@ -250,7 +259,7 @@ export const YearNAnalysisCard: React.FC<YearNAnalysisCardProps> = ({ analysis, 
                     components={{
                       savings: (
                         <ConvertedAmount
-                          amount={analysis.netExpenseRent - analysis.netExpenseBuy}
+                          amount={expenseDifference.toFixed()}
                           currency={baseCurrency}
                           inline
                         />
@@ -281,7 +290,7 @@ export const YearNAnalysisCard: React.FC<YearNAnalysisCardProps> = ({ analysis, 
               <p className={`text-2xl font-bold ${buyAdvantage ? 'text-primary' : 'text-warning'}`}>
                 {buyAdvantage ? '+' : ''}
                 <ConvertedAmount
-                  amount={analysis.netWorth - analysis.rentSavings}
+                  amount={worthDifference.toFixed()}
                   currency={baseCurrency}
                   inline
                 />
@@ -297,22 +306,21 @@ export const YearNAnalysisCard: React.FC<YearNAnalysisCardProps> = ({ analysis, 
             <div>
               <p className="text-sm text-muted-foreground mb-2">{t('results.expenseDifference')}</p>
               <p
-                className={`text-2xl font-bold ${analysis.netExpenseBuy < analysis.netExpenseRent ? 'text-primary' : 'text-warning'}`}
+                className={`text-2xl font-bold ${expenseDifference.lt(0) ? 'text-primary' : 'text-warning'}`}
               >
                 <ConvertedAmount
-                  amount={Math.abs(analysis.netExpenseBuy - analysis.netExpenseRent)}
+                  amount={expenseDifference.abs().toFixed()}
                   currency={baseCurrency}
                   inline
                 />
               </p>
               <p className="text-sm text-muted-foreground mt-1">
-                {Math.abs(analysis.netExpenseBuy - analysis.netExpenseRent) < 0.005
+                {expenseDifference.abs().lt('0.005')
                   ? t('comparison.tie')
                   : t('results.savedWith', {
-                      scenario:
-                        analysis.netExpenseBuy < analysis.netExpenseRent
-                          ? t('results.buyGenitive')
-                          : t('results.rentGenitive'),
+                      scenario: expenseDifference.lt(0)
+                        ? t('results.buyGenitive')
+                        : t('results.rentGenitive'),
                     })}
               </p>
             </div>
@@ -344,14 +352,14 @@ export const YearNAnalysisCard: React.FC<YearNAnalysisCardProps> = ({ analysis, 
             components={{
               winnerAmount: (
                 <ConvertedAmount
-                  amount={buyAdvantage ? analysis.netWorth : analysis.rentSavings}
+                  amount={(buyAdvantage ? netWorth : rentSavings).toFixed()}
                   currency={baseCurrency}
                   inline
                 />
               ),
               loserAmount: (
                 <ConvertedAmount
-                  amount={buyAdvantage ? analysis.rentSavings : analysis.netWorth}
+                  amount={(buyAdvantage ? rentSavings : netWorth).toFixed()}
                   currency={baseCurrency}
                   inline
                 />

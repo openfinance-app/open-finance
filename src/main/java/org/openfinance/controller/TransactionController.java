@@ -445,16 +445,6 @@ public class TransactionController {
             // Filter by account (with optional date range)
             transactions = transactionService.getTransactionsByAccount(user.getId(), accountId);
 
-            // Apply date range filter if provided
-            if (dateFrom != null && dateTo != null) {
-                transactions =
-                        transactions.stream()
-                                .filter(
-                                        t ->
-                                                !t.getDate().isBefore(dateFrom)
-                                                        && !t.getDate().isAfter(dateTo))
-                                .collect(Collectors.toList());
-            }
         } else if (dateFrom != null && dateTo != null) {
             // Filter by date range only
             transactions =
@@ -462,6 +452,20 @@ public class TransactionController {
         } else {
             // REQ-2.4.1.1: No filters - return all user transactions
             transactions = transactionService.getAllTransactions(user.getId());
+        }
+
+        // Date bounds are independently optional and inclusive for every account scope.
+        if (dateFrom != null) {
+            transactions =
+                    transactions.stream()
+                            .filter(transaction -> !transaction.getDate().isBefore(dateFrom))
+                            .collect(Collectors.toList());
+        }
+        if (dateTo != null) {
+            transactions =
+                    transactions.stream()
+                            .filter(transaction -> !transaction.getDate().isAfter(dateTo))
+                            .collect(Collectors.toList());
         }
 
         // Apply type filter if provided

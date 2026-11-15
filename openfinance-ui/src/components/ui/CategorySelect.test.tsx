@@ -16,7 +16,9 @@
  * Requirement REQ-CAT-2.3: CategorySelect with type filtering
  */
 import { screen, fireEvent, waitFor } from '@testing-library/react';
-import { renderWithProviders as render } from '@/test/test-utils';
+import { server } from '@/test/mocks/server';
+import { http, HttpResponse } from 'msw';
+import { mockAuthentication, renderWithProviders as render } from '@/test/test-utils';
 import { vi, describe, it, expect, beforeAll, beforeEach } from 'vitest';
 import { CategorySelect, shouldShowCreateInline } from './CategorySelect';
 import * as useTransactionsModule from '@/hooks/useTransactions';
@@ -551,5 +553,78 @@ describe('CategorySelect — allowCreateInline', () => {
     await waitFor(() => {
       expect(onValueChange).not.toHaveBeenCalled();
     });
+  });
+});
+
+describe('Category selection and concurrent inline creation', () => {
+  beforeEach(() => {
+    mockAuthentication();
+    vi.clearAllMocks();
+    mockUseCategoryTree.mockReturnValue(loadedResult());
+  });
+  it.each([
+    [1, 'Shopping'],
+    [3, 'Groceries'],
+    [99, 'Choose category'],
+  ] as const)(
+    'finds nested selected categories and tolerates a missing selection (%s)',
+    (value, label) => {
+      renderSelect({ value, placeholder: 'Choose category' });
+      expect(screen.getByRole('combobox')).toHaveTextContent(label);
+    }
+  );
+  it.each([
+    'created',
+    'duplicate-match',
+    'duplicate-missing',
+    'refresh-failed',
+    'create-failed',
+  ] as const)('keeps inline creation safe when the outcome is %s', async outcome => {
+    const create = vi.fn();
+    if (outcome === 'created') create.mockResolvedValue({ id: 42, name: 'New category' });
+    else
+      create.mockRejectedValue({ response: { status: outcome === 'create-failed' ? 500 : 409 } });
+    vi.mocked(useTransactionsModule.useCreateCategory).mockReturnValue({
+      mutateAsync: create,
+      isPending: false,
+    } as ReturnType<typeof useTransactionsModule.useCreateCategory>);
+    const fresh = [
+      {
+        ...mockExpenseRoot,
+        subcategories: [{ ...mockExpenseRoot.subcategories![0], id: 42, name: 'New category' }],
+      },
+    ];
+    server.use(
+      http.get('*/categories/tree', () =>
+        outcome === 'refresh-failed'
+          ? HttpResponse.error()
+          : HttpResponse.json(outcome === 'duplicate-match' ? fresh : [])
+      )
+    );
+    const logged = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    try {
+      const { onValueChange } = renderSelect({
+        allowCreateInline: true,
+        searchPlaceholder: 'Find category',
+      });
+      fireEvent.click(screen.getByRole('combobox'));
+      fireEvent.change(screen.getByRole('combobox', { name: 'Find category' }), {
+        target: { value: '  New category  ' },
+      });
+      fireEvent.click(screen.getByRole('option', { name: /Create.*New category/ }));
+      await waitFor(() => expect(create).toHaveBeenCalledWith({ name: 'New category' }));
+      if (outcome === 'created' || outcome === 'duplicate-match') {
+        await waitFor(() => expect(onValueChange).toHaveBeenCalledExactlyOnceWith(42));
+        expect(screen.queryByRole('combobox', { name: 'Find category' })).not.toBeInTheDocument();
+      } else {
+        await waitFor(() => expect(logged).toHaveBeenCalled());
+        expect(onValueChange).not.toHaveBeenCalled();
+        expect(screen.getByRole('combobox', { name: 'Find category' })).toHaveValue(
+          '  New category  '
+        );
+      }
+    } finally {
+      logged.mockRestore();
+    }
   });
 });

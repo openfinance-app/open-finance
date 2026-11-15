@@ -1,4 +1,4 @@
-import { decimalValue } from '@/utils/exact-decimal';
+import { ExactDecimal, decimalValue } from '@/utils/exact-decimal';
 import { SelectionCheckbox } from '@/components/bulk/BulkSelection';
 import { useDateFormatter } from '@/hooks/useDateFormatter';
 /**
@@ -26,7 +26,6 @@ import { ConvertedAmount } from '@/components/ui/ConvertedAmount';
 import { useAuthContext } from '@/context/AuthContext';
 import { useLatestExchangeRate } from '@/hooks/useCurrency';
 import { useLocale } from '@/context/LocaleContext';
-import { multiply } from '@/utils/money';
 import type { RecurringTransaction } from '@/types/recurringTransaction';
 
 interface RecurringTransactionCardProps {
@@ -70,11 +69,14 @@ export function RecurringTransactionCard({
     recurringTransaction.currency,
     baseCurrency
   );
-  const exchangeRate = isSameCurrency ? 1 : (exchangeRateData?.rate ?? undefined);
+  const exchangeRate = isSameCurrency ? 1 : decimalValue(exchangeRateData, 'rate');
   const convertedAmount =
-    exchangeRate !== undefined ? multiply(recurringTransaction.amount, exchangeRate) : undefined;
-  const isConverted =
-    isSameCurrency || (exchangeRate !== undefined && convertedAmount !== undefined);
+    exchangeRate != null
+      ? new ExactDecimal(decimalValue(recurringTransaction, 'amount')!)
+          .times(exchangeRate)
+          .toFixed()
+      : undefined;
+  const isConverted = isSameCurrency || (exchangeRate != null && convertedAmount !== undefined);
 
   const isTransfer = recurringTransaction.type === 'TRANSFER';
   const isIncome = recurringTransaction.type === 'INCOME';

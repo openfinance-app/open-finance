@@ -34,7 +34,7 @@ import { useLatestExchangeRate } from '@/hooks/useCurrency';
 import { useInterestPreview } from '@/hooks/useInterestPreview';
 import { DEFAULT_CURRENCY } from '@/utils/currency';
 import { getToday } from '@/utils/date';
-import { isValidDecimalString, multiply, percentage } from '@/utils/money';
+import { isValidDecimalString, percentage } from '@/utils/money';
 import type { Account, AccountRequest, AccountType, InterestPeriod } from '@/types/account';
 
 const ACCOUNT_TYPES: AccountType[] = [
@@ -202,7 +202,7 @@ export function AccountForm({
 
   const convertedAmount =
     balanceCurrency && balanceCurrency !== baseCurrency && exchangeRate && initialBalance
-      ? multiply(initialBalanceNumeric, exchangeRate.rate)
+      ? new ExactDecimal(initialBalance).times(decimalValue(exchangeRate, 'rate')!).toFixed()
       : undefined;
 
   const previewEnabled =

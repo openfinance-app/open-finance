@@ -944,6 +944,7 @@ public class TransactionService {
             Transaction source, Transaction destination, TransferUpdateRequest request) {
         return java.util.Objects.equals(source.getAccountId(), request.getFromAccountId())
                 && java.util.Objects.equals(destination.getAccountId(), request.getToAccountId())
+                && request.getAmount() != null
                 && source.getAmount().compareTo(request.getAmount()) == 0
                 && source.getCurrency().equalsIgnoreCase(request.getCurrency())
                 && java.util.Objects.equals(source.getDate(), request.getDate())
@@ -2773,7 +2774,7 @@ public class TransactionService {
         }
         log.debug("Fetching transactions with tag '{}' for user id={}", tag, userId);
 
-        String normalizedTag = tag.trim().toLowerCase();
+        String normalizedTag = tag.trim().toLowerCase(java.util.Locale.ROOT);
 
         // Get all transactions for the user and filter out deleted ones
         List<Transaction> transactions =
@@ -2788,7 +2789,10 @@ public class TransactionService {
                         .filter(
                                 t ->
                                         transactionTags(t, splitTags)
-                                                .map(String::toLowerCase)
+                                                .map(
+                                                        value ->
+                                                                value.toLowerCase(
+                                                                        java.util.Locale.ROOT))
                                                 .anyMatch(normalizedTag::equals))
                         .collect(Collectors.toList());
 
@@ -3215,26 +3219,44 @@ public class TransactionService {
                 .findBySaleTransactionIdAndUserId(transaction.getId(), transaction.getUserId())
                 .ifPresent(
                         asset -> {
-                            if (request.getType() != TransactionType.INCOME
-                                    || !java.util.Objects.equals(
-                                            transaction.getAssetId(), request.getAssetId())
-                                    || !java.util.Objects.equals(
-                                            transaction.getRealEstateId(),
-                                            request.getRealEstateId())
-                                    || request.getLiabilityId() != null
-                                    || request.getMovementType() != null
-                                    || request.getInvestment() != null
-                                    || !asset.getCurrency().equals(request.getCurrency())
-                                    || request.getDate().isBefore(asset.getPurchaseDate())
-                                    || request.getDate().isAfter(LocalDate.now())) {
-                                throw new InvalidTransactionException(
-                                        "Keep the sale linked to its item, or delete the sale payment to restore ownership");
-                            }
+                            validateSaleUpdate(
+                                    transaction,
+                                    request,
+                                    asset.getCurrency(),
+                                    asset.getPurchaseDate());
                             asset.setSoldDate(request.getDate());
                         });
         realEstateRepository
                 .findBySaleTransactionIdAndUserId(transaction.getId(), transaction.getUserId())
-                .ifPresent(property -> property.setSoldDate(request.getDate()));
+                .ifPresent(
+                        property -> {
+                            validateSaleUpdate(
+                                    transaction,
+                                    request,
+                                    property.getCurrency(),
+                                    property.getPurchaseDate());
+                            property.setSoldDate(request.getDate());
+                        });
+    }
+
+    private void validateSaleUpdate(
+            Transaction transaction,
+            TransactionRequest request,
+            String currency,
+            LocalDate purchaseDate) {
+        if (request.getType() != TransactionType.INCOME
+                || !java.util.Objects.equals(transaction.getAssetId(), request.getAssetId())
+                || !java.util.Objects.equals(
+                        transaction.getRealEstateId(), request.getRealEstateId())
+                || request.getLiabilityId() != null
+                || request.getMovementType() != null
+                || request.getInvestment() != null
+                || !currency.equals(request.getCurrency())
+                || (purchaseDate != null && request.getDate().isBefore(purchaseDate))
+                || request.getDate().isAfter(LocalDate.now())) {
+            throw new InvalidTransactionException(
+                    "Keep the sale linked to its item, or delete the sale payment to restore ownership");
+        }
     }
 
     private void reverseSaleOwnership(Transaction transaction) {

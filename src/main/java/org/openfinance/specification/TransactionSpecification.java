@@ -5,6 +5,7 @@ import jakarta.persistence.criteria.Root;
 import jakarta.persistence.criteria.Subquery;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import org.openfinance.dto.TransactionSearchCriteria;
 import org.openfinance.entity.RealEstateProperty;
 import org.openfinance.entity.Transaction;
@@ -72,7 +73,7 @@ public class TransactionSpecification {
                 predicates.add(root.get("id").in(matchedIds));
             } else if (criteria.getKeyword() != null && !criteria.getKeyword().trim().isEmpty()) {
                 // Fallback: search in unencrypted fields if FTS was not used or failed
-                String pattern = "%" + criteria.getKeyword().toLowerCase() + "%";
+                String pattern = "%" + criteria.getKeyword().toLowerCase(Locale.ROOT) + "%";
                 predicates.add(
                         criteriaBuilder.or(
                                 criteriaBuilder.like(
@@ -165,7 +166,7 @@ public class TransactionSpecification {
             if (matchedIds == null
                     && criteria.getPayee() != null
                     && !criteria.getPayee().trim().isEmpty()) {
-                String payee = "%" + criteria.getPayee().toLowerCase() + "%";
+                String payee = "%" + criteria.getPayee().toLowerCase(Locale.ROOT) + "%";
                 predicates.add(
                         criteriaBuilder.like(criteriaBuilder.lower(root.get("payee")), payee));
             }
@@ -175,7 +176,7 @@ public class TransactionSpecification {
             if (matchedIds == null
                     && criteria.getTags() != null
                     && !criteria.getTags().trim().isEmpty()) {
-                String tags = "%" + criteria.getTags().toLowerCase() + "%";
+                String tags = "%" + criteria.getTags().toLowerCase(Locale.ROOT) + "%";
                 predicates.add(criteriaBuilder.like(criteriaBuilder.lower(root.get("tags")), tags));
             }
 

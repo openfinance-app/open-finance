@@ -6,6 +6,10 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.NullSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.openfinance.entity.Asset;
 import org.openfinance.entity.AssetPriceHistory;
 import org.openfinance.entity.Transaction;
@@ -76,6 +80,71 @@ class ImportedPropertyValuationsTest {
                                 START.plusMonths(2), new BigDecimal("3000"), "EUR"),
                         new ImportedPropertyValuations.Point(
                                 TODAY, new BigDecimal("1250.0"), "EUR"));
+    }
+
+    @ParameterizedTest
+    @NullSource
+    @ValueSource(strings = {"0"})
+    void movementsWithoutUnitsCannotCreateExecutionPrices(String quantity) {
+        Asset asset = asset();
+        asset.setImportOpeningQuantity(BigDecimal.ONE);
+        asset.setImportOpeningCost(new BigDecimal("1000"));
+        Transaction tx = movement(2L, START.plusDays(1), "1", "9999");
+        tx.setInvestmentQuantity(quantity == null ? null : new BigDecimal(quantity));
+        tx.setInvestmentPrice(new BigDecimal("9999"));
+        assertThat(ImportedPropertyValuations.history(asset, List.of(tx), List.of(), TODAY))
+                .filteredOn(point -> point.date().equals(tx.getDate()))
+                .extracting(ImportedPropertyValuations.Point::value)
+                .containsExactly(new BigDecimal("1000"));
+    }
+
+    @ParameterizedTest
+    @CsvSource({"EUR,400,,400", "USD,400,,100", "USD,400,300,300", "EUR,400,0,0", "EUR,400,-1,400"})
+    void executionFallbackRespectsCurrencyAndRejectsNegativePrices(
+            String currency, String amount, String price, String expected) {
+        Asset asset = asset();
+        Transaction tx = movement(1L, START, "1", "400");
+        tx.setCurrency(currency);
+        tx.setAmount(new BigDecimal(amount));
+        tx.setInvestmentValue(null);
+        tx.setOriginalCurrency("EUR");
+        tx.setOriginalAmount(new BigDecimal("100"));
+        tx.setInvestmentPrice(price == null ? null : new BigDecimal(price));
+        assertThat(
+                        ImportedPropertyValuations.history(asset, List.of(tx), List.of(), TODAY)
+                                .getFirst()
+                                .value())
+                .isEqualByComparingTo(expected);
+    }
+
+    @Test
+    void datedTradeRowsDoNotOverrideExplicitMarketQuotes() {
+        Asset asset = asset();
+        AssetPriceHistory trade = quote(START.plusDays(1), "9999", "EUR");
+        trade.setSource("TRADE");
+        List<ImportedPropertyValuations.Point> result =
+                ImportedPropertyValuations.history(
+                        asset,
+                        List.of(movement(1L, START, "1", "1000")),
+                        List.of(quote(START.minusDays(1), "900", "USD"), trade),
+                        TODAY);
+        assertThat(result)
+                .extracting(ImportedPropertyValuations.Point::date)
+                .containsExactly(START, START.plusDays(1), TODAY);
+        assertThat(result.get(1).value()).isEqualByComparingTo("900");
+        assertThat(result.get(1).currency()).isEqualTo("USD");
+    }
+
+    @Test
+    void currentPriceBecomesAvailableOnItsUpdateDateOnly() {
+        Asset asset = asset();
+        asset.setLastUpdated(START.plusDays(2).atStartOfDay());
+        List<ImportedPropertyValuations.Point> result =
+                ImportedPropertyValuations.history(
+                        asset, List.of(movement(1L, START, "1", "1000")), List.of(), TODAY);
+        assertThat(result.getFirst().value()).isEqualByComparingTo("1000");
+        assertThat(result.get(1).date()).isEqualTo(START.plusDays(2));
+        assertThat(result.get(1).value()).isEqualByComparingTo("2500");
     }
 
     private Asset asset() {

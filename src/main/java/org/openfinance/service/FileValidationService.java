@@ -72,7 +72,7 @@ public class FileValidationService {
      * @return Size in bytes
      */
     private long parseFileSize(String sizeString) {
-        sizeString = sizeString.trim().toUpperCase();
+        sizeString = sizeString.trim().toUpperCase(java.util.Locale.ROOT);
         if (sizeString.endsWith("KB")) {
             return Long.parseLong(sizeString.replace("KB", "").trim()) * 1024;
         } else if (sizeString.endsWith("MB")) {
@@ -119,7 +119,8 @@ public class FileValidationService {
 
         // Check file extension
         String extension = getFileExtension(originalFilename);
-        if (extension == null || !allowedExtensions.contains(extension.toLowerCase())) {
+        if (extension == null
+                || !allowedExtensions.contains(extension.toLowerCase(java.util.Locale.ROOT))) {
             return ValidationResult.error(
                     String.format(
                             "File type '%s' not allowed. Allowed types: %s",
@@ -257,7 +258,7 @@ public class FileValidationService {
 
             while ((line = reader.readLine()) != null && lineCount < maxLinesToCheck) {
                 lineCount++;
-                String lowerLine = line.toLowerCase();
+                String lowerLine = line.toLowerCase(java.util.Locale.ROOT);
 
                 if (lineCount == 1 && (line.startsWith("MZ") || line.startsWith("PK"))) {
                     log.warn("Detected executable file signature in file");

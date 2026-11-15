@@ -655,7 +655,7 @@ public class CategoryService {
      */
     private void checkDuplicateName(
             Long userId, String requestedName, Long parentId, Long excludeId) {
-        String normalised = requestedName.trim().toLowerCase();
+        String normalised = requestedName.trim().toLowerCase(Locale.ROOT);
         List<Category> existing = categoryRepository.findByUserId(userId);
         for (Category cat : existing) {
             if (excludeId != null && cat.getId().equals(excludeId)) continue;
@@ -663,7 +663,7 @@ public class CategoryService {
             // different parents (e.g. "Informatique" and "Loisirs:Informatique").
             if (!Objects.equals(cat.getParentId(), parentId)) continue;
             String plainName = cat.getIsSystem() ? cat.getName() : decryptName(cat);
-            if (plainName != null && plainName.trim().toLowerCase().equals(normalised)) {
+            if (plainName != null && plainName.trim().toLowerCase(Locale.ROOT).equals(normalised)) {
                 throw new InvalidCategoryException(
                         "A category named '" + requestedName + "' already exists.");
             }

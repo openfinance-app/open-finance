@@ -262,7 +262,7 @@ export function RecordCostForm({ target, onClose }: { target: CostTarget; onClos
       </fieldset>
       {create.error && (
         <p role="alert" className="text-sm text-error">
-          {isAxiosError<{ message?: string }>(create.error) && create.error.response?.data.message
+          {isAxiosError<{ message?: string }>(create.error) && create.error.response?.data?.message
             ? create.error.response.data.message
             : t('costEntry.error')}
         </p>

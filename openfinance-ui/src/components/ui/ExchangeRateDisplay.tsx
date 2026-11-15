@@ -240,7 +240,7 @@ export function ExchangeRateInline({
   className = '',
 }: Pick<ExchangeRateDisplayProps, 'from' | 'to' | 'className'> & {
   /** When provided, render this fixed rate instead of fetching the latest one. */
-  rate?: number;
+  rate?: number | string;
   /** Disable independent fetching when the caller supplies a dated or booked rate. */
   fetchRate?: boolean;
   /** Optional muted suffix, e.g. "(rate at time of transaction)". */

@@ -52,6 +52,7 @@ export interface Category {
  * Category tree node for hierarchical display
  */
 export interface CategoryTreeNode {
+  exactValues?: Record<string, string>;
   id: number;
   name: string;
   icon?: string;

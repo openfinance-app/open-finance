@@ -242,7 +242,7 @@ export function BuyPropertyWizard({
         setPendingRequest(null);
       }
       setError(
-        isAxiosError<{ message?: string }>(e) && e.response?.data.message
+        isAxiosError<{ message?: string }>(e) && e.response?.data?.message
           ? e.response.data.message
           : e instanceof Error
             ? e.message

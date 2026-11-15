@@ -224,7 +224,12 @@ export function RuleForm({
   // ---------------------------------------------------------------------------
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog
+      open={open}
+      onOpenChange={nextOpen => {
+        if (!isLoading) onOpenChange(nextOpen);
+      }}
+    >
       <DialogContent className="sm:max-w-[640px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{rule ? t('form.editTitle') : t('form.createTitle')}</DialogTitle>

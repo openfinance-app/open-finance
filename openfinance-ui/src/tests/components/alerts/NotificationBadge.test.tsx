@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { screen, fireEvent, waitFor } from '@testing-library/react';
-import { renderWithProviders, mockAuthentication } from '@/test/test-utils';
+import { renderWithProviders, mockAuthentication, userEvent } from '@/test/test-utils';
 import { NotificationBadge } from '@/components/alerts/NotificationBadge';
 import type { BudgetAlert } from '@/types/alert';
 import type { INotification } from '@/types/notification';
@@ -369,5 +369,94 @@ describe('NotificationBadge', () => {
         expect(screen.queryByText('Spending alert')).not.toBeInTheDocument();
       });
     });
+  });
+  it.each([
+    ['BUDGET_ALERT', '/budget'],
+    ['STALE_QUOTES', '/assets'],
+    ['UNLINKED_PAYEE', '/transactions?noPayee=1'],
+    ['LOW_BALANCE', '/accounts?lowBalance=1'],
+    ['UNCATEGORIZED_TRANSACTIONS', '/transactions?noCategory=1'],
+  ] as const)('routes %s notifications to the supported filtered view', (type, path) => {
+    const notification = makeNotification({
+      type,
+      title: 'Review items',
+      actionUrl: '/stale-link',
+      count: 0,
+    });
+    mockUseNotifications.mockReturnValue({ data: [notification] });
+    renderWithProviders(<NotificationBadge />);
+    fireEvent.click(screen.getByRole('button'));
+    fireEvent.click(screen.getByRole('button', { name: 'Review items' }));
+    expect(mockMarkNotificationAsRead).toHaveBeenCalledWith(notification);
+    expect(mockNavigate).toHaveBeenCalledWith(path);
+    expect(screen.queryByText('Review items')).not.toBeInTheDocument();
+  });
+
+  it.each(['Enter', ' '])('keyboard %j activates a system notification', key => {
+    mockUseNotifications.mockReturnValue({ data: [makeNotification({ title: 'Review items' })] });
+    renderWithProviders(<NotificationBadge />);
+    fireEvent.click(screen.getByRole('button'));
+    const row = screen.getByRole('button', { name: 'Review items' });
+    fireEvent.keyDown(row, { key: 'ArrowDown' });
+    expect(mockNavigate).not.toHaveBeenCalled();
+    fireEvent.keyDown(row, { key });
+    expect(mockNavigate).toHaveBeenCalledWith('/transactions?noCategory=1');
+  });
+
+  it.each(['Enter', ' '])('keyboard %j activates a budget alert with a fallback message', key => {
+    mockUseUnreadAlerts.mockReturnValue({ data: [makeAlert({ message: '', budgetId: 17 })] });
+    renderWithProviders(<NotificationBadge />);
+    fireEvent.click(screen.getByRole('button'));
+    const row = screen.getByRole('button', { name: /Budget alert.*Groceries/i });
+    expect(row).toHaveTextContent('80');
+    fireEvent.keyDown(row, { key: 'ArrowDown' });
+    expect(mockNavigate).not.toHaveBeenCalled();
+    fireEvent.keyDown(row, { key });
+    expect(mockNavigate).toHaveBeenCalledWith('/budget?open=17');
+  });
+
+  it('keyboard activation of Mark as read does not also navigate the parent alert', async () => {
+    const user = userEvent.setup();
+    const mark = vi.fn();
+    mockUseUnreadAlerts.mockReturnValue({ data: [makeAlert()] });
+    mockUseMarkAlertAsRead.mockReturnValue({ mutate: mark, isPending: false });
+    renderWithProviders(<NotificationBadge />);
+    await user.click(screen.getByRole('button'));
+    const read = screen.getByRole('button', { name: /Mark alert as read/i });
+    read.focus();
+    await user.keyboard('{Enter}');
+    expect(mark).toHaveBeenCalledOnce();
+    expect(mockNavigate).not.toHaveBeenCalled();
+  });
+
+  it('interactions inside the dropdown keep it open until a true outside click', () => {
+    mockUseUnreadAlerts.mockReturnValue({ data: [makeAlert()] });
+    renderWithProviders(<NotificationBadge />);
+    const bell = screen.getByRole('button');
+    fireEvent.click(bell);
+    fireEvent.mouseDown(screen.getByText('Notifications'));
+    fireEvent.keyDown(document, { key: 'a' });
+    expect(screen.getByText('Spending alert')).toBeVisible();
+    fireEvent.mouseDown(bell);
+    expect(screen.getByText('Spending alert')).toBeVisible();
+    fireEvent.mouseDown(document.body);
+    expect(screen.queryByText('Spending alert')).not.toBeInTheDocument();
+  });
+
+  it('an in-progress rate update disables duplicate submissions and displays its state', () => {
+    const mutate = vi.fn();
+    mockUseUpdateExchangeRates.mockReturnValue({ mutate, isPending: true });
+    mockUseNotifications.mockReturnValue({
+      data: [
+        makeNotification({ type: 'STALE_EXCHANGE_RATES', count: 0, actionLabel: 'Update Now' }),
+      ],
+    });
+    renderWithProviders(<NotificationBadge />);
+    fireEvent.click(screen.getByRole('button'));
+    const update = screen.getByRole('button', { name: 'Update exchange rates now' });
+    expect(update).toBeDisabled();
+    expect(update).toHaveTextContent('Updating');
+    fireEvent.click(update);
+    expect(mutate).not.toHaveBeenCalled();
   });
 });

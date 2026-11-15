@@ -15,7 +15,7 @@ import { SimpleSelect } from '@/components/ui/SimpleSelect';
 import { CategorySelect } from '@/components/ui/CategorySelect';
 import { ConvertedAmount } from '@/components/ui/ConvertedAmount';
 import { TagInput } from '@/components/transactions/TagInput';
-import { decimalPlaces, multiply } from '@/utils/money';
+import { decimalPlaces } from '@/utils/money';
 import { getMonetaryScale } from '@/utils/currency';
 import type { LoanComponent, TransactionSplitRequest } from '@/types/transaction';
 
@@ -31,7 +31,7 @@ interface SplitTransactionFormProps {
   /** Account currency to convert to on save; when different from `currency`, a converted total is shown */
   accountCurrency?: string;
   /** 1 unit of `currency` = `exchangeRate` units of `accountCurrency` (latest rate) */
-  exchangeRate?: number;
+  exchangeRate?: number | string;
   tagSuggestions?: string[];
   loanPayment?: boolean;
 }
@@ -75,8 +75,7 @@ export function SplitTransactionForm({
 
   // Show an ≈ converted total in the account currency when the user is entering splits in a
   // different currency than the account (the amounts themselves are converted on save).
-  const showConverted =
-    !!accountCurrency && accountCurrency !== currency && typeof exchangeRate === 'number';
+  const showConverted = !!accountCurrency && accountCurrency !== currency && exchangeRate != null;
 
   // REQ-SPL-3.7: add a new blank split line
   const handleAddSplit = () => {
@@ -271,7 +270,7 @@ export function SplitTransactionForm({
           <div className="mt-1 text-right text-xs text-text-secondary font-mono">
             ≈{' '}
             <ConvertedAmount
-              amount={multiply(splitTotal, exchangeRate as number)}
+              amount={new ExactDecimal(splitTotal).times(exchangeRate!).toFixed()}
               currency={accountCurrency}
               inline
             />

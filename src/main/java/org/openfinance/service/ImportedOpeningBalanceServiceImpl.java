@@ -45,7 +45,8 @@ public class ImportedOpeningBalanceServiceImpl implements ImportedOpeningBalance
         }
         BigDecimal atOpening = existing;
         for (Transaction movement : movements) {
-            if (!Boolean.TRUE.equals(movement.getIsDeleted())
+            if (account.getId().equals(movement.getAccountId())
+                    && !Boolean.TRUE.equals(movement.getIsDeleted())
                     && date != null
                     && movement.getDate().isBefore(date)) {
                 BigDecimal amount = movement.getBalanceAmount();

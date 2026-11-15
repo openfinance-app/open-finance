@@ -335,7 +335,7 @@ export default function AssetsPage() {
       setEditingAsset(null);
     } catch (error) {
       setSaveError(
-        isAxiosError<{ message?: string }>(error) && error.response?.data.message
+        isAxiosError<{ message?: string }>(error) && error.response?.data?.message
           ? error.response.data.message
           : t('saveError')
       );

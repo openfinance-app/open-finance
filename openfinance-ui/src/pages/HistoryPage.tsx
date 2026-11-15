@@ -87,7 +87,7 @@ export default function HistoryPage() {
     },
   });
   const mutationError = mutation.error
-    ? isAxiosError<{ message?: string }>(mutation.error) && mutation.error.response?.data.message
+    ? isAxiosError<{ message?: string }>(mutation.error) && mutation.error.response?.data?.message
       ? mutation.error.response.data.message
       : t('actionError')
     : null;

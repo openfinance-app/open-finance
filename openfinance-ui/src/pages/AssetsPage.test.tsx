@@ -1,5 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { screen, waitFor, render } from '@testing-library/react';
+import { screen, waitFor, render, fireEvent, act } from '@testing-library/react';
+import type { ComponentProps } from 'react';
+import { useViewStateStore } from '@/stores/viewState';
 import { MemoryRouter } from 'react-router';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { I18nextProvider } from 'react-i18next';
@@ -63,6 +65,9 @@ const mockRefetchFn = vi.fn();
 let mockPagedData: any = mockPagedResponse;
 let mockIsLoading = false;
 let mockError: Error | null = null;
+let mockFlatAssets: Asset[] | undefined = [mockAsset];
+let mockFetchedAsset: Asset | undefined;
+const mockRefreshPrices = vi.fn();
 
 vi.mock('@/hooks/useAssets', () => ({
   useAssetsSearch: vi.fn(() => ({
@@ -71,8 +76,12 @@ vi.mock('@/hooks/useAssets', () => ({
     error: mockError,
     refetch: mockRefetchFn,
   })),
-  useAssets: () => ({ data: [mockAsset], isLoading: false, error: null }),
-  useAsset: () => ({ data: null, isLoading: false, error: null }),
+  useAssets: () => ({ data: mockFlatAssets, isLoading: false, error: null }),
+  useAsset: (id: number) => ({
+    data: mockFetchedAsset?.id === id ? mockFetchedAsset : null,
+    isLoading: false,
+    error: null,
+  }),
   useCreateAsset: () => ({ mutate: vi.fn(), mutateAsync: mockCreateFn, isPending: false }),
   useUpdateAsset: () => ({ mutate: vi.fn(), mutateAsync: mockUpdateFn, isPending: false }),
   useDeleteAsset: () => ({ mutate: vi.fn(), mutateAsync: mockDeleteFn, isPending: false }),
@@ -86,7 +95,7 @@ vi.mock('@/hooks/useAssets', () => ({
 }));
 
 vi.mock('@/hooks/useMarketData', () => ({
-  useUpdateAllAssetPrices: () => ({ mutate: vi.fn(), isPending: false }),
+  useUpdateAllAssetPrices: () => ({ mutateAsync: mockRefreshPrices, isPending: false }),
 }));
 
 vi.mock('@/hooks/useSecondaryConversion', () => ({
@@ -94,12 +103,29 @@ vi.mock('@/hooks/useSecondaryConversion', () => ({
 }));
 
 vi.mock('@/components/assets/AssetForm', () => ({
-  AssetForm: ({ onCancel, onSubmit }: any) => (
+  AssetForm: ({
+    onCancel,
+    onSubmit,
+    kind,
+    initialAcquisitionType,
+  }: ComponentProps<typeof import('@/components/assets/AssetForm').AssetForm>) => (
     <div data-testid="asset-form">
+      <p>Form kind {kind ?? 'edit'}</p>
+      <p>Acquisition {initialAcquisitionType ?? 'default'}</p>
       <button onClick={onCancel}>Cancel</button>
       <button
         data-testid="form-submit"
-        onClick={() => onSubmit({ name: 'Test', type: 'STOCK', quantity: 1, purchasePrice: 100 })}
+        onClick={() =>
+          onSubmit({
+            name: 'Test',
+            type: 'STOCK',
+            quantity: '1',
+            purchasePrice: '100',
+            currentPrice: '100',
+            currency: 'USD',
+            purchaseDate: '2026-01-01',
+          })
+        }
       >
         Submit
       </button>
@@ -126,9 +152,15 @@ vi.mock('@/components/assets/AssetDetailModal', () => ({
 }));
 
 vi.mock('@/components/assets/AssetList', () => ({
-  AssetList: ({ assets, onEdit, onDelete, onView }: any) => (
+  AssetList: ({
+    assets,
+    onEdit,
+    onDelete,
+    onView,
+    onCompletePurchase,
+  }: ComponentProps<typeof import('@/components/assets/AssetList').AssetList>) => (
     <div data-testid="asset-list">
-      {assets.map((a: any) => (
+      {assets.map(a => (
         <div key={a.id}>
           <span>{a.name}</span>
           {a.symbol && <span>{a.symbol}</span>}
@@ -147,6 +179,7 @@ vi.mock('@/components/assets/AssetList', () => ({
               View
             </button>
           )}
+          <button onClick={() => onCompletePurchase?.(a)}>Complete purchase {a.name}</button>
         </div>
       ))}
     </div>
@@ -157,15 +190,56 @@ vi.mock('@/components/assets/LastUpdatedIndicator', () => ({
   BatchUpdateIndicator: () => null,
 }));
 
+vi.mock('@/components/assets/AssetPurchaseFlow', () => ({
+  AssetPurchaseFlow: ({
+    plan,
+    onClose,
+    onPurchased,
+  }: ComponentProps<typeof import('@/components/assets/AssetPurchaseFlow').AssetPurchaseFlow>) => (
+    <section aria-label="Purchase flow">
+      <p>Plan {plan?.name ?? 'new'}</p>
+      <button onClick={onClose}>Cancel purchase</button>
+      <button onClick={() => onPurchased(17)}>Finish purchase</button>
+    </section>
+  ),
+}));
+vi.mock('@/components/ui/Pagination', () => ({
+  Pagination: ({
+    currentPage,
+    onPageChange,
+    onPageSizeChange,
+  }: ComponentProps<typeof import('@/components/ui/Pagination').Pagination>) => (
+    <nav aria-label="Asset pages">
+      <span>Page index {currentPage}</span>
+      <button onClick={() => onPageChange(currentPage + 1)}>Next page</button>
+      <button onClick={() => onPageSizeChange?.(50)}>50 per page</button>
+    </nav>
+  ),
+}));
+
 describe('AssetsPage', () => {
   beforeEach(() => {
     clearAuthentication();
     mockAuthentication();
+    useViewStateStore.getState().clear();
+    window.history.replaceState({}, '', '/assets');
     Element.prototype.scrollIntoView = vi.fn();
     vi.clearAllMocks();
     mockPagedData = mockPagedResponse;
     mockIsLoading = false;
     mockError = null;
+    mockFlatAssets = [mockAsset];
+    mockFetchedAsset = undefined;
+    mockRefreshPrices.mockReset().mockResolvedValue(undefined);
+    vi.mocked(useAssetsSearch).mockImplementation(
+      () =>
+        ({
+          data: mockPagedData,
+          isLoading: mockIsLoading,
+          error: mockError,
+          refetch: mockRefetchFn,
+        }) as ReturnType<typeof useAssetsSearch>
+    );
     mockCreateFn.mockReset().mockResolvedValue(mockAsset);
     mockUpdateFn.mockReset().mockResolvedValue(mockAsset);
     mockDeleteFn.mockReset().mockResolvedValue(undefined);
@@ -185,8 +259,11 @@ describe('AssetsPage', () => {
       expect(mockCreateFn).toHaveBeenCalledWith({
         name: 'Test',
         type: 'STOCK',
-        quantity: 1,
-        purchasePrice: 100,
+        quantity: '1',
+        purchasePrice: '100',
+        currentPrice: '100',
+        currency: 'USD',
+        purchaseDate: '2026-01-01',
       })
     );
     await screen.findByRole('button', { name: 'Close' });
@@ -204,7 +281,15 @@ describe('AssetsPage', () => {
     await waitFor(() =>
       expect(mockUpdateFn).toHaveBeenCalledWith({
         id: 1,
-        data: { name: 'Test', type: 'STOCK', quantity: 1, purchasePrice: 100 },
+        data: {
+          name: 'Test',
+          type: 'STOCK',
+          quantity: '1',
+          purchasePrice: '100',
+          currentPrice: '100',
+          currency: 'USD',
+          purchaseDate: '2026-01-01',
+        },
       })
     );
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
@@ -248,6 +333,208 @@ describe('AssetsPage', () => {
       'true'
     );
     window.history.replaceState({}, '', '/assets');
+  });
+
+  it.each(['edit', 'view', 'purchase', 'highlight'])(
+    'routes property holdings through the property flow for %s',
+    async action => {
+      const property = { ...mockAsset, type: 'REAL_ESTATE' as const };
+      mockFlatAssets = [property];
+      mockPagedData = { ...mockPagedResponse, content: [property] };
+      if (action === 'highlight') window.history.replaceState({}, '', '/assets?highlight=1');
+      renderWithProviders(<AssetsPage />);
+      if (action !== 'highlight') {
+        const label =
+          action === 'edit' ? 'Edit' : action === 'view' ? 'View' : 'Complete purchase Apple Stock';
+        fireEvent.click(screen.getByRole('button', { name: label, exact: true }));
+      }
+      await waitFor(() => expect(window.location.pathname).toBe('/real-estate'));
+      expect(new URLSearchParams(window.location.search).get('asset')).toBe('1');
+      expect(new URLSearchParams(window.location.search).get('purchase')).toBe(
+        action === 'purchase' ? '1' : null
+      );
+    }
+  );
+
+  it.each(['PURCHASE', 'GIFT', 'PLANNED'] as const)(
+    'starts a physical %s form directly from the physical group',
+    intent => {
+      window.history.replaceState({}, '', '/assets?group=PHYSICAL');
+      renderWithProviders(<AssetsPage />);
+      fireEvent.click(screen.getByRole('button', { name: i18n.t('assets:addAsset') }));
+      fireEvent.click(
+        screen.getByRole('button', {
+          name: new RegExp(i18n.t(`assets:ownership.intents.${intent}`)),
+        })
+      );
+      expect(screen.getByText('Form kind physical')).toBeInTheDocument();
+      expect(screen.getByText(`Acquisition ${intent}`)).toBeInTheDocument();
+      fireEvent.click(screen.getByRole('button', { name: i18n.t('assets:createChoice.back') }));
+      expect(screen.getByText(i18n.t('assets:createChoice.intro'))).toBeInTheDocument();
+    }
+  );
+
+  it('starts a financial form directly from the financial group', () => {
+    window.history.replaceState({}, '', '/assets?group=FINANCIAL');
+    renderWithProviders(<AssetsPage />);
+    fireEvent.click(screen.getByRole('button', { name: i18n.t('assets:addAsset') }));
+    expect(screen.getByText('Form kind financial')).toBeInTheDocument();
+    expect(screen.queryByText(i18n.t('assets:ownership.intentPrompt'))).not.toBeInTheDocument();
+  });
+
+  it('starts a new reviewed purchase and opens the purchased item on success', () => {
+    window.history.replaceState({}, '', '/assets?group=PHYSICAL');
+    renderWithProviders(<AssetsPage />);
+    fireEvent.click(screen.getByRole('button', { name: i18n.t('assets:addAsset') }));
+    fireEvent.click(
+      screen.getByRole('button', { name: new RegExp(i18n.t('assets:ownership.intentHints.BUY')) })
+    );
+    expect(screen.getByRole('region', { name: 'Purchase flow' })).toHaveTextContent('Plan new');
+    fireEvent.click(screen.getByRole('button', { name: 'Finish purchase' }));
+    expect(window.location.search).toBe('?highlight=17');
+    expect(screen.queryByRole('region', { name: 'Purchase flow' })).not.toBeInTheDocument();
+  });
+
+  it('completes the selected physical plan and allows cancelling before any write', () => {
+    const plan = {
+      ...mockAsset,
+      name: 'Planned car',
+      type: 'VEHICLE' as const,
+      acquisitionType: 'PLANNED' as const,
+    };
+    mockFlatAssets = [plan];
+    mockPagedData = { ...mockPagedResponse, content: [plan] };
+    renderWithProviders(<AssetsPage />);
+    fireEvent.click(screen.getByRole('button', { name: 'Complete purchase Planned car' }));
+    expect(screen.getByRole('region', { name: 'Purchase flow' })).toHaveTextContent(
+      'Plan Planned car'
+    );
+    expect(screen.getByRole('dialog')).toHaveAccessibleName(
+      i18n.t('assets:ownership.completePurchase')
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel purchase' }));
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(mockCreateFn).not.toHaveBeenCalled();
+  });
+
+  it('opens a newly created asset using its individual query before the list refreshes', async () => {
+    mockFetchedAsset = { ...mockAsset, id: 17, name: 'New holding' };
+    mockCreateFn.mockResolvedValue(mockFetchedAsset);
+    window.history.replaceState({}, '', '/assets?group=FINANCIAL');
+    renderWithProviders(<AssetsPage />);
+    fireEvent.click(screen.getByRole('button', { name: i18n.t('assets:addAsset') }));
+    fireEvent.click(screen.getByRole('button', { name: 'Submit' }));
+    expect(await screen.findByText('New holding')).toBeInTheDocument();
+  });
+
+  it.each([false, true])(
+    'restores refresh controls after a price refresh settles (failure %s)',
+    async failure => {
+      mockFlatAssets = [
+        mockAsset,
+        { ...mockAsset, id: 2, symbol: 'PLAN', acquisitionType: 'PLANNED' },
+        { ...mockAsset, id: 3, symbol: undefined },
+      ];
+      let resolve!: () => void;
+      let reject!: (error: Error) => void;
+      mockRefreshPrices.mockReturnValue(
+        new Promise<void>((res, rej) => {
+          resolve = res;
+          reject = rej;
+        })
+      );
+      const log = vi.spyOn(console, 'error').mockImplementation(() => {});
+      try {
+        renderWithProviders(<AssetsPage />);
+        fireEvent.click(screen.getByRole('button', { name: i18n.t('assets:refreshPrices') }));
+        expect(mockRefreshPrices).toHaveBeenCalledWith([1]);
+        expect(screen.getByRole('button', { name: i18n.t('assets:refreshing') })).toBeDisabled();
+        await act(async () => {
+          if (failure) reject(new Error('offline'));
+          else resolve();
+        });
+        expect(screen.getByRole('button', { name: i18n.t('assets:refreshPrices') })).toBeEnabled();
+        if (failure)
+          expect(log).toHaveBeenCalledWith('Failed to refresh prices:', expect.any(Error));
+      } finally {
+        log.mockRestore();
+      }
+    }
+  );
+
+  it('disables refresh until an owned asset has a symbol', () => {
+    mockFlatAssets = undefined;
+    renderWithProviders(<AssetsPage />);
+    const refresh = screen.getByRole('button', { name: i18n.t('assets:refreshPrices') });
+    expect(refresh).toBeDisabled();
+    fireEvent.click(refresh);
+    expect(mockRefreshPrices).not.toHaveBeenCalled();
+  });
+
+  it('only Escape closes an open filter panel and leaves filter criteria intact', () => {
+    window.history.replaceState({}, '', '/assets?currency=USD');
+    renderWithProviders(<AssetsPage />);
+    expect(screen.getByLabelText(/asset type/i)).toBeInTheDocument();
+    fireEvent.keyDown(window, { key: 'Enter' });
+    expect(screen.getByLabelText(/asset type/i)).toBeInTheDocument();
+    fireEvent.keyDown(window, { key: 'Escape' });
+    expect(screen.queryByLabelText(/asset type/i)).not.toBeInTheDocument();
+    fireEvent.keyDown(window, { key: 'Escape' });
+    expect(useViewStateStore.getState().latest['/assets'].filters).toEqual(
+      expect.objectContaining({ currency: 'USD' })
+    );
+  });
+
+  it.each([0, 1])('clamps the current asset page after deletion leaves %s pages', remaining => {
+    mockPagedData = { ...mockPagedResponse, totalPages: 3, totalElements: 50 };
+    vi.mocked(useAssetsSearch).mockImplementation(
+      filters =>
+        ({
+          data: { ...mockPagedData, number: filters?.page ?? 0 },
+          isLoading: false,
+          error: null,
+        }) as ReturnType<typeof useAssetsSearch>
+    );
+    const { rerender } = renderWithProviders(<AssetsPage />);
+    fireEvent.click(screen.getByRole('button', { name: 'Next page' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Next page' }));
+    mockPagedData = { ...mockPagedData, totalPages: remaining, content: [] };
+    rerender(<AssetsPage />);
+    expect(useViewStateStore.getState().latest['/assets'].filters).toEqual(
+      expect.objectContaining({ page: 0 })
+    );
+  });
+
+  it('resets the asset page when resizing the page', () => {
+    mockPagedData = { ...mockPagedResponse, totalPages: 3, totalElements: 50 };
+    vi.mocked(useAssetsSearch).mockImplementation(
+      filters =>
+        ({
+          data: { ...mockPagedData, number: filters?.page ?? 0 },
+          isLoading: false,
+          error: null,
+        }) as ReturnType<typeof useAssetsSearch>
+    );
+    renderWithProviders(<AssetsPage />);
+    fireEvent.click(screen.getByRole('button', { name: 'Next page' }));
+    fireEvent.click(screen.getByRole('button', { name: '50 per page' }));
+    expect(useViewStateStore.getState().latest['/assets'].filters).toEqual(
+      expect.objectContaining({ page: 0, size: 50 })
+    );
+  });
+
+  it.each([
+    { isAxiosError: true },
+    { isAxiosError: true, response: { data: {} } },
+    { isAxiosError: true, response: { status: 500 } },
+    new Error('offline'),
+  ])('keeps a failed save open even without a server message', async error => {
+    mockUpdateFn.mockRejectedValue(error);
+    renderWithProviders(<AssetsPage />);
+    fireEvent.click(screen.getByRole('button', { name: 'Edit', exact: true }));
+    fireEvent.click(screen.getByRole('button', { name: 'Submit' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent(i18n.t('assets:saveError'));
+    expect(screen.getByRole('button', { name: 'Submit' })).toBeInTheDocument();
   });
 
   describe('Data display', () => {

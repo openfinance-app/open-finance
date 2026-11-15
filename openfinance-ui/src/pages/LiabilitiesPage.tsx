@@ -144,7 +144,7 @@ export default function LiabilitiesPage() {
       setEditingLiability(null);
     } catch (err) {
       setSaveError(
-        isAxiosError<{ message?: string }>(err) && err.response?.data.message
+        isAxiosError<{ message?: string }>(err) && err.response?.data?.message
           ? err.response.data.message
           : t('saveError')
       );

@@ -272,7 +272,21 @@ export default function DashboardPage() {
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
+        if (
+          parsed === null ||
+          typeof parsed !== 'object' ||
+          Array.isArray(parsed) ||
+          !Array.isArray(parsed.lg)
+        )
+          return defaultLayouts;
         let repaired = false;
+
+        for (const breakpoint of Object.keys(parsed)) {
+          if (breakpoint !== 'lg' && !Array.isArray(parsed[breakpoint])) {
+            delete parsed[breakpoint];
+            repaired = true;
+          }
+        }
 
         if (parsed.lg && Array.isArray(parsed.lg)) {
           const defaultLg = defaultLayouts.lg;

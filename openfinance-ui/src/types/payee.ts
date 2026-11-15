@@ -3,6 +3,7 @@
  */
 
 export interface Payee {
+  exactValues?: Record<string, string>;
   id: number;
   name: string;
   logo?: string;

@@ -105,8 +105,7 @@ export default function RealEstatePage() {
         key !== 'page' &&
         key !== 'size' &&
         key !== 'sort' &&
-        key !== 'isActive' &&
-        key !== 'propertyType'
+        key !== 'isActive'
     );
 
   // Build filters for API call
@@ -352,7 +351,7 @@ export default function RealEstatePage() {
       handleFormClose();
     } catch (error) {
       setSaveError(
-        isAxiosError<{ message?: string }>(error) && error.response?.data.message
+        isAxiosError<{ message?: string }>(error) && error.response?.data?.message
           ? error.response.data.message
           : t('saveError')
       );

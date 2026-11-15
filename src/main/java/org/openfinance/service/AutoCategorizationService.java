@@ -127,7 +127,8 @@ public class AutoCategorizationService {
             return Collections.emptySet();
         }
         // Replace non-alphanumeric with spaces and split
-        String[] rawTokens = text.toLowerCase().replaceAll("[^a-z0-9]", " ").split("\\s+");
+        String[] rawTokens =
+                text.toLowerCase(java.util.Locale.ROOT).replaceAll("[^a-z0-9]", " ").split("\\s+");
         Set<String> tokens = new HashSet<>();
         for (String t : rawTokens) {
             if (t.length() > 1) { // Ignore single-character noise like random letters

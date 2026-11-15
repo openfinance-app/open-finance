@@ -13,6 +13,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.mockito.InOrder;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
@@ -388,5 +390,41 @@ class AuthServiceTest {
                 .hasMessage("Invalid master password");
 
         verify(userLoginStateService).recordLoginFailure(1L, 5, 15);
+    }
+
+    @ParameterizedTest
+    @CsvSource(
+            value = {
+                "NULL|NULL|192.0.2.5",
+                " | |192.0.2.5",
+                "NULL| 2001:db8::1 |2001:db8::1",
+                "203.0.113.1, 198.51.100.2|NULL|203.0.113.1",
+                ",|198.51.100.3|198.51.100.3",
+                ",,|NULL|192.0.2.5",
+                " , 198.51.100.2|NULL|192.0.2.5"
+            },
+            delimiter = '|',
+            nullValues = "NULL",
+            ignoreLeadingAndTrailingWhitespace = false)
+    void loginRecordsAUsableClientAddressEvenWhenProxyMetadataIsMalformed(
+            String forwarded, String real, String expected) {
+        org.springframework.mock.web.MockHttpServletRequest request =
+                new org.springframework.mock.web.MockHttpServletRequest();
+        request.setRemoteAddr("192.0.2.5");
+        if (forwarded != null) request.addHeader("X-Forwarded-For", forwarded);
+        if (real != null) request.addHeader("X-Real-IP", real);
+        org.springframework.web.context.request.RequestContextHolder.setRequestAttributes(
+                new org.springframework.web.context.request.ServletRequestAttributes(request));
+        try {
+            when(encryptionProperties.isEnabled()).thenReturn(false);
+            when(userRepository.findByUsername("john_doe")).thenReturn(Optional.of(testUser));
+            when(passwordService.validatePassword("Password123!", testUser.getPasswordHash()))
+                    .thenReturn(true);
+            when(jwtService.generateToken(testUser)).thenReturn("jwt.token.here");
+            assertThat(authService.login(loginRequest).getToken()).isEqualTo("jwt.token.here");
+            verify(userLoginStateService).recordLoginSuccess(1L, expected);
+        } finally {
+            org.springframework.web.context.request.RequestContextHolder.resetRequestAttributes();
+        }
     }
 }

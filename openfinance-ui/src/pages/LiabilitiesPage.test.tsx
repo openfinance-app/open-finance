@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { screen, waitFor, render } from '@testing-library/react';
+import { fireEvent, screen, waitFor, render } from '@testing-library/react';
 import { MemoryRouter } from 'react-router';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { I18nextProvider } from 'react-i18next';
@@ -357,5 +357,22 @@ describe('LiabilitiesPage deep links', () => {
   it('does not open the dialog for an unknown highlight id', async () => {
     renderPage('?highlight=999');
     expect(screen.queryByTestId('liability-detail-dialog')).not.toBeInTheDocument();
+  });
+  it.each([
+    { isAxiosError: true, response: { data: { message: 'Loan changed elsewhere' } } },
+    { isAxiosError: true, response: { status: 500 } },
+    { isAxiosError: true, response: { data: {} } },
+    { isAxiosError: true },
+    new Error('offline'),
+  ])('keeps rejected edits open for correction or retry: %j', async error => {
+    mockUpdateMutateAsync.mockRejectedValueOnce(error);
+    renderWithProviders(<LiabilitiesPage />);
+    fireEvent.click(screen.getByRole('button', { name: 'Edit' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Submit' }));
+    expect(await screen.findByRole('alert')).not.toBeEmptyDOMElement();
+    expect(screen.getByRole('button', { name: 'Submit' })).toBeEnabled();
+    mockUpdateMutateAsync.mockResolvedValueOnce({ id: 1 });
+    fireEvent.click(screen.getByRole('button', { name: 'Submit' }));
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
   });
 });

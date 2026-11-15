@@ -9,6 +9,7 @@ import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
+import java.time.format.ResolverStyle;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -64,9 +65,11 @@ public class OfxParser {
 
     /** Date/time formats used in OFX files (spec-mandated yyyyMMdd-based representations). */
     private static final DateTimeFormatter[] DATE_FORMATS = {
-        DateTimeFormatter.ofPattern("yyyyMMddHHmmss"), // 20240115120000
-        DateTimeFormatter.ofPattern("yyyyMMdd"), // 20240115
-        DateTimeFormatter.ofPattern("yyyyMMddHHmmss.SSS"), // with milliseconds
+        DateTimeFormatter.ofPattern("uuuuMMddHHmmss")
+                .withResolverStyle(ResolverStyle.STRICT), // 20240115120000
+        DateTimeFormatter.ofPattern("uuuuMMdd").withResolverStyle(ResolverStyle.STRICT), // 20240115
+        DateTimeFormatter.ofPattern("uuuuMMddHHmmss.SSS")
+                .withResolverStyle(ResolverStyle.STRICT), // with milliseconds
     };
 
     /** Detects OFX SGML 1.x header. */
@@ -481,7 +484,7 @@ public class OfxParser {
         }
 
         // CURRENCY / CURSYM — currency code
-        String currency = getElementText(stmtTrn, "CURRENCY");
+        String currency = currencyCode(stmtTrn);
         if (currency == null || currency.isEmpty()) {
             currency = getElementText(stmtTrn, "CURSYM");
         }
@@ -639,7 +642,7 @@ public class OfxParser {
         // user category and must not be invented as one.
 
         // Currency
-        String currency = getElementText(invEl, "CURRENCY");
+        String currency = currencyCode(invEl);
         if (currency == null || currency.isEmpty()) {
             currency = getElementText(invEl, "CURSYM");
         }
@@ -709,12 +712,26 @@ public class OfxParser {
             currency = getElementText(statement, "CURDEF");
         }
         if (currency == null || currency.isEmpty()) {
-            currency = getElementText(statement, "CURRENCY");
+            currency = currencyCode(statement);
         }
         if (currency == null || currency.isEmpty()) {
             currency = getElementText(statement, "CURSYM");
         }
         return currency;
+    }
+
+    /** CURRENCY may be an aggregate containing both CURRATE and CURSYM. */
+    private String currencyCode(Element parent) {
+        NodeList currencies = parent.getElementsByTagName("CURRENCY");
+        if (currencies.getLength() == 0) return null;
+        Element currency = (Element) currencies.item(0);
+        NodeList children = currency.getChildNodes();
+        for (int index = 0; index < children.getLength(); index++) {
+            if (children.item(index).getNodeType() == Node.ELEMENT_NODE) {
+                return getElementText(currency, "CURSYM");
+            }
+        }
+        return currency.getTextContent().trim();
     }
 
     /** Text content of the first direct child element with the given tag name, or null. */

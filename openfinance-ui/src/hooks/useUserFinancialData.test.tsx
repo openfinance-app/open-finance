@@ -4,6 +4,7 @@ import { vi, describe, it, expect, beforeEach } from 'vitest';
 import { AllProviders, createTestQueryClient, mockAuthentication } from '@/test/test-utils';
 import { useUserFinancialData } from '@/hooks/useUserFinancialData';
 import apiClient from '@/services/apiClient';
+import type { ExactDecimalFields } from '@/utils/exact-decimal';
 
 vi.mock('@/services/apiClient');
 const mockGet = vi.mocked(apiClient.get);
@@ -49,6 +50,7 @@ describe('useUserFinancialData', () => {
         totalSavings: 1600,
         averageMonthlyExpenses: 60,
         currency: 'EUR',
+        exactValues: expect.any(Object),
       })
     );
     expect(mockGet).toHaveBeenCalledWith('/dashboard/cashflow', {
@@ -105,6 +107,7 @@ describe('useUserFinancialData', () => {
         totalSavings: 0,
         averageMonthlyExpenses: 0,
         currency: 'EUR',
+        exactValues: expect.any(Object),
       })
     );
   });
@@ -164,6 +167,7 @@ describe('useUserFinancialData', () => {
         totalSavings: 12980,
         averageMonthlyExpenses: 1000,
         currency: 'EUR',
+        exactValues: expect.any(Object),
       })
     );
   });
@@ -179,5 +183,157 @@ describe('useUserFinancialData', () => {
     }));
     const { result } = renderFinancialData();
     await waitFor(() => expect(result.current.data?.totalSavings).toBe(12000));
+  });
+  it.each([
+    [
+      'native holding',
+      [
+        {
+          type: 'STOCK',
+          currency: 'EUR',
+          totalValue: 9007199254740992,
+          exactValues: { totalValue: '9007199254740993.01' },
+        },
+      ],
+      [],
+      '9007199254740993.01',
+    ],
+    [
+      'quantity times price',
+      [
+        {
+          type: 'ETF',
+          currency: 'EUR',
+          quantity: 3,
+          currentPrice: 0.1,
+          exactValues: { quantity: '3', currentPrice: '0.100000000000000001' },
+        },
+      ],
+      [],
+      '0.300000000000000003',
+    ],
+    [
+      'converted holding',
+      [
+        {
+          type: 'BOND',
+          currency: 'USD',
+          baseCurrency: 'EUR',
+          isConverted: true,
+          valueInBaseCurrency: 9007199254740992,
+          exactValues: { valueInBaseCurrency: '9007199254740993.02' },
+        },
+      ],
+      [],
+      '9007199254740993.02',
+    ],
+    [
+      'cash net of debt',
+      [],
+      [
+        {
+          currency: 'EUR',
+          isActive: true,
+          ownBalance: 9007199254740992,
+          exactValues: { ownBalance: '9007199254740993.01' },
+        },
+        {
+          currency: 'EUR',
+          isActive: true,
+          ownBalance: -9007199254740992,
+          exactValues: { ownBalance: '-9007199254740993' },
+        },
+      ],
+      '0.01',
+    ],
+    [
+      'converted cash',
+      [],
+      [
+        {
+          currency: 'USD',
+          baseCurrency: 'EUR',
+          isActive: true,
+          ownBalance: 3,
+          exchangeRate: 0.1,
+          exactValues: { ownBalance: '3', exchangeRate: '0.100000000000000001' },
+        },
+      ],
+      '0.300000000000000003',
+    ],
+    ['negative net assets', [], [{ currency: 'EUR', isActive: true, ownBalance: -10 }], '0'],
+  ])('retains exact %s in the autofill data', async (_name, assets, accounts, expected) => {
+    mockGet.mockImplementation(async url => ({
+      data: url === '/assets' ? assets : url === '/accounts' ? accounts : { expenses: 0 },
+    }));
+    const { result } = renderFinancialData();
+    await waitFor(() => expect(result.current.data).not.toBeNull());
+    expect((result.current.data as ExactDecimalFields).exactValues?.totalSavings).toBe(expected);
+    expect(result.current.data?.totalSavings).toBe(Number(expected));
+  });
+
+  it('divides exact six-month expenses before exposing an autofill value', async () => {
+    mockGet.mockImplementation(async url => ({
+      data:
+        url === '/assets' || url === '/accounts'
+          ? []
+          : {
+              expenses: 600,
+              exactValues: { expenses: '600.000000000000000006' },
+            },
+    }));
+    const { result } = renderFinancialData();
+    await waitFor(() => expect(result.current.data).not.toBeNull());
+    expect((result.current.data as ExactDecimalFields).exactValues?.averageMonthlyExpenses).toBe(
+      '100.000000000000000001'
+    );
+  });
+
+  it.each([
+    { baseCurrency: 'GBP', isConverted: true, valueInBaseCurrency: 5 },
+    { baseCurrency: 'EUR', isConverted: false, valueInBaseCurrency: 5 },
+    { baseCurrency: 'EUR', isConverted: true, valueInBaseCurrency: null },
+  ])('rejects incomplete holding conversion metadata %j', async conversion => {
+    mockGet.mockImplementation(async url => ({
+      data:
+        url === '/assets'
+          ? [{ type: 'STOCK', currency: 'USD', totalValue: 20, ...conversion }]
+          : url === '/accounts'
+            ? []
+            : { expenses: 0 },
+    }));
+    const { result } = renderFinancialData();
+    await waitFor(() => expect(result.current.error).not.toBeNull());
+    expect(result.current.data).toBeNull();
+  });
+
+  it.each([
+    { baseCurrency: 'GBP', exchangeRate: 0.8 },
+    { baseCurrency: 'EUR', exchangeRate: null },
+  ])('rejects cash with unavailable reporting-currency conversion %j', async conversion => {
+    mockGet.mockImplementation(async url => ({
+      data:
+        url === '/accounts'
+          ? [{ isActive: true, currency: 'USD', ownBalance: 20, ...conversion }]
+          : url === '/assets'
+            ? []
+            : { expenses: 0 },
+    }));
+    const { result } = renderFinancialData();
+    await waitFor(() => expect(result.current.error).not.toBeNull());
+    expect(result.current.data).toBeNull();
+  });
+
+  it('calculates a missing native holding valuation from legacy numeric fields', async () => {
+    mockGet.mockImplementation(async url => ({
+      data:
+        url === '/assets'
+          ? [{ type: 'STOCK', currency: 'EUR', quantity: 3, currentPrice: 0.1 }]
+          : url === '/accounts'
+            ? []
+            : { expenses: 0 },
+    }));
+    const { result } = renderFinancialData();
+    await waitFor(() => expect(result.current.data?.totalSavings).toBe(0.3));
   });
 });

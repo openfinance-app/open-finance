@@ -65,7 +65,7 @@ import { DEFAULT_CURRENCY, getMonetaryScale, getCurrencyDecimals } from '@/utils
 import { CurrencySelector } from '@/components/ui/CurrencySelector';
 import { ExchangeRateInline } from '@/components/ui/ExchangeRateDisplay';
 import { useExchangeRate } from '@/hooks/useCurrency';
-import { multiply, isValidDecimalString } from '@/utils/money';
+import { isValidDecimalString } from '@/utils/money';
 import {
   buildTransactionRequest,
   reconstructInitialSplits,
@@ -547,14 +547,16 @@ export function TransactionForm({
     !!transactionDate && needsConversion && !useStoredRate
   );
 
-  const effectiveRate = useStoredRate ? storedConversionRate : liveExchangeRate?.rate;
+  const effectiveRate = useStoredRate
+    ? decimalValue(transaction, 'conversionRate')
+    : decimalValue(liveExchangeRate, 'rate');
 
   const convertedPreview =
     needsConversion &&
     effectiveRate != null &&
     Number.isFinite(Number(amountValue)) &&
     Number(amountValue) > 0
-      ? multiply(amountValue, effectiveRate)
+      ? new ExactDecimal(amountValue).times(effectiveRate).toFixed()
       : undefined;
 
   // Clear ONLY the manual "rate unavailable" error we set, once conversion is no longer needed or

@@ -43,6 +43,29 @@ class FileStorageServiceTest {
         assertTrue(restarted.fileExists(id, 1L));
     }
 
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.NullSource
+    @org.junit.jupiter.params.provider.ValueSource(longs = {0, -1})
+    void uploadsAndReadsRequireAPositiveOwner(Long owner) {
+        MultipartFile file =
+                new MockMultipartFile("file", "statement.qif", "text/plain", new byte[] {1});
+        assertThrows(
+                IllegalArgumentException.class, () -> fileStorageService.storeFile(file, owner));
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> fileStorageService.getFile("12345678-1234-1234-1234-123456789abc", owner));
+    }
+
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.NullSource
+    @org.junit.jupiter.params.provider.ValueSource(
+            strings = {"folder/file.qif", "folder\\file.qif"})
+    void uploadedFilenamesCannotContainEitherPlatformPathSeparator(String name) {
+        MultipartFile file = org.mockito.Mockito.mock(MultipartFile.class);
+        org.mockito.Mockito.when(file.getOriginalFilename()).thenReturn(name);
+        assertThrows(IllegalArgumentException.class, () -> fileStorageService.storeFile(file, 1L));
+    }
+
     private FileStorageService fileStorageService;
     private Path testTempDirectory;
 

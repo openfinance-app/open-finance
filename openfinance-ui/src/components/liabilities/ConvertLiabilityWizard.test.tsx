@@ -1,4 +1,4 @@
-import { fireEvent, screen, waitFor } from '@testing-library/react';
+import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { renderWithProviders, mockAuthentication } from '@/test/test-utils';
@@ -22,7 +22,15 @@ const state = vi.hoisted(() => ({
   payments: [] as ConversionPaymentCandidate[],
   paymentError: false,
   paymentPending: false,
-  properties: [] as Array<{ id: number; name: string; isActive: boolean }>,
+  properties: [] as Array<{
+    id: number;
+    name: string;
+    isActive: boolean;
+    acquisitionType?: string;
+    soldDate?: string;
+    mortgageId?: number;
+  }>,
+  propertiesError: false,
   isPending: false,
   isError: false,
   refetch: vi.fn(),
@@ -41,7 +49,11 @@ vi.mock('@/hooks/useLiabilityConversion', () => ({
   useConvertLiability: () => ({ mutateAsync: state.mutateAsync, isPending: false }),
 }));
 vi.mock('@/hooks/useRealEstate', () => ({
-  useProperties: () => ({ data: state.properties, isSuccess: true }),
+  useProperties: () => ({
+    data: state.properties,
+    isSuccess: !state.propertiesError,
+    isError: state.propertiesError,
+  }),
 }));
 vi.mock('@/components/ui/ConvertedAmount', () => ({
   ConvertedAmount: ({ amount, currency }: { amount: number; currency: string }) => (
@@ -58,6 +70,19 @@ beforeEach(() => {
   Element.prototype.scrollIntoView = vi.fn();
   Element.prototype.scrollTo = vi.fn();
   state.properties = [];
+  state.propertiesError = false;
+  state.data = [
+    {
+      accountId: 8,
+      name: 'Imported mortgage',
+      currency: 'EUR',
+      outstandingBalance: 800,
+      startDate: '2024-01-01',
+      transactionCount: 5,
+      sourceRevision: 'a'.repeat(64),
+      exactValues: { outstandingBalance: '800.00' },
+    },
+  ];
   state.data[0].name = 'Imported mortgage';
   state.data[0].outstandingBalance = 800;
   state.data[0].exactValues.outstandingBalance = '800.00';
@@ -69,7 +94,7 @@ beforeEach(() => {
   state.isError = false;
   state.mutateAsync.mockReset().mockResolvedValue({ id: 42 });
   state.refetch.mockReset();
-  vi.spyOn(window, 'confirm').mockReturnValue(false);
+  vi.spyOn(window, 'confirm').mockReturnValue(false).mockClear();
 });
 
 afterEach(() => vi.unstubAllEnvs());
@@ -327,3 +352,132 @@ describe('Imported liability conversion', () => {
     expect(state.mutateAsync).not.toHaveBeenCalled();
   });
 });
+
+it.each(['pending', 'empty', 'no-match'] as const)(
+  'keeps source selection unavailable when %s',
+  stateName => {
+    if (stateName === 'pending') state.isPending = true;
+    if (stateName === 'empty') state.data = [];
+    renderWithProviders(<ConvertLiabilityWizard onClose={vi.fn()} onConverted={vi.fn()} />);
+    if (stateName === 'no-match')
+      fireEvent.change(screen.getByLabelText('Find an account'), {
+        target: { value: 'Missing bank' },
+      });
+    expect(screen.queryByRole('radio')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Next' })).toBeDisabled();
+    expect(state.mutateAsync).not.toHaveBeenCalled();
+  }
+);
+
+it('searches candidates by currency as well as account name', () => {
+  renderWithProviders(<ConvertLiabilityWizard onClose={vi.fn()} onConverted={vi.fn()} />);
+  fireEvent.change(screen.getByLabelText('Find an account'), { target: { value: 'eur' } });
+  expect(screen.getByRole('radio', { name: /Imported mortgage/ })).toBeVisible();
+});
+
+it('closes from source selection without creating a draft', () => {
+  const close = vi.fn();
+  renderWithProviders(<ConvertLiabilityWizard onClose={close} onConverted={vi.fn()} />);
+  fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+  expect(close).toHaveBeenCalledOnce();
+  expect(window.confirm).not.toHaveBeenCalled();
+});
+
+it('refreshes candidates when returning from unchanged terms', async () => {
+  renderWithProviders(
+    <ConvertLiabilityWizard initialAccountId={8} onClose={vi.fn()} onConverted={vi.fn()} />
+  );
+  fireEvent.click(screen.getByRole('button', { name: 'Next' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Back' }));
+  expect(await screen.findByRole('radio', { name: /Imported mortgage/ })).toBeChecked();
+  expect(state.refetch).toHaveBeenCalledOnce();
+});
+
+it.each([
+  ['Liability name', ' ', /enter a liability name/i],
+  ['Agreed principal (EUR)', '799', /agreed principal.*already borrowed/i],
+  ['Annual interest rate (optional) (%)', '-1', /rate.*0.*100|at least 0|no greater than 100/i],
+  ['Annual interest rate (optional) (%)', '101', /rate.*0.*100|at least 0|no greater than 100/i],
+  [
+    'Monthly payment, excluding insurance (optional) (EUR)',
+    '-1',
+    /valid non-negative amount|at least 0/i,
+  ],
+  ['Insurance Rate (% Annual)', '101', /rate.*0.*100|at least 0|no greater than 100/i],
+  ['Loan start date', '2099-01-01', /start date.*today/i],
+  ['End date (optional)', '2023-12-31', /end date.*start date/i],
+  ['First principal repayment', '2023-12-31', /date between.*start.*maturity/i],
+])('rejects invalid conversion terms: %s = %s', async (label, value, error) => {
+  renderWithProviders(
+    <ConvertLiabilityWizard initialAccountId={8} onClose={vi.fn()} onConverted={vi.fn()} />
+  );
+  fireEvent.click(screen.getByRole('button', { name: 'Next' }));
+  fireEvent.change(
+    screen.getByLabelText(text => text.startsWith(label)),
+    { target: { value } }
+  );
+  fireEvent.click(screen.getByRole('button', { name: 'Review existing payments' }));
+  expect(await screen.findByText(error)).toBeVisible();
+  expect(state.mutateAsync).not.toHaveBeenCalled();
+});
+
+it.each([
+  { isActive: false },
+  { acquisitionType: 'PLANNED' },
+  { soldDate: '2025-01-01' },
+  { mortgageId: 99 },
+])('does not suggest or offer an unavailable property: %j', unavailable => {
+  state.data[0].name = '00000000001';
+  state.properties = [{ id: 3, name: 'Example residence', isActive: true, ...unavailable }];
+  renderWithProviders(
+    <ConvertLiabilityWizard initialAccountId={8} onClose={vi.fn()} onConverted={vi.fn()} />
+  );
+  fireEvent.click(screen.getByRole('button', { name: 'Next' }));
+  const select = screen.getByRole('combobox', { name: /Link to.*Property/i });
+  expect(select).toHaveValue('');
+  expect(
+    within(select).queryByRole('option', { name: 'Example residence' })
+  ).not.toBeInTheDocument();
+});
+
+it('requires an explicit property choice when the preset name is ambiguous', () => {
+  state.data[0].name = '00000000001';
+  state.properties = [
+    { id: 3, name: 'Example residence', isActive: true },
+    { id: 4, name: 'Example residence', isActive: true },
+  ];
+  renderWithProviders(
+    <ConvertLiabilityWizard initialAccountId={8} onClose={vi.fn()} onConverted={vi.fn()} />
+  );
+  fireEvent.click(screen.getByRole('button', { name: 'Next' }));
+  expect(screen.getByRole('combobox', { name: /Link to.*Property/i })).toHaveValue('');
+});
+
+it('shows property loading errors in the mortgage terms', () => {
+  state.propertiesError = true;
+  renderWithProviders(
+    <ConvertLiabilityWizard initialAccountId={8} onClose={vi.fn()} onConverted={vi.fn()} />
+  );
+  fireEvent.click(screen.getByRole('button', { name: 'Next' }));
+  fireEvent.change(screen.getByLabelText('Liability type'), { target: { value: 'MORTGAGE' } });
+  expect(screen.getByRole('alert')).toHaveTextContent(/properties/i);
+});
+
+it.each([400, 422, 499, 500, 503])(
+  'allows correcting rejected requests but locks uncertain requests: HTTP %s',
+  async status => {
+    state.mutateAsync.mockRejectedValueOnce({
+      isAxiosError: true,
+      response: { status, data: { message: 'Conversion rejected' } },
+    });
+    renderWithProviders(
+      <ConvertLiabilityWizard initialAccountId={8} onClose={vi.fn()} onConverted={vi.fn()} />
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Next' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Review existing payments' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Review conversion' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Convert to liability' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent('Conversion rejected');
+    expect(screen.getByRole('button', { name: 'Back' })).toHaveProperty('disabled', status >= 500);
+  }
+);

@@ -502,7 +502,7 @@ describe('GlobalSearch', () => {
 
     renderWithProviders(<GlobalSearch />, { queryClient });
 
-    const clearButton = screen.getByRole('button', { name: '' });
+    const clearButton = screen.getByRole('button', { name: 'Clear' });
     fireEvent.click(clearButton);
 
     expect(mockUpdateQuery).toHaveBeenCalledWith('');

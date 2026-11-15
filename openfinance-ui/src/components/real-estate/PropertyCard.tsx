@@ -33,7 +33,6 @@ import {
 } from 'lucide-react';
 import { ConvertedAmount } from '@/components/ui/ConvertedAmount';
 import { CurrencyAmount } from '@/components/ui/CurrencyAmount';
-import { multiply } from '@/utils/money';
 import { useSecondaryConversion } from '@/hooks/useSecondaryConversion';
 import { useDeleteProperty } from '@/hooks/useRealEstate';
 import { PropertyCoverImage } from './PropertyCoverImage';
@@ -226,14 +225,9 @@ export function PropertyCard({ property, onEdit, onView, isHighlighted }: Proper
               )}
             </span>
             <span className="text-text-primary font-medium">
-              <ConvertedAmount
+              <CurrencyAmount
                 amount={decimalValue(property, 'purchasePrice') ?? property.purchasePrice}
                 currency={property.currency}
-                convertedAmount={
-                  property.isConverted && property.exchangeRate
-                    ? multiply(property.purchasePrice, property.exchangeRate)
-                    : undefined
-                }
                 baseCurrency={property.baseCurrency}
                 exchangeRate={decimalValue(property, 'exchangeRate') ?? property.exchangeRate}
                 isConverted={property.isConverted}
@@ -271,14 +265,9 @@ export function PropertyCard({ property, onEdit, onView, isHighlighted }: Proper
               <span className="text-text-secondary">{t('card.appreciation')}</span>
               <span className={cn('font-medium flex items-center gap-1', appreciationColor)}>
                 <span>{property.appreciationPercentage >= 0 ? '+' : ''}</span>
-                <ConvertedAmount
+                <CurrencyAmount
                   amount={decimalValue(property, 'appreciation') ?? property.appreciation}
                   currency={property.currency}
-                  convertedAmount={
-                    property.isConverted && property.exchangeRate
-                      ? multiply(property.appreciation, property.exchangeRate)
-                      : undefined
-                  }
                   baseCurrency={property.baseCurrency}
                   exchangeRate={decimalValue(property, 'exchangeRate') ?? property.exchangeRate}
                   isConverted={property.isConverted}
@@ -301,14 +290,9 @@ export function PropertyCard({ property, onEdit, onView, isHighlighted }: Proper
                 <span
                   className={`font-medium ${property.equity < 0 ? 'text-error' : 'text-green-400'}`}
                 >
-                  <ConvertedAmount
+                  <CurrencyAmount
                     amount={decimalValue(property, 'equity') ?? property.equity}
                     currency={property.currency}
-                    convertedAmount={
-                      property.isConverted && property.exchangeRate
-                        ? multiply(property.equity!, property.exchangeRate)
-                        : undefined
-                    }
                     baseCurrency={property.baseCurrency}
                     exchangeRate={decimalValue(property, 'exchangeRate') ?? property.exchangeRate}
                     isConverted={property.isConverted}

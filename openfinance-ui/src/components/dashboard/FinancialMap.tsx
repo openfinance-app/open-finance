@@ -63,6 +63,7 @@ interface Aggregation {
   userCountry?: string;
   unmappedPropertyCount: number;
   unmappedPropertyAmount: string;
+  unavailableConversions: boolean;
 }
 
 /** Shape of a geography passed to the `<Geographies>` render prop. */
@@ -125,6 +126,18 @@ export default function FinancialMap({ baseCurrency = DEFAULT_CURRENCY }: Financ
 
   const aggregation = useMemo<Aggregation>(() => {
     const map = new Map<string, CountryDatum>();
+    let unavailableConversions = false;
+    const reportedAmount = (
+      amount: string | number,
+      currency: string,
+      baseAmount: string | number | undefined,
+      converted: boolean | undefined
+    ): string | number | undefined => {
+      if (currency === baseCurrency || new ExactDecimal(amount).isZero()) return amount;
+      if (converted && baseAmount != null) return baseAmount;
+      unavailableConversions = true;
+      return undefined;
+    };
 
     const bump = (code: string, value: string | number, kind: 'institution' | 'realEstate') => {
       const key = normalizeAlpha2(code);
@@ -154,11 +167,13 @@ export default function FinancialMap({ baseCurrency = DEFAULT_CURRENCY }: Financ
       for (const account of accounts) {
         const country = account.institution?.country;
         if (!country) continue;
-        bump(
-          country,
-          decimalValue(account, 'balanceInBaseCurrency') ?? decimalValue(account, 'balance') ?? 0,
-          'institution'
+        const amount = reportedAmount(
+          decimalValue(account, 'balance') ?? '0',
+          account.currency,
+          decimalValue(account, 'balanceInBaseCurrency'),
+          account.isConverted
         );
+        if (amount != null) bump(country, amount, 'institution');
       }
     }
 
@@ -167,10 +182,13 @@ export default function FinancialMap({ baseCurrency = DEFAULT_CURRENCY }: Financ
     let unmappedPropertyAmount = '0';
     if (properties) {
       for (const property of properties) {
-        const value =
-          decimalValue(property, 'valueInBaseCurrency') ??
-          decimalValue(property, 'currentValue') ??
-          0;
+        const value = reportedAmount(
+          decimalValue(property, 'currentValue') ?? '0',
+          property.currency,
+          decimalValue(property, 'valueInBaseCurrency'),
+          property.isConverted
+        );
+        if (value == null) continue;
         let country: string | undefined;
         if (property.latitude != null && property.longitude != null) {
           country = countryOfPoint(property.longitude, property.latitude);
@@ -198,8 +216,9 @@ export default function FinancialMap({ baseCurrency = DEFAULT_CURRENCY }: Financ
       userCountry: settings?.country ? normalizeAlpha2(settings.country) : undefined,
       unmappedPropertyCount,
       unmappedPropertyAmount,
+      unavailableConversions,
     };
-  }, [accounts, assets, properties, settings?.country]);
+  }, [accounts, assets, properties, settings?.country, baseCurrency]);
 
   const isLoading = accountsLoading || assetsLoading || propertiesLoading;
   const error = accountsError || assetsError || propertiesError;
@@ -237,6 +256,11 @@ export default function FinancialMap({ baseCurrency = DEFAULT_CURRENCY }: Financ
   const { countries, maxAbs, userCountry, unmappedPropertyCount, unmappedPropertyAmount } =
     aggregation;
   const userCentroid = userCountry ? countryCentroid(userCountry) : null;
+  const conversionWarning = aggregation.unavailableConversions ? (
+    <p role="alert" className="text-sm text-warning mb-3">
+      {t('institutionBreakdown.missingRates')}
+    </p>
+  ) : null;
 
   const dotRadius = (amount: string): number => {
     if (maxAbs <= 0) return 0;
@@ -272,7 +296,9 @@ export default function FinancialMap({ baseCurrency = DEFAULT_CURRENCY }: Financ
           <Globe2 className="h-5 w-5 text-primary" />
           <h3 className="plate-label ">{t('financialMap.title')}</h3>
         </div>
-        <p className="text-sm text-text-secondary">{t('financialMap.empty')}</p>
+        {conversionWarning ?? (
+          <p className="text-sm text-text-secondary">{t('financialMap.empty')}</p>
+        )}
       </div>
     );
   }
@@ -297,6 +323,8 @@ export default function FinancialMap({ baseCurrency = DEFAULT_CURRENCY }: Financ
           </button>
         )}
       </div>
+
+      {conversionWarning}
 
       {/* Map */}
       <div
