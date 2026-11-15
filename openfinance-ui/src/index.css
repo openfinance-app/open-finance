@@ -17,7 +17,8 @@
   border-top: 1px solid var(--color-border);
 }
 
-.optional-details > summary:hover {
+.optional-details[open] > summary {
+  background-color: color-mix(in srgb, var(--color-primary) 10%, var(--color-surface));
   color: var(--color-primary);
 }
 

@@ -90,6 +90,7 @@ function SecondaryCurrencySelector({
           .some(v => v.toLowerCase().includes(normalizedQuery));
       })
     : activeCurrencies;
+  const visibleCodes = new Set(visibleCurrencies.map(currency => currency.code));
 
   const selectedCurrency =
     value && value !== '__none__' ? currencies.find((c: Currency) => c.code === value) : undefined;
@@ -141,24 +142,28 @@ function SecondaryCurrencySelector({
         <SelectItem value="__none__">
           <span className="text-text-muted italic">{t('general.currencies.none')}</span>
         </SelectItem>
-        {visibleCurrencies.length === 0 ? (
+        {visibleCurrencies.length === 0 && (
           <div className="p-2 text-center text-sm text-text-muted">
             {t('general.currencies.noMatch')}
           </div>
-        ) : (
-          visibleCurrencies.map((currency: Currency) => {
-            const translatedName = getCurrencyDisplayName(currency, tCurrency);
-            return (
-              <SelectItem key={currency.code} value={currency.code}>
-                <span className="flex items-center gap-2">
-                  <span className="w-8 font-semibold text-primary">{currency.symbol}</span>
-                  <span className="w-12 font-mono">{currency.code}</span>
-                  <span className="text-text-muted">{translatedName}</span>
-                </span>
-              </SelectItem>
-            );
-          })
         )}
+        {/* Retain the selected item while searching to preserve the search cursor. */}
+        {activeCurrencies.map((currency: Currency) => {
+          const translatedName = getCurrencyDisplayName(currency, tCurrency);
+          return (
+            <SelectItem
+              key={currency.code}
+              value={currency.code}
+              hidden={!visibleCodes.has(currency.code)}
+            >
+              <span className="flex items-center gap-2">
+                <span className="w-8 font-semibold text-primary">{currency.symbol}</span>
+                <span className="w-12 font-mono">{currency.code}</span>
+                <span className="text-text-muted">{translatedName}</span>
+              </span>
+            </SelectItem>
+          );
+        })}
       </SelectContent>
     </Select>
   );

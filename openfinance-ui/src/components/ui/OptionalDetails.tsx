@@ -39,9 +39,9 @@ export function OptionalDetails({
   return (
     <div className="relative">
       <details ref={ref} open={defaultOpen || undefined} className="optional-details group">
-        <summary className="flex min-h-11 cursor-pointer list-none items-center gap-3 rounded-lg py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary md:min-h-10 [&::-webkit-details-marker]:hidden">
+        <summary className="flex min-h-11 cursor-pointer list-none items-center gap-3 rounded-lg px-3 py-2 text-sm text-text-primary transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary motion-reduce:transition-none md:min-h-10 [&::-webkit-details-marker]:hidden">
           <span className="min-w-0 flex-1">
-            <span className="font-medium text-text-primary">{title}</span>
+            <span className="font-medium">{title}</span>
           </span>
           {hasErrors ? (
             <span className="text-xs font-medium text-error">{t('formLayout.needsAttention')}</span>
@@ -52,14 +52,14 @@ export function OptionalDetails({
           ) : null}
           {description && <span className="w-3.5 shrink-0" aria-hidden="true" />}
           <ChevronDown
-            className="h-4 w-4 shrink-0 text-text-tertiary transition-transform duration-200 group-open:rotate-180 motion-reduce:transition-none"
+            className="h-4 w-4 shrink-0 transition-transform duration-200 group-open:rotate-180 motion-reduce:transition-none"
             aria-hidden="true"
           />
         </summary>
-        <div className="optional-details-content space-y-3">{children}</div>
+        <div className="optional-details-content space-y-3 pt-3">{children}</div>
       </details>
       {description && (
-        <HelpTooltip text={description} className="absolute right-7 top-3.5 md:top-3" />
+        <HelpTooltip text={description} className="absolute right-10 top-3.5 md:top-3" />
       )}
     </div>
   );

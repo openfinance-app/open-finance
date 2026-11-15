@@ -402,6 +402,7 @@
     },
     "totalEarned": "Total gagné",
     "filter": {
+      "label": "Filtrer les intérêts par source",
       "all": "Tous",
       "accounts": "Comptes",
       "liabilities": "Passifs"

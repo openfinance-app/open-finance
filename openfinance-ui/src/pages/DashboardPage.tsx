@@ -989,7 +989,7 @@ export default function DashboardPage() {
                 <div className="drag-handle absolute right-3 top-3 z-10 p-1 bg-surface/80 rounded cursor-grab active:cursor-grabbing text-text-secondary opacity-0 group-hover:opacity-100 transition-opacity hover:text-primary">
                   <GripVertical className="h-4 w-4" />
                 </div>
-                <div className="flex-1 h-full w-full">{card.render()}</div>
+                <div className="flex-1 h-full w-full min-h-0 min-w-0">{card.render()}</div>
               </div>
             );
           })}

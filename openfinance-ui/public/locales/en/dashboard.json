@@ -402,6 +402,7 @@
     },
     "totalEarned": "Total Earned",
     "filter": {
+      "label": "Filter interest by source",
       "all": "All",
       "accounts": "Accounts",
       "liabilities": "Liabilities"

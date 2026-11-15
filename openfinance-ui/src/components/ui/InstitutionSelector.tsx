@@ -65,22 +65,24 @@ export function InstitutionSelector({
   const [searchQuery, setSearchQuery] = useState('');
   const [isOpen, setIsOpen] = useState(false);
 
-  // Filter and group institutions by country
-  const groupedInstitutions = useMemo(() => {
-    if (!institutions) return {};
-
+  const matchingIds = useMemo(() => {
     const normalizedQuery = searchQuery.trim().toLowerCase();
-    const filtered = normalizedQuery
-      ? institutions.filter(
+    return new Set(
+      (institutions ?? [])
+        .filter(
           inst =>
+            !normalizedQuery ||
             inst.name.toLowerCase().includes(normalizedQuery) ||
             inst.bic?.toLowerCase().includes(normalizedQuery)
         )
-      : institutions;
+        .map(inst => inst.id)
+    );
+  }, [institutions, searchQuery]);
 
-    // Group by country
+  // Keep options mounted while searching: removing the selected Radix item steals input focus.
+  const groupedInstitutions = useMemo(() => {
     const groups: Record<string, Institution[]> = {};
-    filtered.forEach(inst => {
+    institutions?.forEach(inst => {
       const country = inst.country || 'OTHER';
       if (!groups[country]) {
         groups[country] = [];
@@ -94,7 +96,7 @@ export function InstitutionSelector({
     });
 
     return groups;
-  }, [institutions, searchQuery]);
+  }, [institutions]);
 
   // Get sorted country codes
   const sortedCountries = useMemo(() => {
@@ -217,7 +219,11 @@ export function InstitutionSelector({
 
         {/* Grouped institutions using SelectItem */}
         {sortedCountries.map(country => (
-          <div key={country} className="mt-2">
+          <div
+            key={country}
+            className="mt-2"
+            hidden={!groupedInstitutions[country].some(inst => matchingIds.has(inst.id))}
+          >
             {/* Country header */}
             <div className="px-2 py-1 text-xs font-semibold text-text-muted">
               {COUNTRY_NAMES[country] || country}
@@ -225,7 +231,11 @@ export function InstitutionSelector({
 
             {/* Institutions in this country */}
             {groupedInstitutions[country].map(inst => (
-              <SelectItem key={inst.id} value={inst.id.toString()}>
+              <SelectItem
+                key={inst.id}
+                value={inst.id.toString()}
+                hidden={!matchingIds.has(inst.id)}
+              >
                 <div className="flex items-center gap-2">
                   {/* Logo in place of checkmark */}
                   <span className="flex h-4 w-4 items-center justify-center shrink-0">
@@ -250,7 +260,7 @@ export function InstitutionSelector({
         ))}
 
         {/* Empty state */}
-        {sortedCountries.length === 0 && (
+        {matchingIds.size === 0 && (
           <div className="p-2 text-center text-sm text-text-muted">
             No institutions match your search
           </div>

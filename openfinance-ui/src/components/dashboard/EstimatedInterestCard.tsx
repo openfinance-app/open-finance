@@ -4,10 +4,10 @@ import { useNavigate } from 'react-router';
 import { PiggyBank, TrendingUp } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import type { IAccountInterest, IEstimatedInterestSummary } from '@/types/dashboard';
-import { ConvertedAmount } from '../ui/ConvertedAmount';
+import { ConvertedAmount } from '@/components/ui/ConvertedAmount';
 import { useSecondaryConversion } from '@/hooks/useSecondaryConversion';
 import { DEFAULT_CURRENCY } from '@/utils/currency';
-import { SimpleSelect } from '../ui/SimpleSelect';
+import { SimpleSelect } from '@/components/ui/SimpleSelect';
 import PeriodLabel from '@/components/dashboard/PeriodLabel';
 import type { DateRange } from '@/utils/dashboard-period';
 
@@ -76,19 +76,20 @@ export default function EstimatedInterestCard({
       : exactSum(filteredAccounts.map(acc => decimalValue(acc, 'projectedInterest') ?? 0));
 
   return (
-    <div className="bg-surface rounded-lg p-6 border border-border h-full flex flex-col">
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex-1">
-          <h3 className="plate-label ">{t('estimatedInterest.title')}</h3>
+    <div className="bg-surface rounded-lg p-6 border border-border h-full min-h-0 min-w-0 overflow-hidden flex flex-col">
+      <div className="flex flex-wrap shrink-0 items-center justify-between gap-3 mb-4">
+        <div className="min-w-0 flex-1 basis-40">
+          <h3 className="plate-label">{t('estimatedInterest.title')}</h3>
           <p className="text-sm text-text-secondary">
             <PeriodLabel range={periodRange}>
               {t('estimatedInterest.subtitle', { period: periodLabel })}
             </PeriodLabel>
           </p>
         </div>
-        <div className="flex items-center gap-3">
-          <div className="w-36">
+        <div className="flex min-w-0 max-w-full items-center gap-3">
+          <div className="w-36 min-w-0">
             <SimpleSelect
+              aria-label={t('estimatedInterest.filter.label')}
               value={filterType}
               onChange={e => setFilterType(e.target.value as 'ALL' | 'ACCOUNTS' | 'LIABILITIES')}
             >
@@ -105,7 +106,7 @@ export default function EstimatedInterestCard({
         </div>
       </div>
 
-      <div className="space-y-6 flex-grow flex flex-col justify-between">
+      <div className="min-h-0 min-w-0 flex-1 overflow-y-auto overflow-x-hidden overscroll-contain pr-1 scrollbar-thin space-y-4">
         {/* Total Earned - Main metric */}
         <div className="text-center p-4 bg-surface-elevated rounded-lg border border-border">
           <p className="text-sm text-text-secondary mb-1">{t('estimatedInterest.totalEarned')}</p>
@@ -117,12 +118,13 @@ export default function EstimatedInterestCard({
               secondaryAmount={convert(displayEarned)}
               secondaryCurrency={secCurrency}
               secondaryExchangeRate={secondaryExchangeRate}
+              className="max-w-full [overflow-wrap:anywhere]"
               inline
             />
           </p>
-          <div className="mt-2 flex items-center justify-center text-xs text-text-secondary gap-1">
-            <TrendingUp className="w-3 h-3 text-blue-400" />
-            <span>
+          <div className="mt-2 flex items-baseline justify-center text-xs text-text-secondary gap-1">
+            <TrendingUp className="w-3 h-3 shrink-0 text-blue-400" />
+            <span className="min-w-0 [overflow-wrap:anywhere]">
               {t('estimatedInterest.projectedCurrentYear', { year: new Date().getFullYear() })}:{' '}
               <span className="text-text-primary font-medium">
                 <ConvertedAmount
@@ -132,6 +134,7 @@ export default function EstimatedInterestCard({
                   secondaryAmount={convert(displayProjected)}
                   secondaryCurrency={secCurrency}
                   secondaryExchangeRate={secondaryExchangeRate}
+                  className="max-w-full [overflow-wrap:anywhere]"
                   inline
                 />
               </span>
@@ -140,7 +143,7 @@ export default function EstimatedInterestCard({
         </div>
 
         {/* Account Breakdown */}
-        <div className="flex-grow overflow-auto pr-2 scrollbar-thin space-y-3">
+        <div className="space-y-3">
           {filteredAccounts.length === 0 ? (
             <div className="text-center text-text-muted py-4 text-sm">
               {t('estimatedInterest.noData')}
@@ -151,18 +154,21 @@ export default function EstimatedInterestCard({
                 type="button"
                 key={`${account.accountId}-${isLiability(account) ? 'liability' : 'account'}-${index}`}
                 onClick={() => openDetails(account)}
-                className="w-full flex justify-between items-center p-3 hover:bg-surface-elevated rounded-lg transition-colors border border-transparent hover:border-border text-left"
+                className="w-full min-w-0 flex flex-wrap justify-between items-center gap-2 p-3 hover:bg-surface-elevated rounded-lg transition-colors border border-transparent hover:border-border text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary"
                 aria-label={t('estimatedInterest.viewDetails', { account: account.accountName })}
               >
-                <div className="flex items-center gap-3 overflow-hidden">
+                <div className="min-w-0 flex flex-1 basis-24 items-center gap-3 overflow-hidden">
                   <div className="w-8 h-8 rounded bg-blue-500/10 flex items-center justify-center text-blue-500 shrink-0">
                     <PiggyBank className="w-4 h-4" />
                   </div>
-                  <span className="text-sm font-medium text-text-primary truncate">
+                  <span
+                    className="text-sm font-medium text-text-primary truncate"
+                    title={account.accountName}
+                  >
                     {account.accountName}
                   </span>
                 </div>
-                <div className="text-right shrink-0">
+                <div className="min-w-0 max-w-full ml-auto text-right [overflow-wrap:anywhere]">
                   <div className="text-sm font-bold text-green-500">
                     <ConvertedAmount
                       amount={decimalValue(account, 'interestEarned') ?? account.interestEarned}
@@ -173,6 +179,7 @@ export default function EstimatedInterestCard({
                       )}
                       secondaryCurrency={secCurrency}
                       secondaryExchangeRate={secondaryExchangeRate}
+                      className="max-w-full"
                       inline
                     />
                   </div>
@@ -189,6 +196,7 @@ export default function EstimatedInterestCard({
                       )}
                       secondaryCurrency={secCurrency}
                       secondaryExchangeRate={secondaryExchangeRate}
+                      className="max-w-full"
                       inline
                     />
                   </div>

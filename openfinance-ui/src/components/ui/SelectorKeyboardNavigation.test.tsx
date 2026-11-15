@@ -208,6 +208,36 @@ describe.each([
   { name: 'institutions', Component: InstitutionSelector, expected: '2' },
   { name: 'liabilities', Component: LiabilitySelector, expected: 2 },
 ])('Radix selector keyboard navigation: $name', ({ Component, expected }) => {
+  it.each([true, false])(
+    'keeps the search cursor when editing an existing selection (allowNone: %s)',
+    async allowNone => {
+      const user = userEvent.setup();
+      const onValueChange = vi.fn();
+      renderWithProviders(
+        Component === InstitutionSelector ? (
+          <InstitutionSelector value="1" onValueChange={onValueChange} allowNone={allowNone} />
+        ) : Component === AccountSelector ? (
+          <AccountSelector value={1} onValueChange={onValueChange} allowNone={allowNone} />
+        ) : (
+          <LiabilitySelector value={1} onValueChange={onValueChange} allowNone={allowNone} />
+        )
+      );
+      await user.click(screen.getByRole('combobox'));
+      const search = await screen.findByRole<HTMLInputElement>('textbox');
+      await user.type(search, 'Bta');
+      expect(search).toHaveFocus();
+      expect(search).toHaveValue('Bta');
+      await user.keyboard('{Home}{ArrowRight}e');
+      expect(search).toHaveFocus();
+      expect(search).toHaveValue('Beta');
+      expect(search.selectionStart).toBe(2);
+      expect(screen.queryByRole('option', { name: /Alpha/ })).not.toBeInTheDocument();
+      expect(screen.getAllByRole('option')).toHaveLength(allowNone ? 2 : 1);
+      await user.keyboard('{ArrowUp}{Enter}');
+      expect(onValueChange).toHaveBeenCalledExactlyOnceWith(expected);
+    }
+  );
+
   it('navigates filtered results from the search input and selects with Enter', async () => {
     const user = userEvent.setup();
     const onValueChange = vi.fn();

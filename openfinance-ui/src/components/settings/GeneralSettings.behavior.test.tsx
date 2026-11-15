@@ -56,6 +56,19 @@ beforeEach(() => {
   Element.prototype.releasePointerCapture = vi.fn();
 });
 describe('Secondary currency selection', () => {
+  it('keeps typing focused when searching for a different secondary currency', async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<GeneralSettings />);
+    await user.click(screen.getByRole('combobox', { name: tr('secondaryCurrency') }));
+    const search = screen.getByRole('textbox');
+    await user.type(search, 'Euro');
+    expect(search).toHaveValue('Euro');
+    expect(search).toHaveFocus();
+    expect(screen.queryByRole('option', { name: /USD/ })).not.toBeInTheDocument();
+    await user.keyboard('{ArrowUp}{Enter}');
+    await waitFor(() => expect(state.save).toHaveBeenCalledWith('EUR'));
+  });
+
   it.each(['loading', 'failed', 'missing'])('explains an unavailable currency list: %s', mode => {
     state.loading = mode === 'loading';
     state.failed = mode === 'failed';

@@ -46,9 +46,9 @@ SelectTrigger.displayName = SelectPrimitive.Trigger.displayName;
 type SelectContentProps = React.ComponentPropsWithoutRef<typeof SelectPrimitive.Content> & {
   viewportClassName?: string;
   /**
-   * If provided, this node is rendered BEFORE the Viewport (outside of it),
-   * so Radix focus management does not steal focus away from elements inside it
-   * (e.g. a search <input> that must retain focus while the list re-renders).
+   * Renders above the scrolling options, for example a search input.
+   * Searchable lists must keep filtered items mounted with `hidden` so removing
+   * the selected Radix item does not move focus away from the input.
    */
   headerSlot?: React.ReactNode;
   /**
@@ -86,7 +86,7 @@ export const SelectContent = React.forwardRef<
         position={position}
         {...props}
       >
-        {/* headerSlot renders outside Viewport so Radix never steals focus from it */}
+        {/* Keep the search header outside the scrolling options. */}
         {headerSlot}
         <SelectPrimitive.Viewport
           className={cn(
@@ -124,15 +124,18 @@ SelectLabel.displayName = SelectPrimitive.Label.displayName;
 export const SelectItem = React.forwardRef<
   React.ElementRef<typeof SelectPrimitive.Item>,
   React.ComponentPropsWithoutRef<typeof SelectPrimitive.Item>
->(({ className, children, ...props }, ref) => (
+>(({ className, children, hidden, disabled, ...props }, ref) => (
   <SelectPrimitive.Item
     ref={ref}
+    hidden={hidden}
+    disabled={disabled || hidden}
     className={cn(
       'relative flex w-full cursor-default select-none items-center rounded-md py-1.5 pl-8 pr-2 text-sm outline-none',
       'focus:bg-surface-elevated focus:text-text-primary',
       'data-disabled:pointer-events-none data-disabled:opacity-50',
       'transition-colors duration-150',
-      className
+      className,
+      hidden && 'hidden'
     )}
     {...props}
   >

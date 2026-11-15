@@ -42,31 +42,29 @@ export function LiabilitySelector({
   const [searchQuery, setSearchQuery] = useState('');
   const [isOpen, setIsOpen] = useState(false);
 
-  // Filter liabilities by search query and optional filter
+  const eligibleLiabilities = useMemo(
+    () => (liabilities ?? []).filter(liability => !liabilityFilter || liabilityFilter(liability)),
+    [liabilities, liabilityFilter]
+  );
+
   const filteredLiabilities = useMemo(() => {
-    if (!liabilities) return [];
-
-    let filtered = liabilities;
-    if (liabilityFilter) {
-      filtered = filtered.filter(liabilityFilter);
-    }
-
     const normalizedQuery = searchQuery.trim().toLowerCase();
-    if (!normalizedQuery) return filtered;
+    if (!normalizedQuery) return eligibleLiabilities;
 
-    return filtered.filter(
+    return eligibleLiabilities.filter(
       liability =>
         liability.name.toLowerCase().includes(normalizedQuery) ||
         liability.notes?.toLowerCase().includes(normalizedQuery) ||
         liability.type.toLowerCase().includes(normalizedQuery)
     );
-  }, [liabilities, searchQuery, liabilityFilter]);
+  }, [eligibleLiabilities, searchQuery]);
+  const matchingIds = new Set(filteredLiabilities.map(liability => liability.id));
 
-  // Group liabilities by type
+  // Keep options mounted while searching so Radix does not move focus from the input.
   const groupedLiabilities = useMemo(() => {
     const groups: Record<string, Liability[]> = {};
 
-    filteredLiabilities.forEach(liability => {
+    eligibleLiabilities.forEach(liability => {
       const type = liability.type || 'OTHER';
       if (!groups[type]) {
         groups[type] = [];
@@ -80,7 +78,7 @@ export function LiabilitySelector({
     });
 
     return groups;
-  }, [filteredLiabilities]);
+  }, [eligibleLiabilities]);
 
   // Get sorted categories
   const sortedTypes = useMemo(() => {
@@ -180,7 +178,11 @@ export function LiabilitySelector({
 
         {/* Grouped liabilities */}
         {sortedTypes.map(type => (
-          <div key={type} className="mt-2">
+          <div
+            key={type}
+            className="mt-2"
+            hidden={!groupedLiabilities[type].some(liability => matchingIds.has(liability.id))}
+          >
             {/* Type header */}
             <div className="px-2 py-1 text-xs font-semibold text-text-muted">
               {getLiabilityTypeName(type)}
@@ -188,7 +190,12 @@ export function LiabilitySelector({
 
             {/* Liabilities in this group */}
             {groupedLiabilities[type].map(liability => (
-              <SelectItem key={liability.id} value={liability.id.toString()} className="gap-2">
+              <SelectItem
+                key={liability.id}
+                value={liability.id.toString()}
+                className="gap-2"
+                hidden={!matchingIds.has(liability.id)}
+              >
                 <div className="flex items-center justify-between w-full gap-2">
                   <span className="flex items-center gap-2 min-w-0">
                     <CreditCard className="h-4 w-4 text-text-muted shrink-0" />
@@ -218,7 +225,7 @@ export function LiabilitySelector({
         ))}
 
         {/* Empty state */}
-        {sortedTypes.length === 0 && (
+        {filteredLiabilities.length === 0 && (
           <div className="p-3 text-center text-sm text-text-muted space-y-1">
             <p>No liabilities found.</p>
             <p className="text-xs">Create a liability first, then link it here.</p>

@@ -87,18 +87,19 @@ export function AccountSelector({
 
   const resolvedPlaceholder = placeholder ?? t('card.searchAccounts');
 
-  // Filter accounts by search query and excluded id
+  const eligibleAccounts = useMemo(
+    () =>
+      (accounts ?? []).filter(
+        account => account.id !== excludeAccountId && (!currency || account.currency === currency)
+      ),
+    [accounts, excludeAccountId, currency]
+  );
+
   const filteredAccounts = useMemo(() => {
-    if (!accounts) return [];
-
-    const withoutExcluded = accounts.filter(
-      account => account.id !== excludeAccountId && (!currency || account.currency === currency)
-    );
-
     const normalizedQuery = searchQuery.trim().toLowerCase();
-    if (!normalizedQuery) return withoutExcluded;
+    if (!normalizedQuery) return eligibleAccounts;
 
-    return withoutExcluded.filter(
+    return eligibleAccounts.filter(
       account =>
         account.name.toLowerCase().includes(normalizedQuery) ||
         account.description?.toLowerCase().includes(normalizedQuery) ||
@@ -106,13 +107,14 @@ export function AccountSelector({
         (account.institution?.name &&
           account.institution.name.toLowerCase().includes(normalizedQuery))
     );
-  }, [accounts, searchQuery, excludeAccountId, currency]);
+  }, [eligibleAccounts, searchQuery]);
+  const matchingIds = new Set(filteredAccounts.map(account => account.id));
 
-  // Group accounts by type — uses uppercase keys to match API enum values
+  // Keep options mounted while searching so Radix does not move focus from the input.
   const groupedAccounts = useMemo(() => {
     const groups: Record<string, Account[]> = {};
 
-    filteredAccounts.forEach(account => {
+    eligibleAccounts.forEach(account => {
       const type = account.type || 'OTHER';
       if (!groups[type]) {
         groups[type] = [];
@@ -126,7 +128,7 @@ export function AccountSelector({
     });
 
     return groups;
-  }, [filteredAccounts]);
+  }, [eligibleAccounts]);
 
   // Get sorted types — use translated labels for sorting
   const sortedTypes = useMemo(() => {
@@ -231,7 +233,11 @@ export function AccountSelector({
 
         {/* Grouped accounts */}
         {sortedTypes.map(type => (
-          <div key={type} className="mt-2">
+          <div
+            key={type}
+            className="mt-2"
+            hidden={!groupedAccounts[type].some(account => matchingIds.has(account.id))}
+          >
             {/* Type header — translated using uppercase key */}
             <div className="px-2 py-1 text-xs font-semibold text-text-muted">
               {t(`form.types.${type}`, type)}
@@ -239,7 +245,12 @@ export function AccountSelector({
 
             {/* Accounts in this group */}
             {groupedAccounts[type].map(account => (
-              <SelectItem key={account.id} value={account.id.toString()} className="gap-2">
+              <SelectItem
+                key={account.id}
+                value={account.id.toString()}
+                className="gap-2"
+                hidden={!matchingIds.has(account.id)}
+              >
                 <div className="flex items-center justify-between w-full gap-2">
                   <span className="flex items-center gap-2 min-w-0">
                     <AccountIcon logo={account.institution?.logo} />
@@ -268,7 +279,7 @@ export function AccountSelector({
         ))}
 
         {/* Empty state */}
-        {sortedTypes.length === 0 && (
+        {filteredAccounts.length === 0 && (
           <div className="p-2 text-center text-sm text-text-muted">{t('card.noAccountsMatch')}</div>
         )}
       </SelectContent>
