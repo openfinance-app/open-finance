@@ -1,3 +1,4 @@
+import { FormSection } from '@/components/ui/FormSection';
 import { useFormDraft } from '@/hooks/useFormDraft';
 import { getToday } from '@/utils/date';
 import { OptionalDetails } from '@/components/ui/OptionalDetails';
@@ -298,332 +299,339 @@ export function AssetForm({
         noValidate
         className={
           purchaseMode
-            ? 'space-y-4 [&_input]:min-h-11 [&_input]:text-base [&_select]:min-h-11 [&_select]:text-base [&_input[inputmode=decimal]]:font-mono [&_input[inputmode=decimal]]:tabular-nums md:[&_input]:min-h-10 md:[&_input]:text-sm md:[&_select]:min-h-10 md:[&_select]:text-sm'
-            : 'space-y-4'
+            ? 'finance-form [&_input]:min-h-11 [&_input]:text-base [&_select]:min-h-11 [&_select]:text-base [&_input[inputmode=decimal]]:font-mono [&_input[inputmode=decimal]]:tabular-nums md:[&_input]:min-h-10 md:[&_input]:text-sm md:[&_select]:min-h-10 md:[&_select]:text-sm'
+            : 'finance-form'
         }
       >
-        {/* Top Row: Type and Account */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {/* Asset Type */}
-          <div>
-            <div className="mb-1.5 flex items-center gap-2">
-              <label htmlFor="type" className="text-sm font-medium text-text-primary">
-                {t('form.assetType')} *
-              </label>
-              <HelpTooltip
-                text={t(isPhysicalAsset ? 'form.physicalIntro' : 'form.investmentIntro')}
-              />
+        <FormSection title={t('common:formLayout.assetIdentity')}>
+          {/* Top Row: Type and Account */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Asset Type */}
+            <div>
+              <div className="mb-1.5 flex items-center gap-2">
+                <label htmlFor="type" className="text-sm font-medium text-text-primary">
+                  {t('form.assetType')} *
+                </label>
+                <HelpTooltip
+                  text={[
+                    t(isPhysicalAsset ? 'form.physicalIntro' : 'form.investmentIntro'),
+                    !isPhysicalAsset && !isEditing ? t('ownership.investmentOpening') : '',
+                  ]
+                    .filter(Boolean)
+                    .join(' ')}
+                />
+              </div>
+              <select
+                id="type"
+                {...register('type')}
+                className="w-full h-10 px-3 pr-8 rounded-lg bg-surface border border-border text-text-primary text-sm placeholder:text-text-muted hover:border-border/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50 transition-colors duration-150"
+              >
+                {assetTypes
+                  .filter(
+                    type =>
+                      !asset?.investmentTracked ||
+                      (!isPhysicalAssetType(type) && type !== 'REAL_ESTATE')
+                  )
+                  .filter(
+                    type =>
+                      !kind ||
+                      (kind === 'physical' ? isPhysicalAssetType(type) : !isPhysicalAssetType(type))
+                  )
+                  .map(type => (
+                    <option key={type} value={type}>
+                      {getAssetTypeName(type)}
+                    </option>
+                  ))}
+              </select>
+              {errors.type && <p className="mt-1 text-sm text-error">{errors.type.message}</p>}
             </div>
-            <select
-              id="type"
-              {...register('type')}
-              className="w-full h-10 px-3 pr-8 rounded-lg bg-surface border border-border text-text-primary text-sm placeholder:text-text-muted hover:border-border/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50 transition-colors duration-150"
-            >
-              {assetTypes
-                .filter(
-                  type =>
-                    !asset?.investmentTracked ||
-                    (!isPhysicalAssetType(type) && type !== 'REAL_ESTATE')
-                )
-                .filter(
-                  type =>
-                    !kind ||
-                    (kind === 'physical' ? isPhysicalAssetType(type) : !isPhysicalAssetType(type))
-                )
-                .map(type => (
-                  <option key={type} value={type}>
-                    {getAssetTypeName(type)}
-                  </option>
-                ))}
-            </select>
-            {errors.type && <p className="mt-1 text-sm text-error">{errors.type.message}</p>}
+
+            {!isPhysicalAsset && (
+              <>
+                {/* Account (Optional) */}
+                <div>
+                  <div className="mb-1.5 flex items-center gap-2">
+                    <label htmlFor="accountId" className="text-sm font-medium text-text-primary">
+                      {t('form.account')}
+                    </label>
+                    <HelpTooltip text={t('form.accountHint')} />
+                  </div>
+                  <Controller
+                    name="accountId"
+                    control={control}
+                    render={({ field }) => (
+                      <AccountSelector
+                        id="accountId"
+                        disabled={asset?.investmentTracked}
+                        value={field.value}
+                        onValueChange={field.onChange}
+                        className="w-full"
+                      />
+                    )}
+                  />
+                  {errors.accountId && (
+                    <p className="mt-1 text-sm text-error">{errors.accountId.message}</p>
+                  )}
+                </div>
+              </>
+            )}
           </div>
 
-          {!isPhysicalAsset && (
-            <>
-              {/* Account (Optional) */}
-              <div>
-                <div className="mb-1.5 flex items-center gap-2">
-                  <label htmlFor="accountId" className="text-sm font-medium text-text-primary">
-                    {t('form.account')}
-                  </label>
-                  <HelpTooltip text={t('form.accountHint')} />
-                </div>
-                <Controller
-                  name="accountId"
-                  control={control}
-                  render={({ field }) => (
-                    <AccountSelector
-                      id="accountId"
-                      disabled={asset?.investmentTracked}
-                      value={field.value}
-                      onValueChange={field.onChange}
-                      className="w-full"
-                    />
-                  )}
-                />
-                {errors.accountId && (
-                  <p className="mt-1 text-sm text-error">{errors.accountId.message}</p>
+          {isPhysicalAsset && !purchaseMode && (
+            <div>
+              <div className="flex items-center gap-1.5">
+                <label htmlFor="acquisitionType">{t('form.acquisitionType')}</label>
+                {!isEditing && acquisitionType !== 'PLANNED' && (
+                  <HelpTooltip text={t('ownership.openingHint')} className="shrink-0" />
                 )}
               </div>
-            </>
-          )}
-        </div>
-
-        {!isPhysicalAsset && !isEditing && (
-          <p className="text-sm text-text-secondary">{t('ownership.investmentOpening')}</p>
-        )}
-        {isPhysicalAsset && !purchaseMode && (
-          <div>
-            <label htmlFor="acquisitionType">{t('form.acquisitionType')}</label>
-            <select
-              id="acquisitionType"
-              {...register('acquisitionType')}
-              className="w-full rounded border border-border bg-surface p-2"
-            >
-              {(['PURCHASE', 'GIFT', 'PLANNED'] as const)
-                .filter(type => asset?.acquisitionType !== 'PLANNED' || type === 'PLANNED')
-                .map(type => (
-                  <option key={type} value={type}>
-                    {t(`form.acquisitionTypes.${type}`)}
-                  </option>
-                ))}
-            </select>
-          </div>
-        )}
-        {isPhysicalAsset && !isEditing && !purchaseMode && acquisitionType !== 'PLANNED' && (
-          <p className="text-sm text-text-secondary">{t('ownership.openingHint')}</p>
-        )}
-        {/* Second Row: Name and Symbol */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {/* Asset Name */}
-          <div className={isPhysicalAsset ? 'md:col-span-2' : ''}>
-            <label htmlFor="name" className="block text-sm font-medium text-text-primary mb-1.5">
-              {t('form.assetName')} *
-            </label>
-            <Input
-              id="name"
-              {...register('name')}
-              placeholder={t('form.assetNamePlaceholder')}
-              error={errors.name?.message}
-            />
-          </div>
-
-          {/* Symbol (Optional) - Hide for physical assets */}
-          {!isPhysicalAsset && (
-            <div>
-              <label
-                htmlFor="symbol"
-                className="block text-sm font-medium text-text-primary mb-1.5"
+              <select
+                id="acquisitionType"
+                {...register('acquisitionType')}
+                className="w-full rounded border border-border bg-surface p-2"
               >
-                {t('form.symbol')}
-              </label>
-              <Input
-                id="symbol"
-                {...register('symbol')}
-                placeholder={t('form.symbolPlaceholder')}
-                error={errors.symbol?.message}
-              />
+                {(['PURCHASE', 'GIFT', 'PLANNED'] as const)
+                  .filter(type => asset?.acquisitionType !== 'PLANNED' || type === 'PLANNED')
+                  .map(type => (
+                    <option key={type} value={type}>
+                      {t(`form.acquisitionTypes.${type}`)}
+                    </option>
+                  ))}
+              </select>
             </div>
           )}
-        </div>
-        {/* Quantity and Prices Row */}
-        {asset?.investmentTracked && (
-          <p className="text-sm text-text-secondary">{t('form.investmentTracked')}</p>
-        )}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {/* Quantity */}
-          <div>
-            <label
-              htmlFor="quantity"
-              className="block text-sm font-medium text-text-primary mb-1.5"
-            >
-              {t('form.quantity')} *
-            </label>
-            <Controller
-              name="quantity"
-              control={control}
-              render={({ field }) => (
-                <NumberInput
-                  id="quantity"
-                  readOnly={asset?.investmentTracked}
-                  value={field.value}
-                  onChange={field.onChange}
-                  onBlur={field.onBlur}
-                  placeholder="0.00"
-                  error={errors.quantity?.message}
-                  min={isPhysicalAsset ? '0.00000001' : '0'}
-                />
-              )}
-            />
-          </div>
-
-          {/* Purchase Price */}
-          <div>
-            <label
-              htmlFor="purchasePrice"
-              className="block text-sm font-medium text-text-primary mb-1.5"
-            >
-              {t(
-                acquisitionType === 'PLANNED'
-                  ? 'form.targetPrice'
-                  : acquisitionType === 'GIFT'
-                    ? 'form.acquisitionCost'
-                    : isPhysicalAsset
-                      ? 'form.itemPurchasePrice'
-                      : 'form.purchasePrice'
-              )}{' '}
-              *
-            </label>
-            <Controller
-              name="purchasePrice"
-              control={control}
-              render={({ field }) => (
-                <NumberInput
-                  id="purchasePrice"
-                  readOnly={asset?.investmentTracked}
-                  value={field.value}
-                  onChange={value => {
-                    field.onChange(value);
-                    if (
-                      !isEditing &&
-                      isPhysicalAsset &&
-                      acquisitionType === 'PURCHASE' &&
-                      !getFieldState('currentPrice').isDirty
-                    )
-                      setValue('currentPrice', value);
-                  }}
-                  onBlur={field.onBlur}
-                  placeholder="0.00"
-                  error={errors.purchasePrice?.message}
-                  min="0"
-                />
-              )}
-            />
-          </div>
-
-          {acquisitionType === 'GIFT' && (
-            <div>
-              <label
-                htmlFor="receivedValue"
-                className="block text-sm font-medium text-text-primary mb-1.5"
-              >
-                {t('form.receivedValue')}
+          {/* Second Row: Name and Symbol */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Asset Name */}
+            <div className={isPhysicalAsset ? 'md:col-span-2' : ''}>
+              <label htmlFor="name" className="block text-sm font-medium text-text-primary mb-1.5">
+                {t('form.assetName')} *
               </label>
+              <Input
+                id="name"
+                {...register('name')}
+                placeholder={t('form.assetNamePlaceholder')}
+                error={errors.name?.message}
+              />
+            </div>
+
+            {/* Symbol (Optional) - Hide for physical assets */}
+            {!isPhysicalAsset && (
+              <div>
+                <label
+                  htmlFor="symbol"
+                  className="block text-sm font-medium text-text-primary mb-1.5"
+                >
+                  {t('form.symbol')}
+                </label>
+                <Input
+                  id="symbol"
+                  {...register('symbol')}
+                  placeholder={t('form.symbolPlaceholder')}
+                  error={errors.symbol?.message}
+                />
+              </div>
+            )}
+          </div>
+        </FormSection>
+        <FormSection title={t('common:formLayout.assetValue')}>
+          {/* Quantity and Prices Row */}
+          <div className="grid grid-cols-1 md:grid-cols-3 items-end gap-4">
+            {/* Quantity */}
+            <div>
+              <div className="mb-1.5 flex items-center gap-1.5">
+                <label htmlFor="quantity" className="text-sm font-medium text-text-primary">
+                  {t('form.quantity')}
+                  {'\u00a0*'}
+                </label>
+                {asset?.investmentTracked && (
+                  <HelpTooltip text={t('form.investmentTracked')} className="shrink-0" />
+                )}
+              </div>
               <Controller
-                name="receivedValue"
+                name="quantity"
                 control={control}
                 render={({ field }) => (
                   <NumberInput
-                    id="receivedValue"
+                    id="quantity"
+                    readOnly={asset?.investmentTracked}
                     value={field.value}
                     onChange={field.onChange}
                     onBlur={field.onBlur}
-                    min="0"
                     placeholder="0.00"
-                    error={errors.receivedValue?.message}
+                    error={errors.quantity?.message}
+                    min={isPhysicalAsset ? '0.00000001' : '0'}
                   />
                 )}
               />
-              <p className="text-xs text-text-secondary mt-1">{t('form.receivedValueHelp')}</p>
             </div>
-          )}
 
-          {/* Current Price */}
-          <div>
-            <label
-              htmlFor="currentPrice"
-              className="block text-sm font-medium text-text-primary mb-1.5"
-            >
-              {t(isPhysicalAsset ? 'form.itemCurrentValue' : 'form.currentPrice')} *
-            </label>
-            <Controller
-              name="currentPrice"
-              control={control}
-              render={({ field }) => (
-                <NumberInput
-                  id="currentPrice"
-                  disabled={acquisitionType === 'PLANNED'}
-                  value={field.value}
-                  onChange={field.onChange}
-                  onBlur={field.onBlur}
-                  placeholder="0.00"
-                  error={errors.currentPrice?.message}
-                  min="0"
-                />
-              )}
-            />
-          </div>
-        </div>
+            {/* Purchase Price */}
+            <div>
+              <label
+                htmlFor="purchasePrice"
+                className="block text-sm font-medium text-text-primary mb-1.5"
+              >
+                {t(
+                  acquisitionType === 'PLANNED'
+                    ? 'form.targetPrice'
+                    : acquisitionType === 'GIFT'
+                      ? 'form.acquisitionCost'
+                      : isPhysicalAsset
+                        ? 'form.itemPurchasePrice'
+                        : 'form.purchasePrice'
+                )}
+                {'\u00a0*'}
+              </label>
+              <Controller
+                name="purchasePrice"
+                control={control}
+                render={({ field }) => (
+                  <NumberInput
+                    id="purchasePrice"
+                    readOnly={asset?.investmentTracked}
+                    value={field.value}
+                    onChange={value => {
+                      field.onChange(value);
+                      if (
+                        !isEditing &&
+                        isPhysicalAsset &&
+                        acquisitionType === 'PURCHASE' &&
+                        !getFieldState('currentPrice').isDirty
+                      )
+                        setValue('currentPrice', value);
+                    }}
+                    onBlur={field.onBlur}
+                    placeholder="0.00"
+                    error={errors.purchasePrice?.message}
+                    min="0"
+                  />
+                )}
+              />
+            </div>
 
-        {/* Currency and Purchase Date Row */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {/* Currency */}
-          <div>
-            <label
-              htmlFor="currency"
-              className="block text-sm font-medium text-text-primary mb-1.5"
-            >
-              {t('form.currency')} *
-            </label>
-            <Controller
-              name="currency"
-              control={control}
-              render={({ field }) => (
-                <CurrencySelector
-                  id="currency"
-                  disabled={asset?.investmentTracked}
-                  value={field.value}
-                  onValueChange={field.onChange}
-                  placeholder={t('form.selectCurrencyPlaceholder')}
-                  className="w-full"
+            {acquisitionType === 'GIFT' && (
+              <div>
+                <div className="mb-1.5 flex items-center gap-1.5">
+                  <label htmlFor="receivedValue" className="text-sm font-medium text-text-primary">
+                    {t('form.receivedValue')}
+                  </label>
+                  <HelpTooltip text={t('form.receivedValueHelp')} className="shrink-0" />
+                </div>
+                <Controller
+                  name="receivedValue"
+                  control={control}
+                  render={({ field }) => (
+                    <NumberInput
+                      id="receivedValue"
+                      value={field.value}
+                      onChange={field.onChange}
+                      onBlur={field.onBlur}
+                      min="0"
+                      placeholder="0.00"
+                      error={errors.receivedValue?.message}
+                    />
+                  )}
                 />
-              )}
-            />
-            {errors.currency && (
-              <p className="mt-1 text-sm text-error">{errors.currency.message}</p>
-            )}
-            {/* Show exchange rate if different from base currency */}
-            {selectedCurrency && selectedCurrency !== baseCurrency && (
-              <div className="mt-2">
-                <ExchangeRateInline from={selectedCurrency} to={baseCurrency} />
               </div>
             )}
+
+            {/* Current Price */}
+            <div>
+              <label
+                htmlFor="currentPrice"
+                className="block text-sm font-medium text-text-primary mb-1.5"
+              >
+                {t(isPhysicalAsset ? 'form.itemCurrentValue' : 'form.currentPrice')}
+                {'\u00a0*'}
+              </label>
+              <Controller
+                name="currentPrice"
+                control={control}
+                render={({ field }) => (
+                  <NumberInput
+                    id="currentPrice"
+                    disabled={acquisitionType === 'PLANNED'}
+                    value={field.value}
+                    onChange={field.onChange}
+                    onBlur={field.onBlur}
+                    placeholder="0.00"
+                    error={errors.currentPrice?.message}
+                    min="0"
+                  />
+                )}
+              />
+            </div>
           </div>
 
-          {/* Purchase Date */}
-          <div>
-            <label
-              htmlFor="purchaseDate"
-              className="block text-sm font-medium text-text-primary mb-1.5"
-            >
-              {t(
-                acquisitionType === 'PLANNED'
-                  ? 'form.targetDate'
-                  : acquisitionType === 'GIFT'
-                    ? 'form.receivedDate'
-                    : 'form.purchaseDate'
-              )}{' '}
-              *
-            </label>
-            <Controller
-              name="purchaseDate"
-              control={control}
-              render={({ field }) => (
-                <DateInput
-                  id="purchaseDate"
-                  disabled={asset?.investmentTracked}
-                  value={field.value}
-                  onChange={field.onChange}
-                  onBlur={field.onBlur}
-                  max={acquisitionType === 'PLANNED' ? undefined : today}
-                  error={errors.purchaseDate?.message}
-                />
+          {/* Currency and Purchase Date Row */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Currency */}
+            <div>
+              <label
+                htmlFor="currency"
+                className="block text-sm font-medium text-text-primary mb-1.5"
+              >
+                {t('form.currency')} *
+              </label>
+              <Controller
+                name="currency"
+                control={control}
+                render={({ field }) => (
+                  <CurrencySelector
+                    id="currency"
+                    disabled={asset?.investmentTracked}
+                    value={field.value}
+                    onValueChange={field.onChange}
+                    placeholder={t('form.selectCurrencyPlaceholder')}
+                    className="w-full"
+                  />
+                )}
+              />
+              {errors.currency && (
+                <p className="mt-1 text-sm text-error">{errors.currency.message}</p>
               )}
-            />
-          </div>
-        </div>
+              {/* Show exchange rate if different from base currency */}
+              {selectedCurrency && selectedCurrency !== baseCurrency && (
+                <div className="mt-2">
+                  <ExchangeRateInline from={selectedCurrency} to={baseCurrency} />
+                </div>
+              )}
+            </div>
 
+            {/* Purchase Date */}
+            <div>
+              <label
+                htmlFor="purchaseDate"
+                className="block text-sm font-medium text-text-primary mb-1.5"
+              >
+                {t(
+                  acquisitionType === 'PLANNED'
+                    ? 'form.targetDate'
+                    : acquisitionType === 'GIFT'
+                      ? 'form.receivedDate'
+                      : 'form.purchaseDate'
+                )}{' '}
+                *
+              </label>
+              <Controller
+                name="purchaseDate"
+                control={control}
+                render={({ field }) => (
+                  <DateInput
+                    id="purchaseDate"
+                    disabled={asset?.investmentTracked}
+                    value={field.value}
+                    onChange={field.onChange}
+                    onBlur={field.onBlur}
+                    max={acquisitionType === 'PLANNED' ? undefined : today}
+                    error={errors.purchaseDate?.message}
+                  />
+                )}
+              />
+            </div>
+          </div>
+        </FormSection>
         {/* Physical Asset Fields (Task 9.2.5) */}
         {isPhysicalAsset && (
           <OptionalDetails
@@ -815,7 +823,7 @@ export function AssetForm({
           </div>
         </OptionalDetails>
         {/* Actions */}
-        <div className="sticky bottom-[-25px] -mx-6 mt-2 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end sm:gap-3 border-t border-border bg-surface px-6 py-4">
+        <div className="form-actions">
           <Button variant="ghost" type="button" onClick={cancelWithGuard} disabled={isLoading}>
             {t('form.cancel')}
           </Button>

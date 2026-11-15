@@ -128,7 +128,9 @@ describe('AssetForm', () => {
     async quantity => {
       const user = userEvent.setup();
       renderWithProviders(<AssetForm onSubmit={mockOnSubmit} onCancel={mockOnCancel} />);
-      await waitFor(() => expect(screen.getByLabelText(/Purchase Date/i)).toHaveValue());
+      await waitFor(() =>
+        expect(screen.getByLabelText(/Purchase Date/i, { selector: 'input' })).toHaveValue()
+      );
       fireEvent.change(screen.getByLabelText(/Asset Name/i), {
         target: { value: 'Fractional crypto' },
       });
@@ -214,7 +216,7 @@ describe('AssetForm', () => {
       expect(screen.getByLabelText(/Quantity/i)).toBeInTheDocument();
       expect(screen.getByLabelText(/Purchase Price/i)).toBeInTheDocument();
       expect(screen.getByLabelText(/Current Price/i)).toBeInTheDocument();
-      expect(screen.getByLabelText(/Purchase Date/i)).toBeInTheDocument();
+      expect(screen.getByLabelText(/Purchase Date/i, { selector: 'input' })).toBeInTheDocument();
     });
 
     it('should show "Create Asset" button for new asset', () => {
@@ -257,7 +259,7 @@ describe('AssetForm', () => {
       renderWithProviders(<AssetForm onSubmit={mockOnSubmit} onCancel={mockOnCancel} />);
 
       // Wait for useEffect/reset to complete - purchase date gets set by defaultValues
-      const purchaseDateInput = screen.getByLabelText(/Purchase Date/i);
+      const purchaseDateInput = screen.getByLabelText(/Purchase Date/i, { selector: 'input' });
       await waitFor(() => {
         expect(purchaseDateInput).toHaveValue();
       });
@@ -297,7 +299,7 @@ describe('AssetForm', () => {
       renderWithProviders(<AssetForm onSubmit={mockOnSubmit} onCancel={mockOnCancel} />);
 
       // Wait for useEffect/reset to complete
-      const purchaseDateInput = screen.getByLabelText(/Purchase Date/i);
+      const purchaseDateInput = screen.getByLabelText(/Purchase Date/i, { selector: 'input' });
       await waitFor(() => {
         expect(purchaseDateInput).toHaveValue();
       });
@@ -339,7 +341,7 @@ describe('AssetForm', () => {
       renderWithProviders(<AssetForm onSubmit={mockOnSubmit} onCancel={mockOnCancel} />);
 
       // Wait for useEffect/reset to complete
-      const purchaseDateInput = screen.getByLabelText(/Purchase Date/i);
+      const purchaseDateInput = screen.getByLabelText(/Purchase Date/i, { selector: 'input' });
       await waitFor(() => {
         expect(purchaseDateInput).toHaveValue();
       });
@@ -382,7 +384,7 @@ describe('AssetForm', () => {
       renderWithProviders(<AssetForm onSubmit={mockOnSubmit} onCancel={mockOnCancel} />);
 
       // Wait for useEffect/reset to complete
-      const purchaseDateInput = screen.getByLabelText(/Purchase Date/i);
+      const purchaseDateInput = screen.getByLabelText(/Purchase Date/i, { selector: 'input' });
       await waitFor(() => {
         expect(purchaseDateInput).toHaveValue();
       });
@@ -761,8 +763,8 @@ describe('AssetForm', () => {
     );
     expect(screen.getByRole('combobox', { name: 'Linked account' })).toBeDisabled();
     expect(screen.getByRole('combobox', { name: 'Currency' })).toBeDisabled();
-    expect(screen.getByLabelText(/Purchase Date/i)).toBeDisabled();
-    expect(screen.getByLabelText(/Quantity/i)).toHaveAttribute('readonly');
+    expect(screen.getByLabelText(/Purchase Date/i, { selector: 'input' })).toBeDisabled();
+    expect(screen.getByLabelText(/Quantity/i, { selector: 'input' })).toHaveAttribute('readonly');
     expect(screen.queryByRole('option', { name: /Vehicle/i })).not.toBeInTheDocument();
     fireEvent.change(screen.getByLabelText(/Current Price/i), {
       target: { value: '20.000000000000000001' },

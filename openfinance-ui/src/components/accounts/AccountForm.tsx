@@ -1,3 +1,5 @@
+import { FormSection } from '@/components/ui/FormSection';
+import { OptionalDetails } from '@/components/ui/OptionalDetails';
 import { ExactDecimal, decimalValue, decimalField, equalDecimals } from '@/utils/exact-decimal';
 import { useFormDraft } from '@/hooks/useFormDraft';
 import { CURRENCY_CODE_PATTERN } from '@/utils/currency-code';
@@ -256,174 +258,192 @@ export function AccountForm({
   });
 
   return (
-    <form onSubmit={handleFormSubmit} className="space-y-4">
-      {/* Institution */}
-      <div>
-        <label htmlFor="institution" className="block text-sm font-medium text-text-primary mb-1.5">
-          {t('form.institution')}
-        </label>
-        <Controller
-          name="institutionId"
-          control={control}
-          render={({ field }) => (
-            <InstitutionSelector
-              id="institution"
-              value={field.value}
-              onValueChange={value => field.onChange(value ?? '')}
-              placeholder={t('form.selectBank')}
-              className="w-full"
+    <form onSubmit={handleFormSubmit} className="finance-form">
+      <FormSection title={t('common:formLayout.accountIdentity')}>
+        <div className="grid grid-cols-1 min-[480px]:grid-cols-2 gap-3 sm:gap-x-4">
+          <div>
+            <label htmlFor="name" className="block text-sm font-medium text-text-primary mb-1.5">
+              {t('form.accountName')} *
+            </label>
+            <Input
+              id="name"
+              {...register('name')}
+              placeholder={t('form.accountNamePlaceholder')}
+              error={errors.name?.message}
             />
-          )}
-        />
-      </div>
-
-      {/* Account Name + Account Number in a row */}
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <label htmlFor="name" className="block text-sm font-medium text-text-primary mb-1.5">
-            {t('form.accountName')} *
-          </label>
-          <Input
-            id="name"
-            {...register('name')}
-            placeholder={t('form.accountNamePlaceholder')}
-            error={errors.name?.message}
-          />
-        </div>
-        <div>
-          <div className="flex items-center gap-1 mb-1.5">
-            <label htmlFor="accountNumber" className="block text-sm font-medium text-text-primary">
-              {t('form.accountNumber')}
-            </label>
-            <HelpTooltip text={t('form.accountNumberHint')} side="right" />
           </div>
-          <Input
-            id="accountNumber"
-            {...register('accountNumber')}
-            placeholder={t('form.accountNumberPlaceholder')}
-            error={errors.accountNumber?.message}
-          />
+          <div>
+            <label htmlFor="type" className="block text-sm font-medium text-text-primary mb-1.5">
+              {t('form.accountType')} *
+            </label>
+            <select
+              id="type"
+              {...register('type')}
+              className="w-full h-10 px-3 pr-8 rounded-lg bg-surface border border-border text-text-primary text-sm placeholder:text-text-muted hover:border-border/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50 transition-colors duration-150"
+            >
+              {ACCOUNT_TYPES.map(type => (
+                <option key={type} value={type}>
+                  {t(`form.types.${type}`)}
+                </option>
+              ))}
+            </select>
+            {errors.type && <p className="mt-1 text-sm text-error">{errors.type.message}</p>}
+          </div>
         </div>
-      </div>
-
-      {/* Account Type + Opening Date in a row */}
-      <div className="grid grid-cols-2 gap-4">
+        {/* Institution */}
         <div>
-          <label htmlFor="type" className="block text-sm font-medium text-text-primary mb-1.5">
-            {t('form.accountType')} *
-          </label>
-          <select
-            id="type"
-            {...register('type')}
-            className="w-full h-10 px-3 pr-8 rounded-lg bg-surface border border-border text-text-primary text-sm placeholder:text-text-muted hover:border-border/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50 transition-colors duration-150"
+          <label
+            htmlFor="institution"
+            className="block text-sm font-medium text-text-primary mb-1.5"
           >
-            {ACCOUNT_TYPES.map(type => (
-              <option key={type} value={type}>
-                {t(`form.types.${type}`)}
-              </option>
-            ))}
-          </select>
-          {errors.type && <p className="mt-1 text-sm text-error">{errors.type.message}</p>}
-        </div>
-        <div>
-          <div className="flex items-center gap-1 mb-1.5">
-            <label htmlFor="openingDate" className="block text-sm font-medium text-text-primary">
-              <span className="flex items-center gap-1">
-                <CalendarDays className="h-3.5 w-3.5" /> {t('form.openingDate')}
-              </span>
-            </label>
-            <HelpTooltip text={t('form.openingDateHint')} side="right" />
-          </div>
-          <Controller
-            name="openingDate"
-            control={control}
-            render={({ field }) => (
-              <DateInput
-                id="openingDate"
-                value={field.value}
-                onChange={field.onChange}
-                onBlur={field.onBlur}
-                max={getToday()}
-                error={errors.openingDate?.message}
-              />
-            )}
-          />
-        </div>
-      </div>
-
-      {/* Currency + Balance in a row */}
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <label htmlFor="currency" className="block text-sm font-medium text-text-primary mb-1.5">
-            {t('form.currency')} *
+            {t('form.institution')}
           </label>
           <Controller
-            name="currency"
+            name="institutionId"
             control={control}
             render={({ field }) => (
-              <CurrencySelector
-                id="currency"
+              <InstitutionSelector
+                id="institution"
                 value={field.value}
-                onValueChange={field.onChange}
-                placeholder={t('form.currency')}
+                onValueChange={value => field.onChange(value ?? '')}
+                placeholder={t('form.selectBank')}
                 className="w-full"
               />
             )}
           />
-          {errors.currency && <p className="mt-1 text-sm text-error">{errors.currency.message}</p>}
-          {selectedCurrency && selectedCurrency !== baseCurrency && (
-            <div className="mt-1.5">
-              <ExchangeRateInline from={selectedCurrency} to={baseCurrency} />
-            </div>
-          )}
         </div>
+      </FormSection>
+      <FormSection title={t('common:formLayout.accountBalance')}>
+        {/* Currency + Balance in a row */}
+        <div className="grid grid-cols-1 min-[480px]:grid-cols-2 gap-3 sm:gap-x-4">
+          <div>
+            <label
+              htmlFor="currency"
+              className="block text-sm font-medium text-text-primary mb-1.5"
+            >
+              {t('form.currency')} *
+            </label>
+            <Controller
+              name="currency"
+              control={control}
+              render={({ field }) => (
+                <CurrencySelector
+                  id="currency"
+                  value={field.value}
+                  onValueChange={field.onChange}
+                  placeholder={t('form.currency')}
+                  className="w-full"
+                />
+              )}
+            />
+            {errors.currency && (
+              <p className="mt-1 text-sm text-error">{errors.currency.message}</p>
+            )}
+            {selectedCurrency && selectedCurrency !== baseCurrency && (
+              <div className="mt-1.5">
+                <ExchangeRateInline from={selectedCurrency} to={baseCurrency} />
+              </div>
+            )}
+          </div>
+          <div>
+            <label
+              htmlFor="initialBalance"
+              className="block text-sm font-medium text-text-primary mb-1.5"
+            >
+              {isEditing ? t('form.currentBalance') : t('form.initialBalance')} (
+              {account?.currency ?? selectedCurrency}) *
+            </label>
+            <Controller
+              name="initialBalance"
+              control={control}
+              render={({ field }) => (
+                <NumberInput
+                  id="initialBalance"
+                  value={field.value}
+                  onChange={field.onChange}
+                  onBlur={field.onBlur}
+                  placeholder="0.00"
+                  error={errors.initialBalance?.message}
+                />
+              )}
+            />
+            {convertedAmount !== undefined && (
+              <p className="text-xs text-text-secondary mt-1">
+                ≈ <ConvertedAmount amount={convertedAmount} currency={baseCurrency} inline />
+              </p>
+            )}
+          </div>
+        </div>
+      </FormSection>
+      <OptionalDetails
+        title={t('common:formLayout.additionalDetails')}
+        description={t('common:formLayout.accountDetailsHint')}
+        defaultOpen={!!(account?.accountNumber || account?.description)}
+        hasErrors={!!(errors.accountNumber || errors.openingDate || errors.description)}
+      >
+        <div className="grid grid-cols-1 min-[480px]:grid-cols-2 gap-3 sm:gap-x-4">
+          <div>
+            <div className="flex items-center gap-1 mb-1.5">
+              <label
+                htmlFor="accountNumber"
+                className="block text-sm font-medium text-text-primary"
+              >
+                {t('form.accountNumber')}
+              </label>
+              <HelpTooltip text={t('form.accountNumberHint')} side="right" />
+            </div>
+            <Input
+              id="accountNumber"
+              {...register('accountNumber')}
+              placeholder={t('form.accountNumberPlaceholder')}
+              error={errors.accountNumber?.message}
+            />
+          </div>
+          <div>
+            <div className="flex items-center gap-1 mb-1.5">
+              <label htmlFor="openingDate" className="block text-sm font-medium text-text-primary">
+                <span className="flex items-center gap-1">
+                  <CalendarDays className="h-3.5 w-3.5" /> {t('form.openingDate')}
+                </span>
+              </label>
+              <HelpTooltip text={t('form.openingDateHint')} side="right" />
+            </div>
+            <Controller
+              name="openingDate"
+              control={control}
+              render={({ field }) => (
+                <DateInput
+                  id="openingDate"
+                  value={field.value}
+                  onChange={field.onChange}
+                  onBlur={field.onBlur}
+                  max={getToday()}
+                  error={errors.openingDate?.message}
+                />
+              )}
+            />
+          </div>
+        </div>
+        {/* Description */}
         <div>
           <label
-            htmlFor="initialBalance"
+            htmlFor="description"
             className="block text-sm font-medium text-text-primary mb-1.5"
           >
-            {isEditing ? t('form.currentBalance') : t('form.initialBalance')} (
-            {account?.currency ?? selectedCurrency}) *
+            {t('form.description')}
           </label>
-          <Controller
-            name="initialBalance"
-            control={control}
-            render={({ field }) => (
-              <NumberInput
-                id="initialBalance"
-                value={field.value}
-                onChange={field.onChange}
-                onBlur={field.onBlur}
-                placeholder="0.00"
-                error={errors.initialBalance?.message}
-              />
-            )}
+          <textarea
+            id="description"
+            {...register('description')}
+            rows={2}
+            placeholder={t('form.descriptionPlaceholder')}
+            className="w-full px-3 py-2 rounded-lg bg-surface border border-border text-text-primary placeholder:text-text-muted text-sm placeholder:text-text-muted hover:border-border/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50 transition-colors duration-150 resize-none"
           />
-          {convertedAmount !== undefined && (
-            <p className="text-xs text-text-secondary mt-1">
-              ≈ <ConvertedAmount amount={convertedAmount} currency={baseCurrency} inline />
-            </p>
+          {errors.description && (
+            <p className="mt-1 text-sm text-error">{errors.description.message}</p>
           )}
         </div>
-      </div>
-
-      {/* Description */}
-      <div>
-        <label htmlFor="description" className="block text-sm font-medium text-text-primary mb-1.5">
-          {t('form.description')}
-        </label>
-        <textarea
-          id="description"
-          {...register('description')}
-          rows={2}
-          placeholder={t('form.descriptionPlaceholder')}
-          className="w-full px-3 py-2 rounded-lg bg-surface border border-border text-text-primary placeholder:text-text-muted text-sm placeholder:text-text-muted hover:border-border/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50 transition-colors duration-150 resize-none"
-        />
-        {errors.description && (
-          <p className="mt-1 text-sm text-error">{errors.description.message}</p>
-        )}
-      </div>
-
+      </OptionalDetails>
       {/* Interest Settings */}
       <div className="rounded-xl border border-border overflow-hidden">
         {/* Toggle header */}
@@ -456,22 +476,23 @@ export function AccountForm({
         </div>
 
         {isInterestEnabled && !isEditing && (
-          <div className="px-4 py-4 space-y-4 border-t border-border bg-surface/50">
+          <div className="px-4 py-3 space-y-3 border-t border-border bg-surface/50">
             {/* Period + Rates in one compact row */}
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-3 items-end gap-2 sm:gap-3">
               <div>
                 <label
                   htmlFor="interestPeriod"
                   className="block text-xs font-medium text-text-secondary mb-1"
                 >
                   <span className="flex items-center gap-1">
-                    <CalendarDays className="h-3 w-3" /> {t('form.compounding')}
+                    <CalendarDays className="hidden h-3 w-3 shrink-0 sm:block" />
+                    {t('form.compounding')}
                   </span>
                 </label>
                 <select
                   id="interestPeriod"
                   {...register('interestPeriod')}
-                  className="w-full h-9 px-2 rounded-lg bg-surface border border-border text-text-primary text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                  className="w-full h-11 md:h-9 px-2 rounded-lg bg-surface border border-border text-text-primary text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
                 >
                   {INTEREST_PERIODS.map(period => (
                     <option key={period} value={period}>
@@ -489,7 +510,8 @@ export function AccountForm({
                   className="block text-xs font-medium text-text-secondary mb-1"
                 >
                   <span className="flex items-center gap-1">
-                    <Percent className="h-3 w-3" /> {t('form.interestRate')}
+                    <Percent className="hidden h-3 w-3 shrink-0 sm:block" />
+                    {t('form.interestRate')}
                   </span>
                 </label>
                 <Controller
@@ -508,7 +530,7 @@ export function AccountForm({
                       placeholder="0.00"
                       error={errors.interestRate?.message}
                       min="0"
-                      className="h-9"
+                      className="h-11 md:h-9"
                     />
                   )}
                 />
@@ -519,7 +541,8 @@ export function AccountForm({
                   className="block text-xs font-medium text-text-secondary mb-1"
                 >
                   <span className="flex items-center gap-1">
-                    <Shield className="h-3 w-3" /> {t('form.taxRate')}
+                    <Shield className="hidden h-3 w-3 shrink-0 sm:block" />
+                    {t('form.taxRate')}
                   </span>
                 </label>
                 <Controller
@@ -539,7 +562,7 @@ export function AccountForm({
                       error={errors.taxRate?.message}
                       min="0"
                       max="100"
-                      className="h-9"
+                      className="h-11 md:h-9"
                     />
                   )}
                 />
@@ -611,7 +634,7 @@ export function AccountForm({
                 </div>
               </div>
             ) : (
-              <div className="rounded-lg bg-surface border border-border border-dashed p-3 text-center">
+              <div className="rounded-lg bg-surface border border-border border-dashed p-2 text-center">
                 <div className="flex items-center justify-center gap-1 text-xs text-text-muted">
                   <span>{t('form.interestPreviewTitle', { year: new Date().getFullYear() })}</span>
                   <HelpTooltip text={t('form.interestPreviewHint')} side="right" />
@@ -630,7 +653,7 @@ export function AccountForm({
       </div>
 
       {/* Actions */}
-      <div className="sticky bottom-[-25px] -mx-6 mt-2 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end sm:gap-3 border-t border-border bg-surface px-6 py-4">
+      <div className="form-actions">
         <Button variant="ghost" type="button" onClick={cancelWithGuard} disabled={isLoading}>
           {t('form.cancel')}
         </Button>

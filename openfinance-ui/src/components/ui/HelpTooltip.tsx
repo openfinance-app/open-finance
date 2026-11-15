@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Info } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/Tooltip';
 import { cn } from '@/lib/utils';
@@ -14,7 +14,7 @@ interface HelpTooltipProps {
 
 /**
  * HelpTooltip — a small inline info icon (ⓘ) that shows contextual help text
- * on hover or focus.
+ * on hover, focus, or tap.
  *
  * Usage:
  * ```tsx
@@ -27,13 +27,22 @@ interface HelpTooltipProps {
  * Requirement TASK-15.2.4: Tooltips for complex features / contextual help.
  */
 export const HelpTooltip: React.FC<HelpTooltipProps> = ({ text, className, side = 'top' }) => {
+  const [open, setOpen] = useState(false);
   return (
     <TooltipProvider delayDuration={200}>
-      <Tooltip>
+      <Tooltip open={open} onOpenChange={setOpen}>
         <TooltipTrigger asChild>
           <button
             type="button"
             aria-label={text}
+            onPointerDown={event => {
+              // Keep Radix from closing the tooltip before a touch click can toggle it.
+              if (event.pointerType === 'touch') event.preventDefault();
+            }}
+            onClick={event => {
+              event.preventDefault();
+              setOpen(value => !value);
+            }}
             className={cn(
               'inline-flex items-center cursor-help text-text-secondary hover:text-text-primary transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary rounded-sm',
               className

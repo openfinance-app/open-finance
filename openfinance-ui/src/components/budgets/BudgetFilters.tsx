@@ -1,12 +1,14 @@
+import { FilterPanel } from '@/components/ui/FilterPanel';
+import { countActiveFilters } from '@/utils/filter-utils';
 /**
  * BudgetFilters Component
  *
  * Filter controls for budgets (keyword search + period dropdown).
  * Mirrors the AccountFilters pattern with a collapsible panel layout.
  */
-import { Search, X } from 'lucide-react';
+import { Search } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { Input, Button } from '@/components/ui';
+import { Input } from '@/components/ui';
 import { RegexToggle } from '@/components/ui/RegexToggle';
 import type { BudgetPeriod } from '@/types/budget';
 
@@ -41,9 +43,7 @@ export function BudgetFilters({ filters, onFiltersChange }: BudgetFiltersProps) 
   };
 
   /** True when any meaningful filter is active (ignores empty / undefined values). */
-  const hasActiveFilters =
-    (filters.keyword !== undefined && filters.keyword !== '') ||
-    (filters.period !== undefined && filters.period !== '');
+  const activeCount = countActiveFilters([filters.keyword, filters.period, filters.keywordRegex]);
 
   const periodOptions: { value: BudgetPeriod | ''; label: string }[] = [
     { value: '', label: t('filters.allPeriods') },
@@ -54,37 +54,36 @@ export function BudgetFilters({ filters, onFiltersChange }: BudgetFiltersProps) 
   ];
 
   return (
-    <div className="space-y-4 p-4 bg-surface rounded-lg border border-border">
-      {/* Search keyword */}
-      <div>
-        <label
-          htmlFor="budget-keyword"
-          className="block text-sm font-medium text-text-primary mb-1.5"
-        >
-          {t('filters.search')}
-        </label>
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-text-tertiary" />
-          <Input
-            id="budget-keyword"
-            type="text"
-            placeholder={t('form.searchPlaceholder')}
-            value={filters.keyword || ''}
-            onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-              handleChange('keyword', e.target.value)
-            }
-            className="pl-10 pr-10"
-          />
-          <RegexToggle
-            enabled={!!filters.keywordRegex}
-            onChange={val => handleChange('keywordRegex', val || undefined)}
-            className="absolute right-2 top-1/2 -translate-y-1/2"
-          />
+    <FilterPanel activeCount={activeCount} onClear={clearFilters}>
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-[2fr_1fr]">
+        {' '}
+        {/* Search keyword */}
+        <div>
+          <label
+            htmlFor="budget-keyword"
+            className="block text-sm font-medium text-text-primary mb-1.5"
+          >
+            {t('filters.search')}
+          </label>
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-text-tertiary" />
+            <Input
+              id="budget-keyword"
+              type="text"
+              placeholder={t('form.searchPlaceholder')}
+              value={filters.keyword || ''}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                handleChange('keyword', e.target.value)
+              }
+              className="pl-10 pr-10"
+            />
+            <RegexToggle
+              enabled={!!filters.keywordRegex}
+              onChange={val => handleChange('keywordRegex', val || undefined)}
+              className="absolute right-2 top-1/2 -translate-y-1/2"
+            />
+          </div>
         </div>
-      </div>
-
-      {/* Filters grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Period filter */}
         <div>
           <label
@@ -106,21 +105,7 @@ export function BudgetFilters({ filters, onFiltersChange }: BudgetFiltersProps) 
             ))}
           </select>
         </div>
-
-        {/* Clear button — aligned to bottom of grid cell */}
-        <div className="flex items-end justify-end md:col-start-2 lg:col-start-4">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={clearFilters}
-            disabled={!hasActiveFilters}
-            className="w-fit gap-1.5 border-border text-text-secondary hover:border-border-strong hover:bg-surface-elevated"
-          >
-            <X className="h-3.5 w-3.5" />
-            {t('filters.clear')}
-          </Button>
-        </div>
       </div>
-    </div>
+    </FilterPanel>
   );
 }

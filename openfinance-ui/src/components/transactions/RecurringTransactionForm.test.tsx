@@ -237,7 +237,7 @@ describe('RecurringTransactionForm', () => {
         />
       );
 
-      expect(screen.getByLabelText(/End Date/i)).toBeInTheDocument();
+      expect(screen.getByLabelText(/End Date/i, { selector: 'input' })).toBeInTheDocument();
     });
 
     it('should render notes field', () => {
@@ -250,7 +250,7 @@ describe('RecurringTransactionForm', () => {
         />
       );
 
-      expect(screen.getByLabelText(/Notes/i)).toBeInTheDocument();
+      expect(screen.getByLabelText(/Notes/i, { selector: 'textarea' })).toBeInTheDocument();
     });
   });
 
@@ -464,7 +464,9 @@ describe('RecurringTransactionForm', () => {
       const nextOccInput = screen.getByLabelText(/Next Occurrence/i) as HTMLInputElement;
       expect(nextOccInput.value).toBe('2026-04-01');
 
-      const endDateInput = screen.getByLabelText(/End Date/i) as HTMLInputElement;
+      const endDateInput = screen.getByLabelText(/End Date/i, {
+        selector: 'input',
+      }) as HTMLInputElement;
       expect(endDateInput.value).toBe('2026-12-31');
     });
   });
@@ -569,10 +571,12 @@ describe('RecurringTransactionForm', () => {
 
     it('allows an inclusive end date and clears notes', async () => {
       renderEdit();
-      fireEvent.change(screen.getByLabelText(/End Date/i), {
+      fireEvent.change(screen.getByLabelText(/End Date/i, { selector: 'input' }), {
         target: { value: template.nextOccurrence },
       });
-      fireEvent.change(screen.getByLabelText(/Notes/i), { target: { value: '' } });
+      fireEvent.change(screen.getByLabelText(/Notes/i, { selector: 'textarea' }), {
+        target: { value: '' },
+      });
       await save();
       await waitFor(() =>
         expect(mockOnSubmit).toHaveBeenCalledWith(

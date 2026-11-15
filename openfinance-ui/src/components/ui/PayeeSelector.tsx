@@ -32,6 +32,7 @@ interface PayeeSelectorProps {
    * Show "None" option at the top
    */
   allowNone?: boolean;
+  noneLabel?: string;
   /**
    * Enable free-text entry for new payees
    */
@@ -82,6 +83,7 @@ export function PayeeSelector({
   disabled = false,
   className,
   allowNone = true,
+  noneLabel,
   allowNewPayee = true,
 }: PayeeSelectorProps) {
   const { t } = useTranslation(['payees', 'categories', 'common']);
@@ -247,7 +249,7 @@ export function PayeeSelector({
                   )}
                 </span>
               ) : value === undefined && allowNone ? (
-                <span className="text-text-muted">{t('common:none')}</span>
+                <span className="text-text-muted">{noneLabel ?? t('common:none')}</span>
               ) : (
                 <span className="text-text-muted">{placeholder}</span>
               )}
@@ -318,7 +320,7 @@ export function PayeeSelector({
                 <span className="flex h-4 w-4 items-center justify-center shrink-0">
                   <User className="h-4 w-4 text-text-muted" />
                 </span>
-                <span className="text-text-muted">{t('common:none')}</span>
+                <span className="text-text-muted">{noneLabel ?? t('common:none')}</span>
               </div>
             </button>
           )}

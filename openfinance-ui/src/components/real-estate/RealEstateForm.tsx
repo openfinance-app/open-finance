@@ -1,3 +1,4 @@
+import { FormSection } from '@/components/ui/FormSection';
 import { getToday } from '@/utils/date';
 import { useEffect } from 'react';
 import { OptionalDetails } from '@/components/ui/OptionalDetails';
@@ -226,7 +227,7 @@ export function RealEstateForm({
   });
 
   return (
-    <form onSubmit={handleFormSubmit} noValidate className="space-y-4">
+    <form onSubmit={handleFormSubmit} noValidate className="finance-form">
       <div>
         <div className="mb-1.5 flex items-center gap-2">
           <label htmlFor="acquisitionType">{t('form.acquisitionType')}</label>
@@ -246,212 +247,213 @@ export function RealEstateForm({
             ))}
         </select>
       </div>
-      {/* Top Row: Property Name & Type */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {/* Property Name */}
-        <div className="md:col-span-2">
-          <label htmlFor="name" className="block text-sm font-medium text-text-primary mb-1.5">
-            {t('form.propertyName')} *
-          </label>
-          <Input
-            id="name"
-            {...register('name')}
-            placeholder={t('form.propertyNamePlaceholder')}
-            error={errors.name?.message}
-          />
-        </div>
+      <FormSection title={t('common:formLayout.propertyIdentity')}>
+        {/* Top Row: Property Name & Type */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {/* Property Name */}
+          <div className="md:col-span-2">
+            <label htmlFor="name" className="block text-sm font-medium text-text-primary mb-1.5">
+              {t('form.propertyName')} *
+            </label>
+            <Input
+              id="name"
+              {...register('name')}
+              placeholder={t('form.propertyNamePlaceholder')}
+              error={errors.name?.message}
+            />
+          </div>
 
-        {/* Property Type */}
-        <div>
-          <label
-            htmlFor="propertyType"
-            className="block text-sm font-medium text-text-primary mb-1.5"
-          >
-            {t('form.propertyType')} *
-          </label>
-          <select
-            id="propertyType"
-            {...register('propertyType')}
-            className="w-full h-10 px-3 pr-8 rounded-lg bg-surface border border-border text-text-primary text-sm placeholder:text-text-muted hover:border-border/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50 transition-colors duration-150"
-          >
-            {propertyTypes.map(type => (
-              <option key={type} value={type}>
-                {getPropertyTypeName(type)}
-              </option>
-            ))}
-          </select>
-          {errors.propertyType && (
-            <p className="mt-1 text-sm text-error">{errors.propertyType.message}</p>
-          )}
-        </div>
-      </div>
-
-      {/* Address */}
-      <div>
-        <label htmlFor="address" className="block text-sm font-medium text-text-primary mb-1.5">
-          {t('form.address')} *
-        </label>
-        <Input
-          id="address"
-          {...register('address')}
-          placeholder={t('form.addressPlaceholder')}
-          error={errors.address?.message}
-        />
-        {errors.address && <p className="mt-1 text-sm text-error">{errors.address.message}</p>}
-      </div>
-
-      {/* Purchase Price, Purchase Date, Current Value Row */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {/* Purchase Price */}
-        <div>
-          <label
-            htmlFor="purchasePrice"
-            className="block text-sm font-medium text-text-primary mb-1.5"
-          >
-            {t(
-              acquisitionType === 'PLANNED'
-                ? 'form.targetPrice'
-                : acquisitionType === 'GIFT'
-                  ? 'form.acquisitionCost'
-                  : 'form.purchasePrice'
-            )}{' '}
-            *
-          </label>
-          <Controller
-            name="purchasePrice"
-            control={control}
-            render={({ field }) => (
-              <NumberInput
-                id="purchasePrice"
-                value={field.value}
-                onChange={value => {
-                  field.onChange(value);
-                  if (
-                    !isEditing &&
-                    acquisitionType === 'PURCHASE' &&
-                    !getFieldState('currentValue').isDirty
-                  )
-                    setValue('currentValue', value);
-                }}
-                onBlur={field.onBlur}
-                placeholder="0.00"
-                error={errors.purchasePrice?.message}
-                min="0"
-              />
-            )}
-          />
-        </div>
-
-        {acquisitionType === 'GIFT' && (
+          {/* Property Type */}
           <div>
             <label
-              htmlFor="receivedValue"
+              htmlFor="propertyType"
               className="block text-sm font-medium text-text-primary mb-1.5"
             >
-              {t('form.receivedValue')}
+              {t('form.propertyType')} *
+            </label>
+            <select
+              id="propertyType"
+              {...register('propertyType')}
+              className="w-full h-10 px-3 pr-8 rounded-lg bg-surface border border-border text-text-primary text-sm placeholder:text-text-muted hover:border-border/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50 transition-colors duration-150"
+            >
+              {propertyTypes.map(type => (
+                <option key={type} value={type}>
+                  {getPropertyTypeName(type)}
+                </option>
+              ))}
+            </select>
+            {errors.propertyType && (
+              <p className="mt-1 text-sm text-error">{errors.propertyType.message}</p>
+            )}
+          </div>
+        </div>
+
+        {/* Address */}
+        <div>
+          <label htmlFor="address" className="block text-sm font-medium text-text-primary mb-1.5">
+            {t('form.address')} *
+          </label>
+          <Input
+            id="address"
+            {...register('address')}
+            placeholder={t('form.addressPlaceholder')}
+            error={errors.address?.message}
+          />
+          {errors.address && <p className="mt-1 text-sm text-error">{errors.address.message}</p>}
+        </div>
+      </FormSection>
+      <FormSection title={t('common:formLayout.propertyValue')}>
+        {/* Purchase Price, Purchase Date, Current Value Row */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {/* Purchase Price */}
+          <div>
+            <label
+              htmlFor="purchasePrice"
+              className="block text-sm font-medium text-text-primary mb-1.5"
+            >
+              {t(
+                acquisitionType === 'PLANNED'
+                  ? 'form.targetPrice'
+                  : acquisitionType === 'GIFT'
+                    ? 'form.acquisitionCost'
+                    : 'form.purchasePrice'
+              )}{' '}
+              *
             </label>
             <Controller
-              name="receivedValue"
+              name="purchasePrice"
               control={control}
               render={({ field }) => (
                 <NumberInput
-                  id="receivedValue"
+                  id="purchasePrice"
                   value={field.value}
-                  onChange={field.onChange}
+                  onChange={value => {
+                    field.onChange(value);
+                    if (
+                      !isEditing &&
+                      acquisitionType === 'PURCHASE' &&
+                      !getFieldState('currentValue').isDirty
+                    )
+                      setValue('currentValue', value);
+                  }}
                   onBlur={field.onBlur}
-                  min="0"
                   placeholder="0.00"
-                  error={errors.receivedValue?.message}
+                  error={errors.purchasePrice?.message}
+                  min="0"
                 />
               )}
             />
-            <p className="text-xs text-text-secondary mt-1">{t('form.receivedValueHelp')}</p>
           </div>
-        )}
 
-        {/* Purchase Date */}
-        <div>
-          <label
-            htmlFor="purchaseDate"
-            className="block text-sm font-medium text-text-primary mb-1.5"
-          >
-            {t(
-              acquisitionType === 'PLANNED'
-                ? 'form.targetDate'
-                : acquisitionType === 'GIFT'
-                  ? 'form.receivedDate'
-                  : 'form.purchaseDate'
-            )}{' '}
-            *
-          </label>
-          <Controller
-            name="purchaseDate"
-            control={control}
-            render={({ field }) => (
-              <DateInput
-                id="purchaseDate"
-                value={field.value}
-                onChange={field.onChange}
-                onBlur={field.onBlur}
-                max={acquisitionType === 'PLANNED' ? undefined : today}
-                error={errors.purchaseDate?.message}
+          {acquisitionType === 'GIFT' && (
+            <div>
+              <div className="mb-1.5 flex items-center gap-1.5">
+                <label htmlFor="receivedValue" className="text-sm font-medium text-text-primary">
+                  {t('form.receivedValue')}
+                </label>
+                <HelpTooltip text={t('form.receivedValueHelp')} className="shrink-0" />
+              </div>
+              <Controller
+                name="receivedValue"
+                control={control}
+                render={({ field }) => (
+                  <NumberInput
+                    id="receivedValue"
+                    value={field.value}
+                    onChange={field.onChange}
+                    onBlur={field.onBlur}
+                    min="0"
+                    placeholder="0.00"
+                    error={errors.receivedValue?.message}
+                  />
+                )}
               />
-            )}
-          />
-        </div>
-
-        {/* Current Value */}
-        <div>
-          <label
-            htmlFor="currentValue"
-            className="block text-sm font-medium text-text-primary mb-1.5"
-          >
-            {t('form.currentValue')} *
-          </label>
-          <Controller
-            name="currentValue"
-            control={control}
-            render={({ field }) => (
-              <NumberInput
-                id="currentValue"
-                disabled={acquisitionType === 'PLANNED'}
-                value={field.value}
-                onChange={field.onChange}
-                onBlur={field.onBlur}
-                placeholder="0.00"
-                error={errors.currentValue?.message}
-                min="0"
-              />
-            )}
-          />
-        </div>
-      </div>
-
-      {/* Currency */}
-      <div>
-        <label htmlFor="currency" className="block text-sm font-medium text-text-primary mb-1.5">
-          {t('form.currency')} *
-        </label>
-        <Controller
-          name="currency"
-          control={control}
-          render={({ field }) => (
-            <CurrencySelector
-              value={field.value}
-              onValueChange={field.onChange}
-              placeholder={t('form.selectCurrency')}
-              className="w-full"
-            />
+            </div>
           )}
-        />
-        {errors.currency && <p className="mt-1 text-sm text-error">{errors.currency.message}</p>}
-        {selectedCurrency && selectedCurrency !== baseCurrency && (
-          <div className="mt-2">
-            <ExchangeRateInline from={selectedCurrency} to={baseCurrency || DEFAULT_CURRENCY} />
-          </div>
-        )}
-      </div>
 
+          {/* Purchase Date */}
+          <div>
+            <label
+              htmlFor="purchaseDate"
+              className="block text-sm font-medium text-text-primary mb-1.5"
+            >
+              {t(
+                acquisitionType === 'PLANNED'
+                  ? 'form.targetDate'
+                  : acquisitionType === 'GIFT'
+                    ? 'form.receivedDate'
+                    : 'form.purchaseDate'
+              )}{' '}
+              *
+            </label>
+            <Controller
+              name="purchaseDate"
+              control={control}
+              render={({ field }) => (
+                <DateInput
+                  id="purchaseDate"
+                  value={field.value}
+                  onChange={field.onChange}
+                  onBlur={field.onBlur}
+                  max={acquisitionType === 'PLANNED' ? undefined : today}
+                  error={errors.purchaseDate?.message}
+                />
+              )}
+            />
+          </div>
+
+          {/* Current Value */}
+          <div>
+            <label
+              htmlFor="currentValue"
+              className="block text-sm font-medium text-text-primary mb-1.5"
+            >
+              {t('form.currentValue')} *
+            </label>
+            <Controller
+              name="currentValue"
+              control={control}
+              render={({ field }) => (
+                <NumberInput
+                  id="currentValue"
+                  disabled={acquisitionType === 'PLANNED'}
+                  value={field.value}
+                  onChange={field.onChange}
+                  onBlur={field.onBlur}
+                  placeholder="0.00"
+                  error={errors.currentValue?.message}
+                  min="0"
+                />
+              )}
+            />
+          </div>
+        </div>
+
+        {/* Currency */}
+        <div>
+          <label htmlFor="currency" className="block text-sm font-medium text-text-primary mb-1.5">
+            {t('form.currency')} *
+          </label>
+          <Controller
+            name="currency"
+            control={control}
+            render={({ field }) => (
+              <CurrencySelector
+                value={field.value}
+                onValueChange={field.onChange}
+                placeholder={t('form.selectCurrency')}
+                className="w-full"
+              />
+            )}
+          />
+          {errors.currency && <p className="mt-1 text-sm text-error">{errors.currency.message}</p>}
+          {selectedCurrency && selectedCurrency !== baseCurrency && (
+            <div className="mt-2">
+              <ExchangeRateInline from={selectedCurrency} to={baseCurrency || DEFAULT_CURRENCY} />
+            </div>
+          )}
+        </div>
+      </FormSection>
       <OptionalDetails
         title={t('form.financingAndRent')}
         description={t('form.financingAndRentHint')}
@@ -609,7 +611,7 @@ export function RealEstateForm({
         )}
       </OptionalDetails>
       {/* Actions */}
-      <div className="sticky bottom-[-25px] -mx-6 mt-2 flex justify-end gap-3 border-t border-border bg-surface px-6 py-4">
+      <div className="form-actions">
         <Button variant="ghost" type="button" onClick={onCancel} disabled={isLoading}>
           {t('form.cancel')}
         </Button>

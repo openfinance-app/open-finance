@@ -39,6 +39,8 @@ interface AccountSelectorProps {
    * Show "None" option at the top
    */
   allowNone?: boolean;
+  /** Wording for an unfiltered list, or for an explicit empty selection. */
+  noneLabel?: string;
   /**
    * Account id to exclude from the list (e.g. the counterpart account in a
    * transfer, so the same account cannot be chosen for both sides).
@@ -74,6 +76,7 @@ export function AccountSelector({
   className,
   accountType = 'active',
   allowNone = true,
+  noneLabel,
   excludeAccountId,
   currency,
 }: AccountSelectorProps) {
@@ -192,7 +195,7 @@ export function AccountSelector({
               )}
             </span>
           ) : (
-            <span className="text-text-muted">{t('card.none')}</span>
+            <span className="text-text-muted">{noneLabel ?? t('card.none')}</span>
           )}
         </SelectValue>
       </SelectTrigger>
@@ -221,7 +224,7 @@ export function AccountSelector({
           <SelectItem value="__none__" className="gap-2">
             <span className="flex items-center gap-2">
               <Wallet className="h-4 w-4 text-text-muted" />
-              <span className="text-text-muted">{t('card.none')}</span>
+              <span className="text-text-muted">{noneLabel ?? t('card.none')}</span>
             </span>
           </SelectItem>
         )}

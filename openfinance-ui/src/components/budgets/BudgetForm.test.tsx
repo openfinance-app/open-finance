@@ -91,11 +91,11 @@ describe('BudgetForm', () => {
       renderWithProviders(<BudgetForm onSubmit={mockOnSubmit} onCancel={mockOnCancel} />);
 
       // Category uses mocked CategorySelect with aria-label
-      expect(screen.getByLabelText(/Category/i)).toBeInTheDocument();
+      expect(screen.getByLabelText(/Category/i, { selector: 'select' })).toBeInTheDocument();
       expect(screen.getByLabelText(/Budget Amount/i)).toBeInTheDocument();
       expect(screen.getByLabelText(/Budget Period/i)).toBeInTheDocument();
-      expect(screen.getByLabelText(/Start Date/i)).toBeInTheDocument();
-      expect(screen.getByLabelText(/End Date/i)).toBeInTheDocument();
+      expect(screen.getByLabelText(/Start Date/i, { selector: 'input' })).toBeInTheDocument();
+      expect(screen.getByLabelText(/End Date/i, { selector: 'input' })).toBeInTheDocument();
     });
 
     it('should show "Create Budget" button for new budget', () => {
@@ -141,7 +141,7 @@ describe('BudgetForm', () => {
     it('should render notes field', () => {
       renderWithProviders(<BudgetForm onSubmit={mockOnSubmit} onCancel={mockOnCancel} />);
 
-      expect(screen.getByLabelText(/Notes/i)).toBeInTheDocument();
+      expect(screen.getByLabelText(/Notes/i, { selector: 'textarea' })).toBeInTheDocument();
     });
   });
 
@@ -150,8 +150,8 @@ describe('BudgetForm', () => {
       const user = userEvent.setup();
       renderWithProviders(<BudgetForm onSubmit={mockOnSubmit} onCancel={mockOnCancel} />);
 
-      const startDateInput = screen.getByLabelText(/Start Date/i);
-      const endDateInput = screen.getByLabelText(/End Date/i);
+      const startDateInput = screen.getByLabelText(/Start Date/i, { selector: 'input' });
+      const endDateInput = screen.getByLabelText(/End Date/i, { selector: 'input' });
 
       // Set start date after end date
       fireEvent.change(startDateInput, { target: { value: '2026-12-31' } });
@@ -267,13 +267,19 @@ describe('BudgetForm', () => {
       const periodSelect = screen.getByLabelText(/Budget Period/i) as HTMLSelectElement;
       expect(periodSelect.value).toBe('MONTHLY');
 
-      const startDateInput = screen.getByLabelText(/Start Date/i) as HTMLInputElement;
+      const startDateInput = screen.getByLabelText(/Start Date/i, {
+        selector: 'input',
+      }) as HTMLInputElement;
       expect(startDateInput.value).toBe('2026-01-01');
 
-      const endDateInput = screen.getByLabelText(/End Date/i) as HTMLInputElement;
+      const endDateInput = screen.getByLabelText(/End Date/i, {
+        selector: 'input',
+      }) as HTMLInputElement;
       expect(endDateInput.value).toBe('2026-12-31');
 
-      const notesInput = screen.getByLabelText(/Notes/i) as HTMLTextAreaElement;
+      const notesInput = screen.getByLabelText(/Notes/i, {
+        selector: 'textarea',
+      }) as HTMLTextAreaElement;
       expect(notesInput.value).toBe('Monthly food budget');
     });
   });
@@ -282,7 +288,7 @@ describe('BudgetForm', () => {
     renderWithProviders(
       <BudgetForm budget={mockBudget} onSubmit={mockOnSubmit} onCancel={mockOnCancel} />
     );
-    await user.clear(screen.getByLabelText(/Notes/i));
+    await user.clear(screen.getByLabelText(/Notes/i, { selector: 'textarea' }));
     await user.selectOptions(screen.getByTestId('currency-selector'), 'USDT');
     await user.click(screen.getByRole('button', { name: /update budget/i }));
     await waitFor(() =>
@@ -297,8 +303,8 @@ describe('BudgetForm', () => {
     vi.setSystemTime(new Date(2026, 9, 1, 0, 30));
     try {
       renderWithProviders(<BudgetForm onSubmit={mockOnSubmit} onCancel={mockOnCancel} />);
-      expect(screen.getByLabelText(/Start Date/i)).toHaveValue('2026-10-01');
-      expect(screen.getByLabelText(/End Date/i)).toHaveValue('2026-10-31');
+      expect(screen.getByLabelText(/Start Date/i, { selector: 'input' })).toHaveValue('2026-10-01');
+      expect(screen.getByLabelText(/End Date/i, { selector: 'input' })).toHaveValue('2026-10-31');
     } finally {
       vi.useRealTimers();
     }
@@ -313,8 +319,8 @@ describe('BudgetForm', () => {
         onCancel={mockOnCancel}
       />
     );
-    await user.clear(screen.getByLabelText(/Notes/i));
-    await user.type(screen.getByLabelText(/Notes/i), 'Updated note');
+    await user.clear(screen.getByLabelText(/Notes/i, { selector: 'textarea' }));
+    await user.type(screen.getByLabelText(/Notes/i, { selector: 'textarea' }), 'Updated note');
     await user.click(screen.getByRole('button', { name: /save|update/i }));
     await waitFor(() =>
       expect(mockOnSubmit).toHaveBeenCalledWith(

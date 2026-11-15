@@ -182,7 +182,7 @@ describe('AccountForm', () => {
       const user = userEvent.setup();
       renderWithProviders(<AccountForm onSubmit={mockOnSubmit} onCancel={mockOnCancel} />);
 
-      const accountNumberInput = screen.getByLabelText(/Account Number/i);
+      const accountNumberInput = screen.getByLabelText(/Account Number/i, { selector: 'input' });
       const longNumber = '1'.repeat(51);
       await user.type(accountNumberInput, longNumber);
 
@@ -311,7 +311,9 @@ describe('AccountForm', () => {
       const nameInput = screen.getByLabelText(/Account Name/i) as HTMLInputElement;
       expect(nameInput.value).toBe('Test Checking');
 
-      const accountNumberInput = screen.getByLabelText(/Account Number/i) as HTMLInputElement;
+      const accountNumberInput = screen.getByLabelText(/Account Number/i, {
+        selector: 'input',
+      }) as HTMLInputElement;
       expect(accountNumberInput.value).toBe('123456');
 
       const typeSelect = screen.getByLabelText(/Account Type/i) as HTMLSelectElement;
@@ -385,8 +387,8 @@ describe('AccountForm', () => {
     const user = userEvent.setup();
     await user.clear(screen.getByLabelText(/Account Name/i));
     await user.type(screen.getByLabelText(/Account Name/i), 'Checking ' + 'a'.repeat(180));
-    await user.clear(screen.getByLabelText(/Account Number/i));
-    await user.clear(screen.getByLabelText(/Description/i));
+    await user.clear(screen.getByLabelText(/Account Number/i, { selector: 'input' }));
+    await user.clear(screen.getByLabelText(/Description/i, { selector: 'textarea' }));
     await user.click(screen.getByRole('button', { name: /update account/i }));
     await waitFor(() =>
       expect(mockOnSubmit).toHaveBeenCalledWith(

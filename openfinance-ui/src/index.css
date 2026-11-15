@@ -2,6 +2,71 @@
 /* Radix/shadcn animation utilities (animate-in, fade-in, zoom-in-95, slide-in-from-*) */
 @import 'tw-animate-css';
 
+/* Task-focused forms: compact groups, consistent controls, quiet disclosures. */
+.finance-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.finance-form > * {
+  margin-block: 0;
+}
+
+.optional-details {
+  border-top: 1px solid var(--color-border);
+}
+
+.optional-details > summary:hover {
+  color: var(--color-primary);
+}
+
+.finance-form .form-actions {
+  position: sticky;
+  bottom: -1.5rem;
+  z-index: 10;
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  margin: 0 -1.5rem -1.5rem;
+  padding: 1rem 1.5rem;
+  border-top: 1px solid var(--color-border);
+  background: var(--color-surface);
+}
+
+.filter-panel select {
+  min-height: 2.75rem;
+}
+
+.filter-panel .grid > *,
+.filter-panel select {
+  min-width: 0;
+}
+
+@media (max-width: 767px) {
+  .finance-form select {
+    min-height: 2.75rem;
+  }
+
+  .finance-form input,
+  .finance-form select,
+  .finance-form textarea,
+  .filter-panel input,
+  .filter-panel select {
+    font-size: 1rem;
+  }
+
+  .finance-form .form-actions > button {
+    flex: 1;
+    min-width: 0;
+    white-space: normal;
+  }
+
+  .finance-form .form-actions > button:first-child {
+    flex: 0 0 auto;
+  }
+}
+
 /* Self-hosted fonts comply with the same-origin font policy, including offline use. */
 @font-face {
   font-family: 'Inter';

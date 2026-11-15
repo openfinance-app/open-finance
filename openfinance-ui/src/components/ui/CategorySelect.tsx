@@ -31,6 +31,7 @@ interface CategorySelectProps {
   onValueChange: (value: number | undefined) => void;
   placeholder?: string;
   disabled?: boolean;
+  autoFocus?: boolean;
   className?: string;
   /**
    * Show "None" option at the top
@@ -102,6 +103,7 @@ export function CategorySelect({
   onValueChange,
   placeholder = 'Select category',
   disabled = false,
+  autoFocus = false,
   className,
   allowNone = true,
   allowCreateNew = false,
@@ -231,6 +233,7 @@ export function CategorySelect({
             type="button"
             role="combobox"
             id={id}
+            autoFocus={autoFocus}
             aria-label={ariaLabel}
             aria-expanded={isOpen}
             disabled={disabled}

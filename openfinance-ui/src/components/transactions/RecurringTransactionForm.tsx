@@ -1,3 +1,5 @@
+import { FormSection } from '@/components/ui/FormSection';
+import { OptionalDetails } from '@/components/ui/OptionalDetails';
 import { useFormDraft } from '@/hooks/useFormDraft';
 import { getToday } from '@/utils/date';
 import { decimalField, decimalValue, ExactDecimal } from '@/utils/exact-decimal';
@@ -284,116 +286,101 @@ export function RecurringTransactionForm({
   };
 
   return (
-    <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-4">
-      {/* Row 1: Type, Amount, Currency */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div>
-          <label htmlFor="type" className="block text-sm font-medium text-text-primary mb-1.5">
-            {t('form.type')} *
-          </label>
-          <select
-            id="type"
-            {...register('type')}
-            className="w-full h-10 px-3 pr-8 rounded-lg bg-surface border border-border text-text-primary text-sm placeholder:text-text-muted hover:border-border/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50 transition-colors duration-150"
-          >
-            {transactionTypes.map(type => (
-              <option key={type.value} value={type.value}>
-                {type.label}
-              </option>
-            ))}
-          </select>
-          {errors.type && <p className="mt-1 text-sm text-error">{errors.type.message}</p>}
-        </div>
-
-        <div>
-          <label htmlFor="amount" className="block text-sm font-medium text-text-primary mb-1.5">
-            {t('form.amount')} *
-          </label>
-          <Controller
-            name="amount"
-            control={control}
-            render={({ field }) => (
-              <NumberInput
-                id="amount"
-                value={field.value}
-                onChange={field.onChange}
-                onBlur={field.onBlur}
-                placeholder="0.00"
-                error={errors.amount?.message}
-                min="0"
-              />
-            )}
-          />
-          {convertedAmount !== null && (
-            <p className="mt-1 text-xs text-text-secondary">
-              {t('form.approx')}{' '}
-              <ConvertedAmount
-                amount={convertedAmount}
-                currency={baseCurrency || DEFAULT_CURRENCY}
-                inline
-              />{' '}
-              ({t('form.inBaseCurrency')})
-            </p>
-          )}
-        </div>
-
-        <div>
-          <label htmlFor="currency" className="block text-sm font-medium text-text-primary mb-1.5">
-            {t('form.currency')} *
-          </label>
-          <Controller
-            name="currency"
-            control={control}
-            render={({ field }) => (
-              <CurrencySelector id="currency" value={field.value} onValueChange={field.onChange} />
-            )}
-          />
-          {errors.currency && (
-            <p role="alert" className="mt-1 text-sm text-error">
-              {errors.currency.message}
-            </p>
-          )}
-        </div>
-      </div>
-
-      {/* Row 2: Account and To Account / Category */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <label htmlFor="accountId" className="block text-sm font-medium text-text-primary mb-1.5">
-            {selectedType === 'TRANSFER' ? t('form.fromAccount') : t('form.account')} *
-          </label>
-          <Controller
-            name="accountId"
-            control={control}
-            render={({ field }) => (
-              <AccountSelector
-                id="accountId"
-                value={field.value}
-                onValueChange={field.onChange}
-                placeholder={t('form.selectAccount')}
-                allowNone={false}
-              />
-            )}
-          />
-          {errors.accountId && (
-            <p className="mt-1 text-sm text-error">{errors.accountId.message}</p>
-          )}
-        </div>
-
-        {selectedType === 'TRANSFER' ? (
+    <form onSubmit={handleSubmit(handleFormSubmit)} className="finance-form">
+      <FormSection title={t('common:formLayout.recurringPayment')}>
+        {/* Row 1: Type, Amount, Currency */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
-            <label
-              htmlFor="toAccountId"
-              className="block text-sm font-medium text-text-primary mb-1.5"
+            <label htmlFor="type" className="block text-sm font-medium text-text-primary mb-1.5">
+              {t('form.type')} *
+            </label>
+            <select
+              id="type"
+              {...register('type')}
+              className="w-full h-10 px-3 pr-8 rounded-lg bg-surface border border-border text-text-primary text-sm placeholder:text-text-muted hover:border-border/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50 transition-colors duration-150"
             >
-              {t('form.toAccount')} *
+              {transactionTypes.map(type => (
+                <option key={type.value} value={type.value}>
+                  {type.label}
+                </option>
+              ))}
+            </select>
+            {errors.type && <p className="mt-1 text-sm text-error">{errors.type.message}</p>}
+          </div>
+
+          <div>
+            <label htmlFor="amount" className="block text-sm font-medium text-text-primary mb-1.5">
+              {t('form.amount')} *
             </label>
             <Controller
-              name="toAccountId"
+              name="amount"
+              control={control}
+              render={({ field }) => (
+                <NumberInput
+                  id="amount"
+                  value={field.value}
+                  onChange={field.onChange}
+                  onBlur={field.onBlur}
+                  placeholder="0.00"
+                  error={errors.amount?.message}
+                  min="0"
+                />
+              )}
+            />
+            {convertedAmount !== null && (
+              <p className="mt-1 text-xs text-text-secondary">
+                {t('form.approx')}{' '}
+                <ConvertedAmount
+                  amount={convertedAmount}
+                  currency={baseCurrency || DEFAULT_CURRENCY}
+                  inline
+                />{' '}
+                ({t('form.inBaseCurrency')})
+              </p>
+            )}
+          </div>
+
+          <div>
+            <label
+              htmlFor="currency"
+              className="block text-sm font-medium text-text-primary mb-1.5"
+            >
+              {t('form.currency')} *
+            </label>
+            <Controller
+              name="currency"
+              control={control}
+              render={({ field }) => (
+                <CurrencySelector
+                  id="currency"
+                  value={field.value}
+                  onValueChange={field.onChange}
+                />
+              )}
+            />
+            {errors.currency && (
+              <p role="alert" className="mt-1 text-sm text-error">
+                {errors.currency.message}
+              </p>
+            )}
+          </div>
+        </div>
+
+        {/* Row 2: Account and To Account / Category */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label
+              htmlFor="accountId"
+              className="block text-sm font-medium text-text-primary mb-1.5"
+            >
+              {selectedType === 'TRANSFER' ? t('form.fromAccount') : t('form.account')} *
+            </label>
+            <Controller
+              name="accountId"
               control={control}
               render={({ field }) => (
                 <AccountSelector
-                  id="toAccountId"
+                  id="accountId"
                   value={field.value}
                   onValueChange={field.onChange}
                   placeholder={t('form.selectAccount')}
@@ -401,145 +388,184 @@ export function RecurringTransactionForm({
                 />
               )}
             />
-            {errors.toAccountId && (
-              <p className="mt-1 text-sm text-error">{errors.toAccountId.message}</p>
+            {errors.accountId && (
+              <p className="mt-1 text-sm text-error">{errors.accountId.message}</p>
             )}
           </div>
-        ) : (
-          <div>
-            <label htmlFor="payee" className="block text-sm font-medium text-text-primary mb-1.5">
-              {t('form.payee')}
-            </label>
-            <PayeeSelector
-              id="payee"
-              value={watch('payee')?.toString()}
-              onValueChange={value => setValue('payee', value || undefined, { shouldDirty: true })}
-              placeholder={t('form.payeePlaceholder')}
-              allowNewPayee={true}
-            />
-          </div>
-        )}
-      </div>
 
-      {/* Row 3: Description and Category */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <label
-            htmlFor="description"
-            className="block text-sm font-medium text-text-primary mb-1.5"
-          >
-            {t('form.description')} *
-          </label>
-          <Input
-            id="description"
-            placeholder={t('form.descriptionPlaceholder')}
-            {...register('description')}
-            error={errors.description?.message}
-          />
-        </div>
-
-        {selectedType !== 'TRANSFER' && (
-          <div>
-            <label
-              htmlFor="categoryId"
-              className="block text-sm font-medium text-text-primary mb-1.5"
-            >
-              {t('form.category')}
-            </label>
-            <CategorySelect
-              id="categoryId"
-              value={watch('categoryId')}
-              onValueChange={value => setValue('categoryId', value, { shouldDirty: true })}
-              placeholder={t('form.selectCategory')}
-              allowNone={true}
-              allowCreateInline
-            />
-            {errors.categoryId && (
-              <p className="mt-1 text-sm text-error">{errors.categoryId.message}</p>
-            )}
-          </div>
-        )}
-      </div>
-
-      {/* Row 4: Frequency, Next Occurrence, End Date */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div>
-          <label htmlFor="frequency" className="block text-sm font-medium text-text-primary mb-1.5">
-            {t('form.frequency')} *
-          </label>
-          <select
-            id="frequency"
-            {...register('frequency')}
-            className="w-full h-10 px-3 pr-8 rounded-lg bg-surface border border-border text-text-primary text-sm placeholder:text-text-muted hover:border-border/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50 transition-colors duration-150"
-          >
-            {frequencies.map(freq => (
-              <option key={freq.value} value={freq.value}>
-                {freq.label}
-              </option>
-            ))}
-          </select>
-          {errors.frequency && (
-            <p className="mt-1 text-sm text-error">{errors.frequency.message}</p>
+          {selectedType === 'TRANSFER' ? (
+            <div>
+              <label
+                htmlFor="toAccountId"
+                className="block text-sm font-medium text-text-primary mb-1.5"
+              >
+                {t('form.toAccount')} *
+              </label>
+              <Controller
+                name="toAccountId"
+                control={control}
+                render={({ field }) => (
+                  <AccountSelector
+                    id="toAccountId"
+                    value={field.value}
+                    onValueChange={field.onChange}
+                    placeholder={t('form.selectAccount')}
+                    allowNone={false}
+                  />
+                )}
+              />
+              {errors.toAccountId && (
+                <p className="mt-1 text-sm text-error">{errors.toAccountId.message}</p>
+              )}
+            </div>
+          ) : (
+            <div>
+              <label htmlFor="payee" className="block text-sm font-medium text-text-primary mb-1.5">
+                {t('form.payee')}
+              </label>
+              <PayeeSelector
+                id="payee"
+                value={watch('payee')?.toString()}
+                onValueChange={value =>
+                  setValue('payee', value || undefined, { shouldDirty: true })
+                }
+                placeholder={t('form.payeePlaceholder')}
+                allowNewPayee={true}
+              />
+            </div>
           )}
         </div>
 
-        <div>
-          <label
-            htmlFor="nextOccurrence"
-            className="block text-sm font-medium text-text-primary mb-1.5"
-          >
-            {t('form.nextOccurrence')} *
-          </label>
-          <Controller
-            name="nextOccurrence"
-            control={control}
-            render={({ field }) => (
-              <DateInput
-                id="nextOccurrence"
-                value={field.value}
-                onChange={field.onChange}
-                onBlur={field.onBlur}
-                error={errors.nextOccurrence?.message}
+        {/* Row 3: Description and Category */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label
+              htmlFor="description"
+              className="block text-sm font-medium text-text-primary mb-1.5"
+            >
+              {t('form.description')} *
+            </label>
+            <Input
+              id="description"
+              placeholder={t('form.descriptionPlaceholder')}
+              {...register('description')}
+              error={errors.description?.message}
+            />
+          </div>
+
+          {selectedType !== 'TRANSFER' && (
+            <div>
+              <label
+                htmlFor="categoryId"
+                className="block text-sm font-medium text-text-primary mb-1.5"
+              >
+                {t('form.category')}
+              </label>
+              <CategorySelect
+                id="categoryId"
+                value={watch('categoryId')}
+                onValueChange={value => setValue('categoryId', value, { shouldDirty: true })}
+                placeholder={t('form.selectCategory')}
+                allowNone={true}
+                allowCreateInline
               />
-            )}
-          />
+              {errors.categoryId && (
+                <p className="mt-1 text-sm text-error">{errors.categoryId.message}</p>
+              )}
+            </div>
+          )}
         </div>
-
-        <div>
-          <label htmlFor="endDate" className="block text-sm font-medium text-text-primary mb-1.5">
-            {t('form.endDate')}
-          </label>
-          <Controller
-            name="endDate"
-            control={control}
-            render={({ field }) => (
-              <DateInput
-                id="endDate"
-                value={field.value}
-                onChange={field.onChange}
-                onBlur={field.onBlur}
-                error={errors.endDate?.message}
-              />
+      </FormSection>
+      <FormSection title={t('common:formLayout.schedule')}>
+        {/* Row 4: Frequency, Next Occurrence, End Date */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label
+              htmlFor="frequency"
+              className="block text-sm font-medium text-text-primary mb-1.5"
+            >
+              {t('form.frequency')} *
+            </label>
+            <select
+              id="frequency"
+              {...register('frequency')}
+              className="w-full h-10 px-3 pr-8 rounded-lg bg-surface border border-border text-text-primary text-sm placeholder:text-text-muted hover:border-border/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50 transition-colors duration-150"
+            >
+              {frequencies.map(freq => (
+                <option key={freq.value} value={freq.value}>
+                  {freq.label}
+                </option>
+              ))}
+            </select>
+            {errors.frequency && (
+              <p className="mt-1 text-sm text-error">{errors.frequency.message}</p>
             )}
-          />
+          </div>
+
+          <div>
+            <label
+              htmlFor="nextOccurrence"
+              className="block text-sm font-medium text-text-primary mb-1.5"
+            >
+              {t('form.nextOccurrence')} *
+            </label>
+            <Controller
+              name="nextOccurrence"
+              control={control}
+              render={({ field }) => (
+                <DateInput
+                  id="nextOccurrence"
+                  value={field.value}
+                  onChange={field.onChange}
+                  onBlur={field.onBlur}
+                  error={errors.nextOccurrence?.message}
+                />
+              )}
+            />
+          </div>
         </div>
-      </div>
-
-      {/* Notes */}
-      <div>
-        <label htmlFor="notes" className="block text-sm font-medium text-text-primary mb-1.5">
-          {t('form.notes')}
-        </label>
-        <textarea
-          id="notes"
-          rows={2}
-          {...register('notes')}
-          className="w-full px-3 py-2 rounded-lg bg-surface border border-border text-text-primary text-sm placeholder:text-text-muted hover:border-border/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50 transition-colors duration-150 resize-none"
-          placeholder={t('form.notesPlaceholder')}
-        />
-        {errors.notes && <p className="mt-1 text-sm text-error">{errors.notes.message}</p>}
-      </div>
-
+      </FormSection>
+      <OptionalDetails
+        title={t('common:formLayout.additionalDetails')}
+        description={t('common:formLayout.recurringDetailsHint')}
+        defaultOpen={!!(recurringTransaction?.notes || recurringTransaction?.endDate)}
+        hasErrors={!!(errors.endDate || errors.notes)}
+      >
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-3 md:gap-x-4">
+          <div>
+            <label htmlFor="endDate" className="block text-sm font-medium text-text-primary mb-1.5">
+              {t('form.endDate')}
+            </label>
+            <Controller
+              name="endDate"
+              control={control}
+              render={({ field }) => (
+                <DateInput
+                  id="endDate"
+                  value={field.value}
+                  onChange={field.onChange}
+                  onBlur={field.onBlur}
+                  error={errors.endDate?.message}
+                />
+              )}
+            />
+          </div>
+          {/* Notes */}
+          <div className="md:col-span-2">
+            <label htmlFor="notes" className="block text-sm font-medium text-text-primary mb-1.5">
+              {t('form.notes')}
+            </label>
+            <textarea
+              id="notes"
+              rows={2}
+              {...register('notes')}
+              className="w-full px-3 py-2 rounded-lg bg-surface border border-border text-text-primary text-sm placeholder:text-text-muted hover:border-border/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50 transition-colors duration-150 resize-none"
+              placeholder={t('form.notesPlaceholder')}
+            />
+            {errors.notes && <p className="mt-1 text-sm text-error">{errors.notes.message}</p>}
+          </div>
+        </div>
+      </OptionalDetails>
       {/* Error Alert */}
       {error && (
         <Alert variant="destructive" className="mb-4">
@@ -549,7 +575,7 @@ export function RecurringTransactionForm({
       )}
 
       {/* Form Actions */}
-      <div className="sticky bottom-[-25px] -mx-6 mt-2 flex items-center justify-end gap-3 border-t border-border bg-surface px-6 py-4">
+      <div className="form-actions">
         <Button type="button" variant="secondary" onClick={cancelWithGuard} disabled={isSubmitting}>
           {t('form.cancel')}
         </Button>

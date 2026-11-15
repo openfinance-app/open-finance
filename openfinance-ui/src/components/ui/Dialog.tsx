@@ -42,7 +42,7 @@ export const DialogContent = React.forwardRef<
         aria-modal="true"
         aria-describedby={undefined}
         className={cn(
-          'fixed left-[50%] top-[50%] z-[51] grid w-full max-w-lg translate-x-[-50%] translate-y-[-50%] gap-4 border border-border-strong bg-surface p-6 shadow-plate-lift duration-200',
+          'fixed left-[50%] top-[50%] z-[51] grid w-[calc(100%-2rem)] max-w-lg max-h-[calc(100dvh-2rem)] translate-x-[-50%] translate-y-[-50%] gap-4 border border-border-strong bg-surface p-6 shadow-plate-lift duration-200',
           'detail-panel',
           'rounded-[var(--radius-card)]',
           className

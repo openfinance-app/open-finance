@@ -2973,13 +2973,13 @@ describe('TransactionForm', () => {
     it('renders payment method dropdown', () => {
       renderForm();
 
-      expect(screen.getByLabelText(/payment method/i)).toBeInTheDocument();
+      expect(screen.getByLabelText(/payment method/i, { selector: 'select' })).toBeInTheDocument();
     });
 
     it('renders notes textarea', () => {
       renderForm();
 
-      expect(screen.getByLabelText(/notes/i)).toBeInTheDocument();
+      expect(screen.getByLabelText(/notes/i, { selector: 'textarea' })).toBeInTheDocument();
     });
 
     it('pre-fills notes when editing a transaction with notes', () => {
@@ -2998,7 +2998,9 @@ describe('TransactionForm', () => {
 
       renderForm({ transaction: existing });
 
-      expect(screen.getByLabelText(/notes/i)).toHaveValue('Some important note');
+      expect(screen.getByLabelText(/notes/i, { selector: 'textarea' })).toHaveValue(
+        'Some important note'
+      );
     });
   });
 

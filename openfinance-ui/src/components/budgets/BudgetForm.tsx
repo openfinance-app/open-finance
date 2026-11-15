@@ -1,3 +1,5 @@
+import { FormSection } from '@/components/ui/FormSection';
+import { OptionalDetails } from '@/components/ui/OptionalDetails';
 import { decimalField } from '@/utils/exact-decimal';
 /**
  * BudgetForm Component
@@ -16,6 +18,7 @@ import { DateInput } from '@/components/ui/DateInput';
 import { NumberInput } from '@/components/ui/NumberInput';
 import { CurrencySelector } from '@/components/ui/CurrencySelector';
 import { CategorySelect } from '@/components/ui/CategorySelect';
+import { HelpTooltip } from '@/components/ui/HelpTooltip';
 import { useAuthContext } from '@/context/AuthContext';
 import Decimal from 'decimal.js';
 import { isValidDecimalString } from '@/utils/money';
@@ -166,194 +169,217 @@ export function BudgetForm({
   });
 
   return (
-    <form onSubmit={handleFormSubmit} className="space-y-4">
+    <form onSubmit={handleFormSubmit} className="finance-form">
       {serverError && (
         <div className="p-3 bg-error/10 border border-error/20 rounded-lg text-error text-sm">
           {serverError}
         </div>
       )}
-      {/* Row 1: Category and Period */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {/* Category */}
-        <div>
-          <label
-            htmlFor="categoryId"
-            className="block text-sm font-medium text-text-primary mb-1.5"
-          >
-            {t('form.category')} *
-          </label>
-          <Controller
-            name="categoryId"
-            control={control}
-            render={({ field }) => (
-              <CategorySelect
-                value={field.value || undefined}
-                onValueChange={value => field.onChange(value ?? 0)}
-                placeholder={t('form.categoryPlaceholder')}
-                searchPlaceholder={t('form.categorySearchPlaceholder')}
-                allowNone={false}
-                className="w-full"
-              />
+      <FormSection title={t('common:formLayout.budgetPlan')}>
+        {/* Row 1: Category and Period */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Category */}
+          <div>
+            <div className="mb-1.5 flex items-center gap-1.5">
+              <label htmlFor="categoryId" className="text-sm font-medium text-text-primary">
+                {t('form.category')} *
+              </label>
+              <HelpTooltip text={t('form.netSpendingHelp')} className="shrink-0" />
+            </div>
+            <Controller
+              name="categoryId"
+              control={control}
+              render={({ field }) => (
+                <CategorySelect
+                  id="categoryId"
+                  autoFocus
+                  value={field.value || undefined}
+                  onValueChange={value => field.onChange(value ?? 0)}
+                  placeholder={t('form.categoryPlaceholder')}
+                  searchPlaceholder={t('form.categorySearchPlaceholder')}
+                  allowNone={false}
+                  className="w-full"
+                />
+              )}
+            />
+            {errors.categoryId && (
+              <p className="mt-1 text-sm text-error">{errors.categoryId.message}</p>
             )}
-          />
-          <p className="mt-1 text-xs text-text-secondary">{t('form.netSpendingHelp')}</p>
-          {errors.categoryId && (
-            <p className="mt-1 text-sm text-error">{errors.categoryId.message}</p>
-          )}
+          </div>
+
+          {/* Period */}
+          <div>
+            <label htmlFor="period" className="block text-sm font-medium text-text-primary mb-1.5">
+              {t('form.budgetPeriod')} *
+            </label>
+            <select
+              id="period"
+              {...register('period')}
+              className="w-full h-10 px-3 pr-8 rounded-lg bg-surface border border-border text-text-primary text-sm placeholder:text-text-muted hover:border-border/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50 transition-colors duration-150"
+            >
+              {BUDGET_PERIODS.map(period => (
+                <option key={period} value={period}>
+                  {t(`form.periods.${period}`)}
+                </option>
+              ))}
+            </select>
+            {errors.period && <p className="mt-1 text-sm text-error">{errors.period.message}</p>}
+          </div>
         </div>
 
-        {/* Period */}
-        <div>
-          <label htmlFor="period" className="block text-sm font-medium text-text-primary mb-1.5">
-            {t('form.budgetPeriod')} *
-          </label>
-          <select
-            id="period"
-            {...register('period')}
-            className="w-full h-10 px-3 pr-8 rounded-lg bg-surface border border-border text-text-primary text-sm placeholder:text-text-muted hover:border-border/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50 transition-colors duration-150"
-          >
-            {BUDGET_PERIODS.map(period => (
-              <option key={period} value={period}>
-                {t(`form.periods.${period}`)}
-              </option>
-            ))}
-          </select>
-          {errors.period && <p className="mt-1 text-sm text-error">{errors.period.message}</p>}
-        </div>
-      </div>
+        {/* Row 2: Amount and Currency */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Amount */}
+          <div>
+            <label htmlFor="amount" className="block text-sm font-medium text-text-primary mb-1.5">
+              {t('form.budgetAmount')} *
+            </label>
+            <Controller
+              name="amount"
+              control={control}
+              render={({ field }) => (
+                <NumberInput
+                  id="amount"
+                  value={field.value}
+                  onChange={field.onChange}
+                  onBlur={field.onBlur}
+                  placeholder="0.00"
+                  error={errors.amount?.message}
+                  min="0"
+                />
+              )}
+            />
+          </div>
 
-      {/* Row 2: Amount and Currency */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {/* Amount */}
-        <div>
-          <label htmlFor="amount" className="block text-sm font-medium text-text-primary mb-1.5">
-            {t('form.budgetAmount')} *
-          </label>
-          <Controller
-            name="amount"
-            control={control}
-            render={({ field }) => (
-              <NumberInput
-                id="amount"
-                value={field.value}
-                onChange={field.onChange}
-                onBlur={field.onBlur}
-                placeholder="0.00"
-                error={errors.amount?.message}
-                min="0"
-              />
+          {/* Currency */}
+          <div>
+            <label
+              htmlFor="currency"
+              className="block text-sm font-medium text-text-primary mb-1.5"
+            >
+              {t('form.currency')} *
+            </label>
+            <Controller
+              name="currency"
+              control={control}
+              render={({ field }) => (
+                <CurrencySelector
+                  id="currency"
+                  value={field.value}
+                  onValueChange={field.onChange}
+                  placeholder={t('form.currency')}
+                  className="w-full"
+                />
+              )}
+            />
+            {errors.currency && (
+              <p className="mt-1 text-sm text-error">{errors.currency.message}</p>
             )}
-          />
+          </div>
+        </div>
+      </FormSection>
+      <FormSection title={t('common:formLayout.budgetDates')}>
+        {/* Row 3: Date Range and Rollover */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label
+              htmlFor="startDate"
+              className="block text-sm font-medium text-text-primary mb-1.5"
+            >
+              {t('form.startDate')} *
+            </label>
+            <Controller
+              name="startDate"
+              control={control}
+              render={({ field }) => (
+                <DateInput
+                  id="startDate"
+                  value={field.value}
+                  onChange={field.onChange}
+                  onBlur={field.onBlur}
+                  error={errors.startDate?.message}
+                />
+              )}
+            />
+          </div>
+          <div>
+            <label htmlFor="endDate" className="block text-sm font-medium text-text-primary mb-1.5">
+              {t('form.endDate')} *
+            </label>
+            <Controller
+              name="endDate"
+              control={control}
+              render={({ field }) => (
+                <DateInput
+                  id="endDate"
+                  value={field.value}
+                  onChange={field.onChange}
+                  onBlur={field.onBlur}
+                  error={errors.endDate?.message}
+                />
+              )}
+            />
+          </div>
         </div>
 
-        {/* Currency */}
-        <div>
-          <label htmlFor="currency" className="block text-sm font-medium text-text-primary mb-1.5">
-            {t('form.currency')} *
+        <div className="flex items-start gap-1.5">
+          <label className="flex items-center gap-2 text-sm">
+            <input type="checkbox" {...register('recurring')} className="accent-primary" />
+            {t('form.renewAllowance')}
           </label>
-          <Controller
-            name="currency"
-            control={control}
-            render={({ field }) => (
-              <CurrencySelector
-                value={field.value}
-                onValueChange={field.onChange}
-                placeholder={t('form.currency')}
-                className="w-full"
-              />
-            )}
+          <HelpTooltip
+            text={watch('recurring') ? t('form.renewAllowanceHelp') : t('form.singleAllowanceHelp')}
+            className="mt-0.5 shrink-0"
           />
-          {errors.currency && <p className="mt-1 text-sm text-error">{errors.currency.message}</p>}
         </div>
-      </div>
-
-      {/* Row 3: Date Range and Rollover */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <label htmlFor="startDate" className="block text-sm font-medium text-text-primary mb-1.5">
-            {t('form.startDate')} *
+      </FormSection>
+      <OptionalDetails
+        title={t('common:formLayout.additionalDetails')}
+        description={t('common:formLayout.budgetDetailsHint')}
+        defaultOpen={!!(budget?.rollover || budget?.notes)}
+        hasErrors={!!errors.notes}
+      >
+        {/* Rollover checkbox */}
+        <div className="flex items-center gap-2 pt-2">
+          <input
+            id="rollover"
+            type="checkbox"
+            {...register('rollover')}
+            className="h-4 w-4 rounded border-border bg-surface text-primary focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background"
+          />
+          <label htmlFor="rollover" className="text-sm text-text-primary">
+            {t('form.rollover')}
           </label>
-          <Controller
-            name="startDate"
-            control={control}
-            render={({ field }) => (
-              <DateInput
-                id="startDate"
-                value={field.value}
-                onChange={field.onChange}
-                onBlur={field.onBlur}
-                error={errors.startDate?.message}
-              />
-            )}
-          />
         </div>
-        <div>
-          <label htmlFor="endDate" className="block text-sm font-medium text-text-primary mb-1.5">
-            {t('form.endDate')} *
+
+        {watch('rollover') && (
+          <label className="flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              {...register('rolloverOverspending')}
+              className="accent-primary"
+            />
+            {t('form.carryOverspending')}
           </label>
-          <Controller
-            name="endDate"
-            control={control}
-            render={({ field }) => (
-              <DateInput
-                id="endDate"
-                value={field.value}
-                onChange={field.onChange}
-                onBlur={field.onBlur}
-                error={errors.endDate?.message}
-              />
-            )}
+        )}
+
+        {/* Notes */}
+        <div>
+          <label htmlFor="notes" className="block text-sm font-medium text-text-primary mb-1.5">
+            {t('form.notes')}
+          </label>
+          <textarea
+            id="notes"
+            {...register('notes')}
+            rows={3}
+            placeholder={t('form.notesPlaceholder')}
+            className="w-full px-3 py-2 rounded-lg bg-surface border border-border text-text-primary placeholder:text-text-muted text-sm placeholder:text-text-muted hover:border-border/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50 transition-colors duration-150 resize-none"
           />
+          {errors.notes && <p className="mt-1 text-sm text-error">{errors.notes.message}</p>}
         </div>
-      </div>
-
-      <div className="space-y-2">
-        <label className="flex items-center gap-2 text-sm">
-          <input type="checkbox" {...register('recurring')} className="accent-primary" />
-          {t('form.renewAllowance')}
-        </label>
-        <p className="text-xs text-text-secondary">
-          {watch('recurring') ? t('form.renewAllowanceHelp') : t('form.singleAllowanceHelp')}
-        </p>
-      </div>
-
-      {/* Rollover checkbox */}
-      <div className="flex items-center gap-2 pt-2">
-        <input
-          id="rollover"
-          type="checkbox"
-          {...register('rollover')}
-          className="h-4 w-4 rounded border-border bg-surface text-primary focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background"
-        />
-        <label htmlFor="rollover" className="text-sm text-text-primary">
-          {t('form.rollover')}
-        </label>
-      </div>
-
-      {watch('rollover') && (
-        <label className="flex items-center gap-2 text-sm">
-          <input type="checkbox" {...register('rolloverOverspending')} className="accent-primary" />
-          {t('form.carryOverspending')}
-        </label>
-      )}
-
-      {/* Notes */}
-      <div>
-        <label htmlFor="notes" className="block text-sm font-medium text-text-primary mb-1.5">
-          {t('form.notes')}
-        </label>
-        <textarea
-          id="notes"
-          {...register('notes')}
-          rows={3}
-          placeholder={t('form.notesPlaceholder')}
-          className="w-full px-3 py-2 rounded-lg bg-surface border border-border text-text-primary placeholder:text-text-muted text-sm placeholder:text-text-muted hover:border-border/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50 transition-colors duration-150 resize-none"
-        />
-        {errors.notes && <p className="mt-1 text-sm text-error">{errors.notes.message}</p>}
-      </div>
-
+      </OptionalDetails>
       {/* Actions */}
-      <div className="sticky bottom-[-25px] -mx-6 mt-2 flex justify-end gap-3 border-t border-border bg-surface px-6 py-4">
+      <div className="form-actions">
         <Button variant="ghost" type="button" onClick={onCancel} disabled={isLoading}>
           {t('form.cancel')}
         </Button>

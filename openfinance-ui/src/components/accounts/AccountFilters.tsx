@@ -1,3 +1,5 @@
+import { FilterPanel } from '@/components/ui/FilterPanel';
+import { countActiveFilters } from '@/utils/filter-utils';
 /**
  * AccountFilters Component
  *
@@ -6,7 +8,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Search, X } from 'lucide-react';
-import { Input, Button, Badge } from '@/components/ui';
+import { Input } from '@/components/ui';
 import { RegexToggle } from '@/components/ui/RegexToggle';
 import { CurrencySelector } from '@/components/ui/CurrencySelector';
 import { AmountFilterControls } from '@/components/ui/AmountFilterControls';
@@ -93,184 +95,197 @@ export function AccountFilters({ filters, onFiltersChange }: AccountFiltersProps
     });
   };
 
-  const hasActiveFilters = Object.keys(filters).some(
-    key =>
-      filters[key as keyof AccountFilters] !== undefined &&
-      key !== 'page' &&
-      key !== 'size' &&
-      key !== 'sort'
-  );
+  const additionalCount = countActiveFilters([
+    filters.currency,
+    filters.institution,
+    filters.balanceMin,
+    filters.balanceMax,
+    filters.balanceExact,
+    filters.amountCurrencyMode === 'NATIVE',
+  ]);
+  const activeCount =
+    additionalCount +
+    countActiveFilters([
+      localKeyword,
+      filters.keywordRegex,
+      filters.type,
+      filters.isActive !== undefined,
+      filters.lowBalance,
+      filters.sort && filters.sort !== 'name,asc',
+    ]);
 
   return (
-    <div className="space-y-4 p-4 bg-surface rounded-lg border border-border">
-      {/* Search keyword */}
-      <div>
-        <label htmlFor="keyword" className="block text-sm font-medium text-text-primary mb-1.5">
-          {t('filters.search')}
-        </label>
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-text-tertiary" />
-          <Input
-            id="keyword"
-            type="text"
-            placeholder={t('form.searchPlaceholder')}
-            value={localKeyword}
-            onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-              handleKeywordChange(e.target.value)
-            }
-            className="pl-10 pr-10"
-          />
-          <RegexToggle
-            enabled={!!filters.keywordRegex}
-            onChange={val => handleChange('keywordRegex', val || undefined)}
-            className="absolute right-2 top-1/2 -translate-y-1/2"
-          />
-        </div>
-      </div>
-
-      {/* Filters grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Type filter */}
-        <div>
-          <label htmlFor="type" className="block text-sm font-medium text-text-primary mb-1.5">
-            {t('filters.accountType')}
-          </label>
-          <select
-            id="type"
-            value={filters.type || ''}
-            onChange={e => handleChange('type', e.target.value || undefined)}
-            className="w-full h-10 px-3 pr-8 rounded-lg bg-background border border-border text-text-primary text-sm placeholder:text-text-muted hover:border-border/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50 transition-colors duration-150"
-          >
-            {accountTypes.map(type => (
-              <option key={type.value} value={type.value}>
-                {type.label}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        {/* Currency filter */}
-        <div>
-          <label htmlFor="currency" className="block text-sm font-medium text-text-primary mb-1.5">
-            {t('filters.currency')}
-          </label>
-          <CurrencySelector
-            value={filters.currency}
-            onValueChange={val => handleChange('currency', val)}
-            allowNone={true}
-          />
-        </div>
-
-        {/* Status filter */}
-        <div>
-          <label htmlFor="isActive" className="block text-sm font-medium text-text-primary mb-1.5">
-            {t('filters.status')}
-          </label>
-          <select
-            id="isActive"
-            value={filters.isActive === undefined ? '' : filters.isActive ? 'active' : 'closed'}
-            onChange={e => {
-              if (e.target.value === '') {
-                handleChange('isActive', undefined);
-              } else {
-                handleChange('isActive', e.target.value === 'active');
-              }
-            }}
-            className="w-full h-10 px-3 rounded-lg bg-background border border-border text-text-primary text-sm placeholder:text-text-muted hover:border-border/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50 transition-colors duration-150"
-          >
-            <option value="">{t('filters.allAccounts')}</option>
-            <option value="active">{t('filters.active')}</option>
-            <option value="closed">{t('filters.closed')}</option>
-          </select>
-        </div>
-
-        {/* Sort selector */}
-        <div>
-          <label htmlFor="sort" className="block text-sm font-medium text-text-primary mb-1.5">
-            {t('filters.sortBy')}
-          </label>
-          <select
-            id="sort"
-            data-testid="filter-sort"
-            value={filters.sort || 'name,asc'}
-            onChange={e => handleChange('sort', e.target.value || undefined)}
-            className="w-full h-10 px-3 pr-8 rounded-lg bg-background border border-border text-text-primary text-sm placeholder:text-text-muted hover:border-border/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50 transition-colors duration-150"
-          >
-            {sortOptions.map(option => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <AmountFilterControls
-          min={filters.balanceMin}
-          max={filters.balanceMax}
-          exact={filters.balanceExact}
-          amountCurrencyMode={filters.amountCurrencyMode}
-          minLabel={t('filters.minBalance')}
-          maxLabel={t('filters.maxBalance')}
-          allowNegative
-          testIdSuffix="balance"
-          onChange={value =>
-            onFiltersChange({
-              ...filters,
-              balanceMin: value.min,
-              balanceMax: value.max,
-              balanceExact: value.exact,
-              amountCurrencyMode: value.amountCurrencyMode,
-            })
-          }
-        />
-
-        {/* Institution filter */}
-        <div>
-          <label
-            htmlFor="institution"
-            className="block text-sm font-medium text-text-primary mb-1.5"
-          >
-            {t('filters.institution')}
-          </label>
-          <Input
-            id="institution"
-            type="text"
-            placeholder={t('form.searchInstitutionPlaceholder')}
-            value={filters.institution || ''}
-            onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-              handleChange('institution', e.target.value)
+    <FilterPanel
+      onClear={clearFilters}
+      activeCount={activeCount}
+      additionalCount={additionalCount}
+      additionalDescription={t('common:formLayout.accountFiltersHint')}
+      additional={
+        <>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-2">
+            {' '}
+            {/* Currency filter */}
+            <div>
+              <label
+                htmlFor="currency"
+                className="block text-sm font-medium text-text-primary mb-1.5"
+              >
+                {t('filters.currency')}
+              </label>
+              <CurrencySelector
+                id="currency"
+                value={filters.currency}
+                onValueChange={val => handleChange('currency', val)}
+                allowNone={true}
+              />
+            </div>
+            {/* Institution filter */}
+            <div>
+              <label
+                htmlFor="institution"
+                className="block text-sm font-medium text-text-primary mb-1.5"
+              >
+                {t('filters.institution')}
+              </label>
+              <Input
+                id="institution"
+                type="text"
+                placeholder={t('form.searchInstitutionPlaceholder')}
+                value={filters.institution || ''}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                  handleChange('institution', e.target.value)
+                }
+              />
+            </div>
+          </div>
+          <AmountFilterControls
+            min={filters.balanceMin}
+            max={filters.balanceMax}
+            exact={filters.balanceExact}
+            amountCurrencyMode={filters.amountCurrencyMode}
+            minLabel={t('filters.minBalance')}
+            maxLabel={t('filters.maxBalance')}
+            allowNegative
+            testIdSuffix="balance"
+            onChange={value =>
+              onFiltersChange({
+                ...filters,
+                balanceMin: value.min,
+                balanceMax: value.max,
+                balanceExact: value.exact,
+                amountCurrencyMode: value.amountCurrencyMode,
+              })
             }
           />
+        </>
+      }
+    >
+      <div className="space-y-4">
+        {' '}
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
+          {' '}
+          {/* Search keyword */}
+          <div className="col-span-full lg:col-span-2">
+            <label htmlFor="keyword" className="block text-sm font-medium text-text-primary mb-1.5">
+              {t('filters.search')}
+            </label>
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-text-tertiary" />
+              <Input
+                id="keyword"
+                type="text"
+                placeholder={t('form.searchPlaceholder')}
+                value={localKeyword}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                  handleKeywordChange(e.target.value)
+                }
+                className="pl-10 pr-10"
+              />
+              <RegexToggle
+                enabled={!!filters.keywordRegex}
+                onChange={val => handleChange('keywordRegex', val || undefined)}
+                className="absolute right-2 top-1/2 -translate-y-1/2"
+              />
+            </div>
+          </div>{' '}
+          {/* Type filter */}
+          <div>
+            <label htmlFor="type" className="block text-sm font-medium text-text-primary mb-1.5">
+              {t('filters.accountType')}
+            </label>
+            <select
+              id="type"
+              value={filters.type || ''}
+              onChange={e => handleChange('type', e.target.value || undefined)}
+              className="w-full h-10 px-3 pr-8 rounded-lg bg-background border border-border text-text-primary text-sm placeholder:text-text-muted hover:border-border/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50 transition-colors duration-150"
+            >
+              {accountTypes.map(type => (
+                <option key={type.value} value={type.value}>
+                  {type.label}
+                </option>
+              ))}
+            </select>
+          </div>
+          {/* Status filter */}
+          <div>
+            <label
+              htmlFor="isActive"
+              className="block text-sm font-medium text-text-primary mb-1.5"
+            >
+              {t('filters.status')}
+            </label>
+            <select
+              id="isActive"
+              value={filters.isActive === undefined ? '' : filters.isActive ? 'active' : 'closed'}
+              onChange={e => {
+                if (e.target.value === '') {
+                  handleChange('isActive', undefined);
+                } else {
+                  handleChange('isActive', e.target.value === 'active');
+                }
+              }}
+              className="w-full h-10 px-3 rounded-lg bg-background border border-border text-text-primary text-sm placeholder:text-text-muted hover:border-border/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50 transition-colors duration-150"
+            >
+              <option value="">{t('filters.allAccounts')}</option>
+              <option value="active">{t('filters.active')}</option>
+              <option value="closed">{t('filters.closed')}</option>
+            </select>
+          </div>
+          {/* Sort selector */}
+          <div>
+            <label htmlFor="sort" className="block text-sm font-medium text-text-primary mb-1.5">
+              {t('filters.sortBy')}
+            </label>
+            <select
+              id="sort"
+              data-testid="filter-sort"
+              value={filters.sort || 'name,asc'}
+              onChange={e => handleChange('sort', e.target.value || undefined)}
+              className="w-full h-10 px-3 pr-8 rounded-lg bg-background border border-border text-text-primary text-sm placeholder:text-text-muted hover:border-border/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50 transition-colors duration-150"
+            >
+              {sortOptions.map(option => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
-
-        {/* Clear button */}
-        <div className="flex items-end justify-end md:col-start-2 lg:col-start-4">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={clearFilters}
-            disabled={!hasActiveFilters}
-            className="w-fit gap-1.5 border-border text-text-secondary hover:border-border-strong hover:bg-surface-elevated"
-          >
-            <X className="h-3.5 w-3.5" />
-            {t('filters.clear')}
-          </Button>
-        </div>
+        {/* Active deep-link filter pills */}
+        {filters.lowBalance && (
+          <div className="flex flex-wrap gap-2 pt-1">
+            <button
+              type="button"
+              className="flex min-h-9 items-center gap-1.5 rounded-md border border-border px-3 text-xs text-warning"
+              aria-label={t('common:formLayout.removeFilter', { name: t('filters.lowBalance') })}
+              onClick={() => handleChange('lowBalance', undefined)}
+            >
+              <span>{t('filters.lowBalance')}</span>
+              <X className="w-3 h-3 ml-0.5" />
+            </button>
+          </div>
+        )}
       </div>
-
-      {/* Active deep-link filter pills */}
-      {filters.lowBalance && (
-        <div className="flex flex-wrap gap-2 pt-1">
-          <Badge
-            variant="warning"
-            className="cursor-pointer flex items-center gap-1 pr-1.5"
-            onClick={() => handleChange('lowBalance', undefined)}
-          >
-            <span>{t('filters.lowBalance')}</span>
-            <X className="w-3 h-3 ml-0.5" />
-          </Badge>
-        </div>
-      )}
-    </div>
+    </FilterPanel>
   );
 }

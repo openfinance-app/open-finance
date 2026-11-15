@@ -1,3 +1,4 @@
+import { FormSection } from '@/components/ui/FormSection';
 import { useFormDraft } from '@/hooks/useFormDraft';
 import { getToday } from '@/utils/date';
 import { useState } from 'react';
@@ -288,14 +289,18 @@ export function LiabilityForm({
   });
 
   return (
-    <form onSubmit={handleFormSubmit} noValidate className="space-y-4">
+    <form onSubmit={handleFormSubmit} noValidate className="finance-form">
       {!isEditing && watch('type') !== 'CREDIT_CARD' && (
         <div className="space-y-2 border-b border-border pb-4">
-          <label htmlFor="loan-intent" className="block text-sm font-medium">
-            {t('form.intent')}
-          </label>
+          <div className="flex items-center gap-1.5">
+            <label htmlFor="loan-intent" className="text-sm font-medium">
+              {t('form.intent')}
+            </label>
+            <HelpTooltip text={t(`form.intentHints.${intent}`)} className="shrink-0" />
+          </div>
           <select
             id="loan-intent"
+            autoFocus
             className="h-11 w-full rounded-lg border border-border bg-surface px-3 text-base md:h-10 md:text-sm"
             value={intent}
             onChange={event => {
@@ -313,7 +318,6 @@ export function LiabilityForm({
               </option>
             ))}
           </select>
-          <p className="text-sm text-text-secondary">{t(`form.intentHints.${intent}`)}</p>
         </div>
       )}
 
@@ -322,212 +326,215 @@ export function LiabilityForm({
           {t('form.validation.reviewFields')}
         </p>
       )}
-      {/* Top Row: Name and Type */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {/* Liability Name */}
-        <div className="md:col-span-2">
-          <label htmlFor="name" className="block text-sm font-medium text-text-primary mb-1.5">
-            {t('form.name')} *
-          </label>
-          <Input
-            id="name"
-            {...register('name')}
-            placeholder={t('form.namePlaceholder')}
-            error={errors.name?.message}
-          />
-        </div>
-
-        {/* Liability Type */}
-        <div>
-          <div className="mb-1.5 flex items-center gap-2">
-            <label htmlFor="type" className="text-sm font-medium text-text-primary">
-              {t('form.type')} *
+      <FormSection title={t('common:formLayout.liabilityIdentity')}>
+        {/* Top Row: Name and Type */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {/* Liability Name */}
+          <div className="md:col-span-2">
+            <label htmlFor="name" className="block text-sm font-medium text-text-primary mb-1.5">
+              {t('form.name')} *
             </label>
-            <HelpTooltip text={t('form.intro')} />
-          </div>
-          <select
-            id="type"
-            {...register('type')}
-            className="w-full h-10 px-3 pr-8 rounded-lg bg-surface border border-border text-text-primary text-sm placeholder:text-text-muted hover:border-border/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50 transition-colors duration-150"
-          >
-            {liabilityTypes.map(type => (
-              <option key={type} value={type}>
-                {getLiabilityTypeName(type)}
-              </option>
-            ))}
-          </select>
-          {errors.type && <p className="mt-1 text-sm text-error">{errors.type.message}</p>}
-        </div>
-      </div>
-
-      {watch('type') === 'CREDIT_CARD' && (
-        <div className="grid gap-3 md:grid-cols-2">
-          <div>
-            <label htmlFor="creditLimit">{t('form.creditLimit')}</label>
             <Input
-              id="creditLimit"
-              type="number"
-              min="0"
-              step="0.01"
-              {...register('creditLimit')}
-              error={errors.creditLimit?.message}
+              id="name"
+              {...register('name')}
+              placeholder={t('form.namePlaceholder')}
+              error={errors.name?.message}
             />
           </div>
+
+          {/* Liability Type */}
           <div>
             <div className="mb-1.5 flex items-center gap-2">
-              <label htmlFor="representedByAccountId">{t('form.accountSource')}</label>
-              <HelpTooltip text={t('form.accountSourceHint')} />
+              <label htmlFor="type" className="text-sm font-medium text-text-primary">
+                {t('form.type')} *
+              </label>
+              <HelpTooltip text={t('form.intro')} />
             </div>
             <select
-              id="representedByAccountId"
-              {...register('representedByAccountId')}
-              disabled={isEditing}
-              onChange={e => {
-                setValue('representedByAccountId', e.target.value, { shouldDirty: true });
-                const account = accounts?.find(a => a.id === Number(e.target.value));
-                if (account) {
-                  setValue('currency', account.currency);
-                  setValue(
-                    'currentBalance',
-                    ExactDecimal.max(
-                      new ExactDecimal(
-                        decimalField(account, account.ownBalance == null ? 'balance' : 'ownBalance')
-                      ).negated(),
-                      0
-                    ).toFixed()
-                  );
-                }
-              }}
-              className="w-full h-10 rounded-lg border border-border bg-surface px-3"
+              id="type"
+              {...register('type')}
+              className="w-full h-10 px-3 pr-8 rounded-lg bg-surface border border-border text-text-primary text-sm placeholder:text-text-muted hover:border-border/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50 transition-colors duration-150"
             >
-              <option value="">{t('form.separateBalance')}</option>
-              {accounts
-                ?.filter(a => a.type === 'CREDIT_CARD')
-                .map(a => (
-                  <option key={a.id} value={a.id}>
-                    {a.name}
-                  </option>
-                ))}
+              {liabilityTypes.map(type => (
+                <option key={type} value={type}>
+                  {getLiabilityTypeName(type)}
+                </option>
+              ))}
             </select>
+            {errors.type && <p className="mt-1 text-sm text-error">{errors.type.message}</p>}
           </div>
         </div>
-      )}
-      {(isEditing || intent === 'existing') &&
-        !liability?.balanceLocked &&
-        Number(watch('currentBalance')) === 0 &&
-        watch('type') !== 'CREDIT_CARD' && (
-          <OptionalDetails title={t('form.paidHistory')}>
-            <label className="flex items-center gap-2 text-sm">
-              <input type="checkbox" {...register('previouslyFunded')} />
-              {t('form.previouslyFunded')}
-            </label>
-          </OptionalDetails>
-        )}
-      {/* Principal, Balance, and Currency Row */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {/* Principal Amount */}
-        <div>
-          <label htmlFor="principal" className="block text-sm font-medium text-text-primary mb-1.5">
-            {t('form.principal')} *
-          </label>
-          <Controller
-            name="principal"
-            control={control}
-            render={({ field }) => (
-              <NumberInput
-                id="principal"
-                value={field.value}
-                onChange={field.onChange}
-                onBlur={field.onBlur}
-                placeholder="0.00"
-                error={errors.principal?.message}
-                min={watch('type') === 'CREDIT_CARD' ? '0' : '0.01'}
-              />
-            )}
-          />
-        </div>
 
-        {/* Current Balance */}
-        {(isEditing || intent === 'existing' || watch('type') === 'CREDIT_CARD') && (
-          <div>
-            <div className="mb-1.5 flex items-center gap-2">
-              <label htmlFor="currentBalance" className="text-sm font-medium text-text-primary">
-                {t('form.currentBalance')} *
-              </label>
-              <HelpTooltip
-                text={t(
-                  liability?.balanceLocked ? 'form.balanceLocked' : 'form.currentBalanceHint'
-                )}
+        {watch('type') === 'CREDIT_CARD' && (
+          <div className="grid gap-3 md:grid-cols-2">
+            <div>
+              <label htmlFor="creditLimit">{t('form.creditLimit')}</label>
+              <Input
+                id="creditLimit"
+                type="number"
+                min="0"
+                step="0.01"
+                {...register('creditLimit')}
+                error={errors.creditLimit?.message}
               />
             </div>
+            <div>
+              <div className="mb-1.5 flex items-center gap-2">
+                <label htmlFor="representedByAccountId">{t('form.accountSource')}</label>
+                <HelpTooltip text={t('form.accountSourceHint')} />
+              </div>
+              <select
+                id="representedByAccountId"
+                {...register('representedByAccountId')}
+                disabled={isEditing}
+                onChange={e => {
+                  setValue('representedByAccountId', e.target.value, { shouldDirty: true });
+                  const account = accounts?.find(a => a.id === Number(e.target.value));
+                  if (account) {
+                    setValue('currency', account.currency);
+                    setValue(
+                      'currentBalance',
+                      ExactDecimal.max(
+                        new ExactDecimal(
+                          decimalField(
+                            account,
+                            account.ownBalance == null ? 'balance' : 'ownBalance'
+                          )
+                        ).negated(),
+                        0
+                      ).toFixed()
+                    );
+                  }
+                }}
+                className="w-full h-10 rounded-lg border border-border bg-surface px-3"
+              >
+                <option value="">{t('form.separateBalance')}</option>
+                {accounts
+                  ?.filter(a => a.type === 'CREDIT_CARD')
+                  .map(a => (
+                    <option key={a.id} value={a.id}>
+                      {a.name}
+                    </option>
+                  ))}
+              </select>
+            </div>
+          </div>
+        )}
+      </FormSection>
+      <FormSection title={t('common:formLayout.liabilityBalance')}>
+        {/* Principal, Balance, and Currency Row */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+          {/* Principal Amount */}
+          <div>
+            <label
+              htmlFor="principal"
+              className="block text-sm font-medium text-text-primary mb-1.5"
+            >
+              {t('form.principal')} *
+            </label>
             <Controller
-              name="currentBalance"
+              name="principal"
               control={control}
               render={({ field }) => (
                 <NumberInput
-                  id="currentBalance"
+                  id="principal"
                   value={field.value}
                   onChange={field.onChange}
                   onBlur={field.onBlur}
                   placeholder="0.00"
-                  error={errors.currentBalance?.message}
-                  disabled={!!liability?.balanceLocked}
-                  min="0"
+                  error={errors.principal?.message}
+                  min={watch('type') === 'CREDIT_CARD' ? '0' : '0.01'}
                 />
               )}
             />
           </div>
-        )}
-        {/* Currency */}
+
+          {/* Current Balance */}
+          {(isEditing || intent === 'existing' || watch('type') === 'CREDIT_CARD') && (
+            <div>
+              <div className="mb-1.5 flex items-center gap-2">
+                <label htmlFor="currentBalance" className="text-sm font-medium text-text-primary">
+                  {t('form.currentBalance')} *
+                </label>
+                <HelpTooltip
+                  text={t(
+                    liability?.balanceLocked ? 'form.balanceLocked' : 'form.currentBalanceHint'
+                  )}
+                />
+              </div>
+              <Controller
+                name="currentBalance"
+                control={control}
+                render={({ field }) => (
+                  <NumberInput
+                    id="currentBalance"
+                    value={field.value}
+                    onChange={field.onChange}
+                    onBlur={field.onBlur}
+                    placeholder="0.00"
+                    error={errors.currentBalance?.message}
+                    disabled={!!liability?.balanceLocked}
+                    min="0"
+                  />
+                )}
+              />
+            </div>
+          )}
+          {/* Currency */}
+          <div>
+            <label
+              htmlFor="currency"
+              className="block text-sm font-medium text-text-primary mb-1.5"
+            >
+              {t('form.currency')} *
+            </label>
+            <Controller
+              name="currency"
+              control={control}
+              render={({ field }) => (
+                <CurrencySelector
+                  id="currency"
+                  value={field.value}
+                  onValueChange={field.onChange}
+                  placeholder={t('form.currencyPlaceholder')}
+                  disabled={!!liability?.balanceLocked}
+                  className="w-full"
+                />
+              )}
+            />
+            {errors.currency && (
+              <p className="mt-1 text-sm text-error">{errors.currency.message}</p>
+            )}
+            {/* Show exchange rate if different from base currency */}
+            {selectedCurrency && selectedCurrency !== baseCurrency && (
+              <div className="mt-2">
+                <ExchangeRateInline from={selectedCurrency} to={baseCurrency} />
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Start Date */}
         <div>
-          <label htmlFor="currency" className="block text-sm font-medium text-text-primary mb-1.5">
-            {t('form.currency')} *
+          <label htmlFor="startDate" className="block text-sm font-medium text-text-primary mb-1.5">
+            {t('form.startDate')} *
           </label>
           <Controller
-            name="currency"
+            name="startDate"
             control={control}
             render={({ field }) => (
-              <CurrencySelector
-                id="currency"
+              <DateInput
+                id="startDate"
                 value={field.value}
-                onValueChange={field.onChange}
-                placeholder={t('form.currencyPlaceholder')}
-                disabled={!!liability?.balanceLocked}
-                className="w-full"
+                onChange={field.onChange}
+                onBlur={field.onBlur}
+                max={today}
+                error={errors.startDate?.message}
               />
             )}
           />
-          {errors.currency && <p className="mt-1 text-sm text-error">{errors.currency.message}</p>}
-          {/* Show exchange rate if different from base currency */}
-          {selectedCurrency && selectedCurrency !== baseCurrency && (
-            <div className="mt-2">
-              <ExchangeRateInline from={selectedCurrency} to={baseCurrency} />
-            </div>
-          )}
         </div>
-      </div>
-
-      {/* Start Date */}
-      <div>
-        <label htmlFor="startDate" className="block text-sm font-medium text-text-primary mb-1.5">
-          {t('form.startDate')} *
-        </label>
-        <Controller
-          name="startDate"
-          control={control}
-          render={({ field }) => (
-            <DateInput
-              id="startDate"
-              value={field.value}
-              onChange={field.onChange}
-              onBlur={field.onBlur}
-              max={today}
-              error={errors.startDate?.message}
-            />
-          )}
-        />
-      </div>
-
+      </FormSection>
       <OptionalDetails
         title={t('form.repaymentDetails')}
         description={t('form.repaymentDetailsHint')}
@@ -543,7 +550,7 @@ export function LiabilityForm({
         }
       >
         {/* Rates Row */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 items-end gap-4">
           {/* Interest Rate */}
           <div>
             <label
@@ -658,12 +665,15 @@ export function LiabilityForm({
           </div>
 
           <div>
-            <label
-              htmlFor="amortizationStartDate"
-              className="block text-sm font-medium text-text-primary mb-1.5"
-            >
-              {t('form.amortizationStartDate')}
-            </label>
+            <div className="mb-1.5 flex items-center gap-1.5">
+              <label
+                htmlFor="amortizationStartDate"
+                className="text-sm font-medium text-text-primary"
+              >
+                {t('form.amortizationStartDate')}
+              </label>
+              <HelpTooltip text={t('form.amortizationStartDateHint')} className="shrink-0" />
+            </div>
             <Controller
               name="amortizationStartDate"
               control={control}
@@ -674,13 +684,9 @@ export function LiabilityForm({
                   onChange={field.onChange}
                   onBlur={field.onBlur}
                   error={errors.amortizationStartDate?.message}
-                  aria-describedby="amortizationStartDateHint"
                 />
               )}
             />
-            <p id="amortizationStartDateHint" className="text-xs text-text-secondary mt-1.5">
-              {t('form.amortizationStartDateHint')}
-            </p>
           </div>
 
           {/* End Date */}
@@ -709,7 +715,7 @@ export function LiabilityForm({
         hasErrors={!!(errors.notes || errors.institutionId)}
       >
         {/* Notes and Institution */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 border-t border-border pt-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label
               htmlFor="institutionId"
@@ -746,83 +752,103 @@ export function LiabilityForm({
           </div>
         </div>
       </OptionalDetails>
-      {/* Link to Real Estate property (only shown for MORTGAGE type, creation only) */}
-      {showPropertyLink && selectedType === 'MORTGAGE' && !isEditing && (
-        <div className="border-t border-border pt-4">
-          <div className="mb-1.5 flex items-center gap-2">
-            <label htmlFor="realEstateId" className="text-sm font-medium text-text-primary">
-              {t('form.linkToProperty')}{' '}
-              <span className="text-text-muted font-normal">({t('form.optional')})</span>
-            </label>
-            <HelpTooltip text={t('form.linkToPropertyHint')} />
-          </div>
-          <Controller
-            name="realEstateId"
-            control={control}
-            render={({ field }) => (
-              <select
-                id="realEstateId"
-                value={field.value ?? ''}
-                onChange={e => field.onChange(e.target.value ? Number(e.target.value) : undefined)}
-                className="w-full h-10 px-3 pr-8 rounded-lg bg-surface border border-border text-text-primary text-sm placeholder:text-text-muted hover:border-border/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50 transition-colors duration-150"
-              >
-                <option value="">{t('form.noProperty')}</option>
-                {(properties ?? [])
-                  .filter(
-                    p =>
-                      p.isActive !== false &&
-                      p.acquisitionType !== 'PLANNED' &&
-                      !p.soldDate &&
-                      !p.mortgageId
-                  )
-                  .map(p => (
-                    <option key={p.id} value={p.id}>
-                      {p.name}
-                    </option>
-                  ))}
-              </select>
-            )}
-          />
-        </div>
-      )}
+      {showPropertyLink && !isEditing && selectedType !== 'CREDIT_CARD' && (
+        <OptionalDetails
+          title={t('common:formLayout.financedItem')}
+          description={t('common:formLayout.financedItemHint')}
+          hasErrors={!!(errors.realEstateId || errors.financedAssetId)}
+        >
+          {/* Link to Real Estate property (only shown for MORTGAGE type, creation only) */}
+          {showPropertyLink && selectedType === 'MORTGAGE' && !isEditing && (
+            <div>
+              <div className="mb-1.5 flex items-center gap-2">
+                <label htmlFor="realEstateId" className="text-sm font-medium text-text-primary">
+                  {t('form.linkToProperty')}{' '}
+                  <span className="text-text-muted font-normal">({t('form.optional')})</span>
+                </label>
+                <HelpTooltip text={t('form.linkToPropertyHint')} />
+              </div>
+              <Controller
+                name="realEstateId"
+                control={control}
+                render={({ field }) => (
+                  <select
+                    id="realEstateId"
+                    value={field.value ?? ''}
+                    onChange={e =>
+                      field.onChange(e.target.value ? Number(e.target.value) : undefined)
+                    }
+                    className="w-full h-10 px-3 pr-8 rounded-lg bg-surface border border-border text-text-primary text-sm placeholder:text-text-muted hover:border-border/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50 transition-colors duration-150"
+                  >
+                    <option value="">{t('form.noProperty')}</option>
+                    {(properties ?? [])
+                      .filter(
+                        p =>
+                          p.isActive !== false &&
+                          p.acquisitionType !== 'PLANNED' &&
+                          !p.soldDate &&
+                          !p.mortgageId
+                      )
+                      .map(p => (
+                        <option key={p.id} value={p.id}>
+                          {p.name}
+                        </option>
+                      ))}
+                  </select>
+                )}
+              />
+            </div>
+          )}
 
-      {showPropertyLink &&
-        !isEditing &&
-        selectedType !== 'MORTGAGE' &&
-        selectedType !== 'CREDIT_CARD' && (
-          <div className="space-y-2 border-t border-border pt-4">
-            <label htmlFor="financedAssetId" className="block text-sm font-medium">
-              {t('form.financedAsset')}
+          {showPropertyLink && !isEditing && selectedType !== 'MORTGAGE' && (
+            <div className="space-y-2">
+              <div className="flex items-center gap-1.5">
+                <label htmlFor="financedAssetId" className="text-sm font-medium">
+                  {t('form.financedAsset')}
+                </label>
+                <HelpTooltip text={t('form.assetLinkHint')} className="shrink-0" />
+              </div>
+              <Controller
+                name="financedAssetId"
+                control={control}
+                render={({ field }) => (
+                  <select
+                    id="financedAssetId"
+                    value={field.value ?? ''}
+                    onChange={event => field.onChange(Number(event.target.value) || undefined)}
+                    className="h-11 w-full rounded-lg border border-border bg-surface px-3 text-base md:h-10 md:text-sm"
+                  >
+                    <option value="">{t('form.noAsset')}</option>
+                    {assets
+                      .filter(
+                        item =>
+                          item.isPhysical && item.acquisitionType !== 'PLANNED' && !item.soldDate
+                      )
+                      .map(item => (
+                        <option key={item.id} value={item.id}>
+                          {item.name}
+                        </option>
+                      ))}
+                  </select>
+                )}
+              />
+            </div>
+          )}
+        </OptionalDetails>
+      )}
+      {(isEditing || intent === 'existing') &&
+        !liability?.balanceLocked &&
+        Number(watch('currentBalance')) === 0 &&
+        watch('type') !== 'CREDIT_CARD' && (
+          <OptionalDetails title={t('form.paidHistory')}>
+            <label className="flex items-center gap-2 text-sm">
+              <input type="checkbox" {...register('previouslyFunded')} />
+              {t('form.previouslyFunded')}
             </label>
-            <Controller
-              name="financedAssetId"
-              control={control}
-              render={({ field }) => (
-                <select
-                  id="financedAssetId"
-                  value={field.value ?? ''}
-                  onChange={event => field.onChange(Number(event.target.value) || undefined)}
-                  className="h-11 w-full rounded-lg border border-border bg-surface px-3 text-base md:h-10 md:text-sm"
-                >
-                  <option value="">{t('form.noAsset')}</option>
-                  {assets
-                    .filter(
-                      item =>
-                        item.isPhysical && item.acquisitionType !== 'PLANNED' && !item.soldDate
-                    )
-                    .map(item => (
-                      <option key={item.id} value={item.id}>
-                        {item.name}
-                      </option>
-                    ))}
-                </select>
-              )}
-            />
-            <p className="text-sm text-text-secondary">{t('form.assetLinkHint')}</p>
-          </div>
+          </OptionalDetails>
         )}
       {/* Actions */}
-      <div className="sticky bottom-[-25px] -mx-6 mt-2 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end sm:gap-3 border-t border-border bg-surface px-6 py-4">
+      <div className="form-actions">
         <Button variant="ghost" type="button" onClick={cancelWithGuard} disabled={isLoading}>
           {t('form.cancel')}
         </Button>

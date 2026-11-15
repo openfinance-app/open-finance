@@ -2,9 +2,12 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { HelpTooltip } from './HelpTooltip';
 import { TooltipProvider } from '@/components/ui/Tooltip';
+import userEvent from '@testing-library/user-event';
+import { mockAuthentication, renderWithProviders } from '@/test/test-utils';
 
 describe('HelpTooltip', () => {
   beforeEach(() => {
+    mockAuthentication();
     // Mock scrollIntoView as it's not implemented in jsdom
     Element.prototype.scrollIntoView = vi.fn();
   });
@@ -57,6 +60,16 @@ describe('HelpTooltip', () => {
     const svg = container.querySelector('svg');
     expect(svg).toBeInTheDocument();
     expect(svg).toHaveAttribute('aria-hidden', 'true');
+  });
+
+  it('opens and closes help with touch taps', async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<HelpTooltip text="Touch help" />);
+    const trigger = screen.getByRole('button', { name: 'Touch help' });
+    await user.pointer({ keys: '[TouchA]', target: trigger });
+    await waitFor(() => expect(screen.getByRole('tooltip', { name: 'Touch help' })).toBeVisible());
+    await user.pointer({ keys: '[TouchA]', target: trigger });
+    await waitFor(() => expect(screen.queryByRole('tooltip')).not.toBeInTheDocument());
   });
 
   it('applies custom className to the button', () => {

@@ -153,8 +153,10 @@ describe('TransactionFilters', () => {
 
   it('renders date from/to inputs', () => {
     renderWithProviders(<TransactionFilters filters={{}} onFiltersChange={mockOnFiltersChange} />);
-    expect(screen.getByLabelText(/from|filterKeys\.from/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/to|filterKeys\.to/i)).toBeInTheDocument();
+    expect(
+      screen.getByLabelText(/from|filterKeys\.from/i, { selector: 'input' })
+    ).toBeInTheDocument();
+    expect(screen.getByLabelText(/to|filterKeys\.to/i, { selector: 'input' })).toBeInTheDocument();
   });
 
   it('renders account, category, payee selectors', () => {

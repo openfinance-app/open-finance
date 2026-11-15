@@ -1,3 +1,5 @@
+import { FormSection } from '@/components/ui/FormSection';
+import { OptionalDetails } from '@/components/ui/OptionalDetails';
 import { useFormDraft } from '@/hooks/useFormDraft';
 import {
   decimalField,
@@ -764,10 +766,9 @@ export function TransactionForm({
   };
 
   return (
-    <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-5">
-      {/* ── Zone 1: essentials — type, date, currency, amount ─────────────── */}
+    <form onSubmit={handleSubmit(handleFormSubmit)} className="finance-form">
       {/* Row 1: Type & Date */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 min-[360px]:grid-cols-2 gap-4">
         {/* Transaction Type */}
         <div>
           <label
@@ -823,52 +824,12 @@ export function TransactionForm({
       </div>
 
       {/* Row 2: Currency & Amount (mirrors the Account form's Currency + Balance row) */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {/* Keep a converted transfer's input currency visible while editing. */}
-        {(selectedType !== 'TRANSFER' || !!transaction?.originalCurrency) && (
-          <div>
-            <label
-              htmlFor="currency"
-              className="block text-sm font-medium text-text-primary mb-1.5"
-            >
-              {t('form.currency')} <span aria-label="required">*</span>
-            </label>
-            <Controller
-              name="currency"
-              control={control}
-              render={({ field }) => (
-                <CurrencySelector
-                  value={field.value}
-                  onValueChange={field.onChange}
-                  placeholder={t('form.currency')}
-                  className="w-full"
-                />
-              )}
-            />
-            {errors.currency && (
-              <p className="mt-1 text-sm text-error" role="alert">
-                {errors.currency.message}
-              </p>
-            )}
-            {needsConversion && (
-              <div className="mt-1.5">
-                <ExchangeRateInline
-                  from={inputCurrency}
-                  to={accountCurrency}
-                  rate={effectiveRate}
-                  fetchRate={false}
-                  hint={t('form.rateAtTransactionTime')}
-                />
-              </div>
-            )}
-          </div>
-        )}
-
+      <div className="grid grid-cols-1 min-[360px]:grid-cols-2 items-start gap-4">
         {/* Amount */}
         <div
           className={
             selectedType === 'TRANSFER' && !transaction?.originalCurrency
-              ? 'md:col-span-2'
+              ? 'min-[360px]:col-span-2'
               : undefined
           }
         >
@@ -902,258 +863,391 @@ export function TransactionForm({
             </p>
           )}
         </div>
-      </div>
-
-      {/* ── Zone 2: accounts ──────────────────────────────────────────────── */}
-      {/* Row 3: Accounts */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {/* Account */}
-        <div>
-          <label htmlFor="accountId" className="block text-sm font-medium text-text-primary mb-1.5">
-            {selectedType === 'TRANSFER' ? t('form.fromAccount') : t('form.account')}{' '}
-            <span aria-label="required">*</span>
-          </label>
-          <Controller
-            name="accountId"
-            control={control}
-            render={({ field }) => (
-              <AccountSelector
-                id="accountId"
-                value={field.value}
-                onValueChange={field.onChange}
-                placeholder={t('form.account')}
-                allowNone={false}
-                excludeAccountId={selectedType === 'TRANSFER' ? watch('toAccountId') : undefined}
-              />
-            )}
-          />
-          {errors.accountId && (
-            <p id="accountId-error" className="mt-1 text-sm text-error" role="alert">
-              {errors.accountId.message}
-            </p>
-          )}
-        </div>
-
-        {/* To Account (for transfers) */}
-        {selectedType === 'TRANSFER' && (
+        {/* Keep a converted transfer's input currency visible while editing. */}
+        {(selectedType !== 'TRANSFER' || !!transaction?.originalCurrency) && (
           <div>
             <label
-              htmlFor="toAccountId"
+              htmlFor="currency"
               className="block text-sm font-medium text-text-primary mb-1.5"
             >
-              {t('form.toAccount')} <span aria-label="required">*</span>
+              {t('form.currency')} <span aria-label="required">*</span>
             </label>
             <Controller
-              name="toAccountId"
+              name="currency"
               control={control}
               render={({ field }) => (
-                <AccountSelector
-                  id="toAccountId"
+                <CurrencySelector
+                  id="currency"
                   value={field.value}
                   onValueChange={field.onChange}
-                  placeholder={t('form.account')}
-                  allowNone={false}
-                  excludeAccountId={selectedAccountId}
+                  placeholder={t('form.currency')}
+                  className="w-full"
                 />
               )}
             />
-            {errors.toAccountId && (
-              <p id="toAccountId-error" className="mt-1 text-sm text-error" role="alert">
-                {errors.toAccountId.message}
+            {errors.currency && (
+              <p className="mt-1 text-sm text-error" role="alert">
+                {errors.currency.message}
               </p>
+            )}
+            {needsConversion && (
+              <div className="mt-1.5">
+                <ExchangeRateInline
+                  from={inputCurrency}
+                  to={accountCurrency}
+                  rate={effectiveRate}
+                  fetchRate={false}
+                  hint={t('form.rateAtTransactionTime')}
+                />
+              </div>
             )}
           </div>
         )}
       </div>
 
-      {selectedType === 'TRANSFER' && transaction?.transferId && (
-        <TransferReceipt transaction={transaction} />
-      )}
-
-      {/* ── Zone 3: context — payee, payment, category, linkages ──────────── */}
-      <div aria-hidden="true" className="border-t border-border/60" />
-
-      {/* Row 4: Payee & Payment Method */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {/* Payee */}
-        <div>
-          <div className="flex items-center gap-1 mb-1.5">
-            <label htmlFor="payee" className="block text-sm font-medium text-text-secondary">
-              {t('form.payee')}
-            </label>
-            <HelpTooltip text={t('form.payeeHint')} side="right" />
-          </div>
-          <Controller
-            name="payee"
-            control={control}
-            render={({ field }) => (
-              <PayeeSelector
-                id="payee"
-                value={field.value?.toString()}
-                onValueChange={field.onChange}
-                placeholder={t('form.payeePlaceholder')}
-                allowNewPayee={true}
-              />
-            )}
-          />
-        </div>
-
-        {/* Payment Method */}
-        <div>
-          <div className="flex items-center gap-1 mb-1.5">
+      <FormSection title={t('common:formLayout.transactionContext')}>
+        {/* Row 3: Accounts */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Account */}
+          <div>
             <label
-              htmlFor="paymentMethod"
-              className="block text-sm font-medium text-text-secondary"
+              htmlFor="accountId"
+              className="block text-sm font-medium text-text-primary mb-1.5"
             >
-              {t('form.paymentMethod')}
+              {selectedType === 'TRANSFER' ? t('form.fromAccount') : t('form.account')}{' '}
+              <span aria-label="required">*</span>
             </label>
-            <HelpTooltip text={t('form.paymentMethodHint')} side="right" />
-          </div>
-          <Controller
-            name="paymentMethod"
-            control={control}
-            render={({ field }) => (
-              <select
-                id="paymentMethod"
-                value={field.value || ''}
-                onChange={field.onChange}
-                className="w-full h-10 px-3 pr-8 rounded-lg bg-surface border border-border text-text-primary text-sm placeholder:text-text-muted hover:border-border/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50 transition-colors duration-150"
-              >
-                {PAYMENT_METHOD_VALUES.map(method => (
-                  <option key={method} value={method}>
-                    {method === ''
-                      ? t('form.selectPaymentMethod')
-                      : t(`form.paymentMethods.${method}`)}
-                  </option>
-                ))}
-              </select>
+            <Controller
+              name="accountId"
+              control={control}
+              render={({ field }) => (
+                <AccountSelector
+                  id="accountId"
+                  value={field.value}
+                  onValueChange={field.onChange}
+                  placeholder={t('form.account')}
+                  allowNone={false}
+                  excludeAccountId={selectedType === 'TRANSFER' ? watch('toAccountId') : undefined}
+                />
+              )}
+            />
+            {errors.accountId && (
+              <p id="accountId-error" className="mt-1 text-sm text-error" role="alert">
+                {errors.accountId.message}
+              </p>
             )}
-          />
-        </div>
-      </div>
-
-      {/* Category / Split section */}
-      {selectedType !== 'TRANSFER' && (
-        <div className="space-y-3">
-          {/* Split toggle button */}
-          <div className="flex items-center justify-between">
-            <label
-              htmlFor={splitMode ? undefined : 'categoryId'}
-              className="block text-sm font-medium text-text-primary"
-            >
-              {splitMode ? t('form.splitTransaction') : t('form.category')}
-            </label>
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              disabled={isInvestmentOperation(linkedOperation)}
-              className={`flex items-center gap-1.5 text-xs ${
-                splitMode
-                  ? 'text-primary bg-primary/10 hover:bg-primary/20'
-                  : 'text-text-secondary hover:text-primary'
-              }`}
-              onClick={() => {
-                const entering = !splitMode;
-                setSplitMode(entering);
-                if (entering && splits.length === 0) {
-                  setSplits([
-                    { categoryId: undefined, amount: 0, description: undefined },
-                    { categoryId: undefined, amount: 0, description: undefined },
-                  ]);
-                }
-                if (!entering) {
-                  setSplits([]);
-                }
-              }}
-              aria-pressed={splitMode}
-              title={
-                splitMode
-                  ? 'Switch back to single category'
-                  : 'Split this transaction across categories'
-              }
-            >
-              <Scissors className="h-3.5 w-3.5" />
-              {splitMode ? t('form.removeSplit') : t('form.splitTransaction')}
-            </Button>
           </div>
 
-          {/* When NOT in split mode: standard category picker */}
-          {!splitMode && (
+          {selectedType !== 'TRANSFER' && (
+            <>
+              {/* Payee */}
+              <div>
+                <div className="flex items-center gap-1 mb-1.5">
+                  <label htmlFor="payee" className="block text-sm font-medium text-text-secondary">
+                    {t('form.payee')}
+                  </label>
+                  <HelpTooltip text={t('form.payeeHint')} side="right" />
+                </div>
+                <Controller
+                  name="payee"
+                  control={control}
+                  render={({ field }) => (
+                    <PayeeSelector
+                      id="payee"
+                      value={field.value?.toString()}
+                      onValueChange={field.onChange}
+                      placeholder={t('form.payeePlaceholder')}
+                      allowNewPayee={true}
+                    />
+                  )}
+                />
+              </div>
+            </>
+          )}
+          {/* To Account (for transfers) */}
+          {selectedType === 'TRANSFER' && (
             <div>
+              <label
+                htmlFor="toAccountId"
+                className="block text-sm font-medium text-text-primary mb-1.5"
+              >
+                {t('form.toAccount')} <span aria-label="required">*</span>
+              </label>
               <Controller
-                name="categoryId"
+                name="toAccountId"
                 control={control}
                 render={({ field }) => (
-                  <CategorySelect
-                    id="categoryId"
+                  <AccountSelector
+                    id="toAccountId"
                     value={field.value}
-                    onValueChange={value => {
-                      // Clear auto-fill indicator if user manually changes category
-                      if (autoFilledCategory && value !== autoFilledCategory) {
-                        setAutoFilledCategory(null);
-                        setAutoFilledFromPayee(null);
-                      }
-                      field.onChange(value);
-                    }}
-                    placeholder={t('form.selectCategory')}
-                    allowNone={true}
-                    allowCreateNew={true}
-                    allowCreateInline
-                    onCreateNew={() => {
-                      // Could open a dialog to create new category
-                      // For now, just clear the category
-                    }}
+                    onValueChange={field.onChange}
+                    placeholder={t('form.account')}
+                    allowNone={false}
+                    excludeAccountId={selectedAccountId}
                   />
                 )}
               />
-              {/* Auto-fill indicator */}
-              {autoFilledFromPayee && (
-                <div className="mt-1.5 flex items-center gap-1.5 rounded-md bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1.5">
-                  <Sparkles className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
-                  <p className="text-xs text-emerald-500 flex-1">
-                    {t('form.autoFilledFrom')}{' '}
-                    <span className="font-medium">{autoFilledFromPayee}</span>
-                  </p>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setAutoFilledCategory(null);
-                      setAutoFilledFromPayee(null);
-                    }}
-                    className="rounded-sm hover:bg-emerald-500/20 p-0.5 transition-colors"
-                    aria-label={t('form.dismissAutoFill')}
-                  >
-                    <X className="h-3 w-3 text-emerald-500" />
-                  </button>
-                </div>
-              )}
-              {errors.categoryId && (
-                <p id="categoryId-error" className="mt-1 text-sm text-error" role="alert">
-                  {errors.categoryId.message}
+              {errors.toAccountId && (
+                <p id="toAccountId-error" className="mt-1 text-sm text-error" role="alert">
+                  {errors.toAccountId.message}
                 </p>
               )}
             </div>
           )}
+        </div>
 
-          {/* When in split mode: SplitTransactionForm */}
-          {splitMode && (
-            <SplitTransactionForm
-              loanPayment={
-                linkedLiability && (watch('movementType') ?? 'REPAYMENT') === 'REPAYMENT'
-              }
-              totalAmount={watch('amount') || 0}
-              currency={inputCurrency || DEFAULT_CURRENCY}
-              accountCurrency={accountCurrency}
-              exchangeRate={needsConversion ? effectiveRate : undefined}
-              splits={splits}
-              tagSuggestions={popularTags}
-              onChange={setSplits}
+        {selectedType === 'TRANSFER' && transaction?.transferId && (
+          <TransferReceipt transaction={transaction} />
+        )}
+
+        <div className="grid grid-cols-1 md:grid-cols-2 items-end gap-4">
+          {/* Category / Split section */}
+          {selectedType !== 'TRANSFER' && (
+            <div className={splitMode ? 'space-y-3 md:col-span-2' : 'space-y-1.5'}>
+              {/* Split toggle button */}
+              <div className="flex items-center justify-between">
+                <label
+                  htmlFor={splitMode ? undefined : 'categoryId'}
+                  className="block text-sm font-medium text-text-primary"
+                >
+                  {splitMode ? t('form.splitTransaction') : t('form.category')}
+                </label>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  disabled={isInvestmentOperation(linkedOperation)}
+                  className={`flex items-center gap-1.5 text-xs ${
+                    splitMode
+                      ? 'text-primary bg-primary/10 hover:bg-primary/20'
+                      : 'text-text-secondary hover:text-primary'
+                  }`}
+                  onClick={() => {
+                    const entering = !splitMode;
+                    setSplitMode(entering);
+                    if (entering && splits.length === 0) {
+                      setSplits([
+                        { categoryId: undefined, amount: 0, description: undefined },
+                        { categoryId: undefined, amount: 0, description: undefined },
+                      ]);
+                    }
+                    if (!entering) {
+                      setSplits([]);
+                    }
+                  }}
+                  aria-pressed={splitMode}
+                  title={
+                    splitMode
+                      ? 'Switch back to single category'
+                      : 'Split this transaction across categories'
+                  }
+                >
+                  <Scissors className="h-3.5 w-3.5" />
+                  {splitMode ? t('form.removeSplit') : t('form.splitTransaction')}
+                </Button>
+              </div>
+
+              {/* When NOT in split mode: standard category picker */}
+              {!splitMode && (
+                <div>
+                  <Controller
+                    name="categoryId"
+                    control={control}
+                    render={({ field }) => (
+                      <CategorySelect
+                        id="categoryId"
+                        value={field.value}
+                        onValueChange={value => {
+                          // Clear auto-fill indicator if user manually changes category
+                          if (autoFilledCategory && value !== autoFilledCategory) {
+                            setAutoFilledCategory(null);
+                            setAutoFilledFromPayee(null);
+                          }
+                          field.onChange(value);
+                        }}
+                        placeholder={t('form.selectCategory')}
+                        allowNone={true}
+                        allowCreateNew={true}
+                        allowCreateInline
+                        onCreateNew={() => {
+                          // Could open a dialog to create new category
+                          // For now, just clear the category
+                        }}
+                      />
+                    )}
+                  />
+                  {/* Auto-fill indicator */}
+                  {autoFilledFromPayee && (
+                    <div className="mt-1.5 flex items-center gap-1.5 rounded-md bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1.5">
+                      <Sparkles className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
+                      <p className="text-xs text-emerald-500 flex-1">
+                        {t('form.autoFilledFrom')}{' '}
+                        <span className="font-medium">{autoFilledFromPayee}</span>
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setAutoFilledCategory(null);
+                          setAutoFilledFromPayee(null);
+                        }}
+                        className="rounded-sm hover:bg-emerald-500/20 p-0.5 transition-colors"
+                        aria-label={t('form.dismissAutoFill')}
+                      >
+                        <X className="h-3 w-3 text-emerald-500" />
+                      </button>
+                    </div>
+                  )}
+                  {errors.categoryId && (
+                    <p id="categoryId-error" className="mt-1 text-sm text-error" role="alert">
+                      {errors.categoryId.message}
+                    </p>
+                  )}
+                </div>
+              )}
+
+              {/* When in split mode: SplitTransactionForm */}
+              {splitMode && (
+                <SplitTransactionForm
+                  loanPayment={
+                    linkedLiability && (watch('movementType') ?? 'REPAYMENT') === 'REPAYMENT'
+                  }
+                  totalAmount={watch('amount') || 0}
+                  currency={inputCurrency || DEFAULT_CURRENCY}
+                  accountCurrency={accountCurrency}
+                  exchangeRate={needsConversion ? effectiveRate : undefined}
+                  splits={splits}
+                  tagSuggestions={popularTags}
+                  onChange={setSplits}
+                />
+              )}
+            </div>
+          )}
+
+          {/* Description */}
+          <div>
+            <label
+              htmlFor="description"
+              className="block text-sm font-medium text-text-secondary mb-1.5"
+            >
+              {t('form.description')}
+            </label>
+            <Input
+              id="description"
+              {...register('description')}
+              placeholder={t('form.descriptionPlaceholder')}
+              error={errors.description?.message}
             />
+          </div>
+        </div>
+      </FormSection>
+      <OptionalDetails
+        title={t('common:formLayout.additionalDetails')}
+        description={t('common:formLayout.transactionDetailsHint')}
+        defaultOpen={
+          !!(transaction?.notes || transaction?.paymentMethod || transaction?.tags?.length)
+        }
+        hasErrors={!!(errors.notes || errors.paymentMethod || errors.tags || errors.payee)}
+      >
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Payment Method */}
+          <div>
+            <div className="flex items-center gap-1 mb-1.5">
+              <label
+                htmlFor="paymentMethod"
+                className="block text-sm font-medium text-text-secondary"
+              >
+                {t('form.paymentMethod')}
+              </label>
+              <HelpTooltip text={t('form.paymentMethodHint')} side="right" />
+            </div>
+            <Controller
+              name="paymentMethod"
+              control={control}
+              render={({ field }) => (
+                <select
+                  id="paymentMethod"
+                  value={field.value || ''}
+                  onChange={field.onChange}
+                  className="w-full h-10 px-3 pr-8 rounded-lg bg-surface border border-border text-text-primary text-sm placeholder:text-text-muted hover:border-border/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50 transition-colors duration-150"
+                >
+                  {PAYMENT_METHOD_VALUES.map(method => (
+                    <option key={method} value={method}>
+                      {method === ''
+                        ? t('form.selectPaymentMethod')
+                        : t(`form.paymentMethods.${method}`)}
+                    </option>
+                  ))}
+                </select>
+              )}
+            />
+          </div>
+          {/* Tags */}
+          <div>
+            <div className="flex items-center gap-1 mb-1.5">
+              <label className="block text-sm font-medium text-text-secondary">
+                {t('form.tags')}
+              </label>
+              <HelpTooltip text={t('form.tagsHint')} side="right" />
+            </div>
+            <TagInput
+              aria-label={t('form.tags')}
+              value={tags}
+              onChange={setTags}
+              suggestions={popularTags}
+              placeholder={t('form.tagsPlaceholder')}
+              maxTags={10}
+              disabled={isLoading}
+            />
+          </div>
+        </div>
+        {selectedType === 'TRANSFER' && (
+          <>
+            {' '}
+            {/* Payee */}
+            <div>
+              <div className="flex items-center gap-1 mb-1.5">
+                <label htmlFor="payee" className="block text-sm font-medium text-text-secondary">
+                  {t('form.payee')}
+                </label>
+                <HelpTooltip text={t('form.payeeHint')} side="right" />
+              </div>
+              <Controller
+                name="payee"
+                control={control}
+                render={({ field }) => (
+                  <PayeeSelector
+                    id="payee"
+                    value={field.value?.toString()}
+                    onValueChange={field.onChange}
+                    placeholder={t('form.payeePlaceholder')}
+                    allowNewPayee={true}
+                  />
+                )}
+              />
+            </div>
+          </>
+        )}
+        {/* Notes */}
+        <div>
+          <label htmlFor="notes" className="block text-sm font-medium text-text-secondary mb-1.5">
+            {t('form.notes')}
+          </label>
+          <textarea
+            id="notes"
+            {...register('notes')}
+            rows={3}
+            placeholder={t('form.notesPlaceholder')}
+            aria-invalid={errors.notes ? 'true' : 'false'}
+            aria-describedby={errors.notes ? 'notes-error' : undefined}
+            className="w-full px-3 py-2 rounded-lg bg-surface border border-border text-text-primary placeholder:text-text-muted text-sm placeholder:text-text-muted hover:border-border/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50 transition-colors duration-150 resize-none"
+          />
+          {errors.notes && (
+            <p id="notes-error" className="mt-1 text-sm text-error" role="alert">
+              {errors.notes.message}
+            </p>
           )}
         </div>
-      )}
-
+      </OptionalDetails>
       <LinkedOperationSection
         type={selectedType}
         operation={linkedOperation}
@@ -1417,9 +1511,12 @@ export function TransactionForm({
                   )}
                   {!applyRepaymentSplit && !splitMode && (
                     <div>
-                      <label htmlFor="principalAmount">
-                        {t('form.manualPrincipal', { currency: liabilityCurrency })}
-                      </label>
+                      <div className="mb-1.5 flex items-center gap-1.5">
+                        <label htmlFor="principalAmount">
+                          {t('form.manualPrincipal', { currency: liabilityCurrency })}
+                        </label>
+                        <HelpTooltip text={t('form.manualPrincipalHint')} className="shrink-0" />
+                      </div>
                       <Input
                         id="principalAmount"
                         type="number"
@@ -1428,7 +1525,6 @@ export function TransactionForm({
                         {...register('principalAmount')}
                         error={errors.principalAmount?.message}
                       />
-                      <p className="text-xs text-text-secondary">{t('form.manualPrincipalHint')}</p>
                     </div>
                   )}
                   {errors.principalAmount && applyRepaymentSplit && (
@@ -1442,70 +1538,8 @@ export function TransactionForm({
         )}
       </LinkedOperationSection>
 
-      {/* ── Zone 4: free text — description, tags, notes ──────────────────── */}
-      <div aria-hidden="true" className="border-t border-border/60" />
-
-      {/* Row 5: Description and Tags */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {/* Description */}
-        <div>
-          <label
-            htmlFor="description"
-            className="block text-sm font-medium text-text-secondary mb-1.5"
-          >
-            {t('form.description')}
-          </label>
-          <Input
-            id="description"
-            {...register('description')}
-            placeholder={t('form.descriptionPlaceholder')}
-            error={errors.description?.message}
-          />
-        </div>
-
-        {/* Tags */}
-        <div>
-          <div className="flex items-center gap-1 mb-1.5">
-            <label className="block text-sm font-medium text-text-secondary">
-              {t('form.tags')}
-            </label>
-            <HelpTooltip text={t('form.tagsHint')} side="right" />
-          </div>
-          <TagInput
-            aria-label={t('form.tags')}
-            value={tags}
-            onChange={setTags}
-            suggestions={popularTags}
-            placeholder={t('form.tagsPlaceholder')}
-            maxTags={10}
-            disabled={isLoading}
-          />
-        </div>
-      </div>
-
-      {/* Notes */}
-      <div>
-        <label htmlFor="notes" className="block text-sm font-medium text-text-secondary mb-1.5">
-          {t('form.notes')}
-        </label>
-        <textarea
-          id="notes"
-          {...register('notes')}
-          rows={3}
-          placeholder={t('form.notesPlaceholder')}
-          aria-invalid={errors.notes ? 'true' : 'false'}
-          aria-describedby={errors.notes ? 'notes-error' : undefined}
-          className="w-full px-3 py-2 rounded-lg bg-surface border border-border text-text-primary placeholder:text-text-muted text-sm placeholder:text-text-muted hover:border-border/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50 transition-colors duration-150 resize-none"
-        />
-        {errors.notes && (
-          <p id="notes-error" className="mt-1 text-sm text-error" role="alert">
-            {errors.notes.message}
-          </p>
-        )}
-      </div>
-
       {/* Actions */}
-      <div className="sticky bottom-[-25px] -mx-6 mt-2 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end sm:gap-3 border-t border-border bg-surface px-6 py-4">
+      <div className="form-actions">
         <Button variant="ghost" type="button" onClick={cancelWithGuard} disabled={isLoading}>
           {t('form.cancel')}
         </Button>
