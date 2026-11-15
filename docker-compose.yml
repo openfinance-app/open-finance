@@ -24,6 +24,11 @@
 # Customise host ports via .env:
 #   OLLAMA_PORT=11435   # if 11434 is taken
 #   SEARXNG_PORT=8889   # if 8888 is taken
+#
+# Optional base directory for all app storage in .env:
+#   OPEN_FINANCE_USER_DIR=${HOME}/open-finance
+#   Uses data/, attachments/, logs/, backups/, and temp/imports/ under this directory.
+#   Leave unset or empty to use the existing Docker-managed named volumes.
 # =============================================================================
 
 services:
@@ -54,11 +59,12 @@ services:
       APPLICATION_LIVE_DEMO_ENABLED: "${APPLICATION_LIVE_DEMO_ENABLED:-true}"
       APPLICATION_IMPORT_SKROOGE_JSON_ENABLED: "${APPLICATION_IMPORT_SKROOGE_JSON_ENABLED:-false}"
     volumes:
-      - open_finance_data:/app/data
-      - open_finance_attachments:/app/attachments
-      - open_finance_logs:/app/logs
-      - open_finance_backups:/app/backups
-      - open_finance_temp:/app/temp/imports
+      # Append subdirectories only when OPEN_FINANCE_USER_DIR is set and non-empty.
+      - "${OPEN_FINANCE_USER_DIR:-open_finance_data}${OPEN_FINANCE_USER_DIR:+/data}:/app/data"
+      - "${OPEN_FINANCE_USER_DIR:-open_finance_attachments}${OPEN_FINANCE_USER_DIR:+/attachments}:/app/attachments"
+      - "${OPEN_FINANCE_USER_DIR:-open_finance_logs}${OPEN_FINANCE_USER_DIR:+/logs}:/app/logs"
+      - "${OPEN_FINANCE_USER_DIR:-open_finance_backups}${OPEN_FINANCE_USER_DIR:+/backups}:/app/backups"
+      - "${OPEN_FINANCE_USER_DIR:-open_finance_temp}${OPEN_FINANCE_USER_DIR:+/temp/imports}:/app/temp/imports"
     depends_on:
       # 'required: false' lets the app start when the 'ai' profile is off
       # (ollama/searxng simply stay unreachable until AI features are used).
@@ -147,12 +153,12 @@ services:
 
 volumes:
   open_finance_data:
-  searxng_cache:
-  ollama_data:
   open_finance_attachments:
   open_finance_logs:
   open_finance_backups:
   open_finance_temp:
+  searxng_cache:
+  ollama_data:
 
 networks:
   open-finance-network:
