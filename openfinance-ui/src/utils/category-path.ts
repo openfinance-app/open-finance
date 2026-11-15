@@ -5,7 +5,7 @@ export interface CategoryPathNode {
   parentId?: number | null;
 }
 
-/** Resolve exact paths, or bare names only when the caller can disambiguate the matches. */
+/** Prefer exact roots and nested paths; leave ambiguous bare leaf names for the caller. */
 export function matchingCategories<T extends CategoryPathNode>(categories: T[], path: string): T[] {
   const normalize = (value: string) =>
     value
@@ -19,6 +19,11 @@ export function matchingCategories<T extends CategoryPathNode>(categories: T[], 
       : [category.canonicalName || category.name, category.name]
     ).some(name => normalize(name) === requested)
   );
+  if (!path.includes(':')) {
+    // A root name is a complete path, even when a nested category shares its leaf name.
+    const roots = matches.filter(category => category.parentId == null);
+    if (roots.length === 1) return roots;
+  }
   if (matches.length > 0 || !path.includes(' > ')) return matches;
   // Earlier Skrooge imports stored display separators in rule actions. Prefer exact
   // names above, so a literal ">" in a category name remains unambiguous.

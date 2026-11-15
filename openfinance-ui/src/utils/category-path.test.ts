@@ -20,6 +20,26 @@ describe('matchingCategories', () => {
     expect(matchingCategories(categories, 'Ménage')).toEqual([categories[1], categories[3]]);
   });
 
+  it.each(['Informatique', 'Computing', ' informatique '])(
+    'prefers the exact root over a nested category with the same name (%s)',
+    path => {
+      const root = { id: 5, name: 'Informatique', canonicalName: 'Computing' };
+      const nested = { ...root, id: 6, parentId: 3 };
+
+      expect(matchingCategories([...categories, nested, root], path)).toEqual([root]);
+    }
+  );
+
+  it.each(['Loisirs:Informatique', 'Leisure:Computing'])(
+    'preserves an explicit nested path when its leaf name also exists at the root (%s)',
+    path => {
+      const root = { id: 5, name: 'Informatique', canonicalName: 'Computing', parentId: null };
+      const nested = { ...root, id: 6, parentId: 3 };
+
+      expect(matchingCategories([...categories, root, nested], path)).toEqual([nested]);
+    }
+  );
+
   it('preserves an exact category name containing a literal separator', () => {
     const literal = { id: 5, name: 'Home > Cleaning' };
     expect(matchingCategories([...categories, literal], literal.name)).toEqual([literal]);

@@ -638,9 +638,6 @@ export function LiabilityDetailDialog({
                   <>
                     <TotalCostHero liability={liability} />
                     <LiabilityBreakdownPanel liability={liability} />
-                    <div className="mt-4">
-                      <RecordLoanPayment liability={liability} />
-                    </div>
                   </>
                 )}
               </div>

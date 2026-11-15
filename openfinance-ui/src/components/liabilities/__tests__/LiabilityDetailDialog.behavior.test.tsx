@@ -216,6 +216,8 @@ describe('Liability details preserve recorded payments and incomplete schedules'
       state.breakdown = mode === 'missing' ? undefined : { ...breakdown, totalProjectedCost: null };
       mount();
       expect(screen.queryByText(label('detail.totalLifetimeCost'))).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: 'Record payment 1' })).not.toBeInTheDocument();
+      fireEvent.click(screen.getByRole('button', { name: label('detail.payments') }));
       expect(screen.getByRole('button', { name: 'Record payment 1' })).toBeInTheDocument();
     }
   );

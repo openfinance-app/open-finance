@@ -2,6 +2,7 @@
  * Tests for RuleActionBuilder component
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { useState, type ReactElement } from 'react';
 import {
   renderWithProviders,
   screen,
@@ -36,6 +37,8 @@ vi.mock('@/components/ui/CategorySelect', () => ({
       <option value="2">Transport</option>
       <option value="4">Maison / Ménage</option>
       <option value="6">Loisirs / Ménage</option>
+      <option value="7">Informatique</option>
+      <option value="8">Loisirs / Informatique</option>
     </select>
   ),
 }));
@@ -91,6 +94,8 @@ vi.mock('@/hooks/useCategories', () => ({
       { id: 4, name: 'Ménage', parentId: 3 },
       { id: 5, name: 'Loisirs' },
       { id: 6, name: 'Ménage', parentId: 5 },
+      { id: 7, name: 'Informatique', parentId: null },
+      { id: 8, name: 'Informatique', parentId: 5 },
     ],
   }),
 }));
@@ -140,6 +145,44 @@ describe('RuleActionBuilder', () => {
     );
     expect(screen.getByRole('combobox', { name: 'Category name' })).toHaveValue('');
   });
+
+  it.each(['SET_CATEGORY', 'ADD_SPLIT'] as const)(
+    'keeps root and nested categories with the same name selectable for %s',
+    actionType => {
+      const initialAction: ActionDraft = {
+        actionType,
+        actionValue: '',
+        ...(actionType === 'ADD_SPLIT' ? { actionValue2: '25.00' } : {}),
+        sortOrder: 0,
+      };
+      function EditableActions(): ReactElement {
+        const [actions, setActions] = useState<ActionDraft[]>([initialAction]);
+        return (
+          <RuleActionBuilder
+            actions={actions}
+            onChange={updated => {
+              mockOnChange(updated);
+              setActions(updated);
+            }}
+          />
+        );
+      }
+      renderWithProviders(<EditableActions />);
+      const categorySelect = screen.getByRole('combobox', { name: 'Category name' });
+
+      fireEvent.change(categorySelect, { target: { value: '7' } });
+      expect(categorySelect).toHaveValue('7');
+      expect(mockOnChange).toHaveBeenLastCalledWith([
+        { ...initialAction, actionValue: 'Informatique' },
+      ]);
+
+      fireEvent.change(categorySelect, { target: { value: '8' } });
+      expect(categorySelect).toHaveValue('8');
+      expect(mockOnChange).toHaveBeenLastCalledWith([
+        { ...initialAction, actionValue: 'Loisirs:Informatique' },
+      ]);
+    }
+  );
 
   it('should render empty state when no actions', () => {
     renderWithProviders(<RuleActionBuilder actions={[]} onChange={mockOnChange} />);
