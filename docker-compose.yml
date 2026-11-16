@@ -29,6 +29,9 @@
 #   OPEN_FINANCE_USER_DIR=${HOME}/open-finance
 #   Uses data/, attachments/, logs/, backups/, and temp/imports/ under this directory.
 #   Leave unset or empty to use the existing Docker-managed named volumes.
+#
+# Optional app timezone in .env (default: UTC):
+#   TZ=Europe/Paris
 # =============================================================================
 
 services:
@@ -41,6 +44,7 @@ services:
       - "8080:8080"
     environment:
       SPRING_PROFILES_ACTIVE: prod
+      TZ: "${TZ:-UTC}"
       SPRING_DATASOURCE_URL: "jdbc:sqlite:/app/data/openfinance.db?foreign_keys=on&journal_mode=WAL&busy_timeout=10000"
       JWT_SECRET: "${JWT_SECRET:?Set JWT_SECRET in .env}"
       APPLICATION_ENCRYPTION_ENABLED: "${APPLICATION_ENCRYPTION_ENABLED:-false}"

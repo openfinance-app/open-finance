@@ -65,6 +65,10 @@ docker compose up -d
 # demo user: demo/demo123 or register a new account
 ```
 
+The app container uses UTC by default. To use your local timezone, set `TZ=Europe/Paris`
+(or another IANA timezone) in `.env`, then run `docker compose up -d app` to recreate it.
+This sets the JVM timezone used for logs and server-local dates and times.
+
 ### Optional: With local AI assistant
 
 The AI chat/insight features need Ollama (~4.7GB image) + SearXNG, opt-in via the `ai` profile:
