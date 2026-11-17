@@ -1,7 +1,7 @@
+import { useToday } from '@/hooks/useReportingCalendar';
 import { FormSection } from '@/components/ui/FormSection';
 import { OptionalDetails } from '@/components/ui/OptionalDetails';
 import { useFormDraft } from '@/hooks/useFormDraft';
-import { getToday } from '@/utils/date';
 import { decimalField, decimalValue, ExactDecimal } from '@/utils/exact-decimal';
 import { CURRENCY_CODE_PATTERN } from '@/utils/currency-code';
 /**
@@ -71,6 +71,7 @@ type RecurringTransactionFormData = z.infer<typeof _recurringTransactionSchemaSh
 
 function createRecurringTransactionSchema(
   t: (key: string) => string,
+  today: string,
   original?: RecurringTransaction | null
 ) {
   return z
@@ -108,7 +109,7 @@ function createRecurringTransactionSchema(
         data.nextOccurrence === original.nextOccurrence &&
         (data.endDate || null) === (original.endDate || null) &&
         data.frequency === original.frequency;
-      if (!unchangedSchedule && data.endDate && data.endDate < getToday()) {
+      if (!unchangedSchedule && data.endDate && data.endDate < today) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
           message: t('form.validation.endDatePast'),
@@ -149,13 +150,14 @@ export function RecurringTransactionForm({
   isSubmitting,
   error,
 }: RecurringTransactionFormProps) {
+  const today = useToday();
   const isEditing = !!recurringTransaction;
   const { baseCurrency } = useAuthContext();
   const { t } = useTranslation('recurring');
 
   const schema = useMemo(
-    () => createRecurringTransactionSchema(t, recurringTransaction),
-    [t, recurringTransaction]
+    () => createRecurringTransactionSchema(t, today, recurringTransaction),
+    [t, today, recurringTransaction]
   );
 
   const transactionTypes: { value: TransactionType; label: string }[] = [
@@ -201,7 +203,7 @@ export function RecurringTransactionForm({
           type: 'EXPENSE',
           currency: baseCurrency || DEFAULT_CURRENCY,
           frequency: 'MONTHLY',
-          nextOccurrence: getToday(),
+          nextOccurrence: today,
           amount: '0',
           description: '',
           payee: undefined,

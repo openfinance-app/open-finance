@@ -8,6 +8,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.openfinance.entity.PropertyType;
+import org.openfinance.util.ReportingClock;
 import org.openfinance.validation.ValidCurrency;
 
 /**
@@ -204,7 +205,7 @@ public class RealEstatePropertyRequest {
     @jakarta.validation.constraints.AssertTrue(message = "{realestate.purchase.date.future}")
     public boolean isAcquisitionDateValid() {
         return purchaseDate == null
-                || !purchaseDate.isAfter(LocalDate.now())
+                || !purchaseDate.isAfter(ReportingClock.today())
                 || acquisitionType == org.openfinance.entity.AcquisitionType.PLANNED;
     }
 

@@ -22,6 +22,7 @@ import { useTheme } from '@/context/ThemeContext';
 import { useNumberFormat, type NumberFormat } from '@/context/NumberFormatContext';
 import { useDecimalPlaces } from '@/context/DecimalPlacesContext';
 import { LanguageSelector } from '@/components/settings/LanguageSelector';
+import { TimezoneSettings } from '@/components/settings/TimezoneSettings';
 import type { AmountDisplayMode } from '@/context/CurrencyDisplayContext';
 import {
   SETTINGS_SUCCESS_MESSAGE_DURATION_MS,
@@ -346,6 +347,8 @@ export function DisplaySettings() {
           ))}
         </div>
       </div>
+
+      <TimezoneSettings />
 
       {/* Number Format Selection — REQ-6.3.15 */}
       <div className="bg-surface rounded-lg p-6 border border-border">

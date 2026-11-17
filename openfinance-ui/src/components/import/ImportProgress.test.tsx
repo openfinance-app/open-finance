@@ -5,6 +5,13 @@ import i18n from '@/test/i18n-test';
 import { ImportProgress } from '@/components/import/ImportProgress';
 import type { ImportSessionResponse } from '@/types/import';
 
+vi.mock('@/hooks/useUserSettings', async importOriginal => ({
+  ...(await importOriginal<typeof import('@/hooks/useUserSettings')>()),
+  useUserSettings: () => ({
+    data: { dateFormat: 'YYYY-MM-DD', timezone: 'America/New_York', useDeviceTimezone: false },
+  }),
+}));
+
 const session: ImportSessionResponse = {
   id: 1,
   uploadId: 'upload',
@@ -87,7 +94,7 @@ describe('ImportProgress', () => {
     expect(screen.getByRole('status')).toHaveTextContent('Invalid bank statement');
     expect(screen.getByText(i18n.t('import:progress.skipped', { count: 3 }))).toBeVisible();
   });
-  it('offers navigation after completion and exposes the recorded completion time', () => {
+  it('offers navigation after completion and uses the account timezone for the completion time', () => {
     const view = vi.fn();
     renderWithProviders(
       <ImportProgress
@@ -102,7 +109,7 @@ describe('ImportProgress', () => {
     expect(
       screen.getByText(
         i18n.t('import:progress.completedAt', {
-          date: new Date('2024-01-01T12:00:00Z').toLocaleString(),
+          date: '2024-01-01 07:00 AM',
         })
       )
     ).toBeVisible();

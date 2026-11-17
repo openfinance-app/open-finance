@@ -1,3 +1,4 @@
+import { useToday } from '@/hooks/useReportingCalendar';
 /**
  * DisburseForm Component (tranche drawdown action)
  *
@@ -21,7 +22,6 @@ import { NumberInput } from '@/components/ui/NumberInput';
 import { ConvertedAmount } from '@/components/ui/ConvertedAmount';
 import { useDisburseLiability } from '@/hooks/useLiabilities';
 import { useAccounts } from '@/hooks/useAccounts';
-import { getToday } from '@/utils/date';
 import { isValidDecimalString } from '@/utils/money';
 import type { Liability, LiabilityTranche } from '@/types/liability';
 
@@ -35,6 +35,7 @@ interface DisburseFormProps {
 }
 
 export function DisburseForm({ liability, tranche, onDone }: DisburseFormProps) {
+  const today = useToday();
   const { t } = useTranslation('liabilities');
   const disburse = useDisburseLiability();
   const { data: accounts = [] } = useAccounts('active');
@@ -81,7 +82,7 @@ export function DisburseForm({ liability, tranche, onDone }: DisburseFormProps) 
           0
         ).toFixed()
   );
-  const [date, setDate] = useState(getToday());
+  const [date, setDate] = useState(today);
   const [route, setRoute] = useState<DisburseRoute>('account');
   const [accountId, setAccountId] = useState<number | undefined>(undefined);
   const [capitalizePropertyCost, setCapitalizePropertyCost] = useState(false);
@@ -111,7 +112,7 @@ export function DisburseForm({ liability, tranche, onDone }: DisburseFormProps) 
     numericAmount > 0 &&
     new ExactDecimal(amount).lte(maximum) &&
     date >= firstDrawDate &&
-    date <= getToday() &&
+    date <= today &&
     (route === 'property'
       ? selectedAsset != null || linkedPropertyId != null
       : accounts.some(
@@ -185,7 +186,7 @@ export function DisburseForm({ liability, tranche, onDone }: DisburseFormProps) 
             value={date}
             onChange={setDate}
             min={firstDrawDate}
-            max={getToday()}
+            max={today}
           />
         </div>
       </div>

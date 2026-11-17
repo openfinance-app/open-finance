@@ -64,6 +64,7 @@ public class UnusualTransactionDetectionScheduler implements ApplicationRunner {
      */
     static final int LOOKBACK_HOURS = 25;
 
+    private final org.openfinance.service.UserReportingClock userReportingClock;
     private final UnusualTransactionDetectionService detectionService;
     private final UserRepository userRepository;
     private final SchedulerProperties schedulerProperties;
@@ -118,7 +119,10 @@ public class UnusualTransactionDetectionScheduler implements ApplicationRunner {
 
         for (User user : users) {
             try (org.openfinance.security.UserEncryptionLock.Scope ignored =
-                    userEncryptionLock.acquire(user.getId(), false)) {
+                            userEncryptionLock.acquire(user.getId(), false);
+                    org.openfinance.util.ReportingClock.Scope calendar =
+                            org.openfinance.util.ReportingClock.use(
+                                    userReportingClock.forUser(user.getId()))) {
                 Optional<SecretKey> keyOpt = encryptionKeyCache.getKey(user.getId());
                 if (encryptionProperties.isEnabled() && keyOpt.isEmpty()) {
                     skippedUsers++;

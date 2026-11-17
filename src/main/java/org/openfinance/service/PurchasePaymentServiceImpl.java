@@ -16,6 +16,7 @@ import org.openfinance.repository.AssetRepository;
 import org.openfinance.repository.RealEstateRepository;
 import org.openfinance.repository.TransactionRepository;
 import org.openfinance.service.history.ReversibleOperation;
+import org.openfinance.util.ReportingClock;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -94,7 +95,7 @@ public class PurchasePaymentServiceImpl implements PurchasePaymentService {
                 || !Objects.equals(payment.getCurrency(), currency)
                 || payment.getAmount().compareTo(amount) != 0
                 || payment.getDate().isAfter(date)
-                || payment.getDate().isAfter(LocalDate.now())) {
+                || payment.getDate().isAfter(ReportingClock.today())) {
             throw invalid(
                     "The payment must match the account, currency and amount, and occur by the purchase date");
         }

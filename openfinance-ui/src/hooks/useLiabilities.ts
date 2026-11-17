@@ -1,3 +1,5 @@
+import { parseISO } from 'date-fns';
+import { getToday } from '@/utils/date';
 /**
  * Liability management hooks
  * Task 6.2.5: Create useLiabilities hooks
@@ -488,11 +490,14 @@ export const calculateTotalInterest = (
 /**
  * Calculate months remaining until end date
  */
-export const calculateMonthsRemaining = (endDate: string | undefined): number => {
+export const calculateMonthsRemaining = (
+  endDate: string | undefined,
+  today = getToday()
+): number => {
   if (!endDate) return 0;
 
-  const end = new Date(endDate);
-  const now = new Date();
+  const end = parseISO(endDate);
+  const now = parseISO(today);
   const months = (end.getFullYear() - now.getFullYear()) * 12 + (end.getMonth() - now.getMonth());
 
   return Math.max(0, months);

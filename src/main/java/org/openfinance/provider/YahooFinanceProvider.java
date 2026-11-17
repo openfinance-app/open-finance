@@ -226,8 +226,11 @@ public class YahooFinanceProvider implements MarketDataProvider {
             throw new IllegalArgumentException("Start date cannot be after end date");
         }
 
-        long period1 = startDate.atStartOfDay(ZoneId.systemDefault()).toEpochSecond();
-        long period2 = endDate.atStartOfDay(ZoneId.systemDefault()).plusDays(1).toEpochSecond();
+        // The exchange zone arrives in the response. Fetch a padded UTC interval and filter by
+        // exchange calendar dates below so server location cannot drop a boundary trading day.
+        long period1 =
+                startDate.minusDays(1).atStartOfDay(java.time.ZoneOffset.UTC).toEpochSecond();
+        long period2 = endDate.plusDays(2).atStartOfDay(java.time.ZoneOffset.UTC).toEpochSecond();
 
         log.debug("Fetching historical prices for {} from {} to {}", symbol, startDate, endDate);
 
@@ -266,6 +269,9 @@ public class YahooFinanceProvider implements MarketDataProvider {
 
             JsonNode result = chart.get(0);
             String currency = result.path("meta").path("currency").asText(null);
+            ZoneId exchangeZone =
+                    org.openfinance.util.ReportingClock.validZone(
+                            result.path("meta").path("exchangeTimezoneName").asText("UTC"));
             JsonNode timestamps = result.path("timestamp");
             JsonNode indicators = result.path("indicators").path("quote").path(0);
             JsonNode adjClose = result.path("indicators").path("adjclose");
@@ -276,9 +282,8 @@ public class YahooFinanceProvider implements MarketDataProvider {
             for (int i = 0; i < size; i++) {
                 long timestamp = timestamps.get(i).asLong();
                 LocalDate date =
-                        Instant.ofEpochSecond(timestamp)
-                                .atZone(ZoneId.systemDefault())
-                                .toLocalDate();
+                        Instant.ofEpochSecond(timestamp).atZone(exchangeZone).toLocalDate();
+                if (date.isBefore(startDate) || date.isAfter(endDate)) continue;
 
                 JsonNode opens = indicators.path("open");
                 JsonNode highs = indicators.path("high");

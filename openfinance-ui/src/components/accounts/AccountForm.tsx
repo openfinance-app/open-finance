@@ -1,3 +1,4 @@
+import { useToday } from '@/hooks/useReportingCalendar';
 import { FormSection } from '@/components/ui/FormSection';
 import { OptionalDetails } from '@/components/ui/OptionalDetails';
 import { ExactDecimal, decimalValue, decimalField, equalDecimals } from '@/utils/exact-decimal';
@@ -35,7 +36,6 @@ import { useAuthContext } from '@/context/AuthContext';
 import { useLatestExchangeRate } from '@/hooks/useCurrency';
 import { useInterestPreview } from '@/hooks/useInterestPreview';
 import { DEFAULT_CURRENCY } from '@/utils/currency';
-import { getToday } from '@/utils/date';
 import { isValidDecimalString, percentage } from '@/utils/money';
 import type { Account, AccountRequest, AccountType, InterestPeriod } from '@/types/account';
 
@@ -87,6 +87,7 @@ export function AccountForm({
   isLoading,
   existingAccountNames = [],
 }: AccountFormProps) {
+  const today = useToday();
   const isEditing = !!account;
   const { baseCurrency } = useAuthContext();
   const { t } = useTranslation('accounts');
@@ -162,7 +163,7 @@ export function AccountForm({
             account.ownBalance == null ? 'balance' : 'ownBalance'
           ),
           description: account.description || '',
-          openingDate: account.openingDate || getToday(),
+          openingDate: account.openingDate || today,
           institutionId: account.institution?.id?.toString() || '',
           isInterestEnabled: account.isInterestEnabled || false,
           interestPeriod: account.interestPeriod || 'ANNUAL',
@@ -176,7 +177,7 @@ export function AccountForm({
           currency: baseCurrency || DEFAULT_CURRENCY,
           initialBalance: '0',
           description: '',
-          openingDate: getToday(),
+          openingDate: today,
           institutionId: '',
           isInterestEnabled: false,
           interestPeriod: 'ANNUAL',
@@ -191,7 +192,7 @@ export function AccountForm({
   const isInterestEnabled = watch('isInterestEnabled');
   const interestRate = watch('interestRate') ?? '0';
   const taxRate = watch('taxRate') ?? '0';
-  const openingDate = watch('openingDate') || getToday();
+  const openingDate = watch('openingDate') || today;
   const interestPeriod = watch('interestPeriod') ?? 'ANNUAL';
 
   const { data: exchangeRate } = useLatestExchangeRate(
@@ -417,7 +418,7 @@ export function AccountForm({
                   value={field.value}
                   onChange={field.onChange}
                   onBlur={field.onBlur}
-                  max={getToday()}
+                  max={today}
                   error={errors.openingDate?.message}
                 />
               )}
@@ -574,7 +575,7 @@ export function AccountForm({
               <div className="rounded-lg bg-primary/5 border border-primary/20 p-3">
                 <p className="text-xs font-semibold text-primary mb-2 flex items-center gap-1">
                   <TrendingUp className="h-3.5 w-3.5" />
-                  {t('form.interestPreviewTitle', { year: new Date().getFullYear() })}
+                  {t('form.interestPreviewTitle', { year: Number(today.slice(0, 4)) })}
                   <HelpTooltip text={t('form.interestPreviewScope')} side="right" />
                 </p>
                 <div className="grid grid-cols-3 gap-2 text-center">
@@ -636,7 +637,7 @@ export function AccountForm({
             ) : (
               <div className="rounded-lg bg-surface border border-border border-dashed p-2 text-center">
                 <div className="flex items-center justify-center gap-1 text-xs text-text-muted">
-                  <span>{t('form.interestPreviewTitle', { year: new Date().getFullYear() })}</span>
+                  <span>{t('form.interestPreviewTitle', { year: Number(today.slice(0, 4)) })}</span>
                   <HelpTooltip text={t('form.interestPreviewHint')} side="right" />
                   {previewEnabled && (
                     <span role={previewError ? 'alert' : 'status'}>

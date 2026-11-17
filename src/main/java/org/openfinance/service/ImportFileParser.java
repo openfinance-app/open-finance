@@ -5,7 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
 import java.io.InputStream;
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
@@ -201,7 +201,7 @@ final class ImportFileParser {
         metadata.put("count", transactions.size());
         metadata.put("ledgerBalance", ledgerBalance);
         metadata.put("fileCurrency", fileCurrency);
-        metadata.put("timestamp", LocalDateTime.now().toString());
+        metadata.put("timestamp", Instant.now().toString());
         try {
             return objectMapper.writeValueAsString(metadata);
         } catch (JsonProcessingException exception) {

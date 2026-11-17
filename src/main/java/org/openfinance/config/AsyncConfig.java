@@ -106,6 +106,7 @@ public class AsyncConfig implements AsyncConfigurer {
 
         // Thread name prefix for identification in logs
         executor.setThreadNamePrefix("import-executor-");
+        executor.setTaskDecorator(org.openfinance.util.ReportingClock::propagate);
 
         // Keep alive time: idle thread timeout (60 seconds)
         executor.setKeepAliveSeconds(60);

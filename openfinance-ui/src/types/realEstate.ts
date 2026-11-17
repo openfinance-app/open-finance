@@ -1,3 +1,5 @@
+import { differenceInYears, parseISO } from 'date-fns';
+import { getToday } from '@/utils/date';
 import type { AmountCurrencyMode } from '@/types/amount-filter';
 /**
  * Real Estate TypeScript Type Definitions
@@ -278,10 +280,6 @@ export function formatAppreciation(
 /**
  * Calculate property age in years
  */
-export function calculatePropertyAge(purchaseDate: string): number {
-  const purchase = new Date(purchaseDate);
-  const now = new Date();
-  const diffMs = now.getTime() - purchase.getTime();
-  const diffYears = diffMs / (1000 * 60 * 60 * 24 * 365.25);
-  return Math.max(0, Math.floor(diffYears));
+export function calculatePropertyAge(purchaseDate: string, today = getToday()): number {
+  return Math.max(0, differenceInYears(parseISO(today), parseISO(purchaseDate)));
 }

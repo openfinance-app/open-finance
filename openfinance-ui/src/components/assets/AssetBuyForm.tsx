@@ -1,3 +1,4 @@
+import { useToday } from '@/hooks/useReportingCalendar';
 import { useState } from 'react';
 import { isAxiosError } from 'axios';
 import { useTranslation } from 'react-i18next';
@@ -8,16 +9,16 @@ import { ConvertedAmount } from '@/components/ui/ConvertedAmount';
 import { useOwnershipOperation } from '@/hooks/useOwnershipOperation';
 import { ExactDecimal } from '@/utils/exact-decimal';
 import { isValidDecimalString } from '@/utils/money';
-import { getToday } from '@/utils/date';
 import { apiErrorMessage } from '@/utils/api-error';
 import type { SaleTarget } from '@/components/assets/AssetSaleForm';
 
 /** Cash and units are reviewed together; a stable receipt makes uncertain retries safe. */
 export function AssetBuyForm({ target, onClose }: { target: SaleTarget; onClose: () => void }) {
+  const today = useToday();
   const { t } = useTranslation('assets');
   const [units, setUnits] = useState('');
   const [amount, setAmount] = useState('');
-  const [date, setDate] = useState(getToday());
+  const [date, setDate] = useState(today);
   const [operationId] = useState(() => crypto.randomUUID());
   const [pending, setPending] = useState<object>();
   const buy = useOwnershipOperation();
@@ -27,7 +28,7 @@ export function AssetBuyForm({ target, onClose }: { target: SaleTarget; onClose:
     isValidDecimalString(amount) &&
     new ExactDecimal(amount).gt(0) &&
     date >= target.purchaseDate &&
-    date <= getToday();
+    date <= today;
   return (
     <form
       className="w-full space-y-4 border-t border-border pt-4"
@@ -86,7 +87,7 @@ export function AssetBuyForm({ target, onClose }: { target: SaleTarget; onClose:
             value={date}
             onChange={setDate}
             min={target.purchaseDate}
-            max={getToday()}
+            max={today}
           />
         </div>
       </fieldset>

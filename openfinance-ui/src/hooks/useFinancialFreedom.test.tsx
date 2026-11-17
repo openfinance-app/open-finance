@@ -457,3 +457,7 @@ describe('useFinancialFreedom', () => {
     expect(result.current.result?.isSustainableIndefinitely).toBe(false);
   });
 });
+
+vi.mock('@/hooks/useUserSettings', () => ({
+  useUserSettings: () => ({ data: { timezone: 'UTC', useDeviceTimezone: false } }),
+}));

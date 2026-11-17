@@ -1,8 +1,9 @@
+import { useToday } from '@/hooks/useReportingCalendar';
 import { decimalValue, ExactDecimal, decimalField } from '@/utils/exact-decimal';
 import { isValidDecimalString } from '@/utils/money';
 import { formatDecimal } from '@/utils/format';
 import { useMemo, useState } from 'react';
-import { formatDate, toLocalISODate } from '@/utils/date';
+import { formatDate } from '@/utils/date';
 import { Plus, Trash2, TrendingUp, Pencil } from 'lucide-react';
 import { Controller, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -47,6 +48,7 @@ export function InterestRateVariationsSection({
   accountId,
   accountCurrency = DEFAULT_CURRENCY,
 }: Props) {
+  const today = useToday();
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [editingRate, setEditingRate] = useState<InterestRateVariation | null>(null);
   const { t } = useTranslation('accounts');
@@ -98,7 +100,7 @@ export function InterestRateVariationsSection({
     defaultValues: {
       rate: '0',
       taxRate: '0',
-      validFrom: toLocalISODate(new Date()),
+      validFrom: today,
       creditValueDateMode: 'TRANSACTION_DATE',
       debitValueDateMode: 'TRANSACTION_DATE',
       dayCountBasis: 'ACTUAL_365',
@@ -125,7 +127,7 @@ export function InterestRateVariationsSection({
     reset({
       rate: variation ? decimalField(variation, 'rate') : '0',
       taxRate: variation ? decimalField(variation, 'taxRate') || '0' : '0',
-      validFrom: variation?.validFrom ?? toLocalISODate(new Date()),
+      validFrom: variation?.validFrom ?? today,
       creditValueDateMode: variation?.creditValueDateMode ?? 'TRANSACTION_DATE',
       debitValueDateMode: variation?.debitValueDateMode ?? 'TRANSACTION_DATE',
       dayCountBasis: variation?.dayCountBasis ?? 'ACTUAL_365',
@@ -143,7 +145,6 @@ export function InterestRateVariationsSection({
     () => [...(variations ?? [])].sort((a, b) => a.validFrom.localeCompare(b.validFrom)),
     [variations]
   );
-  const today = toLocalISODate(new Date());
   const earned = decimalValue(interestEstimate, 'yearToDate') ?? 0;
   const projected = decimalValue(interestEstimate, 'estimate') ?? 0;
   const totalEarned = decimalValue(interestEstimate, 'historicalAccumulated') ?? 0;

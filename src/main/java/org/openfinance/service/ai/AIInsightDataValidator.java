@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import java.math.BigDecimal;
 import java.net.URI;
 import java.time.LocalDate;
+import org.openfinance.util.ReportingClock;
 
 /** Validates model data as unverified estimates, never as authoritative rates or prices. */
 public final class AIInsightDataValidator {
@@ -28,8 +29,8 @@ public final class AIInsightDataValidator {
             if (!currency.equals(data.path("currency").asText())) throw invalid();
             if (country != null && !country.equals(data.path("country").asText())) throw invalid();
             LocalDate asOf = LocalDate.parse(data.path("asOf").asText());
-            if (asOf.isAfter(LocalDate.now())
-                    || asOf.isBefore(LocalDate.now().minusDays(maxAgeDays))) throw invalid();
+            if (asOf.isAfter(ReportingClock.today())
+                    || asOf.isBefore(ReportingClock.today().minusDays(maxAgeDays))) throw invalid();
             String source = data.path("sourceUrl").asText();
             URI uri = URI.create(source);
             if (source.length() > 300

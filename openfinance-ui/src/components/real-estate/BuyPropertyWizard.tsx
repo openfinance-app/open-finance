@@ -1,3 +1,4 @@
+import { useToday } from '@/hooks/useReportingCalendar';
 /** A purchase commits once on the server; retries keep the same operation identifier and payload. */
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -8,7 +9,6 @@ import { useLiabilities } from '@/hooks/useLiabilities';
 import { usePurchaseProperty, type PropertyPurchaseRequest } from '@/hooks/useRealEstate';
 import { useAuthContext } from '@/context/AuthContext';
 import { DEFAULT_CURRENCY } from '@/utils/currency';
-import { getToday } from '@/utils/date';
 import { isValidDecimalString } from '@/utils/money';
 import { ExactDecimal, decimalField } from '@/utils/exact-decimal';
 import { PropertyStep } from './wizard/PropertyStep';
@@ -32,9 +32,9 @@ export function BuyPropertyWizard({
   onPurchased?: (id: number) => void;
   onClose: () => void;
 }) {
+  const today = useToday();
   const { t } = useTranslation('realEstate');
   const { baseCurrency } = useAuthContext();
-  const today = getToday();
   const [step, setStep] = useState(0);
   const [valueEdited, setValueEdited] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);

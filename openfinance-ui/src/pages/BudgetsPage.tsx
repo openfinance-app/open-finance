@@ -1,3 +1,4 @@
+import { useToday } from '@/hooks/useReportingCalendar';
 import { decimalValue } from '@/utils/exact-decimal';
 import { useViewState } from '@/hooks/useViewState';
 import { BulkSelection, BulkToolbar, SelectionCheckbox } from '@/components/bulk/BulkSelection';
@@ -48,6 +49,7 @@ import { matchesQuery } from '@/utils/searchMatch';
 import { activeBudgetSummary } from '@/utils/budget-summary';
 
 export default function BudgetsPage() {
+  const today = useToday();
   const { t } = useTranslation('budgets');
   const { t: tc } = useTranslation('common');
   useDocumentTitle(t('title'));
@@ -91,7 +93,7 @@ export default function BudgetsPage() {
     filters.period === undefined || filters.period === '' ? undefined : filters.period;
 
   const { data: summary, isLoading: summaryLoading, error } = useBudgetSummary(periodFilter);
-  const currentSummary = summary ? activeBudgetSummary(summary) : undefined;
+  const currentSummary = summary ? activeBudgetSummary(summary, today) : undefined;
   // The native list does not require exchange rates and remains editable if totals fail.
   const { data: nativeBudgets, isLoading: nativeLoading } = useBudgets(periodFilter, !!error);
   const { data: editingBudget, isLoading: editBudgetLoading } = useBudget(editingBudgetId);

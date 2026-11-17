@@ -5,6 +5,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -86,7 +87,7 @@ final class ImportSessionMetadata {
             metadata.put("count", transactions.size());
             metadata.put("ledgerBalance", ledgerBalance);
             metadata.put("fileCurrency", fileCurrency);
-            metadata.put("timestamp", LocalDateTime.now().toString());
+            metadata.put("timestamp", Instant.now().toString());
             return objectMapper.writeValueAsString(metadata);
         } catch (JsonProcessingException e) {
             log.error("Error serializing transactions: {}", e.getMessage(), e);

@@ -30,6 +30,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import reactor.core.publisher.Mono;
@@ -76,6 +77,8 @@ class AIControllerIntegrationTest {
     @Autowired private UserRepository userRepository;
 
     @Autowired private AIConversationRepository conversationRepository;
+
+    @Autowired private JdbcTemplate jdbcTemplate;
 
     @Autowired private DatabaseCleanupService databaseCleanupService;
 
@@ -247,6 +250,14 @@ class AIControllerIntegrationTest {
 
             conversationRepository.save(conv1);
             conversationRepository.save(conv2);
+            // CreationTimestamp generates values on insert; set distinct persisted fixture dates
+            // so this verifies newest-first ordering without depending on clock resolution.
+            jdbcTemplate.update(
+                    "UPDATE ai_conversations SET created_at = '2026-01-01T10:00:00' WHERE id = ?",
+                    conv1.getId());
+            jdbcTemplate.update(
+                    "UPDATE ai_conversations SET created_at = '2026-01-02T10:00:00' WHERE id = ?",
+                    conv2.getId());
 
             mockMvc.perform(
                             get("/api/v1/ai/conversations")
@@ -255,11 +266,8 @@ class AIControllerIntegrationTest {
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$").isArray())
                     .andExpect(jsonPath("$.length()").value(2))
-                    // Note: @CreationTimestamp overrides manually set timestamps, so both
-                    // conversations
-                    // have the same createdAt value. When timestamps are equal, JPA orders by ID.
-                    .andExpect(jsonPath("$[0].title").value("First Question")) // ID 1 comes first
-                    .andExpect(jsonPath("$[1].title").value("Second Question")) // ID 2 comes second
+                    .andExpect(jsonPath("$[0].title").value("Second Question"))
+                    .andExpect(jsonPath("$[1].title").value("First Question"))
                     .andExpect(jsonPath("$[0].message_count").value(1))
                     .andExpect(jsonPath("$[0].created_at").exists())
                     .andExpect(jsonPath("$[0].updated_at").exists());

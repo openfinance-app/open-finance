@@ -7,6 +7,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.openfinance.entity.NetWorth;
 import org.openfinance.repository.NetWorthRepository;
+import org.openfinance.util.ReportingClock;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -106,7 +107,7 @@ public class NetWorthSnapshotWriter {
                         snapshot.getUserId(), snapshot.getSnapshotDate());
         if (existing.isPresent() && !existing.get().isReconstructed()) return existing.get();
         existing.ifPresent(value -> snapshot.setId(value.getId()));
-        snapshot.setReconstructed(!snapshot.getSnapshotDate().equals(LocalDate.now()));
+        snapshot.setReconstructed(!snapshot.getSnapshotDate().equals(ReportingClock.today()));
         return netWorthRepository.save(snapshot);
     }
 

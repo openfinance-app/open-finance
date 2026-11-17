@@ -1,3 +1,4 @@
+import { useToday } from '@/hooks/useReportingCalendar';
 import { FormSection } from '@/components/ui/FormSection';
 import { OptionalDetails } from '@/components/ui/OptionalDetails';
 import { decimalField } from '@/utils/exact-decimal';
@@ -11,7 +12,6 @@ import { useEffect, useMemo } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { format } from 'date-fns';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/Button';
 import { DateInput } from '@/components/ui/DateInput';
@@ -81,6 +81,7 @@ export function BudgetForm({
   serverError,
   serverFieldErrors,
 }: BudgetFormProps) {
+  const today = useToday();
   const isEditing = !!budget;
   const { baseCurrency } = useAuthContext();
   const { t } = useTranslation('budgets');
@@ -116,7 +117,7 @@ export function BudgetForm({
           amount: '0',
           currency: baseCurrency,
           period: 'MONTHLY',
-          startDate: format(new Date(), 'yyyy-MM-dd'),
+          startDate: today,
           endDate: '',
           rollover: false,
           recurring: true,

@@ -4,7 +4,6 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.time.LocalDate;
 import java.util.Comparator;
 import java.util.HexFormat;
 import java.util.List;
@@ -37,6 +36,7 @@ import org.openfinance.repository.TransactionRepository;
 import org.openfinance.service.history.ReversibleOperation;
 import org.openfinance.util.ImportedPropertyValuations;
 import org.openfinance.util.InvestmentHoldings;
+import org.openfinance.util.ReportingClock;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -77,9 +77,9 @@ public class PropertyConversionServiceImpl implements PropertyConversionService 
                 && asset.getAcquisitionType() != AcquisitionType.PLANNED
                 && asset.getQuantity().signum() > 0
                 && asset.getPurchaseDate() != null
-                && !asset.getPurchaseDate().isAfter(LocalDate.now())
+                && !asset.getPurchaseDate().isAfter(ReportingClock.today())
                 && account != null
-                && account.isPresentAt(LocalDate.now());
+                && account.isPresentAt(ReportingClock.today());
     }
 
     private List<Transaction> movements(Asset asset) {
@@ -106,7 +106,8 @@ public class PropertyConversionServiceImpl implements PropertyConversionService 
                 asset.getTotalCost(),
                 asset.getPurchaseDate(),
                 movements.size(),
-                ImportedPropertyValuations.history(asset, movements, history, LocalDate.now())
+                ImportedPropertyValuations.history(
+                                asset, movements, history, ReportingClock.today())
                         .size(),
                 revision(asset, movements, history, account, closesSourceAccount));
     }
@@ -154,11 +155,12 @@ public class PropertyConversionServiceImpl implements PropertyConversionService 
                 .equals(request.sourceRevision()))
             throw invalid(
                     "changed", "The holding changed. Select it again to review the updated values");
-        if (movements.stream().anyMatch(tx -> tx.getDate().isAfter(LocalDate.now())))
+        if (movements.stream().anyMatch(tx -> tx.getDate().isAfter(ReportingClock.today())))
             throw invalid(
                     "future", "Resolve future investment movements before converting this holding");
         List<ImportedPropertyValuations.Point> values =
-                ImportedPropertyValuations.history(asset, movements, history, LocalDate.now());
+                ImportedPropertyValuations.history(
+                        asset, movements, history, ReportingClock.today());
         RealEstatePropertyRequest property = propertyRequest(asset, movements, request);
         Long propertyId =
                 realEstate.createPropertyFromImportedAsset(userId, property, asset.getId()).getId();
@@ -222,7 +224,7 @@ public class PropertyConversionServiceImpl implements PropertyConversionService 
                 .currency(asset.getCurrency())
                 .acquisitionType(asset.getAcquisitionType())
                 .receivedValue(
-                        InvestmentHoldings.at(asset, movements, LocalDate.now())
+                        InvestmentHoldings.at(asset, movements, ReportingClock.today())
                                 .remainingReceivedValue())
                 .notes(asset.getNotes())
                 .mortgageId(request.mortgageId())

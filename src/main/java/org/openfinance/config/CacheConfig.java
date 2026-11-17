@@ -83,7 +83,18 @@ public class CacheConfig {
                         "cashflowSankey",
                         "borrowingCapacity",
                         "networthAllocation",
-                        "rssFeeds");
+                        "rssFeeds") {
+                    @Override
+                    protected org.springframework.cache.Cache createCaffeineCache(String name) {
+                        org.springframework.cache.caffeine.CaffeineCache cache =
+                                (org.springframework.cache.caffeine.CaffeineCache)
+                                        super.createCaffeineCache(name);
+                        return java.util.Set.of("marketQuotes", "assetLogos", "rssFeeds")
+                                        .contains(name)
+                                ? cache
+                                : new ReportingCalendarCache(cache);
+                    }
+                };
         cacheManager.setCaffeine(caffeineCacheBuilder());
         return cacheManager;
     }

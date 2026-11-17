@@ -1,3 +1,4 @@
+import { useToday } from '@/hooks/useReportingCalendar';
 import { SelectionCheckbox } from '@/components/bulk/BulkSelection';
 /**
  * TransactionList Component
@@ -106,13 +107,7 @@ const getPaymentMethodIcon = (method: PaymentMethod) => {
 };
 
 // Check if transaction date is in the future
-const isFutureDate = (dateString: string) => {
-  const transactionDate = new Date(dateString);
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  transactionDate.setHours(0, 0, 0, 0);
-  return transactionDate > today;
-};
+const isFutureDate = (dateString: string, today: string): boolean => dateString > today;
 
 /**
  * PayeeAvatarWithFallback — shows logo first, then falls back to initial avatar.
@@ -265,6 +260,7 @@ function TransactionItem({
   onFilterByCategory?: (categoryId: number) => void;
   onFilterByAccount?: (accountId: number) => void;
 }) {
+  const today = useToday();
   const { t } = useTranslation('common');
   const { t: tl } = useTranslation('transactions');
 
@@ -382,7 +378,7 @@ function TransactionItem({
           <p className="font-medium text-text-primary truncate">
             {transaction.description || transaction.payee || t('noDescription')}
           </p>
-          {isFutureDate(transaction.date) && (
+          {isFutureDate(transaction.date, today) && (
             <Badge
               variant="warning"
               className="shrink-0 flex items-center gap-1"

@@ -23,6 +23,7 @@ import org.openfinance.exception.MarketDataException;
 import org.openfinance.provider.MarketDataProvider;
 import org.openfinance.repository.CurrencyRepository;
 import org.openfinance.repository.ExchangeRateRepository;
+import org.openfinance.util.ReportingClock;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.dao.CannotAcquireLockException;
@@ -138,7 +139,7 @@ public class ExchangeRateService {
             return new ExchangeRateQuote(BigDecimal.ONE, List.of());
         }
 
-        LocalDate valuationDate = date == null ? LocalDate.now() : date;
+        LocalDate valuationDate = date == null ? ReportingClock.today() : date;
         CurrencyPegRegistry.Anchor from =
                 CurrencyPegRegistry.standard().resolve(fromCurrency, valuationDate);
         CurrencyPegRegistry.Anchor to =
@@ -164,7 +165,7 @@ public class ExchangeRateService {
         }
 
         List<ExchangeRate> fetched =
-                date != null && date.isBefore(LocalDate.now())
+                date != null && date.isBefore(ReportingClock.today())
                         ? fetchPairRatesForDate(fromCurrency, toCurrency, date)
                         : fetchPairRates(fromCurrency, toCurrency);
         if (!fetched.isEmpty()) {
@@ -266,7 +267,7 @@ public class ExchangeRateService {
             return 0;
         }
 
-        LocalDate today = LocalDate.now();
+        LocalDate today = LocalDate.now(java.time.ZoneOffset.UTC);
         List<ExchangeRate> newRates = new ArrayList<>();
 
         // Fetch USD-based rates for all currencies except USD
@@ -341,7 +342,7 @@ public class ExchangeRateService {
     @Transactional(
             propagation = org.springframework.transaction.annotation.Propagation.NOT_SUPPORTED)
     public int updateExchangeRatesForDate(LocalDate date) {
-        if (date.isAfter(LocalDate.now())) {
+        if (date.isAfter(ReportingClock.today())) {
             throw new IllegalArgumentException(
                     "Cannot fetch exchange rates for future date: " + date);
         }
@@ -361,7 +362,7 @@ public class ExchangeRateService {
 
     private List<ExchangeRate> fetchPairRatesForDate(
             String fromCurrency, String toCurrency, LocalDate date) {
-        if (date.isAfter(LocalDate.now())) {
+        if (date.isAfter(ReportingClock.today())) {
             throw new IllegalArgumentException(
                     "Cannot fetch exchange rates for future date: " + date);
         }
@@ -451,7 +452,7 @@ public class ExchangeRateService {
      */
     private List<ExchangeRate> fetchPairRates(String fromCurrency, String toCurrency) {
         List<String> symbols = new ArrayList<>();
-        LocalDate today = LocalDate.now();
+        LocalDate today = ReportingClock.today();
 
         // Build symbols for each non-USD leg so we can resolve any cross pair
         addSymbolForCurrency(symbols, fromCurrency);

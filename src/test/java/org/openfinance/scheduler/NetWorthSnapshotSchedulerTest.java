@@ -33,7 +33,10 @@ import org.openfinance.service.NetWorthService;
 @DisplayName("NetWorthSnapshotScheduler — Encryption Key Cache Tests")
 class NetWorthSnapshotSchedulerTest {
 
+    @Mock private org.openfinance.service.UserReportingClock userReportingClock;
+
     @Mock private NetWorthService netWorthService;
+    @Mock private org.openfinance.repository.NetWorthRepository netWorthRepository;
     @Mock private UserRepository userRepository;
     @Mock private SchedulerProperties schedulerProperties;
     @Mock private EncryptionKeyCache encryptionKeyCache;
@@ -74,9 +77,9 @@ class NetWorthSnapshotSchedulerTest {
     }
 
     @Test
-    @DisplayName("DEFAULT_CRON is set to 00:05 AM daily")
+    @DisplayName("DEFAULT_CRON checks snapshots five minutes after each recurring run")
     void defaultCronIsCorrect() {
-        assertThat(NetWorthSnapshotScheduler.DEFAULT_CRON).isEqualTo("0 5 0 * * ?");
+        assertThat(NetWorthSnapshotScheduler.DEFAULT_CRON).isEqualTo("0 5,20,35,50 * * * *");
     }
 
     @Nested
@@ -220,5 +223,53 @@ class NetWorthSnapshotSchedulerTest {
             verify(netWorthService).saveNetWorthSnapshot(eq(3L), any(), eq("GBP"));
             verify(netWorthService, never()).saveNetWorthSnapshot(anyLong());
         }
+    }
+
+    @Test
+    void scheduledSnapshotsUseEachOwnersCalendar() {
+        java.time.Instant instant = java.time.Instant.parse("2026-11-15T23:51:00Z");
+        when(userRepository.findAll())
+                .thenReturn(
+                        java.util.List.of(
+                                org.openfinance.entity.User.builder()
+                                        .id(1L)
+                                        .baseCurrency("EUR")
+                                        .build(),
+                                org.openfinance.entity.User.builder()
+                                        .id(2L)
+                                        .baseCurrency("EUR")
+                                        .build()));
+        when(userReportingClock.forUser(1L))
+                .thenReturn(java.time.Clock.fixed(instant, java.time.ZoneId.of("Europe/Paris")));
+        when(userReportingClock.forUser(2L))
+                .thenReturn(
+                        java.time.Clock.fixed(instant, java.time.ZoneId.of("America/New_York")));
+        java.time.Clock previous = org.openfinance.util.ReportingClock.current();
+        scheduler.createDailyNetWorthSnapshots();
+        verify(netWorthService)
+                .saveNetWorthSnapshot(1L, java.time.LocalDate.of(2026, 11, 16), "EUR");
+        verify(netWorthService)
+                .saveNetWorthSnapshot(2L, java.time.LocalDate.of(2026, 11, 15), "EUR");
+        assertThat(org.openfinance.util.ReportingClock.current()).isSameAs(previous);
+    }
+
+    @Test
+    void defaultPollingSkipsExistingDaysButManualRefreshStillRuns() {
+        when(userRepository.findAll())
+                .thenReturn(
+                        java.util.List.of(
+                                org.openfinance.entity.User.builder()
+                                        .id(1L)
+                                        .baseCurrency("EUR")
+                                        .build()));
+        when(netWorthRepository.existsByUserIdAndSnapshotDate(
+                        eq(1L), any(java.time.LocalDate.class)))
+                .thenReturn(true);
+        scheduler.createDailyNetWorthSnapshots();
+        verify(netWorthService, never())
+                .saveNetWorthSnapshot(eq(1L), any(java.time.LocalDate.class), eq("EUR"));
+        scheduler.triggerManualSnapshot(null);
+        verify(netWorthService)
+                .saveNetWorthSnapshot(eq(1L), any(java.time.LocalDate.class), eq("EUR"));
     }
 }

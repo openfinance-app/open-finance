@@ -17,14 +17,7 @@ import type { EntityType, OperationType } from '@/types/history';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { DEFAULT_PAGE_SIZE, PAGE_SIZE_OPTIONS } from '@/constants/pagination';
 import { useDateFormatter } from '@/hooks/useDateFormatter';
-
-function dateBoundary(value: string, end = false): string | undefined {
-  if (!value) return undefined;
-  const date = new Date(`${value}T00:00:00`);
-  if (!Number.isFinite(date.getTime())) return undefined;
-  if (end) date.setDate(date.getDate() + 1);
-  return date.toISOString();
-}
+import { dateBoundary } from '@/utils/timezone';
 
 const entities: EntityType[] = [
   'ACCOUNT',
@@ -44,7 +37,7 @@ const inputClass =
 
 export default function HistoryPage() {
   const { t } = useTranslation('history');
-  const { dateTime } = useDateFormatter();
+  const { dateTime, timeZone } = useDateFormatter();
   useDocumentTitle(t('title'));
   const queryClient = useQueryClient();
   const [currentPage, setCurrentPage] = useViewState('currentPage', 0);
@@ -63,15 +56,15 @@ export default function HistoryPage() {
     isLoading,
     error,
   } = useQuery({
-    queryKey: ['history', currentPage, pageSize, entityType, operationType, since, until],
+    queryKey: ['history', currentPage, pageSize, entityType, operationType, since, until, timeZone],
     queryFn: () =>
       historyService.getHistory(
         currentPage,
         pageSize,
         entityType,
-        dateBoundary(since),
+        dateBoundary(since, timeZone),
         operationType,
-        dateBoundary(until, true)
+        dateBoundary(until, timeZone, true)
       ),
   });
   const mutation = useMutation({

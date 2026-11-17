@@ -42,8 +42,8 @@ import org.openfinance.entity.TransactionType;
  * AdvancedSearchRequest request = AdvancedSearchRequest.builder()
  *     .query("grocery")
  *     .entityTypes(List.of(SearchResultType.TRANSACTION))
- *     .dateFrom(LocalDate.now().minusMonths(1))
- *     .dateTo(LocalDate.now())
+ *     .dateFrom(ReportingClock.today().minusMonths(1))
+ *     .dateTo(ReportingClock.today())
  *     .transactionType(TransactionType.EXPENSE)
  *     .limit(20)
  *     .build();

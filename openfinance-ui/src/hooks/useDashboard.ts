@@ -1,3 +1,4 @@
+import { useToday } from '@/hooks/useReportingCalendar';
 import { periodToDateRange } from '@/utils/navigation';
 import { useQuery } from '@tanstack/react-query';
 import apiClient from '@/services/apiClient';
@@ -309,13 +310,16 @@ export const useEstimatedInterest = (period: string = '1Y', dateRange?: DateRang
     retry: 1,
   });
 
-export const useTransactionsByPeriod = (period: number = 30, dateRange?: DateRange) =>
-  useQuery({
-    queryKey: ['dashboard', 'transactions-period', periodKey(period, dateRange)],
-    queryFn: () => fetchTransactionsByPeriod(period, dateRange),
+export const useTransactionsByPeriod = (period: number = 30, dateRange?: DateRange) => {
+  const today = useToday();
+  const range = dateRange ?? periodToDateRange(period, today);
+  return useQuery({
+    queryKey: ['dashboard', 'transactions-period', periodKey(period, range)],
+    queryFn: () => fetchTransactionsByPeriod(period, range),
     staleTime: 5 * 60 * 1000,
     retry: 1,
   });
+};
 
 // ─── Yearly Balance Variation ─────────────────────────────────────────────────
 

@@ -102,6 +102,16 @@ public class UserSettings {
     @ToString.Include
     private String timezone = "UTC";
 
+    /** Use the viewing device's timezone unless an account override is selected. */
+    @Column(name = "use_device_timezone", nullable = false)
+    @Builder.Default
+    private boolean useDeviceTimezone = true;
+
+    /** Last valid browser zone, used by scheduled work when device mode is selected. */
+    @Column(name = "last_device_timezone", length = 50, nullable = false)
+    @Builder.Default
+    private String lastDeviceTimezone = "UTC";
+
     /**
      * Country preference for tool localisation. ISO 3166-1 alpha-2 country codes: "FR", "US", "GB",
      * "DE", etc. Controls country-specific defaults in financial tools (e.g. notary fees, rental

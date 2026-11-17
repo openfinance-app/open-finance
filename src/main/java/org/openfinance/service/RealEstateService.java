@@ -39,6 +39,7 @@ import org.openfinance.service.history.ReversibleOperation;
 import org.openfinance.specification.RealEstateSpecification;
 import org.openfinance.util.AmountComparison;
 import org.openfinance.util.MathConstants;
+import org.openfinance.util.ReportingClock;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Caching;
 import org.springframework.data.domain.Page;
@@ -574,7 +575,7 @@ public class RealEstateService {
         }
 
         log.info("Property soft-deleted successfully: id={}, userId={}", propertyId, userId);
-        invalidateSnapshotsFrom(userId, LocalDate.now());
+        invalidateSnapshotsFrom(userId, ReportingClock.today());
 
         // Record in operation history
         operationHistoryService.record(
@@ -1072,7 +1073,8 @@ public class RealEstateService {
             yearsOwned =
                     Math.max(
                             0,
-                            ChronoUnit.YEARS.between(property.getPurchaseDate(), LocalDate.now()));
+                            ChronoUnit.YEARS.between(
+                                    property.getPurchaseDate(), ReportingClock.today()));
         }
 
         long monthsOwned = 0;
@@ -1080,7 +1082,8 @@ public class RealEstateService {
             monthsOwned =
                     Math.max(
                             0,
-                            ChronoUnit.MONTHS.between(property.getPurchaseDate(), LocalDate.now()));
+                            ChronoUnit.MONTHS.between(
+                                    property.getPurchaseDate(), ReportingClock.today()));
         }
 
         // Handle rental income
@@ -1127,7 +1130,7 @@ public class RealEstateService {
                             performanceBasis,
                             performanceBasis.add(totalGain),
                             property.getPurchaseDate(),
-                            LocalDate.now());
+                            ReportingClock.today());
         }
 
         log.info(
@@ -1218,7 +1221,7 @@ public class RealEstateService {
             assetService.updatePropertyAsset(saved.getAssetId(), userId, update);
         }
         recordValueHistory(saved, newValue);
-        invalidateSnapshotsFrom(userId, LocalDate.now());
+        invalidateSnapshotsFrom(userId, ReportingClock.today());
         RealEstatePropertyResponse response = toResponseWithDecryption(saved);
         operationHistoryService.record(
                 userId,
@@ -1381,7 +1384,7 @@ public class RealEstateService {
                 org.openfinance.util.PropertyValuationHistory.current(
                         property,
                         valueHistoryRepository.findHistoryUpToDate(
-                                property.getId(), LocalDate.now()));
+                                property.getId(), ReportingClock.today()));
         BigDecimal updated =
                 valuation.currency().equalsIgnoreCase(property.getCurrency())
                         ? valuation.amount()
@@ -1403,7 +1406,7 @@ public class RealEstateService {
      * today.
      */
     private void recordValueHistory(RealEstateProperty property, BigDecimal plainValue) {
-        recordValueHistory(property, plainValue, LocalDate.now());
+        recordValueHistory(property, plainValue, ReportingClock.today());
     }
 
     /**
@@ -1451,7 +1454,8 @@ public class RealEstateService {
                 RealEstateValueHistory.builder()
                         .propertyId(property.getId())
                         .userId(property.getUserId())
-                        .effectiveDate(effectiveDate != null ? effectiveDate : LocalDate.now())
+                        .effectiveDate(
+                                effectiveDate != null ? effectiveDate : ReportingClock.today())
                         .recordedValue(plainValue.toString())
                         .adjustment(adjustment)
                         .movementRecordedAt(recordedAt)
@@ -1668,7 +1672,8 @@ public class RealEstateService {
             long yearsOwned =
                     Math.max(
                             0,
-                            ChronoUnit.YEARS.between(property.getPurchaseDate(), LocalDate.now()));
+                            ChronoUnit.YEARS.between(
+                                    property.getPurchaseDate(), ReportingClock.today()));
             response.setYearsOwned(yearsOwned);
         }
 
@@ -1800,7 +1805,7 @@ public class RealEstateService {
                 org.openfinance.entity.PropertyStatusHistory.builder()
                         .propertyId(property.getId())
                         .userId(property.getUserId())
-                        .effectiveDate(LocalDate.now())
+                        .effectiveDate(ReportingClock.today())
                         .active(property.isActive())
                         .build());
     }
@@ -1811,7 +1816,7 @@ public class RealEstateService {
         try {
             int deleted =
                     netWorthRepository.deleteByUserIdAndSnapshotDateBetween(
-                            userId, fromDate.withDayOfMonth(1), LocalDate.now());
+                            userId, fromDate.withDayOfMonth(1), ReportingClock.today());
             if (deleted > 0) {
                 log.debug(
                         "Invalidated {} net worth snapshots for user {} (real estate change from {})",

@@ -54,6 +54,8 @@ export interface UserSettings {
   numberFormat: '1,234.56' | '1.234,56' | '1 234,56';
   language: string;
   timezone: string;
+  /** Follow the device timezone by default; false applies the saved timezone override. */
+  useDeviceTimezone: boolean;
   country: string;
   createdAt: string;
   updatedAt: string;
@@ -75,6 +77,7 @@ export interface UpdateUserSettingsRequest {
   numberFormat?: '1,234.56' | '1.234,56' | '1 234,56';
   language?: string;
   timezone?: string;
+  useDeviceTimezone?: boolean;
   secondaryCurrency?: string;
   country?: string;
   amountDisplayMode?: 'base' | 'native' | 'both';

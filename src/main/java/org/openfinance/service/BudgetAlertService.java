@@ -11,6 +11,7 @@ import org.openfinance.entity.Budget;
 import org.openfinance.entity.BudgetAlert;
 import org.openfinance.repository.BudgetAlertRepository;
 import org.openfinance.repository.BudgetRepository;
+import org.openfinance.util.ReportingClock;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -108,7 +109,7 @@ public class BudgetAlertService {
         BudgetProgressResponse currentProgress = null;
 
         for (BudgetAlert alert : enabledAlerts) {
-            java.time.LocalDate today = java.time.LocalDate.now();
+            java.time.LocalDate today = ReportingClock.today();
             if (today.isBefore(alert.getBudget().getStartDate())
                     || today.isAfter(alert.getBudget().getEndDate())) continue;
             Long budgetId = alert.getBudget().getId();
@@ -182,7 +183,8 @@ public class BudgetAlertService {
         // A prior month's trigger cannot suppress this month's alert.
         if (alert.getLastTriggered() != null
                 && progress.getStartDate() != null
-                && alert.getLastTriggered().toLocalDate().isBefore(progress.getStartDate())) {
+                && ReportingClock.dateOf(alert.getLastTriggered())
+                        .isBefore(progress.getStartDate())) {
             alert.setLastTriggered(null);
             alert.setRead(true);
         }
@@ -342,7 +344,7 @@ public class BudgetAlertService {
     }
 
     private void evaluateConfiguredAlert(BudgetAlert alert, Long userId) {
-        java.time.LocalDate today = java.time.LocalDate.now();
+        java.time.LocalDate today = ReportingClock.today();
         if (!alert.isEnabled()
                 || today.isBefore(alert.getBudget().getStartDate())
                 || today.isAfter(alert.getBudget().getEndDate())) return;

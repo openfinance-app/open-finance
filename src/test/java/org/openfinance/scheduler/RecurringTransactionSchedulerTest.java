@@ -30,6 +30,8 @@ import org.openfinance.service.RecurringTransactionService;
 @DisplayName("RecurringTransactionScheduler — Encryption Key Cache Tests")
 class RecurringTransactionSchedulerTest {
 
+    @Mock private org.openfinance.service.UserReportingClock userReportingClock;
+
     @Mock private RecurringTransactionService recurringTransactionService;
     @Mock private SchedulerProperties schedulerProperties;
     @Mock private org.openfinance.repository.UserRepository userRepository;
@@ -71,9 +73,9 @@ class RecurringTransactionSchedulerTest {
     }
 
     @Test
-    @DisplayName("DEFAULT_CRON is set to midnight daily")
+    @DisplayName("DEFAULT_CRON polls every quarter hour")
     void defaultCronIsCorrect() {
-        assertThat(RecurringTransactionScheduler.DEFAULT_CRON).isEqualTo("0 0 0 * * ?");
+        assertThat(RecurringTransactionScheduler.DEFAULT_CRON).isEqualTo("0 0,15,30,45 * * * *");
     }
 
     @Nested

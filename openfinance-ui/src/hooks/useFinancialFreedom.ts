@@ -1,3 +1,4 @@
+import { useReportingCalendar } from '@/hooks/useReportingCalendar';
 /**
  * useFinancialFreedom Hook
  *
@@ -60,6 +61,7 @@ const defaultState: CalculatorState = {
  * Hook for managing financial freedom calculator
  */
 export function useFinancialFreedom() {
+  const { date: today } = useReportingCalendar();
   const [state, setState] = useState<CalculatorState>(defaultState);
 
   // Load defaults on mount
@@ -239,8 +241,8 @@ export function useFinancialFreedom() {
           longevity.isInfinite || longevity.exceedsProjection
             ? null
             : new Date(
-                new Date().getFullYear(),
-                new Date().getMonth() + Math.ceil(longevity.monthsUntilDepletion),
+                today.getFullYear(),
+                today.getMonth() + Math.ceil(longevity.monthsUntilDepletion),
                 1
               ).getFullYear(),
         finalBalance: longevity.finalBalance,
@@ -256,7 +258,7 @@ export function useFinancialFreedom() {
     }));
 
     return result;
-  }, [state.input]);
+  }, [state.input, today]);
 
   return {
     /** Current input values */

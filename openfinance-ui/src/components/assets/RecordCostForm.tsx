@@ -1,3 +1,4 @@
+import { useToday } from '@/hooks/useReportingCalendar';
 import { buildTransactionsLink } from '@/utils/navigation';
 import { useId } from 'react';
 import { useForm, Controller } from 'react-hook-form';
@@ -14,7 +15,6 @@ import { Input } from '@/components/ui/Input';
 import { SimpleSelect } from '@/components/ui/SimpleSelect';
 import { NumberInput } from '@/components/ui/NumberInput';
 import { DateInput } from '@/components/ui/DateInput';
-import { getToday } from '@/utils/date';
 import { ExactDecimal } from '@/utils/exact-decimal';
 import { isValidDecimalString } from '@/utils/money';
 import { ImprovementValuationFields } from '@/components/assets/ImprovementValuationFields';
@@ -30,6 +30,7 @@ type CostTarget = {
 
 /** A focused expense form: the item and its currency are supplied by the detail view. */
 export function RecordCostForm({ target, onClose }: { target: CostTarget; onClose: () => void }) {
+  const today = useToday();
   const { t } = useTranslation('assets');
   const id = useId();
   const accounts = useAccounts('active');
@@ -62,7 +63,7 @@ export function RecordCostForm({ target, onClose }: { target: CostTarget; onClos
     .refine(
       values =>
         target.acquisitionType !== 'PLANNED' &&
-        values.date <= getToday() &&
+        values.date <= today &&
         (!target.purchaseDate || values.date >= target.purchaseDate),
       { path: ['movementType'], message: t('costEntry.acquireFirst') }
     );
@@ -78,7 +79,7 @@ export function RecordCostForm({ target, onClose }: { target: CostTarget; onClos
       accountId: '',
       description: '',
       amount: '',
-      date: getToday(),
+      date: today,
       movementType: 'MAINTENANCE',
       valuationChange: '0',
     },
@@ -184,7 +185,7 @@ export function RecordCostForm({ target, onClose }: { target: CostTarget; onClos
               render={({ field }) => (
                 <DateInput
                   min={target.purchaseDate}
-                  max={getToday()}
+                  max={today}
                   className="h-11 text-base md:h-10 md:text-sm"
                   id={`${id}-date`}
                   value={field.value}

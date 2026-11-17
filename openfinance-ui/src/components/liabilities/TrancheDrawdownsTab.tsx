@@ -1,3 +1,4 @@
+import { useToday } from '@/hooks/useReportingCalendar';
 import { decimalValue } from '@/utils/exact-decimal';
 import { useDateFormatter } from '@/hooks/useDateFormatter';
 import { useReverseDirectDraw } from '@/hooks/useTranches';
@@ -149,12 +150,13 @@ function AddTrancheForm({ liability, onDone }: { liability: Liability; onDone: (
 }
 
 export function TrancheDrawdownsTab({ liability }: { liability: Liability }) {
+  const today = useToday();
   const { t } = useTranslation('liabilities');
   const { date: formatDate } = useDateFormatter();
   const { data: tranches = [], isLoading, error } = useTranches(liability.id);
   const reverse = useReverseDirectDraw();
   const [reverseId, setReverseId] = useState<number | null>(null);
-  const [reverseDate, setReverseDate] = useState(new Date().toISOString().slice(0, 10));
+  const [reverseDate, setReverseDate] = useState(today);
   const [showAddForm, setShowAddForm] = useState(false);
   const [drawTrancheId, setDrawTrancheId] = useState<number | null>(null);
   const drawTranche = tranches.find(tr => tr.id === drawTrancheId) ?? null;

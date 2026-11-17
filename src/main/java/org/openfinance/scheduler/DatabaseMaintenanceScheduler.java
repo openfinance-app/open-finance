@@ -5,6 +5,8 @@ import java.sql.Statement;
 import javax.sql.DataSource;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.openfinance.config.SqliteDatabaseCondition;
+import org.springframework.context.annotation.Conditional;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
@@ -14,13 +16,14 @@ import org.springframework.stereotype.Component;
  * <p>Performs the following maintenance tasks:
  *
  * <ul>
- *   <li>VACUUM — reclaims unused pages from soft-deleted rows and compacts the DB file
+ *   <li>VACUUM — reclaims unused pages from physically deleted rows and compacts the DB file
  *   <li>ANALYZE — updates SQLite query planner statistics so indexes are used optimally
  *   <li>PRAGMA integrity_check — verifies database integrity (logged, not thrown)
  * </ul>
  *
  * <p>All operations are scheduled during low-usage periods (early morning). VACUUM is run weekly;
- * ANALYZE is run daily.
+ * ANALYZE is run daily. This component is registered only for SQLite databases; PostgreSQL manages
+ * its own maintenance.
  *
  * <p>Requirement REQ-3.1: Database performance — scheduled maintenance.
  *
@@ -28,6 +31,7 @@ import org.springframework.stereotype.Component;
  * @version 1.0
  */
 @Component
+@Conditional(SqliteDatabaseCondition.class)
 @Slf4j
 @RequiredArgsConstructor
 public class DatabaseMaintenanceScheduler {

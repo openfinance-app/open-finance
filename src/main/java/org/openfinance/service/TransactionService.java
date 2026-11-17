@@ -49,6 +49,7 @@ import org.openfinance.security.EncryptionService;
 import org.openfinance.service.history.ReversibleOperation;
 import org.openfinance.util.LoanPostingPolicy;
 import org.openfinance.util.PrincipalLegs;
+import org.openfinance.util.ReportingClock;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Caching;
 import org.springframework.context.MessageSource;
@@ -2297,7 +2298,7 @@ public class TransactionService {
         if (acquisition == org.openfinance.entity.AcquisitionType.PLANNED
                 || (acquired != null && date.isBefore(acquired))
                 || (sold != null && date.isAfter(sold))
-                || date.isAfter(LocalDate.now())) {
+                || date.isAfter(ReportingClock.today())) {
             throw new InvalidTransactionException(
                     "Record upkeep during ownership; link purchase payments separately");
         }
@@ -2932,9 +2933,9 @@ public class TransactionService {
      * request — completely transparent to the user.
      */
     private void invalidateSnapshotsFor(Long userId, LocalDate transactionDate) {
-        if (transactionDate == null || transactionDate.isAfter(LocalDate.now())) return;
+        if (transactionDate == null || transactionDate.isAfter(ReportingClock.today())) return;
         netWorthRepository.deleteByUserIdAndSnapshotDateBetween(
-                userId, transactionDate.withDayOfMonth(1), LocalDate.now());
+                userId, transactionDate.withDayOfMonth(1), ReportingClock.today());
     }
 
     // ========== Linked liability / property balance sync (Task 3) ==========
@@ -3253,7 +3254,7 @@ public class TransactionService {
                 || request.getInvestment() != null
                 || !currency.equals(request.getCurrency())
                 || (purchaseDate != null && request.getDate().isBefore(purchaseDate))
-                || request.getDate().isAfter(LocalDate.now())) {
+                || request.getDate().isAfter(ReportingClock.today())) {
             throw new InvalidTransactionException(
                     "Keep the sale linked to its item, or delete the sale payment to restore ownership");
         }

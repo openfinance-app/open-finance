@@ -16,6 +16,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.openfinance.entity.AssetCondition;
 import org.openfinance.entity.AssetType;
+import org.openfinance.util.ReportingClock;
 import org.openfinance.validation.ValidCurrency;
 
 /**
@@ -308,6 +309,6 @@ public class AssetRequest {
     public boolean isAcquisitionDateValid() {
         return purchaseDate == null
                 || acquisitionType == org.openfinance.entity.AcquisitionType.PLANNED
-                || !purchaseDate.isAfter(LocalDate.now());
+                || !purchaseDate.isAfter(ReportingClock.today());
     }
 }

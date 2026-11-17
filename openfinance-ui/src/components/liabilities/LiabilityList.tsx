@@ -1,3 +1,4 @@
+import { useToday } from '@/hooks/useReportingCalendar';
 import { decimalValue, ExactDecimal } from '@/utils/exact-decimal';
 import { SelectionCheckbox } from '@/components/bulk/BulkSelection';
 import { formatDecimal } from '@/utils/format';
@@ -44,6 +45,7 @@ export function LiabilityList({
   onViewDetails,
   highlightedId,
 }: LiabilityListProps) {
+  const today = useToday();
   const [deletingLiability, setDeletingLiability] = useState<Liability | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
@@ -116,7 +118,7 @@ export function LiabilityList({
             liability.currentBalance,
             liability.fundedAmount ?? liability.principal
           );
-          const monthsRemaining = calculateMonthsRemaining(liability.endDate);
+          const monthsRemaining = calculateMonthsRemaining(liability.endDate, today);
           const monthlyPayment =
             liability.currentBalance > 0
               ? (decimalValue(liability, 'effectiveMonthlyPayment') ??

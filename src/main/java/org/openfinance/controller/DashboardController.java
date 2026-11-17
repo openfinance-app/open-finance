@@ -21,6 +21,7 @@ import org.openfinance.entity.NetWorth;
 import org.openfinance.entity.User;
 import org.openfinance.service.DashboardService;
 import org.openfinance.service.NetWorthService;
+import org.openfinance.util.ReportingClock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -347,10 +348,10 @@ public class DashboardController {
             @RequestParam(required = false) Integer month) {
 
         if (year == null) {
-            year = java.time.LocalDate.now().getYear();
+            year = ReportingClock.today().getYear();
         }
         if (month == null) {
-            month = java.time.LocalDate.now().getMonthValue();
+            month = ReportingClock.today().getMonthValue();
         }
 
         log.debug("Received daily cash flow request for year: {}, month: {}", year, month);
@@ -371,7 +372,7 @@ public class DashboardController {
             @RequestParam(defaultValue = "DAY") CashFlowGranularity granularity,
             @RequestParam(required = false) Integer year,
             @RequestParam(required = false) Integer month) {
-        LocalDate today = LocalDate.now();
+        LocalDate today = ReportingClock.today();
         User user = (User) authentication.getPrincipal();
         return ResponseEntity.ok(
                 dashboardService.getCashFlowHistory(
@@ -533,7 +534,7 @@ public class DashboardController {
         Long userId = user.getId();
 
         // Calculate effective date range
-        java.time.LocalDate effectiveEnd = (endDate != null) ? endDate : java.time.LocalDate.now();
+        java.time.LocalDate effectiveEnd = (endDate != null) ? endDate : ReportingClock.today();
         java.time.LocalDate effectiveStart;
         if (startDate != null) {
             effectiveStart = startDate;
@@ -550,7 +551,7 @@ public class DashboardController {
         }
 
         // A reporting window may extend into the future, but observations may not.
-        java.time.LocalDate today = java.time.LocalDate.now();
+        java.time.LocalDate today = ReportingClock.today();
         effectiveEnd = effectiveEnd.isAfter(today) ? today : effectiveEnd;
         if (effectiveStart.isAfter(effectiveEnd)) {
             return ResponseEntity.ok(List.of());

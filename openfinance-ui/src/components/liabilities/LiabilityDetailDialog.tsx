@@ -1,3 +1,4 @@
+import { useToday } from '@/hooks/useReportingCalendar';
 import { decimalValue, ExactDecimal } from '@/utils/exact-decimal';
 import { Link } from 'react-router';
 import { buildTransactionsLink } from '@/utils/navigation';
@@ -20,7 +21,6 @@ import { AssetFinancingSection } from '@/components/assets/AssetFinancingSection
  *   - Amortization Schedule: full payment schedule table
  *   - Linked Payments: transactions linked to this liability
  */
-import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useDateFormatter } from '@/hooks/useDateFormatter';
 import { CreditCard, RefreshCcw, AlertCircle } from 'lucide-react';
@@ -36,7 +36,6 @@ import { LiabilityBreakdownPanel } from '@/components/liabilities/LiabilityBreak
 import { TrancheDrawdownsTab } from '@/components/liabilities/TrancheDrawdownsTab';
 import { AttachmentList, AttachmentUpload } from '@/components/attachments';
 import { AttachmentEntityType } from '@/types/attachment';
-import { getToday } from '@/utils/date';
 import {
   useAmortizationSchedule,
   useLiabilityBreakdown,
@@ -540,6 +539,7 @@ export function LiabilityDetailDialog({
   initialTab = 'overview',
   onClose: onClosed,
 }: LiabilityDetailDialogProps) {
+  const today = useToday();
   const { onClose, closing, onAnimationEnd } = useAnimatedClose(onClosed);
   const { t } = useTranslation('liabilities');
   const { date: formatDate } = useDateFormatter();
@@ -566,7 +566,6 @@ export function LiabilityDetailDialog({
   // Local-timezone today (getToday), derived once per render batch — the UTC-based
   // toISOString().split('T')[0] would shift the interest-only window check by a day for
   // users west of UTC in the evening (and east of UTC in the early morning).
-  const today = useMemo(() => getToday(), []);
   const activeInterestOnlyTranche = scheduleTranches.find(
     tr =>
       tr.status === 'DRAWN' &&

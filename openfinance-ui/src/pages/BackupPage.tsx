@@ -10,6 +10,7 @@ import { Download, RefreshCw, Trash2, Upload, Database, Clock, AlertCircle } fro
 import { useTranslation } from 'react-i18next';
 import { useQueryClient } from '@tanstack/react-query';
 import { useLocale } from '@/context/LocaleContext';
+import { useDateFormatter } from '@/hooks/useDateFormatter';
 import { useAuthContext } from '@/context/AuthContext';
 import apiClient from '@/services/apiClient';
 import type { User, UserSettings } from '@/types/user';
@@ -41,7 +42,8 @@ import type { BackupResponse, BackupStatus, BackupType } from '@/types/backup';
 
 export default function BackupPage() {
   const { t } = useTranslation('backup');
-  const { locale, setLocale } = useLocale();
+  const { setLocale } = useLocale();
+  const { dateTime: formatDate } = useDateFormatter();
   const { user, updateUser } = useAuthContext();
   const queryClient = useQueryClient();
   useDocumentTitle(t('title'));
@@ -222,17 +224,6 @@ export default function BackupPage() {
       default:
         return <Badge variant="default">{type}</Badge>;
     }
-  };
-
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return new Intl.DateTimeFormat(locale, {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    }).format(date);
   };
 
   if (error) {

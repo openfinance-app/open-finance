@@ -1,3 +1,4 @@
+import { useToday } from '@/hooks/useReportingCalendar';
 import { useMemo } from 'react';
 import { useNavigate } from 'react-router';
 import { useTranslation } from 'react-i18next';
@@ -7,7 +8,6 @@ import {
   endOfMonth,
   eachDayOfInterval,
   getDay,
-  isToday,
 } from 'date-fns';
 import { enUS, fr } from 'date-fns/locale';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/Tooltip';
@@ -29,6 +29,7 @@ export default function DailyCashFlowGrid({
   dailyData,
   baseCurrency,
 }: DailyCashFlowGridProps) {
+  const today = useToday();
   const { t, i18n } = useTranslation('dashboard');
   const navigate = useNavigate();
   const locale = i18n.language.startsWith('fr') ? fr : enUS;
@@ -122,7 +123,7 @@ export default function DailyCashFlowGrid({
                     }
                     className={cn(
                       'flex flex-col w-full text-left p-1 rounded-sm border transition-colors duration-150 cursor-pointer overflow-hidden',
-                      isToday(date)
+                      formatDate(date, 'yyyy-MM-dd') === today
                         ? 'border-primary bg-primary/5'
                         : 'border-border bg-surface hover:bg-surface-elevated'
                     )}
@@ -133,7 +134,9 @@ export default function DailyCashFlowGrid({
                     <span
                       className={cn(
                         'text-[10px] font-semibold leading-none',
-                        isToday(date) ? 'text-primary' : 'text-text-secondary'
+                        formatDate(date, 'yyyy-MM-dd') === today
+                          ? 'text-primary'
+                          : 'text-text-secondary'
                       )}
                     >
                       {formatDate(date, 'd', { locale })}

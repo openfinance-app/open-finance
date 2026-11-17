@@ -3,6 +3,7 @@ package org.openfinance.dto;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.Pattern;
+import org.openfinance.validator.ValidTimezone;
 
 /**
  * Request DTO for updating user settings.
@@ -27,6 +28,8 @@ import jakarta.validation.constraints.Pattern;
  *     in the UI; when false, uses smart per-currency decimals. Null leaves unchanged.
  * @param preferredDecimalPlaces Decimal places (1-8) used when the override is enabled; null leaves
  *     unchanged
+ * @param useDeviceTimezone True follows the device; false uses the saved timezone. Supplying a
+ *     timezone without this flag selects an account override; otherwise null leaves unchanged.
  */
 public record UserSettingsUpdateRequest(
         @Pattern(regexp = "dark|light", message = "{settings.theme.invalid}") String theme,
@@ -39,7 +42,7 @@ public record UserSettingsUpdateRequest(
                         message = "{settings.number.format.invalid}")
                 String numberFormat,
         @Pattern(regexp = "[a-z]{2}", message = "{settings.language.invalid}") String language,
-        String timezone,
+        @ValidTimezone String timezone,
         @Pattern(regexp = "[A-Z]{3}|", message = "{settings.currency.invalid}")
                 String secondaryCurrency,
         @Pattern(regexp = "[A-Z]{2}", message = "{settings.country.invalid}") String country,
@@ -48,4 +51,5 @@ public record UserSettingsUpdateRequest(
         Boolean decimalPlacesOverrideEnabled,
         @Min(value = 1, message = "{settings.decimal.places.invalid}")
                 @Max(value = 8, message = "{settings.decimal.places.invalid}")
-                Integer preferredDecimalPlaces) {}
+                Integer preferredDecimalPlaces,
+        Boolean useDeviceTimezone) {}

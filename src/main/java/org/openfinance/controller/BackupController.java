@@ -175,7 +175,7 @@ public class BackupController {
      *     "checksum": "d4e5f6...",
      *     "status": "COMPLETED",
      *     "backupType": "AUTOMATIC",
-     *     "description": "Automatic weekly backup",
+     *     "description": "Automatic scheduled backup",
      *     "createdAt": "2026-02-04T02:00:00"
      *   },
      *   {

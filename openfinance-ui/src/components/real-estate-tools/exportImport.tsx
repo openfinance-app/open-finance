@@ -158,10 +158,11 @@ export function generatePDFContent(
   _inputs: BuyRentInputs | InvestmentInputs,
   results: BuyRentResults | InvestmentResults,
   type: 'buy_rent' | 'rental_investment',
-  baseCurrency: string = DEFAULT_CURRENCY
+  baseCurrency: string = DEFAULT_CURRENCY,
+  timeZone?: string
 ): string {
   const lang = i18n.language?.startsWith('fr') ? 'fr-FR' : 'en-US';
-  const date = new Date().toLocaleDateString(lang);
+  const date = new Date().toLocaleDateString(lang, { timeZone });
   const escapedTitle = title.replace(
     /[&<>"']/g,
     char =>
@@ -181,7 +182,7 @@ export function generatePDFContent(
       <meta charset="UTF-8">
       <title>${escapedTitle}</title>
       <style>
-        body { font-family: Arial, sans-serif; margin: 40px; }
+        body { font-family: Inter, 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; margin: 40px; }
         h1 { color: #333; border-bottom: 2px solid #333; padding-bottom: 10px; }
         h2 { color: #666; margin-top: 30px; }
         table { width: 100%; border-collapse: collapse; margin: 20px 0; }

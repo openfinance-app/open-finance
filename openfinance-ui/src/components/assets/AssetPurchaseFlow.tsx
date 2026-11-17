@@ -1,3 +1,4 @@
+import { useToday } from '@/hooks/useReportingCalendar';
 import { useMemo, useState } from 'react';
 import { isAxiosError } from 'axios';
 import { useTranslation } from 'react-i18next';
@@ -12,7 +13,6 @@ import { useAccounts } from '@/hooks/useAccounts';
 import { useOwnershipOperation } from '@/hooks/useOwnershipOperation';
 import { ExactDecimal } from '@/utils/exact-decimal';
 import { apiErrorMessage } from '@/utils/api-error';
-import { getToday } from '@/utils/date';
 import type { Asset, AssetRequest } from '@/types/asset';
 
 /** One purchase with a reviewed payment, optional borrowing and safe retry. */
@@ -25,6 +25,7 @@ export function AssetPurchaseFlow({
   onClose: () => void;
   onPurchased: (id: number) => void;
 }) {
+  const today = useToday();
   const { t } = useTranslation('assets');
   const [draft, setDraft] = useState<AssetRequest>();
   const [review, setReview] = useState(false);
@@ -48,7 +49,7 @@ export function AssetPurchaseFlow({
         ? {
             ...plan,
             acquisitionType: 'PURCHASE' as const,
-            purchaseDate: getToday(),
+            purchaseDate: today,
             currentPrice: plan.purchasePrice,
             exactValues: {
               ...plan.exactValues,
@@ -56,7 +57,7 @@ export function AssetPurchaseFlow({
             },
           }
         : undefined,
-    [plan]
+    [plan, today]
   );
   const details = useMemo(
     () =>
@@ -121,7 +122,7 @@ export function AssetPurchaseFlow({
     price.gt(0) &&
     amountsValid &&
     !missingAccount &&
-    draft.purchaseDate <= getToday() &&
+    draft.purchaseDate <= today &&
     (funding.source === 'none' ||
       (loanAmount.gt(0) &&
         (funding.source === 'new'

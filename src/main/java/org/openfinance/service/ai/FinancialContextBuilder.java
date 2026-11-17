@@ -34,6 +34,7 @@ import org.openfinance.service.BudgetService;
 import org.openfinance.service.DefaultCurrencyProvider;
 import org.openfinance.service.ExchangeRateService;
 import org.openfinance.service.NetWorthService;
+import org.openfinance.util.ReportingClock;
 import org.springframework.context.MessageSource;
 import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.stereotype.Service;
@@ -87,11 +88,11 @@ public class FinancialContextBuilder {
             String context,
             List<String> previousUserQuestions) {
         FinancialQuestion query =
-                FinancialQuestion.resolve(question, LocalDate.now(), previousUserQuestions);
+                FinancialQuestion.resolve(question, ReportingClock.today(), previousUserQuestions);
         boolean snapshot =
                 query.mentions(
                         "net worth|patrimoine|valeur nette|assets?|actifs?|liabilities|debts?|passifs?|dettes?|balance|solde|checking|compte|budget");
-        LocalDate today = LocalDate.now();
+        LocalDate today = ReportingClock.today();
         if (snapshot
                 && (!query.periodResolved()
                         || !today.equals(query.end())
@@ -424,7 +425,7 @@ public class FinancialContextBuilder {
                     "accountBalance",
                     account.getBalance(),
                     account.getCurrency(),
-                    LocalDate.now().toString(),
+                    ReportingClock.today().toString(),
                     account.getName(),
                     locale);
         }
@@ -442,7 +443,7 @@ public class FinancialContextBuilder {
             List<Account> accounts,
             String currency,
             Locale locale) {
-        String date = LocalDate.now().toString();
+        String date = ReportingClock.today().toString();
         try {
             BigDecimal balance =
                     accounts.stream()
@@ -484,7 +485,7 @@ public class FinancialContextBuilder {
 
     private void appendCashFlow(
             StringBuilder context, Long userId, String currency, Locale locale) {
-        LocalDate end = LocalDate.now();
+        LocalDate end = ReportingClock.today();
         LocalDate start = end.withDayOfMonth(1);
         String period = start + " / " + end;
         try {
@@ -532,7 +533,8 @@ public class FinancialContextBuilder {
     }
 
     private void appendBudgets(StringBuilder context, Long userId, Locale locale) {
-        for (Budget budget : budgetRepository.findActiveByUserIdAndDate(userId, LocalDate.now())) {
+        for (Budget budget :
+                budgetRepository.findActiveByUserIdAndDate(userId, ReportingClock.today())) {
             try {
                 BudgetProgressResponse progress =
                         budgetService.calculateBudgetProgress(budget.getId(), userId);
@@ -574,7 +576,7 @@ public class FinancialContextBuilder {
     private void appendTransactions(StringBuilder context, Long userId, Locale locale) {
         List<Transaction> recent =
                 transactionRepository.findByUserIdAndDateBetween(
-                        userId, LocalDate.now().minusMonths(3), LocalDate.now());
+                        userId, ReportingClock.today().minusMonths(3), ReportingClock.today());
         recent.stream()
                 .filter(t -> !Boolean.TRUE.equals(t.getIsDeleted()))
                 .sorted(Comparator.comparing(Transaction::getDate).reversed())
@@ -605,7 +607,7 @@ public class FinancialContextBuilder {
                         "assetValue",
                         asset.getTotalValue(),
                         asset.getCurrency(),
-                        LocalDate.now().toString(),
+                        ReportingClock.today().toString(),
                         asset.getName(),
                         locale);
             }
@@ -617,7 +619,7 @@ public class FinancialContextBuilder {
                     "liabilityBalance",
                     new BigDecimal(liability.getCurrentBalance()),
                     liability.getCurrency(),
-                    LocalDate.now().toString(),
+                    ReportingClock.today().toString(),
                     liability.getName(),
                     locale);
         }

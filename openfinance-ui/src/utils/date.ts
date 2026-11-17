@@ -3,7 +3,7 @@
  * Task 3.2.20: Add date formatting utilities
  * Task 1.4.1 (i18n): Add useRelativeDateFormatter hook; remove hardcoded English from formatRelativeDate
  */
-import { formatDistanceToNow } from 'date-fns';
+import { formatDistanceToNow, parseISO } from 'date-fns';
 import type { Locale as DateFnsLocale } from 'date-fns';
 import { useLocale } from '@/context/LocaleContext';
 import i18next from 'i18next';
@@ -17,18 +17,26 @@ import i18next from 'i18next';
  *
  * Example: "2024-01-15" => "15 Jan 2024"
  */
-export function formatDate(date: string | Date, dateFormat?: string): string {
-  const d =
-    typeof date === 'string'
-      ? new Date(/^\d{4}-\d{2}-\d{2}$/.test(date) ? `${date}T00:00:00` : date)
-      : date;
+export function formatDate(date: string | Date, dateFormat?: string, timeZone?: string): string {
+  const calendarDate = typeof date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(date);
+  const d = typeof date === 'string' ? new Date(calendarDate ? `${date}T00:00:00Z` : date) : date;
+  const zone = calendarDate ? 'UTC' : timeZone;
 
   if (dateFormat === 'YYYY-MM-DD') {
-    return toLocalISODate(d);
+    const parts = new Intl.DateTimeFormat('en', {
+      timeZone: zone,
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    }).formatToParts(d);
+    const part = (type: Intl.DateTimeFormatPartTypes): string =>
+      parts.find(value => value.type === type)?.value ?? '';
+    return `${part('year')}-${part('month')}-${part('day')}`;
   }
 
   if (dateFormat === 'MM/DD/YYYY') {
     return new Intl.DateTimeFormat('en-US', {
+      timeZone: zone,
       year: 'numeric',
       month: '2-digit',
       day: '2-digit',
@@ -37,6 +45,7 @@ export function formatDate(date: string | Date, dateFormat?: string): string {
 
   if (dateFormat === 'DD/MM/YYYY') {
     return new Intl.DateTimeFormat('en-GB', {
+      timeZone: zone,
       year: 'numeric',
       month: '2-digit',
       day: '2-digit',
@@ -54,6 +63,7 @@ export function formatDate(date: string | Date, dateFormat?: string): string {
   })();
 
   return new Intl.DateTimeFormat(inferredLocale, {
+    timeZone: zone,
     day: 'numeric',
     month: 'short',
     year: 'numeric',
@@ -169,8 +179,8 @@ export function getToday(): string {
 /**
  * Get a date N days ago in ISO format (YYYY-MM-DD), in the user's local timezone.
  */
-export function getDaysAgo(days: number): string {
-  const date = new Date();
+export function getDaysAgo(days: number, today = getToday()): string {
+  const date = parseISO(today);
   date.setDate(date.getDate() - days);
   return toLocalISODate(date);
 }
@@ -178,8 +188,8 @@ export function getDaysAgo(days: number): string {
 /**
  * Get the first day of the current month in ISO format, in the user's local timezone.
  */
-export function getStartOfMonth(): string {
-  const date = new Date();
+export function getStartOfMonth(today = getToday()): string {
+  const date = parseISO(today);
   date.setDate(1);
   return toLocalISODate(date);
 }
@@ -187,8 +197,8 @@ export function getStartOfMonth(): string {
 /**
  * Get the first day of the current year in ISO format, in the user's local timezone.
  */
-export function getStartOfYear(): string {
-  const date = new Date();
+export function getStartOfYear(today = getToday()): string {
+  const date = parseISO(today);
   date.setMonth(0, 1);
   return toLocalISODate(date);
 }

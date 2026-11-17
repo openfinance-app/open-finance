@@ -4,8 +4,16 @@ import { mockAuthentication, renderWithProviders } from '@/test/test-utils';
 import i18n from '@/test/i18n-test';
 import RssFeedCard from '@/components/dashboard/RssFeedCard';
 import type { RssFeedItem } from '@/hooks/useRssFeed';
-const state = vi.hoisted(() => ({ query: vi.fn(), refresh: vi.fn() }));
+const state = vi.hoisted(() => ({
+  query: vi.fn(),
+  refresh: vi.fn(),
+  settings: { dateFormat: 'YYYY-MM-DD', timezone: 'America/New_York', useDeviceTimezone: false },
+}));
 vi.mock('@/hooks/useRssFeed', () => ({ useFinanceNews: state.query }));
+vi.mock('@/hooks/useUserSettings', async importOriginal => ({
+  ...(await importOriginal<typeof import('@/hooks/useUserSettings')>()),
+  useUserSettings: () => ({ data: state.settings }),
+}));
 const item: RssFeedItem = {
   title: 'Market report',
   link: 'https://example.test/report',
@@ -26,6 +34,7 @@ beforeEach(async () => {
   vi.resetAllMocks();
   mockAuthentication();
   await i18n.changeLanguage('en');
+  state.settings.dateFormat = 'YYYY-MM-DD';
   vi.useFakeTimers({ toFake: ['Date'] });
   vi.setSystemTime(new Date('2026-01-10T12:00:00Z'));
   feeds([item]);
@@ -37,19 +46,22 @@ afterEach(async () => {
 
 describe('Finance news feed boundaries', () => {
   it.each(['en', 'fr'])(
-    'localizes recent and older publication dates in both the list and article dialog: %s',
+    'uses the locale for relative times and account preferences for older dates: %s',
     async language => {
       await i18n.changeLanguage(language);
+      state.settings.dateFormat = language === 'fr' ? 'DD/MM/YYYY' : 'MM/DD/YYYY';
       feeds([
         item,
         {
           ...item,
           title: 'Older report',
           link: 'https://example.test/older',
-          pubDate: '2025-12-01T12:00:00Z',
+          pubDate: '2025-12-01T00:30:00Z',
         },
       ]);
       renderWithProviders(<RssFeedCard />);
+      const olderDate = language === 'fr' ? '30/11/2025' : '11/30/2025';
+      expect(screen.getByText(olderDate)).toBeVisible();
       expect(screen.getByText(language === 'fr' ? 'il y a 1 jour' : '1 day ago')).toBeVisible();
       fireEvent.click(screen.getByRole('heading', { name: 'Market report' }));
       expect(
@@ -59,9 +71,7 @@ describe('Finance news feed boundaries', () => {
       ).toBeVisible();
       fireEvent.keyDown(screen.getByRole('dialog'), { key: 'Escape' });
       fireEvent.click(screen.getByRole('heading', { name: 'Older report' }));
-      expect(screen.getByRole('dialog')).toHaveTextContent(
-        language === 'fr' ? '1 déc. 2025' : 'Dec 1, 2025'
-      );
+      expect(screen.getByRole('dialog')).toHaveTextContent(olderDate);
       expect(state.query).toHaveBeenCalledWith(language);
     }
   );

@@ -1,6 +1,6 @@
+import { useToday } from '@/hooks/useReportingCalendar';
 import { FormSection } from '@/components/ui/FormSection';
 import { useFormDraft } from '@/hooks/useFormDraft';
-import { getToday } from '@/utils/date';
 import { useState } from 'react';
 import { useAssets } from '@/hooks/useAssets';
 
@@ -171,10 +171,10 @@ export function LiabilityForm({
   onCancel,
   isLoading,
 }: LiabilityFormProps) {
+  const today = useToday();
   const isEditing = !!liability;
   const [intent, setIntent] = useState<'existing' | 'new' | 'approved'>('existing');
   const { data: assets = [] } = useAssets();
-  const today = getToday();
   const { t } = useTranslation('liabilities');
   // Get base currency from user settings (REQ-6.3)
   const { baseCurrency } = useAuthContext();

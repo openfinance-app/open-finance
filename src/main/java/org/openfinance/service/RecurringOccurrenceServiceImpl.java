@@ -9,6 +9,7 @@ import org.openfinance.entity.RecurringTransaction;
 import org.openfinance.entity.TransactionType;
 import org.openfinance.repository.RecurringTransactionRepository;
 import org.openfinance.service.history.ReversibleOperation;
+import org.openfinance.util.ReportingClock;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -40,7 +41,7 @@ public class RecurringOccurrenceServiceImpl implements RecurringOccurrenceServic
                 recurringRepository.findByIdAndUserId(recurringId, userId).orElseThrow();
         if (!Boolean.TRUE.equals(template.getIsActive())
                 || !expectedDate.equals(template.getNextOccurrence())) return false;
-        if (expectedDate.isAfter(LocalDate.now())) return false;
+        if (expectedDate.isAfter(ReportingClock.today())) return false;
         if (!activeAccount(template.getAccountId(), userId)
                 || (template.getToAccountId() != null
                         && !activeAccount(template.getToAccountId(), userId))) {

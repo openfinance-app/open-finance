@@ -1,3 +1,4 @@
+import { useToday } from '@/hooks/useReportingCalendar';
 import { ExactDecimal, decimalValue, exactSum } from '@/utils/exact-decimal';
 import { useDateFormatter } from '@/hooks/useDateFormatter';
 import { useId, useState, useCallback, useMemo } from 'react';
@@ -198,6 +199,7 @@ export default function CashflowSankeyCard({
   navDateRange,
   isAllTime = false,
 }: CashflowSankeyCardProps) {
+  const today = useToday();
   const { t, i18n } = useTranslation('dashboard');
   const { date: formatDate } = useDateFormatter();
   const { isAmountsVisible } = useVisibility();
@@ -238,7 +240,7 @@ export default function CashflowSankeyCard({
   );
 
   const [showVariations, setShowVariations] = useState(true);
-  const currentRange = dateRange ?? periodToDateRange(period);
+  const currentRange = dateRange ?? periodToDateRange(period, today);
   const selectedPeriodLabel =
     periodLabel ??
     (isAllTime

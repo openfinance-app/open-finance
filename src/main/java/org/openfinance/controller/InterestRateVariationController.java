@@ -2,7 +2,6 @@ package org.openfinance.controller;
 
 import jakarta.validation.Valid;
 import java.math.BigDecimal;
-import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
@@ -12,6 +11,7 @@ import org.openfinance.dto.InterestRateVariationResponse;
 import org.openfinance.entity.User;
 import org.openfinance.service.InterestCalculatorService;
 import org.openfinance.service.InterestRateVariationService;
+import org.openfinance.util.ReportingClock;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -96,7 +96,8 @@ public class InterestRateVariationController {
             @PathVariable("accountId") Long accountId, Authentication authentication) {
         User user = (User) authentication.getPrincipal();
         InterestCalculatorService.YearEstimate currentYear =
-                calculatorService.calculateYear(accountId, user.getId(), LocalDate.now().getYear());
+                calculatorService.calculateYear(
+                        accountId, user.getId(), ReportingClock.today().getYear());
         BigDecimal historical =
                 calculatorService.calculateHistoricalAccumulated(accountId, user.getId(), "ALL");
         return ResponseEntity.ok(

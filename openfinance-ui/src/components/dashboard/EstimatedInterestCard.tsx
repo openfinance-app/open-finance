@@ -1,3 +1,4 @@
+import { useToday } from '@/hooks/useReportingCalendar';
 import { decimalValue, exactSum } from '@/utils/exact-decimal';
 import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router';
@@ -32,6 +33,7 @@ export default function EstimatedInterestCard({
   periodLabel: selectedPeriodLabel,
   periodRange,
 }: EstimatedInterestCardProps) {
+  const today = useToday();
   const [filterType, setFilterType] = useState<'ALL' | 'ACCOUNTS' | 'LIABILITIES'>('ALL');
   const {
     convert: convertNumber,
@@ -125,7 +127,7 @@ export default function EstimatedInterestCard({
           <div className="mt-2 flex items-baseline justify-center text-xs text-text-secondary gap-1">
             <TrendingUp className="w-3 h-3 shrink-0 text-blue-400" />
             <span className="min-w-0 [overflow-wrap:anywhere]">
-              {t('estimatedInterest.projectedCurrentYear', { year: new Date().getFullYear() })}:{' '}
+              {t('estimatedInterest.projectedCurrentYear', { year: Number(today.slice(0, 4)) })}:{' '}
               <span className="text-text-primary font-medium">
                 <ConvertedAmount
                   amount={displayProjected}

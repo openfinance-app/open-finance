@@ -8,7 +8,7 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
 
-/** Adds the storage clock's offset to API timestamps without changing calendar dates. */
+/** Converts the storage clock's timestamps to UTC instants without changing calendar dates. */
 public class ServerTimestampSerializer extends JsonSerializer<LocalDateTime> {
     protected ZoneId storageZone() {
         return ZoneId.systemDefault();
@@ -17,7 +17,7 @@ public class ServerTimestampSerializer extends JsonSerializer<LocalDateTime> {
     @Override
     public void serialize(LocalDateTime value, JsonGenerator generator, SerializerProvider provider)
             throws IOException {
-        generator.writeString(value.atZone(storageZone()).toOffsetDateTime().toString());
+        generator.writeString(value.atZone(storageZone()).toInstant().toString());
     }
 
     /** Operation history uses UTC even when the server's local clock uses another zone. */

@@ -27,6 +27,7 @@ import java.time.LocalDateTime;
  * @param preferredDecimalPlaces Decimal places to display when the override is enabled (1-8)
  * @param createdAt Timestamp when settings were created
  * @param updatedAt Timestamp when settings were last updated
+ * @param useDeviceTimezone Follow each device's timezone instead of the saved account timezone
  */
 public record UserSettingsResponse(
         Long id,
@@ -42,4 +43,5 @@ public record UserSettingsResponse(
         boolean decimalPlacesOverrideEnabled,
         int preferredDecimalPlaces,
         LocalDateTime createdAt,
-        LocalDateTime updatedAt) {}
+        LocalDateTime updatedAt,
+        boolean useDeviceTimezone) {}

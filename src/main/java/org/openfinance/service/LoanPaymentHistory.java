@@ -13,6 +13,7 @@ import org.openfinance.entity.Transaction;
 import org.openfinance.entity.TransactionType;
 import org.openfinance.repository.TransactionRepository;
 import org.openfinance.util.LoanMovementClassification;
+import org.openfinance.util.ReportingClock;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -27,7 +28,7 @@ public class LoanPaymentHistory {
         List<Transaction> payments =
                 transactions.findIncludingConvertedAccount(loan.getId(), loan.getUserId()).stream()
                         .filter(tx -> !Boolean.TRUE.equals(tx.getIsDeleted()))
-                        .filter(tx -> !tx.getDate().isAfter(LocalDate.now()))
+                        .filter(tx -> !tx.getDate().isAfter(ReportingClock.today()))
                         .filter(tx -> isPayment(loan, tx))
                         .sorted(
                                 Comparator.comparing(Transaction::getDate)

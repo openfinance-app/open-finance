@@ -298,3 +298,5 @@ describe('TransactionFilters', () => {
     expect(mockOnFiltersChange).toHaveBeenCalledWith(expect.objectContaining({ type: undefined }));
   });
 });
+
+vi.mock('@/hooks/useReportingCalendar', () => ({ useToday: () => '2026-05-26' }));

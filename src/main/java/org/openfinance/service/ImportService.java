@@ -69,6 +69,7 @@ import org.openfinance.service.parser.CsvParser;
 import org.openfinance.service.parser.OfxParser;
 import org.openfinance.service.parser.QifParser;
 import org.openfinance.service.parser.SkroogeJsonParser;
+import org.openfinance.util.ReportingClock;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.context.MessageSource;
 import org.springframework.context.i18n.LocaleContextHolder;
@@ -1672,7 +1673,7 @@ public class ImportService {
                         .type(AccountType.CHECKING)
                         .currency(defaultCurrencyProvider.resolve(currency))
                         .initialBalance(initialBalance != null ? initialBalance : BigDecimal.ZERO)
-                        .openingDate(LocalDate.now())
+                        .openingDate(ReportingClock.today())
                         .build();
 
         AccountResponse created = accountService.createAccount(userId, accountRequest);
@@ -1858,11 +1859,11 @@ public class ImportService {
                 .map(ImportedTransaction::getTransactionDate)
                 .filter(java.util.Objects::nonNull)
                 .min(LocalDate::compareTo)
-                .filter(date -> !date.isAfter(LocalDate.now()))
+                .filter(date -> !date.isAfter(ReportingClock.today()))
                 .ifPresent(
                         date ->
                                 netWorthRepository.deleteByUserIdAndSnapshotDateBetween(
-                                        userId, date.withDayOfMonth(1), LocalDate.now()));
+                                        userId, date.withDayOfMonth(1), ReportingClock.today()));
     }
 
     private void saveSkroogeTransferTransactions(
@@ -2626,7 +2627,7 @@ public class ImportService {
                                 .openingDate(
                                         descriptor.openingDate() != null
                                                 ? descriptor.openingDate()
-                                                : LocalDate.now())
+                                                : ReportingClock.today())
                                 .accountNumber(descriptor.accountNumber())
                                 .institutionId(institutionId)
                                 .build();

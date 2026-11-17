@@ -10,6 +10,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.openfinance.entity.RecurringFrequency;
 import org.openfinance.entity.TransactionType;
+import org.openfinance.util.ReportingClock;
 
 /**
  * Data Transfer Object for recurring transaction responses.
@@ -209,7 +210,7 @@ public class RecurringTransactionResponse {
         if (nextOccurrence == null) {
             return false;
         }
-        LocalDate today = LocalDate.now();
+        LocalDate today = ReportingClock.today();
         if (nextOccurrence.isAfter(today)) {
             return false;
         }
@@ -228,7 +229,7 @@ public class RecurringTransactionResponse {
         if (nextOccurrence == null) {
             return null;
         }
-        return ChronoUnit.DAYS.between(LocalDate.now(), nextOccurrence);
+        return ChronoUnit.DAYS.between(ReportingClock.today(), nextOccurrence);
     }
 
     /**
@@ -240,6 +241,6 @@ public class RecurringTransactionResponse {
         if (endDate == null) {
             return false;
         }
-        return endDate.isBefore(LocalDate.now());
+        return endDate.isBefore(ReportingClock.today());
     }
 }

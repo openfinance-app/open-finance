@@ -12,6 +12,7 @@ import org.openfinance.entity.Asset;
 import org.openfinance.entity.AssetPriceHistory;
 import org.openfinance.repository.AssetPriceHistoryRepository;
 import org.openfinance.repository.NetWorthRepository;
+import org.openfinance.util.ReportingClock;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -86,7 +87,7 @@ public class AssetPriceHistoryWriter {
 
     private static boolean valid(HistoricalPrice quote) {
         return quote.getDate() != null
-                && !quote.getDate().isAfter(LocalDate.now())
+                && !quote.getDate().isAfter(ReportingClock.today())
                 && quote.getClose() != null
                 && quote.getClose().signum() >= 0
                 && quote.getCurrency() != null

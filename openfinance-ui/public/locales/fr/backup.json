@@ -83,7 +83,7 @@
     "storageUsed": "Espace utilisé",
     "average": "Moy. : {{size}}",
     "tip": "Astuce",
-    "tipText": "Les sauvegardes automatiques sont créées chaque semaine par défaut. Vous pouvez créer manuellement des sauvegardes à tout moment et restaurer à partir de versions précédentes.",
+    "tipText": "Les sauvegardes automatiques sont créées chaque jour par défaut. Vous pouvez créer manuellement des sauvegardes à tout moment et restaurer à partir de versions précédentes.",
     "manageBackups": "Gérer les sauvegardes",
     "aboutTitle": "À propos des sauvegardes",
     "aboutGzip": "Les sauvegardes sont compressées (GZIP) pour économiser l'espace disque",

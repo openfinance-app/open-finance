@@ -1,3 +1,4 @@
+import { useToday } from '@/hooks/useReportingCalendar';
 /**
  * AdvancedFilterPanel Component
  * Task 12.4.6: Create AdvancedFilterPanel component
@@ -18,7 +19,7 @@ import { useCategories } from '@/hooks/useCategories';
 import { useTransactionTags } from '@/hooks/useTransactionTags';
 import type { AdvancedSearchRequest, SearchResultType } from '@/types/search';
 import type { TransactionType } from '@/types/transaction';
-import { getToday, getDaysAgo, getStartOfMonth, getStartOfYear } from '@/utils/date';
+import { getDaysAgo, getStartOfMonth, getStartOfYear } from '@/utils/date';
 
 interface AdvancedFilterPanelProps {
   filters: AdvancedSearchRequest;
@@ -42,12 +43,15 @@ const transactionTypeValues: TransactionType[] = ['INCOME', 'EXPENSE', 'TRANSFER
 
 type DatePresetKey = 'today' | 'last7days' | 'last30days' | 'thisMonth' | 'thisYear';
 
-const datePresetKeys: { key: DatePresetKey; getValue: () => { from: string; to: string } }[] = [
-  { key: 'today', getValue: () => ({ from: getToday(), to: getToday() }) },
-  { key: 'last7days', getValue: () => ({ from: getDaysAgo(7), to: getToday() }) },
-  { key: 'last30days', getValue: () => ({ from: getDaysAgo(30), to: getToday() }) },
-  { key: 'thisMonth', getValue: () => ({ from: getStartOfMonth(), to: getToday() }) },
-  { key: 'thisYear', getValue: () => ({ from: getStartOfYear(), to: getToday() }) },
+const datePresetKeys: {
+  key: DatePresetKey;
+  getValue: (today: string) => { from: string; to: string };
+}[] = [
+  { key: 'today', getValue: (today: string) => ({ from: today, to: today }) },
+  { key: 'last7days', getValue: (today: string) => ({ from: getDaysAgo(7, today), to: today }) },
+  { key: 'last30days', getValue: (today: string) => ({ from: getDaysAgo(30, today), to: today }) },
+  { key: 'thisMonth', getValue: (today: string) => ({ from: getStartOfMonth(today), to: today }) },
+  { key: 'thisYear', getValue: (today: string) => ({ from: getStartOfYear(today), to: today }) },
 ];
 
 export function AdvancedFilterPanel({
@@ -57,6 +61,7 @@ export function AdvancedFilterPanel({
   onSaveSearch,
   isLoading = false,
 }: AdvancedFilterPanelProps) {
+  const today = useToday();
   const { t } = useTranslation(['navigation', 'common', 'dashboard', 'errors', 'transactions']);
   const [isExpanded, setIsExpanded] = useState(false);
 
@@ -96,8 +101,8 @@ export function AdvancedFilterPanel({
   };
 
   // Apply date preset
-  const applyDatePreset = (getValue: () => { from: string; to: string }) => {
-    const { from, to } = getValue();
+  const applyDatePreset = (getValue: (today: string) => { from: string; to: string }) => {
+    const { from, to } = getValue(today);
     onFiltersChange({
       ...filters,
       dateFrom: from,

@@ -184,10 +184,10 @@ application:
       mode: STARTUP_ONLY             # weekly (0 0 3 * * MON); use STARTUP_* to also run on boot
       interval-hours: 6
     recurring-transactions:
-      mode: DEFAULT
+      mode: DEFAULT          # Check every 15 minutes against each user's reporting date.
       interval-hours: 6
     net-worth-snapshot:
-      mode: DEFAULT
+      mode: DEFAULT          # Check every 15 minutes; skip existing snapshots for that user's day.
       interval-hours: 6
     unusual-transaction-detection:
       mode: DEFAULT

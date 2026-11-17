@@ -18,15 +18,15 @@ import org.springframework.stereotype.Component;
 /**
  * Scheduled job for automatically processing due recurring transactions.
  *
- * <p>This scheduler runs daily at midnight to generate actual transactions from recurring
- * transaction templates. It queries all due recurring transactions across all users and creates
- * corresponding Transaction entries.
+ * <p>This scheduler checks due dates every 15 minutes in each user's reporting calendar to generate
+ * actual transactions from recurring transaction templates. It queries all due recurring
+ * transactions across all users and creates corresponding Transaction entries.
  *
  * <p><strong>Default Schedule:</strong>
  *
  * <ul>
- *   <li>Frequency: Daily at midnight (00:00:00)
- *   <li>Cron Expression: {@code 0 0 0 * * ?}
+ *   <li>Frequency: Every 15 minutes; dates are evaluated per user
+ *   <li>Cron Expression: {@code 0 0,15,30,45 * * * *}
  *   <li>Time Zone: System default (UTC recommended for production)
  * </ul>
  *
@@ -34,7 +34,7 @@ import org.springframework.stereotype.Component;
  * application.scheduled.recurring-transactions.mode}):
  *
  * <ul>
- *   <li>{@code DEFAULT} — daily at midnight (built-in default above)
+ *   <li>{@code DEFAULT} — every 15 minutes (built-in default above)
  *   <li>{@code STARTUP_ONLY} — once on application startup, no periodic schedule
  *   <li>{@code STARTUP_AND_EVERY_X_HOURS} — on startup, then every {@code interval-hours} hours
  *   <li>{@code EVERY_HOUR} — once per hour
@@ -78,9 +78,10 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class RecurringTransactionScheduler implements ApplicationRunner {
 
-    /** Default cron: daily at midnight. */
-    static final String DEFAULT_CRON = "0 0 0 * * ?";
+    /** Default cron: every 15 minutes, including midnight in quarter-hour-offset timezones. */
+    static final String DEFAULT_CRON = "0 0,15,30,45 * * * *";
 
+    private final org.openfinance.service.UserReportingClock userReportingClock;
     private final RecurringTransactionService recurringTransactionService;
     private final SchedulerProperties schedulerProperties;
     private final org.openfinance.repository.UserRepository userRepository;
@@ -111,17 +112,17 @@ public class RecurringTransactionScheduler implements ApplicationRunner {
     // -----------------------------------------------------------------
 
     /**
-     * Scheduled job to process due recurring transactions daily at midnight.
+     * Scheduled job to process transactions once their owner's reporting date is due.
      *
-     * <p>Cron expression: {@code 0 0 0 * * ?} translates to:
+     * <p>Cron expression: {@code 0 0,15,30,45 * * * *} translates to:
      *
      * <ul>
      *   <li>0 seconds
-     *   <li>0 minutes
-     *   <li>0 hours (midnight)
+     *   <li>Every 15 minutes
+     *   <li>Every hour
      *   <li>Every day of month
      *   <li>Every month
-     *   <li>Every day of week (? means no specific value)
+     *   <li>Every day of week
      * </ul>
      *
      * <p><strong>Processing Steps:</strong>
@@ -178,7 +179,10 @@ public class RecurringTransactionScheduler implements ApplicationRunner {
 
             for (Long userId : cachedUserIds) {
                 try (org.openfinance.security.UserEncryptionLock.Scope ignored =
-                        userEncryptionLock.acquire(userId, false)) {
+                                userEncryptionLock.acquire(userId, false);
+                        org.openfinance.util.ReportingClock.Scope calendar =
+                                org.openfinance.util.ReportingClock.use(
+                                        userReportingClock.forUser(userId))) {
                     Optional<SecretKey> keyOpt = encryptionKeyCache.getKey(userId);
                     if (encryptionProperties.isEnabled() && keyOpt.isEmpty()) {
                         continue;

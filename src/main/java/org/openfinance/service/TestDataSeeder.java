@@ -44,6 +44,7 @@ import org.openfinance.security.EncryptionContext;
 import org.openfinance.security.EncryptionKeyCache;
 import org.openfinance.security.KeyManagementService;
 import org.openfinance.security.PasswordService;
+import org.openfinance.util.ReportingClock;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Service;
@@ -343,7 +344,7 @@ public class TestDataSeeder implements CommandLineRunner {
                 .purchasePrice(purchasePrice)
                 .currentPrice(currentPrice)
                 .currency(currency)
-                .purchaseDate(LocalDate.now().minusYears(2))
+                .purchaseDate(ReportingClock.today().minusYears(2))
                 .createdAt(LocalDateTime.now())
                 .build();
     }
@@ -440,7 +441,7 @@ public class TestDataSeeder implements CommandLineRunner {
 
             // Set start date and end date so amortization schedule can be generated
             int yearsAgo = 1 + rnd.nextInt(Math.min(loanTermYears, 10));
-            LocalDate startDate = LocalDate.now().minusYears(yearsAgo);
+            LocalDate startDate = ReportingClock.today().minusYears(yearsAgo);
             l.setStartDate(startDate);
             l.setEndDate(startDate.plusYears(loanTermYears));
 
@@ -496,7 +497,8 @@ public class TestDataSeeder implements CommandLineRunner {
             BigDecimal amount = BigDecimal.valueOf(5 + rnd.nextInt(2000)).setScale(2);
             TransactionType type = (i % 8 == 0) ? TransactionType.INCOME : TransactionType.EXPENSE;
             Category category = categories.get(rnd.nextInt(categories.size()));
-            LocalDate date = LocalDate.now().minusDays(rnd.nextInt(SEED_TRANSACTION_LOOKBACK_DAYS));
+            LocalDate date =
+                    ReportingClock.today().minusDays(rnd.nextInt(SEED_TRANSACTION_LOOKBACK_DAYS));
             String desc = (type == TransactionType.INCOME ? "Salary " : "Purchase ") + (i + 1);
             String payee = "Payee " + ((i % payeeCount) + 1);
             Transaction tx =
@@ -542,7 +544,7 @@ public class TestDataSeeder implements CommandLineRunner {
                                                     : "Recurring Expense ")
                                             + (i + 1))
                             .frequency(freqs[i % freqs.length])
-                            .nextOccurrence(LocalDate.now().plusDays(rnd.nextInt(30)))
+                            .nextOccurrence(ReportingClock.today().plusDays(rnd.nextInt(30)))
                             .isActive(true)
                             .build();
             list.add(r);
@@ -564,7 +566,7 @@ public class TestDataSeeder implements CommandLineRunner {
                             .purchasePrice(String.valueOf(100000 + rnd.nextInt(900000)))
                             .currentValue(String.valueOf(120000 + rnd.nextInt(900000)))
                             .currency("EUR")
-                            .purchaseDate(LocalDate.now().minusYears(1 + rnd.nextInt(10)))
+                            .purchaseDate(ReportingClock.today().minusYears(1 + rnd.nextInt(10)))
                             .latitude(
                                     BigDecimal.valueOf(48.8 + rnd.nextDouble())
                                             .setScale(6, RoundingMode.HALF_UP))
@@ -613,7 +615,7 @@ public class TestDataSeeder implements CommandLineRunner {
 
         if (categories.isEmpty()) return;
 
-        LocalDate startDate = LocalDate.now().withDayOfMonth(1);
+        LocalDate startDate = ReportingClock.today().withDayOfMonth(1);
         LocalDate endDate = startDate.plusYears(1);
         Random rnd = new Random(7);
         List<Budget> budgets = new java.util.ArrayList<>();

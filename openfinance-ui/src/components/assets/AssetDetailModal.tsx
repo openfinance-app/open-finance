@@ -1,3 +1,5 @@
+import { toLocalISODate } from '@/utils/date';
+import { useReportingCalendar } from '@/hooks/useReportingCalendar';
 import { decimalValue, decimalField, ExactDecimal } from '@/utils/exact-decimal';
 import { useAnimatedClose } from '@/hooks/useAnimatedClose';
 import { useViewScroll } from '@/hooks/useViewScroll';
@@ -75,6 +77,7 @@ export function AssetDetailModal({
   onDelete,
   onCompletePurchase,
 }: AssetDetailModalProps) {
+  const { date: today } = useReportingCalendar();
   const { onClose, closing, onAnimationEnd } = useAnimatedClose(onClosed);
   const { format: formatCurrency } = useFormatCurrency();
   const {
@@ -101,8 +104,8 @@ export function AssetDetailModal({
 
   // Calculate date range based on selection
   const getDateRange = () => {
-    const endDate = new Date();
-    const startDate = new Date();
+    const endDate = new Date(today);
+    const startDate = new Date(today);
 
     switch (timeRange) {
       case '1M':
@@ -120,8 +123,8 @@ export function AssetDetailModal({
     }
 
     return {
-      startDate: startDate.toISOString().split('T')[0],
-      endDate: endDate.toISOString().split('T')[0],
+      startDate: toLocalISODate(startDate),
+      endDate: toLocalISODate(endDate),
     };
   };
 

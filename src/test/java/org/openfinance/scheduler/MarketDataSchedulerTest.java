@@ -40,6 +40,9 @@ class MarketDataSchedulerTest {
         props.getMarketHours().setOpenHour(openHour);
         props.getMarketHours().setCloseHour(closeHour);
         return new MarketDataScheduler(
+                new org.openfinance.service.UserReportingClock(
+                        mock(org.openfinance.repository.UserSettingsRepository.class),
+                        java.time.Clock.systemUTC()),
                 mock(MarketDataService.class),
                 mock(UserRepository.class),
                 props,
@@ -83,6 +86,9 @@ class MarketDataSchedulerTest {
         SchedulerProperties props = new SchedulerProperties();
         MarketDataScheduler scheduler =
                 new MarketDataScheduler(
+                        new org.openfinance.service.UserReportingClock(
+                                mock(org.openfinance.repository.UserSettingsRepository.class),
+                                java.time.Clock.systemUTC()),
                         mock(MarketDataService.class),
                         mock(UserRepository.class),
                         props,
@@ -130,6 +136,9 @@ class MarketDataSchedulerTest {
                         });
 
         new MarketDataScheduler(
+                        new org.openfinance.service.UserReportingClock(
+                                mock(org.openfinance.repository.UserSettingsRepository.class),
+                                java.time.Clock.systemUTC()),
                         service,
                         users,
                         props,
@@ -153,6 +162,9 @@ class MarketDataSchedulerTest {
         when(users.findAll()).thenReturn(List.of(User.builder().id(1L).build()));
 
         new MarketDataScheduler(
+                        new org.openfinance.service.UserReportingClock(
+                                mock(org.openfinance.repository.UserSettingsRepository.class),
+                                java.time.Clock.systemUTC()),
                         service,
                         users,
                         new SchedulerProperties(),
@@ -179,6 +191,11 @@ class MarketDataSchedulerTest {
 
         String message =
                 new MarketDataScheduler(
+                                new org.openfinance.service.UserReportingClock(
+                                        mock(
+                                                org.openfinance.repository.UserSettingsRepository
+                                                        .class),
+                                        java.time.Clock.systemUTC()),
                                 service,
                                 users,
                                 new SchedulerProperties(),
@@ -200,6 +217,11 @@ class MarketDataSchedulerTest {
 
         String message =
                 new MarketDataScheduler(
+                                new org.openfinance.service.UserReportingClock(
+                                        mock(
+                                                org.openfinance.repository.UserSettingsRepository
+                                                        .class),
+                                        java.time.Clock.systemUTC()),
                                 mock(MarketDataService.class),
                                 users,
                                 new SchedulerProperties(),
@@ -221,6 +243,9 @@ class MarketDataSchedulerTest {
         when(users.findAll()).thenReturn(List.of());
 
         new MarketDataScheduler(
+                        new org.openfinance.service.UserReportingClock(
+                                mock(org.openfinance.repository.UserSettingsRepository.class),
+                                java.time.Clock.systemUTC()),
                         service,
                         users,
                         props,
@@ -243,6 +268,9 @@ class MarketDataSchedulerTest {
 
         MarketDataScheduler scheduler =
                 new MarketDataScheduler(
+                        new org.openfinance.service.UserReportingClock(
+                                mock(org.openfinance.repository.UserSettingsRepository.class),
+                                java.time.Clock.systemUTC()),
                         service,
                         users,
                         props,

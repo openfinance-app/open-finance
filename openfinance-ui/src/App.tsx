@@ -1,3 +1,4 @@
+import { ReportingCalendarRefresh } from '@/hooks/useReportingCalendar';
 import { lazy, Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router';
 import { MutationCache, QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -109,6 +110,7 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <SelectionClickGuard />
       <AuthProvider>
+        <ReportingCalendarRefresh />
         <VisibilityProvider>
           <CurrencyDisplayProvider>
             <ThemeProvider>

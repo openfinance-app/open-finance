@@ -64,6 +64,7 @@ public class SecurityConfig {
     private final EncryptionProperties encryptionProperties;
     private final org.openfinance.security.UserEncryptionLock userEncryptionLock;
     private final SecurityHeadersFilter securityHeadersFilter;
+    private final org.openfinance.service.UserReportingClock userReportingClock;
 
     /**
      * Comma-separated list of allowed CORS origins, driven by application configuration. Defaults
@@ -183,6 +184,9 @@ public class SecurityConfig {
 
                 // Encryption key filter runs after JWT so that userId is available
                 .addFilterAfter(encryptionKeyFilter(), JwtAuthenticationFilter.class)
+                .addFilterAfter(
+                        new org.openfinance.security.ReportingCalendarFilter(userReportingClock),
+                        EncryptionKeyFilter.class)
 
                 // Requirement TASK-15.1.2: Register security headers filter
                 .addFilterAfter(securityHeadersFilter, UsernamePasswordAuthenticationFilter.class);

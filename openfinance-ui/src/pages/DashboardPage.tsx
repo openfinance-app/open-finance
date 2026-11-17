@@ -1,3 +1,4 @@
+import { useToday } from '@/hooks/useReportingCalendar';
 import { decimalValue, ExactDecimal } from '@/utils/exact-decimal';
 import { useDateFormatter } from '@/hooks/useDateFormatter';
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
@@ -43,7 +44,6 @@ import {
   resolveDashboardPeriod,
   type PeriodSelection,
 } from '@/utils/dashboard-period';
-import { toLocalISODate } from '@/utils/date';
 import BudgetProgressCard from '../components/dashboard/BudgetProgressCard';
 import RssFeedCard from '../components/dashboard/RssFeedCard';
 import BalanceVariationCard from '../components/dashboard/BalanceVariationCard';
@@ -225,7 +225,7 @@ export default function DashboardPage() {
   useDocumentTitle(t('title'));
 
   // Persist the choice; resolve dates again on navigation, reload and local midnight.
-  const [today, setToday] = useState(() => toLocalISODate(new Date()));
+  const today = useToday();
   const [periodState, setPeriodState] = useState<PeriodSelection>(() =>
     restoreDashboardPeriod(sessionStorage.getItem('dashboard_period'))
   );
@@ -233,20 +233,6 @@ export default function DashboardPage() {
     // Persist migrated choices too, so a restored This month keeps following the calendar.
     sessionStorage.setItem('dashboard_period', JSON.stringify(periodState));
   }, [periodState]);
-  useEffect(() => {
-    const refresh = (): void => setToday(toLocalISODate(new Date()));
-    const now = new Date();
-    const midnight = new Date(now);
-    midnight.setHours(24, 0, 0, 0);
-    const timer = window.setTimeout(refresh, midnight.getTime() - now.getTime() + 50);
-    window.addEventListener('focus', refresh);
-    document.addEventListener('visibilitychange', refresh);
-    return () => {
-      window.clearTimeout(timer);
-      window.removeEventListener('focus', refresh);
-      document.removeEventListener('visibilitychange', refresh);
-    };
-  }, [today]);
   const selectedPeriod = periodState.period;
   const resolvedPeriod = useMemo(
     () => resolveDashboardPeriod(periodState, parseISO(today)),

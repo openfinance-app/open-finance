@@ -1,3 +1,4 @@
+import { useToday } from '@/hooks/useReportingCalendar';
 import { useId, useState } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -13,11 +14,11 @@ import { ConvertedAmount } from '@/components/ui/ConvertedAmount';
 import { ExactDecimal, decimalField } from '@/utils/exact-decimal';
 import { isValidDecimalString } from '@/utils/money';
 import { apiErrorMessage } from '@/utils/api-error';
-import { getToday } from '@/utils/date';
 import type { Liability } from '@/types/liability';
 
 /** Actual statement amounts, never a made-up principal/interest split from an incomplete schedule. */
 export function RecordLoanPayment({ liability }: { liability: Liability }) {
+  const today = useToday();
   const { t } = useTranslation('liabilities');
   const { date: formatDate } = useDateFormatter();
   const [open, setOpen] = useState(false);
@@ -48,7 +49,7 @@ export function RecordLoanPayment({ liability }: { liability: Liability }) {
       date: z
         .string()
         .refine(
-          value => value >= earliestNewPayment && value <= getToday(),
+          value => value >= earliestNewPayment && value <= today,
           t('recordPayment.dateInvalid', { date: formatDate(earliestNewPayment) })
         ),
     })
@@ -75,7 +76,7 @@ export function RecordLoanPayment({ liability }: { liability: Liability }) {
     formState: { errors },
   } = useForm<z.infer<typeof schema>>({
     resolver: zodResolver(schema),
-    defaultValues: { accountId: '', amount: '', principal: '', date: getToday() },
+    defaultValues: { accountId: '', amount: '', principal: '', date: today },
   });
   const value = watch();
   const valid = schema.safeParse(value).success;
@@ -148,7 +149,7 @@ export function RecordLoanPayment({ liability }: { liability: Liability }) {
                 id={`${id}-date`}
                 {...field}
                 min={earliestNewPayment}
-                max={getToday()}
+                max={today}
               />
             )}
           />

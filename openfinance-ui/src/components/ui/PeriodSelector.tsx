@@ -1,9 +1,9 @@
+import { useToday } from '@/hooks/useReportingCalendar';
 import { useState } from 'react';
 import { parseISO } from 'date-fns';
 import { Calendar, ChevronDown } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useDateFormatter } from '@/hooks/useDateFormatter';
-import { toLocalISODate } from '@/utils/date';
 import {
   dateRangeToDays,
   resolveDashboardPeriod,
@@ -39,9 +39,11 @@ function buttonClass(active: boolean): string {
 export function PeriodSelector({
   selection,
   onPeriodChange,
-  today = toLocalISODate(new Date()),
+  today: suppliedToday,
   className,
 }: PeriodSelectorProps) {
+  const calendarToday = useToday();
+  const today = suppliedToday ?? calendarToday;
   const { t } = useTranslation('common');
   const { date: formatDate } = useDateFormatter();
   const [customOpen, setCustomOpen] = useState(false);

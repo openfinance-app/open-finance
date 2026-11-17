@@ -31,6 +31,7 @@ import {
 } from '../exportImport';
 import type { BuyRentResults, BuyRentInputs, YearNAnalysis } from '@/types/realEstateTools';
 import { useAuthContext } from '@/context/AuthContext';
+import { useDateFormatter } from '@/hooks/useDateFormatter';
 
 export interface ResultsPanelProps {
   results: BuyRentResults;
@@ -48,6 +49,7 @@ export const ResultsPanel: React.FC<ResultsPanelProps> = ({
   const [activeTab, setActiveTab] = useState('summary');
   const { t } = useTranslation('realEstate');
   const { baseCurrency } = useAuthContext();
+  const { timeZone } = useDateFormatter();
 
   const handleExportCSV = () => {
     const csv = exportBuyRentToCSV({ ...inputs, currency: baseCurrency }, results);
@@ -79,7 +81,7 @@ export const ResultsPanel: React.FC<ResultsPanelProps> = ({
 
   const handleExportPDF = () => {
     const pdfTitle = t('comparator.title');
-    const html = generatePDFContent(pdfTitle, inputs, results, 'buy_rent', baseCurrency);
+    const html = generatePDFContent(pdfTitle, inputs, results, 'buy_rent', baseCurrency, timeZone);
     printToPDF(html, pdfTitle);
   };
 

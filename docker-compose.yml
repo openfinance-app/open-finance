@@ -30,8 +30,9 @@
 #   Uses data/, attachments/, logs/, backups/, and temp/imports/ under this directory.
 #   Leave unset or empty to use the existing Docker-managed named volumes.
 #
-# Optional app timezone in .env (default: UTC):
-#   TZ=Europe/Paris
+# Server timezone in .env (UTC recommended for shared/cloud deployments):
+#   TZ=UTC
+#   Reporting dates and displayed times use each user's device timezone or account override.
 # =============================================================================
 
 services:

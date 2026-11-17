@@ -31,6 +31,7 @@ import org.openfinance.entity.AccountType;
 import org.openfinance.entity.InterestDayCountBasis;
 import org.openfinance.entity.InterestValueDateMode;
 import org.openfinance.util.MoneyPrecision;
+import org.openfinance.util.ReportingClock;
 import org.springframework.stereotype.Component;
 
 @Slf4j
@@ -1117,7 +1118,7 @@ public class SkroogeJsonParser {
                 .map(this::parseDate)
                 .filter(Objects::nonNull)
                 .min(Comparator.naturalOrder())
-                .orElse(LocalDate.now());
+                .orElse(ReportingClock.today());
     }
 
     private String deriveAccountCurrency(
@@ -1472,7 +1473,7 @@ public class SkroogeJsonParser {
                         .map(part -> decimalValue(part, "f_value"))
                         .reduce(BigDecimal.ZERO, BigDecimal::add);
         TreeMap<LocalDate, BigDecimal> quotes = prices.getOrDefault(unitId, new TreeMap<>());
-        Map.Entry<LocalDate, BigDecimal> latest = quotes.floorEntry(LocalDate.now());
+        Map.Entry<LocalDate, BigDecimal> latest = quotes.floorEntry(ReportingClock.today());
         BigDecimal price =
                 latest == null
                         ? null
@@ -1502,7 +1503,7 @@ public class SkroogeJsonParser {
         if (symbol.isBlank()) symbol = textValue(unit, "t_symbol");
         List<SkroogeImportMetadata.SkroogePrice> history =
                 quotes.keySet().stream()
-                        .filter(date -> !date.isAfter(LocalDate.now()))
+                        .filter(date -> !date.isAfter(ReportingClock.today()))
                         .map(
                                 date ->
                                         historicalUnitPrice(

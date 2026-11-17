@@ -27,7 +27,7 @@ public final class PropertyValuationHistory {
     /** Current and historical views use the same effective-date policy. */
     public static Valuation current(
             RealEstateProperty property, List<RealEstateValueHistory> history) {
-        return atDate(property, history, LocalDate.now());
+        return atDate(property, history, ReportingClock.today());
     }
 
     private static Valuation calculate(

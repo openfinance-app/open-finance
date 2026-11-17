@@ -1,3 +1,4 @@
+import { useToday } from '@/hooks/useReportingCalendar';
 import { ExactDecimal, decimalValue, decimalField } from '@/utils/exact-decimal';
 import { Link } from 'react-router';
 import { useViewScroll } from '@/hooks/useViewScroll';
@@ -74,6 +75,7 @@ export function PropertyDetailView({
   onClose: onClosed,
   onCompletePurchase,
 }: PropertyDetailViewProps) {
+  const today = useToday();
   const { onClose, closing, onAnimationEnd } = useAnimatedClose(onClosed);
   const { t } = useTranslation('realEstate');
   const { date: formatDate } = useDateFormatter();
@@ -322,7 +324,7 @@ export function PropertyDetailView({
                           </div>
                           <p className="text-2xl font-bold text-text-primary">
                             {t('propertyDetail.propertyAge', {
-                              years: calculatePropertyAge(property.purchaseDate),
+                              years: calculatePropertyAge(property.purchaseDate, today),
                             })}
                           </p>
                         </Card>

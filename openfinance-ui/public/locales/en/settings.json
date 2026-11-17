@@ -107,7 +107,15 @@
       "updateSuccess": "Currency display mode updated successfully",
       "updateError": "Unable to save currency display mode."
     },
-    "loadError": "Failed to load settings. Please refresh the page."
+    "loadError": "Failed to load settings. Please refresh the page.",
+    "timezone": {
+      "label": "Timezone",
+      "description": "Use your device timezone or choose an account timezone for timestamps, reporting periods and today’s date. Entered transaction dates stay unchanged.",
+      "device": "Device timezone",
+      "current": "Current timezone: {{timezone}}",
+      "updateSuccess": "Timezone preference saved.",
+      "updateError": "Could not save the timezone. Your previous setting is still active. Please try again."
+    }
   },
   "profile": {
     "title": "Profile Settings",

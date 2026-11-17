@@ -40,6 +40,7 @@ import org.openfinance.repository.TransactionRepository;
 import org.openfinance.repository.TransactionSplitRepository;
 import org.openfinance.security.EncryptionService;
 import org.openfinance.service.history.ReversibleOperation;
+import org.openfinance.util.ReportingClock;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.MessageSource;
 import org.springframework.context.i18n.LocaleContextHolder;
@@ -509,7 +510,7 @@ public class BudgetService {
                         .orElseThrow(() -> new CategoryNotFoundException(budget.getCategoryId()));
 
         List<BudgetHistoryEntry> entries = budgetEntries(budget, category, rolloverAmount(budget));
-        LocalDate today = LocalDate.now();
+        LocalDate today = ReportingClock.today();
         BudgetHistoryEntry selected = entries.get(entries.size() - 1);
         for (BudgetHistoryEntry entry : entries) {
             if (!today.isAfter(entry.getPeriodEnd())) {
@@ -604,7 +605,7 @@ public class BudgetService {
     private BudgetSummaryResponse summarizeBudgets(
             List<Budget> budgets, Long userId, BudgetPeriod period, boolean activeOnly) {
         if (activeOnly) {
-            LocalDate today = LocalDate.now();
+            LocalDate today = ReportingClock.today();
             budgets =
                     budgets.stream()
                             .filter(
@@ -661,7 +662,7 @@ public class BudgetService {
                             2,
                             RoundingMode.HALF_UP);
         }
-        LocalDate today = LocalDate.now();
+        LocalDate today = ReportingClock.today();
         int activeBudgets =
                 (int)
                         budgets.stream()
@@ -727,7 +728,7 @@ public class BudgetService {
             Budget budget, Category category, BigDecimal initialCarry) {
         List<BudgetHistoryEntry> entries = new ArrayList<>();
         BigDecimal carry = initialCarry;
-        LocalDate today = LocalDate.now();
+        LocalDate today = ReportingClock.today();
         for (BudgetSchedule.Window window : BudgetSchedule.windows(budget)) {
             boolean future = window.start().isAfter(today);
             if (future) carry = BigDecimal.ZERO;
@@ -832,7 +833,7 @@ public class BudgetService {
                 period,
                 lookbackMonths);
 
-        LocalDate endDate = LocalDate.now();
+        LocalDate endDate = ReportingClock.today();
         LocalDate startDate = endDate.minusMonths(lookbackMonths);
 
         // Determine which categories to analyse
@@ -1481,7 +1482,8 @@ public class BudgetService {
         String reportingCurrency = defaultCurrencyProvider.resolveForUser(userId);
         if (currency.equalsIgnoreCase(reportingCurrency)) return;
         try {
-            exchangeRateService.getExchangeRate(currency, reportingCurrency, LocalDate.now());
+            exchangeRateService.getExchangeRate(
+                    currency, reportingCurrency, ReportingClock.today());
         } catch (IllegalStateException e) {
             throw new IllegalArgumentException(
                     messageSource.getMessage(
@@ -1521,7 +1523,7 @@ public class BudgetService {
         progress.setNativeCarryover(progress.getCarryover());
         String currency = defaultCurrencyProvider.resolveForUser(userId);
         if (!currency.equalsIgnoreCase(progress.getCurrency())) {
-            LocalDate date = LocalDate.now();
+            LocalDate date = ReportingClock.today();
             BigDecimal budgeted =
                     exchangeRateService.convert(
                             progress.getBudgeted(), progress.getCurrency(), currency, date);

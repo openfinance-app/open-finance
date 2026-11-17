@@ -18,6 +18,7 @@ import org.openfinance.entity.InterestRateVariation;
 import org.openfinance.entity.InterestValueDateMode;
 import org.openfinance.repository.InterestRateVariationRepository;
 import org.openfinance.util.CalendarInterestProjection;
+import org.openfinance.util.ReportingClock;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -53,8 +54,13 @@ public class InterestCalculatorService {
                 accrue(
                         variations,
                         eligibleHistory(
-                                accountId, userId, variations, history, LocalDate.now(), false),
-                        LocalDate.now()));
+                                accountId,
+                                userId,
+                                variations,
+                                history,
+                                ReportingClock.today(),
+                                false),
+                        ReportingClock.today()));
     }
 
     /** Estimates interest only within the selected inclusive range, capped at today. */
@@ -65,7 +71,8 @@ public class InterestCalculatorService {
             throw new IllegalArgumentException("A valid interest date range is required");
         }
         AccountResponse account = accountService.getAccountById(accountId, userId);
-        LocalDate through = endDate.isAfter(LocalDate.now()) ? LocalDate.now() : endDate;
+        LocalDate through =
+                endDate.isAfter(ReportingClock.today()) ? ReportingClock.today() : endDate;
         if (!Boolean.TRUE.equals(account.getIsInterestEnabled()) || startDate.isAfter(through)) {
             return BigDecimal.ZERO;
         }
@@ -94,9 +101,9 @@ public class InterestCalculatorService {
                         userId,
                         variations,
                         accountService.getAccountBalanceHistory(accountId, userId, "ALL"),
-                        LocalDate.now(),
+                        ReportingClock.today(),
                         false),
-                LocalDate.now());
+                ReportingClock.today());
     }
 
     public record YearEstimate(
@@ -116,7 +123,7 @@ public class InterestCalculatorService {
         AccountResponse account = accountService.getAccountById(accountId, userId);
         LocalDate start = LocalDate.of(year, 1, 1);
         LocalDate end = LocalDate.of(year, 12, 31);
-        LocalDate through = end.isAfter(LocalDate.now()) ? LocalDate.now() : end;
+        LocalDate through = end.isAfter(ReportingClock.today()) ? ReportingClock.today() : end;
         if (!Boolean.TRUE.equals(account.getIsInterestEnabled())) {
             return new YearEstimate(year, through, BigDecimal.ZERO, BigDecimal.ZERO, Map.of());
         }
@@ -169,7 +176,7 @@ public class InterestCalculatorService {
     /** No account, balance adjustment or transaction is created by a form preview. */
     @Transactional(readOnly = true)
     public Preview preview(InterestPreviewRequest request) {
-        LocalDate start = LocalDate.now().withDayOfYear(1);
+        LocalDate start = ReportingClock.today().withDayOfYear(1);
         LocalDate end = start.withMonth(12).withDayOfMonth(31);
         if (request.openingDate().isAfter(start)) start = request.openingDate();
         InterestRateVariation rate =
@@ -247,7 +254,8 @@ public class InterestCalculatorService {
         }
         LocalDate start = cash.get(0).date();
         LocalDate bookedThrough = end.plusMonths(1);
-        if (!forecast && bookedThrough.isAfter(LocalDate.now())) bookedThrough = LocalDate.now();
+        if (!forecast && bookedThrough.isAfter(ReportingClock.today()))
+            bookedThrough = ReportingClock.today();
         for (AccountService.CashMovement transaction :
                 accountService.getCashMovements(
                         accountId, userId, start.minusMonths(1), bookedThrough)) {

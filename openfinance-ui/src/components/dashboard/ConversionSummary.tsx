@@ -14,23 +14,10 @@ import { useAccounts } from '@/hooks/useAccounts';
 import { useLatestExchangeRate, useUpdateExchangeRates } from '@/hooks/useCurrency';
 import { useAuthContext } from '@/context/AuthContext';
 import { cn } from '@/lib/utils';
+import { useDateFormatter } from '@/hooks/useDateFormatter';
 
 /** Number of milliseconds in 24 hours — stale-rate threshold. */
 const STALE_THRESHOLD_MS = 24 * 60 * 60 * 1000;
-
-/** Format a UTC date string as a short locale-aware string, e.g. "Mar 4, 14:32". */
-function formatRateDate(isoDate: string): string {
-  try {
-    return new Date(isoDate).toLocaleString(undefined, {
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-  } catch {
-    return isoDate;
-  }
-}
 
 /** Returns true when the supplied ISO date string is older than 24 hours. */
 function isStale(isoDate: string): boolean {
@@ -53,6 +40,7 @@ interface RateSummaryProps {
 }
 
 function RateSummary({ fromCurrency, baseCurrency, convertedCount }: RateSummaryProps) {
+  const { dateTime: formatRateDate } = useDateFormatter();
   const { data: rate, isLoading } = useLatestExchangeRate(fromCurrency, baseCurrency);
   const updateRates = useUpdateExchangeRates();
 

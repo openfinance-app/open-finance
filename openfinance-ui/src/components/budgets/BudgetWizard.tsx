@@ -1,3 +1,4 @@
+import { useToday } from '@/hooks/useReportingCalendar';
 import { decimalField, decimalValue } from '@/utils/exact-decimal';
 /**
  * BudgetWizard Component
@@ -18,7 +19,6 @@ import { ConvertedAmount } from '@/components/ui/ConvertedAmount';
 import { NumberInput } from '@/components/ui/NumberInput';
 import { useAnalyzeBudgets, useBulkCreateBudgets } from '@/hooks/useBudgets';
 import type { BudgetPeriod, BudgetSuggestion, BudgetBulkCreateResponse } from '@/types/budget';
-import { format } from 'date-fns';
 import { budgetPeriodEnd } from '@/utils/budget-dates';
 import { isValidDecimalString } from '@/utils/money';
 
@@ -36,11 +36,6 @@ type WizardStep = 1 | 2 | 3;
 // (Period option labels are set dynamically from i18n inside the component)
 
 // ─── helper ───────────────────────────────────────────────────────────────────
-
-/** Today as ISO "YYYY-MM-DD". */
-function today(): string {
-  return format(new Date(), 'yyyy-MM-dd');
-}
 
 // ─── sub-components ──────────────────────────────────────────────────────────
 
@@ -70,6 +65,7 @@ function SkeletonRow() {
  */
 export function BudgetWizard({ open, onClose }: BudgetWizardProps) {
   // ── wizard state ────────────────────────────────────────────────────────────
+  const today = useToday();
   const requestVersion = useRef(0);
   const [step, setStep] = useState<WizardStep>(1);
   const [period, setPeriod] = useState<BudgetPeriod>('MONTHLY');
@@ -173,7 +169,7 @@ export function BudgetWizard({ open, onClose }: BudgetWizardProps) {
     if (selected.length === 0 || bulkCreateMutation.isPending) return;
     setValidateAmounts(true);
     if (selected.some(s => !validAmount(s))) return;
-    const startDate = today();
+    const startDate = today;
 
     const budgets = selected.map(s => ({
       categoryId: s.categoryId,

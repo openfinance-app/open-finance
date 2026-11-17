@@ -1,5 +1,5 @@
+import { useToday } from '@/hooks/useReportingCalendar';
 import { FormSection } from '@/components/ui/FormSection';
-import { getToday } from '@/utils/date';
 import { useEffect } from 'react';
 import { OptionalDetails } from '@/components/ui/OptionalDetails';
 import { HelpTooltip } from '@/components/ui/HelpTooltip';
@@ -37,7 +37,7 @@ const propertyTypes: Array<(typeof PropertyType)[keyof typeof PropertyType]> = [
   PropertyType.OTHER,
 ];
 
-const propertySchema = (tv: (key: string) => string) =>
+const propertySchema = (tv: (key: string) => string, today: string) =>
   z
     .object({
       name: z
@@ -108,7 +108,6 @@ const propertySchema = (tv: (key: string) => string) =>
     })
     .refine(
       data => {
-        const today = getToday();
         return data.acquisitionType === 'PLANNED' || data.purchaseDate <= today;
       },
       {
@@ -134,8 +133,8 @@ export function RealEstateForm({
   onCancel,
   isLoading,
 }: RealEstateFormProps) {
+  const today = useToday();
   const isEditing = !!property;
-  const today = getToday();
   const { baseCurrency } = useAuthContext();
   const { t } = useTranslation('realEstate');
 
@@ -148,7 +147,7 @@ export function RealEstateForm({
     getFieldState,
     formState: { errors },
   } = useForm<PropertyFormData>({
-    resolver: zodResolver(propertySchema(t)),
+    resolver: zodResolver(propertySchema(t, today)),
     defaultValues: property
       ? {
           name: property.name,

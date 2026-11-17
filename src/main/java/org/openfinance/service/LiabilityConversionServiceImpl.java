@@ -5,7 +5,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.math.BigDecimal;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.time.LocalDate;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.HexFormat;
@@ -29,6 +28,7 @@ import org.openfinance.repository.LiabilityConversionReceiptRepository;
 import org.openfinance.repository.LiabilityRepository;
 import org.openfinance.repository.TransactionRepository;
 import org.openfinance.service.history.ReversibleOperation;
+import org.openfinance.util.ReportingClock;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -70,9 +70,9 @@ public class LiabilityConversionServiceImpl implements LiabilityConversionServic
     }
 
     private boolean eligible(Account account) {
-        if (!account.isPresentAt(LocalDate.now())
+        if (!account.isPresentAt(ReportingClock.today())
                 || account.getBalance().signum() >= 0
-                || account.getOpeningDate().isAfter(LocalDate.now())
+                || account.getOpeningDate().isAfter(ReportingClock.today())
                 || accounts.isLiabilityBalanceSource(account.getId(), account.getUserId())
                 || !assets.findByAccountId(account.getId()).isEmpty()) return false;
         return "SKROOGE_JSON".equals(account.getImportSource())
@@ -137,7 +137,7 @@ public class LiabilityConversionServiceImpl implements LiabilityConversionServic
             throw invalid(
                     "changed",
                     "The account changed. Select it again to review its current balance");
-        if (movements.stream().anyMatch(tx -> tx.getDate().isAfter(LocalDate.now())))
+        if (movements.stream().anyMatch(tx -> tx.getDate().isAfter(ReportingClock.today())))
             throw invalid("future", "Resolve future transactions before converting this account");
         validateTerms(account, request);
         List<LiabilityConversionPayments.ReviewedPayment> reviewedPayments =
@@ -153,7 +153,7 @@ public class LiabilityConversionServiceImpl implements LiabilityConversionServic
         Long id = liabilityService.createLiability(userId, terms).getId();
         Liability liability = liabilities.findByIdAndUserId(id, userId).orElseThrow();
         liability.setConvertedFromAccountId(account.getId());
-        liability.setBalanceStartDate(LocalDate.now());
+        liability.setBalanceStartDate(ReportingClock.today());
         liability.setOpeningPrincipal(request.fundedPrincipal());
         liabilities.save(liability);
         paymentAssociations.associate(liability, reviewedPayments);
@@ -169,7 +169,7 @@ public class LiabilityConversionServiceImpl implements LiabilityConversionServic
         account.setLiabilityTransferredBalance(account.getBalance());
         account.setBalance(BigDecimal.ZERO);
         account.setIsInterestEnabled(false);
-        account.setLiabilityConvertedAt(LocalDate.now());
+        account.setLiabilityConvertedAt(ReportingClock.today());
         accounts.save(account);
     }
 
@@ -181,7 +181,7 @@ public class LiabilityConversionServiceImpl implements LiabilityConversionServic
                 || terms.getCurrentBalance().compareTo(debt) != 0
                 || request.fundedPrincipal().compareTo(debt) < 0
                 || request.fundedPrincipal().compareTo(terms.getPrincipal()) > 0
-                || terms.getStartDate().isAfter(LocalDate.now()))
+                || terms.getStartDate().isAfter(ReportingClock.today()))
             throw invalid(
                     "terms",
                     "Keep the source currency and outstanding balance; total borrowed must cover the outstanding debt and cannot exceed the agreed principal");
@@ -210,7 +210,7 @@ public class LiabilityConversionServiceImpl implements LiabilityConversionServic
     private String revision(Account account, List<Transaction> movements) {
         return fingerprint(
                 Arrays.asList(
-                        LocalDate.now(),
+                        ReportingClock.today(),
                         account.getId(),
                         account.getVersion(),
                         account.getBalance(),

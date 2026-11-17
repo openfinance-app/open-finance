@@ -17,6 +17,7 @@ import org.openfinance.entity.AssetType;
 import org.openfinance.exception.MarketDataException;
 import org.openfinance.provider.MarketDataProvider;
 import org.openfinance.repository.AssetRepository;
+import org.openfinance.util.ReportingClock;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.cache.annotation.Caching;
@@ -211,8 +212,8 @@ public class MarketDataService {
                     asset.getUserId(),
                     asset,
                     quote.getTimestamp() == null
-                            ? LocalDate.now()
-                            : quote.getTimestamp().toLocalDate(),
+                            ? ReportingClock.today()
+                            : ReportingClock.dateOf(quote.getTimestamp()),
                     quote.getPrice(),
                     quote.getCurrency(),
                     "MARKET");
@@ -330,8 +331,8 @@ public class MarketDataService {
                             userId,
                             asset,
                             quote.getTimestamp() == null
-                                    ? LocalDate.now()
-                                    : quote.getTimestamp().toLocalDate(),
+                                    ? ReportingClock.today()
+                                    : ReportingClock.dateOf(quote.getTimestamp()),
                             quote.getPrice(),
                             quote.getCurrency(),
                             "MARKET");

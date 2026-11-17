@@ -1,3 +1,5 @@
+import { parseISO } from 'date-fns';
+import { getToday } from '@/utils/date';
 /**
  * URL builders for cross-view deep links (dashboard cards → filtered views).
  * Target pages consume these params on mount and strip them (see pages).
@@ -43,8 +45,8 @@ export function buildTransactionsLink(params: TransactionsLinkParams): string {
 }
 
 /** `{from: today − (days − 1), to: today}` as ISO yyyy-MM-dd — matches the dashboard period semantics. */
-export function periodToDateRange(days: number): DateRange {
-  const today = new Date();
+export function periodToDateRange(days: number, date = getToday()): DateRange {
+  const today = parseISO(date);
   const start = new Date(today);
   start.setDate(today.getDate() - (days - 1));
   return { from: toLocalISODate(start), to: toLocalISODate(today) };

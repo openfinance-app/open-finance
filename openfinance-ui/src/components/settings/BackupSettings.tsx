@@ -12,8 +12,7 @@ import { ROUTES } from '@/constants/routes';
 import { Database, Clock, HardDrive, ArrowRight } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useListBackups } from '@/hooks/useBackup';
-import { useUserSettings } from '@/hooks/useUserSettings';
-import { formatDate as globalFormatDate } from '@/utils/date';
+import { useDateFormatter } from '@/hooks/useDateFormatter';
 import { Button } from '@/components/ui/Button';
 
 /**
@@ -23,7 +22,7 @@ export function BackupSettings() {
   const navigate = useNavigate();
   const { t } = useTranslation('backup');
   const { data: backups, isLoading } = useListBackups();
-  const { data: settings } = useUserSettings();
+  const { date: formatTimestampDate } = useDateFormatter();
 
   // Calculate statistics
   const completedBackups = backups?.filter(b => b.status === 'COMPLETED') || [];
@@ -59,7 +58,7 @@ export function BackupSettings() {
     if (diffHours < 24) return t('overview.timeAgo.hourAgo', { count: diffHours });
     if (diffDays < 7) return t('overview.timeAgo.dayAgo', { count: diffDays });
 
-    return globalFormatDate(date, settings?.dateFormat);
+    return formatTimestampDate(date);
   }
 
   return (

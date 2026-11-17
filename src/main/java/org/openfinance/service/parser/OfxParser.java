@@ -20,6 +20,7 @@ import javax.xml.parsers.DocumentBuilderFactory;
 import lombok.extern.slf4j.Slf4j;
 import org.openfinance.dto.ImportParseResult;
 import org.openfinance.dto.ImportedTransaction;
+import org.openfinance.util.ReportingClock;
 import org.springframework.stereotype.Component;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
@@ -803,7 +804,7 @@ public class OfxParser {
                     ImportParseSupport.message("import.validation.amount.zero", locale));
         }
         if (transaction.getTransactionDate() != null
-                && transaction.getTransactionDate().isAfter(LocalDate.now())) {
+                && transaction.getTransactionDate().isAfter(ReportingClock.today())) {
             transaction.addValidationError(
                     ImportParseSupport.message("import.validation.date.future", locale));
         }

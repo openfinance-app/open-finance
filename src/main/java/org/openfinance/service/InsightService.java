@@ -31,6 +31,7 @@ import org.openfinance.service.ai.AIProvider;
 import org.openfinance.service.ai.AIProviderException;
 import org.openfinance.service.ai.AIRequestLimits;
 import org.openfinance.util.MathConstants;
+import org.openfinance.util.ReportingClock;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.context.MessageSource;
@@ -276,7 +277,7 @@ public class InsightService {
         List<Insight> insights = new ArrayList<>();
 
         try {
-            LocalDate today = LocalDate.now();
+            LocalDate today = ReportingClock.today();
             LocalDate thirtyDaysAgo = today.minusDays(LOOKBACK_DAYS);
             LocalDate sixtyDaysAgo = today.minusDays(LOOKBACK_DAYS * 2);
 
@@ -353,7 +354,7 @@ public class InsightService {
         List<Insight> insights = new ArrayList<>();
 
         try {
-            LocalDate today = LocalDate.now();
+            LocalDate today = ReportingClock.today();
             List<Budget> budgets = budgetRepository.findActiveByUserIdAndDate(userId, today);
 
             for (Budget budget : budgets) {
@@ -446,7 +447,7 @@ public class InsightService {
         List<Insight> insights = new ArrayList<>();
 
         try {
-            LocalDate today = LocalDate.now();
+            LocalDate today = ReportingClock.today();
             LocalDate thirtyDaysAgo = today.minusDays(LOOKBACK_DAYS);
 
             // Find categories with recurring small transactions (potential subscriptions)
@@ -650,7 +651,7 @@ public class InsightService {
             // Estimate monthly income from last 30 days of INCOME transactions (converted
             // to base
             // currency)
-            LocalDate today = LocalDate.now();
+            LocalDate today = ReportingClock.today();
             LocalDate thirtyDaysAgo = today.minusDays(LOOKBACK_DAYS);
             BigDecimal monthlyIncome =
                     calculateMonthlyIncome(userId, currency, thirtyDaysAgo.plusDays(1), today);
@@ -805,7 +806,7 @@ public class InsightService {
 
             // Estimate annual income from last 30 days extrapolated (converted to base
             // currency)
-            LocalDate today = LocalDate.now();
+            LocalDate today = ReportingClock.today();
             LocalDate thirtyDaysAgo = today.minusDays(LOOKBACK_DAYS);
             BigDecimal monthlyIncome =
                     calculateMonthlyIncome(userId, currency, thirtyDaysAgo.plusDays(1), today);
@@ -958,7 +959,7 @@ public class InsightService {
             BigDecimal totalAnnual = totalMonthly.multiply(MONTHS_PER_YEAR);
 
             // Estimate monthly income (converted to same currency as recurring expenses)
-            LocalDate today = LocalDate.now();
+            LocalDate today = ReportingClock.today();
             LocalDate thirtyDaysAgo = today.minusDays(LOOKBACK_DAYS);
             BigDecimal monthlyIncome =
                     calculateMonthlyIncome(userId, currency, thirtyDaysAgo.plusDays(1), today);
@@ -1184,7 +1185,7 @@ public class InsightService {
         // Fallback: no income in the requested window — use the last 12 months and
         // return a monthly
         // average
-        LocalDate today = LocalDate.now();
+        LocalDate today = ReportingClock.today();
         LocalDate twelveMonthsAgo = today.minusMonths(12);
         BigDecimal yearTotal =
                 sumIncomeInRange(allIncomeTransactions, baseCurrency, twelveMonthsAgo, today);

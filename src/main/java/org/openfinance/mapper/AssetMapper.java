@@ -1,11 +1,11 @@
 package org.openfinance.mapper;
 
-import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import org.mapstruct.*;
 import org.openfinance.dto.AssetRequest;
 import org.openfinance.dto.AssetResponse;
 import org.openfinance.entity.Asset;
+import org.openfinance.util.ReportingClock;
 
 /**
  * MapStruct mapper for converting between Asset entity and DTOs.
@@ -138,7 +138,7 @@ public interface AssetMapper {
 
         // Calculate holding days: days between purchase date and now
         if (asset.getPurchaseDate() != null) {
-            long days = ChronoUnit.DAYS.between(asset.getPurchaseDate(), LocalDate.now());
+            long days = ChronoUnit.DAYS.between(asset.getPurchaseDate(), ReportingClock.today());
             response.holdingDays(Math.max(0, days));
         } else {
             response.holdingDays(0L);

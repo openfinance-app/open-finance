@@ -14,6 +14,7 @@ import java.util.List;
 import java.util.Locale;
 import lombok.extern.slf4j.Slf4j;
 import org.openfinance.dto.ImportedTransaction;
+import org.openfinance.util.ReportingClock;
 import org.springframework.stereotype.Component;
 
 /**
@@ -760,7 +761,7 @@ public class QifParser {
         }
 
         if (transaction.getTransactionDate() != null
-                && transaction.getTransactionDate().isAfter(LocalDate.now())) {
+                && transaction.getTransactionDate().isAfter(ReportingClock.today())) {
             transaction.addValidationError(
                     ImportParseSupport.message("import.validation.date.future", locale));
         }

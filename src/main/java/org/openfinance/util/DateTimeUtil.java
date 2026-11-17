@@ -357,7 +357,7 @@ public final class DateTimeUtil {
      * @return true if date is before today
      */
     public static boolean isPast(LocalDate date) {
-        return date.isBefore(LocalDate.now());
+        return date.isBefore(ReportingClock.today());
     }
 
     /**
@@ -367,7 +367,7 @@ public final class DateTimeUtil {
      * @return true if date is after today
      */
     public static boolean isFuture(LocalDate date) {
-        return date.isAfter(LocalDate.now());
+        return date.isAfter(ReportingClock.today());
     }
 
     /**
@@ -377,7 +377,7 @@ public final class DateTimeUtil {
      * @return true if date is today
      */
     public static boolean isToday(LocalDate date) {
-        return date.equals(LocalDate.now());
+        return date.equals(ReportingClock.today());
     }
 
     /**
@@ -397,10 +397,10 @@ public final class DateTimeUtil {
     /**
      * Get current date
      *
-     * @return LocalDate.now()
+     * @return ReportingClock.today()
      */
     public static LocalDate now() {
-        return LocalDate.now();
+        return ReportingClock.today();
     }
 
     /**

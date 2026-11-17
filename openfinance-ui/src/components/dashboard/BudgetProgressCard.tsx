@@ -1,3 +1,4 @@
+import { useToday } from '@/hooks/useReportingCalendar';
 import { ExactDecimal, decimalValue } from '@/utils/exact-decimal';
 /**
  * BudgetProgressCard — Dashboard widget
@@ -157,6 +158,7 @@ function BudgetRow({ budget, baseCurrency, onOpen }: BudgetRowProps) {
 const MAX_VISIBLE = 5;
 
 export default function BudgetProgressCard() {
+  const today = useToday();
   const { t } = useTranslation('dashboard');
   const navigate = useNavigate();
   const { baseCurrency } = useAuthContext();
@@ -168,7 +170,7 @@ export default function BudgetProgressCard() {
   } = useSecondaryConversion(baseCurrency);
 
   const { data: allPeriods, isLoading, isError } = useBudgetSummary(undefined, true);
-  const summary = allPeriods ? activeBudgetSummary(allPeriods) : undefined;
+  const summary = allPeriods ? activeBudgetSummary(allPeriods, today) : undefined;
 
   // ── loading skeleton ───────────────────────────────────────────────────────
   if (isLoading) {

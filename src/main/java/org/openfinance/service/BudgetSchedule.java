@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import java.util.List;
 import org.openfinance.entity.Budget;
 import org.openfinance.entity.BudgetPeriod;
+import org.openfinance.util.ReportingClock;
 
 /** Anchored, inclusive budget periods. Carry never creates another allowance. */
 public final class BudgetSchedule {
@@ -61,16 +62,16 @@ public final class BudgetSchedule {
     public static boolean currentTrigger(Budget budget, LocalDateTime triggered) {
         if (triggered == null) return false;
         if (!Boolean.TRUE.equals(budget.getRecurring())) return true;
-        LocalDate today = LocalDate.now();
+        LocalDate today = ReportingClock.today();
         if (today.isBefore(budget.getStartDate()) || today.isAfter(budget.getEndDate()))
             return false;
         LocalDate start = budget.getStartDate();
         for (int index = 1; ; index++) {
             LocalDate next = boundary(budget.getStartDate(), budget.getPeriod(), index);
             if (today.isBefore(next)) {
-                return !triggered.toLocalDate().isBefore(start)
-                        && triggered.toLocalDate().isBefore(next)
-                        && !triggered.toLocalDate().isAfter(budget.getEndDate());
+                return !ReportingClock.dateOf(triggered).isBefore(start)
+                        && ReportingClock.dateOf(triggered).isBefore(next)
+                        && !ReportingClock.dateOf(triggered).isAfter(budget.getEndDate());
             }
             start = next;
         }

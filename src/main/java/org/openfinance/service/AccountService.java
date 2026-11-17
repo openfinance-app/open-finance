@@ -36,6 +36,7 @@ import org.openfinance.service.history.ReversibleOperation;
 import org.openfinance.service.history.SerializedFinancialWrite;
 import org.openfinance.specification.AccountSpecification;
 import org.openfinance.util.AmountComparison;
+import org.openfinance.util.ReportingClock;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Caching;
 import org.springframework.data.domain.Page;
@@ -166,7 +167,7 @@ public class AccountService {
         // Default opening date if not provided (Requirement: Opening date is mandatory
         // in DB)
         if (account.getOpeningDate() == null) {
-            account.setOpeningDate(java.time.LocalDate.now());
+            account.setOpeningDate(ReportingClock.today());
         }
 
         // Encrypt sensitive fields handled by JPA converter automatically
@@ -375,7 +376,7 @@ public class AccountService {
                             : previousOpeningDate;
             invalidateSnapshotsFrom(userId, cutoff);
         }
-        accountCurrencyService.change(account, previousCurrency, userId, java.time.LocalDate.now());
+        accountCurrencyService.change(account, previousCurrency, userId, ReportingClock.today());
         String balanceCurrency =
                 request.getBalanceCurrency() == null
                         ? previousCurrency
@@ -389,7 +390,7 @@ public class AccountService {
                                     exchangeRateService.getExchangeRate(
                                             balanceCurrency,
                                             account.getCurrency(),
-                                            java.time.LocalDate.now()))
+                                            ReportingClock.today()))
                             .setScale(18, java.math.RoundingMode.HALF_UP);
         }
         java.math.BigDecimal adjustment =
@@ -444,7 +445,7 @@ public class AccountService {
                                                     : TransactionType.EXPENSE)
                                     .amount(adjustment.abs())
                                     .currency(account.getCurrency())
-                                    .date(java.time.LocalDate.now())
+                                    .date(ReportingClock.today())
                                     .description(
                                             messageSource.getMessage(
                                                     "transaction.balance.adjustment",
@@ -571,7 +572,7 @@ public class AccountService {
 
         // Soft deletion is distinct from closing an account with a remaining position.
         account.setIsActive(false);
-        account.setDeletedDate(java.time.LocalDate.now());
+        account.setDeletedDate(ReportingClock.today());
         accountRepository.save(account);
         recordAccountStatus(account, false);
         try {
@@ -751,7 +752,7 @@ public class AccountService {
     }
 
     private void recordAccountStatus(Account account, boolean active) {
-        java.time.LocalDate today = java.time.LocalDate.now();
+        java.time.LocalDate today = ReportingClock.today();
         accountStatusHistoryRepository.save(
                 org.openfinance.entity.AccountStatusHistory.builder()
                         .accountId(account.getId())
@@ -766,7 +767,7 @@ public class AccountService {
         netWorthRepository.deleteByUserIdAndSnapshotDateBetween(
                 userId,
                 date == null ? java.time.LocalDate.of(1, 1, 1) : date,
-                java.time.LocalDate.now());
+                ReportingClock.today());
     }
 
     /**
@@ -1469,7 +1470,7 @@ public class AccountService {
         // Calculate start date based on period
         java.time.LocalDate startDate = calculateStartDate(period, account.getOpeningDate());
 
-        return calculateBalanceHistory(account, startDate, java.time.LocalDate.now());
+        return calculateBalanceHistory(account, startDate, ReportingClock.today());
     }
 
     /** Closing cash balances for an inclusive date range, excluding linked asset valuations. */
@@ -1702,7 +1703,7 @@ public class AccountService {
     /** Calculate start date based on period string. */
     private java.time.LocalDate calculateStartDate(String period, java.time.LocalDate openingDate) {
         return org.openfinance.util.HistoricalPeriod.startDate(
-                period, java.time.LocalDate.now(), openingDate);
+                period, ReportingClock.today(), openingDate);
     }
 
     private void indexAccountSearchTokens(Account account, String name, String description) {

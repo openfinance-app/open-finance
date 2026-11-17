@@ -83,7 +83,7 @@
     "storageUsed": "Storage Used",
     "average": "Avg: {{size}}",
     "tip": "Tip",
-    "tipText": "Automatic backups are created weekly by default. You can manually create backups at any time and restore from previous versions.",
+    "tipText": "Automatic backups are created daily by default. You can manually create backups at any time and restore from previous versions.",
     "manageBackups": "Manage Backups",
     "aboutTitle": "About Backups",
     "aboutGzip": "Backups are compressed (GZIP) to save disk space",

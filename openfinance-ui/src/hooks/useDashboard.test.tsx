@@ -395,3 +395,7 @@ describe('useDashboard hooks', () => {
     });
   });
 });
+
+vi.mock('@/hooks/useUserSettings', () => ({
+  useUserSettings: () => ({ data: { timezone: 'UTC', useDeviceTimezone: false } }),
+}));

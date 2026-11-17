@@ -107,7 +107,15 @@
       "updateSuccess": "Mode d'affichage de la devise mis à jour avec succès",
       "updateError": "Impossible d’enregistrer le mode d’affichage des devises."
     },
-    "loadError": "Impossible de charger les paramètres. Veuillez actualiser la page."
+    "loadError": "Impossible de charger les paramètres. Veuillez actualiser la page.",
+    "timezone": {
+      "label": "Fuseau horaire",
+      "description": "Utilisez le fuseau de votre appareil ou choisissez un fuseau pour votre compte : heures, périodes des rapports et date du jour. Les dates de transaction saisies restent inchangées.",
+      "device": "Fuseau de l’appareil",
+      "current": "Fuseau actuel : {{timezone}}",
+      "updateSuccess": "Préférence de fuseau horaire enregistrée.",
+      "updateError": "Impossible d’enregistrer le fuseau horaire. Le réglage précédent reste actif. Veuillez réessayer."
+    }
   },
   "profile": {
     "title": "Paramètres du profil",

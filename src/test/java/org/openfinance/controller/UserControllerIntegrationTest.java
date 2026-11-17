@@ -109,7 +109,62 @@ class UserControllerIntegrationTest {
                 .andExpect(jsonPath("$.email", is("testuser@example.com")))
                 .andExpect(jsonPath("$.baseCurrency", is("EUR"))) // Application default (EUR)
                 .andExpect(jsonPath("$.id", notNullValue()))
-                .andExpect(jsonPath("$.createdAt", notNullValue()));
+                .andExpect(jsonPath("$.createdAt", endsWith("Z")));
+    }
+
+    @Test
+    @DisplayName("Timezone preference defaults to device time and persists an account override")
+    void persistsDisplayTimezoneMode() throws Exception {
+        mockMvc.perform(
+                        get("/api/v1/users/me/settings")
+                                .header("Authorization", "Bearer " + token)
+                                .header("X-Encryption-Session", encryptionSession))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.useDeviceTimezone", is(true)))
+                .andExpect(jsonPath("$.createdAt", endsWith("Z")));
+        mockMvc.perform(
+                        put("/api/v1/users/me/settings")
+                                .header("Authorization", "Bearer " + token)
+                                .header("X-Encryption-Session", encryptionSession)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(
+                                        "{\"timezone\":\"America/New_York\",\"useDeviceTimezone\":false}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.timezone", is("America/New_York")))
+                .andExpect(jsonPath("$.useDeviceTimezone", is(false)));
+        mockMvc.perform(
+                        put("/api/v1/users/me/settings")
+                                .header("Authorization", "Bearer " + token)
+                                .header("X-Encryption-Session", encryptionSession)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content("{\"useDeviceTimezone\":true}"))
+                .andExpect(status().isOk());
+        mockMvc.perform(
+                        get("/api/v1/users/me/settings")
+                                .header("Authorization", "Bearer " + token)
+                                .header("X-Encryption-Session", encryptionSession))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.timezone", is("America/New_York")))
+                .andExpect(jsonPath("$.useDeviceTimezone", is(true)));
+    }
+
+    @Test
+    @DisplayName("Unknown timezone identifiers are rejected at the API boundary")
+    void rejectsInvalidTimezone() throws Exception {
+        mockMvc.perform(
+                        put("/api/v1/users/me/settings")
+                                .header("Authorization", "Bearer " + token)
+                                .header("X-Encryption-Session", encryptionSession)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(
+                                        "{\"timezone\":\"Invalid/Timezone\",\"useDeviceTimezone\":false}"))
+                .andExpect(status().isBadRequest());
+        mockMvc.perform(
+                        get("/api/v1/users/me/settings")
+                                .header("Authorization", "Bearer " + token)
+                                .header("X-Encryption-Session", encryptionSession))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.useDeviceTimezone", is(true)));
     }
 
     @Test
@@ -220,5 +275,38 @@ class UserControllerIntegrationTest {
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(requestJson))
                 .andExpect(status().isBadRequest());
+    }
+
+    @Autowired private org.springframework.jdbc.core.JdbcTemplate jdbc;
+
+    @Test
+    void remembersDeviceTimezoneWithoutOverwritingAccountPreference() throws Exception {
+        mockMvc.perform(
+                        put("/api/v1/users/me/settings")
+                                .header("Authorization", "Bearer " + token)
+                                .header("X-Encryption-Session", encryptionSession)
+                                .header("X-Device-Timezone", "Europe/Paris")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(
+                                        objectMapper.writeValueAsString(
+                                                Map.of(
+                                                        "timezone",
+                                                        "America/New_York",
+                                                        "useDeviceTimezone",
+                                                        false))))
+                .andExpect(status().isOk());
+        mockMvc.perform(
+                        get("/api/v1/users/me/settings")
+                                .header("Authorization", "Bearer " + token)
+                                .header("X-Encryption-Session", encryptionSession)
+                                .header("X-Device-Timezone", "Asia/Tokyo"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.timezone").value("America/New_York"))
+                .andExpect(jsonPath("$.useDeviceTimezone").value(false));
+        org.assertj.core.api.Assertions.assertThat(
+                        jdbc.queryForObject(
+                                "SELECT last_device_timezone FROM user_settings WHERE user_id = (SELECT id FROM users WHERE username = 'testuser')",
+                                String.class))
+                .isEqualTo("Asia/Tokyo");
     }
 }

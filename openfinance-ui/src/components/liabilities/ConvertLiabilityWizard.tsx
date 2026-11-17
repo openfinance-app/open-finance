@@ -1,3 +1,4 @@
+import { useToday } from '@/hooks/useReportingCalendar';
 import { decimalValue, decimalField, ExactDecimal } from '@/utils/exact-decimal';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -29,7 +30,6 @@ import type {
   LiabilityConversionRequest,
 } from '@/hooks/useLiabilityConversion';
 import type { LiabilityType } from '@/types/liability';
-import { format } from 'date-fns';
 import { isValidDecimalString } from '@/utils/money';
 import { apiErrorMessage } from '@/utils/api-error';
 import { getMonetaryScale } from '@/utils/currency';
@@ -202,6 +202,7 @@ function ConversionDetails({
   onClose: () => void;
   onConverted: (id: number) => void;
 }) {
+  const today = useToday();
   const { t, i18n } = useTranslation('liabilities');
   const { date } = useDateFormatter();
   const [step, setStep] = useState(1);
@@ -217,7 +218,6 @@ function ConversionDetails({
   const preset = matchesMortgagePreset(source);
   const propertySuggested = useRef(false);
   const heading = useRef<HTMLHeadingElement>(null);
-  const today = format(new Date(), 'yyyy-MM-dd');
   const debt = decimalField(source, 'outstandingBalance');
   const types = [
     'LOAN',

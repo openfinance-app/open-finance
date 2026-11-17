@@ -1,3 +1,4 @@
+import { useToday } from '@/hooks/useReportingCalendar';
 import { useId, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useForm, Controller } from 'react-hook-form';
@@ -12,7 +13,6 @@ import { NumberInput } from '@/components/ui/NumberInput';
 import { ConvertedAmount } from '@/components/ui/ConvertedAmount';
 import { ExactDecimal } from '@/utils/exact-decimal';
 import { isValidDecimalString } from '@/utils/money';
-import { getToday } from '@/utils/date';
 import { apiErrorMessage } from '@/utils/api-error';
 
 export interface SaleTarget {
@@ -27,6 +27,7 @@ export interface SaleTarget {
   property?: boolean;
 }
 export function AssetSaleForm({ target, onClose }: { target: SaleTarget; onClose: () => void }) {
+  const today = useToday();
   const { t } = useTranslation('assets');
   const id = useId();
   const { data: accounts = [] } = useAccounts();
@@ -65,7 +66,7 @@ export function AssetSaleForm({ target, onClose }: { target: SaleTarget; onClose
       date: z
         .string()
         .refine(
-          value => value >= target.purchaseDate && value <= getToday(),
+          value => value >= target.purchaseDate && value <= today,
           t('ownership.saleDateHint')
         ),
     })
@@ -88,7 +89,7 @@ export function AssetSaleForm({ target, onClose }: { target: SaleTarget; onClose
       quantity: target.quantity,
       proceeds: target.currentValue,
       fees: '0',
-      date: getToday(),
+      date: today,
     },
   });
   const values = watch();
@@ -168,7 +169,7 @@ export function AssetSaleForm({ target, onClose }: { target: SaleTarget; onClose
                 id={`${id}-date`}
                 {...field}
                 min={target.purchaseDate}
-                max={getToday()}
+                max={today}
               />
             )}
           />

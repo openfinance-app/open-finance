@@ -7,7 +7,6 @@ import java.nio.charset.Charset;
 import java.nio.charset.CodingErrorAction;
 import java.nio.charset.StandardCharsets;
 import java.text.MessageFormat;
-import java.time.LocalDate;
 import java.util.Locale;
 import java.util.Map;
 import java.util.MissingResourceException;
@@ -15,6 +14,7 @@ import java.util.ResourceBundle;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import lombok.extern.slf4j.Slf4j;
+import org.openfinance.util.ReportingClock;
 
 /**
  * Shared low-level helpers for the import parsers: charset detection, lenient amount parsing,
@@ -138,7 +138,7 @@ final class ImportParseSupport {
             return dateStr;
         }
         int yy = Integer.parseInt(m.group(4));
-        int currentYear = LocalDate.now().getYear();
+        int currentYear = ReportingClock.today().getYear();
         int year = (currentYear / 100) * 100 + yy;
         if (year > currentYear + 1) {
             year -= 100;

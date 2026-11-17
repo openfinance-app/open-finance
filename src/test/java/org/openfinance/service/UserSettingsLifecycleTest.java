@@ -134,7 +134,8 @@ class UserSettingsLifecycleTest {
                         "FR",
                         "both",
                         true,
-                        4);
+                        4,
+                        false);
 
         UserSettingsResponse response = service.updateUserSettings(USER_ID, request);
         assertThat(response.theme()).isEqualTo("light");
@@ -162,7 +163,7 @@ class UserSettingsLifecycleTest {
         if (changed) when(settingsRepository.save(settings)).thenReturn(settings);
         UserSettingsUpdateRequest request =
                 new UserSettingsUpdateRequest(
-                        null, null, null, null, null, currency, null, null, null, null);
+                        null, null, null, null, null, currency, null, null, null, null, null);
 
         UserSettingsResponse response = service.updateUserSettings(USER_ID, request);
         String expected = currency == null ? "GBP" : currency.isEmpty() ? null : currency;

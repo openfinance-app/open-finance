@@ -1,3 +1,4 @@
+import { useToday } from '@/hooks/useReportingCalendar';
 import { FormSection } from '@/components/ui/FormSection';
 import { OptionalDetails } from '@/components/ui/OptionalDetails';
 import { useFormDraft } from '@/hooks/useFormDraft';
@@ -62,7 +63,7 @@ import type {
   TransactionSplitRequest,
 } from '@/types/transaction';
 import type { Account } from '@/types/account';
-import { formatDateForInput, getToday } from '@/utils/date';
+import { formatDateForInput } from '@/utils/date';
 import { DEFAULT_CURRENCY, getMonetaryScale, getCurrencyDecimals } from '@/utils/currency';
 import { CurrencySelector } from '@/components/ui/CurrencySelector';
 import { ExchangeRateInline } from '@/components/ui/ExchangeRateDisplay';
@@ -247,6 +248,7 @@ export function TransactionForm({
   onCancel,
   isLoading,
 }: TransactionFormProps) {
+  const today = useToday();
   const isEditing = !!transaction;
   const { t } = useTranslation('transactions');
 
@@ -332,7 +334,7 @@ export function TransactionForm({
           amount: '0',
           currency: DEFAULT_CURRENCY,
           categoryId: undefined,
-          date: getToday(),
+          date: today,
           description: '',
           notes: '',
           payee: '',

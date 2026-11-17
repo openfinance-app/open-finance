@@ -43,6 +43,7 @@ import org.openfinance.security.EncryptionContext;
 import org.openfinance.security.EncryptionKeyCache;
 import org.openfinance.security.KeyManagementService;
 import org.openfinance.security.PasswordService;
+import org.openfinance.util.ReportingClock;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -585,7 +586,7 @@ public class LiveDemoData implements CommandLineRunner {
         Account joint = accounts.get(3); // Joint Account
 
         List<Category> cats = categoryRepository.findByUserId(userId);
-        LocalDate today = LocalDate.now();
+        LocalDate today = ReportingClock.today();
 
         List<RecurringTransaction> list = new ArrayList<>();
 
@@ -814,7 +815,7 @@ public class LiveDemoData implements CommandLineRunner {
         List<Category> cats = categoryRepository.findByUserId(userId);
         if (cats.isEmpty()) return;
 
-        LocalDate today = LocalDate.now();
+        LocalDate today = ReportingClock.today();
         List<Transaction> txs = new ArrayList<>();
 
         // ── Monthly salary — last 14 months ───────────────────────────────────
@@ -1566,7 +1567,7 @@ public class LiveDemoData implements CommandLineRunner {
         List<Category> cats = categoryRepository.findByUserId(userId);
         if (cats.isEmpty()) return;
 
-        LocalDate firstOfMonth = LocalDate.now().withDayOfMonth(1);
+        LocalDate firstOfMonth = ReportingClock.today().withDayOfMonth(1);
         LocalDate yearEnd = firstOfMonth.plusYears(1);
 
         Object[][] budgetDefs = {

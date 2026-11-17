@@ -390,4 +390,33 @@ class InterestCalculatorServiceTest {
         assertThat(service.calculateHistoricalAccumulated(ACCOUNT_ID, USER_ID, "ALL"))
                 .isEqualByComparingTo("3.75");
     }
+
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.CsvSource({"Europe/Paris,16", "America/New_York,15"})
+    void accruesThroughTheUsersTodayWhenTheServerIsOnAnotherDay(String zone, String expected) {
+        givenAccount(new BigDecimal("36500"), InterestPeriod.ANNUAL);
+        when(variationRepository.findByAccountIdOrderByValidFromDesc(ACCOUNT_ID))
+                .thenReturn(
+                        List.of(
+                                InterestRateVariation.builder()
+                                        .accountId(ACCOUNT_ID)
+                                        .rate(BigDecimal.ONE)
+                                        .taxRate(BigDecimal.ZERO)
+                                        .validFrom(LocalDate.of(2026, 1, 1))
+                                        .dayCountBasis(InterestDayCountBasis.ACTUAL_365)
+                                        .build()));
+        java.time.Clock clock =
+                java.time.Clock.fixed(
+                        java.time.Instant.parse("2026-11-15T23:51:00Z"), java.time.ZoneId.of(zone));
+        try (org.openfinance.util.ReportingClock.Scope ignored =
+                org.openfinance.util.ReportingClock.use(clock)) {
+            assertThat(
+                            service.calculateHistoricalAccumulated(
+                                    ACCOUNT_ID,
+                                    USER_ID,
+                                    LocalDate.of(2026, 11, 1),
+                                    LocalDate.of(2026, 11, 16)))
+                    .isEqualByComparingTo(expected);
+        }
+    }
 }

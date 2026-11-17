@@ -1,7 +1,6 @@
 package org.openfinance.service;
 
 import java.math.BigDecimal;
-import java.time.LocalDate;
 import lombok.RequiredArgsConstructor;
 import org.openfinance.dto.AssetPurchaseRequest;
 import org.openfinance.dto.AssetRequest;
@@ -18,6 +17,7 @@ import org.openfinance.entity.TransactionType;
 import org.openfinance.exception.InvalidTransactionException;
 import org.openfinance.repository.AccountRepository;
 import org.openfinance.service.history.ReversibleOperation;
+import org.openfinance.util.ReportingClock;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -152,7 +152,7 @@ public class AssetPurchaseServiceImpl implements AssetPurchaseService {
         BigDecimal price = item.getQuantity().multiply(item.getPurchasePrice());
         if (!item.getType().isPhysical()
                 || price.signum() <= 0
-                || item.getPurchaseDate().isAfter(LocalDate.now())
+                || item.getPurchaseDate().isAfter(ReportingClock.today())
                 || (item.getAcquisitionType() != null
                         && item.getAcquisitionType() != AcquisitionType.PURCHASE)) {
             throw new InvalidTransactionException(

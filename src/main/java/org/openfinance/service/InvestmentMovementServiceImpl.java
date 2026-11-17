@@ -23,6 +23,7 @@ import org.openfinance.exception.InvalidTransactionException;
 import org.openfinance.repository.AssetRepository;
 import org.openfinance.repository.TransactionRepository;
 import org.openfinance.util.InvestmentHoldings;
+import org.openfinance.util.ReportingClock;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -312,7 +313,7 @@ public class InvestmentMovementServiceImpl implements InvestmentMovementService 
         if (asset.getSymbol() == null
                 || asset.getSymbol().isBlank()
                 || date == null
-                || date.isAfter(LocalDate.now()))
+                || date.isAfter(ReportingClock.today()))
             throw invalid(
                     "priceUnavailable",
                     "No historical price is available for this holding and date; enter the quantity instead");

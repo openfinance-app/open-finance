@@ -1,3 +1,4 @@
+import { useToday } from '@/hooks/useReportingCalendar';
 import { ArrowUpRight, ArrowDownRight, Calendar, Loader2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router';
@@ -21,13 +22,7 @@ interface RecentTransactionsCardProps {
 }
 
 // Check if transaction date is in the future
-const isFutureDate = (dateString: string) => {
-  const transactionDate = new Date(dateString);
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  transactionDate.setHours(0, 0, 0, 0);
-  return transactionDate > today;
-};
+const isFutureDate = (dateString: string, today: string): boolean => dateString > today;
 
 /**
  * MiniPayeeAvatar — compact payee logo or initial avatar for the dashboard row.
@@ -108,6 +103,7 @@ export default function RecentTransactionsCard({
   periodRange,
   isLoading,
 }: RecentTransactionsCardProps) {
+  const today = useToday();
   const { t } = useTranslation('dashboard');
   const navigate = useNavigate();
   const { data: settings } = useUserSettings();
@@ -214,7 +210,7 @@ export default function RecentTransactionsCard({
                   <div className="text-sm text-text-primary truncate">
                     {transaction.description || transaction.payee || t('common:noDescription')}
                   </div>
-                  {isFutureDate(transaction.date) && (
+                  {isFutureDate(transaction.date, today) && (
                     <Badge
                       variant="warning"
                       className="shrink-0 flex items-center gap-1"

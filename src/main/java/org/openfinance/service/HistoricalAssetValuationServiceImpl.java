@@ -20,6 +20,7 @@ import org.openfinance.exception.MarketDataException;
 import org.openfinance.repository.AssetPriceHistoryRepository;
 import org.openfinance.util.InvestmentHoldings;
 import org.openfinance.util.MoneyPrecision;
+import org.openfinance.util.ReportingClock;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -130,11 +131,15 @@ public class HistoricalAssetValuationServiceImpl implements HistoricalAssetValua
     private List<HistoricalPrice> fetch(Asset asset) {
         LocalDate from =
                 asset.getPurchaseDate() == null
-                        ? LocalDate.now().minusYears(10)
+                        ? ReportingClock.today().minusYears(10)
                         : asset.getPurchaseDate().minusDays(7);
         Request request =
                 new Request(
-                        asset.getUserId(), asset.getId(), asset.getSymbol(), from, LocalDate.now());
+                        asset.getUserId(),
+                        asset.getId(),
+                        asset.getSymbol(),
+                        from,
+                        ReportingClock.today());
         return fetched.get(
                 request,
                 key -> {
@@ -188,9 +193,9 @@ public class HistoricalAssetValuationServiceImpl implements HistoricalAssetValua
         }
         if (asset.getLastUpdated() != null
                 && asset.getCurrentPrice() != null
-                && !asset.getLastUpdated().toLocalDate().isAfter(date)) {
+                && !ReportingClock.dateOf(asset.getLastUpdated()).isAfter(date)) {
             quotes.putIfAbsent(
-                    asset.getLastUpdated().toLocalDate(),
+                    ReportingClock.dateOf(asset.getLastUpdated()),
                     new Quote(asset.getCurrentPrice(), asset.getCurrency(), 1));
         }
     }

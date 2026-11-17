@@ -1,3 +1,4 @@
+import { useToday } from '@/hooks/useReportingCalendar';
 import { FilterPanel } from '@/components/ui/FilterPanel';
 import { countActiveFilters } from '@/utils/filter-utils';
 import { useState } from 'react';
@@ -19,7 +20,7 @@ import { CategorySelect } from '@/components/ui/CategorySelect';
 import { AccountSelector } from '@/components/ui/AccountSelector';
 import { useTransactionTags } from '@/hooks/useTransactionTags';
 import type { TransactionFilters as Filters, TransactionType } from '@/types/transaction';
-import { getToday, getDaysAgo, getStartOfMonth, getStartOfYear } from '@/utils/date';
+import { getDaysAgo, getStartOfMonth, getStartOfYear } from '@/utils/date';
 
 interface TransactionFiltersProps {
   filters: Filters;
@@ -27,6 +28,7 @@ interface TransactionFiltersProps {
 }
 
 export function TransactionFilters({ filters, onFiltersChange }: TransactionFiltersProps) {
+  const today = useToday();
   const { t } = useTranslation('transactions');
   const [showAllTags, setShowAllTags] = useState(false);
 
@@ -37,19 +39,22 @@ export function TransactionFilters({ filters, onFiltersChange }: TransactionFilt
   ];
 
   const datePresets = [
-    { label: t('filterKeys.today'), getValue: () => ({ from: getToday(), to: getToday() }) },
-    { label: t('filterKeys.last7Days'), getValue: () => ({ from: getDaysAgo(7), to: getToday() }) },
+    { label: t('filterKeys.today'), getValue: () => ({ from: today, to: today }) },
+    {
+      label: t('filterKeys.last7Days'),
+      getValue: () => ({ from: getDaysAgo(7, today), to: today }),
+    },
     {
       label: t('filterKeys.last30Days'),
-      getValue: () => ({ from: getDaysAgo(30), to: getToday() }),
+      getValue: () => ({ from: getDaysAgo(30, today), to: today }),
     },
     {
       label: t('filterKeys.thisMonth'),
-      getValue: () => ({ from: getStartOfMonth(), to: getToday() }),
+      getValue: () => ({ from: getStartOfMonth(today), to: today }),
     },
     {
       label: t('filterKeys.thisYear'),
-      getValue: () => ({ from: getStartOfYear(), to: getToday() }),
+      getValue: () => ({ from: getStartOfYear(today), to: today }),
     },
   ];
 

@@ -1,3 +1,4 @@
+import { useReportingCalendar } from '@/hooks/useReportingCalendar';
 import { addMonths, addYears, format, isSameMonth, isSameYear, startOfMonth } from 'date-fns';
 import { enUS, fr } from 'date-fns/locale';
 import { Calendar, ChevronLeft, ChevronRight } from 'lucide-react';
@@ -22,10 +23,9 @@ export default function CashFlowCalendar({
   className,
   baseCurrency = DEFAULT_CURRENCY,
 }: CashFlowCalendarProps) {
+  const { date: today } = useReportingCalendar();
   const { t, i18n } = useTranslation('dashboard');
-  const [currentDate, setCurrentDate] = useViewState('cashFlow:date', () =>
-    startOfMonth(new Date())
-  );
+  const [currentDate, setCurrentDate] = useViewState('cashFlow:date', () => startOfMonth(today));
   const [granularity, setGranularity] = useViewState<CashFlowGranularity>(
     'cashFlow:granularity',
     'DAY'
@@ -45,9 +45,7 @@ export default function CashFlowCalendar({
         ? String(year)
         : `${year - 9}–${year}`;
   const isCurrentPeriod =
-    granularity === 'DAY'
-      ? isSameMonth(currentDate, new Date())
-      : isSameYear(currentDate, new Date());
+    granularity === 'DAY' ? isSameMonth(currentDate, today) : isSameYear(currentDate, today);
 
   function navigatePeriod(direction: number): void {
     setCurrentDate(date =>
@@ -117,7 +115,7 @@ export default function CashFlowCalendar({
                 variant="ghost"
                 size="sm"
                 className="h-8 px-2 text-xs text-primary"
-                onClick={() => setCurrentDate(startOfMonth(new Date()))}
+                onClick={() => setCurrentDate(startOfMonth(today))}
               >
                 {t('calendar.today')}
               </Button>

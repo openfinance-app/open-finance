@@ -28,6 +28,25 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface UserSettingsRepository extends JpaRepository<UserSettings, Long> {
 
+    interface TimezonePreferences {
+        String getTimezone();
+
+        boolean getUseDeviceTimezone();
+
+        String getLastDeviceTimezone();
+    }
+
+    @org.springframework.data.jpa.repository.Query(
+            "SELECT s.timezone AS timezone, s.useDeviceTimezone AS useDeviceTimezone, s.lastDeviceTimezone AS lastDeviceTimezone FROM UserSettings s WHERE s.user.id = :userId")
+    Optional<TimezonePreferences> findTimezonePreferencesByUserId(Long userId);
+
+    @org.springframework.data.jpa.repository.Modifying
+    @org.springframework.transaction.annotation.Transactional(
+            propagation = org.springframework.transaction.annotation.Propagation.REQUIRES_NEW)
+    @org.springframework.data.jpa.repository.Query(
+            "UPDATE UserSettings s SET s.lastDeviceTimezone = :timezone WHERE s.user.id = :userId AND s.lastDeviceTimezone <> :timezone")
+    int updateLastDeviceTimezone(Long userId, String timezone);
+
     /**
      * Finds user settings by user ID.
      *

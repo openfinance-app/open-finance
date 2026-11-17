@@ -7,7 +7,6 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.text.Normalizer;
-import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
@@ -33,6 +32,7 @@ import org.openfinance.exception.InvalidTransactionException;
 import org.openfinance.repository.TransactionRepository;
 import org.openfinance.repository.TransactionSplitRepository;
 import org.openfinance.util.LoanPostingPolicy;
+import org.openfinance.util.ReportingClock;
 import org.springframework.stereotype.Component;
 
 /** Reviews and attaches already booked payments within the conversion's single transaction. */
@@ -71,7 +71,7 @@ public class LiabilityConversionPayments {
                 && tx.getRealEstateId() == null
                 && tx.getAssetId() == null
                 && tx.getInvestmentQuantity() == null
-                && !tx.getDate().isAfter(LocalDate.now())
+                && !tx.getDate().isAfter(ReportingClock.today())
                 && source.getCurrency().equals(tx.getCurrency())
                 && (tx.getOriginalCurrency() == null
                         || source.getCurrency().equals(tx.getOriginalCurrency()));

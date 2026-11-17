@@ -21,6 +21,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import lombok.extern.slf4j.Slf4j;
 import org.openfinance.dto.ImportedTransaction;
+import org.openfinance.util.ReportingClock;
 import org.springframework.stereotype.Component;
 
 /**
@@ -589,7 +590,7 @@ public class CsvParser {
                     ImportParseSupport.message("import.validation.amount.zero", locale));
         }
         if (transaction.getTransactionDate() != null
-                && transaction.getTransactionDate().isAfter(LocalDate.now())) {
+                && transaction.getTransactionDate().isAfter(ReportingClock.today())) {
             transaction.addValidationError(
                     ImportParseSupport.message("import.validation.date.future", locale));
         }

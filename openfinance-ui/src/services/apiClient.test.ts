@@ -45,6 +45,9 @@ describe('apiClient', () => {
     const interceptor = (apiClient.interceptors.request as any).handlers[0];
     const result = interceptor.fulfilled(config);
     expect(result.headers.Authorization).toBe('Bearer test-jwt');
+    expect(result.headers['X-Device-Timezone']).toBe(
+      Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'
+    );
   });
 
   it('request interceptor adds auth token from sessionStorage', async () => {

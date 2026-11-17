@@ -119,7 +119,7 @@ public interface RecurringTransactionRepository extends JpaRepository<RecurringT
      *
      * <p>This is the main query used by the scheduled job to process due transactions.
      *
-     * @param asOfDate the date to check (usually LocalDate.now())
+     * @param asOfDate the date to check (usually ReportingClock.today())
      * @return list of due recurring transactions, empty list if none found
      */
     @Query(
@@ -133,7 +133,7 @@ public interface RecurringTransactionRepository extends JpaRepository<RecurringT
      * transactions will be processed soon.
      *
      * @param userId the user ID
-     * @param asOfDate the date to check (usually LocalDate.now())
+     * @param asOfDate the date to check (usually ReportingClock.today())
      * @return list of due recurring transactions for user, empty list if none found
      */
     @Query(

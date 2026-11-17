@@ -119,7 +119,10 @@ class BudgetScheduleTest {
         boolean expected = java.util.Set.of("start", "today", "end", "once").contains(scenario);
         assertThat(
                         BudgetSchedule.currentTrigger(
-                                budget, scenario.equals("null") ? null : trigger.atStartOfDay()))
+                                budget,
+                                scenario.equals("null")
+                                        ? null
+                                        : org.openfinance.util.ReportingClock.startOfDay(trigger)))
                 .isEqualTo(expected);
     }
 }

@@ -139,7 +139,9 @@ class MarketDataBoundaryTest {
                                         .symbol("NATIVE")
                                         .currency("EUR")
                                         .price(new BigDecimal("16.01"))
-                                        .timestamp(date.atStartOfDay())
+                                        .timestamp(
+                                                org.openfinance.util.ReportingClock.startOfDay(
+                                                        date))
                                         .build(),
                                 MarketQuote.builder()
                                         .symbol("NATIVE")

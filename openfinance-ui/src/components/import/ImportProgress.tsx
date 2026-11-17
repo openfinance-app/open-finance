@@ -6,6 +6,7 @@
  */
 import { CheckCircle2, XCircle, Loader2, ExternalLink, AlertTriangle } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { useDateFormatter } from '@/hooks/useDateFormatter';
 import { readImportFiles } from '@/utils/import-files';
 import { Button } from '@/components/ui/Button';
 import { SkroogeRulesNotice } from '@/components/import/SkroogeRulesNotice';
@@ -26,6 +27,7 @@ export function ImportProgress({
   onClose,
 }: ImportProgressProps) {
   const { t } = useTranslation('import');
+  const { dateTime } = useDateFormatter();
   const isComplete = session.status === 'COMPLETED';
   const isFailed = session.status === 'FAILED';
   const isCancelled = session.status === 'CANCELLED';
@@ -197,7 +199,7 @@ export function ImportProgress({
       {/* Completion Time */}
       {session.completedAt && (
         <div className="text-center text-xs text-text-tertiary">
-          {t('progress.completedAt', { date: new Date(session.completedAt).toLocaleString() })}
+          {t('progress.completedAt', { date: dateTime(session.completedAt) })}
         </div>
       )}
     </div>

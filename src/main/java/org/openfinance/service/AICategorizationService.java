@@ -6,7 +6,7 @@ import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.math.BigDecimal;
 import java.time.Duration;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -525,7 +525,7 @@ public class AICategorizationService {
             metadata.put("count", transactions.size());
             metadata.put("ledgerBalance", ledgerBalance);
             metadata.put("fileCurrency", fileCurrency);
-            metadata.put("timestamp", LocalDateTime.now().toString());
+            metadata.put("timestamp", Instant.now().toString());
             return objectMapper.writeValueAsString(metadata);
         } catch (JsonProcessingException e) {
             log.error(

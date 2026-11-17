@@ -13,6 +13,7 @@ import org.openfinance.dto.calculator.*;
 import org.openfinance.exception.CalculationValidationException;
 import org.openfinance.util.MathConstants;
 import org.openfinance.util.MoneyPrecision;
+import org.openfinance.util.ReportingClock;
 import org.springframework.stereotype.Service;
 
 /**
@@ -307,7 +308,9 @@ public class FinancialFreedomService {
         int yearsUntilDepletion = months / MONTHS_PER_YEAR;
         Integer depletionYear =
                 !infinite && !exceedsProjection && yearsUntilDepletion > 0
-                        ? Year.now().plusYears(yearsUntilDepletion).getValue()
+                        ? Year.from(ReportingClock.today())
+                                .plusYears(yearsUntilDepletion)
+                                .getValue()
                         : null;
 
         // Build message

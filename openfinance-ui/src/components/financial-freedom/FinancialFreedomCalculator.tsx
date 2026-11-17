@@ -1,3 +1,4 @@
+import { useReportingCalendar } from '@/hooks/useReportingCalendar';
 import { decimalValue, decimalField } from '@/utils/exact-decimal';
 import { formatDecimal } from '@/utils/format';
 import { useCallback } from 'react';
@@ -395,6 +396,7 @@ function FreedomResults({
   longevityResult?: SavingsLongevityResult | null;
   currency: string;
 }) {
+  const { date: today } = useReportingCalendar();
   const { t, i18n } = useTranslation('tools');
   const yearsToFreedom = result.yearsToFreedom;
 
@@ -485,9 +487,8 @@ function FreedomResults({
                     <p className="text-sm text-muted-foreground mt-2">
                       {t('financialFreedom.results.until', {
                         year: new Date(
-                          new Date().getFullYear(),
-                          new Date().getMonth() +
-                            Math.ceil(longevityResult.totalMonthsUntilDepletion),
+                          today.getFullYear(),
+                          today.getMonth() + Math.ceil(longevityResult.totalMonthsUntilDepletion),
                           1
                         ).toLocaleDateString(i18n.language, { month: 'long', year: 'numeric' }),
                       })}

@@ -1,6 +1,7 @@
 import axios, { AxiosError, type AxiosResponse, type InternalAxiosRequestConfig } from 'axios';
 import i18n from '@/i18n';
 import { STORAGE_KEYS } from '@/constants/storage';
+import { deviceTimezone } from '@/utils/timezone';
 import { acceptRenewedAuthToken, getStoredAuthToken } from '@/utils/auth-session';
 
 // API base URL - defaults to relative path for containerized deployments
@@ -18,6 +19,7 @@ const apiClient = axios.create({
 // Request interceptor - add JWT token and encryption key to requests
 apiClient.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
+    config.headers['X-Device-Timezone'] = deviceTimezone();
     // Add JWT token from localStorage or sessionStorage
     const token = getStoredAuthToken();
     if (token && config.headers && !config.headers.Authorization) {

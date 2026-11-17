@@ -6,7 +6,8 @@ import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { HelpTooltip } from '@/components/ui/HelpTooltip';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/Dialog';
-import { formatDistanceToNow, differenceInDays, format, type Locale } from 'date-fns';
+import { formatDistanceToNow, type Locale } from 'date-fns';
+import { useDateFormatter } from '@/hooks/useDateFormatter';
 import { fr, enUS } from 'date-fns/locale';
 import { useTranslation } from 'react-i18next';
 import DOMPurify from 'dompurify';
@@ -17,15 +18,21 @@ interface FeedItemProps {
   onDiscard: (link: string) => void;
 }
 
-function publicationDate(value: string | undefined, locale: Locale, fallback: string): string {
+function publicationDate(
+  value: string | undefined,
+  locale: Locale,
+  fallback: string,
+  formatDate: (date: Date) => string
+): string {
   const date = value ? new Date(value) : null;
   if (!date || !Number.isFinite(date.getTime())) return fallback;
-  return differenceInDays(new Date(), date) <= 7
+  return Date.now() - date.getTime() <= 7 * 24 * 60 * 60 * 1000
     ? formatDistanceToNow(date, { addSuffix: true, locale })
-    : format(date, 'PP', { locale });
+    : formatDate(date);
 }
 
 function FeedItem({ item, onClick, onDiscard }: FeedItemProps) {
+  const { date } = useDateFormatter();
   const { t, i18n } = useTranslation('dashboard');
   const dateLocale = i18n.language === 'fr' ? fr : enUS;
 
@@ -64,7 +71,7 @@ function FeedItem({ item, onClick, onDiscard }: FeedItemProps) {
           </div>
           <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1">
             <span className="max-w-full shrink-0 text-xs text-text-muted">
-              {publicationDate(item.pubDate, dateLocale, t('cards.rssFeed.recently'))}
+              {publicationDate(item.pubDate, dateLocale, t('cards.rssFeed.recently'), date)}
             </span>
             <Badge
               variant="info"
@@ -82,6 +89,7 @@ function FeedItem({ item, onClick, onDiscard }: FeedItemProps) {
 }
 
 export default function RssFeedCard() {
+  const { date } = useDateFormatter();
   const { t, i18n } = useTranslation('dashboard');
   const dateLocale = i18n.language === 'fr' ? fr : enUS;
   const { data: feeds, isLoading, error, refetch, isFetching } = useFinanceNews(i18n.language);
@@ -267,7 +275,12 @@ export default function RssFeedCard() {
                 </Badge>
               )}
               <span className="max-w-full shrink-0 text-xs text-text-muted">
-                {publicationDate(selectedItem?.pubDate, dateLocale, t('cards.rssFeed.recently'))}
+                {publicationDate(
+                  selectedItem?.pubDate,
+                  dateLocale,
+                  t('cards.rssFeed.recently'),
+                  date
+                )}
               </span>
             </div>
 

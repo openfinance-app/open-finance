@@ -8,7 +8,10 @@ import i18next from 'i18next';
  * Format a date as relative time (e.g., "2 minutes ago", "3 hours ago")
  * Uses Intl.RelativeTimeFormat for locale-aware output.
  */
-export function formatRelativeTime(date: string | Date | null | undefined): string {
+export function formatRelativeTime(
+  date: string | Date | null | undefined,
+  timeZone?: string
+): string {
   if (!date) {
     return i18next.t('common:lastUpdated.never');
   }
@@ -34,10 +37,12 @@ export function formatRelativeTime(date: string | Date | null | undefined): stri
   } else if (diffDays < 7) {
     return rtf.format(-diffDays, 'day');
   } else {
+    const yearFormat = new Intl.DateTimeFormat(locale, { timeZone, year: 'numeric' });
     return target.toLocaleDateString(locale, {
+      timeZone,
       month: 'short',
       day: 'numeric',
-      year: target.getFullYear() !== now.getFullYear() ? 'numeric' : undefined,
+      year: yearFormat.format(target) !== yearFormat.format(now) ? 'numeric' : undefined,
     });
   }
 }
@@ -69,14 +74,14 @@ export function getTimestampColor(lastUpdated: string | Date | null | undefined)
 /**
  * Format absolute timestamp
  */
-export function formatAbsoluteTime(date: string | Date): string {
+export function formatAbsoluteTime(date: string | Date, timeZone?: string): string {
   const target = typeof date === 'string' ? new Date(date) : date;
-  return target.toLocaleString('en-US', {
+  return target.toLocaleString(i18next.language || 'en', {
+    timeZone,
     month: 'short',
     day: 'numeric',
     year: 'numeric',
     hour: 'numeric',
     minute: '2-digit',
-    hour12: true,
   });
 }

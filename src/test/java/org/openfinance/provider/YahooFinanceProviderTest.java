@@ -263,4 +263,32 @@ class YahooFinanceProviderTest {
         assertThatThrownBy(() -> provider.getQuote("INVALID_SYMBOL_123456"))
                 .isInstanceOf(MarketDataException.class);
     }
+
+    @Test
+    void historicalPricesUseTheExchangeCalendarAndFilterThePaddedInterval() {
+        long first = java.time.Instant.parse("2026-11-14T13:30:00Z").getEpochSecond();
+        long second = java.time.Instant.parse("2026-11-15T13:30:00Z").getEpochSecond();
+        String response =
+                """
+                {"chart":{"result":[{"meta":{"currency":"AUD","exchangeTimezoneName":"Australia/Sydney"},
+                 "timestamp":[%d,%d],"indicators":{"quote":[{"open":[10,11],"close":[10,11]}]}}]}}
+                """
+                        .formatted(first, second);
+        WebClient client =
+                WebClient.builder()
+                        .exchangeFunction(
+                                request ->
+                                        Mono.just(
+                                                ClientResponse.create(HttpStatus.OK)
+                                                        .header("Content-Type", "application/json")
+                                                        .body(response)
+                                                        .build()))
+                        .build();
+        ReflectionTestUtils.setField(provider, "webClient", client);
+        LocalDate date = LocalDate.of(2026, 11, 16);
+        List<HistoricalPrice> prices = provider.getHistoricalPrices("TEST.AX", date, date);
+        assertThat(prices).hasSize(1);
+        assertThat(prices.getFirst().getDate()).isEqualTo(date);
+        assertThat(prices.getFirst().getClose()).isEqualByComparingTo("11");
+    }
 }

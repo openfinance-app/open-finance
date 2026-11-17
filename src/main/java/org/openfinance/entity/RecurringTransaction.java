@@ -8,6 +8,7 @@ import java.time.LocalDateTime;
 import lombok.*;
 import org.openfinance.converter.EncryptedBigDecimalConverter;
 import org.openfinance.converter.EncryptedStringConverter;
+import org.openfinance.util.ReportingClock;
 
 /**
  * JPA entity representing a recurring financial transaction template.
@@ -289,7 +290,7 @@ public class RecurringTransaction {
             return false;
         }
 
-        LocalDate today = LocalDate.now();
+        LocalDate today = ReportingClock.today();
 
         if (today.isBefore(nextOccurrence)) {
             return false;
@@ -310,7 +311,7 @@ public class RecurringTransaction {
      * @return true if ended, false otherwise
      */
     public boolean isEnded() {
-        return endDate != null && LocalDate.now().isAfter(endDate);
+        return endDate != null && ReportingClock.today().isAfter(endDate);
     }
 
     /**

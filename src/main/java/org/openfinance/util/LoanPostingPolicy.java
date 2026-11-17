@@ -81,7 +81,7 @@ public final class LoanPostingPolicy {
                     "Record managed payments on or after the conversion date; earlier payments are already in the imported history");
         }
         if (date == null
-                || date.isAfter(LocalDate.now())
+                || date.isAfter(ReportingClock.today())
                 || (liability.getStartDate() != null && date.isBefore(liability.getStartDate()))) {
             throw new InvalidTransactionException(
                     "Loan movement date must fall between loan origination and today");

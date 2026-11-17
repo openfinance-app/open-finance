@@ -13,6 +13,7 @@ import org.hibernate.annotations.UpdateTimestamp;
 import org.openfinance.converter.EncryptedBigDecimalConverter;
 import org.openfinance.converter.EncryptedStringConverter;
 import org.openfinance.converter.ExactDecimalConverter;
+import org.openfinance.util.ReportingClock;
 
 /**
  * Entity representing a financial asset (stock, ETF, crypto, etc.) in the Open-Finance system.
@@ -420,7 +421,8 @@ public class Asset {
         }
 
         // Calculate years owned
-        long daysOwned = java.time.temporal.ChronoUnit.DAYS.between(purchaseDate, LocalDate.now());
+        long daysOwned =
+                java.time.temporal.ChronoUnit.DAYS.between(purchaseDate, ReportingClock.today());
         BigDecimal yearsOwned =
                 BigDecimal.valueOf(daysOwned)
                         .divide(BigDecimal.valueOf(365), 4, java.math.RoundingMode.HALF_UP);
@@ -465,7 +467,8 @@ public class Asset {
         // accrued yet
         if (purchaseDate != null) {
             long daysOwned =
-                    java.time.temporal.ChronoUnit.DAYS.between(purchaseDate, LocalDate.now());
+                    java.time.temporal.ChronoUnit.DAYS.between(
+                            purchaseDate, ReportingClock.today());
             if (daysOwned == 0) {
                 return getPerformanceBasis();
             }
@@ -493,6 +496,6 @@ public class Asset {
      * @return true if warranty expiration date is in the future, false otherwise
      */
     public boolean isWarrantyValid() {
-        return warrantyExpiration != null && warrantyExpiration.isAfter(LocalDate.now());
+        return warrantyExpiration != null && warrantyExpiration.isAfter(ReportingClock.today());
     }
 }

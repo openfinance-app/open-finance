@@ -15,6 +15,7 @@ import org.openfinance.entity.Currency;
 import org.openfinance.repository.CurrencyRepository;
 import org.openfinance.service.CryptoListService;
 import org.openfinance.service.ExchangeRateService;
+import org.openfinance.util.ReportingClock;
 import org.springframework.context.MessageSource;
 import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -216,7 +217,7 @@ public class CurrencyController {
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
                     LocalDate date) {
 
-        LocalDate rateDate = (date != null) ? date : LocalDate.now();
+        LocalDate rateDate = (date != null) ? date : ReportingClock.today();
         log.debug("Fetching exchange rate: {} -> {} on {}", from, to, rateDate);
 
         ExchangeRateResponse response =
@@ -268,7 +269,7 @@ public class CurrencyController {
 
         log.debug("Fetching latest exchange rate: {} -> {}", from, to);
 
-        LocalDate valuationDate = LocalDate.now();
+        LocalDate valuationDate = ReportingClock.today();
         ExchangeRateResponse response =
                 exchangeRateService
                         .getExchangeRateQuote(from, to, valuationDate)
@@ -330,7 +331,8 @@ public class CurrencyController {
                 request.toCurrency());
 
         // Use current date if not specified
-        LocalDate conversionDate = (request.date() != null) ? request.date() : LocalDate.now();
+        LocalDate conversionDate =
+                (request.date() != null) ? request.date() : ReportingClock.today();
 
         // Perform conversion
         BigDecimal convertedAmount;
@@ -354,7 +356,7 @@ public class CurrencyController {
                             request.amount(), request.fromCurrency(), request.toCurrency());
             exchangeRate =
                     exchangeRateService.getExchangeRate(
-                            request.fromCurrency(), request.toCurrency(), LocalDate.now());
+                            request.fromCurrency(), request.toCurrency(), ReportingClock.today());
         }
 
         ConvertResponse response =

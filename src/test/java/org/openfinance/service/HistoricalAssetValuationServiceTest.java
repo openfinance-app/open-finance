@@ -145,7 +145,7 @@ class HistoricalAssetValuationServiceTest {
     void unavailableMarketDataKeepsADatedEntryEstimateAndNeverUsesTodaysPrice() {
         Asset asset = holding();
         asset.setCurrentPrice(new BigDecimal("999"));
-        asset.setLastUpdated(END.plusDays(1).atStartOfDay());
+        asset.setLastUpdated(org.openfinance.util.ReportingClock.startOfDay(END.plusDays(1)));
         when(marketData.getHistoricalPrices(any(), any(), any()))
                 .thenThrow(new MarketDataException("offline"));
         assertThat(service.valueAt(asset, List.of(buy()), END, "EUR"))

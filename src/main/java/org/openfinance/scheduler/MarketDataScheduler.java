@@ -77,6 +77,7 @@ public class MarketDataScheduler implements ApplicationRunner {
 
     static final String DEFAULT_ZONE = "America/New_York";
 
+    private final org.openfinance.service.UserReportingClock userReportingClock;
     private final MarketDataService marketDataService;
     private final UserRepository userRepository;
     private final SchedulerProperties schedulerProperties;
@@ -233,7 +234,10 @@ public class MarketDataScheduler implements ApplicationRunner {
     // -----------------------------------------------------------------
 
     private int updateUserAssetPrices(Long userId) {
-        try (UserEncryptionLock.Scope ignored = userEncryptionLock.acquire(userId, false)) {
+        try (UserEncryptionLock.Scope ignored = userEncryptionLock.acquire(userId, false);
+                org.openfinance.util.ReportingClock.Scope calendar =
+                        org.openfinance.util.ReportingClock.use(
+                                userReportingClock.forUser(userId))) {
             Optional<SecretKey> key = encryptionKeyCache.getKey(userId);
             if (encryptionProperties.isEnabled() && key.isEmpty()) {
                 log.debug(

@@ -16,7 +16,7 @@ import { CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
 import { useTranslation, Trans } from 'react-i18next';
 import { Link } from 'react-router';
 import { ROUTES } from '@/constants/routes';
-import { useLocale } from '@/context/LocaleContext';
+import { useDateFormatter } from '@/hooks/useDateFormatter';
 import { updateProfileSchema, type UpdateProfileFormData } from '@/validators/authSchemas';
 import { useGetProfile, useUpdateProfile } from '@/hooks/useAuth';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
@@ -27,7 +27,7 @@ import { HelpTooltip } from '@/components/ui/HelpTooltip';
 export default function ProfilePage() {
   const { t } = useTranslation('settings');
   const { t: tErrors } = useTranslation('errors');
-  const { locale } = useLocale();
+  const { date: formatDate } = useDateFormatter();
   useDocumentTitle(t('profile.documentTitle'));
   const { data: profile, isLoading: isLoadingProfile, error: profileError } = useGetProfile();
   const updateProfile = useUpdateProfile();
@@ -180,11 +180,7 @@ export default function ProfilePage() {
                 {t('profile.memberSince')}
               </label>
               <div className="p-3 bg-surface-elevated rounded-lg text-text-primary">
-                {new Date(profile.createdAt).toLocaleDateString(locale, {
-                  year: 'numeric',
-                  month: 'long',
-                  day: 'numeric',
-                })}
+                {formatDate(profile.createdAt)}
               </div>
             </div>
           </div>

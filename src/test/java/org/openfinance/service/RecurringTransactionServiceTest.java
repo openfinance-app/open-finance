@@ -50,6 +50,8 @@ import org.openfinance.security.EncryptionService;
 @DisplayName("RecurringTransactionService Unit Tests")
 class RecurringTransactionServiceTest {
 
+    @Mock private org.openfinance.service.UserReportingClock userReportingClock;
+
     @Mock private OperationHistoryService operationHistoryService;
 
     @Mock private RecurringTransactionRepository recurringTransactionRepository;
@@ -903,7 +905,7 @@ class RecurringTransactionServiceTest {
                                                                     .RecurringFrequency.DAILY)
                                                     .build())
                             .toList();
-            when(recurringTransactionRepository.findDueRecurringTransactions(date))
+            when(recurringTransactionRepository.findDueRecurringTransactions(any(LocalDate.class)))
                     .thenReturn(templates);
             when(occurrenceService.post(1L, 1L, date)).thenReturn(true);
             when(occurrenceService.post(2L, 1L, date))

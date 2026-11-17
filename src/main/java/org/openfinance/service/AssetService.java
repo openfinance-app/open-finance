@@ -40,6 +40,7 @@ import org.openfinance.security.EncryptionService;
 import org.openfinance.service.history.ReversibleOperation;
 import org.openfinance.specification.AssetSpecification;
 import org.openfinance.util.AmountComparison;
+import org.openfinance.util.ReportingClock;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Caching;
 import org.springframework.data.domain.Page;
@@ -201,7 +202,7 @@ public class AssetService {
         priceHistory.record(
                 userId,
                 savedAsset,
-                LocalDate.now(),
+                ReportingClock.today(),
                 savedAsset.getCurrentPrice(),
                 savedAsset.getCurrency(),
                 "MANUAL");
@@ -556,7 +557,7 @@ public class AssetService {
             priceHistory.record(
                     userId,
                     updatedAsset,
-                    LocalDate.now(),
+                    ReportingClock.today(),
                     updatedAsset.getCurrentPrice(),
                     updatedAsset.getCurrency(),
                     "MANUAL");
@@ -576,7 +577,7 @@ public class AssetService {
             invalidateSnapshotsFrom(userId, cutoff);
         } else {
             netWorthRepository.deleteByUserIdAndSnapshotDateBetween(
-                    userId, LocalDate.now(), LocalDate.now());
+                    userId, ReportingClock.today(), ReportingClock.today());
         }
 
         // Decrypt and return response with calculated fields
@@ -725,7 +726,7 @@ public class AssetService {
     private boolean improvementAffectsValue(Asset asset, LocalDate date, LocalDateTime recordedAt) {
         LocalDateTime anchor = asset.getValuationRecordedAt();
         return org.openfinance.util.ValuationContributions.applies(
-                date, recordedAt, anchor == null ? null : anchor.toLocalDate(), anchor);
+                date, recordedAt, anchor == null ? null : ReportingClock.dateOf(anchor), anchor);
     }
 
     private Asset findPhysicalAsset(Long assetId, Long userId) {
@@ -1642,7 +1643,7 @@ public class AssetService {
         try {
             int deleted =
                     netWorthRepository.deleteByUserIdAndSnapshotDateBetween(
-                            userId, fromDate.withDayOfMonth(1), LocalDate.now());
+                            userId, fromDate.withDayOfMonth(1), ReportingClock.today());
             if (deleted > 0) {
                 log.debug(
                         "Invalidated {} net worth snapshots for user {} (asset change from {})",

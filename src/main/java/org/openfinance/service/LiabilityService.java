@@ -56,6 +56,7 @@ import org.openfinance.repository.UserRepository;
 import org.openfinance.security.EncryptionService;
 import org.openfinance.service.history.ReversibleOperation;
 import org.openfinance.util.AmountComparison;
+import org.openfinance.util.ReportingClock;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Caching;
 import org.springframework.data.domain.Page;
@@ -1105,7 +1106,8 @@ public class LiabilityService {
             InterestOnlyWindow window,
             BigDecimal monthlyInsurance) {
         LocalDate firstPaymentDate =
-                org.openfinance.util.LoanPaymentDates.nextPayment(liability, LocalDate.now());
+                org.openfinance.util.LoanPaymentDates.nextPayment(
+                        liability, ReportingClock.today());
         BigDecimal firstMonthInterest =
                 monthlyInterest(inputs.balance(), inputs.annualPercentage(), inputs.moneyScale());
         if (!window.activeOn(firstPaymentDate)
@@ -1140,7 +1142,8 @@ public class LiabilityService {
                 liability,
                 liabilityTrancheRepository.findByLiabilityIdAndUserId(
                         liability.getId(), liability.getUserId()),
-                org.openfinance.util.LoanPaymentDates.nextPayment(liability, LocalDate.now()))) {
+                org.openfinance.util.LoanPaymentDates.nextPayment(
+                        liability, ReportingClock.today()))) {
             return interest.add(monthlyInsuranceOf(liability));
         }
         BigDecimal payment = decryptAmount(liability.getMinimumPayment());
@@ -2348,7 +2351,7 @@ public class LiabilityService {
         }
         if (date == null
                 || date.isBefore(tranche.getDrawnDate())
-                || date.isAfter(LocalDate.now())) {
+                || date.isAfter(ReportingClock.today())) {
             throw new InvalidTransactionException(
                     "Reversal date must fall between the draw date and today");
         }
@@ -2642,11 +2645,12 @@ public class LiabilityService {
         Integer monthsRemaining = null;
         if (liability.getEndDate() != null) {
             monthsRemaining =
-                    (int) ChronoUnit.MONTHS.between(LocalDate.now(), liability.getEndDate());
+                    (int) ChronoUnit.MONTHS.between(ReportingClock.today(), liability.getEndDate());
             if (monthsRemaining < 0) monthsRemaining = 0;
         }
 
-        Long liabilityAgeDays = ChronoUnit.DAYS.between(liability.getStartDate(), LocalDate.now());
+        Long liabilityAgeDays =
+                ChronoUnit.DAYS.between(liability.getStartDate(), ReportingClock.today());
 
         // principalPaid = principal - currentBalance (Requirement REQ-LIA-3.4)
         BigDecimal principalPaid = totalPaid;
@@ -2824,7 +2828,7 @@ public class LiabilityService {
         try {
             int deleted =
                     netWorthRepository.deleteByUserIdAndSnapshotDateBetween(
-                            userId, fromDate.withDayOfMonth(1), LocalDate.now());
+                            userId, fromDate.withDayOfMonth(1), ReportingClock.today());
             if (deleted > 0) {
                 log.debug(
                         "Invalidated {} net worth snapshots for user {} (liability change from {})",

@@ -172,6 +172,13 @@ public class UserSettingsService {
             updated = true;
         }
 
+        Boolean useDeviceTimezone = request.useDeviceTimezone();
+        if (useDeviceTimezone == null && request.timezone() != null) useDeviceTimezone = false;
+        if (useDeviceTimezone != null && useDeviceTimezone != settings.isUseDeviceTimezone()) {
+            settings.setUseDeviceTimezone(useDeviceTimezone);
+            updated = true;
+        }
+
         if (request.country() != null && !request.country().equals(settings.getCountry())) {
             log.debug("Updating country from {} to {}", settings.getCountry(), request.country());
             settings.setCountry(request.country());
@@ -355,6 +362,9 @@ public class UserSettingsService {
                                             .numberFormat("1,234.56")
                                             .language(langCode)
                                             .timezone("UTC")
+                                            .lastDeviceTimezone(
+                                                    org.openfinance.util.ReportingClock.zone()
+                                                            .getId())
                                             .country(defaultCountry)
                                             .build();
 
@@ -405,6 +415,7 @@ public class UserSettingsService {
                 settings.isDecimalPlacesOverrideEnabled(),
                 settings.getPreferredDecimalPlaces(),
                 settings.getCreatedAt(),
-                settings.getUpdatedAt());
+                settings.getUpdatedAt(),
+                settings.isUseDeviceTimezone());
     }
 }

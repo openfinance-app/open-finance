@@ -126,12 +126,14 @@ public class SearchService {
 
         // Capture encryption key from the request thread so async tasks can use it
         SecretKey encKey = org.openfinance.security.EncryptionContext.getKey();
+        java.time.Clock calendar = org.openfinance.util.ReportingClock.current();
 
         // Search across all entity types in parallel
         CompletableFuture<List<SearchResultDto>> transactionsFuture =
                 CompletableFuture.supplyAsync(
                         () ->
                                 withEncryptionKey(
+                                        calendar,
                                         encKey,
                                         () ->
                                                 searchTransactions(
@@ -140,36 +142,42 @@ public class SearchService {
                 CompletableFuture.supplyAsync(
                         () ->
                                 withEncryptionKey(
+                                        calendar,
                                         encKey,
                                         () -> searchAccounts(userId, query, fetchLimit, regex)));
         CompletableFuture<List<SearchResultDto>> assetsFuture =
                 CompletableFuture.supplyAsync(
                         () ->
                                 withEncryptionKey(
+                                        calendar,
                                         encKey,
                                         () -> searchAssets(userId, query, fetchLimit, regex)));
         CompletableFuture<List<SearchResultDto>> realEstateFuture =
                 CompletableFuture.supplyAsync(
                         () ->
                                 withEncryptionKey(
+                                        calendar,
                                         encKey,
                                         () -> searchRealEstate(userId, query, fetchLimit, regex)));
         CompletableFuture<List<SearchResultDto>> liabilitiesFuture =
                 CompletableFuture.supplyAsync(
                         () ->
                                 withEncryptionKey(
+                                        calendar,
                                         encKey,
                                         () -> searchLiabilities(userId, query, fetchLimit, regex)));
         CompletableFuture<List<SearchResultDto>> budgetsFuture =
                 CompletableFuture.supplyAsync(
                         () ->
                                 withEncryptionKey(
+                                        calendar,
                                         encKey,
                                         () -> searchBudgets(userId, query, fetchLimit, regex)));
         CompletableFuture<List<SearchResultDto>> recurringFuture =
                 CompletableFuture.supplyAsync(
                         () ->
                                 withEncryptionKey(
+                                        calendar,
                                         encKey,
                                         () ->
                                                 searchRecurringTransactions(
@@ -178,6 +186,7 @@ public class SearchService {
                 CompletableFuture.supplyAsync(
                         () ->
                                 withEncryptionKey(
+                                        calendar,
                                         encKey,
                                         () -> searchCategories(userId, query, fetchLimit, regex)));
 
@@ -1299,11 +1308,13 @@ public class SearchService {
      * Runs a supplier with the given encryption key set in EncryptionContext, ensuring cleanup
      * afterwards. Used to propagate the request-thread key to ForkJoinPool worker threads.
      */
-    private <T> T withEncryptionKey(SecretKey key, java.util.function.Supplier<T> supplier) {
+    private <T> T withEncryptionKey(
+            java.time.Clock calendar, SecretKey key, java.util.function.Supplier<T> supplier) {
         if (key != null) {
             org.openfinance.security.EncryptionContext.setKey(key);
         }
-        try {
+        try (org.openfinance.util.ReportingClock.Scope ignored =
+                org.openfinance.util.ReportingClock.use(calendar)) {
             return supplier.get();
         } finally {
             org.openfinance.security.EncryptionContext.clear();

@@ -31,6 +31,7 @@ import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 import org.openfinance.converter.EncryptedBigDecimalConverter;
 import org.openfinance.converter.EncryptedStringConverter;
+import org.openfinance.util.ReportingClock;
 
 /**
  * Entity representing a financial account in the Open-Finance system.
@@ -180,7 +181,7 @@ public class Account {
     @NotNull(message = "{account.openingDate.notnull}")
     @Column(name = "opening_date", nullable = false)
     @Builder.Default
-    private java.time.LocalDate openingDate = java.time.LocalDate.now();
+    private java.time.LocalDate openingDate = ReportingClock.today();
 
     /**
      * Optional description of the account (e.g., institution details, account purpose).

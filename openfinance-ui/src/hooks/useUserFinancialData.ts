@@ -1,3 +1,4 @@
+import { useReportingCalendar } from '@/hooks/useReportingCalendar';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { format, subMonths } from 'date-fns';
@@ -20,13 +21,13 @@ interface UserFinancialData extends ExactDecimalFields {
 
 /** Cash net of account debt plus investable holdings, excluding property and physical assets. */
 export const useUserFinancialData = () => {
+  const { date: today, today: dateKey } = useReportingCalendar();
   const { baseCurrency, user } = useAuthContext();
   const { t } = useTranslation('tools');
   const query = useQuery<UserFinancialData>({
-    queryKey: ['userFinancialData', user?.id, baseCurrency],
+    queryKey: ['userFinancialData', user?.id, baseCurrency, dateKey],
     enabled: user != null,
     queryFn: async () => {
-      const today = new Date();
       const [assetsResponse, accountsResponse, cashFlowResponse] = await Promise.all([
         apiClient.get<Asset[]>('/assets'),
         apiClient.get<Account[]>('/accounts'),

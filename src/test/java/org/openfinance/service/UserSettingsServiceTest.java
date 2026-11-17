@@ -45,7 +45,7 @@ class UserSettingsServiceTest {
 
     private UserSettingsUpdateRequest request(Boolean enabled, Integer places) {
         return new UserSettingsUpdateRequest(
-                null, null, null, null, null, null, null, null, enabled, places);
+                null, null, null, null, null, null, null, null, enabled, places, null);
     }
 
     @Test
@@ -57,6 +57,49 @@ class UserSettingsServiceTest {
 
         assertThat(response.decimalPlacesOverrideEnabled()).isFalse();
         assertThat(response.preferredDecimalPlaces()).isEqualTo(2);
+        assertThat(response.useDeviceTimezone()).isTrue();
+    }
+
+    @Test
+    void timezoneOverrideAndDeviceModePersistWithoutDiscardingTheSavedZone() {
+        when(userSettingsRepository.findByUserId(USER_ID)).thenReturn(Optional.of(settings));
+        when(userSettingsRepository.save(settings)).thenReturn(settings);
+        UserSettingsResponse overridden =
+                service.updateUserSettings(
+                        USER_ID,
+                        new UserSettingsUpdateRequest(
+                                null,
+                                null,
+                                null,
+                                null,
+                                "Asia/Tokyo",
+                                null,
+                                null,
+                                null,
+                                null,
+                                null,
+                                false));
+        assertThat(overridden.timezone()).isEqualTo("Asia/Tokyo");
+        assertThat(overridden.useDeviceTimezone()).isFalse();
+        UserSettingsResponse automatic =
+                service.updateUserSettings(
+                        USER_ID,
+                        new UserSettingsUpdateRequest(
+                                null, null, null, null, null, null, null, null, null, null, true));
+        assertThat(automatic.timezone()).isEqualTo("Asia/Tokyo");
+        assertThat(automatic.useDeviceTimezone()).isTrue();
+    }
+
+    @Test
+    void timezoneUpdatesWithoutAModeSelectTheExplicitOverride() {
+        when(userSettingsRepository.findByUserId(USER_ID)).thenReturn(Optional.of(settings));
+        when(userSettingsRepository.save(settings)).thenReturn(settings);
+        UserSettingsResponse response =
+                service.updateUserSettings(
+                        USER_ID,
+                        new UserSettingsUpdateRequest(
+                                null, null, null, null, "UTC", null, null, null, null, null, null));
+        assertThat(response.useDeviceTimezone()).isFalse();
     }
 
     @Test

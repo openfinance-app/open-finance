@@ -32,6 +32,7 @@ const mockUserSettings = {
   numberFormat: '1,234.56' as const,
   language: 'en',
   timezone: 'America/New_York',
+  useDeviceTimezone: true,
   createdAt: '2026-01-01T00:00:00Z',
   updatedAt: '2026-01-01T00:00:00Z',
 };

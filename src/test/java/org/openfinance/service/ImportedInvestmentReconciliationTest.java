@@ -57,7 +57,7 @@ class ImportedInvestmentReconciliationTest {
                 .purchasePrice(BigDecimal.TEN)
                 .currentPrice(new BigDecimal("20"))
                 .purchaseDate(DATE)
-                .lastUpdated(DATE.atStartOfDay())
+                .lastUpdated(org.openfinance.util.ReportingClock.startOfDay(DATE))
                 .importOpeningQuantity(BigDecimal.ONE)
                 .importOpeningCost(BigDecimal.TEN)
                 .build();
@@ -274,7 +274,9 @@ class ImportedInvestmentReconciliationTest {
                 List.of());
         assertThat(asset.getCurrentPrice()).isEqualByComparingTo(expected);
         assertThat(asset.getLastUpdated())
-                .isEqualTo(DATE.plusDays(Math.max(offset, 0)).atStartOfDay());
+                .isEqualTo(
+                        org.openfinance.util.ReportingClock.startOfDay(
+                                DATE.plusDays(Math.max(offset, 0))));
     }
 
     @ParameterizedTest

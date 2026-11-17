@@ -26,6 +26,7 @@ import org.openfinance.repository.CurrencyRepository;
 import org.openfinance.repository.RecurringTransactionRepository;
 import org.openfinance.security.EncryptionService;
 import org.openfinance.service.history.ReversibleOperation;
+import org.openfinance.util.ReportingClock;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
@@ -87,6 +88,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class RecurringTransactionService {
 
     private final RecurringTransactionRepository recurringTransactionRepository;
+    private final UserReportingClock userReportingClock;
     private final OperationHistoryService operationHistoryService;
     private final RecurringOccurrenceService occurrenceService;
     private final AccountRepository accountRepository;
@@ -532,7 +534,7 @@ public class RecurringTransactionService {
         }
         log.debug("Retrieving due recurring transactions for user {}", userId);
 
-        LocalDate today = LocalDate.now();
+        LocalDate today = ReportingClock.today();
         List<RecurringTransaction> recurringTransactions =
                 recurringTransactionRepository.findDueRecurringTransactionsByUserId(userId, today);
 
@@ -676,7 +678,7 @@ public class RecurringTransactionService {
 
         // Optionally adjust next occurrence if it's too far in the past (more than 1
         // month old)
-        LocalDate today = LocalDate.now();
+        LocalDate today = ReportingClock.today();
         if (recurringTransaction.getNextOccurrence().isBefore(today.minusMonths(1))) {
             log.info(
                     "Adjusting next occurrence from {} to {} for recurring transaction {}",
@@ -726,9 +728,13 @@ public class RecurringTransactionService {
     public ProcessingResult processRecurringTransactions() {
         log.info("Starting scheduled recurring transaction processing");
 
-        LocalDate today = LocalDate.now();
+        // Include every date currently in use worldwide, then enforce each owner's cutoff.
+        LocalDate latestToday =
+                LocalDate.now(
+                        ReportingClock.current()
+                                .withZone(java.time.ZoneId.of("Pacific/Kiritimati")));
         List<RecurringTransaction> dueRecurringTransactions =
-                recurringTransactionRepository.findDueRecurringTransactions(today);
+                recurringTransactionRepository.findDueRecurringTransactions(latestToday);
 
         log.info("Found {} due recurring transactions to process", dueRecurringTransactions.size());
 
@@ -737,9 +743,11 @@ public class RecurringTransactionService {
         List<String> errors = new ArrayList<>();
 
         for (RecurringTransaction recurringTransaction : dueRecurringTransactions) {
-            try {
+            try (ReportingClock.Scope calendar =
+                    ReportingClock.use(
+                            userReportingClock.forUser(recurringTransaction.getUserId()))) {
                 // Process this recurring transaction
-                processedCount += postBacklog(recurringTransaction, today);
+                processedCount += postBacklog(recurringTransaction, ReportingClock.today());
             } catch (Exception e) {
                 failedCount++;
                 String errorMsg =
@@ -782,7 +790,7 @@ public class RecurringTransactionService {
 
         log.info("Starting recurring transaction processing for user {}", userId);
 
-        LocalDate today = LocalDate.now();
+        LocalDate today = ReportingClock.today();
         List<RecurringTransaction> dueRecurringTransactions =
                 recurringTransactionRepository.findDueRecurringTransactionsByUserId(userId, today);
 
@@ -904,7 +912,7 @@ public class RecurringTransactionService {
             if (request.getNextOccurrence() != null
                     && request.getEndDate().isBefore(request.getNextOccurrence()))
                 throw InvalidTransactionException.recurringEndBeforeNext();
-            if (request.getEndDate().isBefore(LocalDate.now()))
+            if (request.getEndDate().isBefore(ReportingClock.today()))
                 throw InvalidTransactionException.recurringEndInPast();
         }
     }

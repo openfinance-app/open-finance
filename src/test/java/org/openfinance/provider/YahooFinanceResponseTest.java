@@ -7,7 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.net.URI;
 import java.time.LocalDate;
-import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
@@ -158,11 +158,8 @@ class YahooFinanceResponseTest {
         assertThat(prices.getLast().getVolume()).isEqualTo(300);
         assertThat(requests.getFirst().getQuery())
                 .contains(
-                        "period1=" + DAY.atStartOfDay(ZoneId.systemDefault()).toEpochSecond(),
-                        "period2="
-                                + DAY.plusDays(3)
-                                        .atStartOfDay(ZoneId.systemDefault())
-                                        .toEpochSecond());
+                        "period1=" + DAY.minusDays(1).atStartOfDay(ZoneOffset.UTC).toEpochSecond(),
+                        "period2=" + DAY.plusDays(4).atStartOfDay(ZoneOffset.UTC).toEpochSecond());
     }
 
     @Test

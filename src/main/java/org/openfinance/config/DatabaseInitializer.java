@@ -11,6 +11,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.openfinance.util.QueryPlanAnalyzer;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
+import org.springframework.context.annotation.Conditional;
 import org.springframework.context.annotation.Profile;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
@@ -32,8 +33,8 @@ import org.springframework.stereotype.Component;
  *   <li>Ensures WAL mode is enabled for better concurrency
  * </ul>
  *
- * <p>This component is active only for non-test profiles to avoid SQLite-specific checks running
- * against H2 test database.
+ * <p>This component is active only for SQLite databases in non-test profiles, so SQLite-specific
+ * checks never run against PostgreSQL or the H2 test database.
  *
  * @author Open-Finance Team
  * @version 1.0
@@ -41,6 +42,7 @@ import org.springframework.stereotype.Component;
  */
 @Slf4j
 @Component
+@Conditional(SqliteDatabaseCondition.class)
 @RequiredArgsConstructor
 @Profile("!test")
 public class DatabaseInitializer {

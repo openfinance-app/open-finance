@@ -30,6 +30,7 @@ import org.openfinance.repository.NetWorthRepository;
 import org.openfinance.repository.RealEstateValueHistoryRepository;
 import org.openfinance.repository.TransactionRepository;
 import org.openfinance.util.AccountValuation;
+import org.openfinance.util.ReportingClock;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
@@ -215,7 +216,8 @@ public class NetWorthService {
     public BigDecimal calculateTotalAssets(Long userId, String baseCurrency) {
         // Calculate account balances (already converted to base currency)
         List<Account> accounts = accountRepository.findByUserId(userId);
-        Set<Long> excludedAccounts = AccountValuation.excludedAccountIds(accounts, LocalDate.now());
+        Set<Long> excludedAccounts =
+                AccountValuation.excludedAccountIds(accounts, ReportingClock.today());
 
         BigDecimal accountAssets =
                 accounts.stream()
@@ -346,7 +348,7 @@ public class NetWorthService {
         // Sum of negative account balances, converted to positive and to base currency
         BigDecimal negativeBalances =
                 accounts.stream()
-                        .filter(account -> account.isPresentAt(LocalDate.now()))
+                        .filter(account -> account.isPresentAt(ReportingClock.today()))
                         .filter(account -> account.getBalance().compareTo(BigDecimal.ZERO) < 0)
                         .map(
                                 account ->
@@ -434,7 +436,7 @@ public class NetWorthService {
      */
     public NetWorth saveNetWorthSnapshot(Long userId) {
         return saveNetWorthSnapshot(
-                userId, LocalDate.now(), defaultCurrencyProvider.resolveForUser(userId));
+                userId, ReportingClock.today(), defaultCurrencyProvider.resolveForUser(userId));
     }
 
     /**
@@ -576,7 +578,7 @@ public class NetWorthService {
             throw new IllegalArgumentException("User ID cannot be null");
         }
 
-        LocalDate oneMonthAgo = LocalDate.now().minusMonths(1);
+        LocalDate oneMonthAgo = ReportingClock.today().minusMonths(1);
         log.debug("Retrieving net worth for user {} from approximately {}", userId, oneMonthAgo);
         return netWorthRepository.findClosestToDate(userId, oneMonthAgo);
     }
@@ -638,7 +640,7 @@ public class NetWorthService {
             throw new IllegalArgumentException("Retention days must be non-negative");
         }
 
-        LocalDate cutoffDate = LocalDate.now().minusDays(retentionDays);
+        LocalDate cutoffDate = ReportingClock.today().minusDays(retentionDays);
         log.info("Cleaning up net worth snapshots for user {} older than {}", userId, cutoffDate);
 
         int deletedCount =
@@ -667,7 +669,7 @@ public class NetWorthService {
         if (current.isEmpty()) {
             return new NetWorthChange(BigDecimal.ZERO, BigDecimal.ZERO, false);
         }
-        LocalDate targetDate = LocalDate.now().minusDays(periodDays);
+        LocalDate targetDate = ReportingClock.today().minusDays(periodDays);
         Optional<NetWorth> previous = netWorthRepository.findClosestToDate(userId, targetDate);
         if (previous.isEmpty()) {
             return new NetWorthChange(current.get().getNetWorth(), null, false);
@@ -751,7 +753,8 @@ public class NetWorthService {
             LocalDate endDate,
             String baseCurrency,
             boolean force) {
-        LocalDate effectiveEnd = endDate.isAfter(LocalDate.now()) ? LocalDate.now() : endDate;
+        LocalDate effectiveEnd =
+                endDate.isAfter(ReportingClock.today()) ? ReportingClock.today() : endDate;
         if (startDate.isAfter(effectiveEnd)) return 0;
 
         if (force) {
@@ -1018,7 +1021,7 @@ public class NetWorthService {
                                                                         .isAfter(targetDate))
                                 || liabilities.stream()
                                         .anyMatch(l -> !l.getStartDate().isAfter(targetDate));
-                if (targetDate.equals(LocalDate.now())) {
+                if (targetDate.equals(ReportingClock.today())) {
                     // Today's point is an observed position, including booked cash and current
                     // quotes.
                     totalAssets = calculateTotalAssets(userId, baseCurrency);
@@ -1077,7 +1080,7 @@ public class NetWorthService {
             }
             if ((opening != null && opening.isAfter(date)) || !account.isPresentAt(date)) continue;
             BigDecimal balance =
-                    date.equals(LocalDate.now())
+                    date.equals(ReportingClock.today())
                             ? account.getBalance()
                             : computeHistoricalBalance(account, date, movements, Map.of());
             AccountCurrencyService.Position position =
@@ -1293,7 +1296,7 @@ public class NetWorthService {
     private BigDecimal historicalPhysicalValue(
             Asset asset, List<Transaction> transactions, LocalDate date) {
         java.time.LocalDateTime anchor = asset.getValuationRecordedAt();
-        boolean anchored = anchor != null && !anchor.toLocalDate().isAfter(date);
+        boolean anchored = anchor != null && !ReportingClock.dateOf(anchor).isAfter(date);
         BigDecimal value =
                 anchored
                         ? asset.getTotalValue()
@@ -1312,7 +1315,7 @@ public class NetWorthService {
                 if (!org.openfinance.util.ValuationContributions.applies(
                         transaction.getDate(),
                         transaction.getCreatedAt(),
-                        anchor.toLocalDate(),
+                        ReportingClock.dateOf(anchor),
                         anchor)) continue;
                 value = value.subtract(change);
             }

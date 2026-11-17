@@ -16,6 +16,8 @@ import { ROUTES } from '@/constants/routes';
 import { useAuthContext } from '@/context/AuthContext';
 import { LoadingSpinner } from '@/components/LoadingComponents';
 import { AppLayout } from '@/components/layout/AppLayout';
+import { useUserSettings } from '@/hooks/useUserSettings';
+import { useTranslation } from 'react-i18next';
 
 interface ProtectedRouteProps {
   children: ReactNode;
@@ -41,9 +43,11 @@ export const ProtectedRoute = React.memo(function ProtectedRoute({
 }: ProtectedRouteProps) {
   const { isAuthenticated, isLoading } = useAuthContext();
   const location = useLocation();
+  const settings = useUserSettings();
+  const { t } = useTranslation('common');
 
   // Show loading spinner while checking auth state
-  if (isLoading) {
+  if (isLoading || (isAuthenticated && settings.isPending)) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <LoadingSpinner size="lg" />
@@ -55,6 +59,20 @@ export const ProtectedRoute = React.memo(function ProtectedRoute({
   // Preserve the attempted location so we can redirect back after login
   if (!isAuthenticated) {
     return <Navigate to={ROUTES.LOGIN} state={{ from: location }} replace />;
+  }
+
+  // Defaults must not be initialized in the device calendar before an override is loaded.
+  if (settings.isError) {
+    return (
+      <AppLayout>
+        <div role="alert" className="p-6">
+          <p>{t('loadError')}</p>
+          <button type="button" className="mt-3 underline" onClick={() => void settings.refetch()}>
+            {t('bulk.retry')}
+          </button>
+        </div>
+      </AppLayout>
+    );
   }
 
   // Render protected content wrapped in app layout

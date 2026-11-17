@@ -19,6 +19,7 @@ import {
 } from '@/components/ui/Select';
 import { useTranslation } from 'react-i18next';
 import type { SavedSimulation } from '@/types/realEstateTools';
+import { useDateFormatter } from '@/hooks/useDateFormatter';
 
 export interface SimulationHeaderProps {
   simulationType: SavedSimulation['metadata']['type'];
@@ -42,7 +43,8 @@ export const SimulationHeader: React.FC<SimulationHeaderProps> = ({
   canSave,
 }) => {
   const matchingSimulations = simulations.filter(s => s.metadata.type === simulationType);
-  const { t, i18n } = useTranslation('realEstate');
+  const { t } = useTranslation('realEstate');
+  const { date } = useDateFormatter();
 
   const handleDelete = async (id: string, name: string) => {
     if (confirm(t('comparator.confirmDelete', { name }))) {
@@ -85,7 +87,7 @@ export const SimulationHeader: React.FC<SimulationHeaderProps> = ({
                     <div className="flex items-center justify-between w-full">
                       <span>{sim.metadata.name}</span>
                       <span className="text-xs text-muted-foreground ml-2">
-                        {new Date(sim.metadata.updatedAt).toLocaleDateString(i18n.language)}
+                        {date(sim.metadata.updatedAt)}
                       </span>
                     </div>
                   </SelectItem>

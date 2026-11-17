@@ -104,7 +104,8 @@ class HistoricalValuationFallbackTest {
     void currentPriceIsOnlyAnEstimateAtOrAfterItsRecordedDate(
             int dateOffset, boolean hasPrice, String expected) {
         Asset asset = asset();
-        asset.setLastUpdated(DAY.plusDays(dateOffset).atStartOfDay());
+        asset.setLastUpdated(
+                org.openfinance.util.ReportingClock.startOfDay(DAY.plusDays(dateOffset)));
         asset.setCurrentPrice(hasPrice ? new BigDecimal("13") : null);
         assertThat(service.valueAt(asset, List.of(), DAY, "EUR")).isEqualByComparingTo(expected);
     }

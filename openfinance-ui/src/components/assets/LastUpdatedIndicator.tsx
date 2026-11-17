@@ -7,6 +7,7 @@
 import { Clock, AlertTriangle } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { formatRelativeTime, isStalePrice, getTimestampColor } from '@/utils/time';
+import { useDateFormatter } from '@/hooks/useDateFormatter';
 
 interface LastUpdatedIndicatorProps {
   lastUpdated: string;
@@ -21,7 +22,8 @@ export function LastUpdatedIndicator({
 }: LastUpdatedIndicatorProps) {
   const { t } = useTranslation('common');
   const isStale = isStalePrice(lastUpdated);
-  const relativeTime = formatRelativeTime(lastUpdated);
+  const { timeZone } = useDateFormatter();
+  const relativeTime = formatRelativeTime(lastUpdated, timeZone);
   const colorClass = getTimestampColor(lastUpdated);
 
   const iconSize = size === 'sm' ? 12 : size === 'md' ? 14 : 16;

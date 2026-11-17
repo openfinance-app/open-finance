@@ -1,6 +1,6 @@
+import { useToday } from '@/hooks/useReportingCalendar';
 import { FormSection } from '@/components/ui/FormSection';
 import { useFormDraft } from '@/hooks/useFormDraft';
-import { getToday } from '@/utils/date';
 import { OptionalDetails } from '@/components/ui/OptionalDetails';
 import { decimalField } from '@/utils/exact-decimal';
 import Decimal from 'decimal.js';
@@ -80,6 +80,7 @@ export function AssetForm({
   purchaseMode = false,
   submitLabel,
 }: AssetFormProps) {
+  const today = useToday();
   const isEditing = !!asset;
   const { baseCurrency } = useAuthContext();
   const { t } = useTranslation('assets');
@@ -165,7 +166,7 @@ export function AssetForm({
               message: t('validation.plannedValueZero'),
             });
           }
-          if (data.acquisitionType !== 'PLANNED' && data.purchaseDate > getToday()) {
+          if (data.acquisitionType !== 'PLANNED' && data.purchaseDate > today) {
             ctx.addIssue({
               code: 'custom',
               path: ['purchaseDate'],
@@ -173,13 +174,12 @@ export function AssetForm({
             });
           }
         }),
-    [t]
+    [t, today]
   );
 
   type AssetFormData = z.infer<typeof assetSchema>;
 
   // Get today's date in YYYY-MM-DD format for max date validation
-  const today = getToday();
 
   const defaultValues = useMemo<AssetFormData>(
     () =>

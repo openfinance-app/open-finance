@@ -142,7 +142,7 @@ public class CryptoListService {
     }
 
     private void seedRates(List<CryptoCurrencyInfo> coins) {
-        LocalDate today = LocalDate.now();
+        LocalDate today = LocalDate.now(java.time.ZoneOffset.UTC);
         List<ExchangeRate> rates = new ArrayList<>();
         for (CryptoCurrencyInfo coin : coins) {
             BigDecimal price = coin.priceUsd();

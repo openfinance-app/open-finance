@@ -1,6 +1,5 @@
 package org.openfinance.service;
 
-import java.time.LocalDate;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.openfinance.dto.AssetSaleRequest;
@@ -20,6 +19,7 @@ import org.openfinance.repository.AssetRepository;
 import org.openfinance.repository.NetWorthRepository;
 import org.openfinance.repository.RealEstateRepository;
 import org.openfinance.service.history.ReversibleOperation;
+import org.openfinance.util.ReportingClock;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -74,7 +74,7 @@ public class AssetSaleServiceImpl implements AssetSaleService {
         payments.save(savedPayment);
         if (!financial) close(asset, property, request, transactionId);
         snapshots.deleteByUserIdAndSnapshotDateBetween(
-                userId, request.getDate().withDayOfMonth(1), LocalDate.now());
+                userId, request.getDate().withDayOfMonth(1), ReportingClock.today());
         receipts.remember(userId, request.getOperationId(), hash, transactionId);
         return transactionId;
     }
@@ -85,7 +85,7 @@ public class AssetSaleServiceImpl implements AssetSaleService {
                 || asset.getSoldDate() != null
                 || (property != null && (!property.isActive() || property.getSoldDate() != null))
                 || request.getDate().isBefore(asset.getPurchaseDate())
-                || request.getDate().isAfter(LocalDate.now())
+                || request.getDate().isAfter(ReportingClock.today())
                 || request.getFees().compareTo(request.getProceeds()) >= 0) {
             throw invalid(
                     "Sell an owned asset on or after acquisition, with positive net proceeds");

@@ -47,6 +47,7 @@ import org.openfinance.repository.LiabilityRepository;
 import org.openfinance.repository.TransactionRepository;
 import org.openfinance.repository.UserRepository;
 import org.openfinance.security.EncryptionService;
+import org.openfinance.util.ReportingClock;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
@@ -169,7 +170,7 @@ public class DashboardService {
                         .netWorth(netWorthSummary)
                         .accounts(accountSummaries)
                         .recentTransactions(recentTransactions)
-                        .snapshotDate(LocalDate.now())
+                        .snapshotDate(ReportingClock.today())
                         .totalAccounts(accountSummaries.size())
                         .totalTransactions(totalTransactions)
                         .baseCurrency(baseCurrency) // Use user's preferred base currency
@@ -211,7 +212,7 @@ public class DashboardService {
 
         // Always calculate/update today's snapshot to keep totals accurate after data
         // changes
-        LocalDate today = LocalDate.now();
+        LocalDate today = ReportingClock.today();
         User user =
                 userRepository
                         .findById(userId)
@@ -437,7 +438,7 @@ public class DashboardService {
 
         log.debug("Calculating cash flow for user {} over {} days", userId, period);
 
-        LocalDate endDate = LocalDate.now();
+        LocalDate endDate = ReportingClock.today();
         LocalDate startDate = endDate.minusDays(period - 1L);
 
         // Get all transactions in the period
@@ -714,7 +715,7 @@ public class DashboardService {
 
         log.debug("Calculating spending by category for user {} over {} days", userId, period);
 
-        LocalDate endDate = LocalDate.now();
+        LocalDate endDate = ReportingClock.today();
         LocalDate startDate = endDate.minusDays(period - 1L);
 
         // Get all expense transactions in the period (excluding internal transfer legs,
@@ -825,7 +826,7 @@ public class DashboardService {
 
         log.debug("Building cashflow sankey for user {} over {} days", userId, period);
 
-        LocalDate endDate = LocalDate.now();
+        LocalDate endDate = ReportingClock.today();
         LocalDate startDate = endDate.minusDays(period - 1L);
         return buildCashflowSankey(userId, startDate, endDate, period);
     }
@@ -1023,7 +1024,7 @@ public class DashboardService {
                                 asset ->
                                         asset.getPurchaseDate() == null
                                                 || !asset.getPurchaseDate()
-                                                        .isAfter(LocalDate.now()))
+                                                        .isAfter(ReportingClock.today()))
                         .toList();
 
         if (assets.isEmpty()) {
@@ -1138,7 +1139,7 @@ public class DashboardService {
         if (userId == null) {
             throw new IllegalArgumentException("User ID cannot be null");
         }
-        LocalDate endDate = LocalDate.now();
+        LocalDate endDate = ReportingClock.today();
         LocalDate startDate = endDate.minusDays(period - 1L);
         return buildPortfolioPerformance(userId, startDate, endDate);
     }
@@ -1177,7 +1178,7 @@ public class DashboardService {
                                 asset ->
                                         asset.getPurchaseDate() == null
                                                 || !asset.getPurchaseDate()
-                                                        .isAfter(LocalDate.now()))
+                                                        .isAfter(ReportingClock.today()))
                         .toList();
 
         if (assets.isEmpty()) {
@@ -1325,7 +1326,7 @@ public class DashboardService {
         if (analysisPeriod <= 0) {
             throw new IllegalArgumentException("Analysis period must be positive");
         }
-        LocalDate endDate = LocalDate.now();
+        LocalDate endDate = ReportingClock.today();
         return getBorrowingCapacity(userId, endDate.minusDays(analysisPeriod - 1L), endDate);
     }
 
@@ -1518,7 +1519,8 @@ public class DashboardService {
         // Closed accounts retain value; use the same ownership boundary as NetWorthService.
         List<Account> accounts = accountRepository.findByUserId(userId);
         java.util.Set<Long> excludedAccounts =
-                org.openfinance.util.AccountValuation.excludedAccountIds(accounts, LocalDate.now());
+                org.openfinance.util.AccountValuation.excludedAccountIds(
+                        accounts, ReportingClock.today());
         for (Account account : accounts) {
             if (excludedAccounts.contains(account.getId())) continue;
             String category = categorizeAccount(account.getType());
@@ -1546,8 +1548,8 @@ public class DashboardService {
             if (excludedAccounts.contains(asset.getAccountId())) continue;
             if (asset.getAcquisitionType() == org.openfinance.entity.AcquisitionType.PLANNED)
                 continue;
-            if (asset.getPurchaseDate() != null && asset.getPurchaseDate().isAfter(LocalDate.now()))
-                continue;
+            if (asset.getPurchaseDate() != null
+                    && asset.getPurchaseDate().isAfter(ReportingClock.today())) continue;
             String category = categorizeAsset(asset.getType());
             categoryMap.computeIfAbsent(
                     category,
@@ -1861,7 +1863,8 @@ public class DashboardService {
                                         account.getId(), userId, startDate, endDate);
                 BigDecimal projected =
                         interestCalculatorService
-                                .calculateYear(account.getId(), userId, LocalDate.now().getYear())
+                                .calculateYear(
+                                        account.getId(), userId, ReportingClock.today().getYear())
                                 .calendarYearEstimate();
 
                 // Interest is computed in the account's own currency; convert to base for
@@ -1961,7 +1964,7 @@ public class DashboardService {
      */
     @Transactional(propagation = Propagation.NOT_SUPPORTED)
     public YearlyBalanceResponse getYearlyBalanceVariations(Long userId) {
-        LocalDate today = LocalDate.now();
+        LocalDate today = ReportingClock.today();
         String currency = getUserCurrency(userId);
         List<Account> accounts = accountRepository.findAllForHistoryWithInstitution(userId);
         List<LocalDate> dates = new ArrayList<>();
@@ -2115,7 +2118,7 @@ public class DashboardService {
             BigDecimal annualPercentage,
             String baseCurrency,
             String debtCurrency) {
-        LocalDate today = LocalDate.now();
+        LocalDate today = ReportingClock.today();
         LocalDate earnedEnd =
                 selectedEnd == null || selectedEnd.isAfter(today) ? today : selectedEnd;
         LocalDate earnedStart =

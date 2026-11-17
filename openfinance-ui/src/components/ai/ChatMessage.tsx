@@ -17,6 +17,7 @@ import { COPY_FEEDBACK_RESET_MS } from '@/constants/timing';
 import ReactMarkdown from 'react-markdown';
 import { Bot, User, Copy, Check } from 'lucide-react';
 import type { Message } from '@/types/ai';
+import { useDateFormatter } from '@/hooks/useDateFormatter';
 
 interface ChatMessageProps {
   message: Message;
@@ -31,6 +32,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({ message, isStreaming =
   const isUser = message.role === 'user';
   const { isAmountsVisible } = useVisibility();
   const { t } = useTranslation('ai');
+  const { time } = useDateFormatter();
 
   const handleCopy = async () => {
     if (!isAmountsVisible) return;
@@ -39,10 +41,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({ message, isStreaming =
     setTimeout(() => setCopied(false), COPY_FEEDBACK_RESET_MS);
   };
 
-  const formattedTime = new Date(message.timestamp).toLocaleTimeString('en-US', {
-    hour: '2-digit',
-    minute: '2-digit',
-  });
+  const formattedTime = time(message.timestamp);
 
   return (
     <div className={`flex gap-3 ${isUser ? 'flex-row-reverse' : 'flex-row'}`}>

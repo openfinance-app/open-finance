@@ -17,6 +17,7 @@ import org.openfinance.repository.AccountRepository;
 import org.openfinance.repository.AssetRepository;
 import org.openfinance.repository.ExchangeRateRepository;
 import org.openfinance.repository.TransactionRepository;
+import org.openfinance.util.ReportingClock;
 import org.springframework.context.MessageSource;
 import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.stereotype.Service;
@@ -269,7 +270,7 @@ public class NotificationService {
 
         LocalDate latestRateDate = latestRateDateOpt.get();
         long daysSinceUpdate =
-                java.time.temporal.ChronoUnit.DAYS.between(latestRateDate, LocalDate.now());
+                java.time.temporal.ChronoUnit.DAYS.between(latestRateDate, ReportingClock.today());
 
         if (daysSinceUpdate <= STALE_EXCHANGE_RATE_DAYS) {
             return List.of();

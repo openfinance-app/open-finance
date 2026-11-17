@@ -5,7 +5,6 @@ import static org.openfinance.service.ImportedAccountRouting.resolveImportedDest
 
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
-import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.IdentityHashMap;
@@ -23,6 +22,7 @@ import org.openfinance.entity.Transaction;
 import org.openfinance.repository.AccountRepository;
 import org.openfinance.repository.NetWorthRepository;
 import org.openfinance.repository.TransactionRepository;
+import org.openfinance.util.ReportingClock;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -200,7 +200,9 @@ public class ImportedTransferServiceImpl implements ImportedTransferService {
         if (existing.getDate().isBefore(recorded.getDate())) {
             // Confirmation invalidates from the new posting month; also clear the inferred one.
             netWorthRepository.deleteByUserIdAndSnapshotDateBetween(
-                    existing.getUserId(), existing.getDate().withDayOfMonth(1), LocalDate.now());
+                    existing.getUserId(),
+                    existing.getDate().withDayOfMonth(1),
+                    ReportingClock.today());
         }
         existing.setExternalReference(recorded.getExternalReference());
         existing.setDate(recorded.getDate());

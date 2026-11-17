@@ -11,6 +11,7 @@ import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 import org.openfinance.converter.EncryptedStringConverter;
 import org.openfinance.util.MathConstants;
+import org.openfinance.util.ReportingClock;
 
 /**
  * Entity representing a real estate property in the Open-Finance system.
@@ -416,6 +417,6 @@ public class RealEstateProperty {
     public boolean isAcquisitionDateValid() {
         return purchaseDate == null
                 || acquisitionType == AcquisitionType.PLANNED
-                || !purchaseDate.isAfter(LocalDate.now());
+                || !purchaseDate.isAfter(ReportingClock.today());
     }
 }

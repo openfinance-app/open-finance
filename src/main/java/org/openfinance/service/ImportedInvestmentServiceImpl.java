@@ -15,6 +15,7 @@ import org.openfinance.entity.TransactionType;
 import org.openfinance.repository.AssetRepository;
 import org.openfinance.repository.TransactionRepository;
 import org.openfinance.util.InvestmentHoldings;
+import org.openfinance.util.ReportingClock;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -50,9 +51,9 @@ public class ImportedInvestmentServiceImpl implements ImportedInvestmentService 
         if (asset.getPurchaseDate().isAfter(transaction.getDate()))
             asset.setPurchaseDate(transaction.getDate());
         if (asset.getLastUpdated() == null
-                || !transaction.getDate().isBefore(asset.getLastUpdated().toLocalDate())) {
+                || !transaction.getDate().isBefore(ReportingClock.dateOf(asset.getLastUpdated()))) {
             asset.setCurrentPrice(source.getInvestmentPrice());
-            asset.setLastUpdated(transaction.getDate().atStartOfDay());
+            asset.setLastUpdated(ReportingClock.startOfDay(transaction.getDate()));
         }
         transaction.setAssetId(assets.save(asset).getId());
         priceHistory.record(
@@ -211,9 +212,9 @@ public class ImportedInvestmentServiceImpl implements ImportedInvestmentService 
         }
         if (asset.getType() == org.openfinance.entity.AssetType.REAL_ESTATE) return asset;
         if (asset.getLastUpdated() == null
-                || !source.priceDate().isBefore(asset.getLastUpdated().toLocalDate())) {
+                || !source.priceDate().isBefore(ReportingClock.dateOf(asset.getLastUpdated()))) {
             asset.setCurrentPrice(source.currentPrice());
-            asset.setLastUpdated(source.priceDate().atStartOfDay());
+            asset.setLastUpdated(ReportingClock.startOfDay(source.priceDate()));
         }
         return assets.save(asset);
     }

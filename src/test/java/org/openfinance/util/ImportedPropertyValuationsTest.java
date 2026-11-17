@@ -138,7 +138,7 @@ class ImportedPropertyValuationsTest {
     @Test
     void currentPriceBecomesAvailableOnItsUpdateDateOnly() {
         Asset asset = asset();
-        asset.setLastUpdated(START.plusDays(2).atStartOfDay());
+        asset.setLastUpdated(org.openfinance.util.ReportingClock.startOfDay(START.plusDays(2)));
         List<ImportedPropertyValuations.Point> result =
                 ImportedPropertyValuations.history(
                         asset, List.of(movement(1L, START, "1", "1000")), List.of(), TODAY);

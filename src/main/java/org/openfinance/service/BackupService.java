@@ -226,7 +226,8 @@ public class BackupService {
         backupRepository.delete(backup);
     }
 
-    @Scheduled(cron = "${app.backup.schedule.cron:0 0 2 * * SUN}")
+    /** Creates per-user backups daily at 02:00 server time unless the schedule is overridden. */
+    @Scheduled(cron = "${app.backup.schedule.cron:0 0 2 * * *}")
     public void scheduledBackup() {
         if (!scheduleEnabled || !databaseUrl.startsWith("jdbc:sqlite:")) return;
         for (User user : userRepository.findAll()) {

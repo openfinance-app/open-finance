@@ -46,6 +46,8 @@ import org.openfinance.service.UnusualTransactionDetectionService;
 @DisplayName("UnusualTransactionDetectionScheduler Unit Tests")
 class UnusualTransactionDetectionSchedulerTest {
 
+    @Mock private org.openfinance.service.UserReportingClock userReportingClock;
+
     @Mock private UnusualTransactionDetectionService detectionService;
 
     @Mock private UserRepository userRepository;

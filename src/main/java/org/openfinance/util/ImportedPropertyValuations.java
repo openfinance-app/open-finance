@@ -88,7 +88,7 @@ public final class ImportedPropertyValuations {
             dates.add(date);
         }
         if (asset.getLastUpdated() != null && asset.getCurrentPrice() != null) {
-            LocalDate date = asset.getLastUpdated().toLocalDate();
+            LocalDate date = ReportingClock.dateOf(asset.getLastUpdated());
             availableFallbacks
                     .computeIfAbsent(date, key -> new ArrayList<>())
                     .add(new Point(date, asset.getCurrentPrice(), asset.getCurrency()));

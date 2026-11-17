@@ -1,3 +1,4 @@
+import { useToday } from '@/hooks/useReportingCalendar';
 import { ExactDecimal, decimalValue } from '@/utils/exact-decimal';
 import { SelectionCheckbox } from '@/components/bulk/BulkSelection';
 import { useDateFormatter } from '@/hooks/useDateFormatter';
@@ -49,6 +50,7 @@ export function RecurringTransactionCard({
   isPausing = false,
   isResuming = false,
 }: RecurringTransactionCardProps) {
+  const today = useToday();
   const { baseCurrency } = useAuthContext();
   const { t } = useTranslation('recurring');
   const { date: formatDate } = useDateFormatter();
@@ -98,7 +100,7 @@ export function RecurringTransactionCard({
     try {
       const days = differenceInCalendarDays(
         parseISO(recurringTransaction.nextOccurrence),
-        new Date()
+        parseISO(today)
       );
       return new Intl.RelativeTimeFormat(locale, { numeric: 'auto' }).format(days, 'day');
     } catch {
