@@ -22,7 +22,7 @@ export interface AccountFilters {
   balanceExact?: number | string;
   amountCurrencyMode?: AmountCurrencyMode;
   institution?: string;
-  /** When true, filter to show only accounts with a low (≤ 0) balance */
+  /** When true, return only open accounts below the configured low-balance threshold. */
   lowBalance?: boolean;
   // Pagination
   page?: number;

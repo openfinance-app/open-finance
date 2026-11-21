@@ -16,6 +16,14 @@ import type {
 } from '@/types/account';
 import { buildEncryptionHeaders } from '@/utils/encryption';
 
+const ACCOUNT_RELATED_QUERIES = [
+  'assets',
+  'realEstate',
+  'liabilities',
+  'assetFinancing',
+  'notifications',
+];
+
 interface PaginatedResponse<T> {
   content: T[];
   totalElements: number;
@@ -174,7 +182,7 @@ export function useCreateAccount() {
       await queryClient.invalidateQueries({ queryKey: ['accounts'] });
       // Invalidate dashboard queries that depend on account data
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
-      for (const key of ['assets', 'realEstate', 'liabilities', 'assetFinancing']) {
+      for (const key of ACCOUNT_RELATED_QUERIES) {
         queryClient.invalidateQueries({ queryKey: [key] });
       }
     },
@@ -200,7 +208,7 @@ export function useUpdateAccount() {
       queryClient.invalidateQueries({ queryKey: ['accounts', variables.id] });
       // Invalidate dashboard queries that depend on account data
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
-      for (const key of ['assets', 'realEstate', 'liabilities', 'assetFinancing']) {
+      for (const key of ACCOUNT_RELATED_QUERIES) {
         queryClient.invalidateQueries({ queryKey: [key] });
       }
     },
@@ -224,7 +232,7 @@ export function useDeleteAccount() {
       queryClient.invalidateQueries({ queryKey: ['accounts'] });
       // Invalidate dashboard queries that depend on account data
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
-      for (const key of ['assets', 'realEstate', 'liabilities', 'assetFinancing']) {
+      for (const key of ACCOUNT_RELATED_QUERIES) {
         queryClient.invalidateQueries({ queryKey: [key] });
       }
     },
@@ -247,7 +255,7 @@ export function useCloseAccount() {
       queryClient.invalidateQueries({ queryKey: ['accounts'] });
       // Invalidate dashboard queries that depend on account data
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
-      for (const key of ['assets', 'realEstate', 'liabilities', 'assetFinancing']) {
+      for (const key of ACCOUNT_RELATED_QUERIES) {
         queryClient.invalidateQueries({ queryKey: [key] });
       }
     },
@@ -270,7 +278,7 @@ export function useReopenAccount() {
       queryClient.invalidateQueries({ queryKey: ['accounts'] });
       // Invalidate dashboard queries that depend on account data
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
-      for (const key of ['assets', 'realEstate', 'liabilities', 'assetFinancing']) {
+      for (const key of ACCOUNT_RELATED_QUERIES) {
         queryClient.invalidateQueries({ queryKey: [key] });
       }
     },
@@ -295,7 +303,7 @@ export function usePermanentDeleteAccount() {
       queryClient.invalidateQueries({ queryKey: ['accounts'] });
       // Invalidate dashboard queries that depend on account data
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
-      for (const key of ['assets', 'realEstate', 'liabilities', 'assetFinancing']) {
+      for (const key of ACCOUNT_RELATED_QUERIES) {
         queryClient.invalidateQueries({ queryKey: [key] });
       }
     },

@@ -277,6 +277,7 @@ describe('useAccounts hooks', () => {
 
       expect(mockedApiClient.post).toHaveBeenCalledWith('/accounts/1/close');
       expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['accounts'] });
+      expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['notifications'] });
     });
   });
 
@@ -284,6 +285,7 @@ describe('useAccounts hooks', () => {
   describe('useReopenAccount', () => {
     it('should reopen a closed account', async () => {
       mockedApiClient.post.mockResolvedValue({});
+      const invalidateSpy = vi.spyOn(queryClient, 'invalidateQueries');
 
       const { result } = renderHook(() => useReopenAccount(), { wrapper });
 
@@ -292,6 +294,7 @@ describe('useAccounts hooks', () => {
       await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
       expect(mockedApiClient.post).toHaveBeenCalledWith('/accounts/1/reopen');
+      expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['notifications'] });
     });
   });
 

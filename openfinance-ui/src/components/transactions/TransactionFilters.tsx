@@ -1,5 +1,6 @@
 import { useToday } from '@/hooks/useReportingCalendar';
 import { FilterPanel } from '@/components/ui/FilterPanel';
+import { TransactionScope } from '@/components/transactions/TransactionScope';
 import { countActiveFilters } from '@/utils/filter-utils';
 import { useState } from 'react';
 /**
@@ -247,7 +248,7 @@ export function TransactionFilters({ filters, onFiltersChange }: TransactionFilt
       }
     >
       <div className="space-y-4">
-        {' '}
+        <TransactionScope filters={filters} onChange={onFiltersChange} />
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-6">
           {' '}
           {/* Search keyword */}

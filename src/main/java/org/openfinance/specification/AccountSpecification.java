@@ -79,6 +79,9 @@ public class AccountSpecification {
             if (criteria.getIsActive() != null) {
                 predicates.add(criteriaBuilder.equal(root.get("isActive"), criteria.getIsActive()));
             }
+            if (Boolean.TRUE.equals(criteria.getLowBalance())) {
+                predicates.add(criteriaBuilder.isTrue(root.get("isActive")));
+            }
 
             // Filter by institution name (join with institution)
             if (criteria.getInstitution() != null && !criteria.getInstitution().trim().isEmpty()) {

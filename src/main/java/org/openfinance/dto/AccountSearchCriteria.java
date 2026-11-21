@@ -107,8 +107,7 @@ public class AccountSearchCriteria {
     /**
      * Filter accounts with a low balance (below the notification threshold).
      *
-     * <p>When true, only accounts with balance below the configured low-balance threshold (1000)
-     * are returned. Mirrors the logic in NotificationService.
+     * <p>When true, only open accounts below the configured low-balance threshold are returned.
      */
     private Boolean lowBalance;
 

@@ -103,9 +103,11 @@ export default function TransactionsPage() {
   const importSessionId = scopeId('importSessionId');
   const hasLinkedFilters =
     !!importSessionId || DEEP_LINK_FILTER_KEYS.some(key => searchParams.has(key));
-  const hasFormFilters = DEEP_LINK_FILTER_KEYS.some(
-    key => !['assetId', 'realEstateId', 'liabilityId'].includes(key) && searchParams.has(key)
-  );
+  const hasFormFilters =
+    !!importSessionId ||
+    DEEP_LINK_FILTER_KEYS.some(
+      key => !['assetId', 'realEstateId', 'liabilityId'].includes(key) && searchParams.has(key)
+    );
 
   const [filters, setFilters] = useViewState<Filters>(
     'filters',
@@ -322,7 +324,7 @@ export default function TransactionsPage() {
         <PageHeader title={t('title')} description={t('description')} />
         <div className="flex gap-2 shrink-0">
           <Button
-            variant={showFilters ? 'primary' : 'outline'}
+            variant={showFilters || filters.importSessionId ? 'primary' : 'outline'}
             onClick={() => setShowFilters(!showFilters)}
             aria-expanded={showFilters}
             aria-controls="transaction-filters"
@@ -344,13 +346,14 @@ export default function TransactionsPage() {
       )}
 
       {/* Filters */}
-      {showFilters && (
+      {showFilters ? (
         <div id="transaction-filters" className="mb-6">
           <TransactionFilters filters={filters} onFiltersChange={handleFiltersChange} />
         </div>
+      ) : (
+        <TransactionScope filters={filters} onChange={handleFiltersChange} />
       )}
 
-      <TransactionScope filters={filters} onChange={handleFiltersChange} />
       <TransactionSummaryHeader filters={filters} />
 
       <BulkToolbar />

@@ -223,7 +223,7 @@ public class AccountController {
      *   <li>balanceMin (optional): Minimum balance
      *   <li>balanceMax (optional): Maximum balance
      *   <li>institution (optional): Filter by institution name
-     *   <li>lowBalance (optional): When true, only accounts with balance below 1000
+     *   <li>lowBalance (optional): When true, only open accounts below the low-balance threshold
      *   <li>page (optional): Page number (0-indexed, default: 0)
      *   <li>size (optional): Page size (default: 20)
      *   <li>sort (optional): Sort field and direction (e.g., "name,asc" or "balance,desc")
@@ -258,7 +258,7 @@ public class AccountController {
      * @param balanceMin optional minimum balance filter
      * @param balanceMax optional maximum balance filter
      * @param institution optional institution name filter
-     * @param lowBalance optional flag to return only accounts with balance below 1000
+     * @param lowBalance optional flag to return only open accounts below the low-balance threshold
      * @param pageable pagination and sorting parameters
      * @param encodedKey Base64-encoded encryption key from header
      * @param authentication Spring Security authentication object

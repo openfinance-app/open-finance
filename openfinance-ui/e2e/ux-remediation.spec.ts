@@ -417,8 +417,20 @@ test('import review saves transaction tags and both split lines through confirma
   await page.getByRole('button', { name: 'View Transactions' }).click();
   await expect(page).toHaveURL(/\/transactions\?importSessionId=\d+$/);
   const importId = new URL(page.url()).searchParams.get('importSessionId');
-  const removeFilter = page.getByRole('button', { name: `Remove filter: Import #${importId}` });
+  const filters = page.getByRole('region', { name: 'Filter results' });
+  const toggle = page.getByRole('button', { name: 'Filters', exact: true });
+  const removeLabel = `Remove filter: Import #${importId}`;
+  const removeFilter = filters.getByRole('button', { name: removeLabel });
+  await expect(toggle).toHaveAttribute('aria-expanded', 'true');
   await expect(removeFilter).toBeVisible();
+  await testInfo.attach('import-filter', {
+    body: await filters.screenshot(),
+    contentType: 'image/png',
+  });
+  await toggle.click();
+  await expect(filters).toHaveCount(0);
+  await expect(page.getByRole('button', { name: removeLabel })).toBeVisible();
+  await toggle.click();
   await expect(page.locator(`#transaction-${booked.id}`)).toBeVisible();
   await expect(page.locator(`#transaction-${manual.id}`)).toHaveCount(0);
   const summary = await api(page, `/transactions/summary?importSessionId=${importId}`);
@@ -426,6 +438,7 @@ test('import review saves transaction tags and both split lines through confirma
   await page.reload();
   await expect(removeFilter).toBeVisible();
   await removeFilter.click();
+  await expect(page).not.toHaveURL(/importSessionId=/);
   await expect(page.locator(`#transaction-${manual.id}`)).toBeVisible();
 });
 
@@ -621,7 +634,21 @@ test('minor fixes persist category icons and notification acknowledgement with a
     },
     'POST'
   );
+  const closed = await api(
+    page,
+    '/accounts',
+    {
+      name: 'Closed low balance',
+      type: 'CHECKING',
+      currency: 'EUR',
+      initialBalance: 0,
+      openingDate: today,
+    },
+    'POST'
+  );
+  await api(page, `/accounts/${closed.id}/close`, undefined, 'POST');
   await page.goto('/accounts');
+  await expect(page.getByText('Closed low balance', { exact: true }).first()).toBeVisible();
   await expect(page.getByText(/723,45/).first()).toBeVisible();
   await page.getByRole('button', { name: 'Hide amounts', exact: true }).click();
   const blurredBalance = page.locator('span.blur-md').filter({ hasText: '723,45' }).first();
@@ -632,6 +659,9 @@ test('minor fixes persist category icons and notification acknowledgement with a
   const unreadBefore = Number((await bell.getAttribute('aria-label'))?.match(/\((\d+)/)?.[1]);
   await bell.click();
   await page.getByRole('button', { name: 'Low Account Balance', exact: true }).click();
+  await expect(page).toHaveURL(/lowBalance=1/);
+  await expect(page.getByText('Minor checking', { exact: true }).first()).toBeVisible();
+  await expect(page.getByText('Closed low balance', { exact: true })).toHaveCount(0);
   await expect(bell).toHaveAttribute('aria-label', `Notifications (${unreadBefore - 1} unread)`);
   await page.reload();
   await expect(bell).toHaveAttribute('aria-label', `Notifications (${unreadBefore - 1} unread)`);

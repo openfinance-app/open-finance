@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { screen } from '@testing-library/react';
+import { screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { TransactionFilters } from './TransactionFilters';
 import { renderWithProviders, mockAuthentication } from '@/test/test-utils';
@@ -109,6 +109,18 @@ describe('TransactionFilters', () => {
     );
     const clearButton = screen.getByRole('button', { name: /clear|filterKeys\.clear/i });
     expect(clearButton).not.toBeDisabled();
+  });
+
+  it('shows the selected import in the form and removes it independently', async () => {
+    renderWithProviders(
+      <TransactionFilters
+        filters={{ importSessionId: 42, accountId: 5 }}
+        onFiltersChange={mockOnFiltersChange}
+      />
+    );
+    const form = screen.getByRole('region', { name: 'Filter results' });
+    await userEvent.click(within(form).getByRole('button', { name: 'Remove filter: Import #42' }));
+    expect(mockOnFiltersChange).toHaveBeenCalledWith({ importSessionId: undefined, accountId: 5 });
   });
 
   it('calls onFiltersChange when clear is clicked', async () => {

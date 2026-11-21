@@ -142,6 +142,20 @@ class PortfolioSearchIntegrationTest extends AuditApiTestSupport {
     }
 
     @Test
+    void lowBalanceOnlyIncludesOpenAccounts() throws Exception {
+        long open = create("accounts", owner, "Open account", 50);
+        long closed = create("accounts", owner, "Closed account", 0);
+        json("POST", "/accounts/" + closed + "/close", null, owner, 204);
+        String search = "/accounts/search?lowBalance=true&sort=balance,asc";
+        assertIds(json("GET", search + "&size=1", null, owner, 200), 1, open);
+        assertIds(json("GET", search + "&isActive=false", null, owner, 200), 0);
+        assertIds(json("GET", "/accounts/search?isActive=false", null, owner, 200), 1, closed);
+
+        json("POST", "/accounts/" + closed + "/reopen", null, owner, 204);
+        assertIds(json("GET", search, null, owner, 200), 2, closed, open);
+    }
+
+    @Test
     void propertyFiltersCombineOwnershipTypeCurrencyDatesAndMortgagePresence() throws Exception {
         long match = create("real-estate", owner, "Paris flat", 100);
         create("real-estate", register(), "Paris foreign", 100);

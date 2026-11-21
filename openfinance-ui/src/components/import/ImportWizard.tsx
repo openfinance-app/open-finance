@@ -268,6 +268,7 @@ export function ImportWizard() {
       queryClient.invalidateQueries({ queryKey: ['transaction-tags'] });
       queryClient.invalidateQueries({ queryKey: ['transaction-tags-popular'] });
       queryClient.invalidateQueries({ queryKey: ['accounts'] });
+      queryClient.invalidateQueries({ queryKey: ['notifications'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
       queryClient.invalidateQueries({ queryKey: ['categories'] });
       queryClient.invalidateQueries({ queryKey: ['budgets'] });
