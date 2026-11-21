@@ -74,6 +74,7 @@ export function PropertyStep({ property, onChange, today }: PropertyStepProps) {
           {t('form.purchasePrice')} *
         </label>
         <NumberInput
+          calculable
           id="wizard-price"
           value={property.purchasePrice}
           onChange={v => onChange({ purchasePrice: v })}
@@ -97,6 +98,7 @@ export function PropertyStep({ property, onChange, today }: PropertyStepProps) {
           {t('form.currentValue')} *
         </label>
         <NumberInput
+          calculable
           id="wizard-value"
           value={property.currentValue}
           onChange={v => onChange({ currentValue: v })}

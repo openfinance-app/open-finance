@@ -138,6 +138,7 @@ function ActionParams({ action, index, onChange, t }: ActionParamsProps) {
     case 'SET_AMOUNT':
       return (
         <NumberInput
+          calculable
           placeholder="0.00"
           value={action.actionValue ?? ''}
           onChange={value => onChange(index, { actionValue: value })}
@@ -160,6 +161,7 @@ function ActionParams({ action, index, onChange, t }: ActionParamsProps) {
             className="w-full"
           />
           <NumberInput
+            calculable
             placeholder={t('form.actions.placeholders.splitAmount')}
             value={action.actionValue2 ?? ''}
             onChange={value => onChange(index, { actionValue2: value })}

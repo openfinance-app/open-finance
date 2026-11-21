@@ -164,6 +164,7 @@ export function DisburseForm({ liability, tranche, onDone }: DisburseFormProps) 
             {t('drawdowns.disburseForm.amount')} *
           </label>
           <NumberInput
+            calculable
             className="h-11 font-mono text-base tabular-nums md:h-10 md:text-sm"
             id="disburse-amount"
             value={amount}

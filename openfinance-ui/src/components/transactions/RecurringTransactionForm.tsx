@@ -318,6 +318,7 @@ export function RecurringTransactionForm({
               control={control}
               render={({ field }) => (
                 <NumberInput
+                  calculable
                   id="amount"
                   value={field.value}
                   onChange={field.onChange}

@@ -545,6 +545,7 @@ function ConversionDetails({
                 control={control}
                 render={({ field }) => (
                   <NumberInput
+                    calculable
                     id={`liability-conversion-${name}`}
                     value={field.value}
                     onChange={field.onChange}
@@ -597,6 +598,7 @@ function ConversionDetails({
                 control={control}
                 render={({ field }) => (
                   <NumberInput
+                    calculable={name === 'minimumPayment'}
                     id={`liability-conversion-${name}`}
                     value={field.value}
                     onChange={field.onChange}
@@ -621,6 +623,7 @@ function ConversionDetails({
             control={control}
             render={({ field }) => (
               <NumberInput
+                calculable
                 id="liability-conversion-fees"
                 value={field.value}
                 onChange={field.onChange}

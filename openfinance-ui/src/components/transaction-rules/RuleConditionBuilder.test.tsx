@@ -199,7 +199,7 @@ describe('RuleConditionBuilder', () => {
     expect(screen.getByDisplayValue('Credit (Income)')).toBeInTheDocument();
   });
 
-  it('should render number input for AMOUNT field', () => {
+  it('applies a calculation to an AMOUNT condition', () => {
     const conditions: ConditionDraft[] = [
       {
         field: 'AMOUNT',
@@ -211,9 +211,10 @@ describe('RuleConditionBuilder', () => {
 
     renderWithProviders(<RuleConditionBuilder conditions={conditions} onChange={mockOnChange} />);
 
-    const valueInput = screen.getByRole('spinbutton', { name: 'Condition value' });
-    expect(valueInput).toHaveAttribute('type', 'number');
-    expect(valueInput).toHaveAttribute('step', 'any');
+    const valueInput = screen.getByRole('textbox', { name: 'Condition value' });
+    fireEvent.change(valueInput, { target: { value: '200 / 4' } });
+    fireEvent.keyDown(valueInput, { key: 'Enter' });
+    expect(mockOnChange).toHaveBeenCalledWith([{ ...conditions[0], value: '50' }]);
   });
 
   it('should filter operators based on field type', () => {

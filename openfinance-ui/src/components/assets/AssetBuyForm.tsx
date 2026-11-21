@@ -71,6 +71,7 @@ export function AssetBuyForm({ target, onClose }: { target: SaleTarget; onClose:
             {t('ownership.buyAmount', { currency: target.currency })}
           </label>
           <NumberInput
+            calculable
             id="buy-amount"
             className="h-11 font-mono text-base tabular-nums md:h-10 md:text-sm"
             value={amount}

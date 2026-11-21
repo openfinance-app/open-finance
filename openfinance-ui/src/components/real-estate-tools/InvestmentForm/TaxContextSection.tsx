@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
-import { Input } from '@/components/ui/Input';
+import { NumberInput } from '@/components/ui/NumberInput';
 import { Label } from '@/components/ui/Label';
 import {
   DEFAULT_RENTAL_TAX_CONTEXT,
@@ -50,18 +50,16 @@ export function TaxContextSection({ inputs, onUpdate }: TaxContextSectionProps) 
           {amountFields.map(field => (
             <div className="space-y-2" key={field}>
               <Label htmlFor={`rental-tax-${field}`}>{t(`taxContext.${field}`)}</Label>
-              <Input
+              <NumberInput
+                calculable
                 id={`rental-tax-${field}`}
-                type="number"
+                maxFractionDigits={2}
                 min={0}
-                step="0.01"
                 value={tax[field] ?? ''}
-                onChange={event =>
+                onChange={value =>
                   onUpdate(
                     field,
-                    event.target.value === '' && field === 'otherHouseholdIncome'
-                      ? null
-                      : Number(event.target.value)
+                    value === '' && field === 'otherHouseholdIncome' ? null : Number(value)
                   )
                 }
               />

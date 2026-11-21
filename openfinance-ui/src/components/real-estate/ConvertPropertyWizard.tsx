@@ -330,6 +330,7 @@ function ConversionDetails({
             control={control}
             render={({ field }) => (
               <NumberInput
+                calculable
                 id="conversion-rent"
                 value={field.value}
                 onChange={field.onChange}

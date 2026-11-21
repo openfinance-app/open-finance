@@ -104,6 +104,7 @@ export function CompoundInterestCalculator({ className }: CompoundInterestCalcul
                     {t('compoundInterest.calculator.fields.principal.label')}
                   </Label>
                   <NumberInput
+                    calculable
                     id="ci-principal"
                     min={0}
                     value={String(input.principal)}
@@ -183,6 +184,7 @@ export function CompoundInterestCalculator({ className }: CompoundInterestCalcul
                     {t('compoundInterest.calculator.fields.contribution.label')}
                   </Label>
                   <NumberInput
+                    calculable
                     id="ci-contribution"
                     min={0}
                     value={String(input.regularContribution)}

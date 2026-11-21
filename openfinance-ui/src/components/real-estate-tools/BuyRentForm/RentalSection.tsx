@@ -57,6 +57,7 @@ export const RentalSection: React.FC<RentalSectionProps> = ({
             <div className="space-y-2">
               <Label htmlFor="monthlyRent">{t('rentalSection.monthlyRent')}</Label>
               <NumberInput
+                calculable
                 id="monthlyRent"
                 value={String(inputs.monthlyRent)}
                 onChange={value => onUpdate('monthlyRent', parseFloat(value) || 0)}
@@ -75,6 +76,7 @@ export const RentalSection: React.FC<RentalSectionProps> = ({
             <div className="space-y-2">
               <Label htmlFor="monthlyCharges">{t('rentalSection.monthlyCharges')}</Label>
               <NumberInput
+                calculable
                 id="monthlyCharges"
                 value={String(inputs.monthlyCharges)}
                 onChange={value => onUpdate('monthlyCharges', parseFloat(value) || 0)}
@@ -89,6 +91,7 @@ export const RentalSection: React.FC<RentalSectionProps> = ({
                 {t('rentalSection.securityDeposit')}
               </Label>
               <NumberInput
+                calculable
                 id="securityDeposit"
                 value={String(inputs.securityDeposit)}
                 onChange={value => onUpdate('securityDeposit', parseFloat(value) || 0)}
@@ -103,6 +106,7 @@ export const RentalSection: React.FC<RentalSectionProps> = ({
                 {t('rentalSection.rentalInsurance')}
               </Label>
               <NumberInput
+                calculable
                 id="rentalInsurance"
                 value={String(inputs.rentalInsurance)}
                 onChange={value => onUpdate('rentalInsurance', parseFloat(value) || 0)}
@@ -117,6 +121,7 @@ export const RentalSection: React.FC<RentalSectionProps> = ({
                 {t('rentalSection.garbageTax')}
               </Label>
               <NumberInput
+                calculable
                 id="rentalGarbageTax"
                 value={String(inputs.garbageTax)}
                 onChange={value => onUpdate('garbageTax', parseFloat(value) || 0)}
@@ -133,6 +138,7 @@ export const RentalSection: React.FC<RentalSectionProps> = ({
                 {t('rentalSection.initialSavings')}
               </Label>
               <NumberInput
+                calculable
                 id="initialSavings"
                 value={String(inputs.initialSavings)}
                 onChange={value => onUpdate('initialSavings', parseFloat(value) || 0)}
@@ -150,6 +156,7 @@ export const RentalSection: React.FC<RentalSectionProps> = ({
                 {t('rentalSection.monthlySavings')}
               </Label>
               <NumberInput
+                calculable
                 id="monthlySavings"
                 value={String(inputs.monthlySavings)}
                 onChange={value => onUpdate('monthlySavings', parseFloat(value) || 0)}

@@ -11,6 +11,7 @@ import { Plus, Trash2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
+import { NumberInput } from '@/components/ui/NumberInput';
 import { PayeeCombobox } from '@/components/ui/PayeeSelector';
 import type {
   RuleCondition,
@@ -220,12 +221,18 @@ export function RuleConditionBuilder({ conditions, onChange }: RuleConditionBuil
                   ariaLabel="Condition value"
                 />
               </div>
+            ) : isAmountField ? (
+              <NumberInput
+                calculable
+                min="0"
+                placeholder="0.00"
+                value={condition.value}
+                onChange={value => handleValueChange(index, value)}
+                aria-label="Condition value"
+              />
             ) : (
               <Input
-                type={isAmountField ? 'number' : 'text'}
-                step={isAmountField ? 'any' : undefined}
-                min={isAmountField ? '0' : undefined}
-                placeholder={isAmountField ? '0.00' : t('form.conditions.enterValue')}
+                placeholder={t('form.conditions.enterValue')}
                 value={condition.value}
                 onChange={e => handleValueChange(index, e.target.value)}
                 className="flex-1"

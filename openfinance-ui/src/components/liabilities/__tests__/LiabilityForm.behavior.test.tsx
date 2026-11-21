@@ -250,7 +250,7 @@ describe('Liability form decision paths', () => {
       liability: { ...existing, type: 'CREDIT_CARD', representedByAccountId: 7, creditLimit: 1000 },
     });
     expect(screen.getByLabelText(/debt already tracked/i)).toBeDisabled();
-    expect(screen.getByLabelText(/credit limit/i)).toHaveValue(1000);
+    expect(screen.getByLabelText(/credit limit/i)).toHaveValue('1,000');
   });
 
   it('offers only active, owned properties without another mortgage', async () => {

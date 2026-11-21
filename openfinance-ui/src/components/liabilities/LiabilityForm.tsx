@@ -372,13 +372,20 @@ export function LiabilityForm({
           <div className="grid gap-3 md:grid-cols-2">
             <div>
               <label htmlFor="creditLimit">{t('form.creditLimit')}</label>
-              <Input
-                id="creditLimit"
-                type="number"
-                min="0"
-                step="0.01"
-                {...register('creditLimit')}
-                error={errors.creditLimit?.message}
+              <Controller
+                name="creditLimit"
+                control={control}
+                render={({ field }) => (
+                  <NumberInput
+                    calculable
+                    id="creditLimit"
+                    value={field.value}
+                    onChange={field.onChange}
+                    onBlur={field.onBlur}
+                    min="0"
+                    error={errors.creditLimit?.message}
+                  />
+                )}
               />
             </div>
             <div>
@@ -440,6 +447,7 @@ export function LiabilityForm({
               control={control}
               render={({ field }) => (
                 <NumberInput
+                  calculable
                   id="principal"
                   value={field.value}
                   onChange={field.onChange}
@@ -470,6 +478,7 @@ export function LiabilityForm({
                 control={control}
                 render={({ field }) => (
                   <NumberInput
+                    calculable
                     id="currentBalance"
                     value={field.value}
                     onChange={field.onChange}
@@ -627,6 +636,7 @@ export function LiabilityForm({
               control={control}
               render={({ field }) => (
                 <NumberInput
+                  calculable
                   id="minimumPayment"
                   value={field.value}
                   onChange={field.onChange}
@@ -655,6 +665,7 @@ export function LiabilityForm({
               control={control}
               render={({ field }) => (
                 <NumberInput
+                  calculable
                   id="additionalFees"
                   value={field.value}
                   onChange={field.onChange}

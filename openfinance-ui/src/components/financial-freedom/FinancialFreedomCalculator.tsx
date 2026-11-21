@@ -234,6 +234,7 @@ function CalculatorInputForm({
             {t('financialFreedom.calculator.fields.currentSavings.label')}
           </Label>
           <NumberInput
+            calculable
             id="currentSavings"
             value={String(input.currentSavings)}
             onChange={val => onChange('currentSavings', val || '0')}
@@ -250,6 +251,7 @@ function CalculatorInputForm({
             {t('financialFreedom.calculator.fields.monthlyExpenses.label')}
           </Label>
           <NumberInput
+            calculable
             id="monthlyExpenses"
             value={String(input.monthlyExpenses)}
             onChange={val => onChange('monthlyExpenses', val || '0')}
@@ -298,6 +300,7 @@ function CalculatorInputForm({
             {t('financialFreedom.calculator.fields.monthlyContribution.label')}
           </Label>
           <NumberInput
+            calculable
             id="monthlyContribution"
             value={String(input.monthlyContribution ?? 0)}
             onChange={val => onChange('monthlyContribution', val || '0')}

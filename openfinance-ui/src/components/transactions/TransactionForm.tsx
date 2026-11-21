@@ -849,6 +849,7 @@ export function TransactionForm({
             control={control}
             render={({ field }) => (
               <NumberInput
+                calculable
                 id="amount"
                 value={
                   field.value !== undefined && !Number.isNaN(field.value) ? String(field.value) : ''
@@ -1522,13 +1523,21 @@ export function TransactionForm({
                         </label>
                         <HelpTooltip text={t('form.manualPrincipalHint')} className="shrink-0" />
                       </div>
-                      <Input
-                        id="principalAmount"
-                        type="number"
-                        min="0"
-                        step="0.01"
-                        {...register('principalAmount')}
-                        error={errors.principalAmount?.message}
+                      <Controller
+                        name="principalAmount"
+                        control={control}
+                        render={({ field }) => (
+                          <NumberInput
+                            calculable
+                            id="principalAmount"
+                            maxFractionDigits={2}
+                            value={field.value}
+                            onChange={field.onChange}
+                            onBlur={field.onBlur}
+                            min="0"
+                            error={errors.principalAmount?.message}
+                          />
+                        )}
                       />
                     </div>
                   )}

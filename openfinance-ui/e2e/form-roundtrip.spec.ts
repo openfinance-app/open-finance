@@ -283,6 +283,21 @@ for (const language of ['en', 'fr']) {
       await page.keyboard.press('Escape');
       await expect(dialog).toHaveCount(0);
 
+      await editTransaction(tx.id);
+      const amount = dialog.locator('#amount');
+      await amount.fill(french ? '9,25+5' : '9.25+5');
+      await dialog.locator('button[type="submit"]').click();
+      await expect(amount).toBeFocused();
+      await expect(amount).toHaveAccessibleDescription(
+        french ? 'Appuyez sur Entrée pour calculer.' : 'Press Enter to calculate.'
+      );
+      await screenshot('calculation');
+      await amount.press('Enter');
+      await expect(amount).toHaveValue(french ? '14,25' : '14.25');
+      await expect(amount).toBeFocused();
+      await save();
+      expect(Number((await api('GET', `/transactions/${tx.id}`)).amount)).toBe(14.25);
+
       await page.goto('/institutions');
       await page
         .getByRole('button', { name: new RegExp(`(?:Edit|Modifier).*${institution.name}`) })

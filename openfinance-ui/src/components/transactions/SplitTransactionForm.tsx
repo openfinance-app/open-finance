@@ -251,6 +251,7 @@ export function SplitTransactionForm({
 
             <div>
               <NumberInput
+                calculable
                 value={split.amount === 0 || split.amount === '0' ? '' : String(split.amount)}
                 onChange={val => handleChangeField(index, 'amount', val || '0')}
                 placeholder="0.00"

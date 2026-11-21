@@ -302,6 +302,7 @@ export function EarlyPayoffCalculator({ className }: { className?: string }) {
                     <DollarSign className="h-4 w-4 text-muted-foreground" />
                   </div>
                   <NumberInput
+                    calculable
                     id="ep-balance"
                     min={0}
                     className="pl-10"
@@ -441,6 +442,7 @@ export function EarlyPayoffCalculator({ className }: { className?: string }) {
                             <DollarSign className="h-3.5 w-3.5 text-muted-foreground" />
                           </div>
                           <NumberInput
+                            calculable
                             id={`ep-ls-amount-${ls.id}`}
                             min={0}
                             className="pl-9 h-9 text-sm"
@@ -476,6 +478,7 @@ export function EarlyPayoffCalculator({ className }: { className?: string }) {
                   <DollarSign className="h-4 w-4 text-muted-foreground" />
                 </div>
                 <NumberInput
+                  calculable
                   id="ep-monthly-extra"
                   min={0}
                   className="pl-10"

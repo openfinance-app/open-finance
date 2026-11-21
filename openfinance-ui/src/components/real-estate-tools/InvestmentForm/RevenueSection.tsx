@@ -66,6 +66,7 @@ export const RevenueSection: React.FC<RevenueSectionProps> = ({
           <div className="space-y-2">
             <Label htmlFor="monthlyRent">{t('revenueSection.monthlyRent')}</Label>
             <NumberInput
+              calculable
               id="monthlyRent"
               value={String(inputs.monthlyRent)}
               onChange={value => onUpdate('monthlyRent', parseFloat(value) || 0)}
@@ -84,6 +85,7 @@ export const RevenueSection: React.FC<RevenueSectionProps> = ({
           <div className="space-y-2">
             <Label htmlFor="recoverableCharges">{t('revenueSection.recoverableCharges')}</Label>
             <NumberInput
+              calculable
               id="recoverableCharges"
               value={String(inputs.recoverableCharges)}
               onChange={value => onUpdate('recoverableCharges', parseFloat(value) || 0)}

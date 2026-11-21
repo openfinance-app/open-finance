@@ -61,6 +61,7 @@ export function ImprovementValuationFields({
             {t('costEntry.valueIncrease', { currency })}
           </label>
           <NumberInput
+            calculable
             id={id}
             value={value}
             onChange={onChange}

@@ -402,6 +402,7 @@ export function BudgetWizard({ open, onClose }: BudgetWizardProps) {
                           <div className="flex items-center gap-1">
                             <span className="text-xs text-text-tertiary">{s.currency}</span>
                             <NumberInput
+                              calculable
                               min="0"
                               disabled={!isSelected || bulkCreateMutation.isPending}
                               aria-label={t('wizard.step2.amountFor', { category: s.categoryName })}

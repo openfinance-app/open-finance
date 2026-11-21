@@ -85,6 +85,7 @@ function AddTrancheForm({ liability, onDone }: { liability: Liability; onDone: (
             {t('drawdowns.add.plannedAmount')} *
           </label>
           <NumberInput
+            calculable
             id="tranche-planned-amount"
             value={plannedAmount}
             onChange={setPlannedAmount}

@@ -327,6 +327,7 @@ export function RealEstateForm({
               control={control}
               render={({ field }) => (
                 <NumberInput
+                  calculable
                   id="purchasePrice"
                   value={field.value}
                   onChange={value => {
@@ -360,6 +361,7 @@ export function RealEstateForm({
                 control={control}
                 render={({ field }) => (
                   <NumberInput
+                    calculable
                     id="receivedValue"
                     value={field.value}
                     onChange={field.onChange}
@@ -417,6 +419,7 @@ export function RealEstateForm({
               control={control}
               render={({ field }) => (
                 <NumberInput
+                  calculable
                   id="currentValue"
                   disabled={acquisitionType === 'PLANNED'}
                   value={field.value}
@@ -501,6 +504,7 @@ export function RealEstateForm({
               control={control}
               render={({ field }) => (
                 <NumberInput
+                  calculable
                   id="rentalIncome"
                   value={field.value}
                   onChange={field.onChange}

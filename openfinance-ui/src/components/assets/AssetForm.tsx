@@ -491,6 +491,7 @@ export function AssetForm({
                 control={control}
                 render={({ field }) => (
                   <NumberInput
+                    calculable
                     id="purchasePrice"
                     readOnly={asset?.investmentTracked}
                     value={field.value}
@@ -526,6 +527,7 @@ export function AssetForm({
                   control={control}
                   render={({ field }) => (
                     <NumberInput
+                      calculable
                       id="receivedValue"
                       value={field.value}
                       onChange={field.onChange}
@@ -553,6 +555,7 @@ export function AssetForm({
                 control={control}
                 render={({ field }) => (
                   <NumberInput
+                    calculable
                     id="currentPrice"
                     disabled={acquisitionType === 'PLANNED'}
                     value={field.value}

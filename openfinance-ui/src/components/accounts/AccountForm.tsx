@@ -362,6 +362,7 @@ export function AccountForm({
               control={control}
               render={({ field }) => (
                 <NumberInput
+                  calculable
                   id="initialBalance"
                   value={field.value}
                   onChange={field.onChange}

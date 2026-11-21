@@ -105,6 +105,7 @@ export const ResaleSection: React.FC<ResaleSectionProps> = ({
                 {t('resaleSection.desiredProfit')}
               </Label>
               <NumberInput
+                calculable
                 id="desiredProfit"
                 value={String(inputs.desiredProfit)}
                 onChange={value => onUpdate('desiredProfit', parseFloat(value) || 0)}

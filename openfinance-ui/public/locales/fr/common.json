@@ -357,6 +357,10 @@
     "exact": "Montant exact"
   },
   "input": {
+    "calculationExample": "Saisissez un calcul comme 9+5 et appuyez sur Entrée.",
+    "calculateOnEnter": "Appuyez sur Entrée pour calculer.",
+    "numberFractionDigits": "Saisissez au maximum {{count}} décimales.",
+    "invalidCalculation": "Vérifiez le calcul et appuyez à nouveau sur Entrée.",
     "invalidNumber": "Saisissez un nombre valide.",
     "invalidDate": "Saisissez une date valide ({{format}}).",
     "numberMin": "Saisissez une valeur supérieure ou égale à {{value}}.",

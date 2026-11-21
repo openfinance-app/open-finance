@@ -184,6 +184,7 @@ export function AssetSaleForm({ target, onClose }: { target: SaleTarget; onClose
                 control={control}
                 render={({ field }) => (
                   <NumberInput
+                    calculable={key !== 'quantity'}
                     className="h-11 font-mono text-base tabular-nums md:h-10 md:text-sm"
                     {...field}
                     onChange={field.onChange}

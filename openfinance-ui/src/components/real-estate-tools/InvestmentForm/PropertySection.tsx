@@ -79,6 +79,7 @@ export const PropertySection: React.FC<PropertySectionProps> = ({
           <div className="space-y-2">
             <Label htmlFor="totalPrice">{t('propertySection.totalPrice')}</Label>
             <NumberInput
+              calculable
               id="totalPrice"
               value={String(inputs.totalPrice)}
               onChange={value => onUpdate('totalPrice', parseFloat(value) || 0)}
@@ -126,6 +127,7 @@ export const PropertySection: React.FC<PropertySectionProps> = ({
           <div className="space-y-2">
             <Label htmlFor="furnitureValue">{t('propertySection.furnitureValue')}</Label>
             <NumberInput
+              calculable
               id="furnitureValue"
               value={String(inputs.furnitureValue)}
               onChange={value => onUpdate('furnitureValue', parseFloat(value) || 0)}

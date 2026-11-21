@@ -357,6 +357,10 @@
     "exact": "Exact amount"
   },
   "input": {
+    "calculationExample": "Type a calculation such as 9+5 and press Enter.",
+    "calculateOnEnter": "Press Enter to calculate.",
+    "numberFractionDigits": "Use at most {{count}} decimal places.",
+    "invalidCalculation": "Check the calculation and press Enter again.",
     "invalidNumber": "Enter a valid number.",
     "invalidDate": "Enter a valid date ({{format}}).",
     "numberMin": "Enter a value of at least {{value}}.",

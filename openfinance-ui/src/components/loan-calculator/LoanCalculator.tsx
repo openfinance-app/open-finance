@@ -74,6 +74,7 @@ export function LoanCalculator({ className }: LoanCalculatorProps) {
                     <DollarSign className="h-4 w-4 text-muted-foreground" />
                   </div>
                   <NumberInput
+                    calculable
                     id="lc-principal"
                     min="0"
                     className="pl-10"

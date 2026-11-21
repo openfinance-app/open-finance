@@ -164,6 +164,7 @@ export function RecordLoanPayment({ liability }: { liability: Liability }) {
               control={control}
               render={({ field }) => (
                 <NumberInput
+                  calculable
                   className="h-11 font-mono text-base tabular-nums md:h-10 md:text-sm"
                   id={`${id}-${key}`}
                   {...field}

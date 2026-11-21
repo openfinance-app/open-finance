@@ -236,6 +236,7 @@ export function BudgetForm({
               control={control}
               render={({ field }) => (
                 <NumberInput
+                  calculable
                   id="amount"
                   value={field.value}
                   onChange={field.onChange}

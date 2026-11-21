@@ -84,6 +84,7 @@ export const PurchaseSection: React.FC<PurchaseSectionProps> = ({
                 <div className="space-y-2">
                   <Label htmlFor="propertyPrice">{t('purchaseSection.propertyPrice')}</Label>
                   <NumberInput
+                    calculable
                     id="propertyPrice"
                     value={String(inputs.propertyPrice)}
                     onChange={value => onUpdate('propertyPrice', parseFloat(value) || 0)}
@@ -101,6 +102,7 @@ export const PurchaseSection: React.FC<PurchaseSectionProps> = ({
                 <div className="space-y-2">
                   <Label htmlFor="renovationAmount">{t('purchaseSection.renovationAmount')}</Label>
                   <NumberInput
+                    calculable
                     id="renovationAmount"
                     value={String(inputs.renovationAmount)}
                     onChange={value => onUpdate('renovationAmount', parseFloat(value) || 0)}
@@ -131,6 +133,7 @@ export const PurchaseSection: React.FC<PurchaseSectionProps> = ({
                 <div className="space-y-2">
                   <Label htmlFor="agencyFees">{t('purchaseSection.agencyFees')}</Label>
                   <NumberInput
+                    calculable
                     id="agencyFees"
                     value={String(inputs.agencyFees)}
                     onChange={value => onUpdate('agencyFees', parseFloat(value) || 0)}
@@ -163,6 +166,7 @@ export const PurchaseSection: React.FC<PurchaseSectionProps> = ({
                 <div className="space-y-2">
                   <Label htmlFor="downPayment">{t('purchaseSection.downPayment')}</Label>
                   <NumberInput
+                    calculable
                     id="downPayment"
                     value={String(inputs.downPayment)}
                     onChange={value => onUpdate('downPayment', parseFloat(value) || 0)}
@@ -257,6 +261,7 @@ export const PurchaseSection: React.FC<PurchaseSectionProps> = ({
                 <div className="space-y-2">
                   <Label htmlFor="totalInsurance">{t('purchaseSection.totalInsurance')}</Label>
                   <NumberInput
+                    calculable
                     id="totalInsurance"
                     value={String(inputs.totalInsurance)}
                     onChange={value => onUpdate('totalInsurance', parseFloat(value) || 0)}
@@ -267,6 +272,7 @@ export const PurchaseSection: React.FC<PurchaseSectionProps> = ({
                 <div className="space-y-2">
                   <Label htmlFor="applicationFees">{t('purchaseSection.applicationFees')}</Label>
                   <NumberInput
+                    calculable
                     id="applicationFees"
                     value={String(inputs.applicationFees)}
                     onChange={value => onUpdate('applicationFees', parseFloat(value) || 0)}
@@ -277,6 +283,7 @@ export const PurchaseSection: React.FC<PurchaseSectionProps> = ({
                 <div className="space-y-2">
                   <Label htmlFor="guaranteeFees">{t('purchaseSection.guaranteeFees')}</Label>
                   <NumberInput
+                    calculable
                     id="guaranteeFees"
                     value={String(inputs.guaranteeFees)}
                     onChange={value => onUpdate('guaranteeFees', parseFloat(value) || 0)}
@@ -287,6 +294,7 @@ export const PurchaseSection: React.FC<PurchaseSectionProps> = ({
                 <div className="space-y-2">
                   <Label htmlFor="accountFees">{t('purchaseSection.accountFees')}</Label>
                   <NumberInput
+                    calculable
                     id="accountFees"
                     value={String(inputs.accountFees)}
                     onChange={value => onUpdate('accountFees', parseFloat(value) || 0)}
@@ -308,6 +316,7 @@ export const PurchaseSection: React.FC<PurchaseSectionProps> = ({
                 <div className="space-y-2">
                   <Label htmlFor="propertyTax">{t('purchaseSection.annualPropertyTax')}</Label>
                   <NumberInput
+                    calculable
                     id="propertyTax"
                     value={String(inputs.propertyTax)}
                     onChange={value => onUpdate('propertyTax', parseFloat(value) || 0)}
@@ -320,6 +329,7 @@ export const PurchaseSection: React.FC<PurchaseSectionProps> = ({
                     {t('purchaseSection.coOwnershipChargesPerYear')}
                   </Label>
                   <NumberInput
+                    calculable
                     id="coOwnershipCharges"
                     value={String(inputs.coOwnershipCharges)}
                     onChange={value => onUpdate('coOwnershipCharges', parseFloat(value) || 0)}
@@ -343,6 +353,7 @@ export const PurchaseSection: React.FC<PurchaseSectionProps> = ({
                 <div className="space-y-2">
                   <Label htmlFor="homeInsurance">{t('purchaseSection.homeInsurance')}</Label>
                   <NumberInput
+                    calculable
                     id="homeInsurance"
                     value={String(inputs.homeInsurance)}
                     onChange={value => onUpdate('homeInsurance', parseFloat(value) || 0)}
@@ -353,6 +364,7 @@ export const PurchaseSection: React.FC<PurchaseSectionProps> = ({
                 <div className="space-y-2">
                   <Label htmlFor="bankFees">{t('purchaseSection.bankFees')}</Label>
                   <NumberInput
+                    calculable
                     id="bankFees"
                     value={String(inputs.bankFees)}
                     onChange={value => onUpdate('bankFees', parseFloat(value) || 0)}
@@ -363,6 +375,7 @@ export const PurchaseSection: React.FC<PurchaseSectionProps> = ({
                 <div className="space-y-2">
                   <Label htmlFor="garbageTax">{t('purchaseSection.garbageTax')}</Label>
                   <NumberInput
+                    calculable
                     id="garbageTax"
                     value={String(inputs.garbageTax)}
                     onChange={value => onUpdate('garbageTax', parseFloat(value) || 0)}

@@ -77,6 +77,7 @@ export const ExpensesSection: React.FC<ExpensesSectionProps> = ({
             <div className="space-y-2">
               <Label htmlFor="propertyTax">{t('expensesSection.propertyTax')}</Label>
               <NumberInput
+                calculable
                 id="propertyTax"
                 error={getFieldError('propertyTax')}
                 value={String(inputs.propertyTax)}
@@ -88,6 +89,7 @@ export const ExpensesSection: React.FC<ExpensesSectionProps> = ({
             <div className="space-y-2">
               <Label htmlFor="cfe">{t('expensesSection.cfe')}</Label>
               <NumberInput
+                calculable
                 id="cfe"
                 error={getFieldError('cfe')}
                 value={String(inputs.cfe)}
@@ -99,6 +101,7 @@ export const ExpensesSection: React.FC<ExpensesSectionProps> = ({
             <div className="space-y-2">
               <Label htmlFor="cvae">{t('expensesSection.cvae')}</Label>
               <NumberInput
+                calculable
                 id="cvae"
                 error={getFieldError('cvae')}
                 value={String(inputs.cvae)}
@@ -122,6 +125,7 @@ export const ExpensesSection: React.FC<ExpensesSectionProps> = ({
                 {t('expensesSection.nonRecoverableCharges')}
               </Label>
               <NumberInput
+                calculable
                 id="nonRecoverableCharges"
                 error={getFieldError('nonRecoverableCharges')}
                 value={String(inputs.nonRecoverableCharges)}
@@ -133,6 +137,7 @@ export const ExpensesSection: React.FC<ExpensesSectionProps> = ({
             <div className="space-y-2">
               <Label htmlFor="annualMaintenance">{t('expensesSection.annualMaintenance')}</Label>
               <NumberInput
+                calculable
                 id="annualMaintenance"
                 error={getFieldError('annualMaintenance')}
                 value={String(inputs.annualMaintenance)}
@@ -154,6 +159,7 @@ export const ExpensesSection: React.FC<ExpensesSectionProps> = ({
             <div className="space-y-2">
               <Label htmlFor="managementFees">{t('expensesSection.managementFees')}</Label>
               <NumberInput
+                calculable
                 id="managementFees"
                 error={getFieldError('managementFees')}
                 value={String(inputs.managementFees)}
@@ -165,6 +171,7 @@ export const ExpensesSection: React.FC<ExpensesSectionProps> = ({
             <div className="space-y-2">
               <Label htmlFor="pnoInsurance">{t('expensesSection.pnoInsurance')}</Label>
               <NumberInput
+                calculable
                 id="pnoInsurance"
                 error={getFieldError('pnoInsurance')}
                 value={String(inputs.pnoInsurance)}
@@ -176,6 +183,7 @@ export const ExpensesSection: React.FC<ExpensesSectionProps> = ({
             <div className="space-y-2">
               <Label htmlFor="accountingFees">{t('expensesSection.accountingFees')}</Label>
               <NumberInput
+                calculable
                 id="accountingFees"
                 error={getFieldError('accountingFees')}
                 value={String(inputs.accountingFees)}

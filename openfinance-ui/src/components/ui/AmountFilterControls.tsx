@@ -90,6 +90,7 @@ export function AmountFilterControls({
             {label}
           </label>
           <NumberInput
+            calculable
             id={`${id}-${field}`}
             value={value ?? ''}
             onChange={canonical => updateAmount(field, canonical)}

@@ -346,7 +346,7 @@ describe('RuleActionBuilder', () => {
 
     const amountInput = screen.getByRole('textbox', { name: 'Amount' });
     expect(amountInput).toHaveAttribute('type', 'text');
-    expect(amountInput).toHaveAttribute('inputmode', 'decimal');
+    expect(amountInput).toHaveAttribute('inputmode', 'text');
   });
 
   it('should render multiple inputs for ADD_SPLIT action', () => {

@@ -1,10 +1,11 @@
 import Decimal from 'decimal.js';
 import { useTranslation } from 'react-i18next';
 import { useInputValidation } from '@/hooks/useInputValidation';
-import { useEffect, useRef, useId, useState, type AriaAttributes } from 'react';
+import { useEffect, useRef, useId, useMemo, useState, type AriaAttributes } from 'react';
 import { cn } from '@/lib/utils';
 import { useNumberFormat } from '@/context/NumberFormatContext';
 import type { NumberFormat } from '@/context/NumberFormatContext';
+import { evaluateAmountExpression } from '@/utils/amount-expression';
 
 interface NumberInputProps {
   id?: string;
@@ -19,10 +20,13 @@ interface NumberInputProps {
   disabled?: boolean;
   readOnly?: boolean;
   required?: boolean;
+  /** Allow monetary expressions to be applied with Enter. */
+  calculable?: boolean;
   /** Minimum canonical value (as string/number with dot decimal). */
   min?: string | number;
   /** Maximum canonical value. */
   max?: string | number;
+  maxFractionDigits?: number;
   /** Accessible label for testing when label element not present. */
   ['aria-label']?: string;
   ['aria-invalid']?: AriaAttributes['aria-invalid'];
@@ -109,8 +113,10 @@ export function NumberInput({
   disabled,
   readOnly,
   required,
+  calculable = false,
   min,
   max,
+  maxFractionDigits,
   'aria-label': ariaLabel,
   'aria-invalid': ariaInvalid,
   'aria-describedby': ariaDescribedBy,
@@ -136,27 +142,40 @@ export function NumberInput({
   const { t } = useTranslation('common');
   const errorId = useId();
   const parsed = parseDisplayToCanonical(display, numberFormat);
-  const invalidMessage =
-    display.trim() === ''
-      ? required
-        ? t('input.required')
-        : undefined
-      : parsed === null
-        ? t('input.invalidNumber')
-        : min != null && new Decimal(parsed).lt(min)
-          ? t('input.numberMin', { value: min })
-          : max != null && new Decimal(parsed).gt(max)
-            ? t('input.numberMax', { value: max })
-            : undefined;
+  const isExpression =
+    calculable && !disabled && !readOnly && parsed === null && /[+*/()-]/.test(display);
+  const result = useMemo(
+    () =>
+      isExpression
+        ? evaluateAmountExpression(display, operand =>
+            parseDisplayToCanonical(operand, numberFormat)
+          )
+        : null,
+    [isExpression, display, numberFormat]
+  );
+  const getValidationMessage = (): string | undefined => {
+    const canonical = parsed ?? result;
+    if (canonical === '') return required ? t('input.required') : undefined;
+    if (canonical === null)
+      return t(isExpression ? 'input.invalidCalculation' : 'input.invalidNumber');
+    const number = new Decimal(canonical);
+    if (min != null && number.lt(min)) return t('input.numberMin', { value: min });
+    if (max != null && number.gt(max)) return t('input.numberMax', { value: max });
+    if (maxFractionDigits != null && number.decimalPlaces() > maxFractionDigits)
+      return t('input.numberFractionDigits', { count: maxFractionDigits });
+  };
+  const invalidMessage = getValidationMessage();
+  const calculationHint =
+    result !== null && !invalidMessage ? t('input.calculateOnEnter') : undefined;
   const {
     ref: inputRef,
     reveal,
     validationError,
   } = useInputValidation(
-    disabled || readOnly ? undefined : invalidMessage,
+    disabled || readOnly ? undefined : (invalidMessage ?? calculationHint),
     display !== formatCanonicalToDisplay(canonicalValue, numberFormat)
   );
-  const displayedError = validationError || error;
+  const displayedError = (calculationHint ? undefined : validationError) || error;
 
   useEffect(() => {
     if (canonicalValue !== emittedValue.current || numberFormat !== previousFormat.current)
@@ -165,12 +184,9 @@ export function NumberInput({
     previousFormat.current = numberFormat;
   }, [canonicalValue, numberFormat]);
 
-  const commit = (text: string) => {
-    const next = parseDisplayToCanonical(text, numberFormat);
-    if (next !== null) {
-      emittedValue.current = next;
-      onChange(next);
-    }
+  const commit = (canonical: string) => {
+    emittedValue.current = canonical;
+    onChange(canonical);
   };
 
   const handleBlur = () => {
@@ -196,7 +212,8 @@ export function NumberInput({
         id={id}
         ref={inputRef}
         type="text"
-        inputMode="decimal"
+        inputMode={calculable ? 'text' : 'decimal'}
+        title={calculable && !readOnly && !disabled ? t('input.calculationExample') : undefined}
         autoComplete="off"
         disabled={disabled}
         readOnly={readOnly}
@@ -207,14 +224,27 @@ export function NumberInput({
         placeholder={displayPlaceholder}
         aria-invalid={displayedError ? 'true' : (ariaInvalid ?? 'false')}
         aria-describedby={
-          [ariaDescribedBy, displayedError ? errorId : undefined].filter(Boolean).join(' ') ||
-          undefined
+          [ariaDescribedBy, displayedError || calculationHint ? errorId : undefined]
+            .filter(Boolean)
+            .join(' ') || undefined
         }
         aria-label={ariaLabel}
         data-testid={dataTestId}
         onChange={e => {
           setDisplay(e.target.value);
-          commit(e.target.value);
+          const canonical = parseDisplayToCanonical(e.target.value, numberFormat);
+          if (canonical !== null) commit(canonical);
+        }}
+        onKeyDown={event => {
+          if (event.key !== 'Enter' || !isExpression || event.nativeEvent.isComposing) return;
+          event.preventDefault();
+          event.stopPropagation();
+          if (result === null || invalidMessage) {
+            reveal();
+            return;
+          }
+          setDisplay(formatCanonicalToDisplay(result, numberFormat));
+          commit(result);
         }}
         onBlur={handleBlur}
         className={cn(
@@ -228,11 +258,15 @@ export function NumberInput({
           className
         )}
       />
-      {displayedError && (
+      {displayedError ? (
         <p id={errorId} role="alert" className="mt-1 text-sm text-error">
           {displayedError}
         </p>
-      )}
+      ) : calculationHint ? (
+        <p id={errorId} className="mt-1 text-sm text-text-secondary">
+          {calculationHint}
+        </p>
+      ) : null}
     </div>
   );
 }

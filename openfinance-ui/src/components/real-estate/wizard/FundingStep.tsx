@@ -110,6 +110,7 @@ export function FundingStep({
                 : t(funding.loanAlreadyReceived ? 'wizard.loanAmount' : 'wizard.disbursedAmount')}
             </label>
             <NumberInput
+              calculable
               className="h-11 font-mono text-base tabular-nums md:h-10 md:text-sm"
               id="wizard-loan"
               value={funding.loanAmount}
@@ -168,6 +169,7 @@ export function FundingStep({
                 {t('wizard.monthlyPayment')}
               </label>
               <NumberInput
+                calculable
                 id="wizard-monthly"
                 className="h-11 font-mono text-base tabular-nums md:h-10 md:text-sm"
                 value={funding.minimumPayment ?? ''}
@@ -251,6 +253,7 @@ export function FundingStep({
             />
           </div>
           <NumberInput
+            calculable
             className="h-11 font-mono text-base tabular-nums md:h-10 md:text-sm"
             id="wizard-down"
             value={funding.downPaymentAmount}
