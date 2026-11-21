@@ -46,11 +46,24 @@ public final class ImportDuplicateMatcher {
                 || !matchesDuplicateAmount(imported, existing, exchangeRateService)) {
             return false;
         }
-        String payee =
+        String sourcePayee =
                 imported.getOriginalPayee() != null
                         ? imported.getOriginalPayee()
                         : imported.getPayee();
-        return isPayeeSimilar(payee, existing.getDescription());
+        if (isPayeeSimilar(sourcePayee, existing.getDescription())) return true;
+        // Older QIF/CSV imports could book a memo-only payment without any description.
+        ImportedTransaction.RuleText previous = imported.getLegacyRuleText();
+        if (previous != null
+                && (previous.payee() == null || previous.payee().isBlank())
+                && (existing.getDescription() == null || existing.getDescription().isBlank())
+                && previous.memo() != null
+                && !previous.memo().isBlank()
+                && previous.memo().equals(existing.getNotes())) return true;
+        // CSV can carry an independent description shared by several different merchants.
+        return imported.getDescription() != null
+                && isPayeeSimilar(imported.getDescription(), existing.getDescription())
+                && (isPayeeSimilar(sourcePayee, existing.getPayee())
+                        || isPayeeSimilar(imported.getPayee(), existing.getPayee()));
     }
 
     /** Stable source fields for investment corrections, before any form edits or FX changes. */
@@ -68,10 +81,6 @@ public final class ImportDuplicateMatcher {
 
     private static String investmentIdentity(
             ImportedTransaction imported, String fallbackCurrency) {
-        String description =
-                imported.getOriginalPayee() == null
-                        ? imported.getPayee()
-                        : imported.getOriginalPayee();
         return identity(
                 imported.getTransactionDate().toString(),
                 imported.getAmount().signum() >= 0,
@@ -79,7 +88,7 @@ public final class ImportDuplicateMatcher {
                 imported.getCurrency() == null || imported.getCurrency().isBlank()
                         ? fallbackCurrency
                         : imported.getCurrency(),
-                description);
+                imported.statementDescription());
     }
 
     private static String identity(

@@ -1,3 +1,4 @@
+import './import-review.css';
 import { decimalValue } from '@/utils/exact-decimal';
 /**
  * ImportReview Component
@@ -32,13 +33,17 @@ import {
   Tag,
   Info,
   Trash2,
+  ListTree,
 } from 'lucide-react';
 import { useCategories } from '@/hooks/useCategories';
 import { useUserSettings, useBaseCurrency } from '@/hooks/useUserSettings';
 import { DEFAULT_CURRENCY } from '@/utils/currency';
 import { formatDate as globalFormatDate } from '@/utils/date';
 import { translateCategoryName } from '@/utils/categoryTranslation';
+import { isSplitAmountError } from '@/utils/import-review';
 import { categoryPath, matchingCategories, type CategoryPathNode } from '@/utils/category-path';
+import { ImportReviewDetails } from '@/components/import/ImportReviewDetails';
+import { Input } from '@/components/ui/Input';
 import type { ImportTransactionDTO } from '@/types/import';
 
 // ---------------------------------------------------------------------------
@@ -112,7 +117,7 @@ export function ImportReview({
 
   // Translate known backend validation error strings to the current locale
   const translateValidationError = (err: string): string => {
-    if (err.startsWith('SPLIT_INVALID:')) return t('validation.splitInvalid');
+    if (isSplitAmountError(err)) return t('validation.splitInvalid');
     if (err.startsWith('RULE_ACTION_INVALID:')) return t('validation.ruleActionInvalid');
     if (err.startsWith('RULE_CONDITION_INVALID:')) {
       return t('validation.ruleConditionInvalid', {
@@ -135,6 +140,24 @@ export function ImportReview({
   const [selectedRows, setSelectedRows] = useState<Set<number>>(new Set());
   const [bulkCategory, setBulkCategory] = useState<string>('');
   const [bulkPayee, setBulkPayee] = useState<string>('');
+  const [bulkTagText, setBulkTagText] = useState('');
+  const [detailRow, setDetailRow] = useState<number | null>(null);
+  const bulkTags = bulkTagText
+    .split(',')
+    .map(tag => tag.trim())
+    .filter(Boolean);
+  const mergedTags = (row: ImportTransactionDTO) => [
+    ...new Set([...(row.tags ?? []), ...bulkTags]),
+  ];
+  const canTagSelection = [...selectedRows].some(index => !transactions[index]?.openingBalance);
+  const hasBulkTags = bulkTags.length > 0 && canTagSelection;
+  const bulkTagsTooLong =
+    hasBulkTags &&
+    (bulkTags.some(tag => tag.length > 50) ||
+      transactions.some(
+        (row, index) =>
+          !row.openingBalance && selectedRows.has(index) && mergedTags(row).join(',').length > 500
+      ));
 
   // Per-row inline editing
   const [editingRow, setEditingRow] = useState<number | null>(null);
@@ -265,11 +288,14 @@ export function ImportReview({
 
   const isCategorized = useCallback(
     (transaction: ImportTransactionDTO): boolean => {
-      if (!transaction.category) return false;
+      const mapped = (name: string | null) =>
+        !!name &&
+        (categoryMappings[name] != null ||
+          matchingCategories(categories, name).length === 1 ||
+          newCategoryNames.includes(name));
       return (
-        categoryMappings[transaction.category] != null ||
-        matchingCategories(categories, transaction.category).length === 1 ||
-        newCategoryNames.includes(transaction.category)
+        mapped(transaction.category) ||
+        (!!transaction.splits?.length && transaction.splits.every(split => mapped(split.category)))
       );
     },
     [categoryMappings, categories, newCategoryNames]
@@ -334,7 +360,8 @@ export function ImportReview({
   // Handlers — bulk edit
   // -------------------------------------------------------------------------
   const handleBulkApply = () => {
-    if (selectedRows.size === 0 || (!bulkCategory && !bulkPayee)) return;
+    if (selectedRows.size === 0 || bulkTagsTooLong || (!bulkCategory && !bulkPayee && !hasBulkTags))
+      return;
 
     const updated = transactions.map((t, idx) => {
       if (!selectedRows.has(idx)) return t;
@@ -342,6 +369,7 @@ export function ImportReview({
         ...t,
         ...(bulkCategory.trim() ? { category: bulkCategory.trim() } : {}),
         ...(bulkPayee.trim() ? { payee: bulkPayee.trim() } : {}),
+        ...(bulkTags.length && !t.openingBalance ? { tags: mergedTags(t) } : {}),
       };
     });
 
@@ -349,6 +377,7 @@ export function ImportReview({
     setSelectedRows(new Set());
     setBulkCategory('');
     setBulkPayee('');
+    setBulkTagText('');
   };
 
   // -------------------------------------------------------------------------
@@ -411,7 +440,7 @@ export function ImportReview({
   // Render
   // -------------------------------------------------------------------------
   return (
-    <div className="space-y-4">
+    <div className="import-review space-y-4">
       {transactions.some(transaction =>
         transaction.validationErrors?.some(error => error.startsWith('AI_UNAVAILABLE:'))
       ) && (
@@ -551,19 +580,21 @@ export function ImportReview({
               return (
                 <div
                   key={name}
-                  className={`flex items-center justify-between px-4 py-2.5 text-sm ${
+                  className={`flex flex-col items-start gap-2 sm:flex-row sm:items-center sm:justify-between px-4 py-2.5 text-sm ${
                     isToCreate ? 'bg-primary/5' : !isMapped ? 'bg-amber-500/5' : ''
                   }`}
                 >
                   <div className="flex items-center space-x-2 min-w-0">
-                    <span className="font-medium text-text-primary truncate">{name}</span>
+                    <span className="font-medium text-text-primary [overflow-wrap:anywhere]">
+                      {name}
+                    </span>
                     <span className="flex-shrink-0 text-xs text-text-tertiary bg-surface px-1.5 py-0.5 rounded">
                       {count}×
                     </span>
                   </div>
-                  <div className="flex items-center space-x-2 flex-shrink-0 ml-4">
+                  <div className="flex w-full min-w-0 items-center gap-2 sm:w-auto">
                     <span className="hidden sm:block text-text-tertiary">→</span>
-                    <div className="w-48">
+                    <div className="w-full sm:w-48">
                       {isToCreate && !showOverride ? (
                         <div className="flex items-center gap-2">
                           <span className="text-xs text-primary italic flex items-center gap-1">
@@ -687,6 +718,20 @@ export function ImportReview({
                 className="w-full h-10"
               />
             </div>
+            <div className="flex-1 min-w-0">
+              <Input
+                disabled={!canTagSelection}
+                aria-label={t('review.bulkAction.addTags')}
+                placeholder={t('review.bulkAction.addTags')}
+                value={bulkTagText}
+                onChange={event => setBulkTagText(event.target.value)}
+              />
+              {bulkTagsTooLong && (
+                <p role="alert" className="text-sm text-error">
+                  {t('review.details.tagLength')}
+                </p>
+              )}
+            </div>
           </div>
 
           <div className="flex items-center space-x-2 w-full sm:w-auto">
@@ -694,7 +739,7 @@ export function ImportReview({
               variant="primary"
               size="sm"
               onClick={handleBulkApply}
-              disabled={!bulkCategory && !bulkPayee}
+              disabled={bulkTagsTooLong || (!bulkCategory && !bulkPayee && !hasBulkTags)}
               className="flex-1 sm:flex-none"
             >
               <Edit2 className="h-4 w-4 mr-1.5" />
@@ -705,6 +750,8 @@ export function ImportReview({
               size="sm"
               onClick={() => {
                 onTransactionsChange(transactions.filter((_, idx) => !selectedRows.has(idx)));
+                setBulkTagText('');
+                setEditingRow(null);
                 setSelectedRows(new Set());
               }}
               title={t('review.actions.removeSelected')}
@@ -715,7 +762,10 @@ export function ImportReview({
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => setSelectedRows(new Set())}
+              onClick={() => {
+                setSelectedRows(new Set());
+                setBulkTagText('');
+              }}
               title={t('review.actions.clearSelection')}
             >
               <X className="h-4 w-4" />
@@ -725,55 +775,82 @@ export function ImportReview({
       )}
 
       {/* ── Transactions table ────────────────────────────────────────────── */}
-      <div className="border border-border rounded-lg overflow-hidden flex flex-col">
-        <div className="overflow-auto max-h-[50vh]">
-          <table className="w-full relative">
-            <thead className="bg-surface-elevated sticky top-0 z-10 shadow-sm ring-1 ring-border">
-              <tr>
-                <th className="py-3 px-4 text-left w-10">
-                  <input
-                    type="checkbox"
-                    checked={allSelected}
-                    ref={input => {
-                      if (input) input.indeterminate = someSelected;
-                    }}
-                    onChange={handleSelectAll}
-                    className="rounded border-border text-primary focus:ring-primary w-4 h-4 cursor-pointer"
-                    aria-label={t('review.table.selectAll')}
-                  />
+      <div className="review-ledger border border-border rounded-lg">
+        <div className="review-scroll">
+          <table role="table" className="w-full table-fixed" aria-label={t('wizard.review.title')}>
+            <colgroup>
+              <col className="review-select" />
+              <col className="review-date" />
+              <col />
+              <col className="review-amount" />
+              <col />
+              <col className="review-notes" />
+              <col />
+              {showSource && <col />}
+              <col className="review-status" />
+              <col className="review-actions" />
+            </colgroup>
+            <thead
+              role="rowgroup"
+              className="bg-surface-elevated sticky top-0 z-10 shadow-sm ring-1 ring-border"
+            >
+              <tr role="row">
+                <th role="columnheader" scope="col" className="review-select">
+                  <label>
+                    <input
+                      type="checkbox"
+                      checked={allSelected}
+                      ref={input => {
+                        if (input) input.indeterminate = someSelected;
+                      }}
+                      onChange={handleSelectAll}
+                      className="rounded border-border text-primary focus:ring-primary w-4 h-4 cursor-pointer"
+                      aria-label={t('review.table.selectAll')}
+                    />
+                    <span className="review-select-label">{t('review.table.selectAll')}</span>
+                  </label>
                 </th>
-                <th className="text-left py-3 px-4 text-xs font-medium text-text-secondary uppercase tracking-wide whitespace-nowrap">
+                <th role="columnheader" scope="col" className="review-date">
                   {t('review.table.date')}
                 </th>
+                <th role="columnheader" scope="col" className="review-payee">
+                  {t('review.table.payee')}
+                </th>
+                <th role="columnheader" scope="col" className="review-amount">
+                  {t('review.table.amount')}
+                </th>
+                <th role="columnheader" scope="col" className="review-category">
+                  {t('review.table.category')}
+                </th>
+                <th role="columnheader" scope="col" className="review-notes">
+                  {t('review.table.notes')}
+                </th>
+                <th role="columnheader" scope="col" className="review-description">
+                  {t('review.table.description')}
+                </th>
                 {showSource && (
-                  <th className="text-left py-3 px-4 text-xs font-medium text-text-secondary uppercase tracking-wide">
+                  <th role="columnheader" scope="col" className="review-source">
                     {t('review.table.source')}
                   </th>
                 )}
-                <th className="text-left py-3 px-4 text-xs font-medium text-text-secondary uppercase tracking-wide">
-                  {t('review.table.payee')}
-                </th>
-                <th className="text-right py-3 px-4 text-xs font-medium text-text-secondary uppercase tracking-wide whitespace-nowrap">
-                  {t('review.table.amount')}
-                </th>
-                <th className="text-left py-3 px-4 text-xs font-medium text-text-secondary uppercase tracking-wide">
-                  {t('review.table.category')}
-                </th>
-                <th className="text-left py-3 px-4 text-xs font-medium text-text-secondary uppercase tracking-wide hidden sm:table-cell">
-                  {t('review.table.memo')}
-                </th>
-                <th className="text-left py-3 px-4 text-xs font-medium text-text-secondary uppercase tracking-wide">
+                <th role="columnheader" scope="col" className="review-status">
                   {t('review.table.status')}
                 </th>
-                <th className="py-3 px-3 w-10" aria-label={t('common:labels.actions')} />
+                <th
+                  role="columnheader"
+                  scope="col"
+                  className="review-actions"
+                  aria-label={t('common:labels.actions')}
+                />
               </tr>
             </thead>
 
-            <tbody>
+            <tbody role="rowgroup">
               {filteredTransactions.length === 0 ? (
-                <tr>
+                <tr role="row">
                   <td
-                    colSpan={showSource ? 9 : 8}
+                    role="cell"
+                    colSpan={showSource ? 10 : 9}
                     className="py-12 text-center text-text-secondary text-sm"
                   >
                     {t('review.table.noResults')}
@@ -782,6 +859,8 @@ export function ImportReview({
               ) : (
                 filteredTransactions.map(transaction => {
                   const idx = transaction.originalIndex;
+                  const description =
+                    transaction.description ?? transaction.originalPayee ?? transaction.payee;
                   const isEditing = editingRow === idx;
                   const isExpanded = expandedRows.has(idx);
                   const isSelected = selectedRows.has(idx);
@@ -804,8 +883,9 @@ export function ImportReview({
                     <React.Fragment key={idx}>
                       {/* ── Main row ──────────────────────────────────────── */}
                       <tr
+                        role="row"
                         className={[
-                          'border-t border-border transition-colors',
+                          'review-row border-t border-border transition-colors',
                           isSelected
                             ? 'bg-primary/5'
                             : isDuplicate
@@ -816,7 +896,7 @@ export function ImportReview({
                         ].join(' ')}
                       >
                         {/* Checkbox */}
-                        <td className="py-2.5 px-4">
+                        <td role="cell" className="review-select">
                           <input
                             type="checkbox"
                             checked={isSelected}
@@ -827,24 +907,14 @@ export function ImportReview({
                         </td>
 
                         {/* Date */}
-                        <td className="py-2.5 px-4 text-sm text-text-secondary whitespace-nowrap">
+                        <td role="cell" className="review-date text-text-secondary">
                           {transaction.transactionDate
                             ? formatDate(transaction.transactionDate)
                             : t('review.table.missingDate')}
                         </td>
 
-                        {showSource && (
-                          <td className="py-2.5 px-4 text-sm text-text-secondary min-w-40 max-w-64">
-                            <p className="break-all">{transaction.sourceFileName}</p>
-                            <p className="mt-1 text-xs">
-                              {sourceAccountNames[transaction.sourceUploadId ?? ''] ||
-                                transaction.accountName}
-                            </p>
-                          </td>
-                        )}
-
                         {/* Payee */}
-                        <td className="py-2.5 px-4 text-sm text-text-primary font-medium">
+                        <td role="cell" className="review-payee font-medium text-text-primary">
                           {isEditing ? (
                             <PayeeCombobox
                               value={editState.payee}
@@ -853,10 +923,7 @@ export function ImportReview({
                               className="w-full"
                             />
                           ) : (
-                            <div
-                              className="max-w-[180px] truncate"
-                              title={transaction.payee || undefined}
-                            >
+                            <div className="break-words" title={transaction.payee || undefined}>
                               {transaction.payee || (
                                 <span className="text-text-tertiary italic">—</span>
                               )}
@@ -865,7 +932,7 @@ export function ImportReview({
                         </td>
 
                         {/* Amount */}
-                        <td className="py-2.5 px-4 text-sm text-right font-mono whitespace-nowrap">
+                        <td role="cell" className="review-amount font-mono text-right">
                           {transaction.amount == null ? (
                             <span className="text-text-tertiary">
                               {t('review.table.missingAmount')}
@@ -888,7 +955,10 @@ export function ImportReview({
                         </td>
 
                         {/* Category */}
-                        <td className="py-2.5 px-4 text-sm min-w-[160px]">
+                        <td role="cell" className="review-category text-text-secondary">
+                          <span aria-hidden="true" className="review-field-label">
+                            {t('review.table.category')}
+                          </span>
                           {isEditing ? (
                             <CategoryCombobox
                               value={editState.category}
@@ -900,15 +970,20 @@ export function ImportReview({
                               className="w-full text-sm"
                             />
                           ) : transaction.category ? (
-                            <span className="inline-flex items-center space-x-1">
+                            <span className="inline-flex items-baseline gap-1">
                               <Tag className="h-3 w-3 text-text-tertiary flex-shrink-0" />
-                              <span
-                                className="text-text-secondary truncate max-w-[200px]"
-                                title={transaction.category}
-                              >
+                              <span className="min-w-0" title={transaction.category}>
                                 {categoryDisplayName(transaction.category)}
                               </span>
                             </span>
+                          ) : hasSplits && !transaction.openingBalance ? (
+                            <button
+                              type="button"
+                              onClick={() => setDetailRow(idx)}
+                              className="text-sm text-primary hover:underline"
+                            >
+                              {t('review.details.editCategories')}
+                            </button>
                           ) : (
                             <button
                               onClick={() => startEditing(idx)}
@@ -919,25 +994,71 @@ export function ImportReview({
                           )}
                         </td>
 
-                        {/* Memo */}
-                        <td className="py-2.5 px-4 text-sm text-text-tertiary max-w-[200px] hidden sm:table-cell">
+                        {/* Notes */}
+                        <td role="cell" className="review-notes text-text-primary">
+                          <span aria-hidden="true" className="review-field-label">
+                            {t('review.table.notes')}
+                          </span>
                           {isEditing ? (
                             <input
                               type="text"
+                              aria-label={t('review.table.notes')}
                               value={editState.memo}
                               onChange={e => setEditState(s => ({ ...s, memo: e.target.value }))}
                               className="w-full px-2 py-1 bg-surface border border-primary rounded text-sm focus:outline-none focus:ring-1 focus:ring-primary"
                             />
                           ) : (
-                            <span className="truncate block" title={transaction.memo ?? ''}>
+                            <span
+                              className="block whitespace-pre-line"
+                              title={transaction.memo ?? ''}
+                            >
                               {transaction.memo || <span className="italic">—</span>}
                             </span>
                           )}
                         </td>
 
+                        <td role="cell" className="review-description text-text-secondary">
+                          <span aria-hidden="true" className="review-field-label">
+                            {t('review.table.description')}
+                          </span>
+                          <span className="block whitespace-pre-line" title={description ?? ''}>
+                            {description || '—'}
+                          </span>
+                          {!!transaction.tags?.length && (
+                            <div
+                              className="mt-1 flex flex-wrap gap-1"
+                              aria-label={t('review.details.tags')}
+                            >
+                              {transaction.tags.map(tag => (
+                                <Badge
+                                  key={tag}
+                                  variant="info"
+                                  size="sm"
+                                  className="max-w-full whitespace-normal break-all"
+                                >
+                                  {tag}
+                                </Badge>
+                              ))}
+                            </div>
+                          )}
+                        </td>
+
+                        {showSource && (
+                          <td role="cell" className="review-source text-text-secondary">
+                            <span aria-hidden="true" className="review-field-label">
+                              {t('review.table.source')}
+                            </span>
+                            <p className="break-all">{transaction.sourceFileName}</p>
+                            <p className="mt-1 text-xs">
+                              {sourceAccountNames[transaction.sourceUploadId ?? ''] ||
+                                transaction.accountName}
+                            </p>
+                          </td>
+                        )}
+
                         {/* Status badges */}
-                        <td className="py-2.5 px-4">
-                          <div className="flex items-center space-x-1.5">
+                        <td role="cell" className="review-status">
+                          <div className="flex flex-wrap items-center gap-1">
                             {isDuplicate && (
                               <Badge variant="warning" size="sm">
                                 {t('review.labels.duplicate')}
@@ -954,7 +1075,7 @@ export function ImportReview({
                                 )}
                               >
                                 <Badge variant="error" size="sm">
-                                  <span className="flex items-center space-x-1">
+                                  <span className="inline-flex items-center gap-1">
                                     <AlertCircle className="h-3 w-3" />
                                     <span>{t('review.labels.error')}</span>
                                   </span>
@@ -967,7 +1088,7 @@ export function ImportReview({
                                 size="sm"
                                 className="bg-primary/10 text-primary border-primary/20"
                               >
-                                <span className="flex items-center space-x-1">
+                                <span className="inline-flex items-center gap-1">
                                   <Sparkles className="h-3 w-3" />
                                   <span>{t('review.labels.matched')}</span>
                                 </span>
@@ -979,7 +1100,7 @@ export function ImportReview({
                                 size="sm"
                                 className="bg-violet-500/10 text-violet-600 border-violet-500/20"
                               >
-                                <span className="flex items-center space-x-1">
+                                <span className="inline-flex items-center gap-1">
                                   <Sparkles className="h-3 w-3" />
                                   <span>{t('review.labels.ai')}</span>
                                 </span>
@@ -1003,20 +1124,20 @@ export function ImportReview({
                         </td>
 
                         {/* Row actions */}
-                        <td className="py-2.5 px-3">
-                          <div className="flex items-center space-x-1">
+                        <td role="cell" className="review-actions">
+                          <div className="flex flex-wrap items-center justify-end">
                             {isEditing ? (
                               <>
                                 <button
                                   onClick={() => commitEdit(idx)}
-                                  className="p-1 rounded text-green-600 hover:bg-green-50 transition-colors"
+                                  className="review-action rounded text-green-600 hover:bg-green-50 transition-colors"
                                   title={t('review.actions.save')}
                                 >
                                   <Check className="h-4 w-4" />
                                 </button>
                                 <button
                                   onClick={cancelEdit}
-                                  className="p-1 rounded text-text-tertiary hover:bg-surface-elevated transition-colors"
+                                  className="review-action rounded text-text-tertiary hover:bg-surface-elevated transition-colors"
                                   title={t('review.actions.cancel')}
                                 >
                                   <X className="h-4 w-4" />
@@ -1026,15 +1147,32 @@ export function ImportReview({
                               <>
                                 <button
                                   onClick={() => startEditing(idx)}
-                                  className="p-1 rounded text-text-tertiary hover:text-primary hover:bg-primary/5 transition-colors"
+                                  className="review-action rounded text-text-tertiary hover:text-primary hover:bg-primary/5 transition-colors"
                                   title={t('review.actions.edit')}
                                 >
                                   <Edit2 className="h-3.5 w-3.5" />
+                                  <span aria-hidden="true" className="review-action-label">
+                                    {t('common:edit')}
+                                  </span>
                                 </button>
-                                {(hasSplits || (hasErrors && hasSplits)) && (
+                                {!transaction.openingBalance && (
+                                  <button
+                                    type="button"
+                                    onClick={() => setDetailRow(idx)}
+                                    className="review-action rounded text-text-secondary hover:text-primary hover:bg-primary/5"
+                                    aria-label={t('review.details.title')}
+                                    title={t('review.details.title')}
+                                  >
+                                    <ListTree className="h-4 w-4" />
+                                    <span aria-hidden="true" className="review-action-label">
+                                      {t('review.details.title')}
+                                    </span>
+                                  </button>
+                                )}
+                                {hasSplits && (
                                   <button
                                     onClick={() => toggleRowExpansion(idx)}
-                                    className="p-1 rounded text-text-tertiary hover:text-primary hover:bg-primary/5 transition-colors"
+                                    className="review-action rounded text-text-tertiary hover:text-primary hover:bg-primary/5 transition-colors"
                                     title={t(
                                       isExpanded
                                         ? 'review.actions.collapse'
@@ -1055,8 +1193,8 @@ export function ImportReview({
                       </tr>
 
                       {hasErrors && isExpanded && (
-                        <tr>
-                          <td colSpan={showSource ? 9 : 8} className="px-4 py-3">
+                        <tr role="row">
+                          <td role="cell" colSpan={showSource ? 10 : 9} className="px-4 py-3">
                             <div className="flex items-start space-x-2 text-sm">
                               <AlertCircle className="h-4 w-4 text-red-500 mt-0.5 flex-shrink-0" />
                               <div>
@@ -1075,8 +1213,8 @@ export function ImportReview({
                       )}
 
                       {hasSplits && isExpanded && (
-                        <tr>
-                          <td colSpan={showSource ? 9 : 8} className="px-4 py-3">
+                        <tr role="row">
+                          <td role="cell" colSpan={showSource ? 10 : 9} className="px-4 py-3">
                             <div className="font-medium text-text-primary text-sm mb-2">
                               {t('review.table.splitLines')}
                             </div>
@@ -1084,9 +1222,9 @@ export function ImportReview({
                               {transaction.splits.map((split, i) => (
                                 <div
                                   key={i}
-                                  className="flex items-center justify-between text-sm bg-app-bg rounded px-3 py-2 gap-4"
+                                  className="flex flex-wrap items-baseline justify-between text-sm bg-app-bg rounded px-3 py-2 gap-x-4 gap-y-1 [overflow-wrap:anywhere]"
                                 >
-                                  <span className="text-text-secondary flex-1 truncate">
+                                  <span className="text-text-secondary grow">
                                     {split.category ? categoryDisplayName(split.category) : '—'}
                                   </span>
                                   {!!split.tags?.length && (
@@ -1113,7 +1251,7 @@ export function ImportReview({
                                     />
                                   </span>
                                   {split.memo && (
-                                    <span className="text-text-tertiary text-xs truncate max-w-[160px]">
+                                    <span className="text-text-secondary text-xs">
                                       {split.memo}
                                     </span>
                                   )}
@@ -1132,9 +1270,29 @@ export function ImportReview({
         </div>
       </div>
 
+      {detailRow != null && transactions[detailRow] && (
+        <ImportReviewDetails
+          transaction={transactions[detailRow]}
+          categories={categories}
+          currency={
+            transactions[detailRow].currency ||
+            transactions[detailRow].reviewCurrency ||
+            baseCurrency
+          }
+          onClose={() => setDetailRow(null)}
+          onSave={(next, mappings) => {
+            if (Object.keys(mappings).length)
+              onCategoryMappingsChange({ ...categoryMappings, ...mappings });
+            onTransactionsChange(
+              transactions.map((row, index) => (index === detailRow ? next : row))
+            );
+            setDetailRow(null);
+          }}
+        />
+      )}
       {/* ── Footer hint ───────────────────────────────────────────────────── */}
       {stats.categorized < stats.total && (
-        <div className="flex items-start space-x-2 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2.5">
+        <div className="flex items-start space-x-2 text-xs text-text-secondary bg-warning/5 border border-warning/30 rounded-lg px-3 py-2.5">
           <AlertCircle className="h-3.5 w-3.5 mt-0.5 flex-shrink-0" />
           <span>{t('review.categorizationHint', { count: stats.total - stats.categorized })}</span>
         </div>

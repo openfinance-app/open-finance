@@ -302,17 +302,7 @@ public class OfxParser {
 
             List<ImportedTransaction> transactions = new ArrayList<>();
 
-            // Ledger balance
-            BigDecimal ledgerBalance = null;
-            NodeList ledgerBalList = doc.getElementsByTagName("LEDGERBAL");
-            if (ledgerBalList.getLength() > 0) {
-                Element ledgerBal = (Element) ledgerBalList.item(0);
-                String balAmt = getElementText(ledgerBal, "BALAMT");
-                if (balAmt != null && !balAmt.isEmpty()) {
-                    ledgerBalance = parseAmount(balAmt);
-                }
-            }
-
+            BigDecimal ledgerBalance = ledgerBalance(doc.getDocumentElement());
             java.util.Map<String, BigDecimal> ledgerBalances = new java.util.HashMap<>();
             int index = 0;
 
@@ -322,9 +312,8 @@ public class OfxParser {
             for (int i = 0; i < stmtRsList.getLength(); i++) {
                 Element stmtRs = (Element) stmtRsList.item(i);
                 String accountId = extractAccountId(stmtRs, "BANKACCTFROM");
-                String closing = getElementText(stmtRs, "BALAMT");
-                if (accountId != null && closing != null && !closing.isBlank())
-                    ledgerBalances.put(accountId, parseAmount(closing));
+                BigDecimal closing = ledgerBalance(stmtRs);
+                if (accountId != null && closing != null) ledgerBalances.put(accountId, closing);
                 String statementCurrency = extractStatementCurrency(stmtRs);
                 if (fileCurrency == null
                         && statementCurrency != null
@@ -347,9 +336,8 @@ public class OfxParser {
             for (int i = 0; i < ccStmtRsList.getLength(); i++) {
                 Element stmtRs = (Element) ccStmtRsList.item(i);
                 String accountId = extractAccountId(stmtRs, "CCACCTFROM");
-                String closing = getElementText(stmtRs, "BALAMT");
-                if (accountId != null && closing != null && !closing.isBlank())
-                    ledgerBalances.put(accountId, parseAmount(closing));
+                BigDecimal closing = ledgerBalance(stmtRs);
+                if (accountId != null && closing != null) ledgerBalances.put(accountId, closing);
                 String statementCurrency = extractStatementCurrency(stmtRs);
                 if (fileCurrency == null
                         && statementCurrency != null
@@ -374,9 +362,8 @@ public class OfxParser {
                 Element invStmtRs = (Element) invStmtRsList.item(i);
                 // Per spec, INVACCTFROM/ACCTID identifies the investment account
                 String accountId = extractAccountId(invStmtRs, "INVACCTFROM");
-                String closing = getElementText(invStmtRs, "BALAMT");
-                if (accountId != null && closing != null && !closing.isBlank())
-                    ledgerBalances.put(accountId, parseAmount(closing));
+                BigDecimal closing = ledgerBalance(invStmtRs);
+                if (accountId != null && closing != null) ledgerBalances.put(accountId, closing);
                 String statementCurrency = extractStatementCurrency(invStmtRs);
                 if (fileCurrency == null
                         && statementCurrency != null
@@ -695,6 +682,11 @@ public class OfxParser {
             return text != null ? text.trim() : null;
         }
         return null;
+    }
+
+    private BigDecimal ledgerBalance(Element statement) {
+        Element ledger = (Element) statement.getElementsByTagName("LEDGERBAL").item(0);
+        return ledger == null ? null : parseAmount(getElementText(ledger, "BALAMT"));
     }
 
     private String extractAccountId(Element statement, String accountContainerTag) {

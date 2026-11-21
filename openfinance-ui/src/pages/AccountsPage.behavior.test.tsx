@@ -1,6 +1,6 @@
 import type { ComponentProps } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { screen, waitFor } from '@testing-library/react';
+import { screen } from '@testing-library/react';
 import { mockAuthentication, renderWithProviders, userEvent } from '@/test/test-utils';
 import AccountsPage from '@/pages/AccountsPage';
 import type { Account, AccountFilters } from '@/types/account';
@@ -68,11 +68,13 @@ vi.mock('@/components/accounts/AccountFilters', () => ({
 }));
 vi.mock('@/components/accounts/AccountForm', () => ({
   AccountForm: ({
+    serverError,
     account,
     onSubmit,
     existingAccountNames,
   }: ComponentProps<typeof AccountForm>) => (
     <section aria-label="Account editor">
+      {serverError && <p role="alert">{serverError}</p>}
       <output aria-label="Existing names">{existingAccountNames?.join(', ')}</output>
       <button
         onClick={() =>
@@ -380,7 +382,10 @@ describe('account page decisions', () => {
   });
 
   it('keeps an unsuccessful edit open and excludes its own name from duplicate checks', async () => {
-    update.mockRejectedValue(new Error('Save failed'));
+    update.mockRejectedValue({
+      isAxiosError: true,
+      response: { data: { message: 'Account save rejected' } },
+    });
     const user = userEvent.setup();
     renderWithProviders(<AccountsPage />);
     await user.click(screen.getByRole('button', { name: 'Edit Account 1' }));
@@ -389,7 +394,7 @@ describe('account page decisions', () => {
       'Account 1'
     );
     await user.click(screen.getByRole('button', { name: 'Save account' }));
-    await waitFor(() => expect(update).toHaveBeenCalled());
+    expect(await screen.findByRole('alert')).toHaveTextContent('Account save rejected');
     expect(screen.getByRole('region', { name: 'Account editor' })).toBeInTheDocument();
   });
 

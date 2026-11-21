@@ -611,6 +611,19 @@ class CsvParserTest {
 
         assertThat(transactions).hasSize(1);
         assertThat(transactions.get(0).getMemo()).isEqualTo("Explicit memo");
+        assertThat(transactions.get(0).statementDescription()).isEqualTo("Other description");
+    }
+
+    @Test
+    void preservesSkroogePayeeAndComment() throws IOException {
+        ImportedTransaction row =
+                parseCsv("date;amount;payee;comment\n2024-01-15;-10;FACTURE CARTE;DU 071026 UBER")
+                        .getFirst();
+        assertThat(row.getPayee()).isEqualTo("FACTURE CARTE");
+        assertThat(row.statementDescription()).isEqualTo("FACTURE CARTE");
+        assertThat(row.getMemo()).isEqualTo("DU 071026 UBER");
+        assertThat(row.getLegacyRuleText())
+                .isEqualTo(new ImportedTransaction.RuleText("FACTURE CARTE", null));
     }
 
     // ========== Category / Type Tests ==========

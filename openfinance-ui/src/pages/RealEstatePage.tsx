@@ -859,6 +859,7 @@ export default function RealEstatePage() {
                 </Button>
               )}
               <RealEstateForm
+                serverError={saveError}
                 initialAcquisitionType={creationMode ?? undefined}
                 property={editingProperty || undefined}
                 onSubmit={handleFormSubmit}
@@ -866,11 +867,6 @@ export default function RealEstatePage() {
                 isLoading={createMutation.isPending || updateMutation.isPending}
               />
             </>
-          )}
-          {saveError && (
-            <p role="alert" className="text-sm text-error">
-              {saveError}
-            </p>
           )}
         </DialogContent>
       </Dialog>

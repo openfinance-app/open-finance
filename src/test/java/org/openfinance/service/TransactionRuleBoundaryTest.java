@@ -74,6 +74,53 @@ class TransactionRuleBoundaryTest {
 
     @ParameterizedTest
     @CsvSource({
+        "false,PAYEE,EQUALS,FACTURE CARTE,true",
+        "true,PAYEE,EQUALS,DU 071026 UBER,true",
+        "false,PAYEE,CONTAINS,uber,false",
+        "true,PAYEE,NOT_CONTAINS,uber,false",
+        "true,PAYEE,NOT_EQUALS,FACTURE CARTE,true",
+        "false,PAYEE,NOT_EQUALS,FACTURE CARTE,false",
+        "true,PAYEE,NOT_EQUALS,DU 071026 UBER,false",
+        "true,MEMO,EQUALS,DU 071026 UBER,true",
+        "false,MEMO,CONTAINS,FACTURE CARTE,false",
+        "false,DESCRIPTION,EQUALS,FACTURE CARTE DU 071026 UBER,true",
+        "true,DESCRIPTION,EQUALS,DU 071026 UBER DU 071026 UBER,true"
+    })
+    void statementLabelsAndEarlierParserValuesRemainUsableInRules(
+            boolean legacy,
+            RuleConditionField field,
+            RuleConditionOperator operator,
+            String expected,
+            boolean matches) {
+        ImportedTransaction row =
+                ImportedTransaction.builder()
+                        .originalPayee("FACTURE CARTE")
+                        .payee("FACTURE CARTE")
+                        .memo("DU 071026 UBER")
+                        .legacyRuleText(
+                                new ImportedTransaction.RuleText(
+                                        "DU 071026 UBER", "DU 071026 UBER"))
+                        .build();
+        TransactionRule rule = rule(field, operator, expected);
+        rule.setUseLegacyImportText(legacy);
+        rule.setActions(
+                List.of(
+                        TransactionRuleAction.builder()
+                                .actionType(RuleActionType.SET_PAYEE)
+                                .actionValue("Uber")
+                                .build(),
+                        TransactionRuleAction.builder()
+                                .actionType(RuleActionType.SET_DESCRIPTION)
+                                .actionValue("Dinner")
+                                .build()));
+        assertThat(apply(rule, row)).isEqualTo(matches);
+        assertThat(row.getPayee()).isEqualTo(matches ? "Uber" : "FACTURE CARTE");
+        assertThat(row.getMemo()).isEqualTo(matches ? "Dinner" : "DU 071026 UBER");
+        assertThat(row.statementDescription()).isEqualTo("FACTURE CARTE");
+    }
+
+    @ParameterizedTest
+    @CsvSource({
         "EQUALS,9.99,false",
         "EQUALS,10,true",
         "EQUALS,10.01,false",

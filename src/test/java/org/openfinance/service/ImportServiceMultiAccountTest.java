@@ -21,10 +21,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Supplier;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -189,6 +192,8 @@ class ImportServiceMultiAccountTest {
                 ImportedTransaction.builder()
                         .transactionDate(LocalDate.of(2024, 1, 10))
                         .payee("Employer")
+                        .description("Salary payment")
+                        .memo("January payroll")
                         .amount(new BigDecimal("2500.00"))
                         .accountName("Checking")
                         .accountNumber("CHK-001")
@@ -265,7 +270,10 @@ class ImportServiceMultiAccountTest {
                                         transaction.getAccountId().equals(201L)
                                                 && transaction
                                                         .getDescription()
-                                                        .equals("Employer")));
+                                                        .equals("Salary payment")
+                                                && "Employer".equals(transaction.getPayee())
+                                                && "January payroll"
+                                                        .equals(transaction.getNotes())));
         verify(transactionRepository)
                 .save(
                         argThat(
@@ -274,6 +282,9 @@ class ImportServiceMultiAccountTest {
                                                 && transaction
                                                         .getDescription()
                                                         .equals("Interest")));
+        verify(transactionService)
+                .syncTransactionFts(
+                        any(Transaction.class), eq("Salary payment"), eq("January payroll"));
         verify(transactionService, times(2))
                 .syncTransactionFts(any(Transaction.class), any(), any());
         verify(accountService, times(2)).recalculateBalance(anyLong(), eq(USER_ID));
@@ -371,6 +382,7 @@ class ImportServiceMultiAccountTest {
                 ImportedTransaction.builder()
                         .transactionDate(LocalDate.of(2024, 1, 15))
                         .payee("Transfer to savings")
+                        .originalPayee("Statement transfer")
                         .memo("Automatic transfer")
                         .amount(new BigDecimal("-500.00"))
                         .accountName("Checking")
@@ -418,7 +430,15 @@ class ImportServiceMultiAccountTest {
 
         verify(transactionService)
                 .createTransfer(
-                        eq(USER_ID), argThat(request -> matchesTransfer(request, 301L, 302L)));
+                        eq(USER_ID),
+                        argThat(
+                                request ->
+                                        matchesTransfer(request, 301L, 302L)
+                                                && "Statement transfer"
+                                                        .equals(request.getDescription())
+                                                && "Transfer to savings".equals(request.getPayee())
+                                                && "Automatic transfer"
+                                                        .equals(request.getNotes())));
         verify(transactionRepository, never()).save(any(Transaction.class));
         verify(accountService, times(2)).recalculateBalance(anyLong(), eq(USER_ID));
         assertThat(result.getStatus()).isEqualTo(ImportStatus.COMPLETED);
@@ -438,6 +458,7 @@ class ImportServiceMultiAccountTest {
                         .toAccountName("Savings Account")
                         .transfer(true)
                         .category("Transfer")
+                        .tags(List.of("Checking tag"))
                         .referenceNumber("CHK-QIF-002")
                         .currency("USD")
                         .validationErrors(new ArrayList<>())
@@ -452,6 +473,7 @@ class ImportServiceMultiAccountTest {
                         .toAccountName("Checking Account")
                         .transfer(true)
                         .category("Transfer")
+                        .tags(List.of("Savings tag"))
                         .referenceNumber("SAV-QIF-001")
                         .currency("USD")
                         .validationErrors(new ArrayList<>())
@@ -494,7 +516,15 @@ class ImportServiceMultiAccountTest {
 
         verify(transactionService, times(1))
                 .createTransfer(
-                        eq(USER_ID), argThat(request -> matchesTransfer(request, 401L, 402L)));
+                        eq(USER_ID),
+                        argThat(
+                                request ->
+                                        matchesTransfer(request, 401L, 402L)
+                                                && "Checking tag".equals(request.getTags())
+                                                && "Savings tag"
+                                                        .equals(
+                                                                request
+                                                                        .getImportedDestinationTags())));
         verify(transactionRepository, never()).save(any(Transaction.class));
         assertThat(result.getImportedCount()).isEqualTo(1);
         assertThat(result.getSkippedCount()).isZero();
@@ -1042,8 +1072,16 @@ class ImportServiceMultiAccountTest {
                 .recalculateBalance(anyLong(), anyLong());
     }
 
-    @Test
-    void overlappingStatementKeepsOpeningBoundaryBeforeSkippedDuplicates() throws Exception {
+    @ParameterizedTest
+    @CsvSource({
+        "500.00,570.05,true",
+        "499.99994317,570.05,true",
+        "499.99994317,570.05000,false",
+        "499.99,570.05,false"
+    })
+    void overlappingStatementKeepsOpeningBoundaryBeforeSkippedDuplicates(
+            BigDecimal ledgerOpening, BigDecimal reportedClosing, boolean matches)
+            throws Exception {
         Account account =
                 Account.builder()
                         .id(72L)
@@ -1052,7 +1090,7 @@ class ImportServiceMultiAccountTest {
                         .currency("EUR")
                         .isActive(true)
                         .balance(new BigDecimal("580.05"))
-                        .openingBalance(new BigDecimal("500.00"))
+                        .openingBalance(ledgerOpening)
                         .build();
         List<ImportedTransaction> rows =
                 List.of(
@@ -1082,12 +1120,11 @@ class ImportServiceMultiAccountTest {
                         session.getMetadata(),
                         new com.fasterxml.jackson.core.type.TypeReference<
                                 Map<String, Object>>() {});
-        metadata.put("ledgerBalances", Map.of("Statement account", new BigDecimal("570.05")));
+        metadata.put("ledgerBalances", Map.of("Statement account", reportedClosing));
         metadata.put(
                 "statementNetAmounts", Map.of("name:statementaccount", new BigDecimal("70.05")));
         session.setMetadata(objectMapper.writeValueAsString(metadata));
         when(accountRepository.findByUserId(USER_ID)).thenReturn(List.of(account));
-        when(accountRepository.findById(72L)).thenReturn(Optional.of(account));
         when(transactionRepository.findByUserIdAndAccountId(USER_ID, 72L))
                 .thenReturn(
                         List.of(
@@ -1101,6 +1138,25 @@ class ImportServiceMultiAccountTest {
                                         .amount(new BigDecimal("20.05"))
                                         .type(org.openfinance.entity.TransactionType.EXPENSE)
                                         .build()));
+        Supplier<ImportSession> confirm =
+                () ->
+                        org.springframework.test.util.ReflectionTestUtils.invokeMethod(
+                                importService,
+                                "confirmImportedAccountImport",
+                                session,
+                                USER_ID,
+                                null,
+                                Map.of(),
+                                true,
+                                rows,
+                                new ImportProgressTracker().start(session.getId(), USER_ID));
+        if (!matches) {
+            org.assertj.core.api.Assertions.assertThatThrownBy(confirm::get)
+                    .isInstanceOf(org.openfinance.exception.InvalidTransactionException.class);
+            verify(transactionRepository, never()).save(any(Transaction.class));
+            return;
+        }
+        when(accountRepository.findById(72L)).thenReturn(Optional.of(account));
         when(transactionRepository.save(any(Transaction.class)))
                 .thenAnswer(
                         i -> {
@@ -1108,17 +1164,7 @@ class ImportServiceMultiAccountTest {
                             t.setId(73L);
                             return t;
                         });
-        ImportSession result =
-                org.springframework.test.util.ReflectionTestUtils.invokeMethod(
-                        importService,
-                        "confirmImportedAccountImport",
-                        session,
-                        USER_ID,
-                        null,
-                        Map.of(),
-                        true,
-                        rows,
-                        new ImportProgressTracker().start(session.getId(), USER_ID));
+        ImportSession result = confirm.get();
         assertThat(result.getImportedCount()).isEqualTo(1);
         verify(transactionRepository)
                 .save(argThat(t -> t.getAmount().compareTo(new BigDecimal("10")) == 0));

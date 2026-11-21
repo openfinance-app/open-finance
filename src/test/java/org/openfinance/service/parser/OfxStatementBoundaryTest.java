@@ -40,6 +40,7 @@ class OfxStatementBoundaryTest {
     @CsvSource(
             value = {
                 "<NAME> Store </NAME><MEMO>Note</MEMO>|Store|Note",
+                "<NAME>FACTURE CARTE</NAME><MEMO>DU 071026 UBER</MEMO>|FACTURE CARTE|DU 071026 UBER",
                 "<NAME/><MEMO> Memo payee </MEMO>|Memo payee|Memo payee",
                 "<NAME> </NAME><MEMO/>|NULL|''",
                 "<MEMO>Fallback</MEMO>|Fallback|Fallback",
@@ -94,6 +95,7 @@ class OfxStatementBoundaryTest {
         for (String ledger :
                 new String[] {
                     "",
+                    "<AVAILBAL><BALAMT>9.99</BALAMT></AVAILBAL>",
                     "<LEDGERBAL><BALAMT/></LEDGERBAL>",
                     "<LEDGERBAL><BALAMT>0</BALAMT></LEDGERBAL>"
                 }) {
@@ -175,7 +177,8 @@ class OfxStatementBoundaryTest {
                                         "BANK",
                                         "<CURDEF>EUR</CURDEF>",
                                         row,
-                                        "<LEDGERBAL><BALAMT>1.01</BALAMT></LEDGERBAL>")
+                                        "<AVAILBAL><BALAMT>100</BALAMT></AVAILBAL>"
+                                                + "<LEDGERBAL><BALAMT>1.0100</BALAMT></LEDGERBAL>")
                                 + statement(
                                         "CCSTMTRS",
                                         "CCACCTFROM",
@@ -197,7 +200,7 @@ class OfxStatementBoundaryTest {
         assertThat(parsed.getTransactions())
                 .extracting(ImportedTransaction::getAccountNumber)
                 .containsExactly("BANK", "CARD", "INVEST");
-        assertThat(parsed.getLedgerBalances().get("BANK")).isEqualByComparingTo("1.01");
+        assertThat(parsed.getLedgerBalances().get("BANK").toPlainString()).isEqualTo("1.0100");
         assertThat(parsed.getLedgerBalances().get("CARD")).isEqualByComparingTo("-2.02");
         assertThat(parsed.getLedgerBalances().get("INVEST")).isEqualByComparingTo("3.03");
     }

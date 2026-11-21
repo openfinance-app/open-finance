@@ -523,7 +523,7 @@ export function ImportWizard() {
   const StepIcon = STEP_INFO[currentStep].icon;
 
   return (
-    <div className="max-w-5xl mx-auto">
+    <div className={currentStep === 'review' ? 'w-full min-w-0' : 'max-w-5xl mx-auto'}>
       {stepError && currentStep !== 'progress' && (
         <div
           role="alert"
@@ -689,7 +689,7 @@ export function ImportWizard() {
       </div>
 
       {/* ── Step content ───────────────────────────────────────────────── */}
-      <div className="bg-surface border border-border rounded-[var(--radius-card)] shadow-plate p-6 mb-6 min-h-[400px]">
+      <div className="bg-surface border border-border rounded-[var(--radius-card)] shadow-plate p-6 has-[.import-review]:p-3 sm:has-[.import-review]:p-5 mb-6 min-h-[400px]">
         {/* Step 1 — Upload */}
         {currentStep === 'upload' && (
           <FileUpload

@@ -224,7 +224,7 @@ describe('Budget page mutations and recovery boundaries', () => {
         },
         message: {
           isAxiosError: true,
-          response: { data: { message: 'Category already budgeted' } },
+          response: { data: { message: 'Category already budgeted', validationErrors: {} } },
         },
         exception: new Error('Disconnected'),
         unknown: 'unexpected',

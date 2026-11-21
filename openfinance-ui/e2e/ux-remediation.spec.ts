@@ -264,6 +264,202 @@ test('CSV validation preserves decimal amounts and completed imports appear in h
   expect(history.content[0].entityLabel).toBe('ux-exact.csv');
 });
 
+test('OFX confirmation accepts sub-cent history and preserves its exact ledger value', async ({
+  page,
+}) => {
+  await completeOnboarding(page);
+  const account = await accountFixture(page);
+  await api(
+    page,
+    '/transactions',
+    {
+      accountId: account.id,
+      type: 'EXPENSE',
+      amount: '12.34005683',
+      currency: 'EUR',
+      date: '2026-01-02',
+      description: 'Historical FX movement',
+    },
+    'POST'
+  );
+  await page.goto('/import');
+  await page.locator('input[type="file"]').setInputFiles({
+    name: 'statement.ofx',
+    mimeType: 'application/x-ofx',
+    buffer: Buffer.from(`<?xml version="1.0"?>
+      <OFX><BANKMSGSRSV1><STMTTRNRS><STMTRS><CURDEF>EUR</CURDEF>
+      <BANKACCTFROM><ACCTID>CHECKING</ACCTID></BANKACCTFROM>
+      <BANKTRANLIST><STMTTRN><TRNTYPE>CREDIT</TRNTYPE><DTPOSTED>20260202</DTPOSTED>
+      <TRNAMT>10.20</TRNAMT><FITID>statement-credit</FITID><NAME>Deposit</NAME>
+      </STMTTRN></BANKTRANLIST><LEDGERBAL><BALAMT>997.86</BALAMT>
+      <DTASOF>20260202</DTASOF></LEDGERBAL></STMTRS></STMTTRNRS></BANKMSGSRSV1></OFX>`),
+  });
+  await page.getByRole('button', { name: /^upload file$/i }).click();
+  await page.locator('select').selectOption(String(account.id));
+  const next = page.getByRole('button', { name: /^next$/i });
+  await next.click();
+  await expect(page.getByRole('table', { name: 'Review Transactions' })).toContainText('Deposit');
+  await next.click();
+  await page.getByRole('button', { name: /^confirm import$/i }).click();
+  await expect
+    .poll(async () => (await api(page, `/accounts/${account.id}`)).balance)
+    .toBe(997.85994317);
+});
+
+test('import review saves transaction tags and both split lines through confirmation', async ({
+  page,
+}, testInfo) => {
+  await completeOnboarding(page);
+  const account = await accountFixture(page);
+  await page.goto('/import');
+  await page.locator('input[type="file"]').setInputFiles({
+    name: 'fare.csv',
+    mimeType: 'text/csv',
+    buffer: Buffer.from(
+      [
+        'Date;Payee;Amount;Tags;Memo;Description;Category',
+        `${today};Travel desk;-10.99;Receipt;DU 071026 TRAIN;FACTURE CARTE;Transport`,
+        `${today};FACTURE CARTE;-5.10;;DU 071026 METRO;FACTURE CARTE;Transport:Transports en commun`,
+        `${today};FACTURE CARTE;-14.44;;Restaurant au centre de la ville, repas du soir avec reçu;FACTURE CARTE;Alimentation:Restaurant`,
+      ].join('\n')
+    ),
+  });
+  await page.getByRole('button', { name: /^upload file$/i }).click();
+  await page.locator('select').selectOption(String(account.id));
+  const next = page.getByRole('button', { name: /^next$/i });
+  await next.click();
+  const table = page.getByRole('table', { name: 'Review Transactions' });
+  const fare = table.getByRole('row', { name: /Travel desk/ });
+  for (const width of [1848, 1280, 820, 390, 320]) {
+    await page.setViewportSize({ width, height: width > 900 ? 900 : 844 });
+    await table.scrollIntoViewIfNeeded();
+    expect(
+      await table
+        .locator('..')
+        .evaluate(scroller => scroller.scrollWidth <= scroller.clientWidth + 1)
+    ).toBe(true);
+    const bounds = await fare.evaluate(row => {
+      const rects = Array.from(row.querySelectorAll('td,button'), el => el.getBoundingClientRect());
+      return rects.every(
+        rect => rect.width === 0 || (rect.left >= 0 && rect.right <= window.innerWidth + 1)
+      );
+    });
+    expect(bounds).toBe(true);
+    if ([1848, 820, 390].includes(width)) {
+      await testInfo.attach(`ledger-${width}`, {
+        body: await table.screenshot(),
+        contentType: 'image/png',
+      });
+    }
+  }
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await fare.getByRole('button', { name: 'Tags and splits' }).click();
+  const dialog = page.getByRole('dialog');
+  await expect(dialog).toContainText('Travel desk · DU 071026 TRAIN');
+  await expect(dialog.getByText('Receipt', { exact: true })).toBeVisible();
+  await dialog.getByRole('button', { name: 'Split transaction' }).click();
+  expect((await dialog.boundingBox())!.height).toBeLessThan(520);
+  await testInfo.attach('compact-split', {
+    body: await dialog.screenshot(),
+    contentType: 'image/png',
+  });
+  await dialog.getByRole('textbox', { name: 'Split 1 amount' }).fill('7.25');
+  const save = dialog.getByRole('button', { name: 'Save', exact: true });
+  await expect(save).toBeDisabled();
+  await dialog.getByRole('textbox', { name: 'Split 2 amount' }).fill('3.74');
+  await dialog.getByRole('combobox', { name: 'Split 1 category' }).fill('Transport');
+  await dialog.getByRole('button', { name: 'Notes and tags for split 1' }).click();
+  await dialog.getByRole('textbox', { name: 'Split 1 tags' }).fill('Work trip');
+  await dialog.getByRole('textbox', { name: 'Split 1 description' }).fill('Fare');
+  await dialog.getByRole('combobox', { name: 'Split 2 category' }).fill('Food');
+  await dialog.getByRole('button', { name: 'Notes and tags for split 2' }).click();
+  await dialog.getByRole('textbox', { name: 'Split 2 tags' }).fill('Personal');
+  await dialog.getByRole('textbox', { name: 'Transaction tags' }).fill('Reviewed');
+  await testInfo.attach('desktop-review', {
+    body: await page.screenshot(),
+    contentType: 'image/png',
+  });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect(save).toBeInViewport();
+  const fits = await dialog.evaluate(node => node.scrollWidth <= node.clientWidth);
+  expect(fits).toBe(true);
+  await testInfo.attach('mobile-review', {
+    body: await page.screenshot(),
+    contentType: 'image/png',
+  });
+  await save.click();
+  await expect(page.getByRole('row', { name: /Travel desk/ })).toContainText('Reviewed');
+  await next.click();
+  await page.getByRole('button', { name: /^confirm import$/i }).click();
+  await expect.poll(async () => (await api(page, `/accounts/${account.id}`)).balance).toBe(969.47);
+  const { content } = await api(page, `/transactions/search?accountId=${account.id}`);
+  expect(content).toHaveLength(3);
+  const booked = content.find((row: { payee: string }) => row.payee === 'Travel desk');
+  expect(booked.tags).toBe('Receipt,Reviewed');
+  const splits = await api(page, `/transactions/${booked.id}/splits`);
+  expect(splits).toMatchObject([
+    { amount: 7.25, categoryName: 'Transport', description: 'Fare', tags: ['Work trip'] },
+    { amount: 3.74, categoryName: 'Food', tags: ['Personal'] },
+  ]);
+});
+
+test('multi-file review keeps the source, notes and actions readable on a narrow screen', async ({
+  page,
+}) => {
+  await completeOnboarding(page);
+  await page.goto('/import');
+  const reference = 'RECEIPT' + '1234567890'.repeat(8);
+  const names = ['checking-statement-for-the-complete-financial-period.csv', 'savings.csv'];
+  await page.locator('input[type="file"]').setInputFiles(
+    names.map((name, index) => ({
+      name,
+      mimeType: 'text/csv',
+      buffer: Buffer.from(
+        `Date;Payee;Amount;Memo;Description\n${today};Shop ${index};-5.10;${reference};FACTURE CARTE\n`
+      ),
+    }))
+  );
+  await page.getByRole('button', { name: /^start import$/i }).click();
+  await page.getByRole('button', { name: /^next$/i }).click();
+  const table = page.getByRole('table', { name: 'Review Transactions' });
+  for (const width of [1500, 320]) {
+    await page.setViewportSize({ width, height: 844 });
+    const row = table.getByRole('row', { name: /Shop 0/ });
+    await expect(row.getByText(names[0], { exact: true })).toBeVisible();
+    await expect(row.getByText(reference, { exact: true })).toBeVisible();
+    expect(
+      await table.locator('..').evaluate(node => node.scrollWidth <= node.clientWidth + 1)
+    ).toBe(true);
+    await row.getByRole('button', { name: 'Edit transaction' }).click();
+    await expect(row.getByRole('textbox', { name: 'Notes' })).toHaveValue(reference);
+    await row.getByTitle('Cancel').click();
+  }
+});
+
+test('repairing an unbalanced QIF split in review makes the row importable', async ({ page }) => {
+  await completeOnboarding(page);
+  const account = await accountFixture(page);
+  await page.goto('/import');
+  await page.locator('input[type="file"]').setInputFiles({
+    name: 'parts.qif',
+    mimeType: 'application/qif',
+    buffer: Buffer.from(
+      '!Type:Bank\nD01/02/2026\nT-25.50\nPMerchant\nSFood\n$-20\nSTransport\n$-2\n^\n'
+    ),
+  });
+  await page.getByRole('button', { name: /^upload file$/i }).click();
+  await page.locator('select').selectOption(String(account.id));
+  const next = page.getByRole('button', { name: /^next$/i });
+  await next.click();
+  await page.getByRole('button', { name: 'Tags and splits' }).click();
+  const dialog = page.getByRole('dialog');
+  await dialog.getByRole('textbox', { name: 'Split 2 amount' }).fill('5.50');
+  await dialog.getByRole('button', { name: 'Save', exact: true }).click();
+  await next.click();
+  await page.getByRole('button', { name: /^confirm import$/i }).click();
+  await expect.poll(async () => (await api(page, `/accounts/${account.id}`)).balance).toBe(974.5);
+});
+
 test('minor fixes persist category icons and notification acknowledgement with amount blur', async ({
   page,
 }) => {

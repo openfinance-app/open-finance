@@ -10,6 +10,17 @@ const INFORMATIONAL_PREFIXES = [
   'RULE_MATCH:',
 ];
 
+/** Older QIF review drafts stored the mismatch message in the user's import language. */
+export function isSplitAmountError(error: string): boolean {
+  return (
+    error.startsWith('SPLIT_INVALID:') ||
+    /^Split amounts \([^)]+\) do not match transaction amount \([^)]+\)$/.test(error) ||
+    /^Les montants ventilés \([^)]+\) ne correspondent pas au montant de la transaction \([^)]+\)$/.test(
+      error
+    )
+  );
+}
+
 interface ImportReviewCounts {
   importable: number;
   categorized: number;

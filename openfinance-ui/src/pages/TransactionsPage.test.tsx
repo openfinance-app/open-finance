@@ -125,8 +125,9 @@ vi.mock('@/components/transactions/TransactionList', () => ({
 }));
 
 vi.mock('@/components/transactions/TransactionForm', () => ({
-  TransactionForm: ({ transaction, onSubmit, onCancel }: any) => (
+  TransactionForm: ({ serverError, transaction, onSubmit, onCancel }: any) => (
     <div data-testid="transaction-form">
+      {serverError && <p role="alert">{serverError}</p>}
       {transaction && <span data-testid="editing-desc">{transaction.description}</span>}
       {transaction && (
         <output aria-label="Transfer source">

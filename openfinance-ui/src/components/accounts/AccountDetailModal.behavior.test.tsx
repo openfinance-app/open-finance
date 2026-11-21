@@ -1,3 +1,4 @@
+import i18n from '@/i18n';
 import type { ComponentProps, ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { fireEvent, screen, waitFor, within } from '@testing-library/react';
@@ -33,8 +34,9 @@ vi.mock('@/context/CurrencyDisplayContext', async importOriginal => ({
   useCurrencyDisplay: () => ({ displayMode: state.mode, secondaryCurrency: null }),
 }));
 vi.mock('@/components/accounts/AccountForm', () => ({
-  AccountForm: ({ onSubmit }: ComponentProps<typeof AccountForm>) => (
+  AccountForm: ({ serverError, onSubmit }: ComponentProps<typeof AccountForm>) => (
     <section aria-label="Account editor">
+      {serverError && <p role="alert">{serverError}</p>}
       <button
         onClick={() =>
           onSubmit({
@@ -252,6 +254,10 @@ describe('account history and editing behavior', () => {
       await waitFor(() =>
         expect(screen.queryByRole('region', { name: 'Account editor' }) !== null).toBe(!success)
       );
+      if (!success)
+        expect(await screen.findByRole('alert')).toHaveTextContent(
+          i18n.t('common:errors.saveFailed')
+        );
       expect(onEdit).toHaveBeenCalledTimes(success ? 1 : 0);
       expect(onClose).not.toHaveBeenCalled();
     }

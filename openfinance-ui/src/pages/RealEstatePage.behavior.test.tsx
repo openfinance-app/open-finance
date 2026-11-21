@@ -106,10 +106,12 @@ vi.mock('@/components/real-estate/PropertyDetailView', () => ({
 }));
 vi.mock('@/components/real-estate/RealEstateForm', () => ({
   RealEstateForm: ({
+    serverError,
     onSubmit,
     onCancel,
   }: ComponentProps<typeof import('@/components/real-estate/RealEstateForm').RealEstateForm>) => (
     <div>
+      {serverError && <p role="alert">{serverError}</p>}
       <button
         onClick={() =>
           onSubmit({

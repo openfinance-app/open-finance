@@ -11,6 +11,7 @@ import static org.openfinance.service.ImportedAccountRouting.shouldUseImportedAc
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.cfg.JsonNodeFeature;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -1068,10 +1069,8 @@ public class ImportService {
                     if (importedTx.isSplitTransaction()) {
                         transactionSplitService.saveSplits(saved.getId(), splits);
                     }
-                    // Index in FTS ΓÇö importedTx has plain-text description (payee) and memo
-                    // (notes)
                     transactionService.syncTransactionFts(
-                            saved, importedTx.getPayee(), importedTx.getMemo());
+                            saved, saved.getDescription(), saved.getNotes());
                     imported++;
                 } catch (Exception e) {
                     log.error("Error saving transaction: {}", e.getMessage(), e);
@@ -1475,6 +1474,18 @@ public class ImportService {
                                                                         || error.startsWith(
                                                                                 "RULE_SKIP:")))
                         .collect(Collectors.toList());
+        // Pending sessions parsed by earlier releases contain the Skrooge comment in payee.
+        if ("JSON".equalsIgnoreCase(session.getFileFormat())) {
+            for (ImportedTransaction tx : unprocessed) {
+                String original = tx.getOriginalPayee();
+                if (original != null && !original.isBlank() && !original.equals(tx.getPayee())) {
+                    tx.setLegacyRuleText(
+                            new ImportedTransaction.RuleText(tx.getPayee(), tx.getMemo()));
+                    tx.setPayee(original);
+                }
+            }
+        }
+        unprocessed.forEach(ImportedTransaction::useMemoForMissingPayee);
         suggestCategories(unprocessed, userId, progress);
     }
 
@@ -1810,7 +1821,7 @@ public class ImportService {
                     transactionSplitService.saveSplits(saved.getId(), splits);
                 }
                 transactionService.syncTransactionFts(
-                        saved, importedTx.getPayee(), importedTx.getMemo());
+                        saved, saved.getDescription(), saved.getNotes());
                 imported++;
             } catch (Exception ex) {
                 log.error(
@@ -1919,12 +1930,8 @@ public class ImportService {
             throw ex;
         }
 
-        for (int i = 0; i < savedTransactions.size(); i++) {
-            ImportedTransaction transferTransaction = transferTransactions.get(i);
-            transactionService.syncTransactionFts(
-                    savedTransactions.get(i),
-                    transferTransaction.getPayee(),
-                    transferTransaction.getMemo());
+        for (Transaction saved : savedTransactions) {
+            transactionService.syncTransactionFts(saved, saved.getDescription(), saved.getNotes());
         }
     }
 
@@ -2080,6 +2087,18 @@ public class ImportService {
                                     ? importedTx.getOriginalCurrency()
                                     : importedTx.getCurrency();
                     boolean converted = !transferCurrency.equalsIgnoreCase(originalCurrency);
+                    String sourceTags = transferTags(importedTx);
+                    String destinationTags = null;
+                    if (group.size() == 2) {
+                        ImportedTransaction debit =
+                                group.getFirst().getAmount().signum() < 0
+                                        ? group.getFirst()
+                                        : group.getLast();
+                        ImportedTransaction credit =
+                                debit == group.getFirst() ? group.getLast() : group.getFirst();
+                        sourceTags = transferTags(debit);
+                        destinationTags = Objects.toString(transferTags(credit), "");
+                    }
                     TransactionRequest transferRequest =
                             TransactionRequest.builder()
                                     .accountId(transferSourceAccountId)
@@ -2098,7 +2117,7 @@ public class ImportService {
                                     .date(importedTx.getTransactionDate())
                                     .description(
                                             truncate(
-                                                    importedTx.getPayee(),
+                                                    importedTx.statementDescription(),
                                                     TRANSACTION_DESCRIPTION_MAX_LENGTH))
                                     .notes(
                                             truncate(
@@ -2109,13 +2128,8 @@ public class ImportService {
                                                     importedTx.getPayee(),
                                                     TRANSACTION_PAYEE_MAX_LENGTH))
                                     .paymentMethod(mapPaymentMethod(importedTx.getPaymentMethod()))
-                                    .tags(
-                                            importedTx.getTags() != null
-                                                            && !importedTx.getTags().isEmpty()
-                                                    ? truncate(
-                                                            String.join(",", importedTx.getTags()),
-                                                            TRANSACTION_TAGS_MAX_LENGTH)
-                                                    : null)
+                                    .tags(sourceTags)
+                                    .importedDestinationTags(destinationTags)
                                     .build();
                     transactionService.createTransfer(userId, transferRequest);
                     affectedAccountIds.add(transferSourceAccountId);
@@ -2141,7 +2155,7 @@ public class ImportService {
                     transactionSplitService.saveSplits(saved.getId(), splits);
                 }
                 transactionService.syncTransactionFts(
-                        saved, importedTx.getPayee(), importedTx.getMemo());
+                        saved, saved.getDescription(), saved.getNotes());
                 affectedAccountIds.add(sourceAccountId);
                 imported++;
             } catch (RuntimeException ex) {
@@ -2445,6 +2459,7 @@ public class ImportService {
                     objectMapper
                             .reader()
                             .with(DeserializationFeature.USE_BIG_DECIMAL_FOR_FLOATS)
+                            .without(JsonNodeFeature.STRIP_TRAILING_BIGDECIMAL_ZEROES)
                             .readTree(metadata);
             com.fasterxml.jackson.databind.JsonNode balances = root.path("ledgerBalances");
             com.fasterxml.jackson.databind.JsonNode originalNets = root.path("statementNetAmounts");
@@ -2488,7 +2503,8 @@ public class ImportService {
                                                         entry.getKey(), descriptor.openingDate()),
                                 descriptor.qifAccountType(),
                                 descriptor.institutionName(),
-                                closing.subtract(net)));
+                                closing.subtract(net),
+                                closing));
             }
         } catch (JsonProcessingException e) {
             throw new IllegalStateException("Invalid import metadata", e);
@@ -2587,7 +2603,8 @@ public class ImportService {
                         openingDate,
                         resolvedQifAccountType,
                         resolvedInstitution,
-                        resolvedOpeningBalance));
+                        resolvedOpeningBalance,
+                        null));
     }
 
     private Map<String, Long> ensureImportedAccounts(
@@ -2647,7 +2664,8 @@ public class ImportService {
                         descriptor.openingBalance(),
                         descriptor.currency(),
                         descriptor.openingDate(),
-                        userId);
+                        userId,
+                        descriptor.reportedClosing());
             }
             accountIdsByKey.put(descriptor.key(), matchingAccount.getId());
         }
@@ -3167,14 +3185,6 @@ public class ImportService {
         String payeeName = truncate(importedTx.getPayee(), TRANSACTION_PAYEE_MAX_LENGTH);
         Long payeeId = resolveOrCreatePayeeId(payeeName, userId);
 
-        // Description preserves the raw imported payee text (before any
-        // rule/auto-categorization
-        // SET_PAYEE override) so the original merchant text isn't lost from the record.
-        String descriptionSource =
-                importedTx.getOriginalPayee() != null
-                        ? importedTx.getOriginalPayee()
-                        : importedTx.getPayee();
-
         // Build transaction using builder pattern
         Transaction.TransactionBuilder builder =
                 Transaction.builder()
@@ -3187,7 +3197,9 @@ public class ImportService {
                         .currency(currencyCode)
                         .currencyId(currencyId)
                         .description(
-                                truncate(descriptionSource, TRANSACTION_DESCRIPTION_MAX_LENGTH))
+                                truncate(
+                                        importedTx.statementDescription(),
+                                        TRANSACTION_DESCRIPTION_MAX_LENGTH))
                         .notes(truncate(importedTx.getMemo(), TRANSACTION_NOTES_MAX_LENGTH))
                         .payee(payeeName)
                         .payeeId(payeeId)
@@ -3258,6 +3270,12 @@ public class ImportService {
         }
 
         return builder.build();
+    }
+
+    private String transferTags(ImportedTransaction row) {
+        return row.getTags() == null || row.getTags().isEmpty()
+                ? null
+                : truncate(String.join(",", row.getTags()), TRANSACTION_TAGS_MAX_LENGTH);
     }
 
     private String truncate(String value, int maxLength) {
@@ -3340,7 +3358,8 @@ public class ImportService {
             LocalDate openingDate,
             String qifAccountType,
             String institutionName,
-            BigDecimal openingBalance) {}
+            BigDecimal openingBalance,
+            BigDecimal reportedClosing) {}
 
     /**
      * Map a QIF account type string (from !Account T field or !Type directive) to the corresponding

@@ -315,16 +315,12 @@ export default function LiabilitiesPage() {
             </DialogTitle>
           </DialogHeader>
           <LiabilityForm
+            serverError={saveError}
             liability={editingLiability || undefined}
             onSubmit={handleFormSubmit}
             onCancel={handleFormCancel}
             isLoading={createLiability.isPending || updateLiability.isPending}
           />
-          {saveError && (
-            <p role="alert" className="text-sm text-error">
-              {saveError}
-            </p>
-          )}
         </DialogContent>
       </FormDialog>
 

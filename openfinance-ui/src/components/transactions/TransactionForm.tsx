@@ -1,3 +1,4 @@
+import { FormActions } from '@/components/ui/FormActions';
 import { useToday } from '@/hooks/useReportingCalendar';
 import { FormSection } from '@/components/ui/FormSection';
 import { OptionalDetails } from '@/components/ui/OptionalDetails';
@@ -120,7 +121,7 @@ const transactionSchema = (tValidation: (key: string) => string) =>
       date: z.string().min(1, tValidation('form.validation.dateRequired')),
       description: z
         .string()
-        .max(200, tValidation('form.validation.descriptionTooLong'))
+        .max(255, tValidation('form.validation.descriptionTooLong'))
         .optional(),
       notes: z.string().max(1000, tValidation('form.validation.notesTooLong')).optional(),
       payee: z.string().max(100, tValidation('form.validation.payeeTooLong')).optional(),
@@ -222,6 +223,7 @@ interface TransactionFormProps {
   categories: Category[];
   onSubmit: (data: TransactionRequest) => void;
   onCancel: () => void;
+  serverError?: string | null;
   isLoading?: boolean;
 }
 
@@ -246,6 +248,7 @@ export function TransactionForm({
   categories,
   onSubmit,
   onCancel,
+  serverError,
   isLoading,
 }: TransactionFormProps) {
   const today = useToday();
@@ -1541,7 +1544,7 @@ export function TransactionForm({
       </LinkedOperationSection>
 
       {/* Actions */}
-      <div className="form-actions">
+      <FormActions error={serverError}>
         <Button variant="ghost" type="button" onClick={cancelWithGuard} disabled={isLoading}>
           {t('form.cancel')}
         </Button>
@@ -1553,7 +1556,7 @@ export function TransactionForm({
         >
           {isEditing ? t('form.updateTransaction') : t('form.createTransaction')}
         </Button>
-      </div>
+      </FormActions>
     </form>
   );
 }

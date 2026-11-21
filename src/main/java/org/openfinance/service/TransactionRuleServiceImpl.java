@@ -224,12 +224,21 @@ public class TransactionRuleServiceImpl implements TransactionRuleService {
 
         for (int i = 0; i < transactions.size(); i++) {
             ImportedTransaction tx = transactions.get(i);
+            ImportedTransaction.RuleText previousText = tx.getLegacyRuleText();
+            ImportedTransaction previousInput =
+                    previousText == null
+                            ? tx
+                            : tx.toBuilder()
+                                    .payee(previousText.payee())
+                                    .memo(previousText.memo())
+                                    .build();
 
             for (TransactionRule rule : enabledRules) {
                 if (!hasCompatibleConditions(rule, tx)) {
                     continue;
                 }
-                if (allConditionsMatch(rule.getConditions(), rule.getConditionMatch(), tx)) {
+                ImportedTransaction input = rule.isUseLegacyImportText() ? previousInput : tx;
+                if (allConditionsMatch(rule.getConditions(), rule.getConditionMatch(), input)) {
                     applyActions(rule.getActions(), tx);
                     tx.addValidationError("RULE_MATCH: Rule '" + rule.getName() + "' matched");
                     matchedIndices.add(i);
@@ -357,7 +366,7 @@ public class TransactionRuleServiceImpl implements TransactionRuleService {
 
     /**
      * Builds the combined description string (payee + memo) used for DESCRIPTION matching. Mirrors
-     * what AutoCategorizationService uses for its analysis string.
+     * the text historically used for import rule matching.
      */
     private String buildDescription(ImportedTransaction tx) {
         StringBuilder sb = new StringBuilder();

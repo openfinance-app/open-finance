@@ -1,3 +1,4 @@
+import { FormActions } from '@/components/ui/FormActions';
 import { useToday } from '@/hooks/useReportingCalendar';
 import { FormSection } from '@/components/ui/FormSection';
 import { useEffect } from 'react';
@@ -123,6 +124,7 @@ interface RealEstateFormProps {
   initialAcquisitionType?: 'PURCHASE' | 'GIFT' | 'PLANNED';
   onSubmit: (data: RealEstatePropertyRequest) => Promise<void>;
   onCancel: () => void;
+  serverError?: string | null;
   isLoading: boolean;
 }
 
@@ -131,6 +133,7 @@ export function RealEstateForm({
   initialAcquisitionType = 'PURCHASE',
   onSubmit,
   onCancel,
+  serverError,
   isLoading,
 }: RealEstateFormProps) {
   const today = useToday();
@@ -610,14 +613,14 @@ export function RealEstateForm({
         )}
       </OptionalDetails>
       {/* Actions */}
-      <div className="form-actions">
+      <FormActions error={serverError}>
         <Button variant="ghost" type="button" onClick={onCancel} disabled={isLoading}>
           {t('form.cancel')}
         </Button>
         <Button variant="primary" type="submit" isLoading={isLoading}>
           {isEditing ? t('form.updateProperty') : t('form.createProperty')}
         </Button>
-      </div>
+      </FormActions>
     </form>
   );
 }

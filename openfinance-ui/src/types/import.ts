@@ -88,6 +88,7 @@ export interface ImportSessionResponse {
  * Import split transaction
  */
 export interface ImportSplit {
+  sourceCategoryId?: number | null;
   tags?: string[];
   category: string;
   /** Preserve server decimal strings when reviewed rows are submitted again. */
@@ -99,10 +100,14 @@ export interface ImportSplit {
  * Import transaction DTO
  */
 export interface ImportTransactionDTO {
+  tags?: string[];
+  transfer?: boolean;
+  openingBalance?: boolean;
   transactionDate: string | null;
   payee: string;
   /** Original payee from the import file before any auto-categorization replacement. */
   originalPayee?: string | null;
+  description?: string | null;
   /** Decimal strings retain source precision; numbers support older API responses. */
   amount: string | number | null;
   currency: string;

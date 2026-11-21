@@ -17,6 +17,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.openfinance.config.TestDatabaseConfig;
 import org.openfinance.dto.AccountRequest;
+import org.openfinance.dto.ImportedTransaction;
 import org.openfinance.dto.LoginRequest;
 import org.openfinance.dto.LoginResponse;
 import org.openfinance.dto.UserRegistrationRequest;
@@ -350,12 +351,24 @@ class TransferImportFlowTest {
                         + bankStatement("B", "EUR", bankRow("XFER", "100", "credit", "A", ""))
                         + "</OFX>";
         assertThat(importFile("out.ofx", outgoing).getErrorCount()).isZero();
-        assertThat(importFile("in.ofx", incoming).getErrorCount()).isZero();
+        ImportSession session = parseFile("in.ofx", incoming);
+        List<ImportedTransaction> review = imports.reviewTransactions(session.getId(), userId);
+        review.getFirst().setTags(List.of("Savings transfer"));
+        imports.updateParsedTransactions(session.getId(), review, userId);
+        assertThat(
+                        imports.confirmImport(session.getId(), userId, null, Map.of(), true)
+                                .getErrorCount())
+                .isZero();
         List<Transaction> rows = ledger.findByUserId(userId);
         assertPair(rows);
         assertThat(rows)
                 .extracting(Transaction::getExternalReference)
                 .containsExactlyInAnyOrder("debit", "credit");
+        assertThat(rows)
+                .filteredOn(tx -> "credit".equals(tx.getExternalReference()))
+                .singleElement()
+                .extracting(Transaction::getTags)
+                .isEqualTo("Savings transfer");
         assertThat(importFile("in-again.ofx", incoming).getErrorCount()).isZero();
         assertThat(importFile("out-again.ofx", outgoing).getErrorCount()).isZero();
         assertThat(ledger.findByUserId(userId)).hasSize(2);
@@ -468,6 +481,11 @@ class TransferImportFlowTest {
     }
 
     private ImportSession importFile(String name, String contents) throws Exception {
+        ImportSession session = parseFile(name, contents);
+        return imports.confirmImport(session.getId(), userId, null, Map.of(), true);
+    }
+
+    private ImportSession parseFile(String name, String contents) throws Exception {
         String upload =
                 files.storeFile(
                         new MockMultipartFile(
@@ -480,7 +498,7 @@ class TransferImportFlowTest {
         for (int attempt = 0; attempt < 100; attempt++) {
             ImportStatus status = imports.getSession(session.getId(), userId).getStatus();
             if (status == ImportStatus.PARSED || status == ImportStatus.REVIEWING) {
-                return imports.confirmImport(session.getId(), userId, null, Map.of(), true);
+                return session;
             }
             assertThat(status).isNotEqualTo(ImportStatus.FAILED);
             Thread.sleep(100);

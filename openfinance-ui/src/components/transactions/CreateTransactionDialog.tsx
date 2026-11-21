@@ -1,6 +1,6 @@
 import { FormDialog } from '@/components/ui/FormDialog';
 import { useTranslation } from 'react-i18next';
-import { isAxiosError } from 'axios';
+import { apiErrorMessage } from '@/utils/api-error';
 import { TransactionForm } from '@/components/transactions/TransactionForm';
 import { Button } from '@/components/ui/Button';
 import { DialogContent, DialogHeader, DialogTitle } from '@/components/ui/Dialog';
@@ -22,11 +22,6 @@ export function CreateTransactionDialog({
   const createTransfer = useCreateTransfer();
   const isPending = createTransaction.isPending || createTransfer.isPending;
   const error = createTransaction.error || createTransfer.error;
-  const errorMessage =
-    isAxiosError(error) && typeof error.response?.data?.message === 'string'
-      ? error.response.data.message
-      : t('common:errors.saveFailed');
-
   const handleSubmit = (data: TransactionRequest) => {
     createTransaction.reset();
     createTransfer.reset();
@@ -68,20 +63,14 @@ export function CreateTransactionDialog({
             </Button>
           </div>
         ) : (
-          <>
-            {error && (
-              <p role="alert" className="text-sm text-error">
-                {errorMessage}
-              </p>
-            )}
-            <TransactionForm
-              accounts={accounts.data ?? []}
-              categories={categories.data ?? []}
-              onSubmit={handleSubmit}
-              onCancel={onClose}
-              isLoading={isPending}
-            />
-          </>
+          <TransactionForm
+            serverError={error ? apiErrorMessage(error, t('common:errors.saveFailed')) : null}
+            accounts={accounts.data ?? []}
+            categories={categories.data ?? []}
+            onSubmit={handleSubmit}
+            onCancel={onClose}
+            isLoading={isPending}
+          />
         )}
       </DialogContent>
     </FormDialog>

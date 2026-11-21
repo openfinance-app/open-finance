@@ -1,0 +1,258 @@
+.import-review {
+  container: import-review / inline-size;
+  min-width: 0;
+}
+
+.review-scroll {
+  max-height: 60dvh;
+  overflow: auto;
+  border-radius: inherit;
+}
+
+.review-ledger {
+  font-size: 0.875rem;
+  overflow-wrap: anywhere;
+}
+
+.review-ledger th {
+  padding: 0.65rem 0.4rem;
+  text-align: start;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+}
+
+.review-row > td {
+  padding: 0.55rem 0.4rem;
+  vertical-align: middle;
+  min-width: 0;
+}
+
+.review-ledger col.review-select {
+  width: 2.25rem;
+}
+.review-ledger col.review-date {
+  width: 6.1rem;
+}
+.review-ledger col.review-amount {
+  width: 7rem;
+}
+.review-ledger col.review-notes {
+  width: 20%;
+}
+.review-ledger col.review-status {
+  width: 5.8rem;
+}
+.review-ledger col.review-actions {
+  width: 6.25rem;
+}
+.review-ledger th.review-amount {
+  text-align: end;
+}
+.review-select label,
+.review-select {
+  text-align: center;
+}
+.review-select input {
+  vertical-align: middle;
+}
+.review-ledger .review-select {
+  text-align: center;
+}
+.review-select-label,
+.review-action-label,
+.review-field-label {
+  display: none;
+}
+.review-action {
+  display: inline-grid;
+  width: 1.8rem;
+  height: 2rem;
+  place-items: center;
+}
+.review-row .review-amount span {
+  white-space: normal;
+}
+
+/* Translated status badges and unbroken bank references must stay within their column. */
+.review-status :is(button, div, span) {
+  max-width: 100%;
+  white-space: normal;
+}
+
+@container import-review (max-width: 63rem) {
+  .review-scroll {
+    max-height: 65dvh;
+  }
+  .review-ledger table,
+  .review-ledger tbody,
+  .review-ledger thead,
+  .review-ledger tr,
+  .review-ledger td {
+    display: block;
+  }
+  .review-ledger colgroup {
+    display: none;
+  }
+  .review-ledger thead th:not(.review-select) {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
+  .review-ledger th.review-select {
+    display: block;
+    text-align: start;
+    padding: 0.5rem 0.75rem;
+  }
+  .review-select label {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.65rem;
+    cursor: pointer;
+  }
+  .review-select-label {
+    display: inline;
+  }
+  .review-ledger .review-row {
+    display: grid;
+    grid-template-columns: 1.25rem minmax(0, 1.2fr) minmax(0, 1.6fr) minmax(0, 1fr);
+    align-items: baseline;
+    gap: 0.35rem 0.8rem;
+    padding: 0.65rem 0.75rem;
+  }
+  .review-row > td {
+    padding: 0;
+  }
+  .review-row .review-date {
+    color: var(--color-text-secondary);
+  }
+  .review-row .review-category {
+    grid-column: 2;
+  }
+  .review-row .review-source {
+    grid-column: 2 / -1;
+  }
+  .review-row .review-status {
+    grid-column: 2 / -2;
+  }
+  .review-row .review-actions {
+    grid-column: -2 / -1;
+    justify-self: end;
+  }
+  .review-field-label {
+    display: block;
+    margin-bottom: 0.15rem;
+    color: var(--color-text-secondary);
+    font-size: 0.75rem;
+    font-weight: 500;
+  }
+  .review-action {
+    width: 2rem;
+    height: 2rem;
+  }
+}
+
+@container import-review (max-width: 38rem) {
+  .review-scroll {
+    max-height: none;
+    overflow: visible;
+  }
+  .review-ledger thead {
+    position: static;
+  }
+  .review-ledger .review-row {
+    grid-template-columns: 1rem minmax(0, 1fr) minmax(0, auto);
+    column-gap: 0.55rem;
+  }
+  .review-row .review-date {
+    grid-column: 2 / -1;
+    font-size: 0.75rem;
+  }
+  .review-row .review-payee {
+    grid-column: 1 / 3;
+  }
+  .review-row .review-amount {
+    grid-column: 3;
+  }
+  .review-row .review-category,
+  .review-row .review-notes,
+  .review-row .review-description,
+  .review-row .review-source {
+    display: grid;
+    grid-template-columns: minmax(4.5rem, 26%) minmax(0, 1fr);
+    grid-column: 1 / -1;
+    gap: 0 0.5rem;
+    align-items: baseline;
+  }
+  .review-row .review-field-label {
+    margin: 0;
+  }
+  .review-row .review-description > div,
+  .review-row .review-source > p {
+    grid-column: 2;
+  }
+  .review-action {
+    width: 2.75rem;
+    height: 2.75rem;
+  }
+  .review-row .review-actions {
+    grid-column: 1 / -1;
+    justify-self: start;
+  }
+  .review-row .review-status {
+    grid-column: 1 / -1;
+  }
+  .review-row .review-status:has(> div:empty) {
+    display: none;
+  }
+  .review-row .review-actions > div {
+    justify-content: start;
+    gap: 0.7rem;
+  }
+  .review-action:has(.review-action-label) {
+    display: inline-flex;
+    width: auto;
+    gap: 0.35rem;
+    align-items: center;
+  }
+  .review-action-label {
+    display: inline;
+    font-size: 0.75rem;
+  }
+}
+
+.review-split-columns {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(5.25rem, 28%);
+  gap: 0 0.5rem;
+  align-items: center;
+}
+.review-split-list-many .review-split-columns {
+  grid-template-columns: minmax(0, 1fr) minmax(5.25rem, 28%) 2.25rem;
+}
+
+.review-split-details > button {
+  max-width: 100%;
+}
+@media (min-width: 36rem) {
+  .review-split-columns {
+    grid-template-columns: minmax(0, 1fr) minmax(5.5rem, 21%) 7rem;
+  }
+  .review-split-list-many .review-split-columns {
+    grid-template-columns: minmax(0, 1fr) minmax(5.5rem, 21%) 7rem 2.25rem;
+  }
+  .review-split-details {
+    display: contents;
+  }
+  .review-split-details > button {
+    grid-area: 1 / 3;
+    justify-self: start;
+    min-height: 2.25rem;
+  }
+  .review-split-remove {
+    grid-area: 1 / 4;
+  }
+}

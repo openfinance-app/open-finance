@@ -186,8 +186,33 @@ test('a repayment before origination is rejected through the transaction form', 
     r => r.url().endsWith('/transactions') && r.request().method() === 'POST'
   );
   await dialog.getByRole('button', { name: /^create transaction$/i }).click();
-  expect((await rejected).status()).toBe(400);
-  await expect(dialog).toBeVisible();
+  const response = await rejected;
+  expect(response.status()).toBe(400);
+  const alert = dialog.getByRole('alert').filter({ hasText: (await response.json()).message });
+  await expect(alert).toBeVisible();
+  const submit = dialog.getByRole('button', { name: /^create transaction$/i });
+  for (const viewport of [
+    { width: 1280, height: 800 },
+    { width: 375, height: 667 },
+  ]) {
+    await page.setViewportSize(viewport);
+    // The error should be readable while the user is editing anywhere in the form.
+    for (const top of [0, 100000]) {
+      await dialog.evaluate((node, scrollTop) => {
+        node.scrollTop = scrollTop;
+      }, top);
+      await expect(alert).toBeInViewport({ ratio: 1 });
+      await expect(submit).toBeInViewport({ ratio: 1 });
+      const bounds = (await alert.boundingBox())!;
+      expect(bounds.y + bounds.height).toBeLessThanOrEqual((await submit.boundingBox())!.y);
+      expect(
+        await alert.evaluate(node => {
+          const box = node.getBoundingClientRect();
+          return node.contains(document.elementFromPoint(box.left + box.width / 2, box.bottom - 2));
+        })
+      ).toBe(true);
+    }
+  }
   expect((await api(page, `/accounts/${account.id}`)).ownBalance).toBe(1000);
   expect((await api(page, `/liabilities/${loan.id}`)).currentBalance).toBe(1000);
 });

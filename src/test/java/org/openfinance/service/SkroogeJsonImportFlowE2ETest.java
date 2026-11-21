@@ -22,6 +22,7 @@ import org.junit.jupiter.api.Test;
 import org.openfinance.config.TestDatabaseConfig;
 import org.openfinance.dto.CashFlowGranularity;
 import org.openfinance.dto.CashFlowPeriod;
+import org.openfinance.dto.ImportedTransaction;
 import org.openfinance.dto.LoginRequest;
 import org.openfinance.dto.LoginResponse;
 import org.openfinance.dto.TransferUpdateRequest;
@@ -608,6 +609,80 @@ class SkroogeJsonImportFlowE2ETest {
     @AfterEach
     void tearDown() {
         EncryptionContext.clear();
+    }
+
+    @Test
+    void reviewedPayeeTagsAndSplitsSurviveSavingAndConfirmation() throws Exception {
+        String source =
+                """
+                {"account":[{"id":10,"t_name":"Checking","t_type":"C"}],
+                 "unit":[{"id":1,"t_name":"Euro","t_symbol":"€","t_type":"1"}],
+                 "payee":[{"id":1,"t_name":"FACTURE CARTE"}],
+                 "operation":[{"id":1,"rd_account_id":10,"rc_unit_id":1,"r_payee_id":1,
+                               "d_date":"2024-10-07","t_comment":"DU 071026 UBER"}],
+                 "suboperation":[{"id":1,"rd_operation_id":1,"f_value":"-10"}]}
+                """;
+        String upload =
+                fileStorageService.storeFile(
+                        new MockMultipartFile(
+                                "file",
+                                "card.json",
+                                "application/json",
+                                source.getBytes(StandardCharsets.UTF_8)),
+                        userId);
+        ImportSession session = importService.startImport(upload, userId, null, "card.json");
+        awaitParsed(session.getId());
+        List<ImportedTransaction> rows = importService.reviewTransactions(session.getId(), userId);
+        assertThat(rows).hasSize(1);
+        ImportedTransaction row = rows.getFirst();
+        assertThat(row.getPayee()).isEqualTo("FACTURE CARTE");
+        assertThat(row.statementDescription()).isEqualTo("FACTURE CARTE");
+        assertThat(row.getMemo()).isEqualTo("DU 071026 UBER");
+        row.setPayee("Uber");
+        row.setTags(List.of("Receipt"));
+        row.setSplits(
+                List.of(
+                        ImportedTransaction.SplitEntry.builder()
+                                .amount(new BigDecimal("3.75"))
+                                .category("Travel")
+                                .memo("Fare")
+                                .tag("Work")
+                                .build(),
+                        ImportedTransaction.SplitEntry.builder()
+                                .amount(new BigDecimal("6.25"))
+                                .category("Food")
+                                .memo("Meal")
+                                .tag("Personal")
+                                .build()));
+        importService.updateParsedTransactions(session.getId(), rows, userId);
+        ImportedTransaction reviewed =
+                importService.reviewTransactions(session.getId(), userId).getFirst();
+        assertThat(reviewed.getPayee()).isEqualTo("Uber");
+        assertThat(reviewed.getTags()).containsExactly("Receipt");
+        assertThat(reviewed.getSplits()).isEqualTo(row.getSplits());
+        importService.confirmImport(session.getId(), userId, null, Map.of(), true);
+        assertThat(transactionRepository.findByUserId(userId))
+                .singleElement()
+                .satisfies(
+                        tx -> {
+                            assertThat(tx.getPayee()).isEqualTo("Uber");
+                            assertThat(tx.getDescription()).isEqualTo("FACTURE CARTE");
+                            assertThat(tx.getNotes()).isEqualTo("DU 071026 UBER");
+                            assertThat(tx.getPayeeId()).isNotNull();
+                            assertThat(tx.getTags()).isEqualTo("Receipt");
+                            List<org.openfinance.entity.TransactionSplit> splits =
+                                    splitRepository.findByTransactionIdOrderById(tx.getId());
+                            assertThat(splits).hasSize(2);
+                            assertThat(splits.getFirst().getAmount()).isEqualByComparingTo("3.75");
+                            assertThat(splits.getLast().getAmount()).isEqualByComparingTo("6.25");
+                            assertThat(splits)
+                                    .extracting(
+                                            org.openfinance.entity.TransactionSplit::getDescription)
+                                    .containsExactly("Fare", "Meal");
+                            assertThat(splits)
+                                    .extracting(org.openfinance.entity.TransactionSplit::getTags)
+                                    .containsExactly("Work", "Personal");
+                        });
     }
 
     @Test

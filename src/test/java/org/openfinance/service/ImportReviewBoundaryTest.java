@@ -183,6 +183,26 @@ class ImportReviewBoundaryTest {
         verifyNoInteractions(rules, predictions, ai);
     }
 
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    void onlyUnreviewedLegacySkroogeRowsRecoverTheirStatementPayee(boolean saved) throws Exception {
+        session.setFileFormat("JSON");
+        ImportedTransaction row = row();
+        row.setOriginalPayee("FACTURE CARTE");
+        row.setMemo("DU 071026 UBER");
+        row.setPayee(saved ? "User choice" : row.getMemo());
+        givenRows(List.of(row), Map.of("reviewSaved", saved));
+        ImportedTransaction reviewed = service.reviewTransactions(7L, 3L).getFirst();
+        assertThat(reviewed.getPayee()).isEqualTo(saved ? "User choice" : "FACTURE CARTE");
+        assertThat(reviewed.getLegacyRuleText())
+                .isEqualTo(
+                        saved
+                                ? null
+                                : new ImportedTransaction.RuleText(
+                                        "DU 071026 UBER", "DU 071026 UBER"));
+        assertThat(reviewed.statementDescription()).isEqualTo("FACTURE CARTE");
+    }
+
     @Test
     void ruleActionsPreserveTheOriginalMerchantAndOverridePredictions() throws Exception {
         givenRows(List.of(row()), Map.of());

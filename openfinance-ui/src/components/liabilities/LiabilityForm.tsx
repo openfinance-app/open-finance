@@ -1,3 +1,4 @@
+import { FormActions } from '@/components/ui/FormActions';
 import { useToday } from '@/hooks/useReportingCalendar';
 import { FormSection } from '@/components/ui/FormSection';
 import { useFormDraft } from '@/hooks/useFormDraft';
@@ -159,6 +160,7 @@ interface LiabilityFormProps {
   showPropertyLink?: boolean;
   onSubmit: (data: LiabilityRequest) => void;
   onCancel: () => void;
+  serverError?: string | null;
   isLoading: boolean;
 }
 
@@ -169,6 +171,7 @@ export function LiabilityForm({
   showPropertyLink = true,
   onSubmit,
   onCancel,
+  serverError,
   isLoading,
 }: LiabilityFormProps) {
   const today = useToday();
@@ -848,14 +851,14 @@ export function LiabilityForm({
           </OptionalDetails>
         )}
       {/* Actions */}
-      <div className="form-actions">
+      <FormActions error={serverError}>
         <Button variant="ghost" type="button" onClick={cancelWithGuard} disabled={isLoading}>
           {t('form.cancel')}
         </Button>
         <Button variant="primary" type="submit" isLoading={isLoading}>
           {isEditing ? t('form.update') : t('form.create')}
         </Button>
-      </div>
+      </FormActions>
     </form>
   );
 }

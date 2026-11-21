@@ -211,6 +211,8 @@
     }
   },
   "splitForm": {
+    "notesAndTags": "Notes and tags",
+    "lineDetails": "Notes and tags for split {{index}}",
     "tagsLabel": "Split {{index}} tags",
     "categoryPlaceholder": "Select category (optional)...",
     "notesPlaceholder": "Note (optional)",
@@ -389,5 +391,10 @@
     "property": "Property",
     "liability": "Liability",
     "clear": "Remove filter: {{name}}"
+  },
+  "tagInput": {
+    "tooLong": "Use up to 50 characters per tag.",
+    "remove": "Remove tag {{tag}}",
+    "limit": "Maximum {{count}} tags reached"
   }
 }

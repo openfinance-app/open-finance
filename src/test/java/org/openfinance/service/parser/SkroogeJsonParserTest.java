@@ -819,8 +819,8 @@ class SkroogeJsonParserTest {
     }
 
     @Test
-    @DisplayName("Should prefer the comment over a generic English bank payee label")
-    void shouldPreferCommentOverGenericEnglishPayee() throws IOException {
+    @DisplayName("Preserve the statement payee and keep the former merchant available to rules")
+    void shouldKeepStatementPayeeSeparateFromComment() throws IOException {
         String json =
                 """
                 {
@@ -848,7 +848,9 @@ class SkroogeJsonParserTest {
 
         assertThat(result.getTransactions()).hasSize(1);
         ImportedTransaction tx = result.getTransactions().get(0);
-        assertThat(tx.getPayee()).isEqualTo("NETFLIX SUBSCRIPTION");
+        assertThat(tx.getPayee()).isEqualTo("DIRECT DEBIT");
+        assertThat(tx.getMemo()).isEqualTo("NETFLIX SUBSCRIPTION");
+        assertThat(tx.getLegacyRuleText().payee()).isEqualTo("NETFLIX SUBSCRIPTION");
         assertThat(tx.getOriginalPayee()).isEqualTo("DIRECT DEBIT");
     }
 

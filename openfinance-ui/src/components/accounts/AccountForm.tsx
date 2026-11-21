@@ -1,3 +1,4 @@
+import { FormActions } from '@/components/ui/FormActions';
 import { useToday } from '@/hooks/useReportingCalendar';
 import { FormSection } from '@/components/ui/FormSection';
 import { OptionalDetails } from '@/components/ui/OptionalDetails';
@@ -76,6 +77,7 @@ interface AccountFormProps {
   account?: Account;
   onSubmit: (data: AccountRequest) => void;
   onCancel: () => void;
+  serverError?: string | null;
   isLoading?: boolean;
   existingAccountNames?: string[];
 }
@@ -84,6 +86,7 @@ export function AccountForm({
   account,
   onSubmit,
   onCancel,
+  serverError,
   isLoading,
   existingAccountNames = [],
 }: AccountFormProps) {
@@ -654,14 +657,14 @@ export function AccountForm({
       </div>
 
       {/* Actions */}
-      <div className="form-actions">
+      <FormActions error={serverError}>
         <Button variant="ghost" type="button" onClick={cancelWithGuard} disabled={isLoading}>
           {t('form.cancel')}
         </Button>
         <Button variant="primary" type="submit" isLoading={isLoading}>
           {isEditing ? t('form.updateAccount') : t('form.createAccount')}
         </Button>
-      </div>
+      </FormActions>
     </form>
   );
 }

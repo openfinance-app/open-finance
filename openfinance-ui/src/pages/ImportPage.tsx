@@ -20,7 +20,7 @@ export default function ImportPage() {
 
   return (
     <div className="min-h-screen bg-app-bg">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="max-w-6xl has-[.import-review]:max-w-none has-[.import-review]:px-0 mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Page Header */}
         <PageHeader title={t('title')} description={t('description')} />
 

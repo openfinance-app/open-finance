@@ -86,8 +86,9 @@ vi.mock('@/hooks/useLiabilities', () => ({
 }));
 
 vi.mock('@/components/liabilities/LiabilityForm', () => ({
-  LiabilityForm: ({ onSubmit, onCancel, liability }: any) => (
+  LiabilityForm: ({ serverError, onSubmit, onCancel, liability }: any) => (
     <div data-testid="liability-form">
+      {serverError && <p role="alert">{serverError}</p>}
       {liability && <span data-testid="editing-name">{liability.name}</span>}
       <button
         onClick={() =>

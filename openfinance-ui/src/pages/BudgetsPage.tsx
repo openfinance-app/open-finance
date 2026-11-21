@@ -211,9 +211,10 @@ export default function BudgetsPage() {
       }>(err)
         ? err.response?.data
         : undefined;
-      setFormFieldErrors(response?.validationErrors ?? {});
+      const fieldErrors = response?.validationErrors ?? {};
+      setFormFieldErrors(fieldErrors);
       setFormError(
-        response?.validationErrors
+        Object.values(fieldErrors).some(Boolean)
           ? null
           : response?.message || (err instanceof Error ? err.message : t('saveError'))
       );

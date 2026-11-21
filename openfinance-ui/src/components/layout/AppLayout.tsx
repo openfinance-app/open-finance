@@ -80,7 +80,7 @@ function AppLayoutInner({ children }: AppLayoutProps) {
             isMobile ? 'p-4 pb-28' : 'p-6 lg:p-8'
           )}
         >
-          <div className="mx-auto max-w-7xl">
+          <div className="mx-auto max-w-7xl has-[.import-review]:max-w-none">
             {/* Keyed by pathname so each route re-runs the entrance animation */}
             <div key={location.pathname} className="page-enter">
               {children}

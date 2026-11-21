@@ -178,6 +178,9 @@ public class TransactionRequest {
     @JsonDeserialize(using = TagsDeserializer.class)
     private String tags;
 
+    /** Tags from the receiving statement row. Null inherits the source tags, empty clears them. */
+    @com.fasterxml.jackson.annotation.JsonIgnore private String importedDestinationTags;
+
     /**
      * Optional payee name (person or merchant).
      *

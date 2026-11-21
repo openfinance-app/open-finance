@@ -84,9 +84,9 @@ public class ImportedTransferServiceImpl implements ImportedTransferService {
             investmentImportService.prepare(transaction, legs.get(index));
         }
         transactionRepository.saveAll(booked);
-        for (int index = 0; index < 2; index++) {
+        for (Transaction transaction : booked) {
             transactionService.syncTransactionFts(
-                    booked.get(index), legs.get(index).getPayee(), legs.get(index).getMemo());
+                    transaction, transaction.getDescription(), transaction.getNotes());
         }
     }
 
@@ -216,11 +216,13 @@ public class ImportedTransferServiceImpl implements ImportedTransferService {
         existing.setConversionRate(recorded.getConversionRate());
         existing.setDescription(recorded.getDescription());
         existing.setNotes(recorded.getNotes());
+        existing.setTags(recorded.getTags());
         existing.setPayee(recorded.getPayee());
         existing.setPayeeId(recorded.getPayeeId());
         existing.setIsReconciled(recorded.getIsReconciled());
         transactionRepository.save(existing);
-        transactionService.syncTransactionFts(existing, existing.getPayee(), existing.getNotes());
+        transactionService.syncTransactionFts(
+                existing, existing.getDescription(), existing.getNotes());
     }
 
     private List<Transaction> findImportedTransferMatches(List<Transaction> booked, Long userId) {

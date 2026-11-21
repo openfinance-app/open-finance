@@ -69,11 +69,11 @@
     },
     "conditions": {
       "fields": {
-        "DESCRIPTION": "Description / Bénéficiaire",
+        "DESCRIPTION": "Bénéficiaire et notes",
         "AMOUNT": "Montant",
         "TRANSACTION_TYPE": "Type de transaction",
         "PAYEE": "Bénéficiaire",
-        "MEMO": "Commentaire / mémo"
+        "MEMO": "Notes"
       },
       "operators": {
         "CONTAINS": "Contient",
@@ -98,7 +98,7 @@
         "SET_CATEGORY": "Définir la catégorie",
         "SET_PAYEE": "Définir le bénéficiaire",
         "ADD_TAG": "Ajouter une étiquette",
-        "SET_DESCRIPTION": "Définir la description",
+        "SET_DESCRIPTION": "Définir les notes",
         "SET_AMOUNT": "Définir le montant",
         "ADD_SPLIT": "Ajouter une division",
         "SKIP_TRANSACTION": "Ignorer la transaction"
@@ -109,7 +109,7 @@
         "category": "Nom de la catégorie...",
         "payee": "Nom du bénéficiaire...",
         "tag": "Nom de l'étiquette...",
-        "description": "Texte de la description...",
+        "description": "Notes...",
         "splitCategory": "Catégorie de la division...",
         "splitAmount": "Montant de la division...",
         "splitDescription": "Description de la division (facultatif)..."

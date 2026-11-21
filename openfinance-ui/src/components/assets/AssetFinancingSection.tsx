@@ -1,3 +1,4 @@
+import { apiErrorMessage } from '@/utils/api-error';
 import { decimalValue, ExactDecimal, decimalField } from '@/utils/exact-decimal';
 import { useEffect, useId, useState } from 'react';
 import { Link } from 'react-router';
@@ -291,6 +292,9 @@ export function AssetFinancingSection({
         <div className="space-y-3 border-t border-border pt-4">
           <h4 className="font-medium">{t('financing.createLoan')}</h4>
           <LiabilityForm
+            serverError={
+              createLoan.error ? apiErrorMessage(createLoan.error, t('financing.error')) : null
+            }
             showPropertyLink={false}
             initialCurrency={asset?.currency}
             initialType={
@@ -304,11 +308,6 @@ export function AssetFinancingSection({
             onCancel={() => setCreatingLoan(false)}
             isLoading={createLoan.isPending}
           />
-          {createLoan.error && (
-            <p role="alert" className="text-error">
-              {t('financing.error')}
-            </p>
-          )}
         </div>
       )}
       {linking && (

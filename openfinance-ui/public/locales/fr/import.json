@@ -181,7 +181,8 @@
       "selected": "{{count}} sélectionnés",
       "setCategory": "Définir la catégorie...",
       "setPayee": "Définir le bénéficiaire...",
-      "applyButton": "Appliquer à {{count}}"
+      "applyButton": "Appliquer à {{count}}",
+      "addTags": "Ajouter des étiquettes, séparées par des virgules"
     },
     "table": {
       "noMatches": "aucune transaction ne correspond au filtre sélectionné.",
@@ -193,7 +194,8 @@
       "payee": "Bénéficiaire",
       "amount": "Montant",
       "category": "Catégorie",
-      "memo": "Mémo",
+      "description": "Description",
+      "notes": "Notes",
       "status": "État",
       "validationErrors": "Erreurs de validation",
       "splitLines": "Lignes ventilées",
@@ -233,7 +235,15 @@
     },
     "aiUnavailable": "Les suggestions IA sont indisponibles pour certaines opérations. Vous pouvez choisir leurs catégories manuellement et poursuivre l’import.",
     "aiProcessing": "Catégorisation par IA en cours ({{current}}/{{total}})...",
-    "aiProcessingDescription": "Génération de suggestions pour les transactions sans catégorie. Cela peut prendre quelques minutes."
+    "aiProcessingDescription": "Génération de suggestions pour les transactions sans catégorie. Cela peut prendre quelques minutes.",
+    "details": {
+      "editCategories": "Modifier les catégories ventilées",
+      "title": "Étiquettes et ventilation",
+      "tags": "Étiquettes de la transaction",
+      "tagPlaceholder": "Saisir une étiquette",
+      "splitAmounts": "Saisissez au moins deux montants positifs, avec au maximum 18 décimales.",
+      "tagLength": "Limitez chaque étiquette à 50 caractères et leur total à 500 caractères."
+    }
   },
   "progress": {
     "preparing": "Préparation de l'importation...",

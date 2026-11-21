@@ -6,7 +6,7 @@ import { ExactDecimal, exactSum, distributeExact } from '@/utils/exact-decimal';
  * Renders a list of split entries for a transaction, allowing the user to allocate
  * the parent transaction's amount across multiple categories.
  */
-import { Plus, Trash2, AlertCircle } from 'lucide-react';
+import { Plus, Trash2, AlertCircle, ChevronRight } from 'lucide-react';
 import { Trans, useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
@@ -17,6 +17,7 @@ import { ConvertedAmount } from '@/components/ui/ConvertedAmount';
 import { TagInput } from '@/components/transactions/TagInput';
 import { decimalPlaces } from '@/utils/money';
 import { getMonetaryScale } from '@/utils/currency';
+import { useId, useRef, useState, type ReactNode } from 'react';
 import type { LoanComponent, TransactionSplitRequest } from '@/types/transaction';
 
 interface SplitTransactionFormProps {
@@ -34,6 +35,50 @@ interface SplitTransactionFormProps {
   exchangeRate?: number | string;
   tagSuggestions?: string[];
   loanPayment?: boolean;
+  compact?: boolean;
+  renderCategory?: (index: number) => ReactNode;
+  commitTagsOnBlur?: boolean;
+  splitKey?: (index: number) => number;
+}
+
+function SplitLineDetails({
+  index,
+  summary,
+  children,
+}: {
+  index: number;
+  summary: string;
+  children: ReactNode;
+}) {
+  const { t } = useTranslation('transactions');
+  const [open, setOpen] = useState(false);
+  const fields = useRef<HTMLDivElement>(null);
+  const id = useId();
+  return (
+    <div className="review-split-details col-span-full min-w-0">
+      <button
+        type="button"
+        aria-expanded={open}
+        aria-controls={id}
+        aria-label={t('splitForm.lineDetails', { index: index + 1 })}
+        className="inline-flex items-center gap-1 text-xs text-text-secondary hover:text-primary focus-visible:underline py-1"
+        title={summary || undefined}
+        onClick={() => {
+          const invalid = fields.current?.querySelector<HTMLInputElement>('input:invalid');
+          if (open && invalid) invalid.reportValidity();
+          else setOpen(!open);
+        }}
+      >
+        <ChevronRight aria-hidden="true" className={open ? 'size-3 rotate-90' : 'size-3'} />
+        <span className="min-w-0 truncate">
+          {!open && summary ? summary : t('splitForm.notesAndTags')}
+        </span>
+      </button>
+      <div ref={fields} id={id} hidden={!open} className="col-span-full min-w-0">
+        <div className="grid min-w-0 gap-2 pt-1 sm:grid-cols-2">{children}</div>
+      </div>
+    </div>
+  );
 }
 
 /**
@@ -51,6 +96,10 @@ export function SplitTransactionForm({
   exchangeRate,
   tagSuggestions = [],
   loanPayment = false,
+  compact = false,
+  renderCategory,
+  commitTagsOnBlur,
+  splitKey,
 }: SplitTransactionFormProps) {
   const { t } = useTranslation('transactions');
   const decimals = Math.max(
@@ -105,70 +154,23 @@ export function SplitTransactionForm({
   };
 
   return (
-    <div className="space-y-3">
+    <div
+      className={
+        compact ? (splits.length > 2 ? 'review-split-list-many' : 'review-split-list') : 'space-y-3'
+      }
+    >
       {/* Split entry rows */}
-      {splits.map((split, index) => (
+      {compact && (
         <div
-          key={index}
-          className="grid grid-cols-[1fr_auto_auto] gap-2 items-start p-3 rounded-lg bg-surface border border-border"
+          aria-hidden="true"
+          className="review-split-columns text-xs font-medium text-text-secondary"
         >
-          {/* Category selector — full row width on small screens */}
-          <div className="col-span-3">
-            <CategorySelect
-              aria-label={t('splitForm.categoryLabel', { index: index + 1 })}
-              value={split.categoryId}
-              onValueChange={value => handleChangeField(index, 'categoryId', value)}
-              placeholder={t('splitForm.categoryPlaceholder')}
-              allowNone={true}
-              allowCreateInline
-            />
-          </div>
-
-          {/* Amount input */}
-          {loanPayment && (
-            <div className="col-span-3">
-              <label
-                className="block text-sm text-text-secondary mb-1"
-                htmlFor={`loan-component-${index}`}
-              >
-                {t('splitForm.loanComponent', { index: index + 1 })}
-              </label>
-              <SimpleSelect
-                id={`loan-component-${index}`}
-                value={split.loanComponent ?? ''}
-                className="w-full"
-                onChange={event =>
-                  handleChangeField(
-                    index,
-                    'loanComponent',
-                    (event.target.value || undefined) as LoanComponent | undefined
-                  )
-                }
-              >
-                <option value="">{t('splitForm.loanComponents.AUTO')}</option>
-                {(['PRINCIPAL', 'INTEREST', 'INSURANCE', 'FEE', 'OTHER'] as const).map(
-                  component => (
-                    <option key={component} value={component}>
-                      {t(`splitForm.loanComponents.${component}`)}
-                    </option>
-                  )
-                )}
-              </SimpleSelect>
-            </div>
-          )}
-
-          <div>
-            <NumberInput
-              value={split.amount === 0 || split.amount === '0' ? '' : String(split.amount)}
-              onChange={val => handleChangeField(index, 'amount', val || '0')}
-              placeholder="0.00"
-              aria-label={t('splitForm.amountLabel', { index: index + 1 })}
-              className="font-mono"
-              min="0"
-            />
-          </div>
-
-          {/* Description input */}
+          <span>{t('form.category')}</span>
+          <span>{t('form.amount')}</span>
+        </div>
+      )}
+      {splits.map((split, index) => {
+        const noteField = (
           <div>
             <Input
               value={split.description ?? ''}
@@ -178,108 +180,243 @@ export function SplitTransactionForm({
               aria-label={t('splitForm.descriptionLabel', { index: index + 1 })}
             />
           </div>
+        );
+        const tagField = (
+          <TagInput
+            commitOnBlur={commitTagsOnBlur}
+            value={split.tags ?? []}
+            onChange={tags => handleChangeField(index, 'tags', tags)}
+            suggestions={tagSuggestions}
+            placeholder={t('form.tagsPlaceholder')}
+            aria-label={t('splitForm.tagsLabel', { index: index + 1 })}
+          />
+        );
+        return (
+          <div
+            key={splitKey?.(index) ?? index}
+            className={
+              compact
+                ? 'review-split-columns border-b border-border py-1.5'
+                : 'grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] gap-2 items-start p-3 rounded-lg bg-surface border border-border'
+            }
+          >
+            {/* Category selector — full row width on small screens */}
+            <div className={compact ? 'min-w-0' : 'col-span-3'}>
+              {renderCategory ? (
+                renderCategory(index)
+              ) : (
+                <CategorySelect
+                  aria-label={t('splitForm.categoryLabel', { index: index + 1 })}
+                  value={split.categoryId}
+                  onValueChange={value => handleChangeField(index, 'categoryId', value)}
+                  placeholder={t('splitForm.categoryPlaceholder')}
+                  allowNone={true}
+                  allowCreateInline
+                />
+              )}
+            </div>
 
-          {/* Remove button */}
-          <div className="flex items-center justify-end">
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              className="h-9 w-9 p-0 text-error hover:text-error hover:bg-error/10"
-              onClick={() => handleRemove(index)}
-              aria-label={t('splitForm.removeLabel', { index: index + 1 })}
-              disabled={splits.length <= 2}
-              title={
-                splits.length <= 2 ? t('splitForm.removeDisabledTitle') : t('splitForm.removeTitle')
-              }
-            >
-              <Trash2 className="h-4 w-4" />
-            </Button>
+            {/* Amount input */}
+            {loanPayment && (
+              <div className="col-span-3">
+                <label
+                  className="block text-sm text-text-secondary mb-1"
+                  htmlFor={`loan-component-${index}`}
+                >
+                  {t('splitForm.loanComponent', { index: index + 1 })}
+                </label>
+                <SimpleSelect
+                  id={`loan-component-${index}`}
+                  value={split.loanComponent ?? ''}
+                  className="w-full"
+                  onChange={event =>
+                    handleChangeField(
+                      index,
+                      'loanComponent',
+                      (event.target.value || undefined) as LoanComponent | undefined
+                    )
+                  }
+                >
+                  <option value="">{t('splitForm.loanComponents.AUTO')}</option>
+                  {(['PRINCIPAL', 'INTEREST', 'INSURANCE', 'FEE', 'OTHER'] as const).map(
+                    component => (
+                      <option key={component} value={component}>
+                        {t(`splitForm.loanComponents.${component}`)}
+                      </option>
+                    )
+                  )}
+                </SimpleSelect>
+              </div>
+            )}
+
+            <div>
+              <NumberInput
+                value={split.amount === 0 || split.amount === '0' ? '' : String(split.amount)}
+                onChange={val => handleChangeField(index, 'amount', val || '0')}
+                placeholder="0.00"
+                aria-label={t('splitForm.amountLabel', { index: index + 1 })}
+                className="font-mono"
+                min="0"
+              />
+            </div>
+
+            {!compact && noteField}
+            {/* Remove button */}
+            {(!compact || splits.length > 2) && (
+              <div
+                className={
+                  compact ? 'review-split-remove flex justify-end' : 'flex items-center justify-end'
+                }
+              >
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-9 w-9 p-0 text-error hover:text-error hover:bg-error/10"
+                  onClick={() => handleRemove(index)}
+                  aria-label={t('splitForm.removeLabel', { index: index + 1 })}
+                  disabled={splits.length <= 2}
+                  title={
+                    splits.length <= 2
+                      ? t('splitForm.removeDisabledTitle')
+                      : t('splitForm.removeTitle')
+                  }
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </div>
+            )}
+            {compact ? (
+              <SplitLineDetails
+                index={index}
+                summary={[split.description, ...(split.tags ?? [])].filter(Boolean).join(' · ')}
+              >
+                {noteField}
+                {tagField}
+              </SplitLineDetails>
+            ) : (
+              <div className="col-span-3">{tagField}</div>
+            )}
           </div>
-          <div className="col-span-3">
-            <TagInput
-              value={split.tags ?? []}
-              onChange={tags => handleChangeField(index, 'tags', tags)}
-              suggestions={tagSuggestions}
-              placeholder={t('form.tagsPlaceholder')}
-              aria-label={t('splitForm.tagsLabel', { index: index + 1 })}
-            />
-          </div>
-        </div>
-      ))}
+        );
+      })}
 
-      {/* Add split button — REQ-SPL-3.7 */}
-      <Button
-        type="button"
-        variant="ghost"
-        size="sm"
-        onClick={handleAddSplit}
-        className="w-full border border-dashed border-border hover:border-primary text-text-secondary hover:text-primary"
-      >
-        <Plus className="h-4 w-4 mr-2" />
-        {t('splitForm.addSplit')}
-      </Button>
-
-      {splits.length >= 2 && !isValid && (
+      <div className={compact ? 'flex flex-wrap items-center gap-x-3 py-1' : 'space-y-3'}>
         <Button
           type="button"
           variant="ghost"
           size="sm"
-          onClick={handleDistribute}
-          className="w-full border border-dashed border-border hover:border-primary text-text-secondary hover:text-primary"
+          onClick={handleAddSplit}
+          className={
+            compact
+              ? 'px-1 text-primary'
+              : 'w-full border border-dashed border-border hover:border-primary text-text-secondary hover:text-primary'
+          }
         >
-          {t('splitForm.distribute')}
+          <Plus className="h-4 w-4 mr-2" />
+          {t('splitForm.addSplit')}
         </Button>
-      )}
 
+        {splits.length >= 2 && !isValid && (
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={handleDistribute}
+            className={
+              compact
+                ? 'px-1 text-primary'
+                : 'w-full border border-dashed border-border hover:border-primary text-text-secondary hover:text-primary'
+            }
+          >
+            {t('splitForm.distribute')}
+          </Button>
+        )}
+      </div>
       {/* Running total summary — REQ-SPL-3.3, REQ-SPL-3.4 */}
-      <div className="rounded-lg border border-border bg-surface-elevated p-3 text-sm">
-        <div className="flex justify-between text-text-secondary">
-          <span>{t('splitForm.transactionTotal')}</span>
-          <span className="font-mono">
-            <ConvertedAmount amount={totalAmount} currency={currency} inline />
-          </span>
-        </div>
-        <div className="flex justify-between text-text-secondary mt-1">
-          <span>{t('splitForm.splitTotal')}</span>
-          <span className="font-mono">
-            <ConvertedAmount amount={splitTotal} currency={currency} inline />
-          </span>
-        </div>
+      {compact ? (
         <div
-          className={`flex justify-between font-medium mt-1 pt-1 border-t border-border ${
-            isValid ? 'text-success' : remaining > 0 ? 'text-warning' : 'text-error'
-          }`}
+          aria-live="polite"
+          className="flex flex-wrap items-baseline justify-between gap-2 bg-surface-elevated rounded px-3 py-2 text-sm"
         >
-          <span>
-            {isValid
-              ? t('splitForm.balanced')
-              : remaining > 0
-                ? t('splitForm.remaining')
-                : t('splitForm.overBy')}
+          <span className="text-text-secondary">
+            {t('splitForm.splitTotal')}{' '}
+            <span className="font-mono">
+              <ConvertedAmount amount={splitTotal} currency={currency} inline />
+            </span>
           </span>
-          <span className="font-mono">
-            {isValid ? (
-              '✓'
-            ) : (
-              <ConvertedAmount amount={Math.abs(remaining)} currency={currency} inline />
+          <span className={isValid ? 'text-success font-medium' : 'text-warning font-medium'}>
+            {t(
+              isValid
+                ? 'splitForm.balanced'
+                : remaining > 0
+                  ? 'splitForm.remaining'
+                  : 'splitForm.overBy'
+            )}
+            {!isValid && (
+              <span className="ml-1 font-mono">
+                <ConvertedAmount
+                  amount={exactRemaining.abs().toFixed()}
+                  currency={currency}
+                  inline
+                />
+              </span>
             )}
           </span>
         </div>
-        {showConverted && (
-          <div className="mt-1 text-right text-xs text-text-secondary font-mono">
-            ≈{' '}
-            <ConvertedAmount
-              amount={new ExactDecimal(splitTotal).times(exchangeRate!).toFixed()}
-              currency={accountCurrency}
-              inline
-            />
+      ) : (
+        <div className="rounded-lg border border-border bg-surface-elevated p-3 text-sm">
+          <div className="flex justify-between text-text-secondary">
+            <span>{t('splitForm.transactionTotal')}</span>
+            <span className="font-mono">
+              <ConvertedAmount amount={totalAmount} currency={currency} inline />
+            </span>
           </div>
-        )}
-      </div>
+          <div className="flex justify-between text-text-secondary mt-1">
+            <span>{t('splitForm.splitTotal')}</span>
+            <span className="font-mono">
+              <ConvertedAmount amount={splitTotal} currency={currency} inline />
+            </span>
+          </div>
+          <div
+            className={`flex justify-between font-medium mt-1 pt-1 border-t border-border ${
+              isValid ? 'text-success' : remaining > 0 ? 'text-warning' : 'text-error'
+            }`}
+          >
+            <span>
+              {isValid
+                ? t('splitForm.balanced')
+                : remaining > 0
+                  ? t('splitForm.remaining')
+                  : t('splitForm.overBy')}
+            </span>
+            <span className="font-mono">
+              {isValid ? (
+                '✓'
+              ) : (
+                <ConvertedAmount
+                  amount={exactRemaining.abs().toFixed()}
+                  currency={currency}
+                  inline
+                />
+              )}
+            </span>
+          </div>
+          {showConverted && (
+            <div className="mt-1 text-right text-xs text-text-secondary font-mono">
+              ≈{' '}
+              <ConvertedAmount
+                amount={new ExactDecimal(splitTotal).times(exchangeRate!).toFixed()}
+                currency={accountCurrency}
+                inline
+              />
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Validation error banner — REQ-SPL-3.5 */}
-      {splits.length > 0 && !isValid && (
+      {!compact && splits.length > 0 && !isValid && (
         <div
           role="alert"
           className="flex items-center gap-2 rounded-lg border border-error/30 bg-error/5 px-3 py-2 text-sm text-error"
@@ -292,7 +429,13 @@ export function SplitTransactionForm({
               components={{
                 bold: <strong />,
                 total: <ConvertedAmount amount={totalAmount} currency={currency} inline />,
-                amount: <ConvertedAmount amount={Math.abs(remaining)} currency={currency} inline />,
+                amount: (
+                  <ConvertedAmount
+                    amount={exactRemaining.abs().toFixed()}
+                    currency={currency}
+                    inline
+                  />
+                ),
               }}
             />
           </span>

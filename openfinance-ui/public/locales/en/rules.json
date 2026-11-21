@@ -69,11 +69,11 @@
     },
     "conditions": {
       "fields": {
-        "DESCRIPTION": "Description / Payee",
+        "DESCRIPTION": "Payee and notes",
         "AMOUNT": "Amount",
         "TRANSACTION_TYPE": "Transaction Type",
         "PAYEE": "Payee",
-        "MEMO": "Comment / memo"
+        "MEMO": "Notes"
       },
       "operators": {
         "CONTAINS": "Contains",
@@ -98,7 +98,7 @@
         "SET_CATEGORY": "Set Category",
         "SET_PAYEE": "Set Payee",
         "ADD_TAG": "Add Tag",
-        "SET_DESCRIPTION": "Set Description",
+        "SET_DESCRIPTION": "Set Notes",
         "SET_AMOUNT": "Set Amount",
         "ADD_SPLIT": "Add Split",
         "SKIP_TRANSACTION": "Skip Transaction"
@@ -109,7 +109,7 @@
         "category": "Category name...",
         "payee": "Payee name...",
         "tag": "Tag name...",
-        "description": "Description text...",
+        "description": "Notes...",
         "splitCategory": "Split category...",
         "splitAmount": "Split amount...",
         "splitDescription": "Split description (optional)..."

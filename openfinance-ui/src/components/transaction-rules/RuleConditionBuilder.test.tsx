@@ -57,7 +57,7 @@ describe('RuleConditionBuilder', () => {
 
     renderWithProviders(<RuleConditionBuilder conditions={conditions} onChange={mockOnChange} />);
 
-    expect(screen.getByDisplayValue('Description / Payee')).toBeInTheDocument();
+    expect(screen.getByDisplayValue('Payee and notes')).toBeInTheDocument();
     expect(screen.getByDisplayValue('Contains')).toBeInTheDocument();
     expect(screen.getByDisplayValue('test')).toBeInTheDocument();
   });

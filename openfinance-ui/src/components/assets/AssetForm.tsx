@@ -1,3 +1,4 @@
+import { FormActions } from '@/components/ui/FormActions';
 import { useToday } from '@/hooks/useReportingCalendar';
 import { FormSection } from '@/components/ui/FormSection';
 import { useFormDraft } from '@/hooks/useFormDraft';
@@ -64,6 +65,7 @@ interface AssetFormProps {
   initialAcquisitionType?: 'PURCHASE' | 'GIFT' | 'PLANNED';
   onSubmit: (data: AssetRequest) => void;
   onCancel: () => void;
+  serverError?: string | null;
   isLoading?: boolean;
   purchaseMode?: boolean;
   submitLabel?: string;
@@ -76,6 +78,7 @@ export function AssetForm({
   initialAcquisitionType = 'PURCHASE',
   onSubmit,
   onCancel,
+  serverError,
   isLoading,
   purchaseMode = false,
   submitLabel,
@@ -823,14 +826,14 @@ export function AssetForm({
           </div>
         </OptionalDetails>
         {/* Actions */}
-        <div className="form-actions">
+        <FormActions error={serverError}>
           <Button variant="ghost" type="button" onClick={cancelWithGuard} disabled={isLoading}>
             {t('form.cancel')}
           </Button>
           <Button variant="primary" type="submit" isLoading={isLoading}>
             {submitLabel ?? (isEditing ? t('form.updateAsset') : t('form.createAsset'))}
           </Button>
-        </div>
+        </FormActions>
       </form>
     </>
   );

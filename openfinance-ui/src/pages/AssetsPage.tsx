@@ -799,6 +799,7 @@ export default function AssetsPage() {
                 </Button>
               )}
               <AssetForm
+                serverError={saveError}
                 kind={
                   editingAsset ? undefined : creationType === 'VEHICLE' ? 'physical' : 'financial'
                 }
@@ -810,11 +811,6 @@ export default function AssetsPage() {
                 isLoading={createAsset.isPending || updateAsset.isPending}
               />
             </>
-          )}
-          {saveError && (
-            <p role="alert" className="text-sm text-error">
-              {saveError}
-            </p>
           )}
         </DialogContent>
       </FormDialog>

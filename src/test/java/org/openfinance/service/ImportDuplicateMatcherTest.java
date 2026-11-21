@@ -39,6 +39,32 @@ class ImportDuplicateMatcherTest {
     }
 
     @Test
+    void memoOnlyPaymentsStillMatchEarlierBookingsWithMissingPayee() {
+        ImportedTransaction row = imported(null);
+        row.setMemo("Uber");
+        row.useMemoForMissingPayee();
+        Transaction existing = booked(null);
+        existing.setNotes("Uber");
+        assertThat(ImportDuplicateMatcher.matches(row, existing, false, exchangeRates)).isTrue();
+        existing.setNotes("Different merchant");
+        assertThat(ImportDuplicateMatcher.matches(row, existing, false, exchangeRates)).isFalse();
+    }
+
+    @Test
+    void csvDescribedSeparatelyFromPayeeMatchesNewAndPreviousBookings() {
+        ImportedTransaction row = imported("Uber");
+        row.setOriginalPayee("Uber");
+        row.setDescription("FACTURE CARTE");
+        Transaction existing = booked("FACTURE CARTE");
+        existing.setPayee("Different merchant");
+        assertThat(ImportDuplicateMatcher.matches(row, existing, false, exchangeRates)).isFalse();
+        existing.setPayee("Uber");
+        assertThat(ImportDuplicateMatcher.matches(row, existing, false, exchangeRates)).isTrue();
+        existing.setDescription("Uber");
+        assertThat(ImportDuplicateMatcher.matches(row, existing, false, exchangeRates)).isTrue();
+    }
+
+    @Test
     void bankReferencesOverrideFuzzyPayeeSimilarity() {
         ImportedTransaction imported = imported("Shop");
         imported.setReferenceNumber("bank-1");

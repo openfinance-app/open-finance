@@ -104,12 +104,14 @@ vi.mock('@/hooks/useSecondaryConversion', () => ({
 
 vi.mock('@/components/assets/AssetForm', () => ({
   AssetForm: ({
+    serverError,
     onCancel,
     onSubmit,
     kind,
     initialAcquisitionType,
   }: ComponentProps<typeof import('@/components/assets/AssetForm').AssetForm>) => (
     <div data-testid="asset-form">
+      {serverError && <p role="alert">{serverError}</p>}
       <p>Form kind {kind ?? 'edit'}</p>
       <p>Acquisition {initialAcquisitionType ?? 'default'}</p>
       <button onClick={onCancel}>Cancel</button>

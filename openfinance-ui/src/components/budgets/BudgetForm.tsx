@@ -1,3 +1,4 @@
+import { FormActions } from '@/components/ui/FormActions';
 import { useToday } from '@/hooks/useReportingCalendar';
 import { FormSection } from '@/components/ui/FormSection';
 import { OptionalDetails } from '@/components/ui/OptionalDetails';
@@ -171,11 +172,6 @@ export function BudgetForm({
 
   return (
     <form onSubmit={handleFormSubmit} className="finance-form">
-      {serverError && (
-        <div className="p-3 bg-error/10 border border-error/20 rounded-lg text-error text-sm">
-          {serverError}
-        </div>
-      )}
       <FormSection title={t('common:formLayout.budgetPlan')}>
         {/* Row 1: Category and Period */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -380,14 +376,14 @@ export function BudgetForm({
         </div>
       </OptionalDetails>
       {/* Actions */}
-      <div className="form-actions">
+      <FormActions error={serverError}>
         <Button variant="ghost" type="button" onClick={onCancel} disabled={isLoading}>
           {t('form.cancel')}
         </Button>
         <Button variant="primary" type="submit" isLoading={isLoading}>
           {isEditing ? t('form.updateBudget') : t('form.createBudget')}
         </Button>
-      </div>
+      </FormActions>
     </form>
   );
 }

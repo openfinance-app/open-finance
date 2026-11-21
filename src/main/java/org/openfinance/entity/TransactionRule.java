@@ -102,6 +102,10 @@ public class TransactionRule {
     @Builder.Default
     private Boolean isEnabled = true;
 
+    /** Rules created before the import field correction retain their original matching inputs. */
+    @Column(name = "use_legacy_import_text", nullable = false)
+    private boolean useLegacyImportText;
+
     /**
      * Condition match logic: 'AND' (all conditions must match) or 'OR' (any condition matches).
      * Defaults to 'AND' for backward compatibility. Requirement: REQ-TR-2.4

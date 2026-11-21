@@ -10,6 +10,7 @@ import i18n from '@/test/i18n-test';
 const categories = vi.hoisted(() => ({
   data: [] as Array<{ id: number; name: string; parentId?: number }>,
 }));
+vi.mock('@/hooks/useTransactionTags', () => ({ usePopularTags: () => ({ data: [] }) }));
 vi.mock('@/hooks/useCategories', () => ({ useCategories: () => categories }));
 vi.mock('@/hooks/useUserSettings', async original => ({
   ...(await original<typeof import('@/hooks/useUserSettings')>()),
@@ -247,6 +248,124 @@ describe('Import review decisions and selected-row edits', () => {
     fireEvent.click(apply);
     expect(reviewed()).toEqual([{ ...first, [field]: 'Reviewed' }, second]);
     expect(screen.getByRole('checkbox', { name: 'Select all' })).not.toBeChecked();
+  });
+
+  it.each([
+    'SPLIT_INVALID: amounts differ',
+    'Split amounts (12) do not match transaction amount (20)',
+    'Les montants ventilés (12) ne correspondent pas au montant de la transaction (20)',
+  ])('saves tags and a balanced allocation and clears the resolved error "%s"', error => {
+    renderRows([
+      { ...row, tags: ['Existing'], validationErrors: ['RULE_MATCH: keep', error] },
+      row,
+    ]);
+    fireEvent.click(screen.getAllByRole('button', { name: text('review.details.title') })[0]);
+    const dialog = within(screen.getByRole('dialog'));
+    const tag = dialog.getByRole('textbox', { name: text('review.details.tags') });
+    fireEvent.change(tag, { target: { value: 'Work trip' } });
+    fireEvent.blur(tag);
+    fireEvent.click(dialog.getByRole('button', { name: 'Split transaction' }));
+    const save = dialog.getByRole('button', { name: text('review.actions.save') });
+    expect(save).toBeDisabled();
+    fireEvent.change(dialog.getByRole('textbox', { name: 'Split 1 amount' }), {
+      target: { value: '7.25' },
+    });
+    fireEvent.change(dialog.getByRole('textbox', { name: 'Split 2 amount' }), {
+      target: { value: '12.74' },
+    });
+    expect(save).toBeDisabled();
+    fireEvent.change(dialog.getByRole('textbox', { name: 'Split 2 amount' }), {
+      target: { value: '12.75' },
+    });
+    fireEvent.change(dialog.getAllByRole('textbox', { name: 'Category name' })[0], {
+      target: { value: 'Travel' },
+    });
+    const lineDetails = dialog.getByRole('button', { name: 'Notes and tags for split 1' });
+    expect(lineDetails).toHaveAttribute('aria-expanded', 'false');
+    fireEvent.click(lineDetails);
+    fireEvent.change(dialog.getByRole('textbox', { name: 'Split 1 description' }), {
+      target: { value: 'Fare' },
+    });
+    const splitTag = dialog.getByRole('textbox', { name: 'Split 1 tags' });
+    fireEvent.change(splitTag, { target: { value: 'Reimbursable' } });
+    fireEvent.keyDown(splitTag, { key: 'Enter' });
+    fireEvent.click(save);
+    expect(reviewed()).toEqual([
+      {
+        ...row,
+        tags: ['Existing', 'Work trip'],
+        validationErrors: ['RULE_MATCH: keep'],
+        splits: [
+          { category: 'Travel', memo: 'Fare', amount: '7.25', tags: ['Reimbursable'] },
+          { category: '', memo: '', amount: '12.75', tags: [] },
+        ],
+      },
+      row,
+    ]);
+  });
+
+  it('keeps signed source amounts and category IDs through tag edits and permits removing a split', () => {
+    const original = {
+      ...row,
+      tags: ['Receipt'],
+      splits: [
+        {
+          category: 'Travel',
+          sourceCategoryId: 19,
+          amount: '-9.9900',
+          memo: 'Fare',
+          tags: ['Old'],
+        },
+        { category: 'Food', sourceCategoryId: 20, amount: '-10.00', memo: '', tags: [] },
+      ],
+    };
+    renderRows([original]);
+    const open = () => {
+      fireEvent.click(screen.getByRole('button', { name: text('review.details.title') }));
+      return within(screen.getByRole('dialog'));
+    };
+    let dialog = open();
+    const details = dialog.getByRole('button', { name: 'Notes and tags for split 1' });
+    expect(details).toHaveAttribute('aria-expanded', 'false');
+    expect(details).toHaveTextContent('Fare · Old');
+    fireEvent.click(details);
+    fireEvent.click(dialog.getByRole('button', { name: 'Remove tag Old' }));
+    fireEvent.click(dialog.getByRole('button', { name: 'Remove split', exact: true }));
+    fireEvent.click(dialog.getByRole('button', { name: text('review.actions.cancel') }));
+    expect(reviewed()[0]).toEqual(original);
+    dialog = open();
+    fireEvent.click(dialog.getByRole('button', { name: 'Notes and tags for split 1' }));
+    fireEvent.click(dialog.getByRole('button', { name: 'Remove tag Old' }));
+    fireEvent.change(dialog.getAllByRole('textbox', { name: 'Category name' })[1], {
+      target: { value: 'Meal' },
+    });
+    fireEvent.click(dialog.getByRole('button', { name: text('review.actions.save') }));
+    expect(reviewed()[0].splits).toEqual([
+      { ...original.splits[0], tags: [] },
+      { ...original.splits[1], category: 'Meal', sourceCategoryId: null },
+    ]);
+    dialog = open();
+    fireEvent.click(dialog.getByRole('button', { name: 'Remove split', exact: true }));
+    fireEvent.click(dialog.getByRole('button', { name: text('review.actions.save') }));
+    expect(reviewed()[0]).toEqual({ ...original, splits: [] });
+  });
+
+  it('allows transfer tags and appends unique bulk tags only to selected transactions', () => {
+    const first = { ...row, tags: ['Old'], transfer: true };
+    renderRows([first, row]);
+    fireEvent.click(screen.getAllByRole('button', { name: text('review.details.title') })[0]);
+    const dialog = within(screen.getByRole('dialog'));
+    expect(dialog.queryByRole('button', { name: 'Split transaction' })).not.toBeInTheDocument();
+    expect(dialog.getByText('Old')).toBeInTheDocument();
+    fireEvent.click(dialog.getByRole('button', { name: text('review.actions.cancel') }));
+    fireEvent.click(screen.getByRole('checkbox', { name: /Select transaction 1/i }));
+    const input = screen.getByRole('textbox', { name: text('review.bulkAction.addTags') });
+    const apply = screen.getByRole('button', { name: /Apply to 1/i });
+    fireEvent.change(input, { target: { value: 'x'.repeat(51) } });
+    expect(apply).toBeDisabled();
+    fireEvent.change(input, { target: { value: 'Old, New tag, New tag' } });
+    fireEvent.click(apply);
+    expect(reviewed()).toEqual([{ ...first, tags: ['Old', 'New tag'] }, row]);
   });
 
   it('deselects individual rows and the complete set without changing imported data', () => {

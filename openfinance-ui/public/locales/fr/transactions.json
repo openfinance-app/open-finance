@@ -211,6 +211,8 @@
     }
   },
   "splitForm": {
+    "notesAndTags": "Notes et étiquettes",
+    "lineDetails": "Notes et étiquettes de la ventilation {{index}}",
     "tagsLabel": "Étiquettes de la partie {{index}}",
     "categoryPlaceholder": "Sélectionner une catégorie (facultatif)...",
     "notesPlaceholder": "Note (facultatif)",
@@ -389,5 +391,10 @@
     "property": "Bien immobilier",
     "liability": "Passif",
     "clear": "Retirer le filtre : {{name}}"
+  },
+  "tagInput": {
+    "tooLong": "Utilisez au maximum 50 caractères par étiquette.",
+    "remove": "Supprimer l’étiquette {{tag}}",
+    "limit": "Limite de {{count}} étiquettes atteinte"
   }
 }

@@ -125,6 +125,7 @@ public class CsvParser {
                     "merchant",
                     "name",
                     "notes",
+                    "comment",
                     "type",
                     "checknumber",
                     "checknum",
@@ -416,41 +417,7 @@ public class CsvParser {
         }
         builder.amount(amount);
 
-        // Payee / Name / Description
-        String payee =
-                getValue(
-                        row,
-                        headerMap,
-                        "payee",
-                        "name",
-                        "description",
-                        "merchant",
-                        "title",
-                        "beneficiaire",
-                        "tiers",
-                        "libelle");
-        builder.payee(payee);
-
-        // Memo / Notes
-        String memo =
-                getValue(
-                        row,
-                        headerMap,
-                        "memo",
-                        "notes",
-                        "referencememo",
-                        "details",
-                        "note",
-                        "intitule");
-        // If no separate memo, but we have both Payee and Description, use Description
-        // as Memo
-        if (memo == null || memo.isEmpty()) {
-            String desc = getValue(row, headerMap, "description", "libelle");
-            if (desc != null && payee != null && !desc.equalsIgnoreCase(payee)) {
-                memo = desc;
-            }
-        }
-        builder.memo(memo);
+        setStatementText(builder, row, headerMap);
 
         // Category
         String category = getValue(row, headerMap, "category", "type", "categorie");
@@ -495,9 +462,55 @@ public class CsvParser {
         }
 
         ImportedTransaction transaction = builder.build();
+        transaction.useMemoForMissingPayee();
         validateTransaction(transaction, context.locale());
 
         return transaction;
+    }
+
+    private void setStatementText(
+            ImportedTransaction.ImportedTransactionBuilder builder,
+            String[] row,
+            Map<String, Integer> headers) {
+        String description = getValue(row, headers, "description", "libelle");
+        String previousPayee =
+                getValue(
+                        row,
+                        headers,
+                        "payee",
+                        "name",
+                        "description",
+                        "merchant",
+                        "title",
+                        "beneficiaire",
+                        "tiers",
+                        "libelle");
+        String namedPayee =
+                getValue(row, headers, "payee", "name", "merchant", "beneficiaire", "tiers");
+        String payee = namedPayee != null ? namedPayee : previousPayee;
+        String notes =
+                getValue(
+                        row,
+                        headers,
+                        "memo",
+                        "notes",
+                        "referencememo",
+                        "details",
+                        "note",
+                        "intitule");
+        String comment = notes == null ? getValue(row, headers, "comment") : notes;
+        String memo = memoOrDescription(comment, payee, description);
+        String previousMemo = memoOrDescription(notes, previousPayee, description);
+        builder.payee(payee).description(description).memo(memo);
+        if (!java.util.Objects.equals(payee, previousPayee)
+                || !java.util.Objects.equals(memo, previousMemo)) {
+            builder.legacyRuleText(new ImportedTransaction.RuleText(previousPayee, previousMemo));
+        }
+    }
+
+    private String memoOrDescription(String memo, String payee, String description) {
+        if (memo != null) return memo;
+        return payee != null && !payee.equalsIgnoreCase(description) ? description : null;
     }
 
     /** Get value from row by checking multiple possible header names. */

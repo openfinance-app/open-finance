@@ -1,3 +1,4 @@
+import { apiErrorMessage } from '@/utils/api-error';
 import { decimalValue, exactSum } from '@/utils/exact-decimal';
 import { FormDialog } from '@/components/ui/FormDialog';
 import { useViewState } from '@/hooks/useViewState';
@@ -84,6 +85,7 @@ export default function AccountsPage() {
     'showFilters',
     lowBalanceParam || Boolean(validInstitution)
   );
+  const [saveError, setSaveError] = useState<string | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingAccount, setEditingAccount] = useState<Account | null>(null);
   const [detailAccountId, setDetailAccountId] = useViewState<number | null>(
@@ -178,11 +180,13 @@ export default function AccountsPage() {
 
   const handleCreate = () => {
     setEditingAccount(null);
+    setSaveError(null);
     setIsFormOpen(true);
   };
 
   const handleEdit = (account: Account) => {
     setEditingAccount(account);
+    setSaveError(null);
     setIsFormOpen(true);
   };
 
@@ -205,6 +209,7 @@ export default function AccountsPage() {
   };
 
   const handleFormSubmit = async (data: AccountRequest) => {
+    setSaveError(null);
     try {
       if (editingAccount) {
         await updateAccount.mutateAsync({ id: editingAccount.id, data });
@@ -214,7 +219,7 @@ export default function AccountsPage() {
       setIsFormOpen(false);
       setEditingAccount(null);
     } catch (error) {
-      console.error('Failed to save account:', error);
+      setSaveError(apiErrorMessage(error, t('common:errors.saveFailed')));
     }
   };
 
@@ -626,6 +631,7 @@ export default function AccountsPage() {
             </DialogTitle>
           </DialogHeader>
           <AccountForm
+            serverError={saveError}
             account={editingAccount || undefined}
             onSubmit={handleFormSubmit}
             onCancel={handleFormCancel}

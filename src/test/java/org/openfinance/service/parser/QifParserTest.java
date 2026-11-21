@@ -510,7 +510,10 @@ class QifParserTest {
         ImportedTransaction tx = transactions.get(0);
         assertThat(tx.hasErrors()).isTrue();
         assertThat(tx.getValidationErrors())
-                .anyMatch(err -> err.contains("Split amounts") && err.contains("do not match"));
+                .anyMatch(
+                        err ->
+                                err.startsWith("SPLIT_INVALID: Split amounts")
+                                        && err.contains("do not match"));
     }
 
     @Test
@@ -562,7 +565,10 @@ class QifParserTest {
         ImportedTransaction tx = transactions.get(0);
         assertThat(tx.hasErrors()).isTrue();
         assertThat(tx.getValidationErrors())
-                .anyMatch(err -> err.contains("Split amounts") && err.contains("do not match"));
+                .anyMatch(
+                        err ->
+                                err.startsWith("SPLIT_INVALID: Split amounts")
+                                        && err.contains("do not match"));
     }
 
     @Test
@@ -960,6 +966,8 @@ class QifParserTest {
         assertThat(categorizedExpense.getTransactionDate()).isEqualTo(LocalDate.of(2022, 10, 6));
         assertThat(categorizedExpense.getCategory()).isEqualTo("Maison:Ménage");
         assertThat(categorizedExpense.getPayee()).isEqualTo("FACTURE CARTE");
+        assertThat(categorizedExpense.statementDescription()).isEqualTo("FACTURE CARTE");
+        assertThat(categorizedExpense.getMemo()).contains("WECASA");
         assertThat(categorizedExpense.hasErrors()).isFalse();
 
         ImportedTransaction splitExpense = transactions.get(1);
@@ -1598,6 +1606,16 @@ class QifParserTest {
             }
             return new String(inputStream.readAllBytes(), StandardCharsets.UTF_8);
         }
+    }
+
+    @Test
+    void missingPayeeFallsBackToMemoWithoutChangingExistingRuleInputs() throws IOException {
+        ImportedTransaction row =
+                parseQif("!Type:Bank\nD01/15/2024\nT-10.00\nMShop\n^\n").getFirst();
+        assertThat(row.getPayee()).isEqualTo("Shop");
+        assertThat(row.getMemo()).isEqualTo("Shop");
+        assertThat(row.getLegacyRuleText())
+                .isEqualTo(new ImportedTransaction.RuleText(null, "Shop"));
     }
 
     @Test

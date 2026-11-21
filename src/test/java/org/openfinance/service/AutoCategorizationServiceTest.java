@@ -88,6 +88,27 @@ class AutoCategorizationServiceTest {
     }
 
     @Test
+    void historyDistinguishesMerchantsInNotesWhenTwoTransactionsShareTheSameBankLabel() {
+        historicAmazon.setPayee("FACTURE CARTE");
+        historicAmazon.setDescription("FACTURE CARTE");
+        historicAmazon.setNotes("Amazon");
+        historicUberEats.setPayee("FACTURE CARTE");
+        historicUberEats.setDescription("FACTURE CARTE");
+        historicUberEats.setNotes("DU 071026 UBER");
+        when(transactionRepository.findByUserId(1L))
+                .thenReturn(List.of(historicAmazon, historicUberEats));
+        when(categoryRepository.findById(2L)).thenReturn(Optional.of(fastFoodCategory));
+        ImportedTransaction row =
+                ImportedTransaction.builder().payee("FACTURE CARTE").memo("DU 071026 UBER").build();
+        assertEquals(
+                "Fast Food",
+                autoCategorizationService
+                        .predictCategoryAndPayee(row, 1L)
+                        .orElseThrow()
+                        .suggestedCategoryName());
+    }
+
+    @Test
     void predictCategoryAndPayee_ShouldMatchSimilarAmazonTransaction() {
         // Arrange
         when(transactionRepository.findByUserId(1L))

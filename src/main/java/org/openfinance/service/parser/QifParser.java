@@ -720,6 +720,7 @@ public class QifParser {
 
         ImportedTransaction transaction = builder.build();
         recognizeOpeningBalance(transaction);
+        transaction.useMemoForMissingPayee();
         validateTransaction(transaction, locale);
 
         return transaction;
@@ -796,11 +797,12 @@ public class QifParser {
                                 > 0;
                 if (grossMismatch) {
                     transaction.addValidationError(
-                            ImportParseSupport.message(
-                                    "import.validation.split.mismatch",
-                                    locale,
-                                    totalSplitAmount,
-                                    transaction.getAmount()));
+                            "SPLIT_INVALID: "
+                                    + ImportParseSupport.message(
+                                            "import.validation.split.mismatch",
+                                            locale,
+                                            totalSplitAmount,
+                                            transaction.getAmount()));
                 }
             }
         }

@@ -504,6 +504,12 @@ public class TransactionService {
         destinationTransaction.setToAccountId(
                 request.getAccountId()); // Original source becomes "toAccount"
         destinationTransaction.setType(TransactionType.INCOME);
+        if (request.getImportedDestinationTags() != null) {
+            destinationTransaction.setTags(
+                    request.getImportedDestinationTags().isEmpty()
+                            ? null
+                            : request.getImportedDestinationTags());
+        }
 
         destinationTransaction.setAmount(destAmount);
         destinationTransaction.setCurrency(destCurrency);
@@ -528,21 +534,15 @@ public class TransactionService {
         Transaction savedDestinationTransaction =
                 transactionRepository.save(destinationTransaction);
 
-        // Index both transfer transactions in FTS
-        indexTransactionInFts(
-                savedSourceTransaction.getId(),
-                userId,
-                request.getDescription(),
-                null,
-                savedSourceTransaction.getTags(),
-                savedSourceTransaction.getPayee());
-        indexTransactionInFts(
-                savedDestinationTransaction.getId(),
-                userId,
-                request.getDescription(),
-                null,
-                savedDestinationTransaction.getTags(),
-                savedDestinationTransaction.getPayee());
+        // Both recorded legs can be found by their statement label, payee and notes.
+        syncTransactionFts(
+                savedSourceTransaction,
+                savedSourceTransaction.getDescription(),
+                savedSourceTransaction.getNotes());
+        syncTransactionFts(
+                savedDestinationTransaction,
+                savedDestinationTransaction.getDescription(),
+                savedDestinationTransaction.getNotes());
 
         // Update account balances (Requirement 2.2.5: Account balance calculation)
         // Ensure opening_date <= transaction date so net worth backfill uses these

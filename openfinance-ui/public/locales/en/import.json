@@ -181,7 +181,8 @@
       "selected": "{{count}} selected",
       "setCategory": "Set Category...",
       "setPayee": "Set Payee...",
-      "applyButton": "Apply to {{count}}"
+      "applyButton": "Apply to {{count}}",
+      "addTags": "Add tags, separated by commas"
     },
     "table": {
       "noMatches": "No transactions match the selected filter.",
@@ -193,7 +194,8 @@
       "payee": "Payee",
       "amount": "Amount",
       "category": "Category",
-      "memo": "Memo",
+      "description": "Description",
+      "notes": "Notes",
       "status": "Status",
       "validationErrors": "Validation Errors",
       "splitLines": "Split Lines",
@@ -233,7 +235,15 @@
     },
     "aiUnavailable": "AI suggestions could not be generated for some transactions. You can choose their categories manually and continue importing.",
     "aiProcessing": "AI categorization in progress ({{current}}/{{total}})...",
-    "aiProcessingDescription": "Generating suggestions for uncategorized transactions. This may take a few minutes."
+    "aiProcessingDescription": "Generating suggestions for uncategorized transactions. This may take a few minutes.",
+    "details": {
+      "editCategories": "Edit split categories",
+      "title": "Tags and splits",
+      "tags": "Transaction tags",
+      "tagPlaceholder": "Enter a tag",
+      "splitAmounts": "Enter at least two positive split amounts, with up to 18 decimal places.",
+      "tagLength": "Use up to 50 characters per tag and 500 characters in total."
+    }
   },
   "progress": {
     "preparing": "Preparing import...",

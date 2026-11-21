@@ -1,3 +1,4 @@
+import { apiErrorMessage } from '@/utils/api-error';
 import { decimalValue } from '@/utils/exact-decimal';
 import { FormDialog } from '@/components/ui/FormDialog';
 import { useAnimatedClose } from '@/hooks/useAnimatedClose';
@@ -96,6 +97,7 @@ export function AccountDetailModal({
   const [period, setPeriod] = useViewState(`account:${accountId}:period`, '3M');
   const detailScrollRef = useViewScroll(`account:${accountId}:scroll`);
   const [activeTab, setActiveTab] = useViewState<Tab>(`account:${accountId}:tab`, 'overview');
+  const [saveError, setSaveError] = useState<string | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const { format: formatCurrency } = useFormatCurrency();
   const { t: tc } = useTranslation('common');
@@ -129,12 +131,13 @@ export function AccountDetailModal({
 
   const handleEditSubmit = async (data: AccountRequest) => {
     if (!account) return;
+    setSaveError(null);
     try {
       await updateAccount.mutateAsync({ id: account.id, data });
       setIsEditModalOpen(false);
       onEdit?.();
     } catch (err) {
-      console.error('Failed to update account:', err);
+      setSaveError(apiErrorMessage(err, t('common:errors.saveFailed')));
     }
   };
 
@@ -233,7 +236,10 @@ export function AccountDetailModal({
               variant="secondary"
               size="sm"
               disabled={!!account?.liabilityConvertedAt}
-              onClick={() => setIsEditModalOpen(true)}
+              onClick={() => {
+                setSaveError(null);
+                setIsEditModalOpen(true);
+              }}
               className="hidden sm:flex"
             >
               <Edit2 className="h-4 w-4 mr-1.5" />
@@ -593,6 +599,7 @@ export function AccountDetailModal({
               <DialogTitle>{t('detail.editTitle')}</DialogTitle>
             </DialogHeader>
             <AccountForm
+              serverError={saveError}
               account={account}
               onSubmit={handleEditSubmit}
               onCancel={() => setIsEditModalOpen(false)}

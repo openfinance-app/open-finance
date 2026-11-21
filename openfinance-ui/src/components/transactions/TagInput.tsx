@@ -5,6 +5,7 @@
  * Component for entering and managing transaction tags with autocomplete functionality
  */
 import { useState, useRef, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { X } from 'lucide-react';
 import { Badge } from '@/components/ui/Badge';
 
@@ -14,6 +15,8 @@ interface TagInputProps {
   suggestions?: string[];
   placeholder?: string;
   maxTags?: number;
+  /** Keep spaces in tag names and commit pending text when leaving the field. */
+  commitOnBlur?: boolean;
   disabled?: boolean;
   'aria-label'?: string;
 }
@@ -41,12 +44,15 @@ export function TagInput({
   onChange,
   suggestions = [],
   placeholder = 'Add tags (press Enter, comma, or space)',
-  maxTags = 10,
+  commitOnBlur = false,
+  maxTags = commitOnBlur ? Infinity : 10,
   disabled = false,
   'aria-label': ariaLabel,
 }: TagInputProps) {
+  const { t } = useTranslation('transactions');
   const [inputValue, setInputValue] = useState('');
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const tooLong = commitOnBlur && inputValue.split(',').some(tag => tag.trim().length > 50);
   const [selectedSuggestionIndex, setSelectedSuggestionIndex] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
   const suggestionsRef = useRef<HTMLDivElement>(null);
@@ -78,19 +84,16 @@ export function TagInput({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const addTag = (tag: string) => {
-    const trimmedTag = tag.trim();
-
-    // Validation
-    if (!trimmedTag) return;
-    if (value.includes(trimmedTag)) return; // Duplicate
-    if (value.length >= maxTags) return; // Max limit reached
-    if (trimmedTag.length > 50) return; // Tag too long
-
-    onChange([...value, trimmedTag]);
+  const addTag = (tag: string, refocus = true) => {
+    const names = (commitOnBlur ? tag.split(',') : [tag]).map(name => name.trim()).filter(Boolean);
+    if (!names.length || names.some(name => name.length > 50)) return;
+    const updated = [...new Set([...value, ...names])];
+    if (updated.length > maxTags) return;
+    if (updated.length !== value.length) onChange(updated);
+    inputRef.current?.setCustomValidity('');
     setInputValue('');
     setShowSuggestions(false);
-    inputRef.current?.focus();
+    if (refocus) inputRef.current?.focus();
   };
 
   const removeTag = (indexToRemove: number) => {
@@ -116,7 +119,7 @@ export function TagInput({
     }
 
     // Comma or Space: Add tag (delimiter)
-    if (e.key === ',' || e.key === ' ') {
+    if (e.key === ',' || (!commitOnBlur && e.key === ' ')) {
       e.preventDefault();
       if (inputValue.trim()) {
         addTag(inputValue);
@@ -171,9 +174,9 @@ export function TagInput({
           <Badge
             key={index}
             variant="default"
-            className="flex items-center gap-1 px-2 py-1 text-xs"
+            className="flex max-w-full items-center gap-1 px-2 py-1 text-xs"
           >
-            <span>{tag}</span>
+            <span className="min-w-0 break-all whitespace-normal">{tag}</span>
             {!disabled && (
               <button
                 type="button"
@@ -181,8 +184,8 @@ export function TagInput({
                   e.stopPropagation();
                   removeTag(index);
                 }}
-                className="hover:bg-surface-elevated rounded-full p-0.5 transition-colors"
-                aria-label={`Remove tag ${tag}`}
+                className="shrink-0 hover:bg-surface-elevated rounded-full p-0.5 transition-colors"
+                aria-label={t('tagInput.remove', { tag })}
               >
                 <X className="h-3 w-3" />
               </button>
@@ -197,8 +200,17 @@ export function TagInput({
             aria-label={ariaLabel}
             type="text"
             value={inputValue}
-            onChange={handleInputChange}
+            aria-invalid={tooLong || undefined}
+            onChange={event => {
+              const invalid =
+                commitOnBlur && event.target.value.split(',').some(tag => tag.trim().length > 50);
+              event.target.setCustomValidity(invalid ? t('tagInput.tooLong') : '');
+              handleInputChange(event);
+            }}
             onKeyDown={handleInputKeyDown}
+            onBlur={() => {
+              if (commitOnBlur && inputValue.trim()) addTag(inputValue, false);
+            }}
             onFocus={() => {
               if (inputValue && filteredSuggestions.length > 0) {
                 setShowSuggestions(true);
@@ -211,9 +223,15 @@ export function TagInput({
         )}
       </div>
 
+      {tooLong && (
+        <p role="alert" className="mt-1 text-xs text-error">
+          {t('tagInput.tooLong')}
+        </p>
+      )}
+
       {/* Max Tags Warning */}
       {value.length >= maxTags && (
-        <p className="mt-1 text-xs text-warning">Maximum {maxTags} tags reached</p>
+        <p className="mt-1 text-xs text-warning">{t('tagInput.limit', { count: maxTags })}</p>
       )}
 
       {/* Autocomplete Suggestions Dropdown */}
@@ -226,6 +244,7 @@ export function TagInput({
             <button
               key={tag}
               type="button"
+              onMouseDown={event => event.preventDefault()}
               onClick={() => handleSuggestionClick(tag)}
               onMouseEnter={() => setSelectedSuggestionIndex(index)}
               className={`

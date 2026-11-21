@@ -123,6 +123,40 @@ class ImportedOpeningBalanceBoundaryTest {
         assertThat(account.getBalance()).isEqualByComparingTo("112.34");
     }
 
+    @ParameterizedTest
+    @CsvSource({
+        "EUR,123.44994317,123.45,200.12,true",
+        "EUR,99.990,99.995,100.00,true",
+        "EUR,100.004,100.000,100.00,true",
+        "EUR,100.005,100.000,100.00,false",
+        "EUR,-100.005,-100.000,-100.00,false",
+        "EUR,100.01,100,100,false",
+        "JPY,100.4,100,100,true",
+        "KWD,100.004,100.000,100,false",
+        "EUR,99.9999,100,,false"
+    })
+    void comparesOnlyReportedBalancesAtTheirStatementPrecision(
+            String currency,
+            BigDecimal ledger,
+            BigDecimal opening,
+            BigDecimal closing,
+            boolean matches) {
+        Account account = account();
+        account.setCurrency(currency);
+        account.setOpeningBalance(ledger);
+        account.setBalance(ledger);
+        if (matches) {
+            service.reconcile(account, opening, currency, date, 7L, closing);
+        } else {
+            assertThatThrownBy(
+                            () -> service.reconcile(account, opening, currency, date, 7L, closing))
+                    .isInstanceOf(InvalidTransactionException.class);
+        }
+        assertThat(account.getOpeningBalance()).isEqualTo(ledger);
+        assertThat(account.getBalance()).isEqualTo(ledger);
+        verify(accounts, never()).save(account);
+    }
+
     @Test
     void aConflictingOpeningNeverOverwritesAnExistingBalance() {
         Account account = account();

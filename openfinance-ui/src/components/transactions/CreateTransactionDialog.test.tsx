@@ -8,6 +8,7 @@ import { CreateTransactionDialog } from '@/components/transactions/CreateTransac
 
 vi.mock('@/components/transactions/TransactionForm', () => ({
   TransactionForm: ({
+    serverError,
     onSubmit,
     onCancel,
     isLoading,
@@ -15,8 +16,10 @@ vi.mock('@/components/transactions/TransactionForm', () => ({
     onSubmit: (data: TransactionRequest) => void;
     onCancel: () => void;
     isLoading?: boolean;
+    serverError?: string | null;
   }) => (
     <>
+      {serverError && <p role="alert">{serverError}</p>}
       {(['EXPENSE', 'TRANSFER'] as const).map(type => (
         <button
           key={type}
@@ -76,7 +79,10 @@ describe('CreateTransactionDialog', () => {
       http.post('/api/v1/transactions', () => {
         attempts += 1;
         return attempts === 1
-          ? HttpResponse.json({ message: 'Payment could not be saved' }, { status: 503 })
+          ? HttpResponse.json(
+              { message: 'Payment could not be saved', validationErrors: {} },
+              { status: 503 }
+            )
           : HttpResponse.json({ id: 2 }, { status: 201 });
       })
     );

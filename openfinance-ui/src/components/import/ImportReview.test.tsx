@@ -511,7 +511,7 @@ describe('ImportReview source categories', () => {
     expect(screen.getByLabelText('New categories')).toBeEmptyDOMElement();
   });
 
-  it('shows the effective reviewed merchant after a rule or manual edit', () => {
+  it('shows the reviewed payee, original description and notes in their own columns', () => {
     renderWithProviders(
       <ImportReview
         transactions={[
@@ -521,6 +521,7 @@ describe('ImportReview source categories', () => {
             amount: -54.8,
             currency: 'EUR',
             originalPayee: 'Original shop',
+            memo: 'Card receipt',
             payee: 'Reviewed shop',
             category: null,
             validationErrors: [],
@@ -535,7 +536,16 @@ describe('ImportReview source categories', () => {
       />
     );
     expect(screen.getByText('Reviewed shop')).toBeVisible();
-    expect(screen.queryByText('Original shop')).not.toBeInTheDocument();
+    expect(screen.getByRole('columnheader', { name: 'Description' })).toBeVisible();
+    expect(screen.getByRole('cell', { name: 'Original shop' })).toBeVisible();
+    expect(screen.getByRole('columnheader', { name: 'Notes' })).toBeVisible();
+    expect(screen.getByRole('cell', { name: 'Card receipt' })).toBeVisible();
+    const headers = screen.getAllByRole('columnheader').map(header => header.textContent);
+    expect(headers.indexOf('Notes')).toBeLessThan(headers.indexOf('Description'));
+    const cells = screen.getAllByRole('cell').map(cell => cell.textContent);
+    expect(cells.findIndex(value => value?.includes('Card receipt'))).toBeLessThan(
+      cells.findIndex(value => value?.includes('Original shop'))
+    );
   });
 
   it.each(['Food', 'Food:Dining'])(

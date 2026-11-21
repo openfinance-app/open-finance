@@ -47,11 +47,7 @@ public class SkroogeJsonParser {
      */
     private static final Set<String> CURRENCY_UNIT_TYPES = Set.of("1", "2", "C");
 
-    /**
-     * Generic bank-statement payee labels (accent-normalised, upper-case) that carry no merchant
-     * information — the operation comment is a better payee than these. Covers the common
-     * French/English/German/Spanish labels found in Skrooge exports.
-     */
+    /** Labels whose comments were historically used as the payee in import rules. */
     private static final Set<String> GENERIC_PAYEES =
             Set.of(
                     // French
@@ -879,8 +875,6 @@ public class SkroogeJsonParser {
         ImportedTransaction.ImportedTransactionBuilder builder =
                 ImportedTransaction.builder()
                         .transactionDate(opDate)
-                        .payee(resolvePayee(payee, comment, textValue(operation, "t_mode")))
-                        .originalPayee(payee != null ? textValue(payee, "t_name") : null)
                         .amount(signedAmount)
                         .memo(comment)
                         .category(category != null ? textValue(category, "t_fullname") : null)
@@ -899,6 +893,7 @@ public class SkroogeJsonParser {
                         .toAccountSourceId(longValue(otherOperation, "rd_account_id"))
                         .clearedStatus(resolveClearedStatus(operation))
                         .sourceFileName(fileName);
+        setPayee(builder, payee, comment, textValue(operation, "t_mode"));
         retainSourceAmount(
                 builder, originalAmount, signedAmount, unitId, accountCurrency, unitsById);
         return builder.build();
@@ -955,7 +950,6 @@ public class SkroogeJsonParser {
         JsonNode account = accountsById.get(accountSourceId);
         JsonNode payee = payeesById.get(longValue(operation, "r_payee_id"));
         String comment = textValue(operation, "t_comment");
-        String payeeName = resolvePayee(payee, comment, textValue(operation, "t_mode"));
         Long unitId = longValue(operation, "rc_unit_id");
         LocalDate opDate = parseDate(operation);
         String accountCurrency =
@@ -983,8 +977,6 @@ public class SkroogeJsonParser {
         ImportedTransaction.ImportedTransactionBuilder builder =
                 ImportedTransaction.builder()
                         .transactionDate(opDate)
-                        .payee(payeeName)
-                        .originalPayee(payee != null ? textValue(payee, "t_name") : null)
                         .amount(signedAmount)
                         .memo(comment)
                         .referenceNumber(skroogeOperationReference(operation))
@@ -996,6 +988,7 @@ public class SkroogeJsonParser {
                                 accountBalanceDeltasByOperationId.get(operationId))
                         .clearedStatus(resolveClearedStatus(operation))
                         .sourceFileName(fileName);
+        setPayee(builder, payee, comment, textValue(operation, "t_mode"));
         retainSourceAmount(
                 builder, originalAmount, signedAmount, unitId, accountCurrency, unitsById);
 
@@ -1686,16 +1679,18 @@ public class SkroogeJsonParser {
         return "Institution " + bankId;
     }
 
-    private String resolvePayee(JsonNode payeeNode, String comment, String fallbackMode) {
-        String payeeName = payeeNode != null ? textValue(payeeNode, "t_name") : "";
-        if (!payeeName.isBlank()
-                && !GENERIC_PAYEES.contains(normalizeKeyword(payeeName).toUpperCase(Locale.ROOT))) {
-            return payeeName;
+    private void setPayee(
+            ImportedTransaction.ImportedTransactionBuilder builder,
+            JsonNode payeeNode,
+            String comment,
+            String mode) {
+        String name = textValue(payeeNode, "t_name");
+        String fallback = comment.isBlank() ? mode : comment;
+        builder.payee(name.isBlank() ? fallback : name).originalPayee(name.isBlank() ? null : name);
+        if (GENERIC_PAYEES.contains(normalizeKeyword(name).toUpperCase(Locale.ROOT))
+                && !name.equals(fallback)) {
+            builder.legacyRuleText(new ImportedTransaction.RuleText(fallback, comment));
         }
-        if (!comment.isBlank()) {
-            return comment;
-        }
-        return fallbackMode;
     }
 
     private String resolveAccountNumber(JsonNode accountNode) {

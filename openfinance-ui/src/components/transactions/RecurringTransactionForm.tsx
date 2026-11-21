@@ -1,3 +1,4 @@
+import { FormActions } from '@/components/ui/FormActions';
 import { useToday } from '@/hooks/useReportingCalendar';
 import { FormSection } from '@/components/ui/FormSection';
 import { OptionalDetails } from '@/components/ui/OptionalDetails';
@@ -14,13 +15,11 @@ import { useEffect, useMemo } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { AlertCircle } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { DateInput } from '@/components/ui/DateInput';
 import { NumberInput } from '@/components/ui/NumberInput';
-import { Alert, AlertDescription } from '@/components/ui/Alert';
 import { CategorySelect } from '@/components/ui/CategorySelect';
 import { PayeeSelector } from '@/components/ui/PayeeSelector';
 import { CurrencySelector } from '@/components/ui/CurrencySelector';
@@ -568,23 +567,15 @@ export function RecurringTransactionForm({
           </div>
         </div>
       </OptionalDetails>
-      {/* Error Alert */}
-      {error && (
-        <Alert variant="destructive" className="mb-4">
-          <AlertCircle className="h-4 w-4" />
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
-      )}
-
       {/* Form Actions */}
-      <div className="form-actions">
+      <FormActions error={error}>
         <Button type="button" variant="secondary" onClick={cancelWithGuard} disabled={isSubmitting}>
           {t('form.cancel')}
         </Button>
         <Button type="submit" disabled={isSubmitting}>
           {isSubmitting ? t('form.saving') : isEditing ? t('form.update') : t('form.create')}
         </Button>
-      </div>
+      </FormActions>
     </form>
   );
 }

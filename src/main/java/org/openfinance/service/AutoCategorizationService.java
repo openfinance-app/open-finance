@@ -47,8 +47,12 @@ public class AutoCategorizationService {
     @Transactional(readOnly = true)
     public Optional<Prediction> predictCategoryAndPayee(
             ImportedTransaction importedTx, Long userId) {
-        // Build analysis string from imported transaction (payee + memo)
-        String analysisString = buildAnalysisString(importedTx.getPayee(), importedTx.getMemo());
+        // Compare the same fields before and after posting.
+        String analysisString =
+                buildAnalysisString(
+                        importedTx.getPayee(),
+                        importedTx.statementDescription(),
+                        importedTx.getMemo());
         if (analysisString.trim().isEmpty()) {
             return Optional.empty();
         }
@@ -82,7 +86,10 @@ public class AutoCategorizationService {
 
         for (Transaction historicalTx : historicalTransactions) {
             String historicalAnalysisString =
-                    buildAnalysisString(historicalTx.getPayee(), historicalTx.getDescription());
+                    buildAnalysisString(
+                            historicalTx.getPayee(),
+                            historicalTx.getDescription(),
+                            historicalTx.getNotes());
             Set<String> historicalTokens = tokenize(historicalAnalysisString);
 
             double score = calculateJaccardSimilarity(importTokens, historicalTokens);
@@ -109,16 +116,10 @@ public class AutoCategorizationService {
         return Optional.empty();
     }
 
-    /** Builds a single string for analysis by combining payee and memo/description. */
-    private String buildAnalysisString(String payee, String memo) {
-        StringBuilder sb = new StringBuilder();
-        if (payee != null) {
-            sb.append(payee).append(" ");
-        }
-        if (memo != null) {
-            sb.append(memo);
-        }
-        return sb.toString().trim();
+    private String buildAnalysisString(String payee, String description, String notes) {
+        return java.util.stream.Stream.of(payee, description, notes)
+                .filter(java.util.Objects::nonNull)
+                .collect(Collectors.joining(" "));
     }
 
     /** Tokenizes a string into lowercase alphanumeric tokens. */

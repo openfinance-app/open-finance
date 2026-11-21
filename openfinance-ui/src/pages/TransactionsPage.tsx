@@ -445,6 +445,7 @@ export default function TransactionsPage() {
             </DialogTitle>
           </DialogHeader>
           <TransactionForm
+            serverError={saveError}
             transaction={editingTransaction || undefined}
             accounts={accounts}
             categories={categories}
@@ -457,11 +458,6 @@ export default function TransactionsPage() {
               updateTransfer.isPending
             }
           />
-          {saveError && (
-            <p role="alert" className="text-sm text-error">
-              {saveError}
-            </p>
-          )}
         </DialogContent>
       </FormDialog>
 

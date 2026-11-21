@@ -52,11 +52,13 @@ vi.mock('@/components/liabilities/LiabilityForm', () => ({
   LiabilityForm: ({
     onSubmit,
     onCancel,
+    serverError,
     initialType,
     initialCurrency,
     showPropertyLink,
   }: ComponentProps<typeof import('@/components/liabilities/LiabilityForm').LiabilityForm>) => (
     <div>
+      {serverError && <p role="alert">{serverError}</p>}
       <p>
         Loan defaults: {initialType} / {initialCurrency} / property link {String(showPropertyLink)}
       </p>

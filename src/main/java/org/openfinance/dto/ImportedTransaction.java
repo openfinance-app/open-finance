@@ -39,6 +39,27 @@ public class ImportedTransaction {
     /** Original Payee/merchant name parsed from the file before any modification. */
     private String originalPayee;
 
+    /** Separate description supplied by formats such as CSV. */
+    private String description;
+
+    /** Only present when older parsers supplied different text to rule conditions. */
+    private RuleText legacyRuleText;
+
+    public record RuleText(String payee, String memo) {}
+
+    public void useMemoForMissingPayee() {
+        if ((payee == null || payee.isBlank()) && memo != null && !memo.isBlank()) {
+            if (legacyRuleText == null) legacyRuleText = new RuleText(payee, memo);
+            payee = memo;
+        }
+    }
+
+    /** Text booked as Description, independent of subsequent payee or notes edits. */
+    public String statementDescription() {
+        if (description != null) return description;
+        return originalPayee != null ? originalPayee : payee;
+    }
+
     /** Transaction amount (required) Negative for expenses, positive for income */
     @JsonFormat(shape = JsonFormat.Shape.STRING)
     private BigDecimal amount;
