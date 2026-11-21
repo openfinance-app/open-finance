@@ -86,6 +86,56 @@ async function expenseForm(page: Page, date: string, amount: string) {
   return dialog;
 }
 
+test('linked operation stays fully reachable above the transaction footer', async ({
+  page,
+}, testInfo) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.goto('/transactions');
+  await page
+    .getByRole('button', { name: /add transaction/i })
+    .first()
+    .click();
+  const dialog = page.getByRole('dialog');
+  const summary = dialog.locator('summary').filter({ hasText: 'Linked operation' });
+  const footer = dialog.locator('.form-actions');
+  await expect(summary).toBeVisible();
+
+  for (const viewport of [
+    { width: 1280, height: 900 },
+    { width: 850, height: 600 },
+    { width: 375, height: 667 },
+  ]) {
+    await page.setViewportSize(viewport);
+    await summary.scrollIntoViewIfNeeded();
+    await expect
+      .poll(async () => {
+        const row = (await summary.boundingBox())!;
+        return (await footer.boundingBox())!.y - row.y - row.height;
+      })
+      .toBeGreaterThanOrEqual(0);
+    await summary.focus();
+    await page.keyboard.press('Enter');
+    const operation = dialog.getByLabel('Operation', { exact: true });
+    await operation.scrollIntoViewIfNeeded();
+    await expect(operation).toBeInViewport({ ratio: 1 });
+    expect(
+      await operation.evaluate(el => {
+        const box = el.getBoundingClientRect();
+        return el.contains(document.elementFromPoint(box.left + box.width / 2, box.bottom - 1));
+      })
+    ).toBe(true);
+    await summary.click();
+    await expect(operation).toBeHidden();
+    await expect(footer.getByRole('button', { name: /create transaction/i })).toBeInViewport({
+      ratio: 1,
+    });
+    await testInfo.attach(`linked-operation-${viewport.width}`, {
+      body: await dialog.screenshot(),
+      contentType: 'image/png',
+    });
+  }
+});
+
 test('dated improvements entered through the form preserve wealth in either date order', async ({
   page,
 }) => {
@@ -198,7 +248,7 @@ test('a repayment before origination is rejected through the transaction form', 
     await page.setViewportSize(viewport);
     // The error should be readable while the user is editing anywhere in the form.
     for (const top of [0, 100000]) {
-      await dialog.evaluate((node, scrollTop) => {
+      await dialog.locator('.finance-form-fields').evaluate((node, scrollTop) => {
         node.scrollTop = scrollTop;
       }, top);
       await expect(alert).toBeInViewport({ ratio: 1 });

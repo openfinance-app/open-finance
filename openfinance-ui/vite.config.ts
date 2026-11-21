@@ -14,6 +14,10 @@ export default defineConfig({
     port: 3000,
     // Listen on all interfaces so the dev container's published port reaches Vite.
     host: true,
+    // Editors can truncate a file before rewriting it. Invalidate its cached module after the save settles.
+    watch: {
+      awaitWriteFinish: { stabilityThreshold: 150, pollInterval: 25 },
+    },
     proxy: {
       '/api': {
         target: 'http://localhost:8080',

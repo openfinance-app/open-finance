@@ -1,4 +1,4 @@
-import { FormActions } from '@/components/ui/FormActions';
+import { FinanceForm } from '@/components/ui/FinanceForm';
 import { useToday } from '@/hooks/useReportingCalendar';
 import { FormSection } from '@/components/ui/FormSection';
 import { useFormDraft } from '@/hooks/useFormDraft';
@@ -297,13 +297,24 @@ export function AssetForm({
 
   return (
     <>
-      <form
+      <FinanceForm
         onSubmit={handleFormSubmit}
         noValidate
         className={
           purchaseMode
-            ? 'finance-form [&_input]:min-h-11 [&_input]:text-base [&_select]:min-h-11 [&_select]:text-base [&_input[inputmode=decimal]]:font-mono [&_input[inputmode=decimal]]:tabular-nums md:[&_input]:min-h-10 md:[&_input]:text-sm md:[&_select]:min-h-10 md:[&_select]:text-sm'
-            : 'finance-form'
+            ? '[&_input]:min-h-11 [&_input]:text-base [&_select]:min-h-11 [&_select]:text-base [&_input[inputmode=decimal]]:font-mono [&_input[inputmode=decimal]]:tabular-nums md:[&_input]:min-h-10 md:[&_input]:text-sm md:[&_select]:min-h-10 md:[&_select]:text-sm'
+            : undefined
+        }
+        error={serverError}
+        actions={
+          <>
+            <Button variant="ghost" type="button" onClick={cancelWithGuard} disabled={isLoading}>
+              {t('form.cancel')}
+            </Button>
+            <Button variant="primary" type="submit" isLoading={isLoading}>
+              {submitLabel ?? (isEditing ? t('form.updateAsset') : t('form.createAsset'))}
+            </Button>
+          </>
         }
       >
         <FormSection title={t('common:formLayout.assetIdentity')}>
@@ -828,16 +839,7 @@ export function AssetForm({
             {errors.notes && <p className="mt-1 text-sm text-error">{errors.notes.message}</p>}
           </div>
         </OptionalDetails>
-        {/* Actions */}
-        <FormActions error={serverError}>
-          <Button variant="ghost" type="button" onClick={cancelWithGuard} disabled={isLoading}>
-            {t('form.cancel')}
-          </Button>
-          <Button variant="primary" type="submit" isLoading={isLoading}>
-            {submitLabel ?? (isEditing ? t('form.updateAsset') : t('form.createAsset'))}
-          </Button>
-        </FormActions>
-      </form>
+      </FinanceForm>
     </>
   );
 }

@@ -1,4 +1,4 @@
-import { FormActions } from '@/components/ui/FormActions';
+import { FinanceForm } from '@/components/ui/FinanceForm';
 import { useToday } from '@/hooks/useReportingCalendar';
 import { FormSection } from '@/components/ui/FormSection';
 import { useFormDraft } from '@/hooks/useFormDraft';
@@ -292,7 +292,21 @@ export function LiabilityForm({
   });
 
   return (
-    <form onSubmit={handleFormSubmit} noValidate className="finance-form">
+    <FinanceForm
+      onSubmit={handleFormSubmit}
+      noValidate
+      error={serverError}
+      actions={
+        <>
+          <Button variant="ghost" type="button" onClick={cancelWithGuard} disabled={isLoading}>
+            {t('form.cancel')}
+          </Button>
+          <Button variant="primary" type="submit" isLoading={isLoading}>
+            {isEditing ? t('form.update') : t('form.create')}
+          </Button>
+        </>
+      }
+    >
       {!isEditing && watch('type') !== 'CREDIT_CARD' && (
         <div className="space-y-2 border-b border-border pb-4">
           <div className="flex items-center gap-1.5">
@@ -861,15 +875,6 @@ export function LiabilityForm({
             </label>
           </OptionalDetails>
         )}
-      {/* Actions */}
-      <FormActions error={serverError}>
-        <Button variant="ghost" type="button" onClick={cancelWithGuard} disabled={isLoading}>
-          {t('form.cancel')}
-        </Button>
-        <Button variant="primary" type="submit" isLoading={isLoading}>
-          {isEditing ? t('form.update') : t('form.create')}
-        </Button>
-      </FormActions>
-    </form>
+    </FinanceForm>
   );
 }

@@ -1,4 +1,4 @@
-import { FormActions } from '@/components/ui/FormActions';
+import { FinanceForm } from '@/components/ui/FinanceForm';
 import { useToday } from '@/hooks/useReportingCalendar';
 import { FormSection } from '@/components/ui/FormSection';
 import { OptionalDetails } from '@/components/ui/OptionalDetails';
@@ -262,7 +262,20 @@ export function AccountForm({
   });
 
   return (
-    <form onSubmit={handleFormSubmit} className="finance-form">
+    <FinanceForm
+      onSubmit={handleFormSubmit}
+      error={serverError}
+      actions={
+        <>
+          <Button variant="ghost" type="button" onClick={cancelWithGuard} disabled={isLoading}>
+            {t('form.cancel')}
+          </Button>
+          <Button variant="primary" type="submit" isLoading={isLoading}>
+            {isEditing ? t('form.updateAccount') : t('form.createAccount')}
+          </Button>
+        </>
+      }
+    >
       <FormSection title={t('common:formLayout.accountIdentity')}>
         <div className="grid grid-cols-1 min-[480px]:grid-cols-2 gap-3 sm:gap-x-4">
           <div>
@@ -656,16 +669,6 @@ export function AccountForm({
           </div>
         )}
       </div>
-
-      {/* Actions */}
-      <FormActions error={serverError}>
-        <Button variant="ghost" type="button" onClick={cancelWithGuard} disabled={isLoading}>
-          {t('form.cancel')}
-        </Button>
-        <Button variant="primary" type="submit" isLoading={isLoading}>
-          {isEditing ? t('form.updateAccount') : t('form.createAccount')}
-        </Button>
-      </FormActions>
-    </form>
+    </FinanceForm>
   );
 }

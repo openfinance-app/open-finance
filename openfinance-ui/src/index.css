@@ -3,13 +3,15 @@
 @import 'tw-animate-css';
 
 /* Task-focused forms: compact groups, consistent controls, quiet disclosures. */
-.finance-form {
+.finance-form,
+.finance-form-fields {
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
 }
 
-.finance-form > * {
+.finance-form-fields > * {
+  flex: none;
   margin-block: 0;
 }
 
@@ -23,17 +25,37 @@
 }
 
 .finance-form .form-actions {
-  position: sticky;
-  bottom: 0;
-  z-index: 10;
+  flex: none;
   display: flex;
   flex-wrap: wrap;
   justify-content: flex-end;
   gap: 0.75rem;
-  margin: 0 -1.5rem -1.5rem;
-  padding: 1rem 1.5rem;
+  padding-block: 1rem;
   border-top: 1px solid var(--color-border);
   background: var(--color-surface);
+}
+
+/* Reserve separate space for the title, scrollable fields, and form actions. */
+.detail-panel:has(> .finance-form) {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding-bottom: 0;
+}
+
+.detail-panel > .finance-form {
+  min-height: 0;
+}
+
+.detail-panel > .finance-form > .finance-form-fields {
+  min-height: 0;
+  overflow: auto;
+  padding-block: 0.25rem;
+}
+
+.detail-panel > .finance-form > :is(.finance-form-fields, .form-actions) {
+  margin-inline: -1.5rem;
+  padding-inline: 1.5rem;
 }
 
 .filter-panel select {

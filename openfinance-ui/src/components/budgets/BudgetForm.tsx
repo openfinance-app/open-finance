@@ -1,4 +1,4 @@
-import { FormActions } from '@/components/ui/FormActions';
+import { FinanceForm } from '@/components/ui/FinanceForm';
 import { useToday } from '@/hooks/useReportingCalendar';
 import { FormSection } from '@/components/ui/FormSection';
 import { OptionalDetails } from '@/components/ui/OptionalDetails';
@@ -171,7 +171,20 @@ export function BudgetForm({
   });
 
   return (
-    <form onSubmit={handleFormSubmit} className="finance-form">
+    <FinanceForm
+      onSubmit={handleFormSubmit}
+      error={serverError}
+      actions={
+        <>
+          <Button variant="ghost" type="button" onClick={onCancel} disabled={isLoading}>
+            {t('form.cancel')}
+          </Button>
+          <Button variant="primary" type="submit" isLoading={isLoading}>
+            {isEditing ? t('form.updateBudget') : t('form.createBudget')}
+          </Button>
+        </>
+      }
+    >
       <FormSection title={t('common:formLayout.budgetPlan')}>
         {/* Row 1: Category and Period */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -376,15 +389,6 @@ export function BudgetForm({
           {errors.notes && <p className="mt-1 text-sm text-error">{errors.notes.message}</p>}
         </div>
       </OptionalDetails>
-      {/* Actions */}
-      <FormActions error={serverError}>
-        <Button variant="ghost" type="button" onClick={onCancel} disabled={isLoading}>
-          {t('form.cancel')}
-        </Button>
-        <Button variant="primary" type="submit" isLoading={isLoading}>
-          {isEditing ? t('form.updateBudget') : t('form.createBudget')}
-        </Button>
-      </FormActions>
-    </form>
+    </FinanceForm>
   );
 }

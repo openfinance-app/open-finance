@@ -1,4 +1,4 @@
-import { FormActions } from '@/components/ui/FormActions';
+import { FinanceForm } from '@/components/ui/FinanceForm';
 import { useToday } from '@/hooks/useReportingCalendar';
 import { FormSection } from '@/components/ui/FormSection';
 import { OptionalDetails } from '@/components/ui/OptionalDetails';
@@ -287,7 +287,25 @@ export function RecurringTransactionForm({
   };
 
   return (
-    <form onSubmit={handleSubmit(handleFormSubmit)} className="finance-form">
+    <FinanceForm
+      onSubmit={handleSubmit(handleFormSubmit)}
+      error={error}
+      actions={
+        <>
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={cancelWithGuard}
+            disabled={isSubmitting}
+          >
+            {t('form.cancel')}
+          </Button>
+          <Button type="submit" disabled={isSubmitting}>
+            {isSubmitting ? t('form.saving') : isEditing ? t('form.update') : t('form.create')}
+          </Button>
+        </>
+      }
+    >
       <FormSection title={t('common:formLayout.recurringPayment')}>
         {/* Row 1: Type, Amount, Currency */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -568,15 +586,6 @@ export function RecurringTransactionForm({
           </div>
         </div>
       </OptionalDetails>
-      {/* Form Actions */}
-      <FormActions error={error}>
-        <Button type="button" variant="secondary" onClick={cancelWithGuard} disabled={isSubmitting}>
-          {t('form.cancel')}
-        </Button>
-        <Button type="submit" disabled={isSubmitting}>
-          {isSubmitting ? t('form.saving') : isEditing ? t('form.update') : t('form.create')}
-        </Button>
-      </FormActions>
-    </form>
+    </FinanceForm>
   );
 }

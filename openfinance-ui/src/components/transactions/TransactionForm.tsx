@@ -1,4 +1,4 @@
-import { FormActions } from '@/components/ui/FormActions';
+import { FinanceForm } from '@/components/ui/FinanceForm';
 import { useToday } from '@/hooks/useReportingCalendar';
 import { FormSection } from '@/components/ui/FormSection';
 import { OptionalDetails } from '@/components/ui/OptionalDetails';
@@ -771,7 +771,25 @@ export function TransactionForm({
   };
 
   return (
-    <form onSubmit={handleSubmit(handleFormSubmit)} className="finance-form">
+    <FinanceForm
+      onSubmit={handleSubmit(handleFormSubmit)}
+      error={serverError}
+      actions={
+        <>
+          <Button variant="ghost" type="button" onClick={cancelWithGuard} disabled={isLoading}>
+            {t('form.cancel')}
+          </Button>
+          <Button
+            variant="primary"
+            type="submit"
+            isLoading={isLoading}
+            disabled={investmentBlocked || !!linkedOperationError}
+          >
+            {isEditing ? t('form.updateTransaction') : t('form.createTransaction')}
+          </Button>
+        </>
+      }
+    >
       {/* Row 1: Type & Date */}
       <div className="grid grid-cols-1 min-[360px]:grid-cols-2 gap-4">
         {/* Transaction Type */}
@@ -1551,21 +1569,6 @@ export function TransactionForm({
           </div>
         )}
       </LinkedOperationSection>
-
-      {/* Actions */}
-      <FormActions error={serverError}>
-        <Button variant="ghost" type="button" onClick={cancelWithGuard} disabled={isLoading}>
-          {t('form.cancel')}
-        </Button>
-        <Button
-          variant="primary"
-          type="submit"
-          isLoading={isLoading}
-          disabled={investmentBlocked || !!linkedOperationError}
-        >
-          {isEditing ? t('form.updateTransaction') : t('form.createTransaction')}
-        </Button>
-      </FormActions>
-    </form>
+    </FinanceForm>
   );
 }

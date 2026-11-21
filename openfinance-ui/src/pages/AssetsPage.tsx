@@ -788,7 +788,7 @@ export default function AssetsPage() {
                   type="button"
                   variant="secondary"
                   size="sm"
-                  className="justify-self-start"
+                  className="self-start"
                   onClick={() => {
                     setCreationType(null);
                     setCreationIntent(null);

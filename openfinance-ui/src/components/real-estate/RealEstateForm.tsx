@@ -1,4 +1,4 @@
-import { FormActions } from '@/components/ui/FormActions';
+import { FinanceForm } from '@/components/ui/FinanceForm';
 import { useToday } from '@/hooks/useReportingCalendar';
 import { FormSection } from '@/components/ui/FormSection';
 import { useEffect } from 'react';
@@ -229,7 +229,21 @@ export function RealEstateForm({
   });
 
   return (
-    <form onSubmit={handleFormSubmit} noValidate className="finance-form">
+    <FinanceForm
+      onSubmit={handleFormSubmit}
+      noValidate
+      error={serverError}
+      actions={
+        <>
+          <Button variant="ghost" type="button" onClick={onCancel} disabled={isLoading}>
+            {t('form.cancel')}
+          </Button>
+          <Button variant="primary" type="submit" isLoading={isLoading}>
+            {isEditing ? t('form.updateProperty') : t('form.createProperty')}
+          </Button>
+        </>
+      }
+    >
       <div>
         <div className="mb-1.5 flex items-center gap-2">
           <label htmlFor="acquisitionType">{t('form.acquisitionType')}</label>
@@ -616,15 +630,6 @@ export function RealEstateForm({
           </div>
         )}
       </OptionalDetails>
-      {/* Actions */}
-      <FormActions error={serverError}>
-        <Button variant="ghost" type="button" onClick={onCancel} disabled={isLoading}>
-          {t('form.cancel')}
-        </Button>
-        <Button variant="primary" type="submit" isLoading={isLoading}>
-          {isEditing ? t('form.updateProperty') : t('form.createProperty')}
-        </Button>
-      </FormActions>
-    </form>
+    </FinanceForm>
   );
 }
