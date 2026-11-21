@@ -486,6 +486,103 @@ test('repairing an unbalanced QIF split in review makes the row importable', asy
   await expect.poll(async () => (await api(page, `/accounts/${account.id}`)).balance).toBe(974.5);
 });
 
+test('clear all dismisses system notifications and every triggered budget alert', async ({
+  page,
+}, testInfo) => {
+  await completeOnboarding(page);
+  const account = await accountFixture(page);
+  const category = await api(page, '/categories', { name: 'Panel test' }, 'POST');
+  const budget = await api(
+    page,
+    '/budgets',
+    {
+      categoryId: category.id,
+      amount: '100',
+      currency: 'EUR',
+      period: 'MONTHLY',
+      startDate: today.slice(0, 7) + '-01',
+      endDate: today.slice(0, 4) + '-12-31',
+      rollover: false,
+    },
+    'POST'
+  );
+  await api(
+    page,
+    '/transactions',
+    {
+      accountId: account.id,
+      categoryId: category.id,
+      amount: '90',
+      currency: 'EUR',
+      type: 'EXPENSE',
+      date: today,
+    },
+    'POST'
+  );
+  for (const threshold of [11, 12, 13, 14, 15, 16, 17]) {
+    await api(page, `/budgets/alerts?budgetId=${budget.id}`, { threshold }, 'POST');
+  }
+  const budgetCount = await api(page, '/budgets/alerts/unread/count');
+  expect(budgetCount).toBeGreaterThanOrEqual(7);
+  await page.reload();
+  const bell = page.getByRole('button', { name: /^Notifications \(/ });
+  await bell.click();
+  const panel = page.getByRole('region', { name: 'Notifications' });
+  const clear = panel.getByRole('button', { name: 'Clear all' });
+  const balanceNotification = panel.getByRole('button', {
+    name: 'Low Account Balance',
+    exact: true,
+  });
+  await expect(panel.getByRole('button', { name: /^Budget alert:/ })).toHaveCount(5);
+  await expect(balanceNotification).toBeVisible();
+  for (const width of [1280, 375]) {
+    await page.setViewportSize({ width, height: 800 });
+    await expect(clear).toBeInViewport();
+    await testInfo.attach(`notifications-${width}`, {
+      body: await panel.screenshot(),
+      contentType: 'image/png',
+    });
+  }
+  const unread = Number((await bell.getAttribute('aria-label'))?.match(/\d+/)?.[0]);
+  const dismissBalance = panel.getByRole('button', { name: 'Dismiss Low Account Balance' });
+  await dismissBalance.press('Enter');
+  await expect(balanceNotification).toHaveCount(0);
+  await expect(bell).toHaveAccessibleName(`Notifications (${unread - 1} unread)`);
+  await page.reload();
+  await bell.click();
+  await expect(panel.getByRole('button', { name: /^Budget alert:/ })).toHaveCount(5);
+  await expect(dismissBalance).toHaveCount(0);
+
+  const budgetDismissals = panel.getByRole('button', { name: /^Dismiss .+ alert at / });
+  const label = await budgetDismissals.first().getAttribute('aria-label');
+  const dismissBudget = panel.getByRole('button', { name: label!, exact: true });
+  await page.route('**/budgets/alerts/*/read', route => route.fulfill({ status: 503 }), {
+    times: 1,
+  });
+  await dismissBudget.click();
+  await expect(panel.getByRole('alert')).toHaveText('Couldn’t dismiss this alert. Try again.');
+  await dismissBudget.click();
+  await expect(dismissBudget).toHaveCount(0);
+  await expect(bell).toHaveAccessibleName(`Notifications (${unread - 2} unread)`);
+  expect(await api(page, '/budgets/alerts/unread/count')).toBe(budgetCount - 1);
+  await expect(budgetDismissals).toHaveCount(5);
+  await page.route('**/budgets/alerts/read-all', route => route.fulfill({ status: 503 }), {
+    times: 1,
+  });
+  await clear.press('Enter');
+  await expect(panel.getByRole('alert')).toHaveText('Couldn’t clear budget alerts. Try again.');
+  await expect(panel.getByRole('button', { name: /^Budget alert:/ })).toHaveCount(5);
+  await expect(balanceNotification).toHaveCount(0);
+  await clear.press('Enter');
+  await expect(panel.getByRole('status')).toHaveText('No new notifications');
+  await expect(bell).toHaveAccessibleName('Notifications (0 unread)');
+  expect(await api(page, '/budgets/alerts/unread/count')).toBe(0);
+  await page.reload();
+  await bell.click();
+  await expect(panel.getByRole('status')).toHaveText('No new notifications');
+  await expect(clear).toHaveCount(0);
+});
+
 test('minor fixes persist category icons and notification acknowledgement with amount blur', async ({
   page,
 }) => {

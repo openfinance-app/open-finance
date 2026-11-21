@@ -26,7 +26,7 @@ describe('useNotifications', () => {
     });
     vi.clearAllMocks();
     mockAuthentication();
-    useNotificationReadState.setState({ seen: {} });
+    useNotificationReadState.setState({ seen: {}, dismissed: {} });
   });
 
   const wrapper = ({ children }: { children: React.ReactNode }) => (
@@ -137,6 +137,49 @@ describe('useNotifications', () => {
       await result.current.refetch();
     });
     await waitFor(() => expect(result.current.data).toBe(2));
+  });
+
+  it('clears the list and badge for this user until a condition changes or returns', async () => {
+    mockedApiClient.get.mockResolvedValue({ data: mockNotifications });
+    const { result } = renderHook(
+      () => ({ list: useNotifications(), badge: useNotificationCount() }),
+      { wrapper }
+    );
+    await waitFor(() => expect(result.current.badge.data).toBe(2));
+    act(() => useNotificationReadState.getState().dismiss('2', mockNotifications));
+    expect(result.current.list.data).toEqual(mockNotifications);
+    act(() => useNotificationReadState.getState().markRead('1', mockNotifications[0]));
+    expect(result.current.list.data).toEqual(mockNotifications);
+    act(() => result.current.list.dismissAll());
+    await act(() => result.current.list.refetch());
+    expect(result.current.list.data).toEqual([]);
+    expect(result.current.badge.data).toBe(0);
+
+    const changed = { ...mockNotifications[1], count: 3 };
+    mockedApiClient.get.mockResolvedValue({ data: [changed] });
+    await act(() => result.current.list.refetch());
+    await waitFor(() => expect(result.current.list.data).toEqual([changed]));
+    expect(result.current.badge.data).toBe(1);
+    mockedApiClient.get.mockResolvedValue({ data: [mockNotifications[0], changed] });
+    await act(() => result.current.list.refetch());
+    await waitFor(() => expect(result.current.badge.data).toBe(2));
+    expect(result.current.list.data).toEqual([mockNotifications[0], changed]);
+  });
+
+  it('keeps each dismissed condition hidden as other notifications are dismissed', async () => {
+    mockedApiClient.get.mockResolvedValue({ data: mockNotifications });
+    const { result } = renderHook(
+      () => ({ list: useNotifications(), badge: useNotificationCount() }),
+      { wrapper }
+    );
+    await waitFor(() => expect(result.current.badge.data).toBe(2));
+    act(() => result.current.list.dismiss(mockNotifications[0]));
+    expect(result.current.list.data).toEqual([mockNotifications[1]]);
+    expect(result.current.badge.data).toBe(1);
+    act(() => result.current.list.dismiss(mockNotifications[1]));
+    await act(() => result.current.list.refetch());
+    expect(result.current.list.data).toEqual([]);
+    expect(result.current.badge.data).toBe(0);
   });
 
   describe('useUpdateExchangeRatesFromNotification', () => {

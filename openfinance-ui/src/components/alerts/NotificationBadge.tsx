@@ -1,7 +1,13 @@
 import { useState, useRef, useEffect, forwardRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Bell, X, ExternalLink, Check, RefreshCw } from 'lucide-react';
-import { useUnreadAlertCount, useUnreadAlerts, useMarkAlertAsRead } from '@/hooks/useAlerts';
+import { Bell, X, ExternalLink, RefreshCw } from 'lucide-react';
+import {
+  useUnreadAlertCount,
+  useUnreadAlerts,
+  useMarkAlertAsRead,
+  useMarkAllAlertsAsRead,
+} from '@/hooks/useAlerts';
+import { Button } from '@/components/ui/Button';
 import {
   useNotifications,
   useNotificationCount,
@@ -75,6 +81,7 @@ export function NotificationBadge() {
     function handleEscapeKey(event: KeyboardEvent) {
       if (event.key === 'Escape') {
         setIsOpen(false);
+        buttonRef.current?.focus();
       }
     }
 
@@ -98,6 +105,7 @@ export function NotificationBadge() {
         onClick={() => setIsOpen(!isOpen)}
         className="relative p-2 rounded-lg hover:bg-surface-elevated transition-colors"
         aria-label={t('notifications.unread', { count: totalCount })}
+        aria-expanded={isOpen}
       >
         <Bell className="w-5 h-5 text-text-secondary" />
         {totalCount > 0 && (
@@ -120,8 +128,15 @@ interface NotificationDropdownProps {
 const NotificationDropdown = forwardRef<HTMLDivElement, NotificationDropdownProps>(
   ({ onClose }, ref) => {
     const { data: budgetAlerts, isLoading: budgetAlertsLoading } = useUnreadAlerts();
-    const { data: systemNotifications, isLoading: systemNotificationsLoading } = useNotifications();
-    const markAsRead = useMarkAlertAsRead();
+    const {
+      data: systemNotifications,
+      isLoading: systemNotificationsLoading,
+      dismiss,
+      dismissAll,
+    } = useNotifications();
+    const markAllAsRead = useMarkAllAlertsAsRead();
+    const closeButtonRef = useRef<HTMLButtonElement>(null);
+    const listRef = useRef<HTMLDivElement>(null);
     const markNotificationAsRead = useMarkNotificationAsRead();
     const updateExchangeRates = useUpdateExchangeRatesFromNotification();
     const navigate = useNavigate();
@@ -137,8 +152,21 @@ const NotificationDropdown = forwardRef<HTMLDivElement, NotificationDropdownProp
     const hasNotifications =
       visibleBudgetAlerts.length > 0 || visibleSystemNotifications.length > 0;
 
-    const handleMarkAsRead = (alertId: string) => {
-      markAsRead.mutate(alertId);
+    const handleClearAll = () => {
+      if (visibleSystemNotifications.length) dismissAll();
+      if (budgetAlerts?.length) markAllAsRead.mutate();
+      closeButtonRef.current?.focus();
+    };
+
+    const focusNextDismiss = (button: HTMLButtonElement) => {
+      const buttons = Array.from(
+        listRef.current?.querySelectorAll<HTMLButtonElement>(
+          '[data-dismiss-notification]:enabled'
+        ) ?? []
+      );
+      const index = buttons.indexOf(button);
+      const next = buttons[index + 1] ?? buttons[index - 1] ?? closeButtonRef.current;
+      next?.focus();
     };
 
     const handleSystemNotificationClick = (notification: INotification) => {
@@ -156,7 +184,6 @@ const NotificationDropdown = forwardRef<HTMLDivElement, NotificationDropdownProp
     };
 
     const handleBudgetAlertClick = (alert: BudgetAlert) => {
-      markAsRead.mutate(alert.id);
       navigate(`/budget?open=${alert.budgetId}`);
       onClose();
     };
@@ -164,19 +191,45 @@ const NotificationDropdown = forwardRef<HTMLDivElement, NotificationDropdownProp
     return (
       <div
         ref={ref}
+        role="region"
+        aria-label={t('notifications.title')}
         className="fixed left-4 right-4 top-16 sm:absolute sm:left-auto sm:right-0 sm:top-auto mt-2 sm:w-96 bg-surface rounded-lg shadow-xl border border-border overflow-hidden z-50 animate-fade-in"
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-4 py-3 border-b border-border">
+        <div className="flex items-center justify-between gap-2 pl-4 pr-2 py-1.5 border-b border-border">
           <h3 className="text-sm font-semibold text-text-primary">{t('notifications.title')}</h3>
-          <button
-            onClick={onClose}
-            className="text-text-secondary hover:text-text-primary transition-colors"
-            aria-label={t('notifications.close')}
-          >
-            <X className="w-4 h-4" />
-          </button>
+          <div className="flex items-center gap-1">
+            {!isLoading && hasNotifications && (
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="text-xs text-text-secondary hover:bg-surface-elevated hover:text-text-primary"
+                onClick={handleClearAll}
+                isLoading={markAllAsRead.isPending}
+              >
+                {t('notifications.clearAll')}
+              </Button>
+            )}
+            <Button
+              ref={closeButtonRef}
+              type="button"
+              variant="ghost"
+              size="icon"
+              onClick={onClose}
+              className="md:h-8 md:w-8 text-text-secondary hover:bg-surface-elevated hover:text-text-primary"
+              aria-label={t('notifications.close')}
+            >
+              <X className="w-4 h-4" />
+            </Button>
+          </div>
         </div>
+
+        {markAllAsRead.isError && !!budgetAlerts?.length && (
+          <p role="alert" className="px-4 py-2 text-sm text-error">
+            {t('notifications.clearError')}
+          </p>
+        )}
 
         {/* Notification List */}
         <div className="max-h-96 overflow-y-auto">
@@ -188,29 +241,36 @@ const NotificationDropdown = forwardRef<HTMLDivElement, NotificationDropdownProp
           ) : !hasNotifications ? (
             <div className="px-4 py-8 text-center text-text-secondary">
               <Bell className="w-12 h-12 mx-auto mb-2 opacity-50" />
-              <p className="text-sm">{t('notifications.empty')}</p>
+              <p role="status" className="text-sm">
+                {t('notifications.empty')}
+              </p>
               <p className="text-xs mt-1">{t('notifications.emptySub')}</p>
             </div>
           ) : (
-            <div className="divide-y divide-border">
+            <div ref={listRef} role="list" className="divide-y divide-border">
               {/* System Notifications */}
-              {visibleSystemNotifications.map((notification: INotification, index: number) =>
-                notification.type === 'STALE_EXCHANGE_RATES' ? (
-                  <StaleExchangeRatesNotificationItem
-                    key={`system-${index}`}
-                    notification={notification}
-                    onUpdate={event => handleExchangeRateUpdate(event, notification)}
-                    isUpdating={updateExchangeRates.isPending}
-                    isSuccess={updateExchangeRates.isSuccess}
-                  />
-                ) : (
-                  <SystemNotificationItem
-                    key={`system-${index}`}
-                    notification={notification}
-                    onClick={() => handleSystemNotificationClick(notification)}
-                  />
-                )
-              )}
+              {visibleSystemNotifications.map(notification => (
+                <NotificationRow
+                  key={notification.type}
+                  dismissLabel={t('notifications.dismiss', { name: notification.title })}
+                  onDismiss={() => dismiss(notification)}
+                  focusNextDismiss={focusNextDismiss}
+                >
+                  {notification.type === 'STALE_EXCHANGE_RATES' ? (
+                    <StaleExchangeRatesNotificationItem
+                      notification={notification}
+                      onUpdate={event => handleExchangeRateUpdate(event, notification)}
+                      isUpdating={updateExchangeRates.isPending}
+                      isSuccess={updateExchangeRates.isSuccess}
+                    />
+                  ) : (
+                    <SystemNotificationItem
+                      notification={notification}
+                      onClick={() => handleSystemNotificationClick(notification)}
+                    />
+                  )}
+                </NotificationRow>
+              ))}
 
               {/* Budget Alerts */}
               {visibleBudgetAlerts.map((alert: BudgetAlert) => (
@@ -218,8 +278,7 @@ const NotificationDropdown = forwardRef<HTMLDivElement, NotificationDropdownProp
                   key={alert.id}
                   alert={alert}
                   onNavigate={() => handleBudgetAlertClick(alert)}
-                  onMarkRead={() => handleMarkAsRead(alert.id)}
-                  isMarkingRead={markAsRead.isPending}
+                  focusNextDismiss={focusNextDismiss}
                 />
               ))}
             </div>
@@ -231,6 +290,44 @@ const NotificationDropdown = forwardRef<HTMLDivElement, NotificationDropdownProp
 );
 
 NotificationDropdown.displayName = 'NotificationDropdown';
+
+interface NotificationRowProps {
+  children: React.ReactNode;
+  dismissLabel: string;
+  onDismiss: () => void;
+  focusNextDismiss: (button: HTMLButtonElement) => void;
+  isPending?: boolean;
+}
+
+function NotificationRow({
+  children,
+  dismissLabel,
+  onDismiss,
+  focusNextDismiss,
+  isPending,
+}: NotificationRowProps) {
+  return (
+    <div role="listitem" className="relative">
+      {children}
+      <Button
+        type="button"
+        variant="ghost"
+        size="icon"
+        data-dismiss-notification
+        className="absolute right-1 top-0.5 md:right-2 md:top-1.5 md:h-7 md:w-7 text-text-tertiary hover:bg-surface-elevated hover:text-text-primary focus-visible:text-text-primary"
+        aria-label={dismissLabel}
+        title={dismissLabel}
+        disabled={isPending}
+        onClick={event => {
+          focusNextDismiss(event.currentTarget);
+          onDismiss();
+        }}
+      >
+        <X aria-hidden="true" className="size-3.5" />
+      </Button>
+    </div>
+  );
+}
 
 // ---------------------------------------------------------------------------
 // SystemNotificationItem
@@ -247,7 +344,7 @@ function SystemNotificationItem({ notification, onClick }: SystemNotificationIte
 
   return (
     <div
-      className="px-4 py-3 hover:bg-background transition-colors cursor-pointer"
+      className="pl-4 pr-12 md:pr-11 py-3 hover:bg-background transition-colors cursor-pointer"
       onClick={onClick}
       role="button"
       tabIndex={0}
@@ -311,7 +408,7 @@ function StaleExchangeRatesNotificationItem({
   const { t } = useTranslation('common');
 
   return (
-    <div className="px-4 py-3 transition-colors" aria-label={notification.title}>
+    <div className="pl-4 pr-12 md:pr-11 py-3 transition-colors" aria-label={notification.title}>
       <div className="flex items-start gap-3">
         {/* Icon */}
         <div className="text-2xl flex-shrink-0">{icon}</div>
@@ -364,75 +461,85 @@ function StaleExchangeRatesNotificationItem({
 interface BudgetAlertItemProps {
   alert: BudgetAlert;
   onNavigate: () => void;
-  onMarkRead: () => void;
-  isMarkingRead: boolean;
+  focusNextDismiss: (button: HTMLButtonElement) => void;
 }
 
-function BudgetAlertItem({ alert, onNavigate, onMarkRead, isMarkingRead }: BudgetAlertItemProps) {
+function BudgetAlertItem({ alert, onNavigate, focusNextDismiss }: BudgetAlertItemProps) {
   const severity = getAlertSeverity(alert.threshold, alert.currentSpentPercentage);
   const severityColor = getAlertColor(severity);
   const { t } = useTranslation('common');
+  const markRead = useMarkAlertAsRead();
+  const dismiss = () => markRead.mutate(alert.id);
+  const openBudget = () => {
+    dismiss();
+    onNavigate();
+  };
 
   return (
-    <div
-      className="px-4 py-3 hover:bg-background transition-colors cursor-pointer"
-      onClick={onNavigate}
-      role="button"
-      tabIndex={0}
-      onKeyDown={event => {
-        if (event.target === event.currentTarget && (event.key === 'Enter' || event.key === ' ')) {
-          event.preventDefault();
-          onNavigate();
-        }
-      }}
-      aria-label={t('notifications.budgetAlert', { name: alert.budgetName })}
+    <NotificationRow
+      dismissLabel={t('notifications.dismissBudgetAlert', {
+        name: alert.budgetName,
+        threshold: alert.threshold,
+      })}
+      onDismiss={dismiss}
+      focusNextDismiss={focusNextDismiss}
+      isPending={markRead.isPending}
     >
-      <div className="flex items-start gap-3">
-        {/* Severity Indicator */}
-        <div
-          className="w-2 h-2 rounded-full flex-shrink-0 mt-1.5"
-          style={{ backgroundColor: severityColor }}
-        />
+      <div
+        className="pl-4 pr-12 md:pr-11 py-3 hover:bg-background transition-colors cursor-pointer"
+        onClick={openBudget}
+        role="button"
+        tabIndex={0}
+        onKeyDown={event => {
+          if (
+            event.target === event.currentTarget &&
+            (event.key === 'Enter' || event.key === ' ')
+          ) {
+            event.preventDefault();
+            openBudget();
+          }
+        }}
+        aria-label={t('notifications.budgetAlert', { name: alert.budgetName })}
+      >
+        <div className="flex items-start gap-3">
+          {/* Severity Indicator */}
+          <div
+            className="w-2 h-2 rounded-full flex-shrink-0 mt-1.5"
+            style={{ backgroundColor: severityColor }}
+          />
 
-        {/* Alert Content */}
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center justify-between gap-2 mb-1">
-            <span className="text-sm font-medium text-text-primary truncate">
-              {alert.budgetName}
-            </span>
-            <span
-              className="text-xs font-bold px-2 py-0.5 rounded flex-shrink-0"
-              style={{ backgroundColor: severityColor + '20', color: severityColor }}
-            >
-              {alert.currentSpentPercentage?.toFixed(0)}%
-            </span>
-          </div>
-          <p className="text-xs text-text-secondary line-clamp-2">
-            {alert.message || t('notifications.budgetThreshold', { threshold: alert.threshold })}
-          </p>
+          {/* Alert Content */}
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center justify-between gap-2 mb-1">
+              <span className="text-sm font-medium text-text-primary truncate">
+                {alert.budgetName}
+              </span>
+              <span
+                className="text-xs font-bold px-2 py-0.5 rounded flex-shrink-0"
+                style={{ backgroundColor: severityColor + '20', color: severityColor }}
+              >
+                {alert.currentSpentPercentage?.toFixed(0)}%
+              </span>
+            </div>
+            <p className="text-xs text-text-secondary line-clamp-2">
+              {alert.message || t('notifications.budgetThreshold', { threshold: alert.threshold })}
+            </p>
 
-          {/* Actions row */}
-          <div className="mt-2 flex items-center gap-3">
-            <span className="inline-flex items-center gap-1 text-xs text-primary">
-              {t('notifications.viewBudget')}
-              <ExternalLink className="w-3 h-3" />
-            </span>
-            <button
-              onClick={e => {
-                // Prevent the parent click (navigate) from firing
-                e.stopPropagation();
-                onMarkRead();
-              }}
-              disabled={isMarkingRead}
-              className="inline-flex items-center gap-1 text-xs text-text-secondary hover:text-text-primary transition-colors disabled:opacity-50"
-              aria-label={t('notifications.markAlertAsRead')}
-            >
-              <Check className="w-3 h-3" />
-              {t('notifications.markRead')}
-            </button>
+            {/* Actions row */}
+            <div className="mt-2 flex items-center gap-3">
+              <span className="inline-flex items-center gap-1 text-xs text-primary">
+                {t('notifications.viewBudget')}
+                <ExternalLink className="w-3 h-3" />
+              </span>
+            </div>
           </div>
         </div>
       </div>
-    </div>
+      {markRead.isError && (
+        <p role="alert" className="px-4 pb-3 text-xs text-error">
+          {t('notifications.dismissError')}
+        </p>
+      )}
+    </NotificationRow>
   );
 }

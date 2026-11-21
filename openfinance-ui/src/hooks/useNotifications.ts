@@ -1,4 +1,3 @@
-import { useEffect } from 'react';
 import { useAuthContext } from '@/context/AuthContext';
 import { useNotificationReadState, notificationFingerprint } from '@/stores/notificationReadState';
 import { useTranslation } from 'react-i18next';
@@ -9,18 +8,39 @@ import apiClient from '@/services/apiClient';
 const API_BASE = '/notifications';
 
 /**
- * Fetches all notifications for the current user
+ * Fetches active system notifications and hides conditions this user has cleared.
  */
 export function useNotifications() {
   const { i18n } = useTranslation();
-  return useQuery({
-    queryKey: ['notifications', i18n.language],
+  const { user } = useAuthContext();
+  const userId = user ? String(user.id) : null;
+  const dismissed = useNotificationReadState(state =>
+    userId ? state.dismissed[userId] : undefined
+  );
+  const dismiss = useNotificationReadState(state => state.dismiss);
+  const syncActive = useNotificationReadState(state => state.syncActive);
+  const query = useQuery({
+    queryKey: ['notifications', userId, i18n.language],
+    enabled: !!userId,
     queryFn: async () => {
       const response = await apiClient.get<INotification[]>(API_BASE);
+      if (userId) syncActive(userId, response.data);
       return response.data;
     },
     refetchInterval: 60000, // Refetch every minute
   });
+  return {
+    ...query,
+    data: query.data?.filter(
+      notification => !dismissed?.includes(notificationFingerprint(notification))
+    ),
+    dismiss: (notification: INotification) => {
+      if (userId) dismiss(userId, [notification]);
+    },
+    dismissAll: () => {
+      if (userId && query.data?.length) dismiss(userId, query.data);
+    },
+  };
 }
 
 /**
@@ -31,10 +51,6 @@ export function useNotificationCount() {
   const { user } = useAuthContext();
   const userId = user ? String(user.id) : null;
   const seen = useNotificationReadState(state => (userId ? state.seen[userId] : undefined));
-  const syncActive = useNotificationReadState(state => state.syncActive);
-  useEffect(() => {
-    if (userId && query.data) syncActive(userId, query.data);
-  }, [userId, query.data, syncActive]);
   return {
     ...query,
     data: query.data?.filter(

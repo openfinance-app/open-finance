@@ -138,7 +138,7 @@ describe('useAlerts hooks', () => {
       await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
       expect(mockedApiClient.put).toHaveBeenCalledWith('/budgets/alerts/alert-1/read');
-      expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['budgetAlerts', 'unread'] });
+      expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['budgetAlerts'] });
     });
   });
 

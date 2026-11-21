@@ -98,10 +98,7 @@ export function useMarkAlertAsRead() {
     mutationFn: async (alertId: string) => {
       await apiClient.put(`${API_BASE}/${alertId}/read`);
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['budgetAlerts', 'unread'] });
-      queryClient.invalidateQueries({ queryKey: ['budgetAlerts', 'unread', 'count'] });
-    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['budgetAlerts'] }),
   });
 }
 
@@ -116,10 +113,7 @@ export function useMarkAllAlertsAsRead() {
       const response = await apiClient.put<number>(`${API_BASE}/read-all`);
       return response.data;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['budgetAlerts', 'unread'] });
-      queryClient.invalidateQueries({ queryKey: ['budgetAlerts', 'unread', 'count'] });
-    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['budgetAlerts'] }),
   });
 }
 

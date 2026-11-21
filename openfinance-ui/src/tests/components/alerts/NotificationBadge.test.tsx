@@ -11,6 +11,8 @@ import type { INotification } from '@/types/notification';
 const mockUseUnreadAlertCount = vi.fn();
 const mockUseUnreadAlerts = vi.fn();
 const mockUseMarkAlertAsRead = vi.fn();
+const mockMarkAllAlertsAsRead = vi.fn();
+const mockDismissAll = vi.fn();
 const mockUseNotifications = vi.fn();
 const mockUseNotificationCount = vi.fn();
 const mockUseUpdateExchangeRates = vi.fn();
@@ -20,6 +22,7 @@ vi.mock('@/hooks/useAlerts', () => ({
   useUnreadAlertCount: () => mockUseUnreadAlertCount(),
   useUnreadAlerts: () => mockUseUnreadAlerts(),
   useMarkAlertAsRead: () => mockUseMarkAlertAsRead(),
+  useMarkAllAlertsAsRead: () => ({ mutate: mockMarkAllAlertsAsRead, isPending: false }),
 }));
 
 vi.mock('@/hooks/useNotifications', () => ({
@@ -170,6 +173,25 @@ describe('NotificationBadge', () => {
       await waitFor(() => {
         expect(screen.getByText(/no notifications|all caught up/i)).toBeInTheDocument();
       });
+      expect(screen.queryByRole('button', { name: 'Clear all' })).not.toBeInTheDocument();
+    });
+
+    it('clears system notifications and all budget alerts, including those beyond the preview', async () => {
+      const alerts = Array.from({ length: 7 }, (_, index) =>
+        makeAlert({ id: String(index), budgetName: `Budget ${index + 1}` })
+      );
+      mockUseUnreadAlerts.mockReturnValue({ data: alerts });
+      mockUseNotifications.mockReturnValue({
+        data: [makeNotification()],
+        dismissAll: mockDismissAll,
+      });
+      renderWithProviders(<NotificationBadge />);
+      fireEvent.click(screen.getByRole('button', { name: /notifications/i }));
+      expect(screen.queryByText('Budget 6')).not.toBeInTheDocument();
+      await userEvent.click(screen.getByRole('button', { name: 'Clear all' }));
+      expect(mockDismissAll).toHaveBeenCalledOnce();
+      expect(mockMarkAllAlertsAsRead).toHaveBeenCalledOnce();
+      expect(mockNavigate).not.toHaveBeenCalled();
     });
   });
 
@@ -204,7 +226,7 @@ describe('NotificationBadge', () => {
       expect(mockNavigate).toHaveBeenCalledWith('/budget?open=1');
     });
 
-    it('should call markAsRead when mark read button is clicked', async () => {
+    it('dismisses one budget alert using its ID', async () => {
       const mockMutate = vi.fn();
       mockUseMarkAlertAsRead.mockReturnValue({ mutate: mockMutate, isPending: false });
       mockUseUnreadAlerts.mockReturnValue({ data: [makeAlert({ id: '42' })] });
@@ -214,14 +236,9 @@ describe('NotificationBadge', () => {
       fireEvent.click(screen.getByRole('button'));
       await waitFor(() => expect(screen.getByText('Spending alert')).toBeInTheDocument());
 
-      // Find and click the mark-read button
-      const markReadBtn =
-        document.querySelector('[aria-label*="mark"]') ||
-        document.querySelector('[aria-label*="Mark"]');
-      if (markReadBtn) {
-        fireEvent.click(markReadBtn);
-        expect(mockMutate).toHaveBeenCalledWith('42');
-      }
+      await userEvent.click(screen.getByRole('button', { name: 'Dismiss Groceries alert at 80%' }));
+      expect(mockMutate).toHaveBeenCalledWith('42');
+      expect(mockNavigate).not.toHaveBeenCalled();
     });
 
     it('should show budget alert percentage', async () => {
@@ -239,6 +256,26 @@ describe('NotificationBadge', () => {
   });
 
   describe('System notification interactions', () => {
+    it.each(['LOW_BALANCE', 'STALE_EXCHANGE_RATES'] as const)(
+      'dismisses %s without triggering its primary action',
+      async type => {
+        const item = makeNotification({ type, title: 'Selected notification' });
+        const dismiss = vi.fn();
+        const update = vi.fn();
+        mockUseNotifications.mockReturnValue({ data: [item], dismiss, dismissAll: mockDismissAll });
+        mockUseUpdateExchangeRates.mockReturnValue({ mutate: update });
+        renderWithProviders(<NotificationBadge />);
+        await userEvent.click(screen.getByRole('button'));
+        await userEvent.click(
+          screen.getByRole('button', { name: 'Dismiss Selected notification' })
+        );
+        expect(dismiss).toHaveBeenCalledWith(item);
+        expect(mockDismissAll).not.toHaveBeenCalled();
+        expect(mockNavigate).not.toHaveBeenCalled();
+        expect(update).not.toHaveBeenCalled();
+        expect(screen.getByRole('region', { name: 'Notifications' })).toBeVisible();
+      }
+    );
     it('should navigate when a non-inline notification is clicked', async () => {
       mockUseNotifications.mockReturnValue({
         data: [makeNotification({ type: 'UNCATEGORIZED_TRANSACTIONS' as any })],
@@ -415,18 +452,19 @@ describe('NotificationBadge', () => {
     expect(mockNavigate).toHaveBeenCalledWith('/budget?open=17');
   });
 
-  it('keyboard activation of Mark as read does not also navigate the parent alert', async () => {
+  it('keyboard dismissal of a budget alert keeps focus in the open panel', async () => {
     const user = userEvent.setup();
     const mark = vi.fn();
     mockUseUnreadAlerts.mockReturnValue({ data: [makeAlert()] });
     mockUseMarkAlertAsRead.mockReturnValue({ mutate: mark, isPending: false });
     renderWithProviders(<NotificationBadge />);
     await user.click(screen.getByRole('button'));
-    const read = screen.getByRole('button', { name: /Mark alert as read/i });
+    const read = screen.getByRole('button', { name: 'Dismiss Groceries alert at 80%' });
     read.focus();
     await user.keyboard('{Enter}');
     expect(mark).toHaveBeenCalledOnce();
     expect(mockNavigate).not.toHaveBeenCalled();
+    expect(screen.getByRole('button', { name: 'Close notifications' })).toHaveFocus();
   });
 
   it('interactions inside the dropdown keep it open until a true outside click', () => {
