@@ -428,8 +428,6 @@ export function ImportWizard() {
     resetWizard();
   };
 
-  const handleViewTransactions = () => navigate(ROUTES.TRANSACTIONS);
-
   // ── Navigation guards ─────────────────────────────────────────────────────
 
   const canGoNext = (): boolean => {
@@ -1032,7 +1030,9 @@ export function ImportWizard() {
           <ImportProgress
             session={session}
             liveProgress={liveProgress}
-            onViewTransactions={handleViewTransactions}
+            onViewTransactions={() =>
+              navigate(`${ROUTES.TRANSACTIONS}?importSessionId=${session.id}`)
+            }
             onClose={handleCancel}
           />
         )}

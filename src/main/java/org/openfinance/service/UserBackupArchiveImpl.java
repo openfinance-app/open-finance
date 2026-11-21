@@ -57,6 +57,7 @@ public class UserBackupArchiveImpl implements UserBackupArchive {
                     "liability_tranches",
                     "payees",
                     "budgets",
+                    "import_sessions",
                     "transactions",
                     "transactions_archive",
                     "transaction_splits",
@@ -75,7 +76,6 @@ public class UserBackupArchiveImpl implements UserBackupArchive {
                     "real_estate_simulations",
                     "attachments",
                     "operation_history",
-                    "import_sessions",
                     "user_settings",
                     "security_audit_log");
     private static final Map<String, String> CHILDREN =
@@ -104,6 +104,7 @@ public class UserBackupArchiveImpl implements UserBackupArchive {
                     Map.entry("property_id", "real_estate_properties"),
                     Map.entry("budget_id", "budgets"),
                     Map.entry("transaction_id", "transactions"),
+                    Map.entry("import_session_id", "import_sessions"),
                     Map.entry("rule_id", "transaction_rules"),
                     Map.entry("payee_id", "payees"));
     private static final Map<String, String> ENTITIES =

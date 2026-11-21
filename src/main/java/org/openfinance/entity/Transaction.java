@@ -82,6 +82,13 @@ public class Transaction {
     private Long userId;
 
     /**
+     * Import that supplied the posting, including the actual statement for an inferred transfer
+     * leg.
+     */
+    @Column(name = "import_session_id")
+    private Long importSessionId;
+
+    /**
      * ID of the account associated with this transaction.
      *
      * <p>For INCOME and EXPENSE: The account receiving/spending money

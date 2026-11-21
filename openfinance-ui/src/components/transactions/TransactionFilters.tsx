@@ -104,6 +104,7 @@ export function TransactionFilters({ filters, onFiltersChange }: TransactionFilt
       filters.keyword,
       filters.keywordRegex,
       filters.accountId,
+      filters.importSessionId,
       filters.type,
       filters.categoryId,
       filters.noCategory,

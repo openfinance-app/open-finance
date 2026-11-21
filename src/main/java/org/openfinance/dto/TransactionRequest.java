@@ -181,6 +181,9 @@ public class TransactionRequest {
     /** Tags from the receiving statement row. Null inherits the source tags, empty clears them. */
     @com.fasterxml.jackson.annotation.JsonIgnore private String importedDestinationTags;
 
+    /** Internal origin for both postings of a transfer created by an import. */
+    @com.fasterxml.jackson.annotation.JsonIgnore private Long importSessionId;
+
     /**
      * Optional payee name (person or merchant).
      *

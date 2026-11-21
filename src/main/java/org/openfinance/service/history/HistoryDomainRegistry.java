@@ -23,6 +23,7 @@ public final class HistoryDomainRegistry {
                     "liability_tranches",
                     "payees",
                     "budgets",
+                    "import_sessions",
                     "transactions",
                     "transactions_archive",
                     "transaction_splits",
@@ -35,8 +36,7 @@ public final class HistoryDomainRegistry {
                     "transaction_rules",
                     "transaction_rule_conditions",
                     "transaction_rule_actions",
-                    "attachments",
-                    "import_sessions");
+                    "attachments");
     public static final Map<String, String> CHILDREN =
             Map.of(
                     "transaction_splits",
@@ -84,6 +84,7 @@ public final class HistoryDomainRegistry {
                     Map.entry("property_id", "real_estate_properties"),
                     Map.entry("budget_id", "budgets"),
                     Map.entry("transaction_id", "transactions"),
+                    Map.entry("import_session_id", "import_sessions"),
                     Map.entry("rule_id", "transaction_rules"),
                     Map.entry("payee_id", "payees"));
 

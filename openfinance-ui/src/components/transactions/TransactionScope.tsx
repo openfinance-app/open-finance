@@ -20,6 +20,13 @@ export function TransactionScope({
   const { data: property } = useProperty(filters.realEstateId ?? 0);
   const { data: liability } = useLiability(filters.liabilityId ?? null);
   const scopes = [
+    {
+      key: 'importSessionId',
+      id: filters.importSessionId,
+      name: t('scope.importBatch', { id: filters.importSessionId }),
+      path: null,
+      label: 'importBatch',
+    },
     { key: 'assetId', id: filters.assetId, name: asset?.name, path: '/assets', label: 'asset' },
     {
       key: 'realEstateId',
@@ -46,12 +53,16 @@ export function TransactionScope({
             key={scope.key}
             className="flex min-w-0 max-w-full items-center gap-1 rounded-md border border-border bg-surface pl-3 text-sm"
           >
-            <Link
-              to={`${scope.path}?highlight=${scope.id}`}
-              className="min-w-0 break-words py-2 text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-            >
-              {t(`scope.${scope.label}`)}: {scope.name ?? `#${scope.id}`}
-            </Link>
+            {scope.path ? (
+              <Link
+                to={`${scope.path}?highlight=${scope.id}`}
+                className="min-w-0 break-words py-2 text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+              >
+                {t(`scope.${scope.label}`)}: {scope.name ?? `#${scope.id}`}
+              </Link>
+            ) : (
+              <span className="py-2">{scope.name}</span>
+            )}
             <Button
               variant="ghost"
               size="icon"

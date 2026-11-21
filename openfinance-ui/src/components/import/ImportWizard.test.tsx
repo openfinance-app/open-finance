@@ -142,6 +142,24 @@ describe('ImportWizard cancellation', () => {
     );
   });
 
+  it('opens the ledger for the completed import session', async () => {
+    sessionStatus = 'COMPLETED';
+    sessionStorage.setItem(
+      'import_recovery',
+      JSON.stringify({ userId: 1, sessionId: 42, selectedStep: 'progress' })
+    );
+    window.history.replaceState({}, '', '/import');
+    renderWithProviders(
+      <ProtectedRoute>
+        <ImportWizard />
+      </ProtectedRoute>
+    );
+    fireEvent.click(await screen.findByRole('button', { name: 'View Transactions' }));
+    expect(window.location.pathname + window.location.search).toBe(
+      '/transactions?importSessionId=42'
+    );
+  });
+
   it('starts AI review only after Next applies the selected account', async () => {
     let finishApplying!: () => void;
     applyAccount.mockReturnValue(

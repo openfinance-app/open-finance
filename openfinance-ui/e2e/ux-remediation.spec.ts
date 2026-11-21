@@ -401,6 +401,32 @@ test('import review saves transaction tags and both split lines through confirma
     { amount: 7.25, categoryName: 'Transport', description: 'Fare', tags: ['Work trip'] },
     { amount: 3.74, categoryName: 'Food', tags: ['Personal'] },
   ]);
+  const manual = await api(
+    page,
+    '/transactions',
+    {
+      accountId: account.id,
+      type: 'EXPENSE',
+      amount: '2',
+      currency: 'EUR',
+      date: today,
+      description: 'Separate manual entry',
+    },
+    'POST'
+  );
+  await page.getByRole('button', { name: 'View Transactions' }).click();
+  await expect(page).toHaveURL(/\/transactions\?importSessionId=\d+$/);
+  const importId = new URL(page.url()).searchParams.get('importSessionId');
+  const removeFilter = page.getByRole('button', { name: `Remove filter: Import #${importId}` });
+  await expect(removeFilter).toBeVisible();
+  await expect(page.locator(`#transaction-${booked.id}`)).toBeVisible();
+  await expect(page.locator(`#transaction-${manual.id}`)).toHaveCount(0);
+  const summary = await api(page, `/transactions/summary?importSessionId=${importId}`);
+  expect(summary.transactionCount).toBe(3);
+  await page.reload();
+  await expect(removeFilter).toBeVisible();
+  await removeFilter.click();
+  await expect(page.locator(`#transaction-${manual.id}`)).toBeVisible();
 });
 
 test('multi-file review keeps the source, notes and actions readable on a narrow screen', async ({

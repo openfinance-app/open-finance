@@ -386,6 +386,7 @@
     "quantityInvalid": "Enter a positive quantity with at most 18 decimal places."
   },
   "scope": {
+    "importBatch": "Import #{{id}}",
     "label": "Linked operation filters",
     "asset": "Asset",
     "property": "Property",

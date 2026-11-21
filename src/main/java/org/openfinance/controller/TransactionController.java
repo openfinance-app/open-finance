@@ -679,6 +679,7 @@ public class TransactionController {
     public ResponseEntity<Page<TransactionResponse>> searchTransactions(
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) Long accountId,
+            @RequestParam(required = false) Long importSessionId,
             @RequestParam(required = false) Long categoryId,
             @RequestParam(required = false) Boolean includeSubcategories,
             @RequestParam(required = false) TransactionType type,
@@ -717,6 +718,7 @@ public class TransactionController {
         // Build search criteria
         org.openfinance.dto.TransactionSearchCriteria criteria =
                 org.openfinance.dto.TransactionSearchCriteria.builder()
+                        .importSessionId(importSessionId)
                         .keyword(keyword)
                         .keywordRegex(keywordRegex)
                         .excludeTransfers(excludeTransfers)

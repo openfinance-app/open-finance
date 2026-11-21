@@ -140,6 +140,9 @@ class MultiFileImportFlowTest {
         assertThat(completed.getStatus()).isEqualTo(ImportSession.ImportStatus.COMPLETED);
         assertThat(completed.getImportedCount()).isEqualTo(2);
         assertThat(transactions.findByUserId(userId))
+                .extracting(Transaction::getImportSessionId)
+                .containsExactly(session.getId(), session.getId());
+        assertThat(transactions.findByUserId(userId))
                 .extracting(Transaction::getAccountId)
                 .containsOnly(checking);
         assertThat(accounts.findById(checking).orElseThrow().getBalance())

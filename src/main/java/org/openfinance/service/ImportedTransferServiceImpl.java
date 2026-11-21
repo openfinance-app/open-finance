@@ -204,6 +204,7 @@ public class ImportedTransferServiceImpl implements ImportedTransferService {
                     existing.getDate().withDayOfMonth(1),
                     ReportingClock.today());
         }
+        existing.setImportSessionId(recorded.getImportSessionId());
         existing.setExternalReference(recorded.getExternalReference());
         existing.setDate(recorded.getDate());
         existing.setAmount(recorded.getAmount());

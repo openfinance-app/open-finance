@@ -75,6 +75,7 @@ const normalizeTransactionsResponse = (
 
 function transactionSearchParams(filters?: TransactionFilters, paginated = true): URLSearchParams {
   const params = new URLSearchParams();
+  if (filters?.importSessionId) params.append('importSessionId', String(filters.importSessionId));
   if (filters?.accountId) params.append('accountId', filters.accountId.toString());
   if (filters?.type) params.append('type', filters.type);
   if (filters?.excludeTransfers) params.append('excludeTransfers', 'true');

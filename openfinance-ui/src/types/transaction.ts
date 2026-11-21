@@ -300,6 +300,8 @@ export interface TransactionFilters {
   sort?: string; // e.g., "date,desc" or "amount,asc"
   /** Only transactions linked to this real estate property */
   realEstateId?: number;
+  /** Only postings from this import. */
+  importSessionId?: number;
   /** Only transactions linked to this asset */
   assetId?: number;
   /** Only transactions linked to this liability (repayments, disbursements…) */

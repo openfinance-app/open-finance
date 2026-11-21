@@ -265,7 +265,7 @@ public class ImportService {
             ImportSession source = file.toSession(session.getUserId());
             executeConfirmation(
                     source,
-                    session.getUserId(),
+                    session.getId(),
                     file.getAccountId(),
                     categoryMappings,
                     skipDuplicates,
@@ -872,20 +872,27 @@ public class ImportService {
             List<ImportSourceFile> files = sourceFiles(session);
             return files.isEmpty()
                     ? executeConfirmation(
-                            session, userId, accountId, categoryMappings, skipDuplicates, progress)
+                            session,
+                            sessionId,
+                            accountId,
+                            categoryMappings,
+                            skipDuplicates,
+                            progress)
                     : confirmFiles(session, files, categoryMappings, skipDuplicates, progress);
         }
     }
 
     private ImportSession executeConfirmation(
             ImportSession session,
-            Long userId,
+            Long importSessionId,
             Long accountId,
             Map<String, Long> categoryMappings,
             boolean skipDuplicates,
             ImportProgressTracker.Task progress) {
         Long sessionId = session.getId();
+        Long userId = session.getUserId();
         List<ImportedTransaction> transactions = deserializeTransactions(session.getMetadata());
+        transactions.forEach(row -> row.setImportSessionId(importSessionId));
         transferImportService.resolveOfxTransfers(session, transactions);
         prepareUnreviewedTransactions(session, transactions, userId, progress);
         progress.update(Phase.PREPARING, 0, transactions.size());
@@ -2130,6 +2137,7 @@ public class ImportService {
                                     .paymentMethod(mapPaymentMethod(importedTx.getPaymentMethod()))
                                     .tags(sourceTags)
                                     .importedDestinationTags(destinationTags)
+                                    .importSessionId(importedTx.getImportSessionId())
                                     .build();
                     transactionService.createTransfer(userId, transferRequest);
                     affectedAccountIds.add(transferSourceAccountId);
@@ -3188,6 +3196,7 @@ public class ImportService {
         // Build transaction using builder pattern
         Transaction.TransactionBuilder builder =
                 Transaction.builder()
+                        .importSessionId(importedTx.getImportSessionId())
                         .userId(userId)
                         .accountId(accountId)
                         .date(importedTx.getTransactionDate())

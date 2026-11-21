@@ -61,6 +61,9 @@ public class TransactionSearchCriteria {
      */
     private Long accountId;
 
+    /** Only postings from this import session. */
+    private Long importSessionId;
+
     /**
      * Filter by specific category ID.
      *
@@ -197,6 +200,7 @@ public class TransactionSearchCriteria {
     public boolean hasAnyCriteria() {
         return keyword != null
                 || accountId != null
+                || importSessionId != null
                 || categoryId != null
                 || type != null
                 || Boolean.TRUE.equals(excludeTransfers)

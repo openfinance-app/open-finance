@@ -68,6 +68,12 @@ public class TransactionSpecification {
             // Always exclude soft-deleted transactions
             predicates.add(criteriaBuilder.equal(root.get("isDeleted"), false));
 
+            if (criteria.getImportSessionId() != null) {
+                predicates.add(
+                        criteriaBuilder.equal(
+                                root.get("importSessionId"), criteria.getImportSessionId()));
+            }
+
             // Limit to matchedIds if provided from FTS search
             if (matchedIds != null && !matchedIds.isEmpty()) {
                 predicates.add(root.get("id").in(matchedIds));

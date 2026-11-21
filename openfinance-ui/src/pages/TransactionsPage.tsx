@@ -48,6 +48,24 @@ import type {
 const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 const VALID_TYPES = ['INCOME', 'EXPENSE', 'TRANSFER'] as const;
 
+const DEEP_LINK_FILTER_KEYS = [
+  'accountId',
+  'assetId',
+  'realEstateId',
+  'liabilityId',
+  'category',
+  'categoryId',
+  'noCategory',
+  'noPayee',
+  'payee',
+  'payeeExact',
+  'includeSubcategories',
+  'type',
+  'excludeTransfers',
+  'dateFrom',
+  'dateTo',
+];
+
 export default function TransactionsPage() {
   const { t } = useTranslation('transactions');
   const [saveError, setSaveError] = useState<string | null>(null);
@@ -82,25 +100,10 @@ export default function TransactionsPage() {
     const value = Number(searchParams.get(key));
     return Number.isSafeInteger(value) && value > 0 ? value : undefined;
   };
-  const deepLinkKeys = [
-    'accountId',
-    'assetId',
-    'realEstateId',
-    'liabilityId',
-    'category',
-    'categoryId',
-    'noCategory',
-    'noPayee',
-    'payee',
-    'payeeExact',
-    'includeSubcategories',
-    'type',
-    'excludeTransfers',
-    'dateFrom',
-    'dateTo',
-  ];
-  const hasLinkedFilters = deepLinkKeys.some(key => searchParams.has(key));
-  const hasFormFilters = deepLinkKeys.some(
+  const importSessionId = scopeId('importSessionId');
+  const hasLinkedFilters =
+    !!importSessionId || DEEP_LINK_FILTER_KEYS.some(key => searchParams.has(key));
+  const hasFormFilters = DEEP_LINK_FILTER_KEYS.some(
     key => !['assetId', 'realEstateId', 'liabilityId'].includes(key) && searchParams.has(key)
   );
 
@@ -116,6 +119,7 @@ export default function TransactionsPage() {
       payeeExact: searchParams.get('payeeExact') === 'true' || undefined,
       includeSubcategories: searchParams.get('includeSubcategories') === 'true' || undefined,
       accountId: scopeId('accountId'),
+      importSessionId,
       assetId: scopeId('assetId'),
       realEstateId: scopeId('realEstateId'),
       liabilityId: scopeId('liabilityId'),
@@ -176,32 +180,15 @@ export default function TransactionsPage() {
     }
   }, [location.pathname, location.state, navigate]);
 
-  // Consume a deep link once, including links into the already-mounted Transactions page.
+  // Keep the import link reloadable. Other drill-downs are consumed into the view state.
   useEffect(() => {
-    const keys = [
-      'accountId',
-      'assetId',
-      'realEstateId',
-      'liabilityId',
-      'category',
-      'categoryId',
-      'noCategory',
-      'noPayee',
-      'payee',
-      'payeeExact',
-      'includeSubcategories',
-      'type',
-      'excludeTransfers',
-      'dateFrom',
-      'dateTo',
-      'highlight',
-    ];
-    if (keys.some(key => searchParams.has(key))) {
+    const keys = [...DEEP_LINK_FILTER_KEYS, 'highlight'];
+    if (!importSessionId && keys.some(key => searchParams.has(key))) {
       const next = new URLSearchParams(searchParams);
       keys.forEach(key => next.delete(key));
       setSearchParams(next, { replace: true });
     }
-  }, [searchParams, setSearchParams]);
+  }, [importSessionId, searchParams, setSearchParams]);
 
   const handleCreate = () => {
     setSaveError(null);
@@ -292,6 +279,12 @@ export default function TransactionsPage() {
 
   const handleFiltersChange = (newFilters: Filters) => {
     setFilters({ ...newFilters, page: 0, size: filters.size || 20 });
+    if (importSessionId && !newFilters.importSessionId) {
+      const next = new URLSearchParams(searchParams);
+      next.delete('importSessionId');
+      DEEP_LINK_FILTER_KEYS.forEach(key => next.delete(key));
+      setSearchParams(next, { replace: true });
+    }
   };
 
   const handlePageChange = (page: number) => {

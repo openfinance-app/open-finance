@@ -1,6 +1,7 @@
 package org.openfinance.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.tuple;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.lenient;
@@ -139,9 +140,11 @@ class TransferImportFlowTest {
                 ^
                 """);
         String file = cashFirst ? cash + holding : holding + cash;
-        assertThat(importFile("funding.qif", file).getErrorCount()).isZero();
+        ImportSession session = importFile("funding.qif", file);
+        assertThat(session.getErrorCount()).isZero();
         List<Transaction> rows = ledger.findByUserId(userId);
         assertThat(rows).hasSize(2);
+        assertThat(rows).extracting(Transaction::getImportSessionId).containsOnly(session.getId());
         assertPair(rows);
         Transaction shares =
                 rows.stream()
@@ -350,7 +353,8 @@ class TransferImportFlowTest {
                 "<OFX>"
                         + bankStatement("B", "EUR", bankRow("XFER", "100", "credit", "A", ""))
                         + "</OFX>";
-        assertThat(importFile("out.ofx", outgoing).getErrorCount()).isZero();
+        ImportSession original = importFile("out.ofx", outgoing);
+        assertThat(original.getErrorCount()).isZero();
         ImportSession session = parseFile("in.ofx", incoming);
         List<ImportedTransaction> review = imports.reviewTransactions(session.getId(), userId);
         review.getFirst().setTags(List.of("Savings transfer"));
@@ -371,7 +375,10 @@ class TransferImportFlowTest {
                 .isEqualTo("Savings transfer");
         assertThat(importFile("in-again.ofx", incoming).getErrorCount()).isZero();
         assertThat(importFile("out-again.ofx", outgoing).getErrorCount()).isZero();
-        assertThat(ledger.findByUserId(userId)).hasSize(2);
+        assertThat(ledger.findByUserId(userId))
+                .extracting(Transaction::getExternalReference, Transaction::getImportSessionId)
+                .containsExactlyInAnyOrder(
+                        tuple("debit", original.getId()), tuple("credit", session.getId()));
     }
 
     @Test

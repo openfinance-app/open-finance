@@ -30,6 +30,9 @@ import lombok.Singular;
 @AllArgsConstructor
 public class ImportedTransaction {
 
+    /** Assigned by confirmation, including for rows from individual files in a batch. */
+    @JsonIgnore private Long importSessionId;
+
     /** Transaction date (required) */
     private LocalDate transactionDate;
 
