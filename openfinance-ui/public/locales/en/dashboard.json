@@ -31,7 +31,7 @@
   "accountLiquidity": {
     "available": "Available capital",
     "locked": "Locked capital",
-    "help": "Open accounts marked as Locked savings count toward locked capital. All other open accounts count toward available capital, including investment holdings. Negative balances reduce the total for their group. Each percentage is the group’s share of the combined net balance.",
+    "help": "Locked capital is the combined balance of open accounts with the Locked Capital type. All other open accounts count toward available capital, including investment holdings. Negative balances reduce the total for their group. Each percentage is the group’s share of the combined net balance.",
     "missingRate": "Exchange rate unavailable",
     "loading": "Loading balances…",
     "loadError": "Couldn’t load account balances."
@@ -441,7 +441,7 @@
   },
   "allocationCategories": {
     "Real_Estate": "Real Estate",
-    "Locked_Savings": "Locked savings",
+    "Locked_Capital": "Locked Capital",
     "Cash___Savings": "Cash & Savings",
     "Equities": "Equities",
     "Fixed_Income": "Fixed Income",

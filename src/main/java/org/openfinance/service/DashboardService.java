@@ -1671,7 +1671,7 @@ public class DashboardService {
             case CASH:
                 return "Cash & Savings";
             case LOCKED_SAVINGS:
-                return "Locked Savings";
+                return type.getDisplayName();
             case INVESTMENT:
                 return "Investments";
             case CREDIT_CARD:

@@ -1480,7 +1480,7 @@ class DashboardServiceTest {
                 .singleElement()
                 .satisfies(
                         entry -> {
-                            assertThat(entry.getCategory()).isEqualTo("Locked Savings");
+                            assertThat(entry.getCategory()).isEqualTo("Locked Capital");
                             assertThat(entry.getValue()).isEqualByComparingTo("100");
                         });
     }

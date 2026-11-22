@@ -31,7 +31,7 @@ beforeEach(() => {
   Object.assign(query, { data: [], isLoading: false, isError: false });
 });
 
-it('counts every open account as available unless its type is locked savings', () => {
+it('counts every open account as available unless its type is locked capital', () => {
   query.data = [
     account('CHECKING', -20),
     account('CASH', 5),

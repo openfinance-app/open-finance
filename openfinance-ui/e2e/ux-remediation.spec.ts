@@ -124,7 +124,7 @@ test('account description links open a new tab from the card and update while ed
   await expect(dialog.getByRole('link')).toHaveCount(0);
 });
 
-test('locked savings can be created in French and distinguished from available funds on the dashboard', async ({
+test('locked capital accounts can be created in French and distinguished from available funds on the dashboard', async ({
   page,
 }, testInfo) => {
   await completeOnboarding(page, 'fr');
@@ -133,7 +133,7 @@ test('locked savings can be created in French and distinguished from available f
   await page.getByRole('button', { name: 'Ajouter un compte', exact: true }).first().click();
   const form = page.getByRole('dialog', { name: 'Créer un compte' });
   await form.getByRole('textbox', { name: /^Nom du compte/ }).fill('Mon PEE');
-  await form.getByLabel(/Type de compte/).selectOption({ label: 'Épargne bloquée' });
+  await form.getByLabel(/Type de compte/).selectOption({ label: 'Capital bloqué' });
   const currency = form.getByText('Devise *', { exact: true }).locator('..').getByRole('button');
   if (!(await currency.textContent())?.includes('EUR')) {
     await currency.click();
