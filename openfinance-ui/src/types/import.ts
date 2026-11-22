@@ -100,8 +100,12 @@ export interface ImportSplit {
  * Import transaction DTO
  */
 export interface ImportTransactionDTO {
+  exactValues?: Record<string, string>;
   tags?: string[];
   transfer?: boolean;
+  transferGroupKey?: string | null;
+  transferAmount?: string | number | null;
+  sourceAccountBalanceDelta?: string | number | null;
   openingBalance?: boolean;
   transactionDate: string | null;
   payee: string;

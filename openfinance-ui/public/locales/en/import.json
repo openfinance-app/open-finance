@@ -178,6 +178,10 @@
       "applyTo": "Apply to {{count}}"
     },
     "bulkAction": {
+      "clearDescription": "Clear description",
+      "clearNotes": "Clear notes",
+      "nativeAmounts": "The amount applies in each row’s currency.",
+      "transferAmounts": "Editing one side updates its matching transfer. Selecting both keeps their opposite signs.",
       "selected": "{{count}} selected",
       "setCategory": "Set Category...",
       "setPayee": "Set Payee...",
@@ -185,6 +189,8 @@
       "addTags": "Add tags, separated by commas"
     },
     "table": {
+      "sharedTransferAmount": "Updates the matching transfer amount too.",
+      "sharedTransferDirection": "Changing the sign also reverses the matching transfer.",
       "noMatches": "No transactions match the selected filter.",
       "noResults": "No transactions match the selected filter.",
       "assign": "+ Assign",

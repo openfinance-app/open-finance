@@ -13,7 +13,10 @@ final class OfxTransferResolver {
         for (ImportedTransaction row : rows) {
             if (!row.isOfxTransfer()) continue;
             row.setTransfer(false);
-            row.setTransferGroupKey(null);
+            // Keep pairs identified from the original statement even if posting dates were edited.
+            if (!ImportedTransferMatcher.isReviewPair(row)) {
+                row.setTransferGroupKey(null);
+            }
             row.setToAccountName(null);
             row.setToAccountNumber(null);
             String other = row.getOfxCounterpartyAccount();

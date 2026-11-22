@@ -6,16 +6,65 @@ import static org.openfinance.service.ImportedAccountRouting.resolveImportedDest
 
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.IdentityHashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
 import org.openfinance.dto.ImportedTransaction;
 
 /** Matches complementary statement sides without collapsing independent reverse transfers. */
 final class ImportedTransferMatcher {
+    private static final String REVIEW_PAIR_PREFIX = "review:statement-pair:";
     private final List<Side> unmatched = new ArrayList<>();
     private int nextKey;
+
+    /** Remember statement pairs before a reviewer edits the dates or amounts used to match them. */
+    static void identifyReviewPairs(List<ImportedTransaction> rows) {
+        Map<String, Long> accounts = new LinkedHashMap<>();
+        List<ImportedTransaction> transfers =
+                rows.stream()
+                        .filter(
+                                row ->
+                                        row.isTransfer()
+                                                && !row.hasErrors()
+                                                && row.getAmount() != null
+                                                && row.getTransactionDate() != null)
+                        .toList();
+        for (ImportedTransaction row : transfers) {
+            String account =
+                    ImportStatementPositions.accountKey(
+                            row.getAccountName(), row.getAccountNumber());
+            if (account != null)
+                accounts.computeIfAbsent(account, ignored -> (long) accounts.size() + 1);
+        }
+        Set<String> used = new HashSet<>();
+        for (ImportedTransaction row : rows) used.add(row.getTransferGroupKey());
+        int index = 0;
+        for (List<ImportedTransaction> pair : group(transfers, accounts, null).rows.values()) {
+            if (pair.size() != 2 || pair.getFirst().getTransferGroupKey() != null) continue;
+            while (used.contains(REVIEW_PAIR_PREFIX + index)) index++;
+            String key = REVIEW_PAIR_PREFIX + index++;
+            pair.forEach(row -> row.setTransferGroupKey(key));
+        }
+    }
+
+    static boolean isReviewPair(ImportedTransaction row) {
+        return row.getTransferGroupKey() != null
+                && row.getTransferGroupKey().startsWith(REVIEW_PAIR_PREFIX);
+    }
+
+    static boolean hasDistinctReviewedLegs(List<ImportedTransaction> group) {
+        if (group.size() != 2) return false;
+        ImportedTransaction first = group.getFirst();
+        ImportedTransaction last = group.getLast();
+        return isReviewPair(first)
+                && (!first.getTransactionDate().equals(last.getTransactionDate())
+                        || !Objects.equals(first.getCurrency(), last.getCurrency())
+                        || first.getAmount().add(last.getAmount()).signum() != 0);
+    }
 
     static Groups group(
             List<ImportedTransaction> rows, Map<String, Long> accountIds, Long fallback) {

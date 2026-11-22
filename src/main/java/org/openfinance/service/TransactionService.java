@@ -521,6 +521,15 @@ public class TransactionService {
 
         log.debug("Tracing description in createTransfer: input='{}'", request.getDescription());
         encryptSensitiveFields(destinationTransaction, request);
+        String destinationDescription = request.getImportedDestinationDescription();
+        if (destinationDescription != null) {
+            destinationTransaction.setDescription(
+                    destinationDescription.isBlank() ? null : destinationDescription);
+        }
+        String destinationNotes = request.getImportedDestinationNotes();
+        if (destinationNotes != null) {
+            destinationTransaction.setNotes(destinationNotes.isBlank() ? null : destinationNotes);
+        }
         log.debug(
                 "Tracing description after encryption in createTransfer: encrypted='{}'",
                 destinationTransaction.getDescription());

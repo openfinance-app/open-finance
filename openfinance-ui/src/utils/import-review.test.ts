@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { getImportReviewCounts } from './import-review';
+import { getImportReviewCounts, updateReviewedDateAndAmount } from '@/utils/import-review';
 import type { ImportTransactionDTO } from '@/types/import';
 
 const tx = (overrides: Partial<ImportTransactionDTO> = {}): ImportTransactionDTO =>
@@ -21,6 +21,44 @@ const tx = (overrides: Partial<ImportTransactionDTO> = {}): ImportTransactionDTO
     rawData: null,
     ...overrides,
   }) as ImportTransactionDTO;
+
+describe('reviewed date and amount corrections', () => {
+  it('updates exact and matching transfer amounts without using the original FX balance delta', () => {
+    const original = tx({
+      amount: -10,
+      exactValues: { amount: '-10', investmentPrice: '2' },
+      transferAmount: '10.00',
+      sourceAccountBalanceDelta: '-8.50',
+      originalAmount: '16.58',
+      originalCurrency: 'USD',
+    });
+    expect(updateReviewedDateAndAmount(original, original.transactionDate, '-10.0')).toBe(original);
+    expect(
+      updateReviewedDateAndAmount(original, original.transactionDate, '-14.000000000000000001')
+    ).toMatchObject({
+      amount: '-14.000000000000000001',
+      exactValues: { amount: '-14.000000000000000001', investmentPrice: '2' },
+      transferAmount: '14.000000000000000001',
+      sourceAccountBalanceDelta: null,
+      originalAmount: '16.58',
+    });
+  });
+
+  it('rechecks the split total while retaining unrelated validation errors', () => {
+    const original = tx({
+      splits: [
+        { category: 'Food', amount: '-7.01', memo: '' },
+        { category: 'Fees', amount: '-2.99', memo: '' },
+      ],
+      validationErrors: ['Other error'],
+    });
+    const mismatch = updateReviewedDateAndAmount(original, original.transactionDate, '-14');
+    expect(mismatch.validationErrors).toContain('SPLIT_INVALID: totals differ');
+    expect(
+      updateReviewedDateAndAmount(mismatch, original.transactionDate, '-10').validationErrors
+    ).toEqual(['Other error']);
+  });
+});
 
 describe('getImportReviewCounts', () => {
   it('returns zeros for an empty list', () => {

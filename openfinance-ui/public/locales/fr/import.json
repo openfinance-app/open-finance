@@ -178,6 +178,10 @@
       "applyTo": "Appliquer à {{count}}"
     },
     "bulkAction": {
+      "clearDescription": "Effacer la description",
+      "clearNotes": "Effacer les notes",
+      "nativeAmounts": "Le montant s’applique dans la devise de chaque ligne.",
+      "transferAmounts": "Modifier une ligne de virement ajuste sa contrepartie. Sélectionner les deux conserve leurs signes opposés.",
       "selected": "{{count}} sélectionnés",
       "setCategory": "Définir la catégorie...",
       "setPayee": "Définir le bénéficiaire...",
@@ -185,6 +189,8 @@
       "addTags": "Ajouter des étiquettes, séparées par des virgules"
     },
     "table": {
+      "sharedTransferAmount": "Modifie aussi le montant de la contrepartie du virement.",
+      "sharedTransferDirection": "Changer le signe inverse aussi le sens de la contrepartie du virement.",
       "noMatches": "aucune transaction ne correspond au filtre sélectionné.",
       "noResults": "Aucune transaction ne correspond au filtre sélectionné.",
       "assign": "+ Assigner",

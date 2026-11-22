@@ -9,6 +9,7 @@ import { evaluateAmountExpression } from '@/utils/amount-expression';
 
 interface NumberInputProps {
   id?: string;
+  form?: string;
   /** Canonical value with dot decimal, no thousands separators (e.g. "1234.56" or ""). */
   value?: string | number;
   /** Called with canonical dot-decimal string (or "" when cleared). */
@@ -104,6 +105,7 @@ function parseDisplayToCanonical(input: string, fmt: NumberFormat): string | nul
  */
 export function NumberInput({
   id,
+  form,
   value,
   onChange,
   onBlur,
@@ -210,6 +212,7 @@ export function NumberInput({
     <div className="relative w-full">
       <input
         id={id}
+        form={form}
         ref={inputRef}
         type="text"
         inputMode={calculable ? 'text' : 'decimal'}

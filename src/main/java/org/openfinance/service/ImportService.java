@@ -570,6 +570,7 @@ public class ImportService {
         validateImportedSplitAmounts(transactions, session.getAccountId(), userId);
         detectDuplicates(transactions, session.getAccountId(), session.getFileFormat(), userId);
         resolveReviewCurrencies(session, transactions, userId);
+        ImportedTransferMatcher.identifyReviewPairs(transactions);
         return transactions;
     }
 
@@ -2047,11 +2048,13 @@ public class ImportService {
                         continue;
                     }
                     List<ImportedTransaction> group = transferGroups.rowsFor(transferKey);
-                    if (group.stream()
-                            .anyMatch(
-                                    row ->
-                                            row.isOfxTransfer()
-                                                    || row.getInvestmentQuantity() != null)) {
+                    if (ImportedTransferMatcher.hasDistinctReviewedLegs(group)
+                            || group.stream()
+                                    .anyMatch(
+                                            row ->
+                                                    row.isOfxTransfer()
+                                                            || row.getInvestmentQuantity()
+                                                                    != null)) {
                         transferImportService.save(
                                 group,
                                 accountIdsByKey,
@@ -2094,17 +2097,26 @@ public class ImportService {
                                     ? importedTx.getOriginalCurrency()
                                     : importedTx.getCurrency();
                     boolean converted = !transferCurrency.equalsIgnoreCase(originalCurrency);
-                    String sourceTags = transferTags(importedTx);
+                    ImportedTransaction sourceRow = importedTx;
                     String destinationTags = null;
+                    String destinationDescription = null;
+                    String destinationNotes = null;
                     if (group.size() == 2) {
-                        ImportedTransaction debit =
+                        sourceRow =
                                 group.getFirst().getAmount().signum() < 0
                                         ? group.getFirst()
                                         : group.getLast();
                         ImportedTransaction credit =
-                                debit == group.getFirst() ? group.getLast() : group.getFirst();
-                        sourceTags = transferTags(debit);
+                                sourceRow == group.getFirst() ? group.getLast() : group.getFirst();
                         destinationTags = Objects.toString(transferTags(credit), "");
+                        destinationDescription =
+                                truncate(
+                                        Objects.toString(credit.statementDescription(), ""),
+                                        TRANSACTION_DESCRIPTION_MAX_LENGTH);
+                        destinationNotes =
+                                truncate(
+                                        Objects.toString(credit.getMemo(), ""),
+                                        TRANSACTION_NOTES_MAX_LENGTH);
                     }
                     TransactionRequest transferRequest =
                             TransactionRequest.builder()
@@ -2124,18 +2136,20 @@ public class ImportService {
                                     .date(importedTx.getTransactionDate())
                                     .description(
                                             truncate(
-                                                    importedTx.statementDescription(),
+                                                    sourceRow.statementDescription(),
                                                     TRANSACTION_DESCRIPTION_MAX_LENGTH))
+                                    .importedDestinationDescription(destinationDescription)
                                     .notes(
                                             truncate(
-                                                    importedTx.getMemo(),
+                                                    sourceRow.getMemo(),
                                                     TRANSACTION_NOTES_MAX_LENGTH))
+                                    .importedDestinationNotes(destinationNotes)
                                     .payee(
                                             truncate(
                                                     importedTx.getPayee(),
                                                     TRANSACTION_PAYEE_MAX_LENGTH))
                                     .paymentMethod(mapPaymentMethod(importedTx.getPaymentMethod()))
-                                    .tags(sourceTags)
+                                    .tags(transferTags(sourceRow))
                                     .importedDestinationTags(destinationTags)
                                     .importSessionId(importedTx.getImportSessionId())
                                     .build();

@@ -1,5 +1,5 @@
 import './import-review.css';
-import { decimalValue } from '@/utils/exact-decimal';
+import { decimalField, decimalValue, equalDecimals } from '@/utils/exact-decimal';
 /**
  * ImportReview Component
  *
@@ -8,16 +8,17 @@ import { decimalValue } from '@/utils/exact-decimal';
  * Responsibilities:
  * - Display all parsed transactions in a reviewable table
  * - Auto-assign categories and payees based on transaction history patterns
- * - Allow per-row inline editing of category, payee, and memo
- * - Allow multi-select + bulk-edit of category, payee, and tags
+ * - Allow per-row corrections before confirmation
+ * - Apply corrections to selected transactions in bulk
  * - Filter view by All / Duplicates / Errors
  * - Expand split transactions inline
  * - Expose category mappings (sourceCategory → categoryId) to the parent wizard
  */
-import React, { useState, useMemo, useCallback, useEffect } from 'react';
+import React, { useState, useMemo, useCallback, useEffect, useId } from 'react';
 import { Badge } from '@/components/ui/Badge';
-import { Button } from '@/components/ui/Button';
 import { ConvertedAmount } from '@/components/ui/ConvertedAmount';
+import { DateInput } from '@/components/ui/DateInput';
+import { NumberInput } from '@/components/ui/NumberInput';
 import { useTranslation } from 'react-i18next';
 import { CategorySelect } from '@/components/ui/CategorySelect';
 import { CategoryCombobox } from '@/components/ui/CategorySelect';
@@ -32,18 +33,26 @@ import {
   Sparkles,
   Tag,
   Info,
-  Trash2,
   ListTree,
 } from 'lucide-react';
 import { useCategories } from '@/hooks/useCategories';
+import { useToday } from '@/hooks/useReportingCalendar';
 import { useUserSettings, useBaseCurrency } from '@/hooks/useUserSettings';
-import { DEFAULT_CURRENCY } from '@/utils/currency';
+import { DEFAULT_CURRENCY, getCurrencySymbol } from '@/utils/currency';
 import { formatDate as globalFormatDate } from '@/utils/date';
 import { translateCategoryName } from '@/utils/categoryTranslation';
-import { isSplitAmountError } from '@/utils/import-review';
+import {
+  isSplitAmountError,
+  MAX_IMPORT_AMOUNT,
+  reviewTransferPartners,
+  reviewedAmountChanges,
+  shareTransferAmount,
+  reviewFieldErrorKey,
+  updateReviewedDateAndAmount,
+} from '@/utils/import-review';
 import { categoryPath, matchingCategories, type CategoryPathNode } from '@/utils/category-path';
 import { ImportReviewDetails } from '@/components/import/ImportReviewDetails';
-import { Input } from '@/components/ui/Input';
+import { ImportReviewBulkEdit } from '@/components/import/ImportReviewBulkEdit';
 import type { ImportTransactionDTO } from '@/types/import';
 
 // ---------------------------------------------------------------------------
@@ -65,9 +74,12 @@ export interface ImportReviewProps {
 type FilterType = 'all' | 'duplicates' | 'errors' | 'uncategorized' | 'auto_assigned';
 
 interface EditState {
+  transactionDate: string;
+  amount: string;
   category: string;
   payee: string;
   memo: string;
+  description?: string | null;
 }
 
 const INFO_PREFIXES = [
@@ -112,6 +124,8 @@ export function ImportReview({
   onNewCategoryNamesChange,
 }: ImportReviewProps) {
   const { t } = useTranslation('import');
+  const today = useToday();
+  const editFormId = useId();
   const showSource = transactions.some(transaction => transaction.sourceUploadId);
   const { t: tCategories } = useTranslation('categories');
 
@@ -124,13 +138,8 @@ export function ImportReview({
         rule: err.slice('RULE_CONDITION_INVALID:'.length).trim(),
       });
     }
-    const map: Record<string, string> = {
-      'Transaction date is required': t('validation.dateRequired'),
-      'Transaction amount is required': t('validation.amountRequired'),
-      'Transaction amount cannot be zero': t('validation.amountZero'),
-      'Transaction date cannot be in the future': t('validation.dateFuture'),
-    };
-    return map[err] ?? err;
+    const key = reviewFieldErrorKey(err);
+    return key ? t(`validation.${key}`) : err;
   };
 
   const [filter, setFilter] = useState<FilterType>('all');
@@ -138,30 +147,27 @@ export function ImportReview({
 
   // Multi-edit state
   const [selectedRows, setSelectedRows] = useState<Set<number>>(new Set());
-  const [bulkCategory, setBulkCategory] = useState<string>('');
-  const [bulkPayee, setBulkPayee] = useState<string>('');
-  const [bulkTagText, setBulkTagText] = useState('');
   const [detailRow, setDetailRow] = useState<number | null>(null);
-  const bulkTags = bulkTagText
-    .split(',')
-    .map(tag => tag.trim())
-    .filter(Boolean);
-  const mergedTags = (row: ImportTransactionDTO) => [
-    ...new Set([...(row.tags ?? []), ...bulkTags]),
-  ];
-  const canTagSelection = [...selectedRows].some(index => !transactions[index]?.openingBalance);
-  const hasBulkTags = bulkTags.length > 0 && canTagSelection;
-  const bulkTagsTooLong =
-    hasBulkTags &&
-    (bulkTags.some(tag => tag.length > 50) ||
-      transactions.some(
-        (row, index) =>
-          !row.openingBalance && selectedRows.has(index) && mergedTags(row).join(',').length > 500
-      ));
+  const partners = useMemo(() => reviewTransferPartners(transactions), [transactions]);
 
   // Per-row inline editing
   const [editingRow, setEditingRow] = useState<number | null>(null);
-  const [editState, setEditState] = useState<EditState>({ category: '', payee: '', memo: '' });
+  const [editState, setEditState] = useState<EditState>({
+    transactionDate: '',
+    amount: '',
+    category: '',
+    payee: '',
+    memo: '',
+  });
+  const edited = editingRow == null ? undefined : transactions[editingRow];
+  const keepSourceDate =
+    edited?.transactionDate === editState.transactionDate &&
+    !edited?.validationErrors.some(error => reviewFieldErrorKey(error) === 'dateFuture');
+  const latestEditDate =
+    keepSourceDate && editState.transactionDate > today ? editState.transactionDate : today;
+  const partnerIndex = editingRow == null ? undefined : partners.get(editingRow);
+  const transferMate = partnerIndex == null ? undefined : transactions[partnerIndex];
+  const sharedAmount = edited && transferMate && shareTransferAmount(edited, transferMate);
 
   // Mapping panel: tracks which rows have "map to existing" override open
   const [mappingPanelOverride, setMappingPanelOverride] = useState<Record<string, boolean>>({});
@@ -357,50 +363,40 @@ export function ImportReview({
   }, []);
 
   // -------------------------------------------------------------------------
-  // Handlers — bulk edit
-  // -------------------------------------------------------------------------
-  const handleBulkApply = () => {
-    if (selectedRows.size === 0 || bulkTagsTooLong || (!bulkCategory && !bulkPayee && !hasBulkTags))
-      return;
-
-    const updated = transactions.map((t, idx) => {
-      if (!selectedRows.has(idx)) return t;
-      return {
-        ...t,
-        ...(bulkCategory.trim() ? { category: bulkCategory.trim() } : {}),
-        ...(bulkPayee.trim() ? { payee: bulkPayee.trim() } : {}),
-        ...(bulkTags.length && !t.openingBalance ? { tags: mergedTags(t) } : {}),
-      };
-    });
-
-    onTransactionsChange(updated);
-    setSelectedRows(new Set());
-    setBulkCategory('');
-    setBulkPayee('');
-    setBulkTagText('');
-  };
-
-  // -------------------------------------------------------------------------
   // Handlers — inline editing
   // -------------------------------------------------------------------------
   const startEditing = (originalIndex: number) => {
     const t = transactions[originalIndex];
     setEditState({
+      transactionDate: t.transactionDate ?? '',
+      amount: decimalField(t, 'amount'),
       category: t.category ?? '',
       payee: t.payee ?? '',
       memo: t.memo ?? '',
+      description: t.description,
     });
     setEditingRow(originalIndex);
   };
 
   const commitEdit = (originalIndex: number) => {
+    const amounts = reviewedAmountChanges(
+      transactions,
+      partners,
+      new Set([originalIndex]),
+      editState.amount
+    );
     const updated = transactions.map((t, idx) => {
-      if (idx !== originalIndex) return t;
+      if (idx !== originalIndex) {
+        const amount = amounts.get(idx);
+        return amount === undefined ? t : updateReviewedDateAndAmount(t, t.transactionDate, amount);
+      }
       return {
-        ...t,
+        ...updateReviewedDateAndAmount(t, editState.transactionDate || null, editState.amount),
         category: editState.category.trim() || null,
         payee: editState.payee,
         memo: editState.memo || null,
+        // An empty description clears it; a missing one falls back to the statement payee.
+        description: editState.description,
       };
     });
     onTransactionsChange(updated);
@@ -690,88 +686,26 @@ export function ImportReview({
 
       {/* ── Bulk-edit toolbar ─────────────────────────────────────────────── */}
       {selectedRows.size > 0 && (
-        <div className="sticky top-0 z-20 bg-surface-elevated border border-primary/30 rounded-lg p-3 shadow-lg flex flex-col sm:flex-row items-center space-y-2 sm:space-y-0 sm:space-x-3 transition-all">
-          <span className="text-sm font-semibold whitespace-nowrap text-primary px-2">
-            {t('review.bulkAction.selected', { count: selectedRows.size })}
-          </span>
-
-          <div className="flex-1 flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2 w-full">
-            {/* Bulk Category */}
-            <div className="flex-1 min-w-0">
-              <CategoryCombobox
-                value={bulkCategory}
-                onValueChange={(name, id) => {
-                  setBulkCategory(name);
-                  rememberCategorySelection(name, id);
-                }}
-                placeholder={t('review.bulkAction.setCategory')}
-                className="w-full h-10"
-              />
-            </div>
-
-            {/* Bulk Payee */}
-            <div className="flex-1 min-w-0">
-              <PayeeCombobox
-                value={bulkPayee}
-                onValueChange={setBulkPayee}
-                placeholder={t('review.bulkAction.setPayee')}
-                className="w-full h-10"
-              />
-            </div>
-            <div className="flex-1 min-w-0">
-              <Input
-                disabled={!canTagSelection}
-                aria-label={t('review.bulkAction.addTags')}
-                placeholder={t('review.bulkAction.addTags')}
-                value={bulkTagText}
-                onChange={event => setBulkTagText(event.target.value)}
-              />
-              {bulkTagsTooLong && (
-                <p role="alert" className="text-sm text-error">
-                  {t('review.details.tagLength')}
-                </p>
-              )}
-            </div>
-          </div>
-
-          <div className="flex items-center space-x-2 w-full sm:w-auto">
-            <Button
-              variant="primary"
-              size="sm"
-              onClick={handleBulkApply}
-              disabled={bulkTagsTooLong || (!bulkCategory && !bulkPayee && !hasBulkTags)}
-              className="flex-1 sm:flex-none"
-            >
-              <Edit2 className="h-4 w-4 mr-1.5" />
-              {t('review.bulkAction.applyButton', { count: selectedRows.size })}
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => {
-                onTransactionsChange(transactions.filter((_, idx) => !selectedRows.has(idx)));
-                setBulkTagText('');
-                setEditingRow(null);
-                setSelectedRows(new Set());
-              }}
-              title={t('review.actions.removeSelected')}
-              className="text-red-500 hover:text-red-600 hover:bg-red-50"
-            >
-              <Trash2 className="h-4 w-4" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => {
-                setSelectedRows(new Set());
-                setBulkTagText('');
-              }}
-              title={t('review.actions.clearSelection')}
-            >
-              <X className="h-4 w-4" />
-            </Button>
-          </div>
-        </div>
+        <ImportReviewBulkEdit
+          transactions={transactions}
+          selected={selectedRows}
+          partners={partners}
+          today={today}
+          baseCurrency={baseCurrency}
+          onCategory={rememberCategorySelection}
+          onApply={rows => {
+            if (editingRow !== null && rows[editingRow] !== transactions[editingRow])
+              setEditingRow(null);
+            onTransactionsChange(rows);
+            setSelectedRows(new Set());
+          }}
+          onRemove={() => {
+            onTransactionsChange(transactions.filter((_, idx) => !selectedRows.has(idx)));
+            setEditingRow(null);
+            setSelectedRows(new Set());
+          }}
+          onClear={() => setSelectedRows(new Set())}
+        />
       )}
 
       {/* ── Transactions table ────────────────────────────────────────────── */}
@@ -861,6 +795,8 @@ export function ImportReview({
                   const idx = transaction.originalIndex;
                   const description =
                     transaction.description ?? transaction.originalPayee ?? transaction.payee;
+                  const currency =
+                    transaction.currency || transaction.reviewCurrency || baseCurrency;
                   const isEditing = editingRow === idx;
                   const isExpanded = expandedRows.has(idx);
                   const isSelected = selectedRows.has(idx);
@@ -878,6 +814,8 @@ export function ImportReview({
                     e.startsWith('RULE_SKIP:')
                   );
                   const isDuplicate = transaction.potentialDuplicate;
+                  const invalidZero =
+                    isEditing && !transaction.openingBalance && equalDecimals(editState.amount, 0);
 
                   return (
                     <React.Fragment key={idx}>
@@ -886,6 +824,7 @@ export function ImportReview({
                         role="row"
                         className={[
                           'review-row border-t border-border transition-colors',
+                          isEditing ? 'review-row-editing' : '',
                           isSelected
                             ? 'bg-primary/5'
                             : isDuplicate
@@ -908,9 +847,33 @@ export function ImportReview({
 
                         {/* Date */}
                         <td role="cell" className="review-date text-text-secondary">
-                          {transaction.transactionDate
-                            ? formatDate(transaction.transactionDate)
-                            : t('review.table.missingDate')}
+                          {isEditing ? (
+                            <>
+                              <label className="sr-only" htmlFor={`${editFormId}-date`}>
+                                {t('review.table.date')}
+                              </label>
+                              <DateInput
+                                id={`${editFormId}-date`}
+                                form={editFormId}
+                                value={editState.transactionDate}
+                                max={latestEditDate}
+                                required={
+                                  !transaction.openingBalance ||
+                                  !!transaction.transactionDate ||
+                                  transaction.validationErrors.some(
+                                    error => reviewFieldErrorKey(error) === 'dateRequired'
+                                  )
+                                }
+                                onChange={transactionDate =>
+                                  setEditState(s => ({ ...s, transactionDate }))
+                                }
+                              />
+                            </>
+                          ) : transaction.transactionDate ? (
+                            formatDate(transaction.transactionDate)
+                          ) : (
+                            t('review.table.missingDate')
+                          )}
                         </td>
 
                         {/* Payee */}
@@ -933,7 +896,44 @@ export function ImportReview({
 
                         {/* Amount */}
                         <td role="cell" className="review-amount font-mono text-right">
-                          {transaction.amount == null ? (
+                          {isEditing ? (
+                            <>
+                              <div className="grid grid-cols-[auto_minmax(0,1fr)] items-start gap-1.5">
+                                <span
+                                  title={currency}
+                                  className="inline-flex h-10 items-center font-sans text-xs text-text-secondary"
+                                >
+                                  <span aria-hidden="true">{getCurrencySymbol(currency)}</span>
+                                  <span id={`${editFormId}-currency`} className="sr-only">
+                                    {currency}
+                                  </span>
+                                </span>
+                                <NumberInput
+                                  form={editFormId}
+                                  aria-label={t('review.table.amount')}
+                                  aria-describedby={`${editFormId}-currency`}
+                                  value={editState.amount}
+                                  onChange={amount => setEditState(s => ({ ...s, amount }))}
+                                  error={invalidZero ? t('validation.amountZero') : undefined}
+                                  min={`-${MAX_IMPORT_AMOUNT}`}
+                                  max={MAX_IMPORT_AMOUNT}
+                                  maxFractionDigits={18}
+                                  required
+                                  calculable
+                                  className="text-right"
+                                />
+                              </div>
+                              {transferMate && (
+                                <p className="font-sans text-xs text-text-secondary">
+                                  {t(
+                                    sharedAmount
+                                      ? 'review.table.sharedTransferAmount'
+                                      : 'review.table.sharedTransferDirection'
+                                  )}
+                                </p>
+                              )}
+                            </>
+                          ) : transaction.amount == null ? (
                             <span className="text-text-tertiary">
                               {t('review.table.missingAmount')}
                             </span>
@@ -945,9 +945,7 @@ export function ImportReview({
                             >
                               <ConvertedAmount
                                 amount={decimalValue(transaction, 'amount') ?? transaction.amount}
-                                currency={
-                                  transaction.currency || transaction.reviewCurrency || baseCurrency
-                                }
+                                currency={currency}
                                 inline
                               />
                             </span>
@@ -1000,8 +998,9 @@ export function ImportReview({
                             {t('review.table.notes')}
                           </span>
                           {isEditing ? (
-                            <input
-                              type="text"
+                            <textarea
+                              rows={2}
+                              maxLength={1000}
                               aria-label={t('review.table.notes')}
                               value={editState.memo}
                               onChange={e => setEditState(s => ({ ...s, memo: e.target.value }))}
@@ -1021,9 +1020,22 @@ export function ImportReview({
                           <span aria-hidden="true" className="review-field-label">
                             {t('review.table.description')}
                           </span>
-                          <span className="block whitespace-pre-line" title={description ?? ''}>
-                            {description || '—'}
-                          </span>
+                          {isEditing && !transaction.openingBalance ? (
+                            <textarea
+                              aria-label={t('review.table.description')}
+                              value={editState.description ?? description ?? ''}
+                              onChange={e =>
+                                setEditState(s => ({ ...s, description: e.target.value }))
+                              }
+                              rows={2}
+                              maxLength={255}
+                              className="w-full min-w-0 resize-y rounded border border-primary bg-surface px-2 py-1 text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                            />
+                          ) : (
+                            <span className="block whitespace-pre-line" title={description ?? ''}>
+                              {description || '—'}
+                            </span>
+                          )}
                           {!!transaction.tags?.length && (
                             <div
                               className="mt-1 flex flex-wrap gap-1"
@@ -1127,22 +1139,31 @@ export function ImportReview({
                         <td role="cell" className="review-actions">
                           <div className="flex flex-wrap items-center justify-end">
                             {isEditing ? (
-                              <>
+                              <form
+                                id={editFormId}
+                                className="contents"
+                                onSubmit={event => {
+                                  event.preventDefault();
+                                  if (!invalidZero) commitEdit(idx);
+                                }}
+                              >
                                 <button
-                                  onClick={() => commitEdit(idx)}
+                                  type="submit"
+                                  disabled={invalidZero}
                                   className="review-action rounded text-green-600 hover:bg-green-50 transition-colors"
                                   title={t('review.actions.save')}
                                 >
                                   <Check className="h-4 w-4" />
                                 </button>
                                 <button
+                                  type="button"
                                   onClick={cancelEdit}
                                   className="review-action rounded text-text-tertiary hover:bg-surface-elevated transition-colors"
                                   title={t('review.actions.cancel')}
                                 >
                                   <X className="h-4 w-4" />
                                 </button>
-                              </>
+                              </form>
                             ) : (
                               <>
                                 <button

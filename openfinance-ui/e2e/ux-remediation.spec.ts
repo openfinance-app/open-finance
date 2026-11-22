@@ -306,6 +306,91 @@ test('OFX confirmation accepts sub-cent history and preserves its exact ledger v
     .toBe(997.85994317);
 });
 
+test('import review bulk corrections reach only the selected ledger transactions', async ({
+  page,
+}, testInfo) => {
+  await completeOnboarding(page);
+  const account = await accountFixture(page);
+  await page.goto('/import');
+  await page.locator('input[type="file"]').setInputFiles({
+    name: 'commute.csv',
+    mimeType: 'text/csv',
+    buffer: Buffer.from(
+      [
+        'Date;Payee;Amount;Description;Memo',
+        `${today};Railway;-2;Original rail fare;Ticket receipt`,
+        `${today};Metro;-4;Original metro fare;Transit pass`,
+        `${today};Refund;30;Refund from shop;Keep refund note`,
+      ].join('\n')
+    ),
+  });
+  await page.getByRole('button', { name: /^upload file$/i }).click();
+  await page.locator('select').selectOption(String(account.id));
+  const next = page.getByRole('button', { name: /^next$/i });
+  await next.click();
+  const table = page.getByRole('table', { name: 'Review Transactions' });
+  for (const payee of ['Railway', 'Metro']) {
+    await table
+      .getByRole('row', { name: new RegExp(payee) })
+      .getByRole('checkbox')
+      .check();
+  }
+  const bulk = page.getByRole('region', { name: '2 selected' });
+  const date = new Date(`${today}T12:00:00Z`);
+  date.setUTCDate(date.getUTCDate() - 1);
+  const isoDate = date.toISOString().slice(0, 10);
+  await bulk.getByRole('textbox', { name: 'Description', exact: true }).fill('Work commute');
+  const notes = 'November travel\nReceipt attached';
+  await bulk.getByRole('textbox', { name: 'Notes', exact: true }).fill(notes);
+  await bulk
+    .getByRole('textbox', { name: 'Date', exact: true })
+    .fill(isoDate.split('-').reverse().join('/'));
+  const amount = bulk.getByRole('textbox', { name: 'Amount', exact: true });
+  await expect(bulk.getByTitle('EUR')).toHaveText('€');
+  await amount.fill('-9-5');
+  await amount.press('Enter');
+  await expect(amount).toHaveValue('-14');
+  for (const width of [1280, 390, 320]) {
+    await page.setViewportSize({ width, height: 844 });
+    expect(await bulk.evaluate(node => node.scrollWidth <= node.clientWidth)).toBe(true);
+    if (width !== 320) await bulk.screenshot({ path: testInfo.outputPath(`bulk-${width}.png`) });
+  }
+  await bulk.getByRole('button', { name: 'Apply to 2' }).click();
+  await expect(table.getByText('Work commute', { exact: true })).toHaveCount(2);
+  await table.getByRole('row', { name: /Metro/ }).getByRole('checkbox').check();
+  const metro = page.getByRole('region', { name: '1 selected' });
+  await metro.getByRole('checkbox', { name: 'Clear notes' }).check();
+  await metro.getByRole('button', { name: 'Apply to 1' }).click();
+  await next.click();
+  await page.getByRole('button', { name: /^confirm import$/i }).click();
+  await expect.poll(async () => (await api(page, `/accounts/${account.id}`)).balance).toBe(1002);
+  const { content } = await api(page, `/transactions/search?accountId=${account.id}`);
+  expect(content).toHaveLength(3);
+  for (const payee of ['Railway', 'Metro']) {
+    expect(content).toContainEqual(
+      expect.objectContaining({
+        payee,
+        date: isoDate,
+        description: 'Work commute',
+        amount: 14,
+        type: 'EXPENSE',
+      })
+    );
+  }
+  expect(content.find((tx: { payee: string }) => tx.payee === 'Railway').notes).toBe(notes);
+  expect(content.find((tx: { payee: string }) => tx.payee === 'Metro').notes ?? null).toBeNull();
+  expect(content).toContainEqual(
+    expect.objectContaining({
+      payee: 'Refund',
+      date: today,
+      description: 'Refund from shop',
+      notes: 'Keep refund note',
+      amount: 30,
+      type: 'INCOME',
+    })
+  );
+});
+
 test('import review saves transaction tags and both split lines through confirmation', async ({
   page,
 }, testInfo) => {
@@ -389,17 +474,56 @@ test('import review saves transaction tags and both split lines through confirma
   });
   await save.click();
   await expect(page.getByRole('row', { name: /Travel desk/ })).toContainText('Reviewed');
+  await fare.getByRole('button', { name: 'Edit transaction' }).click();
+  const editRow = table
+    .getByRole('row')
+    .filter({ has: page.getByRole('button', { name: 'Save', exact: true }) });
+  const amount = editRow.getByRole('textbox', { name: 'Amount', exact: true });
+  const dateInput = editRow.getByRole('textbox', { name: 'Date', exact: true });
+  await page.setViewportSize({ width: 1848, height: 900 });
+  const amountBox = (await amount.boundingBox())!;
+  const dateBox = (await dateInput.boundingBox())!;
+  expect(
+    Math.abs(amountBox.y + amountBox.height / 2 - (dateBox.y + dateBox.height / 2))
+  ).toBeLessThanOrEqual(1);
+  const symbol = editRow.getByText('€', { exact: true });
+  await expect(symbol).toBeVisible();
+  await expect(amount).toHaveAccessibleDescription('EUR');
+  await testInfo.attach('edit-amount-desktop', {
+    body: await editRow.screenshot(),
+    contentType: 'image/png',
+  });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect(symbol).toBeVisible();
+  const description = table.getByRole('textbox', { name: 'Description', exact: true });
+  await expect(description).toHaveValue('FACTURE CARTE');
+  await description.fill('Train fare for the work trip');
+  const yesterday = new Date(`${today}T12:00:00Z`);
+  yesterday.setUTCDate(yesterday.getUTCDate() - 1);
+  const bookedDate = yesterday.toISOString().slice(0, 10);
+  await dateInput.fill(bookedDate.split('-').reverse().join('/'));
+  await amount.fill('-10.99-2');
+  await amount.press('Enter');
+  await expect(amount).toHaveValue('-12.99');
+  await table.getByRole('button', { name: 'Save', exact: true }).click();
+  await expect(fare).toContainText('Train fare for the work trip');
+  await fare.getByRole('button', { name: 'Tags and splits' }).click();
+  await dialog.getByRole('textbox', { name: 'Split 2 amount' }).fill('5.74');
+  await save.click();
   await next.click();
   await page.getByRole('button', { name: /^confirm import$/i }).click();
-  await expect.poll(async () => (await api(page, `/accounts/${account.id}`)).balance).toBe(969.47);
+  await expect.poll(async () => (await api(page, `/accounts/${account.id}`)).balance).toBe(967.47);
   const { content } = await api(page, `/transactions/search?accountId=${account.id}`);
   expect(content).toHaveLength(3);
   const booked = content.find((row: { payee: string }) => row.payee === 'Travel desk');
+  expect(booked).toMatchObject({ date: bookedDate, amount: 12.99, type: 'EXPENSE' });
+  expect(booked.description).toBe('Train fare for the work trip');
+  expect(booked.notes).toBe('DU 071026 TRAIN');
   expect(booked.tags).toBe('Receipt,Reviewed');
   const splits = await api(page, `/transactions/${booked.id}/splits`);
   expect(splits).toMatchObject([
     { amount: 7.25, categoryName: 'Transport', description: 'Fare', tags: ['Work trip'] },
-    { amount: 3.74, categoryName: 'Food', tags: ['Personal'] },
+    { amount: 5.74, categoryName: 'Food', tags: ['Personal'] },
   ]);
   const manual = await api(
     page,

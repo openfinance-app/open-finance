@@ -329,6 +329,9 @@ describe('ImportReview source categories', () => {
     expect(screen.getByText(/-\$12\.34/)).toBeInTheDocument();
     fireEvent.click(screen.getByTitle('Expand splits'));
     expect(screen.getAllByText(/\$6\.17/)).toHaveLength(2);
+    fireEvent.click(screen.getByTitle('Edit transaction'));
+    expect(screen.getByTitle('USD')).toHaveTextContent('$');
+    expect(screen.getByRole('textbox', { name: 'Amount' })).toHaveAccessibleDescription('USD');
   });
 
   it('leaves an AI abstention unassigned instead of guessing from a memo substring', () => {

@@ -15,6 +15,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.openfinance.config.TestDatabaseConfig;
 import org.openfinance.dto.AccountRequest;
@@ -26,6 +27,7 @@ import org.openfinance.entity.AccountType;
 import org.openfinance.entity.ImportSession;
 import org.openfinance.entity.ImportSession.ImportStatus;
 import org.openfinance.entity.Transaction;
+import org.openfinance.entity.TransactionType;
 import org.openfinance.repository.AccountRepository;
 import org.openfinance.repository.AssetRepository;
 import org.openfinance.repository.CurrencyRepository;
@@ -108,6 +110,63 @@ class TransferImportFlowTest {
     @AfterEach
     void clearKey() {
         EncryptionContext.clear();
+    }
+
+    @ParameterizedTest
+    @CsvSource({"false,false", "false,true", "true,false"})
+    void pairedCashTransfersBookEachReviewedPosting(
+            boolean differentDates, boolean clearCreditNotes) throws Exception {
+        String incoming =
+                qifAccount("Savings", "Bank", "D09/28/2026\nT100\nPTransfer in\nL[Checking]\n^\n");
+        String outgoing =
+                qifAccount(
+                        "Checking", "Bank", "D09/28/2026\nT-100\nPTransfer out\nL[Savings]\n^\n");
+        ImportSession session = parseFile("savings.qif", incoming + outgoing);
+        List<ImportedTransaction> review = imports.reviewTransactions(session.getId(), userId);
+        assertThat(review).hasSize(2);
+        assertThat(review.getFirst().getTransferGroupKey())
+                .isNotBlank()
+                .isEqualTo(review.getLast().getTransferGroupKey());
+        LocalDate debitDate = LocalDate.of(2026, 9, 20);
+        LocalDate creditDate = differentDates ? debitDate.plusDays(5) : debitDate;
+        String creditNotes = clearCreditNotes ? null : "Incoming receipt";
+        for (ImportedTransaction row : review) {
+            boolean debit = row.getAmount().signum() < 0;
+            row.setAmount(new BigDecimal(debit ? "-140.25" : "140.25"));
+            row.setTransactionDate(debit ? debitDate : creditDate);
+            row.setDescription(debit ? "Savings deposit" : "Monthly savings");
+            row.setMemo(debit ? "Transfer receipt\nReviewed" : creditNotes);
+        }
+        imports.updateParsedTransactions(session.getId(), review, userId);
+        assertThat(
+                        imports.confirmImport(session.getId(), userId, null, Map.of(), true)
+                                .getErrorCount())
+                .isZero();
+        List<Transaction> rows = ledger.findByUserId(userId);
+        assertPair(rows);
+        assertThat(rows)
+                .allSatisfy(
+                        tx -> {
+                            assertThat(tx.getAmount()).isEqualByComparingTo("140.25");
+                            assertThat(tx.getNotes())
+                                    .isEqualTo(
+                                            tx.getType() == TransactionType.EXPENSE
+                                                    ? "Transfer receipt\nReviewed"
+                                                    : creditNotes);
+                            assertThat(tx.getDate())
+                                    .isEqualTo(
+                                            tx.getType() == TransactionType.EXPENSE
+                                                    ? debitDate
+                                                    : creditDate);
+                        });
+        assertThat(rows)
+                .filteredOn(tx -> tx.getType() == TransactionType.EXPENSE)
+                .extracting(Transaction::getDescription)
+                .containsExactly("Savings deposit");
+        assertThat(rows)
+                .filteredOn(tx -> tx.getType() == TransactionType.INCOME)
+                .extracting(Transaction::getDescription)
+                .containsExactly("Monthly savings");
     }
 
     @ParameterizedTest

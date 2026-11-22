@@ -233,6 +233,222 @@ describe('Import review decisions and selected-row edits', () => {
     ]);
   });
 
+  it('edits and clears a fallback description independently of the payee and notes', () => {
+    const original = { ...row, originalPayee: 'Bank text', memo: 'Receipt' };
+    renderRows([original]);
+    const edit = () => fireEvent.click(screen.getByTitle(text('review.actions.edit')));
+    const description = () =>
+      screen.getByRole('textbox', { name: text('review.table.description') });
+    edit();
+    expect(description()).toHaveValue('Bank text');
+    fireEvent.change(description(), { target: { value: 'Discarded' } });
+    fireEvent.click(screen.getByTitle(text('review.actions.cancel')));
+    expect(reviewed()[0]).toEqual(original);
+    edit();
+    fireEvent.change(description(), { target: { value: '' } });
+    fireEvent.click(screen.getByTitle(text('review.actions.save')));
+    expect(reviewed()[0]).toEqual({ ...original, description: '' });
+    edit();
+    expect(description()).toHaveValue('');
+  });
+
+  it('saves a corrected date and exact signed amount and clears only their statement errors', () => {
+    const annotation = 'RULE_MATCH: Bank rule';
+    renderRows([
+      {
+        ...row,
+        transactionDate: null,
+        amount: null,
+        validationErrors: [
+          'Transaction date is required',
+          'Le montant de la transaction est requis',
+          annotation,
+        ],
+      },
+    ]);
+    fireEvent.click(screen.getByTitle(text('review.actions.edit')));
+    const date = screen.getByRole('textbox', { name: text('review.table.date') });
+    const amount = screen.getByRole('textbox', { name: text('review.table.amount') });
+    fireEvent.change(date, { target: { value: '2025-02-31' } });
+    fireEvent.change(amount, { target: { value: '-0.123456789012345678' } });
+    fireEvent.click(screen.getByTitle(text('review.actions.save')));
+    expect(date).toBeInvalid();
+    expect(reviewed()[0].amount).toBeNull();
+    fireEvent.change(date, { target: { value: '2025-02-28' } });
+    fireEvent.click(screen.getByTitle(text('review.actions.save')));
+    expect(reviewed()[0]).toMatchObject({
+      transactionDate: '2025-02-28',
+      amount: '-0.123456789012345678',
+      validationErrors: [annotation],
+    });
+  });
+
+  it('keeps date and amount drafts local and requires Enter to apply a calculation', () => {
+    renderRows([row]);
+    const edit = () => fireEvent.click(screen.getByTitle(text('review.actions.edit')));
+    const amount = () => screen.getByRole('textbox', { name: text('review.table.amount') });
+    edit();
+    fireEvent.change(screen.getByRole('textbox', { name: text('review.table.date') }), {
+      target: { value: '2025-02-28' },
+    });
+    fireEvent.change(amount(), { target: { value: '9+5' } });
+    fireEvent.keyDown(amount(), { key: 'Enter' });
+    expect(amount()).toHaveValue('14');
+    fireEvent.click(screen.getByTitle(text('review.actions.cancel')));
+    expect(reviewed()[0]).toEqual(row);
+    edit();
+    fireEvent.change(amount(), { target: { value: '-9-5' } });
+    fireEvent.click(screen.getByTitle(text('review.actions.save')));
+    expect(amount()).toBeInvalid();
+    fireEvent.keyDown(amount(), { key: 'Enter' });
+    fireEvent.click(screen.getByTitle(text('review.actions.save')));
+    expect(reviewed()[0].amount).toBe('-14');
+  });
+
+  it('updates both signed amounts of a matched transfer within the same file and keeps posting dates independent', () => {
+    const debit = {
+      ...row,
+      transfer: true,
+      transferGroupKey: 'review:pair',
+      sourceUploadId: 'first',
+    };
+    const credit = { ...debit, amount: '20', payee: 'Savings' };
+    const unrelated = { ...credit, sourceUploadId: 'second' };
+    renderRows([debit, credit, unrelated]);
+    fireEvent.click(screen.getAllByTitle(text('review.actions.edit'))[1]);
+    fireEvent.change(screen.getByRole('textbox', { name: text('review.table.amount') }), {
+      target: { value: '25.75' },
+    });
+    fireEvent.change(screen.getByRole('textbox', { name: text('review.table.date') }), {
+      target: { value: '2025-01-06' },
+    });
+    fireEvent.click(screen.getByTitle(text('review.actions.save')));
+    expect(reviewed()).toEqual([
+      { ...debit, amount: '-25.75' },
+      { ...credit, amount: '25.75', transactionDate: '2025-01-06' },
+      unrelated,
+    ]);
+  });
+
+  it('requires a nonzero transaction amount and allows a zero opening balance without a statement date', () => {
+    renderRows([row, { ...row, openingBalance: true, transactionDate: null }]);
+    const amount = () => screen.getByRole('textbox', { name: text('review.table.amount') });
+    fireEvent.click(screen.getAllByTitle(text('review.actions.edit'))[0]);
+    fireEvent.change(amount(), { target: { value: '0' } });
+    expect(screen.getByTitle(text('review.actions.save'))).toBeDisabled();
+    fireEvent.click(screen.getByTitle(text('review.actions.cancel')));
+    fireEvent.click(screen.getAllByTitle(text('review.actions.edit'))[1]);
+    fireEvent.change(amount(), { target: { value: '0' } });
+    fireEvent.click(screen.getByTitle(text('review.actions.save')));
+    expect(reviewed()[1]).toMatchObject({ amount: '0', transactionDate: null });
+  });
+
+  it('bulk edits the description, date and calculated amount on selected rows only', () => {
+    const annotation = 'RULE_MATCH: bank';
+    const missing = {
+      ...row,
+      transactionDate: null,
+      amount: null,
+      validationErrors: [
+        'Transaction date is required',
+        'Le montant de la transaction est requis',
+        annotation,
+      ],
+    };
+    renderRows([missing, row, { ...row, payee: 'Outside selection' }]);
+    fireEvent.click(screen.getByRole('checkbox', { name: /Select transaction 1/i }));
+    fireEvent.click(screen.getByRole('checkbox', { name: /Select transaction 2/i }));
+    const date = screen.getByRole('textbox', { name: 'Date' });
+    const amount = screen.getByRole('textbox', { name: 'Amount' });
+    const apply = screen.getByRole('button', { name: 'Apply to 2' });
+    fireEvent.change(screen.getByRole('textbox', { name: 'Description' }), {
+      target: { value: 'Train ticket\nReturn' },
+    });
+    fireEvent.change(date, { target: { value: '2025-02-31' } });
+    fireEvent.change(amount, { target: { value: '9+5' } });
+    fireEvent.click(apply);
+    expect(date).toBeInvalid();
+    fireEvent.change(date, { target: { value: '2025-02-28' } });
+    fireEvent.click(apply);
+    expect(amount).toBeInvalid();
+    expect(reviewed()[0]).toEqual(missing);
+    fireEvent.keyDown(amount, { key: 'Enter' });
+    expect(amount).toHaveValue('14');
+    fireEvent.click(apply);
+    const patch = {
+      description: 'Train ticket\nReturn',
+      transactionDate: '2025-02-28',
+      amount: '14',
+    };
+    expect(reviewed()).toEqual([
+      { ...missing, ...patch, validationErrors: [annotation] },
+      { ...row, ...patch },
+      { ...row, payee: 'Outside selection' },
+    ]);
+  });
+
+  it('sets and clears only the selected transaction notes, independently of descriptions and split memos', () => {
+    const first = {
+      ...row,
+      description: 'Rail fare',
+      memo: 'From statement',
+      splits: [
+        { category: 'Travel', amount: '-10', memo: 'Split note' },
+        { category: 'Fees', amount: '-10', memo: '' },
+      ],
+    };
+    const second = { ...row, memo: 'Other note', description: 'Metro fare' };
+    const opening = { ...row, openingBalance: true, memo: 'Source balance' };
+    renderRows([first, second, opening]);
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Select all' }));
+    const notes = () => screen.getByRole('textbox', { name: 'Notes' });
+    expect(notes()).toHaveAttribute('maxlength', '1000');
+    const replacement = 'Business trip\nReceipt attached';
+    fireEvent.change(notes(), { target: { value: replacement } });
+    fireEvent.click(screen.getByRole('button', { name: 'Apply to 3' }));
+    expect(reviewed()).toEqual([
+      { ...first, memo: replacement },
+      { ...second, memo: replacement },
+      opening,
+    ]);
+    fireEvent.click(screen.getByRole('checkbox', { name: /Select transaction 1/i }));
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Clear notes' }));
+    expect(notes()).toBeDisabled();
+    fireEvent.click(screen.getByRole('button', { name: 'Apply to 1' }));
+    expect(reviewed()).toEqual([
+      { ...first, memo: null },
+      { ...second, memo: replacement },
+      opening,
+    ]);
+  });
+
+  it('keeps a missing amount on a date-only bulk edit and resets discarded drafts', () => {
+    const missing = {
+      ...row,
+      amount: null,
+      originalPayee: 'Statement payee',
+      validationErrors: ['Transaction amount is required'],
+    };
+    renderRows([missing]);
+    const select = screen.getByRole('checkbox', { name: /Select transaction 1/i });
+    fireEvent.click(select);
+    fireEvent.change(screen.getByRole('textbox', { name: 'Description' }), {
+      target: { value: 'Discard me' },
+    });
+    fireEvent.click(select);
+    fireEvent.click(select);
+    expect(screen.getByRole('button', { name: 'Apply to 1' })).toBeDisabled();
+    fireEvent.change(screen.getByRole('textbox', { name: 'Date' }), {
+      target: { value: '2025-01-14' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Apply to 1' }));
+    expect(reviewed()[0]).toEqual({ ...missing, transactionDate: '2025-01-14' });
+    fireEvent.click(select);
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Clear description' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Apply to 1' }));
+    expect(reviewed()[0].description).toBe('');
+  });
+
   it.each(['category', 'payee'])('applies only a changed %s in a bulk edit', field => {
     const first = { ...row, category: 'First', memo: 'Keep memo', payee: 'First merchant' };
     const second = { ...row, category: 'Second', payee: 'Second merchant' };
@@ -248,6 +464,61 @@ describe('Import review decisions and selected-row edits', () => {
     fireEvent.click(apply);
     expect(reviewed()).toEqual([{ ...first, [field]: 'Reviewed' }, second]);
     expect(screen.getByRole('checkbox', { name: 'Select all' })).not.toBeChecked();
+  });
+
+  it('bulk edits matched transfer amounts once per side and preserves the direction when both are selected', () => {
+    const debit = { ...row, transfer: true, transferGroupKey: 'pair' };
+    const credit = { ...debit, amount: '20' };
+    const otherFile = { ...credit, sourceUploadId: 'other' };
+    renderRows([credit, debit, otherFile]);
+    const first = screen.getByRole('checkbox', { name: /Select transaction 1/i });
+    const second = screen.getByRole('checkbox', { name: /Select transaction 2/i });
+    const amount = () => screen.getByRole('textbox', { name: 'Amount' });
+    fireEvent.click(second);
+    fireEvent.change(amount(), { target: { value: '-17.000000000000000001' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Apply to 1' }));
+    expect(reviewed().map(tx => tx.amount)).toEqual([
+      '17.000000000000000001',
+      '-17.000000000000000001',
+      '20',
+    ]);
+    fireEvent.click(second);
+    fireEvent.click(first);
+    fireEvent.change(amount(), { target: { value: '0' } });
+    expect(screen.getByRole('button', { name: 'Apply to 2' })).toBeDisabled();
+    fireEvent.change(amount(), { target: { value: '15' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Apply to 2' }));
+    expect(reviewed().map(tx => tx.amount)).toEqual(['15', '-15', '20']);
+  });
+
+  it('permits a zero opening balance and keeps split allocations visible for correction', () => {
+    const opening = {
+      ...row,
+      openingBalance: true,
+      transactionDate: null,
+      description: 'Source balance',
+    };
+    const split = {
+      ...row,
+      splits: [
+        { category: 'Food', amount: '-10', memo: '' },
+        { category: 'Transport', amount: '-10', memo: '' },
+      ],
+    };
+    renderRows([opening, split]);
+    fireEvent.click(screen.getByRole('checkbox', { name: /Select transaction 1/i }));
+    expect(screen.getByRole('textbox', { name: 'Description' })).toBeDisabled();
+    fireEvent.change(screen.getByRole('textbox', { name: 'Amount' }), { target: { value: '0' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Apply to 1' }));
+    expect(reviewed()[0]).toEqual({ ...opening, amount: '0' });
+    fireEvent.click(screen.getByRole('checkbox', { name: /Select transaction 2/i }));
+    fireEvent.change(screen.getByRole('textbox', { name: 'Amount' }), { target: { value: '-25' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Apply to 1' }));
+    expect(reviewed()[1]).toMatchObject({
+      amount: '-25',
+      splits: split.splits,
+      validationErrors: ['SPLIT_INVALID: totals differ'],
+    });
   });
 
   it.each([

@@ -8,6 +8,8 @@ import { formatIsoToDisplay, parseDisplayDate } from '@/utils/date';
 
 interface DateInputProps {
   id?: string;
+  form?: string;
+  required?: boolean;
   /** Current value as ISO date (yyyy-MM-dd). */
   value?: string;
   /** Called with the ISO date (yyyy-MM-dd) or '' when cleared. */
@@ -29,6 +31,8 @@ interface DateInputProps {
  */
 export function DateInput({
   id,
+  form,
+  required,
   value,
   onChange,
   onBlur,
@@ -63,7 +67,9 @@ export function DateInput({
   const parsed = parseDisplayDate(display, dateFormat);
   const invalidMessage =
     display.trim() === ''
-      ? undefined
+      ? required
+        ? t('input.required')
+        : undefined
       : !parsed
         ? t('input.invalidDate', { format: dateFormat })
         : min && parsed < min
@@ -109,6 +115,8 @@ export function DateInput({
     <div className="relative w-full">
       <input
         id={id}
+        form={form}
+        required={required}
         ref={inputRef}
         type="text"
         inputMode="numeric"
