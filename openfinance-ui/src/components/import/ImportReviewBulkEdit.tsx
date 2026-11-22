@@ -1,3 +1,4 @@
+import { LinkedText } from '@/components/ui/LinkedText';
 import { useId, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Trash2, X } from 'lucide-react';
@@ -63,6 +64,7 @@ function BulkTextField({
         maxLength={maxLength}
         onChange={e => onChange({ ...draft, text: e.target.value })}
       />
+      {!draft.clear && !disabled && <LinkedText text={draft.text} linksOnly />}
       <label className="mt-1 inline-flex items-center gap-2 text-xs text-text-secondary">
         <input
           type="checkbox"

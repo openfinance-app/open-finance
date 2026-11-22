@@ -1,3 +1,4 @@
+import { LinkedText } from '@/components/ui/LinkedText';
 import { useToday } from '@/hooks/useReportingCalendar';
 import { decimalValue, ExactDecimal } from '@/utils/exact-decimal';
 import { SelectionCheckbox } from '@/components/bulk/BulkSelection';
@@ -165,7 +166,7 @@ export function LiabilityList({
                         {liability.institution?.name
                           ? `${liability.institution.name}${liability.notes ? ' • ' : ''}`
                           : ''}
-                        {liability.notes || ''}
+                        <LinkedText text={liability.notes || ''} />
                       </p>
                     )}
                   </div>

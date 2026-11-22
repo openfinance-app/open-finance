@@ -1,3 +1,5 @@
+import { FormFieldLinks } from '@/components/ui/FormFieldLinks';
+import { LinkedText } from '@/components/ui/LinkedText';
 import { useToday } from '@/hooks/useReportingCalendar';
 import { decimalValue, decimalField, ExactDecimal } from '@/utils/exact-decimal';
 import { useEffect, useMemo, useRef, useState } from 'react';
@@ -644,6 +646,7 @@ function ConversionDetails({
             className="w-full resize-y rounded-lg border border-border bg-background p-3 text-base md:text-sm"
             aria-invalid={!!errors.notes}
           />
+          <FormFieldLinks control={control} name="notes" />
           {errors.notes && (
             <p role="alert" className="text-sm text-error">
               {errors.notes.message}
@@ -756,7 +759,11 @@ function ConversionDetails({
                 />
               </ReviewRow>
             )}
-            {values.notes && <ReviewRow label={t('form.notes')}>{values.notes}</ReviewRow>}
+            {values.notes && (
+              <ReviewRow label={t('form.notes')}>
+                <LinkedText text={values.notes} />
+              </ReviewRow>
+            )}
           </dl>
           <ConversionPaymentSummary payments={selectedPayments} currency={source.currency} />
           <p className="text-sm text-text-secondary">{t('conversion.payments.effect')}</p>

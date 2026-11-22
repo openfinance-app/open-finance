@@ -1,3 +1,4 @@
+import { LinkedText } from '@/components/ui/LinkedText';
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
@@ -66,9 +67,11 @@ export function HistoryEntryDetails({ entry }: { entry: OperationHistoryResponse
     t(`fields.${field}`, {
       defaultValue: field.replaceAll('_', ' ').replace(/([a-z])([A-Z])/g, '$1 $2'),
     });
-  const valueLabel = (field: string, value: unknown): string => {
+  const valueLabel = (field: string, value: unknown): React.ReactNode => {
     if (!isAmountsVisible && amounts.test(field)) return '••••';
     if (value == null || value === '') return '—';
+    if (typeof value === 'string' && ['description', 'notes', 'memo'].includes(field))
+      return <LinkedText text={value} />;
     if (typeof value === 'boolean') return t(value ? 'yes' : 'no');
     if (typeof value === 'object') return JSON.stringify(value);
     if (

@@ -10,6 +10,7 @@
   "search": "Rechercher",
   "filter": "Filtrer",
   "filters": "Filtres",
+  "opensInNewTab": "S’ouvre dans un nouvel onglet",
   "regexSearch": {
     "toggleLabel": "Regex",
     "enabledTooltip": "Recherche par expression régulière activée. Cliquez pour revenir à la recherche simple.",

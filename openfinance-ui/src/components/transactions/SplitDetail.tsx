@@ -1,3 +1,4 @@
+import { LinkedText } from '@/components/ui/LinkedText';
 import { decimalValue } from '@/utils/exact-decimal';
 /**
  * SplitDetail Component
@@ -88,7 +89,7 @@ export function SplitDetail({ splits, currency, transaction }: SplitDetailProps)
             />
             {split.description && (
               <span className="text-xs text-text-tertiary truncate mt-0.5">
-                {split.description}
+                <LinkedText text={split.description} />
               </span>
             )}
             {!!split.tags?.length && (

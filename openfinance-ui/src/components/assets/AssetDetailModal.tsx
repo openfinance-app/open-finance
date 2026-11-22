@@ -1,3 +1,4 @@
+import { LinkedText } from '@/components/ui/LinkedText';
 import { toLocalISODate } from '@/utils/date';
 import { useReportingCalendar } from '@/hooks/useReportingCalendar';
 import { decimalValue, decimalField, ExactDecimal } from '@/utils/exact-decimal';
@@ -572,7 +573,9 @@ export function AssetDetailModal({
                         <p className="text-sm text-muted-foreground mb-2">
                           {t('detail.fields.notes')}
                         </p>
-                        <p className="text-sm text-foreground">{asset.notes}</p>
+                        <p className="text-sm text-foreground">
+                          <LinkedText text={asset.notes} />
+                        </p>
                       </div>
                     )}
                   </div>

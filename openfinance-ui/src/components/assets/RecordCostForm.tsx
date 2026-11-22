@@ -1,3 +1,4 @@
+import { FormFieldLinks } from '@/components/ui/FormFieldLinks';
 import { useToday } from '@/hooks/useReportingCalendar';
 import { buildTransactionsLink } from '@/utils/navigation';
 import { useId } from 'react';
@@ -153,6 +154,7 @@ export function RecordCostForm({ target, onClose }: { target: CostTarget; onClos
             {...register('description')}
             error={errors.description?.message}
           />
+          <FormFieldLinks control={control} name="description" />
         </div>
         <div className="grid gap-4 sm:grid-cols-2">
           <div>

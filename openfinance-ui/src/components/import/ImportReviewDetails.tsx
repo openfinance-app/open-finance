@@ -1,3 +1,4 @@
+import { LinkedText } from '@/components/ui/LinkedText';
 import { useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/Button';
@@ -142,9 +143,13 @@ export function ImportReviewDetails({ transaction, currency, categories, onClose
         <DialogHeader className="pr-6 text-left">
           <DialogTitle>{t('review.details.title')}</DialogTitle>
           <p className="text-sm text-text-secondary [overflow-wrap:anywhere] max-h-16 overflow-y-auto">
-            {transaction.memo && transaction.memo !== label
-              ? [label, transaction.memo].filter(Boolean).join(' · ')
-              : label}
+            <LinkedText
+              text={
+                transaction.memo && transaction.memo !== label
+                  ? [label, transaction.memo].filter(Boolean).join(' · ')
+                  : label
+              }
+            />
             {(label || transaction.memo) && amount != null && ' · '}
             {amount != null && <ConvertedAmount amount={amount} currency={currency} inline />}
           </p>

@@ -1,3 +1,4 @@
+import { LinkedText } from '@/components/ui/LinkedText';
 import { apiErrorMessage } from '@/utils/api-error';
 import { decimalValue } from '@/utils/exact-decimal';
 import { FormDialog } from '@/components/ui/FormDialog';
@@ -563,7 +564,7 @@ export function AccountDetailModal({
                             {t('detail.description')}
                           </dt>
                           <dd className="text-sm text-foreground whitespace-pre-line">
-                            {account.description}
+                            <LinkedText text={account.description} />
                           </dd>
                         </div>
                       )}

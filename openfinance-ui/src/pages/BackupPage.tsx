@@ -1,3 +1,4 @@
+import { LinkedText } from '@/components/ui/LinkedText';
 /**
  * BackupPage Component
  * Task 12.5.6: Create BackupPage component
@@ -309,7 +310,7 @@ export default function BackupPage() {
                       <span className="text-sm font-medium text-foreground">{backup.filename}</span>
                       {backup.description && (
                         <span className="text-xs text-muted-foreground mt-1">
-                          {backup.description}
+                          <LinkedText text={backup.description} />
                         </span>
                       )}
                       {backup.errorMessage && (
@@ -383,6 +384,7 @@ export default function BackupPage() {
               placeholder={t('createDialog.descriptionPlaceholder')}
               maxLength={200}
             />
+            <LinkedText text={backupDescription} linksOnly />
           </div>
           <DialogFooter>
             <Button

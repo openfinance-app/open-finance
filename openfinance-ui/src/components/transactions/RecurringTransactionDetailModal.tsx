@@ -1,3 +1,4 @@
+import { LinkedText } from '@/components/ui/LinkedText';
 import { ExactDecimal, decimalValue } from '@/utils/exact-decimal';
 import { useAnimatedClose } from '@/hooks/useAnimatedClose';
 import { useDateFormatter } from '@/hooks/useDateFormatter';
@@ -167,7 +168,7 @@ export function RecurringTransactionDetailModal({
             </div>
             <div>
               <h2 className="text-xl font-bold text-foreground">
-                {recurringTransaction.description}
+                <LinkedText text={recurringTransaction.description} />
               </h2>
               <p className="text-sm text-muted-foreground">
                 {tr('types.' + recurringTransaction.type)} ·{' '}
@@ -389,7 +390,7 @@ export function RecurringTransactionDetailModal({
                     {tr('detail.sections.notes')}
                   </h3>
                   <p className="text-sm text-foreground whitespace-pre-wrap">
-                    {recurringTransaction.notes}
+                    <LinkedText text={recurringTransaction.notes} />
                   </p>
                 </div>
               )}

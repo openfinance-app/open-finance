@@ -1,3 +1,4 @@
+import { LinkedText } from '@/components/ui/LinkedText';
 import { ACCOUNT_TYPES } from '@/types/account';
 import { useId } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
@@ -236,6 +237,9 @@ export function BulkEditDialog({
                       )}
                       {field.name === 'tags' && (
                         <p className="text-xs text-text-secondary">{t('bulk.tagsHint')}</p>
+                      )}
+                      {(field.name === 'notes' || field.name === 'description') && (
+                        <LinkedText text={changes[field.name]?.value} linksOnly />
                       )}
                       {error && (
                         <p id={`${id}-error`} role="alert" className="text-sm text-error">

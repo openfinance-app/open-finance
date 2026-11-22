@@ -1,3 +1,4 @@
+import { LinkedText } from '@/components/ui/LinkedText';
 /**
  * RuleActionBuilder Component
  *
@@ -126,13 +127,15 @@ function ActionParams({ action, index, onChange, t }: ActionParamsProps) {
 
     case 'SET_DESCRIPTION':
       return (
-        <Input
-          placeholder={t('form.actions.placeholders.description')}
-          value={action.actionValue ?? ''}
-          onChange={e => onChange(index, { actionValue: e.target.value })}
-          className="flex-1"
-          aria-label="Description"
-        />
+        <div className="flex-1">
+          <Input
+            placeholder={t('form.actions.placeholders.description')}
+            value={action.actionValue ?? ''}
+            onChange={e => onChange(index, { actionValue: e.target.value })}
+            aria-label="Description"
+          />
+          <LinkedText text={action.actionValue} linksOnly />
+        </div>
       );
 
     case 'SET_AMOUNT':
@@ -173,6 +176,7 @@ function ActionParams({ action, index, onChange, t }: ActionParamsProps) {
             onChange={e => onChange(index, { actionValue3: e.target.value })}
             aria-label="Split description"
           />
+          <LinkedText text={action.actionValue3} linksOnly />
         </div>
       );
     }

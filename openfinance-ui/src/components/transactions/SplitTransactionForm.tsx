@@ -1,3 +1,4 @@
+import { LinkedText } from '@/components/ui/LinkedText';
 import { ExactDecimal, exactSum, distributeExact } from '@/utils/exact-decimal';
 /**
  * SplitTransactionForm Component
@@ -179,6 +180,7 @@ export function SplitTransactionForm({
               maxLength={255}
               aria-label={t('splitForm.descriptionLabel', { index: index + 1 })}
             />
+            <LinkedText text={split.description} linksOnly />
           </div>
         );
         const tagField = (

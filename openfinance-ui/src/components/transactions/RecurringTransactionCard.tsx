@@ -1,3 +1,4 @@
+import { LinkedText } from '@/components/ui/LinkedText';
 import { useToday } from '@/hooks/useReportingCalendar';
 import { ExactDecimal, decimalValue } from '@/utils/exact-decimal';
 import { SelectionCheckbox } from '@/components/bulk/BulkSelection';
@@ -124,7 +125,7 @@ export function RecurringTransactionCard({
           <div className="flex-1 min-w-0">
             {/* Description */}
             <h3 className="font-display text-base uppercase tracking-[0.06em] text-text-primary truncate">
-              {recurringTransaction.description}
+              <LinkedText text={recurringTransaction.description} />
             </h3>
 
             {/* Account and Category Info */}
@@ -174,7 +175,7 @@ export function RecurringTransactionCard({
             {/* Notes (if present) */}
             {recurringTransaction.notes && (
               <p className="text-xs text-muted-foreground mt-2 line-clamp-2">
-                {recurringTransaction.notes}
+                <LinkedText text={recurringTransaction.notes} />
               </p>
             )}
           </div>

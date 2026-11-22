@@ -1,3 +1,4 @@
+import { LinkedText } from '@/components/ui/LinkedText';
 import { useAnimatedClose } from '@/hooks/useAnimatedClose';
 import { useViewState } from '@/hooks/useViewState';
 import { useViewScroll } from '@/hooks/useViewScroll';
@@ -160,7 +161,9 @@ export function TransactionDetailModal({
             </div>
             <div className="min-w-0">
               <h2 className="break-words text-xl font-bold text-foreground">
-                {transaction.description || transaction.payee || t('detail.title')}
+                <LinkedText
+                  text={transaction.description || transaction.payee || t('detail.title')}
+                />
               </h2>
               <p className="break-words text-sm text-muted-foreground">
                 {t('form.types.' + transaction.type)}
@@ -319,7 +322,7 @@ export function TransactionDetailModal({
                         {t('detail.fields.description')}
                       </dt>
                       <dd className="text-sm font-medium text-foreground">
-                        {transaction.description}
+                        <LinkedText text={transaction.description} />
                       </dd>
                     </div>
                   )}
@@ -380,7 +383,9 @@ export function TransactionDetailModal({
                   <h3 className="text-base font-semibold text-foreground mb-3">
                     {t('detail.sections.notes')}
                   </h3>
-                  <p className="text-sm text-foreground whitespace-pre-wrap">{transaction.notes}</p>
+                  <p className="text-sm text-foreground whitespace-pre-wrap">
+                    <LinkedText text={transaction.notes} />
+                  </p>
                 </div>
               )}
 

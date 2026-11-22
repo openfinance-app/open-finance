@@ -1,3 +1,4 @@
+import { LinkedText } from '@/components/ui/LinkedText';
 import { useToday } from '@/hooks/useReportingCalendar';
 import { SelectionCheckbox } from '@/components/bulk/BulkSelection';
 /**
@@ -376,7 +377,7 @@ function TransactionItem({
         {/* Primary line: description */}
         <div className="flex items-center gap-2 flex-wrap">
           <p className="font-medium text-text-primary truncate">
-            {transaction.description || transaction.payee || t('noDescription')}
+            <LinkedText text={transaction.description || transaction.payee || t('noDescription')} />
           </p>
           {isFutureDate(transaction.date, today) && (
             <Badge

@@ -1,3 +1,4 @@
+import { LinkedText } from '@/components/ui/LinkedText';
 import { decimalValue } from '@/utils/exact-decimal';
 import { SelectionCheckbox } from '@/components/bulk/BulkSelection';
 import { AccountBalanceBreakdown } from '@/components/accounts/AccountBalanceBreakdown';
@@ -188,7 +189,7 @@ export function AccountCard({
 
           {account.description && (
             <p className="text-sm text-text-tertiary mt-2 whitespace-pre-line line-clamp-2">
-              {account.description}
+              <LinkedText text={account.description} />
             </p>
           )}
         </div>

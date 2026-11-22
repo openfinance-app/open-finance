@@ -1,3 +1,4 @@
+import { LinkedText } from '@/components/ui/LinkedText';
 import './import-review.css';
 import { decimalField, decimalValue, equalDecimals } from '@/utils/exact-decimal';
 /**
@@ -1011,9 +1012,14 @@ export function ImportReview({
                               className="block whitespace-pre-line"
                               title={transaction.memo ?? ''}
                             >
-                              {transaction.memo || <span className="italic">—</span>}
+                              {transaction.memo ? (
+                                <LinkedText text={transaction.memo} />
+                              ) : (
+                                <span className="italic">—</span>
+                              )}
                             </span>
                           )}
+                          {isEditing && <LinkedText text={editState.memo} linksOnly />}
                         </td>
 
                         <td role="cell" className="review-description text-text-secondary">
@@ -1033,8 +1039,11 @@ export function ImportReview({
                             />
                           ) : (
                             <span className="block whitespace-pre-line" title={description ?? ''}>
-                              {description || '—'}
+                              <LinkedText text={description || '—'} />
                             </span>
+                          )}
+                          {isEditing && !transaction.openingBalance && (
+                            <LinkedText text={editState.description ?? description} linksOnly />
                           )}
                           {!!transaction.tags?.length && (
                             <div
@@ -1273,7 +1282,7 @@ export function ImportReview({
                                   </span>
                                   {split.memo && (
                                     <span className="text-text-secondary text-xs">
-                                      {split.memo}
+                                      <LinkedText text={split.memo} />
                                     </span>
                                   )}
                                 </div>

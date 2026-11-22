@@ -1,3 +1,4 @@
+import { FormFieldLinks } from '@/components/ui/FormFieldLinks';
 import { FinanceForm } from '@/components/ui/FinanceForm';
 import { useToday } from '@/hooks/useReportingCalendar';
 import { FormSection } from '@/components/ui/FormSection';
@@ -1161,6 +1162,7 @@ export function TransactionForm({
               placeholder={t('form.descriptionPlaceholder')}
               error={errors.description?.message}
             />
+            <FormFieldLinks control={control} name="description" />
           </div>
         </div>
       </FormSection>
@@ -1265,6 +1267,7 @@ export function TransactionForm({
             aria-describedby={errors.notes ? 'notes-error' : undefined}
             className="w-full px-3 py-2 rounded-lg bg-surface border border-border text-text-primary placeholder:text-text-muted text-sm placeholder:text-text-muted hover:border-border/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50 transition-colors duration-150 resize-none"
           />
+          <FormFieldLinks control={control} name="notes" />
           {errors.notes && (
             <p id="notes-error" className="mt-1 text-sm text-error" role="alert">
               {errors.notes.message}

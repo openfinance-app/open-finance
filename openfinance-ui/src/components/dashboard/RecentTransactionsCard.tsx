@@ -1,3 +1,4 @@
+import { LinkedText } from '@/components/ui/LinkedText';
 import { useToday } from '@/hooks/useReportingCalendar';
 import { ArrowUpRight, ArrowDownRight, Calendar, Loader2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
@@ -39,7 +40,7 @@ function MiniPayeeAvatar({ payee, type }: { payee: Payee | undefined; type: Tran
 
   if (payee?.logo) {
     return (
-      <div className="relative h-8 w-8 shrink-0">
+      <span className="relative block h-8 w-8 shrink-0">
         <img
           src={payee.logo}
           alt={payee.name}
@@ -52,31 +53,31 @@ function MiniPayeeAvatar({ payee, type }: { payee: Payee | undefined; type: Tran
           }}
         />
         {/* Fallback initial */}
-        <div
+        <span
           className={`hidden absolute inset-0 h-8 w-8 items-center justify-center rounded-full border text-xs font-semibold ${bgColor}`}
           aria-hidden="true"
         >
           {payee.name.charAt(0).toUpperCase()}
-        </div>
-      </div>
+        </span>
+      </span>
     );
   }
 
   if (payee) {
     return (
-      <div
+      <span
         className={`h-8 w-8 shrink-0 flex items-center justify-center rounded-full border text-xs font-semibold ${bgColor}`}
         title={payee.name}
         aria-label={payee.name}
       >
         {payee.name.charAt(0).toUpperCase()}
-      </div>
+      </span>
     );
   }
 
   // No payee — show transaction type icon
   return (
-    <div
+    <span
       className={`h-8 w-8 shrink-0 flex items-center justify-center rounded-full border ${bgColor}`}
     >
       {type !== 'TRANSFER' ? (
@@ -84,7 +85,7 @@ function MiniPayeeAvatar({ payee, type }: { payee: Payee | undefined; type: Tran
       ) : (
         <ArrowUpRight className="h-4 w-4" />
       )}
-    </div>
+    </span>
   );
 }
 
@@ -189,26 +190,27 @@ export default function RecentTransactionsCard({
           return (
             <div
               key={transaction.id}
-              role="button"
-              tabIndex={0}
-              aria-label={t('transactions.viewTransaction')}
               onClick={() => navigate(`/transactions?highlight=${transaction.id}`)}
-              onKeyDown={e => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                  e.preventDefault();
-                  navigate(`/transactions?highlight=${transaction.id}`);
-                }
-              }}
-              className="flex items-center gap-3 py-2 px-3 rounded-lg hover:bg-surface-elevated transition-colors cursor-pointer"
+              className="flex cursor-pointer items-center gap-3 py-2 px-3 rounded-lg hover:bg-surface-elevated transition-colors"
             >
               {/* Payee avatar / type icon */}
-              <MiniPayeeAvatar payee={payeeObj} type={transaction.type} />
+              <button
+                type="button"
+                aria-label={t('transactions.viewTransaction')}
+                className="shrink-0 cursor-pointer rounded-full focus-visible:outline-2 focus-visible:outline-primary"
+              >
+                <MiniPayeeAvatar payee={payeeObj} type={transaction.type} />
+              </button>
 
               {/* Description + payee · category sub-line */}
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-1.5 flex-wrap">
                   <div className="text-sm text-text-primary truncate">
-                    {transaction.description || transaction.payee || t('common:noDescription')}
+                    <LinkedText
+                      text={
+                        transaction.description || transaction.payee || t('common:noDescription')
+                      }
+                    />
                   </div>
                   {isFutureDate(transaction.date, today) && (
                     <Badge

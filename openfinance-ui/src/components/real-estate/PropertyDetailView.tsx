@@ -1,3 +1,4 @@
+import { LinkedText } from '@/components/ui/LinkedText';
 import { useToday } from '@/hooks/useReportingCalendar';
 import { ExactDecimal, decimalValue, decimalField } from '@/utils/exact-decimal';
 import { Link } from 'react-router';
@@ -476,7 +477,9 @@ export function PropertyDetailView({
                     {property.notes && (
                       <Card className="p-6">
                         <h3 className="plate-label  mb-3">{t('propertyDetail.notes')}</h3>
-                        <p className="text-text-secondary whitespace-pre-wrap">{property.notes}</p>
+                        <p className="text-text-secondary whitespace-pre-wrap">
+                          <LinkedText text={property.notes} />
+                        </p>
                       </Card>
                     )}
 

@@ -80,6 +80,50 @@ async function accountFixture(page: Page) {
   );
 }
 
+test('account description links open a new tab from the card and update while editing', async ({
+  page,
+  context,
+}) => {
+  await completeOnboarding(page);
+  const receipt = 'https://receipts.example.org/statement';
+  await context.route('https://receipts.example.org/**', route =>
+    route.fulfill({ body: 'Statement' })
+  );
+  await api(
+    page,
+    '/accounts',
+    {
+      name: 'Receipt account',
+      type: 'CHECKING',
+      currency: 'EUR',
+      initialBalance: 10,
+      description: `Statement (${receipt}).`,
+    },
+    'POST'
+  );
+  await page.goto('/accounts');
+  const [tab] = await Promise.all([
+    page.waitForEvent('popup'),
+    page.getByRole('link', { name: receipt }).click(),
+  ]);
+  await expect(tab).toHaveURL(receipt);
+  expect(await tab.evaluate(() => window.opener === null)).toBe(true);
+  await tab.close();
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+  await page.getByRole('button', { name: 'Edit account', exact: true }).click();
+  const dialog = page.getByRole('dialog', { name: 'Edit Account' });
+  const field = dialog.getByRole('textbox', { name: 'Description' });
+  await expect(field).toHaveValue(`Statement (${receipt}).`);
+  await field.fill('New statement at www.example.fr/receipt.');
+  await expect(dialog.getByRole('link', { name: receipt })).toHaveCount(0);
+  await expect(dialog.getByRole('link', { name: 'www.example.fr/receipt' })).toHaveAttribute(
+    'href',
+    'https://www.example.fr/receipt'
+  );
+  await field.fill('Paid in cash.');
+  await expect(dialog.getByRole('link')).toHaveCount(0);
+});
+
 test('locked savings can be created in French and distinguished from available funds on the dashboard', async ({
   page,
 }, testInfo) => {

@@ -1,3 +1,4 @@
+import { FormFieldLinks } from '@/components/ui/FormFieldLinks';
 import { FinanceForm } from '@/components/ui/FinanceForm';
 import { useToday } from '@/hooks/useReportingCalendar';
 import { FormSection } from '@/components/ui/FormSection';
@@ -471,6 +472,7 @@ export function RecurringTransactionForm({
               {...register('description')}
               error={errors.description?.message}
             />
+            <FormFieldLinks control={control} name="description" />
           </div>
 
           {selectedType !== 'TRANSFER' && (
@@ -582,6 +584,7 @@ export function RecurringTransactionForm({
               className="w-full px-3 py-2 rounded-lg bg-surface border border-border text-text-primary text-sm placeholder:text-text-muted hover:border-border/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50 transition-colors duration-150 resize-none"
               placeholder={t('form.notesPlaceholder')}
             />
+            <FormFieldLinks control={control} name="notes" />
             {errors.notes && <p className="mt-1 text-sm text-error">{errors.notes.message}</p>}
           </div>
         </div>

@@ -524,7 +524,7 @@ describe('ImportReview source categories', () => {
             amount: -54.8,
             currency: 'EUR',
             originalPayee: 'Original shop',
-            memo: 'Card receipt',
+            memo: 'Card receipt: example.fr/receipt',
             payee: 'Reviewed shop',
             category: null,
             validationErrors: [],
@@ -542,7 +542,11 @@ describe('ImportReview source categories', () => {
     expect(screen.getByRole('columnheader', { name: 'Description' })).toBeVisible();
     expect(screen.getByRole('cell', { name: 'Original shop' })).toBeVisible();
     expect(screen.getByRole('columnheader', { name: 'Notes' })).toBeVisible();
-    expect(screen.getByRole('cell', { name: 'Card receipt' })).toBeVisible();
+    expect(screen.getByRole('cell', { name: /Card receipt/ })).toBeVisible();
+    expect(screen.getByRole('link', { name: 'example.fr/receipt' })).toHaveAttribute(
+      'href',
+      'https://example.fr/receipt'
+    );
     const headers = screen.getAllByRole('columnheader').map(header => header.textContent);
     expect(headers.indexOf('Notes')).toBeLessThan(headers.indexOf('Description'));
     const cells = screen.getAllByRole('cell').map(cell => cell.textContent);

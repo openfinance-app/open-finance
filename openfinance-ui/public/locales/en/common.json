@@ -10,6 +10,7 @@
   "search": "Search",
   "filter": "Filter",
   "filters": "Filters",
+  "opensInNewTab": "Opens in a new tab",
   "regexSearch": {
     "toggleLabel": "Regex",
     "enabledTooltip": "Regular expression search enabled. Click to use plain text search.",

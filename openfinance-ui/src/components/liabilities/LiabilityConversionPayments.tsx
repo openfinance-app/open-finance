@@ -1,3 +1,4 @@
+import { LinkedText } from '@/components/ui/LinkedText';
 import { decimalValue } from '@/utils/exact-decimal';
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -242,7 +243,9 @@ function PaymentRow({
           </summary>
           <div className="space-y-3 pb-2">
             {candidate.notes && (
-              <p className="break-words text-sm text-text-secondary">{candidate.notes}</p>
+              <p className="break-words text-sm text-text-secondary">
+                <LinkedText text={candidate.notes} />
+              </p>
             )}
             {candidate.splits.length ? (
               candidate.splits.map(part => (

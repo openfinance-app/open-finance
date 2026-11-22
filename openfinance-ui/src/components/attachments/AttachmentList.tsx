@@ -1,3 +1,4 @@
+import { LinkedText } from '@/components/ui/LinkedText';
 /**
  * AttachmentList Component
  * Task 12.1.11: Create AttachmentList component
@@ -181,7 +182,7 @@ export function AttachmentList({
                     </div>
                     {attachment.description && (
                       <p className="text-xs text-text-secondary mt-1 truncate">
-                        {attachment.description}
+                        <LinkedText text={attachment.description} />
                       </p>
                     )}
                   </div>
