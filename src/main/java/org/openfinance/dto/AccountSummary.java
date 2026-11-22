@@ -45,7 +45,7 @@ public class AccountSummary {
     /**
      * The type of account.
      *
-     * <p>Valid values: CHECKING, SAVINGS, CREDIT_CARD, INVESTMENT, CASH, OTHER
+     * <p>Valid values: CHECKING, SAVINGS, LOCKED_SAVINGS, CREDIT_CARD, INVESTMENT, CASH, OTHER
      */
     private AccountType type;
 

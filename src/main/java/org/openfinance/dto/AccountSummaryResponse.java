@@ -46,7 +46,8 @@ public class AccountSummaryResponse {
     private String name;
 
     /**
-     * Type of the account as a string (CHECKING, SAVINGS, CREDIT_CARD, INVESTMENT, CASH, OTHER).
+     * Type of the account as a string (CHECKING, SAVINGS, LOCKED_SAVINGS, CREDIT_CARD, INVESTMENT,
+     * CASH, OTHER).
      */
     private String type;
 

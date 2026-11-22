@@ -28,7 +28,19 @@
     "custom": "{{from}} → {{to}}",
     "dataThrough": "Données disponibles jusqu’au {{date}}"
   },
+  "accountLiquidity": {
+    "available": "Capital disponible",
+    "locked": "Capital bloqué",
+    "help": "Les comptes ouverts de type « Épargne bloquée » constituent le capital bloqué. Tous les autres comptes ouverts entrent dans le capital disponible, placements compris. Les soldes négatifs réduisent le total de leur groupe. Chaque pourcentage indique la part du groupe dans le solde net total.",
+    "missingRate": "Taux de change indisponible",
+    "loading": "Chargement des soldes…",
+    "loadError": "Impossible de charger les soldes des comptes."
+  },
   "cards": {
+    "accountLiquidity": {
+      "label": "Disponibilité des fonds",
+      "description": "Capital disponible et capital bloqué sur vos comptes ouverts."
+    },
     "netWorth": {
       "label": "Valeur nette",
       "description": "Résumé de la valeur nette globale"
@@ -429,6 +441,7 @@
   },
   "allocationCategories": {
     "Real_Estate": "Immobilier",
+    "Locked_Savings": "Épargne bloquée",
     "Cash___Savings": "Liquidités et épargne",
     "Equities": "Actions",
     "Fixed_Income": "Titres à revenu fixe",

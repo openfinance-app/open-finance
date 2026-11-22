@@ -264,6 +264,7 @@
     "YEARLY": "Yearly",
     "CHECKING": "Checking account",
     "SAVINGS": "Savings account",
+    "LOCKED_SAVINGS": "Locked savings",
     "INCOME": "Income",
     "EXPENSE": "Expense",
     "TRANSFER": "Transfer"

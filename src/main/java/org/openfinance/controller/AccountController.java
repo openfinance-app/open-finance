@@ -216,14 +216,16 @@ public class AccountController {
      *
      * <ul>
      *   <li>keyword (optional): Search in account name
-     *   <li>type (optional): Filter by account type (CHECKING, SAVINGS, CREDIT_CARD, INVESTMENT,
-     *       CASH, OTHER)
+     *   <li>type (optional): Filter by account type (CHECKING, SAVINGS, LOCKED_SAVINGS,
+     *       CREDIT_CARD, INVESTMENT, CASH, OTHER)
      *   <li>currency (optional): Filter by currency code (USD, EUR, etc.)
      *   <li>isActive (optional): Filter by active status (true/false)
      *   <li>balanceMin (optional): Minimum balance
      *   <li>balanceMax (optional): Maximum balance
      *   <li>institution (optional): Filter by institution name
      *   <li>lowBalance (optional): When true, only open accounts below the low-balance threshold
+     *   <li>lockedCapital (optional): Open accounts holding locked (true) or available (false)
+     *       capital
      *   <li>page (optional): Page number (0-indexed, default: 0)
      *   <li>size (optional): Page size (default: 20)
      *   <li>sort (optional): Sort field and direction (e.g., "name,asc" or "balance,desc")
@@ -277,6 +279,7 @@ public class AccountController {
                     org.openfinance.dto.AmountCurrencyMode amountCurrencyMode,
             @RequestParam(required = false) String institution,
             @RequestParam(required = false) Boolean lowBalance,
+            @RequestParam(required = false) Boolean lockedCapital,
             @RequestParam(required = false, defaultValue = "false") boolean keywordRegex,
             @PageableDefault(size = 20, sort = "name", direction = Sort.Direction.ASC)
                     Pageable pageable,
@@ -305,6 +308,7 @@ public class AccountController {
                         .amountCurrencyMode(amountCurrencyMode)
                         .institution(institution)
                         .lowBalance(lowBalance)
+                        .lockedCapital(lockedCapital)
                         .build();
 
         // Execute search with pagination

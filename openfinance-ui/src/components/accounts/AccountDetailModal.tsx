@@ -25,6 +25,7 @@ import {
   Wallet,
   CreditCard,
   PiggyBank,
+  LockKeyhole,
   TrendingUp,
   Banknote,
   Package,
@@ -55,13 +56,14 @@ import { useFormatCurrency } from '@/hooks/useFormatCurrency';
 import { useCurrencyDisplay } from '@/context/CurrencyDisplayContext';
 import { DEFAULT_CURRENCY } from '@/utils/currency';
 import { cn } from '@/lib/utils';
-import type { AccountType, AccountRequest } from '@/types/account';
+import { holdsInvestments, type AccountType, type AccountRequest } from '@/types/account';
 
 // ─── Icon + name maps ───────────────────────────────────────────────────────
 
 const accountTypeIcons: Record<AccountType, React.ReactNode> = {
   CHECKING: <Wallet className="h-5 w-5" />,
   SAVINGS: <PiggyBank className="h-5 w-5" />,
+  LOCKED_SAVINGS: <LockKeyhole className="h-5 w-5" />,
   CREDIT_CARD: <CreditCard className="h-5 w-5" />,
   INVESTMENT: <TrendingUp className="h-5 w-5" />,
   CASH: <Banknote className="h-5 w-5" />,
@@ -272,7 +274,9 @@ export function AccountDetailModal({
               <div className="mb-6 p-4 bg-background border border-border rounded-lg flex items-center justify-between">
                 <div>
                   <p className="text-sm text-muted-foreground mb-1">
-                    {t(account.type === 'INVESTMENT' ? 'card.totalValue' : 'detail.currentBalance')}
+                    {t(
+                      holdsInvestments(account.type) ? 'card.totalValue' : 'detail.currentBalance'
+                    )}
                   </p>
                   <ConvertedAmount
                     amount={decimalValue(account, 'balance') ?? account.balance}

@@ -18,6 +18,7 @@ import {
   Wallet,
   CreditCard,
   PiggyBank,
+  LockKeyhole,
   TrendingUp,
   Banknote,
   Package,
@@ -28,7 +29,7 @@ import {
 import { ConvertedAmount } from '@/components/ui/ConvertedAmount';
 import { CurrencyAmount } from '@/components/ui/CurrencyAmount';
 import { useSecondaryConversion } from '@/hooks/useSecondaryConversion';
-import type { Account, AccountType } from '@/types/account';
+import { holdsInvestments, type Account, type AccountType } from '@/types/account';
 import { useInterestEstimate } from '@/hooks/useAccounts';
 import { cn } from '@/lib/utils';
 
@@ -46,6 +47,7 @@ interface AccountCardProps {
 const accountTypeIcons: Record<AccountType, React.ReactNode> = {
   CHECKING: <Wallet className="h-5 w-5" />,
   SAVINGS: <PiggyBank className="h-5 w-5" />,
+  LOCKED_SAVINGS: <LockKeyhole className="h-5 w-5" />,
   CREDIT_CARD: <CreditCard className="h-5 w-5" />,
   INVESTMENT: <TrendingUp className="h-5 w-5" />,
   CASH: <Banknote className="h-5 w-5" />,
@@ -197,7 +199,7 @@ export function AccountCard({
         {/* Left: balance */}
         <div className="min-w-0">
           <p className="plate-label mb-1.5">
-            {t(account.type === 'INVESTMENT' ? 'card.totalValue' : 'card.balance')}
+            {t(holdsInvestments(account.type) ? 'card.totalValue' : 'card.balance')}
           </p>
           <div
             className={cn(

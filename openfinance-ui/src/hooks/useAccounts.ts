@@ -92,6 +92,7 @@ export function useAccountsSearch(filters?: AccountFilters, fetchAll = false) {
         params.append('amountCurrencyMode', filters.amountCurrencyMode);
       if (filters?.institution) params.append('institution', filters.institution);
       if (filters?.lowBalance) params.append('lowBalance', 'true');
+      if (filters?.capital) params.set('lockedCapital', String(filters.capital === 'locked'));
       if (filters?.page !== undefined) params.append('page', filters.page.toString());
       if (fetchAll) params.set('page', '0');
       if (filters?.size) params.append('size', filters.size.toString());

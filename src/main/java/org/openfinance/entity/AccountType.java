@@ -13,6 +13,9 @@ public enum AccountType {
     /** Savings account - used for storing funds and earning interest. */
     SAVINGS("Savings Account"),
 
+    /** Savings whose cash and financial holdings are restricted from immediate withdrawal. */
+    LOCKED_SAVINGS("Locked savings"),
+
     /** Credit card account - tracks credit card balances and transactions. */
     CREDIT_CARD("Credit Card"),
 

@@ -41,7 +41,7 @@ test.beforeEach(async ({ page, request }, testInfo) => {
   expect(today).toMatch(/^\d{4}-\d{2}-\d{2}$/);
 });
 
-async function completeOnboarding(page: Page) {
+async function completeOnboarding(page: Page, language: 'en' | 'fr' = 'en') {
   await api(
     page,
     '/users/me/onboarding',
@@ -49,15 +49,20 @@ async function completeOnboarding(page: Page) {
       country: 'FR',
       baseCurrency: 'EUR',
       secondaryCurrency: '',
-      language: 'en',
+      language,
       dateFormat: 'DD/MM/YYYY',
-      numberFormat: '1,234.56',
+      numberFormat: language === 'fr' ? '1 234,56' : '1,234.56',
       amountDisplayMode: 'base',
     },
     'POST'
   );
   await page.goto('/dashboard');
-  await expect(page.getByRole('heading', { name: 'Dashboard', exact: true })).toBeVisible();
+  await expect(
+    page.getByRole('heading', {
+      name: language === 'fr' ? 'Tableau de bord' : 'Dashboard',
+      exact: true,
+    })
+  ).toBeVisible();
 }
 
 async function accountFixture(page: Page) {
@@ -74,6 +79,78 @@ async function accountFixture(page: Page) {
     'POST'
   );
 }
+
+test('locked savings can be created in French and distinguished from available funds on the dashboard', async ({
+  page,
+}, testInfo) => {
+  await completeOnboarding(page, 'fr');
+  await accountFixture(page);
+  await page.goto('/accounts');
+  await page.getByRole('button', { name: 'Ajouter un compte', exact: true }).first().click();
+  const form = page.getByRole('dialog', { name: 'Créer un compte' });
+  await form.getByRole('textbox', { name: /^Nom du compte/ }).fill('Mon PEE');
+  await form.getByLabel(/Type de compte/).selectOption({ label: 'Épargne bloquée' });
+  const currency = form.getByText('Devise *', { exact: true }).locator('..').getByRole('button');
+  if (!(await currency.textContent())?.includes('EUR')) {
+    await currency.click();
+    await page.getByRole('option', { name: /^EUR / }).click();
+  }
+  await form.getByRole('textbox', { name: /^Solde initial/ }).fill('2400');
+  await form.getByRole('button', { name: 'Créer le compte', exact: true }).click();
+  await expect(page.getByText('Mon PEE', { exact: true })).toBeVisible();
+  const accounts = await api(page, '/accounts');
+  const pee = accounts.find((account: { name: string }) => account.name === 'Mon PEE');
+  expect(pee.type).toBe('LOCKED_SAVINGS');
+  await page.goto('/dashboard');
+  const card = page.getByRole('region', { name: 'Disponibilité des fonds' });
+  for (const width of [1600, 390]) {
+    await page.setViewportSize({ width, height: 900 });
+    await expect(card.getByText('Capital disponible')).toBeVisible();
+    await expect(card.getByText('Capital bloqué')).toBeVisible();
+    await expect(card.getByText('29,41%')).toBeVisible();
+    await expect(card.getByText('70,59%')).toBeVisible();
+    await expect(card.getByRole('meter', { name: 'Capital disponible' })).toHaveAttribute(
+      'aria-valuenow',
+      '29.41'
+    );
+    await expect(card.locator('dd').first()).toContainText(/1[\s,.]?000/);
+    await expect(card.locator('dd').last()).toContainText(/2[\s,.]?400/);
+    await expect.poll(() => card.evaluate(el => el.scrollWidth <= el.clientWidth)).toBe(true);
+    await testInfo.attach(`account-liquidity-${width}`, {
+      body: await card.screenshot({ animations: 'disabled' }),
+      contentType: 'image/png',
+    });
+  }
+  for (const [label, match, excluded] of [
+    ['Capital disponible', 'UX checking', 'Mon PEE'],
+    ['Capital bloqué', 'Mon PEE', 'UX checking'],
+  ]) {
+    await card.getByRole('link', { name: label }).click();
+    const filterPanel = page.getByRole('region', { name: 'Filtrer les résultats' });
+    const chip = filterPanel.getByRole('button', { name: `Retirer le filtre : ${label}` });
+    await expect(chip).toBeVisible();
+    await expect(page.getByText(match, { exact: true })).toBeVisible();
+    await expect(page.getByText(excluded, { exact: true })).toHaveCount(0);
+    await chip.click();
+    await expect(page.getByText(excluded, { exact: true })).toBeVisible();
+    await page.goBack();
+  }
+  await api(
+    page,
+    `/accounts/${pee.id}`,
+    {
+      name: pee.name,
+      type: 'INVESTMENT',
+      currency: 'EUR',
+      initialBalance: '2400',
+      adjustBalance: false,
+    },
+    'PUT'
+  );
+  await page.reload();
+  await expect(card.locator('dd').first()).toContainText(/3[\s,.]?400/);
+  await expect(card.locator('dd').last()).toContainText(/0[.,]00/);
+});
 
 test('onboarding renders labels and saves the header language across reloads and settings changes', async ({
   page,

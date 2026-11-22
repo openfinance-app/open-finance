@@ -1,5 +1,13 @@
 import { decimalValue } from '@/utils/exact-decimal';
-import { Wallet, CreditCard, PiggyBank, TrendingUp, Banknote, HelpCircle } from 'lucide-react';
+import {
+  Wallet,
+  CreditCard,
+  PiggyBank,
+  LockKeyhole,
+  TrendingUp,
+  Banknote,
+  HelpCircle,
+} from 'lucide-react';
 import { useNavigate } from 'react-router';
 import { ROUTES } from '@/constants/routes';
 import type { IAccountSummary } from '../../types/dashboard';
@@ -20,6 +28,8 @@ const getAccountIcon = (type: AccountType) => {
       return Wallet;
     case 'SAVINGS':
       return PiggyBank;
+    case 'LOCKED_SAVINGS':
+      return LockKeyhole;
     case 'CREDIT_CARD':
       return CreditCard;
     case 'INVESTMENT':
@@ -42,7 +52,7 @@ const getAccountIcon = (type: AccountType) => {
  */
 export default function AccountsSummaryCard({ accounts }: AccountsSummaryCardProps) {
   const navigate = useNavigate();
-  const { t } = useTranslation('dashboard');
+  const { t } = useTranslation(['dashboard', 'accounts']);
 
   if (accounts.length === 0) {
     return (
@@ -94,7 +104,9 @@ export default function AccountsSummaryCard({ accounts }: AccountsSummaryCardPro
               {/* Account Name & Type */}
               <div className="flex-1 min-w-0">
                 <div className="text-sm font-medium text-text-primary truncate">{account.name}</div>
-                <div className="text-xs text-text-secondary">{account.type.replace('_', ' ')}</div>
+                <div className="text-xs text-text-secondary">
+                  {t(`accounts:filters.types.${account.type}`)}
+                </div>
               </div>
 
               {/* Balance */}

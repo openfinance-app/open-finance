@@ -1,4 +1,5 @@
-import { ActiveFilterRow, FilterChip } from '@/components/ui/FilterChip';
+import { ActiveFilterRow } from '@/components/ui/FilterChip';
+import { AccountScope } from '@/components/accounts/AccountScope';
 import { getAccountFilterCounts } from '@/utils/filter-utils';
 import { FilterToggle } from '@/components/ui/FilterToggle';
 import { apiErrorMessage } from '@/utils/api-error';
@@ -56,6 +57,7 @@ function hasActiveFilters(filters: Filters): boolean {
     filters.balanceMin !== undefined ||
     filters.balanceMax !== undefined ||
     filters.balanceExact !== undefined ||
+    filters.capital ||
     filters.lowBalance
   );
 }
@@ -67,11 +69,15 @@ export default function AccountsPage() {
   useDocumentTitle(t('title'));
   const [searchParams, setSearchParams] = useSearchParams();
   const lowBalanceParam = searchParams.get('lowBalance') === '1';
+  const capitalParam = searchParams.get('capital');
+  const capital =
+    capitalParam === 'available' || capitalParam === 'locked' ? capitalParam : undefined;
   const highlightId = searchParams.get('highlight')
     ? parseInt(searchParams.get('highlight')!)
     : null;
   const institutionParam = searchParams.get('institution');
   const validInstitution = institutionParam?.trim() || undefined;
+  const hasFilterLink = Boolean(lowBalanceParam || validInstitution || capital);
 
   const [filters, setFilters] = useViewState<Filters>(
     'filters',
@@ -80,21 +86,19 @@ export default function AccountsPage() {
       size: DEFAULT_PAGE_SIZE,
       sort: 'name,asc',
       lowBalance: lowBalanceParam || undefined,
+      capital,
       institution: validInstitution,
     },
-    Boolean(lowBalanceParam || validInstitution)
+    hasFilterLink
   );
-  const [showFilters, setShowFilters] = useViewState(
-    'showFilters',
-    lowBalanceParam || Boolean(validInstitution),
-    lowBalanceParam || Boolean(validInstitution)
-  );
+  const [showFilters, setShowFilters] = useViewState('showFilters', hasFilterLink, hasFilterLink);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingAccount, setEditingAccount] = useState<Account | null>(null);
   const [detailAccountId, setDetailAccountId] = useViewState<number | null>(
     'detailAccountId',
-    highlightId
+    highlightId,
+    hasFilterLink
   );
 
   // Auto-open modal when highlight param is present
@@ -172,11 +176,10 @@ export default function AccountsPage() {
 
   const handleFiltersChange = (newFilters: Filters) => {
     setFilters({ ...newFilters, page: 0, size: filters.size || DEFAULT_PAGE_SIZE });
-    if (lowBalanceParam && !newFilters.lowBalance) {
-      const next = new URLSearchParams(searchParams);
-      next.delete('lowBalance');
-      setSearchParams(next, { replace: true });
-    }
+    const next = new URLSearchParams(searchParams);
+    if (lowBalanceParam && !newFilters.lowBalance) next.delete('lowBalance');
+    if (capital && !newFilters.capital) next.delete('capital');
+    if (next.toString() !== searchParams.toString()) setSearchParams(next, { replace: true });
   };
 
   const handlePageChange = (page: number) => {
@@ -486,14 +489,9 @@ export default function AccountsPage() {
           <AccountFilters filters={filters} onFiltersChange={handleFiltersChange} />
         </div>
       ) : (
-        filters.lowBalance && (
-          <ActiveFilterRow className="mb-6">
-            <FilterChip
-              label={t('filters.lowBalance')}
-              onRemove={() => handleFiltersChange({ ...filters, lowBalance: undefined })}
-            />
-          </ActiveFilterRow>
-        )
+        <ActiveFilterRow className="mb-6">
+          <AccountScope filters={filters} onChange={handleFiltersChange} />
+        </ActiveFilterRow>
       )}
 
       {/* Total Balance Summary */}

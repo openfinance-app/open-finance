@@ -20,6 +20,7 @@
     "types": {
       "CHECKING": "Compte courant",
       "SAVINGS": "Compte épargne",
+      "LOCKED_SAVINGS": "Épargne bloquée",
       "CREDIT_CARD": "Carte de crédit",
       "INVESTMENT": "Compte investissement",
       "CASH": "Espèces",
@@ -106,6 +107,7 @@
     "types": {
       "CHECKING": "Courant",
       "SAVINGS": "Épargne",
+      "LOCKED_SAVINGS": "Épargne bloquée",
       "CREDIT_CARD": "Carte de crédit",
       "INVESTMENT": "Investissement",
       "CASH": "Espèces",

@@ -113,8 +113,8 @@ public class Account {
     private String name;
 
     /**
-     * Type of account (CHECKING, SAVINGS, CREDIT_CARD, INVESTMENT, CASH, OTHER). Requirement
-     * REQ-2.2.2: Account type categorization
+     * Type of account (CHECKING, SAVINGS, LOCKED_SAVINGS, CREDIT_CARD, INVESTMENT, CASH, OTHER).
+     * Requirement REQ-2.2.2: Account type categorization
      */
     @NotNull(message = "{account.type.notnull}")
     @Enumerated(EnumType.STRING)
@@ -219,6 +219,11 @@ public class Account {
     @Column(name = "liability_transferred_balance", length = 512)
     @Convert(converter = EncryptedBigDecimalConverter.class)
     private BigDecimal liabilityTransferredBalance;
+
+    /** Cash and linked financial holdings together form the value of these accounts. */
+    public boolean holdsInvestments() {
+        return type == AccountType.INVESTMENT || type == AccountType.LOCKED_SAVINGS;
+    }
 
     public void requireEditableLedger() {
         if (liabilityConvertedAt != null) {

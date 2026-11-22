@@ -6,6 +6,7 @@ import java.time.LocalDate;
 import java.time.YearMonth;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -1521,8 +1522,11 @@ public class DashboardService {
         java.util.Set<Long> excludedAccounts =
                 org.openfinance.util.AccountValuation.excludedAccountIds(
                         accounts, ReportingClock.today());
+        Set<Long> lockedAccounts = new HashSet<>();
         for (Account account : accounts) {
             if (excludedAccounts.contains(account.getId())) continue;
+            if (account.getType() == AccountType.LOCKED_SAVINGS)
+                lockedAccounts.add(account.getId());
             String category = categorizeAccount(account.getType());
             boolean liability = account.getBalance().signum() < 0;
             String key = category + (liability ? ":liability" : "");
@@ -1550,7 +1554,11 @@ public class DashboardService {
                 continue;
             if (asset.getPurchaseDate() != null
                     && asset.getPurchaseDate().isAfter(ReportingClock.today())) continue;
-            String category = categorizeAsset(asset.getType());
+            String category =
+                    lockedAccounts.contains(asset.getAccountId())
+                                    && asset.getType().isFinancialHolding()
+                            ? categorizeAccount(AccountType.LOCKED_SAVINGS)
+                            : categorizeAsset(asset.getType());
             categoryMap.computeIfAbsent(
                     category,
                     k ->
@@ -1662,6 +1670,8 @@ public class DashboardService {
             case SAVINGS:
             case CASH:
                 return "Cash & Savings";
+            case LOCKED_SAVINGS:
+                return "Locked Savings";
             case INVESTMENT:
                 return "Investments";
             case CREDIT_CARD:

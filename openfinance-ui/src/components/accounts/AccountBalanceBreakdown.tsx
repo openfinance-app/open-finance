@@ -1,12 +1,12 @@
 import { decimalValue, ExactDecimal } from '@/utils/exact-decimal';
 import { useTranslation } from 'react-i18next';
 import { ConvertedAmount } from '@/components/ui/ConvertedAmount';
-import type { Account } from '@/types/account';
+import { holdsInvestments, type Account } from '@/types/account';
 
 /** Keep portfolio value distinct from the cash available for a payment. */
 export function AccountBalanceBreakdown({ account }: { account: Account }) {
   const { t } = useTranslation('accounts');
-  if (account.type !== 'INVESTMENT' && !account.holdingsValue) return null;
+  if (!holdsInvestments(account.type) && !account.holdingsValue) return null;
   return (
     <dl className="mt-2 flex flex-wrap gap-x-5 gap-y-1 text-sm text-text-secondary">
       {(

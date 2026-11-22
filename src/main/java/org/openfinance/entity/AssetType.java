@@ -120,6 +120,11 @@ public enum AssetType {
                 || this == FURNITURE;
     }
 
+    /** Only financial assets contribute to the investment holdings of an account. */
+    public boolean isFinancialHolding() {
+        return !isPhysical() && this != REAL_ESTATE;
+    }
+
     /**
      * Checks if this asset type typically depreciates over time.
      *

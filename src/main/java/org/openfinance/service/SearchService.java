@@ -817,7 +817,7 @@ public class SearchService {
 
     private BigDecimal accountSearchBalance(Account account, Long userId) {
         // Use the account page's valuation rules for cash plus eligible investment holdings.
-        return account.getType() == AccountType.INVESTMENT
+        return account.holdsInvestments()
                 ? accountService.getAccountById(account.getId(), userId).getBalance()
                 : account.getBalance();
     }
@@ -1266,6 +1266,7 @@ public class SearchService {
         return switch (type) {
             case CHECKING -> "Banknote";
             case SAVINGS -> "PiggyBank";
+            case LOCKED_SAVINGS -> "LockKeyhole";
             case INVESTMENT -> "TrendingUp";
             case CREDIT_CARD -> "CreditCard";
             case CASH -> "Wallet";
@@ -1278,6 +1279,7 @@ public class SearchService {
         return switch (type) {
             case CHECKING -> "#3b82f6";
             case SAVINGS -> "#10b981";
+            case LOCKED_SAVINGS -> "#b38a41";
             case INVESTMENT -> "#8b5cf6";
             case CREDIT_CARD -> "#ef4444";
             case CASH -> "#6b7280";

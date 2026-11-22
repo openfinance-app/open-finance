@@ -20,6 +20,7 @@
     "types": {
       "CHECKING": "Checking Account",
       "SAVINGS": "Savings Account",
+      "LOCKED_SAVINGS": "Locked savings",
       "CREDIT_CARD": "Credit Card",
       "INVESTMENT": "Investment Account",
       "CASH": "Cash",
@@ -106,6 +107,7 @@
     "types": {
       "CHECKING": "Checking",
       "SAVINGS": "Savings",
+      "LOCKED_SAVINGS": "Locked savings",
       "CREDIT_CARD": "Credit Card",
       "INVESTMENT": "Investment",
       "CASH": "Cash",

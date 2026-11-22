@@ -1,3 +1,4 @@
+import { ACCOUNT_TYPES } from '@/types/account';
 import { useId } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -23,7 +24,6 @@ import {
 
 const controlClass =
   'w-full min-h-11 rounded-md border border-border bg-surface px-3 py-2 text-sm text-text-primary focus-visible:outline-2 focus-visible:outline-primary disabled:opacity-50';
-const accountTypes = ['CHECKING', 'SAVINGS', 'CREDIT_CARD', 'INVESTMENT', 'CASH', 'OTHER'];
 const paymentMethods = [
   'CASH',
   'CHEQUE',
@@ -129,7 +129,7 @@ export function BulkEditDialog({
   const options = (field: BulkField) => {
     switch (field.kind) {
       case 'accountType':
-        return accountTypes.map(value => (
+        return ACCOUNT_TYPES.map(value => (
           <option key={value} value={value}>
             {ta(`form.types.${value}`)}
           </option>

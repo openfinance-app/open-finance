@@ -140,7 +140,15 @@ describe('AccountForm', () => {
       renderWithProviders(<AccountForm onSubmit={mockOnSubmit} onCancel={mockOnCancel} />);
 
       const typeSelect = screen.getByLabelText(/Account Type/i) as HTMLSelectElement;
-      expect(typeSelect.options.length).toBe(6); // CHECKING, SAVINGS, CREDIT_CARD, INVESTMENT, CASH, OTHER
+      expect(Array.from(typeSelect.options, option => option.value)).toEqual([
+        'CHECKING',
+        'SAVINGS',
+        'LOCKED_SAVINGS',
+        'CREDIT_CARD',
+        'INVESTMENT',
+        'CASH',
+        'OTHER',
+      ]);
     });
   });
 

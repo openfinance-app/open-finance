@@ -30,6 +30,7 @@ import {
   type SavedSearch,
   getResultTypeDisplayName,
   getResultTypeIcon,
+  getResultSubtitle,
   getResultRoute,
   highlightMatch,
 } from '@/types/search';
@@ -37,24 +38,12 @@ import { useDateFormatter } from '@/hooks/useDateFormatter';
 import * as Icons from 'lucide-react';
 
 export default function SearchResultsPage() {
-  const { t } = useTranslation(['errors', 'common', 'transactions', 'budgets']);
+  const { t } = useTranslation(['errors', 'common', 'transactions', 'budgets', 'accounts']);
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
   const queryParam = searchParams.get('q') || '';
 
   useDocumentTitle(queryParam ? `${t('common:search')}: ${queryParam}` : t('common:search'));
-
-  // Localize raw enum subtitles returned by the backend for categories and budgets
-  const localizeSubtitle = (result: SearchResult): string | undefined => {
-    if (!result.subtitle) return result.subtitle;
-    if (result.resultType === 'CATEGORY') {
-      return t(`transactions:form.types.${result.subtitle}`, result.subtitle);
-    }
-    if (result.resultType === 'BUDGET') {
-      return t(`budgets:form.periods.${result.subtitle}`, result.subtitle);
-    }
-    return result.subtitle;
-  };
 
   // State
   const [query, setQuery] = useViewState('query', queryParam);
@@ -356,7 +345,7 @@ export default function SearchResultsPage() {
                         result={result}
                         query={query}
                         onClick={() => handleResultClick(result)}
-                        localizeSubtitle={localizeSubtitle}
+                        localizeSubtitle={result => getResultSubtitle(result, t)}
                       />
                     ))}
                   </div>

@@ -24,6 +24,7 @@ import {
   useTransactionsByPeriod,
 } from '../hooks/useDashboard';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
+import AccountLiquidityCard from '@/components/dashboard/AccountLiquidityCard';
 import NetWorthCard from '../components/dashboard/NetWorthCard';
 import RecentTransactionsCard from '../components/dashboard/RecentTransactionsCard';
 import CashFlowChart from '../components/dashboard/CashFlowChart';
@@ -60,6 +61,7 @@ const ResponsiveGridLayout = WidthProvider(Responsive);
 
 type DashboardCardId =
   | 'netWorth'
+  | 'accountLiquidity'
   | 'insights'
   | 'currency'
   | 'cashFlow'
@@ -88,6 +90,7 @@ interface DashboardCardConfig {
 
 const DEFAULT_CARD_ORDER: DashboardCardId[] = [
   'netWorth',
+  'accountLiquidity',
   'insights',
   'financeNews',
   'currency',
@@ -113,88 +116,80 @@ const VISIBILITY_STORAGE_KEY = 'open_finance_dashboard_card_visibility';
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const generateDefaultLayouts = (): Record<string, any> => ({
   lg: [
-    // Row 1 (y=0 to y=5)
     { i: 'netWorth', x: 0, y: 0, w: 4, h: 5, minW: 3, minH: 4 },
-    { i: 'insights', x: 4, y: 0, w: 4, h: 5, minW: 3, minH: 4 },
+    { i: 'accountLiquidity', x: 4, y: 0, w: 4, h: 5, minW: 3, minH: 4 },
+    { i: 'insights', x: 0, y: 5, w: 4, h: 5, minW: 3, minH: 4 },
     { i: 'currency', x: 8, y: 0, w: 4, h: 5, minW: 3, minH: 4 },
-    { i: 'institutionBreakdown', x: 0, y: 5, w: 4, h: 7, minW: 3, minH: 5 },
+    { i: 'institutionBreakdown', x: 0, y: 10, w: 4, h: 7, minW: 3, minH: 5 },
 
-    // Budget Progress (y=5 to y=12) — spans 8 cols next to institutionBreakdown
-    { i: 'budgetProgress', x: 4, y: 5, w: 8, h: 7, minW: 4, minH: 5 },
+    { i: 'budgetProgress', x: 4, y: 10, w: 8, h: 7, minW: 4, minH: 5 },
 
-    // Financial Map — full-width glance of finances across the globe (y=12 to y=21)
-    { i: 'financialMap', x: 0, y: 12, w: 12, h: 9, minW: 4, minH: 7 },
+    { i: 'financialMap', x: 0, y: 17, w: 12, h: 9, minW: 4, minH: 7 },
 
-    // Row 2 (y=21 to y=28)
-    { i: 'cashFlow', x: 0, y: 21, w: 12, h: 7, minW: 6, minH: 6 },
+    { i: 'cashFlow', x: 0, y: 26, w: 12, h: 7, minW: 6, minH: 6 },
 
-    // Row 3 - Sankey (y=28 to y=38)
-    { i: 'cashflowSankey', x: 0, y: 28, w: 12, h: 10, minW: 6, minH: 6 },
+    { i: 'cashflowSankey', x: 0, y: 33, w: 12, h: 10, minW: 6, minH: 6 },
 
-    // Row 4 (y=38 to y=47)
-    { i: 'dailyCashFlow', x: 0, y: 38, w: 12, h: 9, minW: 6, minH: 6 },
+    { i: 'dailyCashFlow', x: 0, y: 43, w: 12, h: 9, minW: 6, minH: 6 },
 
-    // Row 5 (y=47 to y=55)
-    { i: 'recentTransactions', x: 0, y: 47, w: 4, h: 8, minW: 3, minH: 5 },
-    { i: 'netWorthTrend', x: 4, y: 47, w: 8, h: 8, minW: 4, minH: 5 },
+    { i: 'recentTransactions', x: 0, y: 52, w: 4, h: 8, minW: 3, minH: 5 },
+    { i: 'netWorthTrend', x: 4, y: 52, w: 8, h: 8, minW: 4, minH: 5 },
 
-    // Row 6 (y=55 to y=63)
-    { i: 'portfolioPerformance', x: 0, y: 55, w: 12, h: 8, minW: 6, minH: 6 },
+    { i: 'portfolioPerformance', x: 0, y: 60, w: 12, h: 8, minW: 6, minH: 6 },
 
-    // Row 7 (y=63 to y=72)
-    { i: 'assetAllocation', x: 0, y: 63, w: 4, h: 9, minW: 3, minH: 6 },
-    { i: 'netWorthAllocation', x: 4, y: 63, w: 4, h: 9, minW: 3, minH: 6 },
-    { i: 'borrowingCapacity', x: 8, y: 63, w: 4, h: 9, minW: 3, minH: 6 },
+    { i: 'assetAllocation', x: 0, y: 68, w: 4, h: 9, minW: 3, minH: 6 },
+    { i: 'netWorthAllocation', x: 4, y: 68, w: 4, h: 9, minW: 3, minH: 6 },
+    { i: 'borrowingCapacity', x: 8, y: 68, w: 4, h: 9, minW: 3, minH: 6 },
 
-    // Row 8 (y=72 to y=81)
-    { i: 'estimatedInterest', x: 0, y: 72, w: 4, h: 9, minW: 3, minH: 6 },
-    { i: 'financeNews', x: 4, y: 72, w: 4, h: 9, minW: 3, minH: 6 },
+    { i: 'estimatedInterest', x: 0, y: 77, w: 4, h: 9, minW: 3, minH: 6 },
+    { i: 'financeNews', x: 4, y: 77, w: 4, h: 9, minW: 3, minH: 6 },
 
-    // Row 9 (y=81 to y=91)
-    { i: 'balanceVariation', x: 0, y: 81, w: 12, h: 10, minW: 6, minH: 7 },
+    { i: 'balanceVariation', x: 0, y: 86, w: 12, h: 10, minW: 6, minH: 7 },
   ],
   // md (10 cols, containers 996–1200px — the common desktop width once the
   // sidebar takes its 240px): two-column rack, full-width charts below
   md: [
     { i: 'netWorth', x: 0, y: 0, w: 5, h: 5, minW: 3, minH: 4 },
-    { i: 'insights', x: 5, y: 0, w: 5, h: 5, minW: 3, minH: 4 },
-    { i: 'currency', x: 0, y: 5, w: 5, h: 6, minW: 3, minH: 4 },
-    { i: 'institutionBreakdown', x: 5, y: 5, w: 5, h: 6, minW: 3, minH: 5 },
-    { i: 'budgetProgress', x: 0, y: 11, w: 10, h: 7, minW: 4, minH: 5 },
-    { i: 'financialMap', x: 0, y: 18, w: 10, h: 9, minW: 4, minH: 7 },
-    { i: 'cashFlow', x: 0, y: 27, w: 10, h: 7, minW: 6, minH: 6 },
-    { i: 'cashflowSankey', x: 0, y: 34, w: 10, h: 10, minW: 6, minH: 6 },
-    { i: 'dailyCashFlow', x: 0, y: 44, w: 10, h: 9, minW: 6, minH: 6 },
-    { i: 'recentTransactions', x: 0, y: 53, w: 5, h: 8, minW: 3, minH: 5 },
-    { i: 'netWorthTrend', x: 5, y: 53, w: 5, h: 8, minW: 4, minH: 5 },
-    { i: 'portfolioPerformance', x: 0, y: 61, w: 10, h: 8, minW: 6, minH: 6 },
-    { i: 'assetAllocation', x: 0, y: 69, w: 5, h: 9, minW: 3, minH: 6 },
-    { i: 'netWorthAllocation', x: 5, y: 69, w: 5, h: 9, minW: 3, minH: 6 },
-    { i: 'borrowingCapacity', x: 0, y: 78, w: 5, h: 9, minW: 3, minH: 6 },
-    { i: 'estimatedInterest', x: 5, y: 78, w: 5, h: 9, minW: 3, minH: 6 },
-    { i: 'financeNews', x: 0, y: 87, w: 10, h: 9, minW: 3, minH: 6 },
-    { i: 'balanceVariation', x: 0, y: 96, w: 10, h: 10, minW: 6, minH: 7 },
+    { i: 'accountLiquidity', x: 5, y: 0, w: 5, h: 5, minW: 3, minH: 4 },
+    { i: 'insights', x: 0, y: 5, w: 5, h: 5, minW: 3, minH: 4 },
+    { i: 'currency', x: 0, y: 10, w: 5, h: 6, minW: 3, minH: 4 },
+    { i: 'institutionBreakdown', x: 5, y: 10, w: 5, h: 6, minW: 3, minH: 5 },
+    { i: 'budgetProgress', x: 0, y: 16, w: 10, h: 7, minW: 4, minH: 5 },
+    { i: 'financialMap', x: 0, y: 23, w: 10, h: 9, minW: 4, minH: 7 },
+    { i: 'cashFlow', x: 0, y: 32, w: 10, h: 7, minW: 6, minH: 6 },
+    { i: 'cashflowSankey', x: 0, y: 39, w: 10, h: 10, minW: 6, minH: 6 },
+    { i: 'dailyCashFlow', x: 0, y: 49, w: 10, h: 9, minW: 6, minH: 6 },
+    { i: 'recentTransactions', x: 0, y: 58, w: 5, h: 8, minW: 3, minH: 5 },
+    { i: 'netWorthTrend', x: 5, y: 58, w: 5, h: 8, minW: 4, minH: 5 },
+    { i: 'portfolioPerformance', x: 0, y: 66, w: 10, h: 8, minW: 6, minH: 6 },
+    { i: 'assetAllocation', x: 0, y: 74, w: 5, h: 9, minW: 3, minH: 6 },
+    { i: 'netWorthAllocation', x: 5, y: 74, w: 5, h: 9, minW: 3, minH: 6 },
+    { i: 'borrowingCapacity', x: 0, y: 83, w: 5, h: 9, minW: 3, minH: 6 },
+    { i: 'estimatedInterest', x: 5, y: 83, w: 5, h: 9, minW: 3, minH: 6 },
+    { i: 'financeNews', x: 0, y: 92, w: 10, h: 9, minW: 3, minH: 6 },
+    { i: 'balanceVariation', x: 0, y: 101, w: 10, h: 10, minW: 6, minH: 7 },
   ],
   // sm (6 cols): single rack, no side-by-side holes
   sm: [
     { i: 'netWorth', x: 0, y: 0, w: 6, h: 5, minW: 3, minH: 4 },
-    { i: 'insights', x: 0, y: 5, w: 6, h: 5, minW: 3, minH: 4 },
-    { i: 'currency', x: 0, y: 10, w: 6, h: 6, minW: 3, minH: 4 },
-    { i: 'institutionBreakdown', x: 0, y: 16, w: 6, h: 7, minW: 3, minH: 5 },
-    { i: 'budgetProgress', x: 0, y: 23, w: 6, h: 7, minW: 4, minH: 5 },
-    { i: 'financialMap', x: 0, y: 30, w: 6, h: 9, minW: 4, minH: 7 },
-    { i: 'cashFlow', x: 0, y: 39, w: 6, h: 7, minW: 6, minH: 6 },
-    { i: 'cashflowSankey', x: 0, y: 46, w: 6, h: 10, minW: 6, minH: 6 },
-    { i: 'dailyCashFlow', x: 0, y: 56, w: 6, h: 9, minW: 6, minH: 6 },
-    { i: 'recentTransactions', x: 0, y: 65, w: 6, h: 8, minW: 3, minH: 5 },
-    { i: 'netWorthTrend', x: 0, y: 73, w: 6, h: 8, minW: 4, minH: 5 },
-    { i: 'portfolioPerformance', x: 0, y: 81, w: 6, h: 8, minW: 6, minH: 6 },
-    { i: 'assetAllocation', x: 0, y: 89, w: 6, h: 9, minW: 3, minH: 6 },
-    { i: 'netWorthAllocation', x: 0, y: 98, w: 6, h: 9, minW: 3, minH: 6 },
-    { i: 'borrowingCapacity', x: 0, y: 107, w: 6, h: 9, minW: 3, minH: 6 },
-    { i: 'estimatedInterest', x: 0, y: 116, w: 6, h: 9, minW: 3, minH: 6 },
-    { i: 'financeNews', x: 0, y: 125, w: 6, h: 9, minW: 3, minH: 6 },
-    { i: 'balanceVariation', x: 0, y: 134, w: 6, h: 10, minW: 6, minH: 7 },
+    { i: 'accountLiquidity', x: 0, y: 5, w: 6, h: 4, minW: 2, minH: 4 },
+    { i: 'insights', x: 0, y: 9, w: 6, h: 5, minW: 3, minH: 4 },
+    { i: 'currency', x: 0, y: 14, w: 6, h: 6, minW: 3, minH: 4 },
+    { i: 'institutionBreakdown', x: 0, y: 20, w: 6, h: 7, minW: 3, minH: 5 },
+    { i: 'budgetProgress', x: 0, y: 27, w: 6, h: 7, minW: 4, minH: 5 },
+    { i: 'financialMap', x: 0, y: 34, w: 6, h: 9, minW: 4, minH: 7 },
+    { i: 'cashFlow', x: 0, y: 43, w: 6, h: 7, minW: 6, minH: 6 },
+    { i: 'cashflowSankey', x: 0, y: 50, w: 6, h: 10, minW: 6, minH: 6 },
+    { i: 'dailyCashFlow', x: 0, y: 60, w: 6, h: 9, minW: 6, minH: 6 },
+    { i: 'recentTransactions', x: 0, y: 69, w: 6, h: 8, minW: 3, minH: 5 },
+    { i: 'netWorthTrend', x: 0, y: 77, w: 6, h: 8, minW: 4, minH: 5 },
+    { i: 'portfolioPerformance', x: 0, y: 85, w: 6, h: 8, minW: 6, minH: 6 },
+    { i: 'assetAllocation', x: 0, y: 93, w: 6, h: 9, minW: 3, minH: 6 },
+    { i: 'netWorthAllocation', x: 0, y: 102, w: 6, h: 9, minW: 3, minH: 6 },
+    { i: 'borrowingCapacity', x: 0, y: 111, w: 6, h: 9, minW: 3, minH: 6 },
+    { i: 'estimatedInterest', x: 0, y: 120, w: 6, h: 9, minW: 3, minH: 6 },
+    { i: 'financeNews', x: 0, y: 129, w: 6, h: 9, minW: 3, minH: 6 },
+    { i: 'balanceVariation', x: 0, y: 138, w: 6, h: 10, minW: 6, minH: 7 },
   ],
 });
 
@@ -272,6 +267,28 @@ export default function DashboardPage() {
             delete parsed[breakpoint];
             repaired = true;
           }
+        }
+
+        // Keep customized card positions when adding liquidity to an existing layout.
+        for (const [breakpoint, items] of Object.entries(parsed)) {
+          const cols = GRID_LAYOUT_COLS[breakpoint as keyof typeof GRID_LAYOUT_COLS];
+          if (
+            !cols ||
+            !Array.isArray(items) ||
+            !items.length ||
+            items.some(item => item.i === 'accountLiquidity')
+          )
+            continue;
+          const defaults = defaultLayouts[breakpoint] ?? defaultLayouts.sm;
+          const card = defaults.find((item: { i: string }) => item.i === 'accountLiquidity');
+          const bottom = items.reduce((end, item) => Math.max(end, item.y + item.h), 0);
+          items.push({
+            ...card,
+            x: 0,
+            y: bottom,
+            w: Math.min(cols, card.w),
+            minW: Math.min(cols, card.minW),
+          });
         }
 
         if (parsed.lg && Array.isArray(parsed.lg)) {
@@ -490,6 +507,13 @@ export default function DashboardPage() {
             observedThrough={observedThrough}
           />
         ),
+      },
+      {
+        id: 'accountLiquidity',
+        label: t('cards.accountLiquidity.label'),
+        description: t('cards.accountLiquidity.description'),
+        isAvailable: true,
+        render: () => <AccountLiquidityCard baseCurrency={summary.baseCurrency} />,
       },
       {
         id: 'insights',

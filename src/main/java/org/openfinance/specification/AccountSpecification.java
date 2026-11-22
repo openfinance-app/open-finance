@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Locale;
 import org.openfinance.dto.AccountSearchCriteria;
 import org.openfinance.entity.Account;
+import org.openfinance.entity.AccountType;
 import org.springframework.data.jpa.domain.Specification;
 
 /**
@@ -69,6 +70,11 @@ public class AccountSpecification {
             if (criteria.getType() != null) {
                 predicates.add(criteriaBuilder.equal(root.get("type"), criteria.getType()));
             }
+            if (criteria.getLockedCapital() != null) {
+                Predicate locked =
+                        criteriaBuilder.equal(root.get("type"), AccountType.LOCKED_SAVINGS);
+                predicates.add(criteria.getLockedCapital() ? locked : locked.not());
+            }
 
             // Filter by currency
             if (criteria.getCurrency() != null && !criteria.getCurrency().trim().isEmpty()) {
@@ -79,7 +85,8 @@ public class AccountSpecification {
             if (criteria.getIsActive() != null) {
                 predicates.add(criteriaBuilder.equal(root.get("isActive"), criteria.getIsActive()));
             }
-            if (Boolean.TRUE.equals(criteria.getLowBalance())) {
+            if (Boolean.TRUE.equals(criteria.getLowBalance())
+                    || criteria.getLockedCapital() != null) {
                 predicates.add(criteriaBuilder.isTrue(root.get("isActive")));
             }
 

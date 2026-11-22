@@ -43,7 +43,7 @@ public class AccountResponse {
     private String accountNumber;
 
     /**
-     * Type of account (CHECKING, SAVINGS, CREDIT_CARD, INVESTMENT, CASH, OTHER).
+     * Type of account (CHECKING, SAVINGS, LOCKED_SAVINGS, CREDIT_CARD, INVESTMENT, CASH, OTHER).
      *
      * <p>Requirement REQ-2.2.2: Account type categorization
      */

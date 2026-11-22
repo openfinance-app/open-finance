@@ -12,10 +12,13 @@ import java.math.BigDecimal;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.openfinance.config.TestDatabaseConfig;
 import org.openfinance.dto.AccountRequest;
 import org.openfinance.dto.LoginRequest;
 import org.openfinance.dto.UserRegistrationRequest;
+import org.openfinance.entity.AccountType;
 import org.openfinance.service.OperationHistoryService;
 import org.openfinance.service.UserService;
 import org.openfinance.util.DatabaseCleanupService;
@@ -83,13 +86,16 @@ class AccountControllerIntegrationTest {
         encKey = objectMapper.readTree(resp).get("encryptionKey").asText();
     }
 
-    @Test
+    @ParameterizedTest
+    @EnumSource(
+            value = AccountType.class,
+            names = {"CHECKING", "LOCKED_SAVINGS"})
     @DisplayName("POST /api/v1/accounts - create account successfully")
-    void shouldCreateAccount() throws Exception {
+    void shouldCreateAccount(AccountType type) throws Exception {
         AccountRequest req =
                 AccountRequest.builder()
                         .name("Chase Checking")
-                        .type(org.openfinance.entity.AccountType.CHECKING)
+                        .type(type)
                         .currency("USD")
                         .initialBalance(new BigDecimal("500.00"))
                         .description("Primary")
@@ -102,6 +108,7 @@ class AccountControllerIntegrationTest {
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(req)))
                 .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.type").value(type.name()))
                 .andExpect(jsonPath("$.id").isNumber())
                 .andExpect(jsonPath("$.name").value("Chase Checking"));
     }

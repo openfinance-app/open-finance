@@ -31,7 +31,7 @@ const accounts: IAccountSummary[] = [
   { id: 2, name: 'Savings', type: 'SAVINGS', balance: 20000, currency: 'EUR', isActive: true },
   {
     id: 3,
-    name: 'Credit Card',
+    name: 'Travel card',
     type: 'CREDIT_CARD',
     balance: -1500,
     currency: 'EUR',
@@ -58,7 +58,7 @@ describe('AccountsSummaryCard', () => {
     renderWithProviders(<AccountsSummaryCard accounts={accounts} />);
     expect(screen.getByText('Main Checking')).toBeInTheDocument();
     expect(screen.getByText('Savings')).toBeInTheDocument();
-    expect(screen.getByText('Credit Card')).toBeInTheDocument();
+    expect(screen.getByText('Travel card')).toBeInTheDocument();
     expect(screen.getByText('Brokerage')).toBeInTheDocument();
     expect(screen.getByText('Cash Reserve')).toBeInTheDocument();
   });
@@ -89,9 +89,9 @@ describe('AccountsSummaryCard', () => {
 
   it('renders account type labels', () => {
     renderWithProviders(<AccountsSummaryCard accounts={accounts} />);
-    expect(screen.getByText('CHECKING')).toBeInTheDocument();
-    expect(screen.getByText('SAVINGS')).toBeInTheDocument();
-    expect(screen.getByText('CREDIT CARD')).toBeInTheDocument();
+    expect(screen.getByText('Checking Account')).toBeInTheDocument();
+    expect(screen.getByText('Savings Account')).toBeInTheDocument();
+    expect(screen.getByText('Credit Card')).toBeInTheDocument();
   });
 
   it('renders balances via ConvertedAmount', () => {

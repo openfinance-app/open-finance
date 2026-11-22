@@ -3,7 +3,20 @@ import type { AmountCurrencyMode } from '@/types/amount-filter';
  * Account-related types
  */
 
-export type AccountType = 'CHECKING' | 'SAVINGS' | 'CREDIT_CARD' | 'INVESTMENT' | 'CASH' | 'OTHER';
+export const ACCOUNT_TYPES = [
+  'CHECKING',
+  'SAVINGS',
+  'LOCKED_SAVINGS',
+  'CREDIT_CARD',
+  'INVESTMENT',
+  'CASH',
+  'OTHER',
+] as const;
+export type AccountType = (typeof ACCOUNT_TYPES)[number];
+
+export function holdsInvestments(type: AccountType): boolean {
+  return type === 'INVESTMENT' || type === 'LOCKED_SAVINGS';
+}
 
 export type InterestPeriod = 'ANNUAL' | 'HALF_YEARLY' | 'QUARTERLY' | 'MONTHLY' | 'DAILY';
 
@@ -24,6 +37,8 @@ export interface AccountFilters {
   institution?: string;
   /** When true, return only open accounts below the configured low-balance threshold. */
   lowBalance?: boolean;
+  /** Open accounts contributing to this dashboard capital total. */
+  capital?: 'available' | 'locked';
   // Pagination
   page?: number;
   size?: number;

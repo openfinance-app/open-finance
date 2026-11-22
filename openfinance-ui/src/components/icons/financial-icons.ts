@@ -6,6 +6,7 @@
 import {
   Wallet,
   PiggyBank,
+  LockKeyhole,
   CreditCard,
   TrendingUp,
   Banknote,
@@ -29,6 +30,7 @@ import {
 export const accountTypeIcons: Record<string, LucideIcon> = {
   CHECKING: Wallet,
   SAVINGS: PiggyBank,
+  LOCKED_SAVINGS: LockKeyhole,
   CREDIT_CARD: CreditCard,
   INVESTMENT: TrendingUp,
   CASH: Banknote,

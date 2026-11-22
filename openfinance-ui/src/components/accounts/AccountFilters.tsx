@@ -1,4 +1,4 @@
-import { FilterChip } from '@/components/ui/FilterChip';
+import { AccountScope } from '@/components/accounts/AccountScope';
 import { FilterPanel } from '@/components/ui/FilterPanel';
 import { getAccountFilterCounts } from '@/utils/filter-utils';
 /**
@@ -13,7 +13,7 @@ import { Input } from '@/components/ui';
 import { RegexToggle } from '@/components/ui/RegexToggle';
 import { CurrencySelector } from '@/components/ui/CurrencySelector';
 import { AmountFilterControls } from '@/components/ui/AmountFilterControls';
-import type { AccountFilters, AccountType } from '@/types/account';
+import { ACCOUNT_TYPES, type AccountFilters, type AccountType } from '@/types/account';
 
 interface AccountFiltersProps {
   filters: AccountFilters;
@@ -25,12 +25,7 @@ export function AccountFilters({ filters, onFiltersChange }: AccountFiltersProps
 
   const accountTypes: { value: AccountType | ''; label: string }[] = [
     { value: '', label: t('filters.allTypes') },
-    { value: 'CHECKING', label: t('filters.types.CHECKING') },
-    { value: 'SAVINGS', label: t('filters.types.SAVINGS') },
-    { value: 'CREDIT_CARD', label: t('filters.types.CREDIT_CARD') },
-    { value: 'INVESTMENT', label: t('filters.types.INVESTMENT') },
-    { value: 'CASH', label: t('filters.types.CASH') },
-    { value: 'OTHER', label: t('filters.types.OTHER') },
+    ...ACCOUNT_TYPES.map(value => ({ value, label: t(`filters.types.${value}`) })),
   ];
 
   const sortOptions = [
@@ -104,14 +99,7 @@ export function AccountFilters({ filters, onFiltersChange }: AccountFiltersProps
   return (
     <FilterPanel
       onClear={clearFilters}
-      activeFilters={
-        filters.lowBalance && (
-          <FilterChip
-            label={t('filters.lowBalance')}
-            onRemove={() => handleChange('lowBalance', undefined)}
-          />
-        )
-      }
+      activeFilters={<AccountScope filters={filters} onChange={onFiltersChange} />}
       activeCount={activeCount}
       additionalCount={additionalCount}
       additionalDescription={t('common:formLayout.accountFiltersHint')}
@@ -231,13 +219,19 @@ export function AccountFilters({ filters, onFiltersChange }: AccountFiltersProps
             </label>
             <select
               id="isActive"
-              value={filters.isActive === undefined ? '' : filters.isActive ? 'active' : 'closed'}
+              value={
+                filters.capital || filters.isActive
+                  ? 'active'
+                  : filters.isActive === false
+                    ? 'closed'
+                    : ''
+              }
               onChange={e => {
-                if (e.target.value === '') {
-                  handleChange('isActive', undefined);
-                } else {
-                  handleChange('isActive', e.target.value === 'active');
-                }
+                onFiltersChange({
+                  ...filters,
+                  capital: undefined,
+                  isActive: e.target.value === '' ? undefined : e.target.value === 'active',
+                });
               }}
               className="w-full h-10 px-3 rounded-lg bg-background border border-border text-text-primary text-sm placeholder:text-text-muted hover:border-border/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50 transition-colors duration-150"
             >

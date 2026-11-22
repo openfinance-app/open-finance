@@ -1632,19 +1632,26 @@ class AccountServiceTest {
                 "null-conversion",
                 "zero-value",
                 "same-currency",
+                "locked-savings",
+                "future",
                 "sold",
                 "planned",
                 "physical",
                 "property"
             })
     void portfolioCashCannotBeInflatedByUnownedHoldingsOrUnconvertedAmounts(String scenario) {
+        boolean ownedInEuros =
+                scenario.equals("same-currency") || scenario.equals("locked-savings");
         Account account =
                 Account.builder()
                         .id(1L)
                         .userId(1L)
                         .name("Portfolio")
                         .currency("EUR")
-                        .type(AccountType.INVESTMENT)
+                        .type(
+                                scenario.equals("locked-savings")
+                                        ? AccountType.LOCKED_SAVINGS
+                                        : AccountType.INVESTMENT)
                         .balance(BigDecimal.TEN)
                         .build();
         Asset asset =
@@ -1653,12 +1660,13 @@ class AccountServiceTest {
                         .type(AssetType.STOCK)
                         .quantity(BigDecimal.TEN)
                         .currentPrice(BigDecimal.TEN)
-                        .currency(scenario.equals("same-currency") ? "eur" : "USD")
+                        .currency(ownedInEuros ? "eur" : "USD")
                         .acquisitionType(AcquisitionType.PURCHASE)
                         .build();
         switch (scenario) {
             case "zero-value" -> asset.setCurrentPrice(BigDecimal.ZERO);
             case "sold" -> asset.setSoldDate(LocalDate.of(2025, 1, 1));
+            case "future" -> asset.setPurchaseDate(LocalDate.now().plusYears(2));
             case "planned" -> asset.setAcquisitionType(AcquisitionType.PLANNED);
             case "physical" -> asset.setType(AssetType.VEHICLE);
             case "property" -> asset.setType(AssetType.REAL_ESTATE);
@@ -1679,9 +1687,8 @@ class AccountServiceTest {
             AccountResponse response = accountService.getAccountById(1L, 1L);
             assertThat(response.getOwnBalance()).isEqualByComparingTo("10");
             assertThat(response.getHoldingsValue())
-                    .isEqualByComparingTo(scenario.equals("same-currency") ? "100" : "0");
-            assertThat(response.getBalance())
-                    .isEqualByComparingTo(scenario.equals("same-currency") ? "110" : "10");
+                    .isEqualByComparingTo(ownedInEuros ? "100" : "0");
+            assertThat(response.getBalance()).isEqualByComparingTo(ownedInEuros ? "110" : "10");
             verify(exchangeRateService, never()).convert(any(), eq("USD"), eq("EUR"));
         }
     }

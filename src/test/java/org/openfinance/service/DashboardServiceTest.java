@@ -1461,6 +1461,31 @@ class DashboardServiceTest {
     }
 
     @Test
+    void allocationCountsLockedCashAndItsFundUnitsOnce() {
+        Account locked = createAccount(1L, "PEE", new BigDecimal("30"));
+        locked.setType(AccountType.LOCKED_SAVINGS);
+        Asset fund =
+                createAsset(
+                        1L,
+                        AssetType.MUTUAL_FUND,
+                        BigDecimal.ONE,
+                        new BigDecimal("70"),
+                        new BigDecimal("70"));
+        fund.setAccountId(locked.getId());
+        when(defaultCurrencyProvider.resolve("EUR")).thenReturn("EUR");
+        when(accountRepository.findByUserId(userId)).thenReturn(List.of(locked));
+        when(assetRepository.findCurrentHoldingsByUserId(userId)).thenReturn(List.of(fund));
+
+        assertThat(dashboardService.getNetWorthAllocation(userId))
+                .singleElement()
+                .satisfies(
+                        entry -> {
+                            assertThat(entry.getCategory()).isEqualTo("Locked Savings");
+                            assertThat(entry.getValue()).isEqualByComparingTo("100");
+                        });
+    }
+
+    @Test
     void allocationIncludesClosedCashAndHoldingsButExcludesDeletedPositions() {
         Account closed = createAccount(1L, "Closed", new BigDecimal("30"));
         closed.setIsActive(false);

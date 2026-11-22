@@ -86,6 +86,26 @@ class SearchPredicateBoundaryTest {
     }
 
     @Test
+    void capitalGroupsPartitionOpenAccountsByLockedSavingsType() {
+        Account investment =
+                accounts.save(account("Assurance vie", AccountType.INVESTMENT, "EUR", true));
+        Account locked = accounts.save(account("PEE", AccountType.LOCKED_SAVINGS, "EUR", true));
+        accounts.save(account("Closed investment", AccountType.INVESTMENT, "EUR", false));
+        accounts.save(account("Closed PEE", AccountType.LOCKED_SAVINGS, "EUR", false));
+
+        AccountSearchCriteria available =
+                AccountSearchCriteria.builder().lockedCapital(false).build();
+        AccountSearchCriteria restricted =
+                AccountSearchCriteria.builder().lockedCapital(true).build();
+        assertThat(accounts.findAll(AccountSpecification.buildSpecification(userId, available)))
+                .extracting(Account::getId)
+                .containsExactlyInAnyOrder(account.getId(), investment.getId());
+        assertThat(accounts.findAll(AccountSpecification.buildSpecification(userId, restricted)))
+                .extracting(Account::getId)
+                .containsExactly(locked.getId());
+    }
+
+    @Test
     void accountTypeCurrencyStatusAndInstitutionAllConstrainTheResult() {
         Institution bank =
                 institutions.save(

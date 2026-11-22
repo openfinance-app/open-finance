@@ -1308,26 +1308,27 @@ public class AccountService {
         // An account association is not a cash payment. Only financial holdings belong in a
         // portfolio total; a linked car or property must never inflate spendable cash.
         List<org.openfinance.entity.Asset> linkedAssets =
-                assetRepository.findByAccountId(account.getId());
+                account.holdsInvestments()
+                        ? assetRepository.findByAccountId(account.getId())
+                        : List.of();
         java.math.BigDecimal assetsTotalValue =
                 linkedAssets.stream()
                         .filter(asset -> asset.getSoldDate() == null)
-                        .filter(asset -> account.getType() == AccountType.INVESTMENT)
+                        .filter(
+                                asset ->
+                                        asset.getPurchaseDate() == null
+                                                || !asset.getPurchaseDate()
+                                                        .isAfter(ReportingClock.today()))
                         .filter(
                                 asset ->
                                         asset.getAcquisitionType()
                                                 != org.openfinance.entity.AcquisitionType.PLANNED)
-                        .filter(
-                                asset ->
-                                        !asset.getType().isPhysical()
-                                                && asset.getType()
-                                                        != org.openfinance.entity.AssetType
-                                                                .REAL_ESTATE)
+                        .filter(asset -> asset.getType().isFinancialHolding())
                         .map(asset -> convertAssetValueToAccountCurrency(asset, account))
                         .reduce(java.math.BigDecimal.ZERO, java.math.BigDecimal::add);
 
         java.math.BigDecimal totalBalance =
-                account.getType() == AccountType.INVESTMENT
+                account.holdsInvestments()
                         ? account.getBalance().add(assetsTotalValue)
                         : account.getBalance();
         // Expose the raw balance (without linked assets) so edit forms don't double it.

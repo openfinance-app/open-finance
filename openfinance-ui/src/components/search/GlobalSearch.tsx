@@ -19,7 +19,7 @@ import { useSearchWithDebounce } from '../../hooks/useSearch';
 import { SearchResultAmount } from '@/components/search/SearchResultAmount';
 import { RegexToggle } from '@/components/ui/RegexToggle';
 import type { SearchResult } from '../../types/search';
-import { getResultTypeDisplayName, getResultRoute } from '../../types/search';
+import { getResultTypeDisplayName, getResultRoute, getResultSubtitle } from '@/types/search';
 import { Icon } from '../icons/Icon';
 
 export interface GlobalSearchHandle {
@@ -28,7 +28,7 @@ export interface GlobalSearchHandle {
 }
 
 export const GlobalSearch = forwardRef<GlobalSearchHandle>((_, ref) => {
-  const { t } = useTranslation(['navigation', 'errors', 'transactions', 'budgets']);
+  const { t } = useTranslation(['navigation', 'errors', 'transactions', 'budgets', 'accounts']);
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [isOpen, setIsOpen] = useState(false);
@@ -69,18 +69,6 @@ export const GlobalSearch = forwardRef<GlobalSearchHandle>((_, ref) => {
     // Only run on searchParams change, not on every query change
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams]);
-
-  // Localize raw enum subtitles returned by the backend for categories and budgets
-  const localizeSubtitle = (result: SearchResult): string | undefined => {
-    if (!result.subtitle) return result.subtitle;
-    if (result.resultType === 'CATEGORY') {
-      return t(`transactions:form.types.${result.subtitle}`, result.subtitle);
-    }
-    if (result.resultType === 'BUDGET') {
-      return t(`budgets:form.periods.${result.subtitle}`, result.subtitle);
-    }
-    return result.subtitle;
-  };
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -312,7 +300,7 @@ export const GlobalSearch = forwardRef<GlobalSearchHandle>((_, ref) => {
                           </div>
                           {result.subtitle && (
                             <div className="text-xs text-text-secondary truncate">
-                              {localizeSubtitle(result)}
+                              {getResultSubtitle(result, t)}
                             </div>
                           )}
                           {result.snippet && (

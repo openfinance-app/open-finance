@@ -58,6 +58,7 @@ export function getAccountFilterCounts(filters: AccountFilters) {
       filters.type,
       filters.isActive !== undefined,
       filters.lowBalance,
+      filters.capital,
       filters.sort && filters.sort !== 'name,asc',
     ]);
   return { additionalCount, activeCount };

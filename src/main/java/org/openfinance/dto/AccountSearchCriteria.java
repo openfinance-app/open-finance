@@ -18,7 +18,8 @@ import org.openfinance.entity.AccountType;
  *
  * <ul>
  *   <li><strong>keyword</strong> - Search name, description, account number and institution
- *   <li><strong>type</strong> - Filter by account type (CHECKING, SAVINGS, CREDIT_CARD, etc.)
+ *   <li><strong>type</strong> - Filter by account type (CHECKING, SAVINGS, LOCKED_SAVINGS,
+ *       CREDIT_CARD, etc.)
  *   <li><strong>currency</strong> - Filter by currency code (USD, EUR, etc.)
  *   <li><strong>isActive</strong> - Filter by active status (true=active, false=closed)
  *   <li><strong>balanceMin</strong> - Filter accounts with balance greater than or equal to this
@@ -111,6 +112,9 @@ public class AccountSearchCriteria {
      */
     private Boolean lowBalance;
 
+    /** Select open accounts with locked (true) or available (false) capital. */
+    private Boolean lockedCapital;
+
     /**
      * Checks if any search criteria is provided.
      *
@@ -125,6 +129,7 @@ public class AccountSearchCriteria {
                 || balanceMax != null
                 || balanceExact != null
                 || institution != null
+                || lockedCapital != null
                 || Boolean.TRUE.equals(lowBalance);
     }
 }

@@ -38,16 +38,14 @@ import { useLatestExchangeRate } from '@/hooks/useCurrency';
 import { useInterestPreview } from '@/hooks/useInterestPreview';
 import { DEFAULT_CURRENCY } from '@/utils/currency';
 import { isValidDecimalString, percentage } from '@/utils/money';
-import type { Account, AccountRequest, AccountType, InterestPeriod } from '@/types/account';
+import {
+  ACCOUNT_TYPES,
+  type Account,
+  type AccountRequest,
+  type AccountType,
+  type InterestPeriod,
+} from '@/types/account';
 
-const ACCOUNT_TYPES: AccountType[] = [
-  'CHECKING',
-  'SAVINGS',
-  'CREDIT_CARD',
-  'INVESTMENT',
-  'CASH',
-  'OTHER',
-];
 const INTEREST_PERIODS: InterestPeriod[] = [
   'DAILY',
   'MONTHLY',
@@ -104,7 +102,7 @@ export function AccountForm({
             .min(1, t('validation.nameRequired'))
             .max(255, t('validation.nameTooLong')),
           accountNumber: z.string().max(50, t('validation.accountNumberTooLong')).optional(),
-          type: z.enum(['CHECKING', 'SAVINGS', 'CREDIT_CARD', 'INVESTMENT', 'CASH', 'OTHER']),
+          type: z.enum(ACCOUNT_TYPES),
           currency: z.string().regex(CURRENCY_CODE_PATTERN),
           initialBalance: z
             .string()

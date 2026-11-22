@@ -103,6 +103,23 @@ export interface SavedSearch {
   lastUsed?: string;
 }
 
+export function getResultSubtitle(
+  { resultType, subtitle }: SearchResult,
+  translate: (key: string, fallback: string) => string
+): string | undefined {
+  if (!subtitle) return subtitle;
+  switch (resultType) {
+    case 'ACCOUNT':
+      return translate(`accounts:form.types.${subtitle}`, subtitle);
+    case 'CATEGORY':
+      return translate(`transactions:form.types.${subtitle}`, subtitle);
+    case 'BUDGET':
+      return translate(`budgets:form.periods.${subtitle}`, subtitle);
+    default:
+      return subtitle;
+  }
+}
+
 /**
  * Helper function to get display name for result type
  */
