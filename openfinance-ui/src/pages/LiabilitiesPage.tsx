@@ -1,3 +1,5 @@
+import { getLiabilityFilterCounts } from '@/utils/filter-utils';
+import { FilterToggle } from '@/components/ui/FilterToggle';
 import { ConvertLiabilityWizard } from '@/components/liabilities/ConvertLiabilityWizard';
 import { useLiabilityConversionEnabled } from '@/hooks/useLiabilityConversion';
 import { FormDialog } from '@/components/ui/FormDialog';
@@ -16,7 +18,7 @@ import { useEffect, useState } from 'react';
 import { isAxiosError } from 'axios';
 import { useTranslation } from 'react-i18next';
 import { useSearchParams } from 'react-router';
-import { Plus, Filter } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { DialogContent, DialogHeader, DialogTitle } from '@/components/ui/Dialog';
 import { Pagination } from '@/components/ui/Pagination';
@@ -190,15 +192,13 @@ export default function LiabilitiesPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <PageHeader title={t('title')} description={t('description')} />
         <div className="flex flex-wrap gap-2">
-          <Button
-            variant={showFilters ? 'primary' : 'outline'}
-            onClick={() => setShowFilters(!showFilters)}
-            aria-expanded={showFilters}
-            aria-controls="liability-filters"
-          >
-            <Filter className="h-4 w-4 mr-2" />
-            {t('filters')}
-          </Button>
+          <FilterToggle
+            label={t('filters')}
+            expanded={showFilters}
+            active={getLiabilityFilterCounts(filters).activeCount > 0}
+            panelId="liability-filters"
+            onToggle={() => setShowFilters(!showFilters)}
+          />
           {conversionEnabled && (
             <Button variant="outline" onClick={() => setIsConversionOpen(true)}>
               {t('conversion.action')}

@@ -111,16 +111,34 @@ describe('TransactionFilters', () => {
     expect(clearButton).not.toBeDisabled();
   });
 
-  it('shows the selected import in the form and removes it independently', async () => {
+  it('groups applied badges below the date shortcuts and above More filters', async () => {
     renderWithProviders(
       <TransactionFilters
-        filters={{ importSessionId: 42, accountId: 5 }}
+        filters={{ importSessionId: 42, accountId: 5, noCategory: true, tag: 'groceries' }}
         onFiltersChange={mockOnFiltersChange}
       />
     );
     const form = screen.getByRole('region', { name: 'Filter results' });
-    await userEvent.click(within(form).getByRole('button', { name: 'Remove filter: Import #42' }));
-    expect(mockOnFiltersChange).toHaveBeenCalledWith({ importSessionId: undefined, accountId: 5 });
+    const badges = within(form).getByRole('group', { name: 'Active filters' });
+    const today = within(form).getByRole('button', { name: 'Today' });
+    const moreFilters = within(form).getByText('More filters');
+    expect(today.compareDocumentPosition(badges) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(
+      badges.compareDocumentPosition(moreFilters) & Node.DOCUMENT_POSITION_FOLLOWING
+    ).toBeTruthy();
+    expect(
+      within(badges).getByRole('button', { name: /remove filter: no category/i })
+    ).toBeVisible();
+    expect(within(badges).getByRole('button', { name: /groceries/i })).toBeVisible();
+    await userEvent.click(
+      within(badges).getByRole('button', { name: 'Remove filter: Import #42' })
+    );
+    expect(mockOnFiltersChange).toHaveBeenCalledWith({
+      importSessionId: undefined,
+      accountId: 5,
+      noCategory: true,
+      tag: 'groceries',
+    });
   });
 
   it('calls onFiltersChange when clear is clicked', async () => {

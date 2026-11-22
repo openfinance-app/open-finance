@@ -1,7 +1,8 @@
 import { useToday } from '@/hooks/useReportingCalendar';
+import { FilterChoice } from '@/components/ui/FilterChoice';
 import { FilterPanel } from '@/components/ui/FilterPanel';
 import { TransactionScope } from '@/components/transactions/TransactionScope';
-import { countActiveFilters } from '@/utils/filter-utils';
+import { getTransactionFilterCounts } from '@/utils/filter-utils';
 import { useState } from 'react';
 /**
  * TransactionFilters Component
@@ -10,9 +11,9 @@ import { useState } from 'react';
  *
  * Filter controls for transactions (date range, account, category, type, tags, payee)
  */
-import { Search, X } from 'lucide-react';
+import { Search } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { Input, Button } from '@/components/ui';
+import { Input } from '@/components/ui';
 import { DateInput } from '@/components/ui/DateInput';
 import { AmountFilterControls } from '@/components/ui/AmountFilterControls';
 import { RegexToggle } from '@/components/ui/RegexToggle';
@@ -89,38 +90,12 @@ export function TransactionFilters({ filters, onFiltersChange }: TransactionFilt
     onFiltersChange({});
   };
 
-  const additionalCount = countActiveFilters([
-    filters.payee,
-    filters.tag,
-    filters.minAmount,
-    filters.maxAmount,
-    filters.exactAmount,
-    filters.dateFrom,
-    filters.dateTo,
-    filters.amountCurrencyMode === 'NATIVE',
-  ]);
-  const activeCount =
-    additionalCount +
-    countActiveFilters([
-      filters.keyword,
-      filters.keywordRegex,
-      filters.accountId,
-      filters.importSessionId,
-      filters.type,
-      filters.categoryId,
-      filters.noCategory,
-      filters.noPayee,
-      filters.excludeTransfers,
-      filters.includeSubcategories,
-      filters.assetId,
-      filters.realEstateId,
-      filters.liabilityId,
-      filters.sort && filters.sort !== 'date,desc',
-    ]);
+  const { activeCount, additionalCount } = getTransactionFilterCounts(filters);
 
   return (
     <FilterPanel
       onClear={clearFilters}
+      activeFilters={<TransactionScope filters={filters} onChange={onFiltersChange} />}
       activeCount={activeCount}
       additionalCount={additionalCount}
       additionalDescription={t('common:formLayout.transactionFiltersHint')}
@@ -204,17 +179,15 @@ export function TransactionFilters({ filters, onFiltersChange }: TransactionFilt
               </label>
               <div className="flex flex-wrap gap-2">
                 {allTags.slice(0, showAllTags ? undefined : 8).map(tagInfo => (
-                  <button
-                    type="button"
+                  <FilterChoice
                     key={tagInfo.tag}
-                    aria-pressed={filters.tag === tagInfo.tag}
-                    className="min-h-9 rounded-md border border-border px-3 text-xs text-text-secondary transition-colors hover:border-border-strong aria-pressed:border-primary aria-pressed:bg-primary/10 aria-pressed:text-primary"
+                    selected={filters.tag === tagInfo.tag}
                     onClick={() =>
                       handleChange('tag', filters.tag === tagInfo.tag ? undefined : tagInfo.tag)
                     }
                   >
                     {tagInfo.tag} ({tagInfo.count})
-                  </button>
+                  </FilterChoice>
                 ))}
                 {allTags.length > 8 && (
                   <button
@@ -226,29 +199,12 @@ export function TransactionFilters({ filters, onFiltersChange }: TransactionFilt
                   </button>
                 )}
               </div>
-              {filters.tag && (
-                <div className="mt-2 flex items-center gap-2 text-sm text-text-secondary">
-                  <span>
-                    {t('filterKeys.filteredByTag')} <strong>{filters.tag}</strong>
-                  </span>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => handleChange('tag', undefined)}
-                    className="h-9 px-2"
-                    aria-label={t('common:formLayout.removeFilter', { name: filters.tag })}
-                  >
-                    <X className="h-3 w-3" />
-                  </Button>
-                </div>
-              )}
             </div>
           )}
         </>
       }
     >
       <div className="space-y-4">
-        <TransactionScope filters={filters} onChange={onFiltersChange} />
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-6">
           {' '}
           {/* Search keyword */}
@@ -360,60 +316,18 @@ export function TransactionFilters({ filters, onFiltersChange }: TransactionFilt
         {/* Date presets */}
         <div className="flex flex-wrap gap-2">
           {datePresets.map(preset => (
-            <Button
+            <FilterChoice
               key={preset.label}
-              variant={
-                filters.dateFrom === preset.getValue().from &&
-                filters.dateTo === preset.getValue().to
-                  ? 'secondary'
-                  : 'ghost'
-              }
-              aria-pressed={
+              selected={
                 filters.dateFrom === preset.getValue().from &&
                 filters.dateTo === preset.getValue().to
               }
-              size="sm"
               onClick={() => handleDatePreset(preset.getValue)}
             >
               {preset.label}
-            </Button>
+            </FilterChoice>
           ))}
         </div>
-        {/* Tag Filter */}
-        {(filters.noCategory || filters.noPayee || filters.excludeTransfers) && (
-          <div className="flex flex-wrap gap-2">
-            {filters.noCategory && (
-              <button
-                type="button"
-                className="inline-flex min-h-9 items-center gap-1.5 rounded-md border border-border px-3 text-xs text-text-secondary hover:text-text-primary"
-                onClick={() => handleChange('noCategory', undefined)}
-              >
-                <span>{t('filterKeys.noCategory')}</span>
-                <X className="w-3 h-3 ml-0.5" />
-              </button>
-            )}
-            {filters.noPayee && (
-              <button
-                type="button"
-                className="inline-flex min-h-9 items-center gap-1.5 rounded-md border border-border px-3 text-xs text-text-secondary hover:text-text-primary"
-                onClick={() => handleChange('noPayee', undefined)}
-              >
-                <span>{t('filterKeys.noPayee')}</span>
-                <X className="w-3 h-3 ml-0.5" />
-              </button>
-            )}
-            {filters.excludeTransfers && (
-              <button
-                type="button"
-                onClick={() => handleChange('excludeTransfers', undefined)}
-                className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-3 py-1 text-xs text-primary"
-              >
-                <span>{t('filterKeys.excludeTransfers')}</span>
-                <X className="h-3 w-3" />
-              </button>
-            )}
-          </div>
-        )}
       </div>
     </FilterPanel>
   );

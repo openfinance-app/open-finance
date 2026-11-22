@@ -442,6 +442,97 @@ test('import review saves transaction tags and both split lines through confirma
   await expect(page.locator(`#transaction-${manual.id}`)).toBeVisible();
 });
 
+test('list filter buttons stay highlighted when a filtered view is collapsed', async ({ page }) => {
+  await completeOnboarding(page);
+  const views = [
+    ['/transactions', '#keyword'],
+    ['/accounts', '#keyword'],
+    ['/assets', '#keyword'],
+    ['/budget', '#budget-keyword'],
+    ['/liabilities', '#search'],
+    ['/real-estate', '#keyword'],
+    ['/recurring-transactions', '#search'],
+  ];
+
+  for (const [path, field] of views) {
+    await test.step(path, async () => {
+      await page.goto(path);
+      const toggle = page.getByRole('button', { name: 'Filters', exact: true });
+      await expect(toggle).toHaveAttribute('aria-expanded', 'false');
+      const neutral = await toggle.evaluate(button => getComputedStyle(button).backgroundImage);
+      await toggle.click();
+      const highlighted = await toggle.evaluate(button => getComputedStyle(button).backgroundImage);
+      expect(highlighted).not.toBe(neutral);
+      const panelId = await toggle.getAttribute('aria-controls');
+      const keyword = page.locator(`#${panelId} ${field}`);
+      await keyword.fill('example');
+      await expect(toggle).toHaveAccessibleDescription('Active filters');
+      await toggle.click();
+      await expect(toggle).toHaveCSS('background-image', highlighted);
+      await toggle.click();
+      await keyword.fill('');
+      await expect(toggle).toHaveAccessibleDescription('');
+      await toggle.click();
+      await expect(toggle).toHaveCSS('background-image', neutral);
+    });
+  }
+});
+
+test('applied badges follow the primary controls on desktop and mobile', async ({
+  page,
+}, testInfo) => {
+  await completeOnboarding(page);
+  for (const width of [1280, 390]) {
+    await page.setViewportSize({ width, height: 850 });
+    for (const { path, lastControl, badges } of [
+      {
+        path: '/transactions?noCategory=1&noPayee=1&importSessionId=42',
+        lastControl: 'This year',
+        badges: [/no category/i, /no payee/i, /Import #42/],
+      },
+      {
+        path: '/accounts?lowBalance=1',
+        lastControl: 'Sort by',
+        badges: [/low balance/i],
+      },
+    ]) {
+      await page.goto(path);
+      const panel = page.getByRole('region', { name: 'Filter results' });
+      const row = panel.getByRole('group', { name: 'Active filters' });
+      const buttons = row.getByRole('button');
+      await expect(buttons).toHaveCount(badges.length);
+      for (const [index, name] of badges.entries()) {
+        await expect(buttons.nth(index)).toHaveAccessibleName(name);
+      }
+      const previous =
+        lastControl === 'Sort by'
+          ? panel.getByRole('combobox', { name: /sort by/i })
+          : panel.getByRole('button', { name: /this year/i });
+      const above = await previous.boundingBox();
+      const applied = await row.boundingBox();
+      const more = await panel.getByText('More filters', { exact: true }).boundingBox();
+      expect(applied!.y).toBeGreaterThanOrEqual(above!.y + above!.height);
+      expect(more!.y).toBeGreaterThanOrEqual(applied!.y + applied!.height);
+      for (const button of await buttons.all()) {
+        const bounds = await button.boundingBox();
+        expect(bounds!.x).toBeGreaterThanOrEqual(0);
+        expect(bounds!.x + bounds!.width).toBeLessThanOrEqual(width);
+      }
+      await testInfo.attach(`${path.split('?')[0].slice(1)}-filters-${width}`, {
+        body: await panel.screenshot(),
+        contentType: 'image/png',
+      });
+      const toggle = page.getByRole('button', { name: 'Filters', exact: true });
+      await toggle.click();
+      const collapsed = page.getByRole('group', { name: 'Active filters' });
+      await expect(collapsed.getByRole('button')).toHaveCount(badges.length);
+      await collapsed.getByRole('button', { name: badges[badges.length - 1] }).click();
+      await expect(collapsed.getByRole('button')).toHaveCount(badges.length - 1);
+      await expect(toggle).toHaveAccessibleDescription(badges.length > 1 ? 'Active filters' : '');
+    }
+  }
+});
+
 test('multi-file review keeps the source, notes and actions readable on a narrow screen', async ({
   page,
 }) => {

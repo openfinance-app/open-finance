@@ -1,3 +1,4 @@
+import { FilterToggle } from '@/components/ui/FilterToggle';
 import { FormDialog } from '@/components/ui/FormDialog';
 import { apiErrorMessage } from '@/utils/api-error';
 import { useViewState } from '@/hooks/useViewState';
@@ -10,7 +11,7 @@ import { BulkSelection, BulkToolbar } from '@/components/bulk/BulkSelection';
  */
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Plus, Filter, Calendar, Search } from 'lucide-react';
+import { Plus, Calendar, Search } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { DialogContent, DialogHeader, DialogTitle } from '@/components/ui/Dialog';
 import { Pagination } from '@/components/ui/Pagination';
@@ -291,16 +292,14 @@ export default function RecurringTransactionsPage() {
 
         {/* Actions */}
         <div className="flex items-center gap-2">
-          <Button
-            variant={showFilters ? 'primary' : 'outline'}
+          <FilterToggle
+            label={t('filters.label')}
+            expanded={showFilters}
+            active={isFiltered || !!filters.searchRegex}
+            panelId="recurring-filters"
+            onToggle={() => setShowFilters(!showFilters)}
             size="sm"
-            onClick={() => setShowFilters(!showFilters)}
-            aria-expanded={showFilters}
-            aria-controls="recurring-filters"
-          >
-            <Filter className="h-4 w-4 mr-2" />
-            {t('filters.label')}
-          </Button>
+          />
           <Button onClick={handleCreate}>
             <Plus className="h-4 w-4 mr-2" />
             {t('addRecurring')}

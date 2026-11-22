@@ -1,3 +1,5 @@
+import { getAssetFilterCounts } from '@/utils/filter-utils';
+import { FilterToggle } from '@/components/ui/FilterToggle';
 import { decimalValue } from '@/utils/exact-decimal';
 import { FormDialog } from '@/components/ui/FormDialog';
 import { useViewState } from '@/hooks/useViewState';
@@ -18,7 +20,6 @@ import {
   Building2,
   ChevronLeft,
   Plus,
-  Filter,
   DollarSign,
   PieChart,
   TrendingUp,
@@ -395,13 +396,13 @@ export default function AssetsPage() {
               </>
             )}
             {/* Filter Toggle Button */}
-            <Button
-              variant={showFilters ? 'primary' : 'outline'}
-              onClick={() => setShowFilters(!showFilters)}
-            >
-              <Filter className="h-4 w-4 mr-2" />
-              {t('filters')}
-            </Button>
+            <FilterToggle
+              label={t('filters')}
+              expanded={showFilters}
+              active={getAssetFilterCounts(filters).activeCount > 0}
+              panelId="asset-filters"
+              onToggle={() => setShowFilters(!showFilters)}
+            />
             <Button variant="primary" onClick={handleCreate}>
               <Plus className="h-4 w-4 mr-2" />
               {t('addAsset')}
@@ -437,7 +438,7 @@ export default function AssetsPage() {
       </div>
       {/* Filters Panel */}
       {showFilters && (
-        <div className="mb-6">
+        <div id="asset-filters" className="mb-6">
           <AssetFilters filters={filters} onFiltersChange={handleFiltersChange} />
         </div>
       )}

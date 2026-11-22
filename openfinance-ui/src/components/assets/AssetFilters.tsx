@@ -1,5 +1,5 @@
 import { FilterPanel } from '@/components/ui/FilterPanel';
-import { countActiveFilters } from '@/utils/filter-utils';
+import { getAssetFilterCounts } from '@/utils/filter-utils';
 /**
  * AssetFilters Component
  *
@@ -65,25 +65,7 @@ export function AssetFilters({ filters, onFiltersChange }: AssetFiltersProps) {
     });
   };
 
-  const additionalCount = countActiveFilters([
-    filters.currency,
-    filters.symbol,
-    filters.valueMin,
-    filters.valueMax,
-    filters.valueExact,
-    filters.purchaseDateFrom,
-    filters.purchaseDateTo,
-    filters.amountCurrencyMode === 'NATIVE',
-  ]);
-  const activeCount =
-    additionalCount +
-    countActiveFilters([
-      filters.keyword,
-      filters.keywordRegex,
-      filters.type,
-      filters.ownershipStatus !== 'OWNED',
-      filters.sort && filters.sort !== 'name,asc',
-    ]);
+  const { activeCount, additionalCount } = getAssetFilterCounts(filters);
 
   return (
     <FilterPanel

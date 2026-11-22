@@ -387,11 +387,9 @@
   },
   "scope": {
     "importBatch": "Import n° {{id}}",
-    "label": "Filtres des opérations liées",
     "asset": "Actif",
     "property": "Bien immobilier",
-    "liability": "Passif",
-    "clear": "Retirer le filtre : {{name}}"
+    "liability": "Passif"
   },
   "tagInput": {
     "tooLong": "Utilisez au maximum 50 caractères par étiquette.",

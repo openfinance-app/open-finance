@@ -1,3 +1,5 @@
+import { countActiveFilters } from '@/utils/filter-utils';
+import { FilterToggle } from '@/components/ui/FilterToggle';
 import { decimalValue, exactSum, ExactDecimal } from '@/utils/exact-decimal';
 import { useProperty } from '@/hooks/useRealEstate';
 import { useViewState } from '@/hooks/useViewState';
@@ -17,7 +19,6 @@ import {
   Building2,
   Calculator,
   ChevronLeft,
-  Filter,
   Search,
   X,
   AlertTriangle,
@@ -98,15 +99,25 @@ export default function RealEstatePage() {
   });
 
   const hasActiveFilters =
-    searchFilters.isActive !== true ||
-    Object.keys(searchFilters).some(
-      key =>
-        searchFilters[key as keyof PropertySearchFilters] !== undefined &&
-        key !== 'page' &&
-        key !== 'size' &&
-        key !== 'sort' &&
-        key !== 'isActive'
-    );
+    countActiveFilters([
+      searchFilters.keyword,
+      searchFilters.keywordRegex,
+      searchFilters.propertyType,
+      searchFilters.currency,
+      searchFilters.isActive !== true,
+      searchFilters.hasMortgage !== undefined,
+      searchFilters.purchaseDateFrom,
+      searchFilters.purchaseDateTo,
+      searchFilters.valueMin,
+      searchFilters.valueMax,
+      searchFilters.valueExact,
+      searchFilters.amountCurrencyMode === 'NATIVE',
+      searchFilters.priceMin,
+      searchFilters.priceMax,
+      searchFilters.rentalIncomeMin,
+    ]) > 0;
+  const canClearFilters =
+    hasActiveFilters || !!(searchFilters.sort && searchFilters.sort !== 'name,asc');
 
   // Build filters for API call
   const apiFilters: PropertySearchFilters = {
@@ -394,13 +405,13 @@ export default function RealEstatePage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <PageHeader title={t('title')} description={t('description')} />
         <div className="flex flex-wrap items-center gap-2 shrink-0">
-          <Button
-            variant={showFilters ? 'primary' : 'outline'}
-            onClick={() => setShowFilters(!showFilters)}
-          >
-            <Filter className="h-4 w-4 mr-2" />
-            {t('filters.label')}
-          </Button>
+          <FilterToggle
+            label={t('filters.label')}
+            expanded={showFilters}
+            active={canClearFilters}
+            panelId="real-estate-filters"
+            onToggle={() => setShowFilters(!showFilters)}
+          />
           <Button variant="outline" onClick={() => navigate(ROUTES.REAL_ESTATE_TOOLS)}>
             <Calculator className="h-4 w-4 mr-2" />
             {t('tools')}
@@ -425,12 +436,15 @@ export default function RealEstatePage() {
 
       {/* Advanced Filters Panel */}
       {showFilters && (
-        <div className="mb-6 p-4 bg-surface rounded-lg border border-border">
+        <div
+          id="real-estate-filters"
+          className="mb-6 p-4 bg-surface rounded-lg border border-border"
+        >
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-sm font-medium text-text-primary">
               {t('filters.searchAndFilter')}
             </h3>
-            {hasActiveFilters && (
+            {canClearFilters && (
               <Button
                 variant="outline"
                 size="sm"

@@ -1,3 +1,4 @@
+import { FilterToggle } from '@/components/ui/FilterToggle';
 import { useToday } from '@/hooks/useReportingCalendar';
 import { decimalValue } from '@/utils/exact-decimal';
 import { useViewState } from '@/hooks/useViewState';
@@ -16,7 +17,7 @@ import { formatDecimal } from '@/utils/format';
  */
 import { useState, useMemo, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Plus, Filter, Wand2 } from 'lucide-react';
+import { Plus, Wand2 } from 'lucide-react';
 import { useSearchParams } from 'react-router';
 import { Button } from '@/components/ui/Button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/Dialog';
@@ -266,13 +267,13 @@ export default function BudgetsPage() {
         <PageHeader title={t('title')} description={t('description')} />
         <div className="flex flex-wrap items-center gap-3 shrink-0">
           {/* Filter toggle button — primary when panel is open, outline when closed */}
-          <Button
-            variant={showFilters ? 'primary' : 'outline'}
-            onClick={() => setShowFilters(!showFilters)}
-          >
-            <Filter className="h-4 w-4 mr-2" />
-            {t('filters.label')}
-          </Button>
+          <FilterToggle
+            label={t('filters.label')}
+            expanded={showFilters}
+            active={hasActiveFilters || !!filters.keywordRegex}
+            panelId="budget-filters"
+            onToggle={() => setShowFilters(!showFilters)}
+          />
           {/* Auto-Create button — opens BudgetWizard for analysis-driven bulk creation (TASK-8.6.11) */}
           <Button variant="outline" onClick={() => setShowWizard(true)}>
             <Wand2 className="h-4 w-4 mr-2" />
@@ -287,7 +288,7 @@ export default function BudgetsPage() {
 
       {/* Collapsible Filters Panel */}
       {showFilters && (
-        <div className="mb-6">
+        <div id="budget-filters" className="mb-6">
           <BudgetFilters filters={filters} onFiltersChange={handleFiltersChange} />
         </div>
       )}

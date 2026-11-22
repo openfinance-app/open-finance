@@ -1,3 +1,6 @@
+import { ActiveFilterRow } from '@/components/ui/FilterChip';
+import { getTransactionFilterCounts } from '@/utils/filter-utils';
+import { FilterToggle } from '@/components/ui/FilterToggle';
 import { FormDialog } from '@/components/ui/FormDialog';
 import { TransactionScope } from '@/components/transactions/TransactionScope';
 import { useViewState } from '@/hooks/useViewState';
@@ -12,7 +15,7 @@ import { apiErrorMessage } from '@/utils/api-error';
  */
 import { useEffect, useState } from 'react';
 import { useLocation, useNavigate, useSearchParams } from 'react-router';
-import { Plus, Filter } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/Button';
 import { DialogContent, DialogHeader, DialogTitle } from '@/components/ui/Dialog';
@@ -323,15 +326,13 @@ export default function TransactionsPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <PageHeader title={t('title')} description={t('description')} />
         <div className="flex gap-2 shrink-0">
-          <Button
-            variant={showFilters || filters.importSessionId ? 'primary' : 'outline'}
-            onClick={() => setShowFilters(!showFilters)}
-            aria-expanded={showFilters}
-            aria-controls="transaction-filters"
-          >
-            <Filter className="h-4 w-4 mr-2" />
-            {t('filters')}
-          </Button>
+          <FilterToggle
+            label={t('filters')}
+            expanded={showFilters}
+            active={getTransactionFilterCounts(filters).activeCount > 0}
+            panelId="transaction-filters"
+            onToggle={() => setShowFilters(!showFilters)}
+          />
           <Button variant="primary" onClick={handleCreate}>
             <Plus className="h-4 w-4 mr-2" />
             {t('addTransaction')}
@@ -351,7 +352,9 @@ export default function TransactionsPage() {
           <TransactionFilters filters={filters} onFiltersChange={handleFiltersChange} />
         </div>
       ) : (
-        <TransactionScope filters={filters} onChange={handleFiltersChange} />
+        <ActiveFilterRow className="mb-4">
+          <TransactionScope filters={filters} onChange={handleFiltersChange} />
+        </ActiveFilterRow>
       )}
 
       <TransactionSummaryHeader filters={filters} />

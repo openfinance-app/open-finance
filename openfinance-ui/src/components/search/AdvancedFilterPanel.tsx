@@ -12,7 +12,8 @@ import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/Button';
 import { DateInput } from '@/components/ui/DateInput';
 import { AmountFilterControls } from '@/components/ui/AmountFilterControls';
-import { Badge } from '@/components/ui/Badge';
+import { FilterChoice } from '@/components/ui/FilterChoice';
+import { countActiveFilters } from '@/utils/filter-utils';
 import { Card } from '@/components/ui/Card';
 import { useAccounts } from '@/hooks/useAccounts';
 import { useCategories } from '@/hooks/useCategories';
@@ -110,20 +111,29 @@ export function AdvancedFilterPanel({
     });
   };
 
-  // Count active filters (excluding query)
-  const activeFilterCount = Object.entries(filters).filter(
-    ([key, value]) =>
-      key !== 'query' &&
-      key !== 'limit' &&
-      value !== undefined &&
-      value !== null &&
-      (Array.isArray(value) ? value.length > 0 : true)
-  ).length;
+  const activeFilterCount = countActiveFilters([
+    filters.regex,
+    filters.entityTypes?.length || undefined,
+    filters.accountIds?.length || undefined,
+    filters.categoryIds?.length || undefined,
+    filters.tags?.length || undefined,
+    filters.minAmount,
+    filters.maxAmount,
+    filters.exactAmount,
+    filters.amountCurrencyMode === 'NATIVE',
+    filters.dateFrom,
+    filters.dateTo,
+    filters.isReconciled !== undefined,
+    filters.transactionType,
+  ]);
 
   return (
     <Card className="mb-6">
       {/* Header - Always visible */}
       <button
+        type="button"
+        aria-expanded={isExpanded}
+        aria-controls={isExpanded ? 'advanced-search-filters' : undefined}
         onClick={() => setIsExpanded(!isExpanded)}
         className="w-full px-6 py-4 flex items-center justify-between text-left hover:bg-surface-elevated transition-colors"
       >
@@ -142,9 +152,9 @@ export function AdvancedFilterPanel({
         </div>
         <div className="flex items-center gap-2">
           {activeFilterCount > 0 && (
-            <Badge variant="info" className="mr-2">
+            <span className="mr-2 rounded-md bg-primary/10 px-2 py-1 text-xs font-medium tabular-nums text-primary">
               {activeFilterCount}
-            </Badge>
+            </span>
           )}
           {isExpanded ? (
             <ChevronUp className="h-5 w-5 text-text-tertiary" />
@@ -156,7 +166,10 @@ export function AdvancedFilterPanel({
 
       {/* Filters - Shown when expanded */}
       {isExpanded && (
-        <div className="px-6 pb-6 space-y-6 border-t border-border pt-6">
+        <div
+          id="advanced-search-filters"
+          className="px-6 pb-6 space-y-6 border-t border-border pt-6"
+        >
           {/* Entity Types */}
           <div>
             <label className="block text-sm font-medium text-text-primary mb-3">
@@ -164,14 +177,13 @@ export function AdvancedFilterPanel({
             </label>
             <div className="flex flex-wrap gap-2">
               {entityTypeValues.map(value => (
-                <Badge
+                <FilterChoice
                   key={value}
-                  variant={filters.entityTypes?.includes(value) ? 'info' : 'default'}
-                  className="cursor-pointer hover:bg-primary/20 transition-colors"
+                  selected={!!filters.entityTypes?.includes(value)}
                   onClick={() => toggleArrayValue('entityTypes', value)}
                 >
                   {t(`errors:search.types.${value}`, value)}
-                </Badge>
+                </FilterChoice>
               ))}
             </div>
           </div>
@@ -203,14 +215,16 @@ export function AdvancedFilterPanel({
             {/* Date presets */}
             <div className="flex flex-wrap gap-2 mb-4">
               {datePresetKeys.map(preset => (
-                <Button
+                <FilterChoice
                   key={preset.key}
-                  variant="ghost"
-                  size="sm"
+                  selected={
+                    filters.dateFrom === preset.getValue(today).from &&
+                    filters.dateTo === preset.getValue(today).to
+                  }
                   onClick={() => applyDatePreset(preset.getValue)}
                 >
                   {t(`navigation:search.filters.datePresets.${preset.key}`)}
-                </Button>
+                </FilterChoice>
               ))}
             </div>
 
@@ -247,14 +261,13 @@ export function AdvancedFilterPanel({
               </label>
               <div className="flex flex-wrap gap-2 max-h-48 overflow-y-auto">
                 {accounts.map(account => (
-                  <Badge
+                  <FilterChoice
                     key={account.id}
-                    variant={filters.accountIds?.includes(account.id) ? 'info' : 'default'}
-                    className="cursor-pointer hover:bg-primary/20 transition-colors"
+                    selected={!!filters.accountIds?.includes(account.id)}
                     onClick={() => toggleArrayValue('accountIds', account.id)}
                   >
                     {account.name}
-                  </Badge>
+                  </FilterChoice>
                 ))}
               </div>
             </div>
@@ -268,14 +281,13 @@ export function AdvancedFilterPanel({
               </label>
               <div className="flex flex-wrap gap-2 max-h-48 overflow-y-auto">
                 {categories.map(category => (
-                  <Badge
+                  <FilterChoice
                     key={category.id}
-                    variant={filters.categoryIds?.includes(category.id) ? 'info' : 'default'}
-                    className="cursor-pointer hover:bg-primary/20 transition-colors"
+                    selected={!!filters.categoryIds?.includes(category.id)}
                     onClick={() => toggleArrayValue('categoryIds', category.id)}
                   >
                     {category.name}
-                  </Badge>
+                  </FilterChoice>
                 ))}
               </div>
             </div>
@@ -289,14 +301,13 @@ export function AdvancedFilterPanel({
               </label>
               <div className="flex flex-wrap gap-2 max-h-48 overflow-y-auto">
                 {allTags.slice(0, 20).map(tagInfo => (
-                  <Badge
+                  <FilterChoice
                     key={tagInfo.tag}
-                    variant={filters.tags?.includes(tagInfo.tag) ? 'info' : 'default'}
-                    className="cursor-pointer hover:bg-primary/20 transition-colors"
+                    selected={!!filters.tags?.includes(tagInfo.tag)}
                     onClick={() => toggleArrayValue('tags', tagInfo.tag)}
                   >
                     {tagInfo.tag} ({tagInfo.count})
-                  </Badge>
+                  </FilterChoice>
                 ))}
               </div>
             </div>

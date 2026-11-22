@@ -192,9 +192,8 @@ describe('AdvancedFilterPanel', () => {
       />
     );
     fireEvent.click(screen.getByRole('button', { name: /filters/i }));
-    // Entity types are translated - TRANSACTION becomes 'Transactions'
-    const txBadges = screen.getAllByText('Transactions');
-    fireEvent.click(txBadges[0]);
+    const selected = screen.getByRole('button', { name: 'Transactions', pressed: true });
+    fireEvent.click(selected);
     expect(onFiltersChange).toHaveBeenCalledWith(
       expect.objectContaining({ entityTypes: undefined })
     );

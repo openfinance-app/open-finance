@@ -1,3 +1,6 @@
+import { ActiveFilterRow, FilterChip } from '@/components/ui/FilterChip';
+import { getAccountFilterCounts } from '@/utils/filter-utils';
+import { FilterToggle } from '@/components/ui/FilterToggle';
 import { apiErrorMessage } from '@/utils/api-error';
 import { decimalValue, exactSum } from '@/utils/exact-decimal';
 import { FormDialog } from '@/components/ui/FormDialog';
@@ -13,7 +16,7 @@ import { BulkSelection, BulkToolbar } from '@/components/bulk/BulkSelection';
  */
 import React, { useState, useMemo, useEffect } from 'react';
 import { useSearchParams } from 'react-router';
-import { Plus, Filter } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/Button';
 import { DialogContent, DialogHeader, DialogTitle } from '@/components/ui/Dialog';
@@ -83,6 +86,7 @@ export default function AccountsPage() {
   );
   const [showFilters, setShowFilters] = useViewState(
     'showFilters',
+    lowBalanceParam || Boolean(validInstitution),
     lowBalanceParam || Boolean(validInstitution)
   );
   const [saveError, setSaveError] = useState<string | null>(null);
@@ -168,6 +172,11 @@ export default function AccountsPage() {
 
   const handleFiltersChange = (newFilters: Filters) => {
     setFilters({ ...newFilters, page: 0, size: filters.size || DEFAULT_PAGE_SIZE });
+    if (lowBalanceParam && !newFilters.lowBalance) {
+      const next = new URLSearchParams(searchParams);
+      next.delete('lowBalance');
+      setSearchParams(next, { replace: true });
+    }
   };
 
   const handlePageChange = (page: number) => {
@@ -457,13 +466,13 @@ export default function AccountsPage() {
         <PageHeader title={t('title')} description={t('description')} />
         <div className="flex items-center gap-3 shrink-0">
           {/* Filter Toggle Button */}
-          <Button
-            variant={showFilters ? 'primary' : 'outline'}
-            onClick={() => setShowFilters(!showFilters)}
-          >
-            <Filter className="h-4 w-4 mr-2" />
-            {t('common:filters')}
-          </Button>
+          <FilterToggle
+            label={t('common:filters')}
+            expanded={showFilters}
+            active={getAccountFilterCounts(filters).activeCount > 0}
+            panelId="account-filters"
+            onToggle={() => setShowFilters(!showFilters)}
+          />
           <Button variant="primary" onClick={handleCreate}>
             <Plus className="h-4 w-4 mr-2" />
             {t('addAccount')}
@@ -472,10 +481,19 @@ export default function AccountsPage() {
       </div>
 
       {/* Filters Panel */}
-      {showFilters && (
-        <div className="mb-6">
+      {showFilters ? (
+        <div id="account-filters" className="mb-6">
           <AccountFilters filters={filters} onFiltersChange={handleFiltersChange} />
         </div>
+      ) : (
+        filters.lowBalance && (
+          <ActiveFilterRow className="mb-6">
+            <FilterChip
+              label={t('filters.lowBalance')}
+              onRemove={() => handleFiltersChange({ ...filters, lowBalance: undefined })}
+            />
+          </ActiveFilterRow>
+        )
       )}
 
       {/* Total Balance Summary */}

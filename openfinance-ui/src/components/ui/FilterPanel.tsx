@@ -2,11 +2,13 @@ import type { ReactNode } from 'react';
 import { RotateCcw } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/Button';
+import { ActiveFilterRow } from '@/components/ui/FilterChip';
 import { OptionalDetails } from '@/components/ui/OptionalDetails';
 
 export function FilterPanel({
   children,
   additional,
+  activeFilters,
   additionalCount = 0,
   additionalDescription,
   activeCount,
@@ -14,6 +16,7 @@ export function FilterPanel({
 }: {
   children: ReactNode;
   additional?: ReactNode;
+  activeFilters?: ReactNode;
   additionalCount?: number;
   additionalDescription?: string;
   activeCount: number;
@@ -49,6 +52,7 @@ export function FilterPanel({
         </Button>
       </div>
       {children}
+      {activeFilters && <ActiveFilterRow className="mt-4">{activeFilters}</ActiveFilterRow>}
       {additional && (
         <div className="mt-4">
           <OptionalDetails

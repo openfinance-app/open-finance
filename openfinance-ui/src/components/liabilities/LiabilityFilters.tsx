@@ -1,5 +1,5 @@
 import { FilterPanel } from '@/components/ui/FilterPanel';
-import { countActiveFilters } from '@/utils/filter-utils';
+import { getLiabilityFilterCounts } from '@/utils/filter-utils';
 /**
  * LiabilityFilters Component
  *
@@ -55,14 +55,7 @@ export function LiabilityFilters({ filters, onFiltersChange }: LiabilityFiltersP
     });
   };
 
-  const additionalCount = countActiveFilters([
-    filters.balanceMin,
-    filters.balanceMax,
-    filters.balanceExact,
-    filters.amountCurrencyMode === 'NATIVE',
-  ]);
-  const activeCount =
-    additionalCount + countActiveFilters([filters.search, filters.searchRegex, filters.type]);
+  const { activeCount, additionalCount } = getLiabilityFilterCounts(filters);
 
   return (
     <FilterPanel

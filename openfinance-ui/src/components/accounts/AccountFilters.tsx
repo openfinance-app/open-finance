@@ -1,5 +1,6 @@
+import { FilterChip } from '@/components/ui/FilterChip';
 import { FilterPanel } from '@/components/ui/FilterPanel';
-import { countActiveFilters } from '@/utils/filter-utils';
+import { getAccountFilterCounts } from '@/utils/filter-utils';
 /**
  * AccountFilters Component
  *
@@ -7,7 +8,7 @@ import { countActiveFilters } from '@/utils/filter-utils';
  */
 import { useState, useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Search, X } from 'lucide-react';
+import { Search } from 'lucide-react';
 import { Input } from '@/components/ui';
 import { RegexToggle } from '@/components/ui/RegexToggle';
 import { CurrencySelector } from '@/components/ui/CurrencySelector';
@@ -95,28 +96,22 @@ export function AccountFilters({ filters, onFiltersChange }: AccountFiltersProps
     });
   };
 
-  const additionalCount = countActiveFilters([
-    filters.currency,
-    filters.institution,
-    filters.balanceMin,
-    filters.balanceMax,
-    filters.balanceExact,
-    filters.amountCurrencyMode === 'NATIVE',
-  ]);
-  const activeCount =
-    additionalCount +
-    countActiveFilters([
-      localKeyword,
-      filters.keywordRegex,
-      filters.type,
-      filters.isActive !== undefined,
-      filters.lowBalance,
-      filters.sort && filters.sort !== 'name,asc',
-    ]);
+  const { activeCount, additionalCount } = getAccountFilterCounts({
+    ...filters,
+    keyword: localKeyword,
+  });
 
   return (
     <FilterPanel
       onClear={clearFilters}
+      activeFilters={
+        filters.lowBalance && (
+          <FilterChip
+            label={t('filters.lowBalance')}
+            onRemove={() => handleChange('lowBalance', undefined)}
+          />
+        )
+      }
       activeCount={activeCount}
       additionalCount={additionalCount}
       additionalDescription={t('common:formLayout.accountFiltersHint')}
@@ -271,20 +266,6 @@ export function AccountFilters({ filters, onFiltersChange }: AccountFiltersProps
             </select>
           </div>
         </div>
-        {/* Active deep-link filter pills */}
-        {filters.lowBalance && (
-          <div className="flex flex-wrap gap-2 pt-1">
-            <button
-              type="button"
-              className="flex min-h-9 items-center gap-1.5 rounded-md border border-border px-3 text-xs text-warning"
-              aria-label={t('common:formLayout.removeFilter', { name: t('filters.lowBalance') })}
-              onClick={() => handleChange('lowBalance', undefined)}
-            >
-              <span>{t('filters.lowBalance')}</span>
-              <X className="w-3 h-3 ml-0.5" />
-            </button>
-          </div>
-        )}
       </div>
     </FilterPanel>
   );

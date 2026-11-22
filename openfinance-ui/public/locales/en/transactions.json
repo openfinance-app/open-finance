@@ -387,11 +387,9 @@
   },
   "scope": {
     "importBatch": "Import #{{id}}",
-    "label": "Linked operation filters",
     "asset": "Asset",
     "property": "Property",
-    "liability": "Liability",
-    "clear": "Remove filter: {{name}}"
+    "liability": "Liability"
   },
   "tagInput": {
     "tooLong": "Use up to 50 characters per tag.",
