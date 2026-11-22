@@ -119,5 +119,8 @@ test('cash flow calendar, monthly and yearly split views work on desktop and mob
   await expect(page.getByRole('heading', { name: 'Transactions', exact: true })).toBeVisible();
   await expect(page.getByLabel('From', { exact: true })).toHaveValue(`02/01/${year}`);
   await expect(page.getByLabel('To', { exact: true })).toHaveValue(`02/${lastDay}/${year}`);
-  await expect(page.getByRole('button', { name: 'Transfers excluded', exact: true })).toBeVisible();
+  const filters = page.getByRole('group', { name: 'Active filters' });
+  await expect(
+    filters.getByRole('button', { name: 'Remove filter: Transfers excluded', exact: true })
+  ).toBeVisible();
 });

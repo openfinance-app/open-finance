@@ -55,6 +55,8 @@ def main():
                    APPLICATION_LOGO_FETCH_ENABLED='false', APPLICATION_SEED_ENABLED='false')
         command = ['java', '-jar', str(jar), '--spring.profiles.active=prod',
                    '--server.address=127.0.0.1', f'--server.port={port}',
+                   # Use bundled currencies so live refreshes don't race fixture registration.
+                   '--application.crypto-list.enabled=false',
                    f'--spring.datasource.url=jdbc:sqlite:{runtime / "browser.db"}?foreign_keys=on&journal_mode=WAL&busy_timeout=10000',
                    '--logging.level.root=WARN', '--logging.file.name=' + str(artifacts / 'backend.log')]
         with (artifacts / 'launcher.log').open('w') as log:
