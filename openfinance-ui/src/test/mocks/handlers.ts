@@ -588,26 +588,29 @@ export const dashboardHandlers = [
 
   // Get insights
   http.get(`${API_BASE_URL}/insights/top/3`, () => {
-    return HttpResponse.json([
-      {
-        id: 1,
-        type: 'SPENDING_ANOMALY',
-        title: 'High spending in groceries',
-        description: 'You spent 20% more on groceries this month.',
-        priority: 'HIGH',
-        dismissed: false,
-        createdAt: new Date().toISOString(),
-      },
-      {
-        id: 2,
-        type: 'SAVINGS_OPPORTUNITY',
-        title: 'Good saving rate',
-        description: 'You saved 30% of your income this month.',
-        priority: 'MEDIUM',
-        dismissed: false,
-        createdAt: new Date().toISOString(),
-      },
-    ]);
+    return HttpResponse.json(
+      [
+        {
+          id: 1,
+          type: 'SPENDING_ANOMALY',
+          title: 'High spending in groceries',
+          description: 'You spent 20% more on groceries this month.',
+          priority: 'HIGH',
+          dismissed: false,
+          createdAt: new Date().toISOString(),
+        },
+        {
+          id: 2,
+          type: 'SAVINGS_OPPORTUNITY',
+          title: 'Good saving rate',
+          description: 'You saved 30% of your income this month.',
+          priority: 'MEDIUM',
+          dismissed: false,
+          createdAt: new Date().toISOString(),
+        },
+      ],
+      { headers: { 'X-Total-Count': '2' } }
+    );
   }),
 
   // Get estimated interest

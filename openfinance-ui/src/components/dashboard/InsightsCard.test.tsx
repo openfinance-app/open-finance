@@ -13,6 +13,7 @@ const mockRefetch = vi.fn();
 let mockDismissAllPending = false;
 let mockGenerationPending = false;
 let mockUnavailableSources: string[] = [];
+let mockActiveTotal: number | undefined;
 let mockUseTopInsightsReturn: {
   data: Insight[] | undefined;
   isLoading: boolean;
@@ -21,7 +22,13 @@ let mockUseTopInsightsReturn: {
 };
 
 vi.mock('@/hooks/useInsights', () => ({
-  useTopInsights: () => mockUseTopInsightsReturn,
+  useTopInsights: () => ({
+    ...mockUseTopInsightsReturn,
+    data: mockUseTopInsightsReturn.data && {
+      insights: mockUseTopInsightsReturn.data,
+      total: mockActiveTotal ?? mockUseTopInsightsReturn.data.length,
+    },
+  }),
   useGenerateInsights: () => ({
     mutateAsync: mockGenerateMutateAsync,
     isPending: mockGenerationPending,
@@ -51,6 +58,7 @@ describe('InsightsCard', () => {
     mockAuthentication();
     mockDismissAllPending = false;
     mockGenerationPending = false;
+    mockActiveTotal = undefined;
     mockUnavailableSources = [];
     mockGenerateMutateAsync.mockReset().mockResolvedValue(undefined);
     mockDismissMutateAsync.mockReset().mockResolvedValue(undefined);
@@ -376,7 +384,18 @@ describe('InsightsCard', () => {
       refetch: mockRefetch,
     };
     renderWithProviders(<InsightsCard />);
-    expect(screen.getByText(/2/)).toBeInTheDocument();
+    expect(screen.getByText('2 total')).toBeInTheDocument();
+  });
+
+  it.each([
+    ['en', '3 of 17'],
+    ['fr', '3 sur 17'],
+  ])('shows the preview size and full active count in %s', async (language, expected) => {
+    await i18n.changeLanguage(language);
+    mockActiveTotal = 17;
+    mockUseTopInsightsReturn.data = [1, 2, 3].map(id => makeInsight({ id }));
+    renderWithProviders(<InsightsCard />);
+    expect(screen.getByText(expected)).toBeInTheDocument();
   });
 
   it('dismiss calls mutateAsync', async () => {

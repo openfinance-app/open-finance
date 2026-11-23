@@ -112,6 +112,11 @@ public class Insight {
     @Convert(converter = EncryptedStringConverter.class)
     private String description;
 
+    /** Locale-independent message keys and financial arguments for the saved snapshot. */
+    @Column(name = "message_data", columnDefinition = "TEXT")
+    @Convert(converter = EncryptedStringConverter.class)
+    private String messageData;
+
     /**
      * Priority level indicating urgency/importance.
      *

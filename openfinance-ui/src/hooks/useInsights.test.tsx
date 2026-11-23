@@ -51,12 +51,15 @@ describe('useInsights hooks', () => {
   // ── useTopInsights ─────────────────────────────────────────────────
   describe('useTopInsights', () => {
     it('should fetch top insights with default limit', async () => {
-      mockedApiClient.get.mockResolvedValue({ data: [mockInsight] });
+      mockedApiClient.get.mockResolvedValue({
+        data: [mockInsight],
+        headers: { 'x-total-count': '7' },
+      });
 
       const { result } = renderHook(() => useTopInsights(), { wrapper });
 
       await waitFor(() => expect(result.current.isSuccess).toBe(true), { timeout: 5000 });
-      expect(result.current.data).toEqual([mockInsight]);
+      expect(result.current.data).toEqual({ insights: [mockInsight], total: 7 });
       expect(mockedApiClient.get).toHaveBeenCalledWith('/insights/top/3', {
         headers: { 'X-Encryption-Session': 'test-encryption-key' },
       });

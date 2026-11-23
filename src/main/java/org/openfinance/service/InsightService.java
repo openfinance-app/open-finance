@@ -1,7 +1,10 @@
 package org.openfinance.service;
 
+import static org.openfinance.service.InsightMessages.message;
+
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
@@ -36,6 +39,8 @@ import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.context.MessageSource;
 import org.springframework.context.i18n.LocaleContextHolder;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -206,14 +211,12 @@ public class InsightService {
      *
      * @param userId User ID
      * @param limit Maximum number of insights
-     * @return List of top N insights
+     * @return Priority-ordered preview and total active count
      */
     @Transactional(readOnly = true)
-    public List<InsightResponse> getTopInsights(Long userId, int limit) {
+    public Page<InsightResponse> getTopInsights(Long userId, int limit) {
         log.debug("Fetching top {} insights for user {}", limit, userId);
-        List<Insight> insights =
-                insightRepository.findTopNByUser_IdAndDismissedFalse(userId, limit);
-        return insights.stream().map(this::toDto).collect(Collectors.toList());
+        return insightRepository.findActivePage(userId, PageRequest.of(0, limit)).map(this::toDto);
     }
 
     /**
@@ -286,7 +289,7 @@ public class InsightService {
 
             for (Category category : categories) {
                 try {
-                    String categoryName = category.getName();
+                    JsonNode categoryName = InsightMessages.categoryName(category);
 
                     // Calculate spending for current period
                     BigDecimal currentSpending =
@@ -308,21 +311,15 @@ public class InsightService {
                         if (percentChange.compareTo(
                                         businessRules.getInsights().getSpendingAnomalyThreshold())
                                 > 0) {
-                            String title =
-                                    messageSource.getMessage(
-                                            "insight.spending.anomaly.title",
-                                            new Object[] {categoryName},
-                                            LocaleContextHolder.getLocale());
-                            String description =
-                                    messageSource.getMessage(
+                            ObjectNode title =
+                                    message("insight.spending.anomaly.title", categoryName);
+                            ObjectNode description =
+                                    message(
                                             "insight.spending.anomaly.description",
-                                            new Object[] {
-                                                categoryName.toLowerCase(Locale.ROOT),
-                                                percentChange.multiply(MathConstants.HUNDRED),
-                                                currentSpending,
-                                                previousSpending
-                                            },
-                                            LocaleContextHolder.getLocale());
+                                            categoryName,
+                                            percentChange.multiply(MathConstants.HUNDRED),
+                                            currentSpending,
+                                            previousSpending);
 
                             insights.add(
                                     createInsight(
@@ -360,7 +357,7 @@ public class InsightService {
             for (Budget budget : budgets) {
                 try {
                     Category category = budget.getCategory();
-                    String categoryName = category != null ? category.getName() : "Uncategorized";
+                    JsonNode categoryName = InsightMessages.categoryName(category);
 
                     BudgetProgressResponse progress =
                             budgetService.calculateBudgetProgress(budget.getId(), userId);
@@ -374,22 +371,15 @@ public class InsightService {
                     // Generate appropriate insight based on percentage used
                     if (percentUsed.compareTo(BUDGET_EXCEEDED_THRESHOLD) > 0) {
                         BigDecimal overspent = spent.subtract(budgetAmount);
-                        String title =
-                                messageSource.getMessage(
-                                        "insight.budget.exceeded.title",
-                                        new Object[] {categoryName},
-                                        LocaleContextHolder.getLocale());
-                        String description =
-                                messageSource.getMessage(
+                        ObjectNode title = message("insight.budget.exceeded.title", categoryName);
+                        ObjectNode description =
+                                message(
                                         "insight.budget.exceeded.description",
-                                        new Object[] {
-                                            categoryName.toLowerCase(Locale.ROOT),
-                                            overspent,
-                                            percentUsed
-                                                    .subtract(BigDecimal.ONE)
-                                                    .multiply(MathConstants.HUNDRED)
-                                        },
-                                        LocaleContextHolder.getLocale());
+                                        categoryName,
+                                        overspent,
+                                        percentUsed
+                                                .subtract(BigDecimal.ONE)
+                                                .multiply(MathConstants.HUNDRED));
                         insights.add(
                                 createInsight(
                                         userId,
@@ -402,22 +392,15 @@ public class InsightService {
                                     businessRules.getInsights().getBudgetWarningThreshold())
                             >= 0) {
                         BigDecimal remaining = budgetAmount.subtract(spent);
-                        String title =
-                                messageSource.getMessage(
-                                        "insight.budget.warning.title",
-                                        new Object[] {categoryName},
-                                        LocaleContextHolder.getLocale());
-                        String description =
-                                messageSource.getMessage(
+                        ObjectNode title = message("insight.budget.warning.title", categoryName);
+                        ObjectNode description =
+                                message(
                                         "insight.budget.warning.description",
-                                        new Object[] {
-                                            percentUsed.multiply(MathConstants.HUNDRED),
-                                            categoryName.toLowerCase(Locale.ROOT),
-                                            spent,
-                                            budgetAmount,
-                                            remaining
-                                        },
-                                        LocaleContextHolder.getLocale());
+                                        percentUsed.multiply(MathConstants.HUNDRED),
+                                        categoryName,
+                                        spent,
+                                        budgetAmount,
+                                        remaining);
                         insights.add(
                                 createInsight(
                                         userId,
@@ -478,19 +461,12 @@ public class InsightService {
                         if (monthlySpending.compareTo(
                                         businessRules.getInsights().getMinSubscriptionAmount())
                                 > 0) {
-                            String title =
-                                    messageSource.getMessage(
-                                            "insight.subscription.title",
-                                            null,
-                                            LocaleContextHolder.getLocale());
-                            String description =
-                                    messageSource.getMessage(
+                            ObjectNode title = message("insight.subscription.title");
+                            ObjectNode description =
+                                    message(
                                             "insight.subscription.description",
-                                            new Object[] {
-                                                monthlySpending,
-                                                categoryName.toLowerCase(Locale.ROOT)
-                                            },
-                                            LocaleContextHolder.getLocale());
+                                            monthlySpending,
+                                            InsightMessages.categoryName(category));
                             insights.add(
                                     createInsight(
                                             userId,
@@ -533,16 +509,9 @@ public class InsightService {
                                 < 0) {
 
                     String accountName = account.getName();
-                    String title =
-                            messageSource.getMessage(
-                                    "insight.low.balance.title",
-                                    null,
-                                    LocaleContextHolder.getLocale());
-                    String description =
-                            messageSource.getMessage(
-                                    "insight.low.balance.description",
-                                    new Object[] {accountName, balance},
-                                    LocaleContextHolder.getLocale());
+                    ObjectNode title = message("insight.low.balance.title");
+                    ObjectNode description =
+                            message("insight.low.balance.description", accountName, balance);
                     insights.add(
                             createInsight(
                                     userId,
@@ -680,46 +649,38 @@ public class InsightService {
                                 .multiply(MathConstants.HUNDRED);
 
                 if (diff.compareTo(BigDecimal.ZERO) >= 0) {
-                    String title =
-                            messageSource.getMessage("insight.region.income.title", null, locale);
-                    String description =
-                            messageSource.getMessage(
+                    ObjectNode title = message("insight.region.income.title");
+                    ObjectNode description =
+                            message(
                                     "insight.region.income.above.description",
-                                    new Object[] {
-                                        monthlyIncome,
-                                        currency,
-                                        percentDiff.intValue(),
-                                        countryDisplayName
-                                    },
-                                    locale);
+                                    monthlyIncome,
+                                    currency,
+                                    percentDiff.intValue(),
+                                    InsightMessages.countryName(country));
                     insights.add(
                             createInsight(
                                     userId,
                                     InsightType.REGION_COMPARISON,
                                     "region:income",
                                     title,
-                                    estimateDescription(description, source, locale),
+                                    estimateDescription(description, source),
                                     InsightPriority.LOW));
                 } else {
-                    String title =
-                            messageSource.getMessage("insight.region.income.title", null, locale);
-                    String description =
-                            messageSource.getMessage(
+                    ObjectNode title = message("insight.region.income.title");
+                    ObjectNode description =
+                            message(
                                     "insight.region.income.below.description",
-                                    new Object[] {
-                                        monthlyIncome,
-                                        currency,
-                                        percentDiff.intValue(),
-                                        countryDisplayName
-                                    },
-                                    locale);
+                                    monthlyIncome,
+                                    currency,
+                                    percentDiff.intValue(),
+                                    InsightMessages.countryName(country));
                     insights.add(
                             createInsight(
                                     userId,
                                     InsightType.REGION_COMPARISON,
                                     "region:income",
                                     title,
-                                    estimateDescription(description, source, locale),
+                                    estimateDescription(description, source),
                                     InsightPriority.MEDIUM));
                 }
             }
@@ -738,34 +699,28 @@ public class InsightService {
                             .subtract(netWorthService.calculateTotalLiabilities(userId, currency));
 
             if (totalNetWorth.compareTo(BigDecimal.ZERO) != 0) {
-                String comparison;
+                ObjectNode comparison;
                 if (totalNetWorth.compareTo(medianNetWorth) >= 0) {
-                    comparison =
-                            messageSource.getMessage("insight.region.networth.above", null, locale);
+                    comparison = message("insight.region.networth.above");
                 } else {
-                    comparison =
-                            messageSource.getMessage("insight.region.networth.below", null, locale);
+                    comparison = message("insight.region.networth.below");
                 }
-                String title =
-                        messageSource.getMessage("insight.region.networth.title", null, locale);
-                String description =
-                        messageSource.getMessage(
+                ObjectNode title = message("insight.region.networth.title");
+                ObjectNode description =
+                        message(
                                 "insight.region.networth.description",
-                                new Object[] {
-                                    totalNetWorth,
-                                    currency,
-                                    countryDisplayName,
-                                    medianNetWorth,
-                                    comparison
-                                },
-                                locale);
+                                totalNetWorth,
+                                currency,
+                                InsightMessages.countryName(country),
+                                medianNetWorth,
+                                comparison);
                 insights.add(
                         createInsight(
                                 userId,
                                 InsightType.REGION_COMPARISON,
                                 "region:networth",
                                 title,
-                                estimateDescription(description, source, locale),
+                                estimateDescription(description, source),
                                 InsightPriority.LOW));
             }
 
@@ -839,25 +794,22 @@ public class InsightService {
                             : BigDecimal.ZERO;
 
             // Generate tax estimate insight
-            String title = messageSource.getMessage("insight.tax.estimate.title", null, locale);
-            String description =
-                    messageSource.getMessage(
+            ObjectNode title = message("insight.tax.estimate.title");
+            ObjectNode description =
+                    message(
                             "insight.tax.estimate.description",
-                            new Object[] {
-                                annualIncome,
-                                currency,
-                                countryDisplayName,
-                                estimatedTax,
-                                effectiveRate
-                            },
-                            locale);
+                            annualIncome,
+                            currency,
+                            InsightMessages.countryName(country),
+                            estimatedTax,
+                            effectiveRate);
             insights.add(
                     createInsight(
                             userId,
                             InsightType.TAX_OBLIGATION,
                             "tax:estimate",
                             title,
-                            estimateDescription(description, source, locale),
+                            estimateDescription(description, source),
                             InsightPriority.MEDIUM));
 
             // Check for potential deduction categories (donations, professional expenses)
@@ -894,13 +846,13 @@ public class InsightService {
             }
 
             if (potentialDeductions.compareTo(new BigDecimal("100")) > 0) {
-                String deductionTitle =
-                        messageSource.getMessage("insight.tax.deduction.title", null, locale);
-                String deductionDescription =
-                        messageSource.getMessage(
+                ObjectNode deductionTitle = message("insight.tax.deduction.title");
+                ObjectNode deductionDescription =
+                        message(
                                 "insight.tax.deduction.description",
-                                new Object[] {potentialDeductions, currency, countryDisplayName},
-                                locale);
+                                potentialDeductions,
+                                currency,
+                                InsightMessages.countryName(country));
                 insights.add(
                         createInsight(
                                 userId,
@@ -929,8 +881,6 @@ public class InsightService {
         List<Insight> insights = new ArrayList<>();
 
         try {
-            Locale locale = LocaleContextHolder.getLocale();
-
             // Get active recurring expenses
             List<RecurringTransaction> activeRecurring =
                     recurringTransactionRepository.findByUserIdAndIsActive(userId);
@@ -973,19 +923,15 @@ public class InsightService {
             }
 
             // Summary insight
-            String summaryTitle =
-                    messageSource.getMessage("insight.recurring.summary.title", null, locale);
-            String summaryDesc =
-                    messageSource.getMessage(
+            ObjectNode summaryTitle = message("insight.recurring.summary.title");
+            ObjectNode summaryDesc =
+                    message(
                             "insight.recurring.summary.description",
-                            new Object[] {
-                                recurringExpenses.size(),
-                                totalMonthly,
-                                currency,
-                                totalAnnual,
-                                incomeRatioPercent.intValue()
-                            },
-                            locale);
+                            recurringExpenses.size(),
+                            totalMonthly,
+                            currency,
+                            totalAnnual,
+                            incomeRatioPercent.intValue());
             insights.add(
                     createInsight(
                             userId,
@@ -1000,16 +946,13 @@ public class InsightService {
                 BigDecimal ratio = totalMonthly.divide(monthlyIncome, 4, RoundingMode.HALF_UP);
                 if (ratio.compareTo(businessRules.getInsights().getRecurringExpenseHighRatio())
                         >= 0) {
-                    String highTitle =
-                            messageSource.getMessage(
-                                    "insight.recurring.high.ratio.title", null, locale);
-                    String highDesc =
-                            messageSource.getMessage(
+                    ObjectNode highTitle = message("insight.recurring.high.ratio.title");
+                    ObjectNode highDesc =
+                            message(
                                     "insight.recurring.high.ratio.description",
-                                    new Object[] {
-                                        totalMonthly, currency, incomeRatioPercent.intValue()
-                                    },
-                                    locale);
+                                    totalMonthly,
+                                    currency,
+                                    incomeRatioPercent.intValue());
                     insights.add(
                             createInsight(
                                     userId,
@@ -1023,8 +966,7 @@ public class InsightService {
 
             try {
                 insights.addAll(
-                        generateCompetitorInsights(
-                                userId, recurringExpenses, currency, locale, deadline));
+                        generateCompetitorInsights(userId, recurringExpenses, currency, deadline));
             } catch (com.fasterxml.jackson.core.JsonProcessingException | RuntimeException ex) {
                 unavailable.add(InsightType.RECURRING_BILLING);
                 log.warn(
@@ -1040,11 +982,7 @@ public class InsightService {
     }
 
     private List<Insight> generateCompetitorInsights(
-            Long userId,
-            List<RecurringTransaction> expenses,
-            String currency,
-            Locale locale,
-            long deadline)
+            Long userId, List<RecurringTransaction> expenses, String currency, long deadline)
             throws com.fasterxml.jackson.core.JsonProcessingException {
         List<java.util.Map<String, Object>> offers = new ArrayList<>();
         java.util.Map<Long, BigDecimal> costs = new java.util.HashMap<>();
@@ -1103,21 +1041,21 @@ public class InsightService {
                             .findFirst()
                             .orElseThrow()
                             .getDescription();
-            String title =
-                    messageSource.getMessage(
-                            "insight.recurring.competitor.title", new Object[] {name}, locale);
-            String description =
-                    messageSource.getMessage(
+            ObjectNode title = message("insight.recurring.competitor.title", name);
+            ObjectNode description =
+                    message(
                             "insight.recurring.competitor.description",
-                            new Object[] {name, competitor, savings, currency},
-                            locale);
+                            name,
+                            competitor,
+                            savings,
+                            currency);
             results.add(
                     createInsight(
                             userId,
                             InsightType.RECURRING_BILLING,
                             "recurring:competitor:" + id,
                             title,
-                            estimateDescription(description, source, locale),
+                            estimateDescription(description, source),
                             InsightPriority.MEDIUM));
         }
         return results;
@@ -1132,9 +1070,8 @@ public class InsightService {
                 + "Do not invent data or sources; report unavailable if you cannot source an estimate.";
     }
 
-    private String estimateDescription(String description, String source, Locale locale) {
-        return messageSource.getMessage(
-                "insight.model.estimate.notice", new Object[] {description, source}, locale);
+    private ObjectNode estimateDescription(ObjectNode description, String source) {
+        return message("insight.model.estimate.notice", description, source);
     }
 
     /** Convert an amount at a given recurring frequency to its monthly equivalent. */
@@ -1243,16 +1180,15 @@ public class InsightService {
             Long userId,
             InsightType type,
             String sourceKey,
-            String title,
-            String description,
+            ObjectNode title,
+            ObjectNode description,
             InsightPriority priority) {
         User user = userRepository.findById(userId).orElseThrow();
-        return Insight.builder()
+        return InsightMessages.withText(
+                        messageSource, LocaleContextHolder.getLocale(), title, description)
                 .user(user)
                 .type(type)
                 .sourceKey(sourceKey)
-                .title(title)
-                .description(description)
                 .priority(priority)
                 .dismissed(false)
                 .build();
@@ -1265,6 +1201,7 @@ public class InsightService {
                 .type(insight.getType())
                 .title(insight.getTitle())
                 .description(insight.getDescription())
+                .messageData(insight.getMessageData())
                 .priority(insight.getPriority())
                 .dismissed(insight.getDismissed())
                 .createdAt(insight.getCreatedAt())

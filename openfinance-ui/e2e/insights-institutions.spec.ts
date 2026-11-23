@@ -37,6 +37,63 @@ test.beforeEach(async ({ page, request }) => {
   await loginAs(page, credentials);
 });
 
+test('keeps the French empty state and partial refresh inside a resized insights card', async ({
+  page,
+}, testInfo) => {
+  const labels = dashboardFr.insightsCard;
+  await api(page, '/users/me/onboarding', {
+    country: 'FR',
+    baseCurrency: 'EUR',
+    secondaryCurrency: '',
+    language: 'fr',
+    dateFormat: 'DD/MM/YYYY',
+    numberFormat: '1,234.56',
+    amountDisplayMode: 'base',
+  });
+  await page.route('**/api/v1/insights/generate', route =>
+    route.fulfill({ json: [], headers: { 'X-Insights-Unavailable-Sources': 'REGION_COMPARISON' } })
+  );
+  await page.reload();
+  const tile = page.locator('.react-grid-item').filter({
+    has: page.getByRole('heading', { name: labels.title, exact: true }),
+  });
+  const generate = tile.getByRole('button', { name: labels.generate });
+  await generate.click();
+  const notice = tile.getByRole('status');
+  await expect(notice).toHaveText(labels.partialRefresh);
+  for (const [viewport, width, height] of [
+    [1440, 410, 264],
+    [390, 320, 208],
+  ]) {
+    await page.setViewportSize({ width: viewport, height: 900 });
+    await tile.evaluate(
+      (el, [w, h]) => {
+        el.style.width = w + 'px';
+        el.style.height = h + 'px';
+      },
+      [width, height]
+    );
+    await expect
+      .poll(() =>
+        tile.evaluate(el => [el.getBoundingClientRect().width, el.getBoundingClientRect().height])
+      )
+      .toEqual([width, height]);
+    await tile.evaluate(el => el.scrollIntoView({ block: 'center', behavior: 'instant' }));
+    for (const item of [generate, tile.getByText(labels.noInsights), notice]) {
+      const box = await item.boundingBox();
+      const frame = await tile.boundingBox();
+      expect(box!.x).toBeGreaterThanOrEqual(frame!.x);
+      expect(box!.x + box!.width).toBeLessThanOrEqual(frame!.x + frame!.width + 1);
+      expect(box!.y).toBeGreaterThanOrEqual(frame!.y);
+      expect(box!.y + box!.height).toBeLessThanOrEqual(frame!.y + frame!.height + 1);
+    }
+    await testInfo.attach(`empty-insights-${width}`, {
+      body: await tile.screenshot({ animations: 'disabled' }),
+      contentType: 'image/png',
+    });
+  }
+});
+
 for (const width of [1280, 390]) {
   test.describe(width < 640 ? 'Touch' : 'Desktop', () => {
     test.use({ hasTouch: width < 640 });
@@ -57,35 +114,49 @@ for (const width of [1280, 390]) {
           amountDisplayMode: 'base',
         });
       }
-      let insights = Array.from({ length: 4 }, (_, index) => ({
-        id: index + 1,
-        type: 'GENERAL_TIP',
-        priority: 'LOW',
-        title: `Card insight ${index + 1}`,
-        description: 'A synthetic insight for the card action.',
-        createdAt: new Date().toISOString(),
-        dismissed: false,
-      }));
+      for (let index = 1; index <= 4; index++) {
+        await api(page, '/accounts', {
+          name: `Card checking ${index}`,
+          type: 'CHECKING',
+          currency: 'EUR',
+          initialBalance: 25,
+        });
+      }
+      const generated = await api<{ type: string }[]>(page, '/insights/generate', {});
+      expect(generated).toHaveLength(4);
       let clearRequests = 0;
-      await page.route('**/api/v1/insights/**', async route => {
-        if (route.request().url().endsWith('/dismiss-all')) {
-          expect(route.request().method()).toBe('POST');
+      page.on('request', request => {
+        if (request.method() === 'POST' && request.url().endsWith('/insights/dismiss-all'))
           clearRequests++;
-          insights = [];
-          await route.fulfill({ status: 204 });
-        } else if (route.request().url().endsWith('/top/3')) {
-          await route.fulfill({ json: insights.slice(0, 3) });
-        } else {
-          await route.continue();
-        }
       });
       await page.reload();
-      await page.getByText('Card insight 1', { exact: true }).scrollIntoViewIfNeeded();
+      const title = language === 'fr' ? 'Solde de compte faible' : 'Low Account Balance';
+      const rows = page.getByRole('heading', { name: title, exact: true });
+      await expect(rows).toHaveCount(3);
+      await rows
+        .first()
+        .evaluate(row => row.scrollIntoView({ block: 'center', behavior: 'instant' }));
+      await expect(
+        page.getByText(language === 'fr' ? '3 sur 4' : '3 of 4', { exact: true })
+      ).toBeVisible();
+      await rows.first().click();
+      const detail = page.getByRole('dialog', { name: title });
+      await expect(detail).toContainText(
+        language === 'fr' ? 'Le solde de votre compte' : 'account balance is low'
+      );
+      await page.keyboard.press('Escape');
+      await page
+        .getByRole('heading', { name: labels.title, exact: true })
+        .evaluate(heading => heading.scrollIntoView({ block: 'center' }));
       await page.screenshot({
         path: testInfo.outputPath('insights-card.png'),
         animations: 'disabled',
       });
 
+      await page.getByRole('button', { name: labels.dismiss, exact: true }).first().click();
+      await expect(
+        page.getByText(language === 'fr' ? '3 au total' : '3 total', { exact: true })
+      ).toBeVisible();
       const clear = page.getByRole('button', { name: labels.clearAll, exact: true });
       await clear.click();
       const confirmation = page.getByRole('dialog');

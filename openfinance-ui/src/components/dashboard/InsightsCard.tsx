@@ -113,7 +113,7 @@ interface InsightItemProps {
 function InsightItem({ insight, onDismiss, onClick, isDismissing, t }: InsightItemProps) {
   const [isExiting, setIsExiting] = useState(false);
   const { i18n } = useTranslation('dashboard');
-  const dateLocale = i18n.language === 'fr' ? fr : enUS;
+  const dateLocale = (i18n.resolvedLanguage ?? i18n.language)?.startsWith('fr') ? fr : enUS;
 
   const handleDismiss = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -184,15 +184,17 @@ function InsightItem({ insight, onDismiss, onClick, isDismissing, t }: InsightIt
  */
 export default function InsightsCard() {
   const { t, i18n } = useTranslation('dashboard');
-  const dateLocale = i18n.language === 'fr' ? fr : enUS;
-  const { data: insights, isLoading, error, refetch } = useTopInsights(3);
+  const dateLocale = (i18n.resolvedLanguage ?? i18n.language)?.startsWith('fr') ? fr : enUS;
+  const { data, isLoading, error, refetch } = useTopInsights(3);
+  const insights = data?.insights;
   const generateInsights = useGenerateInsights();
   const dismissInsight = useDismissInsight();
   const dismissAllInsights = useDismissAllInsights();
   const [confirmClear, setConfirmClear] = useState(false);
   const isMutating =
     generateInsights.isPending || dismissInsight.isPending || dismissAllInsights.isPending;
-  const [selectedInsight, setSelectedInsight] = useState<Insight | null>(null);
+  const [selectedId, setSelectedId] = useState<number | null>(null);
+  const selectedInsight = insights?.find(insight => insight.id === selectedId);
 
   const [mutationError, setMutationError] = useState<string | null>(null);
 
@@ -224,7 +226,7 @@ export default function InsightsCard() {
     setMutationError(null);
     try {
       await dismissAllInsights.mutateAsync();
-      setSelectedInsight(null);
+      setSelectedId(null);
       setConfirmClear(false);
     } catch {
       setMutationError(t('insightsCard.clearFailed'));
@@ -307,10 +309,11 @@ export default function InsightsCard() {
 
   // Empty state
   if (!insights || insights.length === 0) {
+    const partialRefresh = Boolean(generateInsights.unavailableSources?.length);
     return (
-      <Card className="h-full flex flex-col">
-        <CardHeader>
-          <div className="flex items-center justify-between">
+      <Card className="@container flex h-full min-h-0 min-w-0 flex-col">
+        <CardHeader className="shrink-0 pb-2 @xs:pb-3">
+          <div className="flex flex-wrap items-center justify-between gap-2 pe-3">
             <CardTitle className="flex items-center gap-2">
               <Sparkles className="h-5 w-5 text-primary" />
               {t('insightsCard.title')}
@@ -318,37 +321,37 @@ export default function InsightsCard() {
             <Button
               onClick={handleGenerate}
               isLoading={generateInsights.isPending}
+              aria-label={t('insightsCard.generate')}
               variant="primary"
               size="sm"
             >
-              <Sparkles className="h-4 w-4 mr-2" />
-              {t('insightsCard.generate')}
+              <span className="@xs:hidden">{t('insightsCard.generateShort')}</span>
+              <span className="hidden @xs:inline">{t('insightsCard.generate')}</span>
             </Button>
           </div>
         </CardHeader>
-        <CardContent className="flex-1 flex flex-col items-center justify-center text-center py-6">
-          {!!generateInsights.unavailableSources?.length && (
-            <p role="status" className="mb-3 text-sm text-text-secondary">
-              {t('insightsCard.partialRefresh')}
+        <CardContent className="scrollbar-thin flex min-h-0 flex-1 flex-col overflow-y-auto text-center">
+          <div className="my-auto shrink-0 space-y-1 @xs:space-y-2">
+            <p className="flex items-center justify-center gap-2 text-sm font-medium text-text-primary">
+              <Lightbulb className="h-5 w-5 shrink-0 text-primary" aria-hidden="true" />
+              {t('insightsCard.noInsights')}
             </p>
-          )}
-          {mutationError && (
-            <p role="alert" className="mb-3 text-sm text-red-600">
-              {mutationError}
-            </p>
-          )}
-          <div
-            className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10 border border-primary/20"
-            aria-hidden="true"
-          >
-            <Lightbulb className="h-7 w-7 text-primary" strokeWidth={1.75} />
+            {partialRefresh && (
+              <p role="status" className="text-sm text-text-secondary">
+                {t('insightsCard.partialRefresh')}
+              </p>
+            )}
+            {mutationError && (
+              <p role="alert" className="text-sm text-error">
+                {mutationError}
+              </p>
+            )}
+            {!partialRefresh && !mutationError && (
+              <p className="mx-auto max-w-xs text-xs text-text-muted">
+                {t('insightsCard.generatePrompt')}
+              </p>
+            )}
           </div>
-          <p className="text-text-primary text-sm font-medium mb-1">
-            {t('insightsCard.noInsights')}
-          </p>
-          <p className="text-text-muted text-xs max-w-[16rem]">
-            {t('insightsCard.generatePrompt')}
-          </p>
         </CardContent>
       </Card>
     );
@@ -359,15 +362,19 @@ export default function InsightsCard() {
     <Card className="h-full flex flex-col">
       <CardHeader>
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <div className="flex min-w-0 flex-wrap items-center gap-2">
+          <div className="flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-2">
             <Sparkles className="h-5 w-5 text-primary" />
             <CardTitle>{t('insightsCard.title')}</CardTitle>
             <HelpTooltip text={t('insightsCard.tooltip')} side="right" />
-            <span className="text-xs text-text-secondary">
-              {t('insightsCard.active', { count: insights.length })}
-            </span>
+            {data.total !== undefined && (
+              <span className="text-xs text-text-secondary tabular-nums">
+                {data.total > insights.length
+                  ? t('insightsCard.shownOfTotal', { shown: insights.length, total: data.total })
+                  : t('insightsCard.total', { count: data.total })}
+              </span>
+            )}
           </div>
-          <div className="flex shrink-0 items-center gap-1">
+          <div className="ms-auto flex shrink-0 items-center gap-1">
             <Button
               onClick={() => {
                 setMutationError(null);
@@ -417,7 +424,7 @@ export default function InsightsCard() {
               key={insight.id}
               insight={insight}
               onDismiss={handleDismiss}
-              onClick={() => setSelectedInsight(insight)}
+              onClick={() => setSelectedId(insight.id)}
               isDismissing={isMutating}
               t={t}
             />
@@ -425,7 +432,7 @@ export default function InsightsCard() {
         </div>
       </CardContent>
 
-      <Dialog open={!!selectedInsight} onOpenChange={open => !open && setSelectedInsight(null)}>
+      <Dialog open={!!selectedInsight} onOpenChange={open => !open && setSelectedId(null)}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle className="flex flex-row items-start gap-3 pr-6">

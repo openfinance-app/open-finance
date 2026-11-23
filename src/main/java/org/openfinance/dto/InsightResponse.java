@@ -1,5 +1,6 @@
 package org.openfinance.dto;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
@@ -30,7 +31,7 @@ import org.openfinance.entity.InsightType;
  * @since Sprint 11 - AI Assistant Integration (Task 11.4)
  */
 @Data
-@Builder
+@Builder(toBuilder = true)
 @NoArgsConstructor
 @AllArgsConstructor
 public class InsightResponse {
@@ -51,6 +52,9 @@ public class InsightResponse {
     @NotBlank(message = "{insight.description.required}")
     @Size(max = 2000, message = "{insight.description.max}")
     private String description;
+
+    /** Internal encrypted-at-rest snapshot used to localize the API response. */
+    @JsonIgnore @ToString.Exclude private String messageData;
 
     /** Priority level (HIGH, MEDIUM, LOW). */
     @NotNull(message = "{insight.priority.required}")

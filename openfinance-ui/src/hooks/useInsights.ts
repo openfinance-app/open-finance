@@ -5,6 +5,7 @@
  * Provides React Query hooks for insight operations
  */
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import apiClient from '@/services/apiClient';
 import { AI_REQUEST_TIMEOUT_MS } from '@/constants/timing';
@@ -16,13 +17,18 @@ import { buildEncryptionHeaders } from '@/utils/encryption';
  * GET /api/v1/insights/top/{limit}
  */
 export function useTopInsights(limit: number = 3) {
-  return useQuery<Insight[]>({
-    queryKey: ['insights', 'top', limit],
+  const { i18n } = useTranslation();
+  return useQuery({
+    queryKey: ['insights', 'top', limit, i18n.resolvedLanguage ?? i18n.language],
     queryFn: async () => {
       const response = await apiClient.get<Insight[]>(`/insights/top/${limit}`, {
         headers: buildEncryptionHeaders(),
       });
-      return response.data;
+      const total = Number(response.headers?.['x-total-count']);
+      return {
+        insights: response.data,
+        total: Number.isSafeInteger(total) && total >= response.data.length ? total : undefined,
+      };
     },
     staleTime: 5 * 60 * 1000, // Consider data fresh for 5 minutes
     retry: 2,
@@ -34,8 +40,9 @@ export function useTopInsights(limit: number = 3) {
  * GET /api/v1/insights
  */
 export function useInsights() {
+  const { i18n } = useTranslation();
   return useQuery<Insight[]>({
-    queryKey: ['insights'],
+    queryKey: ['insights', 'all', i18n.resolvedLanguage ?? i18n.language],
     queryFn: async () => {
       const response = await apiClient.get<Insight[]>('/insights', {
         headers: buildEncryptionHeaders(),

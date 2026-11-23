@@ -234,6 +234,7 @@ public class SecurityConfig {
         configuration.setExposedHeaders(
                 List.of(
                         "X-Insights-Unavailable-Sources",
+                        "X-Total-Count",
                         HttpHeaders.WWW_AUTHENTICATE,
                         JwtAuthenticationFilter.RENEWED_TOKEN_HEADER));
 

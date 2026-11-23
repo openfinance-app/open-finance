@@ -1,5 +1,8 @@
 package org.openfinance.service;
 
+import static org.openfinance.service.InsightMessages.message;
+
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import java.math.BigDecimal;
 import java.math.MathContext;
 import java.math.RoundingMode;
@@ -232,16 +235,13 @@ public class UnusualTransactionDetectionService {
 
     private Insight buildNewPayeeInsight(
             User user, Transaction tx, String payee, BigDecimal amount) {
-        String title =
-                messageSource.getMessage(
-                        "insight.unusual.transaction.new.payee.title",
-                        new Object[] {payee},
-                        LocaleContextHolder.getLocale());
-        String description =
-                messageSource.getMessage(
+        ObjectNode title = message("insight.unusual.transaction.new.payee.title", payee);
+        ObjectNode description =
+                message(
                         "insight.unusual.transaction.new.payee.description",
-                        new Object[] {payee, amount, tx.getCurrency()},
-                        LocaleContextHolder.getLocale());
+                        payee,
+                        amount,
+                        tx.getCurrency());
         return buildInsight(user, title, description, InsightPriority.HIGH);
     }
 
@@ -254,40 +254,35 @@ public class UnusualTransactionDetectionService {
             BigDecimal pct) {
         BigDecimal meanDecimal = mean.setScale(2, RoundingMode.HALF_UP);
         BigDecimal pctLong = pct.setScale(0, RoundingMode.HALF_UP);
-        String title =
-                messageSource.getMessage(
-                        "insight.unusual.transaction.large.amount.title",
-                        null,
-                        LocaleContextHolder.getLocale());
-        String description =
-                messageSource.getMessage(
+        ObjectNode title = message("insight.unusual.transaction.large.amount.title");
+        ObjectNode description =
+                message(
                         "insight.unusual.transaction.large.amount.description",
-                        new Object[] {amount, tx.getCurrency(), payee, pctLong, meanDecimal},
-                        LocaleContextHolder.getLocale());
+                        amount,
+                        tx.getCurrency(),
+                        payee,
+                        pctLong,
+                        meanDecimal);
         return buildInsight(user, title, description, InsightPriority.HIGH);
     }
 
     private Insight buildLargeAmountNoPayeeInsight(User user, Transaction tx, BigDecimal amount) {
-        String title =
-                messageSource.getMessage(
-                        "insight.unusual.transaction.large.amount.no.payee.title",
-                        null,
-                        LocaleContextHolder.getLocale());
-        String description =
-                messageSource.getMessage(
+        ObjectNode title = message("insight.unusual.transaction.large.amount.no.payee.title");
+        ObjectNode description =
+                message(
                         "insight.unusual.transaction.large.amount.no.payee.description",
-                        new Object[] {amount, tx.getCurrency(), tx.getDate().toString()},
-                        LocaleContextHolder.getLocale());
+                        amount,
+                        tx.getCurrency(),
+                        tx.getDate().toString());
         return buildInsight(user, title, description, InsightPriority.MEDIUM);
     }
 
     private Insight buildInsight(
-            User user, String title, String description, InsightPriority priority) {
-        return Insight.builder()
+            User user, ObjectNode title, ObjectNode description, InsightPriority priority) {
+        return InsightMessages.withText(
+                        messageSource, LocaleContextHolder.getLocale(), title, description)
                 .user(user)
                 .type(InsightType.UNUSUAL_TRANSACTION)
-                .title(title)
-                .description(description)
                 .priority(priority)
                 .dismissed(false)
                 .build();

@@ -112,6 +112,11 @@ class ManagementQueriesIntegrationTest extends AuditApiTestSupport {
         long id = warning.path("id").asLong();
         assertThat(json("GET", "/insights", null, owner, 200))
                 .anySatisfy(i -> assertThat(i.path("id").asLong()).isEqualTo(id));
+        assertThat(warning.has("messageData")).isFalse();
+        String stored =
+                jdbc.queryForObject(
+                        "SELECT message_data FROM insights WHERE id = ?", String.class, id);
+        assertThat(stored).isNotBlank().doesNotContain("Private cash", "insight.low.balance");
         assertThat(json("GET", "/insights/top/1", null, owner, 200)).hasSize(1);
         json("GET", "/insights/top/0", null, owner, 400);
         json("GET", "/insights/top/21", null, owner, 400);

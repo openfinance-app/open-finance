@@ -66,6 +66,7 @@ public class InsightWriterImpl implements InsightWriter {
                 existing.setSourceKey(next.getSourceKey());
                 existing.setTitle(next.getTitle());
                 existing.setDescription(next.getDescription());
+                existing.setMessageData(next.getMessageData());
                 existing.setPriority(next.getPriority());
                 repository.save(existing);
             }

@@ -6,6 +6,8 @@ import java.util.Optional;
 import org.openfinance.entity.Insight;
 import org.openfinance.entity.InsightPriority;
 import org.openfinance.entity.InsightType;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -78,17 +80,15 @@ public interface InsightRepository extends JpaRepository<Insight, Long> {
      * <p>Returns the most important insights (sorted by priority and recency) for quick view.
      *
      * @param userId User ID
-     * @param limit Maximum number of insights to return
-     * @return List of top N active insights
+     * @param pageable Preview size to return
+     * @return Priority-ordered preview and total active count
      */
     @Query(
             value =
-                    "SELECT * FROM insights WHERE user_id = :userId AND dismissed = false "
-                            + "ORDER BY CASE priority WHEN 'HIGH' THEN 1 WHEN 'MEDIUM' THEN 2 WHEN 'LOW' THEN 3 END, "
-                            + "created_at DESC LIMIT :limit",
-            nativeQuery = true)
-    List<Insight> findTopNByUser_IdAndDismissedFalse(
-            @Param("userId") Long userId, @Param("limit") int limit);
+                    "SELECT i FROM Insight i WHERE i.user.id = :userId AND i.dismissed = false ORDER BY CASE i.priority WHEN org.openfinance.entity.InsightPriority.HIGH THEN 0 WHEN org.openfinance.entity.InsightPriority.MEDIUM THEN 1 ELSE 2 END, i.createdAt DESC, i.id DESC",
+            countQuery =
+                    "SELECT COUNT(i) FROM Insight i WHERE i.user.id = :userId AND i.dismissed = false")
+    Page<Insight> findActivePage(@Param("userId") Long userId, Pageable pageable);
 
     /**
      * Find insights by user and specific type.

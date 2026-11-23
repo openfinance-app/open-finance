@@ -3,11 +3,14 @@ package org.openfinance.controller;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import java.util.List;
+import java.util.Locale;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.openfinance.dto.InsightResponse;
 import org.openfinance.entity.User;
+import org.openfinance.service.InsightLocalization;
 import org.openfinance.service.InsightService;
+import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -66,6 +69,7 @@ import org.springframework.web.bind.annotation.*;
 @Slf4j
 public class InsightController {
     private final InsightService insightService;
+    private final InsightLocalization localization;
 
     /**
      * Generate fresh insights for the authenticated user.
@@ -118,7 +122,8 @@ public class InsightController {
      * @throws IllegalArgumentException if encryption key is missing or invalid
      */
     @PostMapping("/generate")
-    public ResponseEntity<List<InsightResponse>> generateInsights(Authentication authentication) {
+    public ResponseEntity<List<InsightResponse>> generateInsights(
+            Authentication authentication, Locale locale) {
 
         log.info("Generating insights for user");
         User user = (User) authentication.getPrincipal();
@@ -134,7 +139,10 @@ public class InsightController {
                         result.unavailableSources().stream()
                                 .map(Enum::name)
                                 .collect(java.util.stream.Collectors.joining(",")))
-                .body(insights);
+                .body(
+                        insights.stream()
+                                .map(insight -> localization.localize(insight, locale))
+                                .toList());
     }
 
     /**
@@ -174,21 +182,23 @@ public class InsightController {
      * @return HTTP 200 OK with list of active insights
      */
     @GetMapping
-    public ResponseEntity<List<InsightResponse>> getInsights(Authentication authentication) {
+    public ResponseEntity<List<InsightResponse>> getInsights(
+            Authentication authentication, Locale locale) {
         User user = (User) authentication.getPrincipal();
 
         log.debug("Fetching insights for user {}", user.getId());
 
         List<InsightResponse> insights = insightService.getInsights(user.getId());
 
-        return ResponseEntity.ok(insights);
+        return ResponseEntity.ok(
+                insights.stream().map(insight -> localization.localize(insight, locale)).toList());
     }
 
     /**
      * Retrieve top N priority insights for dashboard display.
      *
      * <p>Returns the most important insights (highest priority first) limited to the specified
-     * count. Useful for dashboard widgets that show only a few key insights.
+     * count. The X-Total-Count response header includes all active insights for this user.
      *
      * <p><strong>Request Headers:</strong>
      *
@@ -255,15 +265,18 @@ public class InsightController {
                     @Min(value = 1, message = "Limit must be at least 1")
                     @Max(value = 20, message = "Limit cannot exceed 20")
                     int limit,
-            Authentication authentication) {
+            Authentication authentication,
+            Locale locale) {
 
         User user = (User) authentication.getPrincipal();
 
         log.debug("Fetching top {} insights for user {}", limit, user.getId());
 
-        List<InsightResponse> insights = insightService.getTopInsights(user.getId(), limit);
+        Page<InsightResponse> insights = insightService.getTopInsights(user.getId(), limit);
 
-        return ResponseEntity.ok(insights);
+        return ResponseEntity.ok()
+                .header("X-Total-Count", Long.toString(insights.getTotalElements()))
+                .body(insights.map(insight -> localization.localize(insight, locale)).getContent());
     }
 
     /**
